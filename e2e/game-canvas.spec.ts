@@ -1,15 +1,29 @@
 import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { loadEnv } from 'vite'
 
 const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
 const testUserEmail = testEnvironment.VITE_TEST_USER_EMAIL
 const testUserPassword = testEnvironment.VITE_TEST_USER_PASSWORD
 
-test('shows the pre-run dashboard without mounting the arena', async ({ page }) => {
+async function signIn(page: Page): Promise<void> {
+  test.skip(
+    !testUserEmail || !testUserPassword,
+    'VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD are required for authenticated desktop flows.',
+  )
+
+  await page.getByLabel('Email').fill(testUserEmail)
+  await page.getByLabel('Password').fill(testUserPassword)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
+  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+}
+
+test('shows the sign-in gateway without mounting the arena', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: /ready for your next run/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in to continue' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 })
 
@@ -17,6 +31,7 @@ test('loads and persists dashboard settings while locking future contracts', asy
   page,
 }) => {
   await page.goto('/')
+  await signIn(page)
 
   const defaultContract = page.getByRole('button', { name: /10 minutes.*default/i })
   const fifteenMinuteContract = page.getByRole('button', { name: /15 minutes/i })
@@ -39,31 +54,23 @@ test('loads and persists dashboard settings while locking future contracts', asy
 })
 
 test('signs in and out with the configured Supabase test account', async ({ page }) => {
-  test.skip(
-    !testUserEmail || !testUserPassword,
-    'VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD are required for this test.',
-  )
-
   await page.goto('/')
-  await page.getByLabel('Email').fill(testUserEmail)
-  await page.getByLabel('Password').fill(testUserPassword)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-
-  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
-  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+  await signIn(page)
+  await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
   await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in to continue' })).toBeVisible()
 })
 
 test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   page,
 }) => {
   await page.goto('/')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   await expect(
@@ -116,12 +123,13 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(
     page.getByRole('heading', { name: /ready for your next run/i }),
   ).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('1 pending local result')
+  await expect(page.getByRole('status')).toContainText('1 run queued for local sync')
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 })
 
 test('keeps the arena running after endless combat begins', async ({ page }) => {
   await page.goto('/')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
   const canvas = page.locator('.game-canvas canvas')
 
@@ -135,6 +143,7 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   page,
 }) => {
   await page.goto('/')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   await page.evaluate(() => {
@@ -176,11 +185,17 @@ test('pauses on Escape without blocking HUD or development controls', async ({
 })
 
 test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
-  await page.goto('/?demo=gear')
+  await page.goto('/?demo=gear&devmenu=open')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
   await expect(overlay).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Development Menu' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+  await expect(page.getByRole('button', { name: 'Development Menu' })).toBeDisabled()
 
   const skill = page.getByRole('button', {
     name: 'Basic Bolt, level 1',
@@ -207,6 +222,7 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
   page,
 }) => {
   await page.goto('/')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   const skill = page.getByRole('button', {
@@ -227,6 +243,7 @@ test('projects the final boss, stairs, transition, and victory result in develop
   page,
 }) => {
   await page.goto('/?demo=final-boss')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   await expect(page.getByRole('region', { name: 'Boss status' })).toContainText(
@@ -245,6 +262,7 @@ test('projects the final boss, stairs, transition, and victory result in develop
 
 test('opens the in-run Behavior screen and switches profiles', async ({ page }) => {
   await page.goto('/')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   const behaviorSummary = page.getByRole('button', {
@@ -275,6 +293,7 @@ test('displays the level-up choices and resumes after selecting one', async ({
   page,
 }) => {
   await page.goto('/?demo=level-up')
+  await signIn(page)
   await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
   await page.getByRole('button', { name: 'Start Run' }).click()
 
@@ -297,6 +316,7 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   page,
 }) => {
   await page.goto('/?demo=gear')
+  await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
@@ -304,20 +324,17 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await expect(
     page.getByRole('button', { name: 'Development Menu' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Development Menu' }).click()
-  await expect(
-    page.getByRole('heading', { name: 'Development Menu' }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Development Menu' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+  await expect(page.getByRole('button', { name: 'Development Menu' })).toBeDisabled()
   const gearCards = overlay.locator('[data-choice-type="gear"]')
   await expect(gearCards).toHaveCount(3)
   await expect(gearCards.locator('.gear-upgrade-type')).toHaveCount(0)
   await expect(gearCards.first().locator('[data-rarity]')).toBeVisible()
   await expect(gearCards.first()).toContainText(/weapon|helmet|armor|boots|ring|amulet/i)
   await expect(gearCards.first()).toContainText(/gains|net change/i)
-  await expect(
-    page.getByRole('button', { name: 'Development Menu' }),
-  ).toBeFocused()
-
   await gearCards.first().focus()
   await expect(overlay.getByRole('tooltip')).toContainText('Full comparison')
   await expect(overlay.getByRole('tooltip')).toContainText('Offered')

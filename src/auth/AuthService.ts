@@ -23,6 +23,9 @@ export interface AuthenticationService {
   subscribe(onAccountChange: (account: AuthAccount | null) => void): () => void
 }
 
+let browserClient: SupabaseClient | null = null
+let browserClientConfiguration: string | null = null
+
 export function resolveAuthEnvironment(
   environment: AuthEnvironment,
 ): Required<AuthEnvironment> {
@@ -42,7 +45,12 @@ export function createAuthenticationService(
   environment: AuthEnvironment,
 ): AuthenticationService {
   const { supabaseUrl, supabasePublishableKey } = resolveAuthEnvironment(environment)
-  const client = createClient(supabaseUrl, supabasePublishableKey)
+  const configuration = `${supabaseUrl}\u0000${supabasePublishableKey}`
+  const client = browserClientConfiguration === configuration && browserClient
+    ? browserClient
+    : createClient(supabaseUrl, supabasePublishableKey)
+  browserClient = client
+  browserClientConfiguration = configuration
   return createAuthenticationServiceFromClient(client)
 }
 

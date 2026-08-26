@@ -413,18 +413,25 @@ function App() {
     <main className="app-shell">
       <AppHeader />
       {screen === 'dashboard' ? (
-        <Dashboard
-          settings={settings}
-          profile={profile}
-          pendingCount={persistence.pendingCount}
-          writeError={writeError}
-          authentication={authentication}
-          onStart={startRun}
-          onSignIn={signIn}
-          onSignOut={signOut}
-          onSelectBehaviorProfile={selectBehaviorProfile}
-          onSelectDungeonContract={selectDungeonContract}
-        />
+        authentication.account ? (
+          <Dashboard
+            settings={settings}
+            profile={profile}
+            pendingCount={persistence.pendingCount}
+            writeError={writeError}
+            authentication={authentication}
+            onStart={startRun}
+            onSignOut={signOut}
+            onSelectBehaviorProfile={selectBehaviorProfile}
+            onSelectDungeonContract={selectDungeonContract}
+          />
+        ) : (
+          <AuthGateway
+            authentication={authentication}
+            onSignIn={signIn}
+            onSignOut={signOut}
+          />
+        )
       ) : null}
       {screen === 'gameplay' ? (
         <GameCanvas
@@ -462,7 +469,6 @@ interface DashboardProps {
   writeError: string | null
   authentication: AuthenticationState
   onStart: () => void
-  onSignIn: (email: string, password: string) => Promise<boolean>
   onSignOut: () => Promise<boolean>
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
@@ -475,7 +481,6 @@ function Dashboard({
   writeError,
   authentication,
   onStart,
-  onSignIn,
   onSignOut,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
@@ -489,11 +494,16 @@ function Dashboard({
           Survive the arena while your hero automatically targets nearby
           enemies. Collect XP to level up and choose an upgrade between waves.
         </p>
-        <AuthPanel
-          authentication={authentication}
-          onSignIn={onSignIn}
-          onSignOut={onSignOut}
-        />
+        <AccountSummary authentication={authentication} onSignOut={onSignOut} />
+        {pendingCount > 0 ? (
+          <p className="persistence-status" role="status">
+            <strong>Pending local result</strong>
+            <span>
+              {pendingCount} {pendingCount === 1 ? 'run' : 'runs'} queued for local sync.
+            </span>
+          </p>
+        ) : null}
+        {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <fieldset className="dashboard-choice-group">
           <legend>Behavior profile</legend>
           <div className="dashboard-choice-list">
@@ -544,16 +554,69 @@ function Dashboard({
           <li><strong>Combat:</strong> attacks happen automatically.</li>
           <li><strong>Upgrade:</strong> choose one option whenever you level up.</li>
         </ul>
-        {pendingCount > 0 ? (
-          <p className="persistence-status" role="status">
-            {pendingCount} pending local {pendingCount === 1 ? 'result' : 'results'}
-          </p>
-        ) : null}
-        {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <button className="primary-action" type="button" onClick={onStart}>
           Start Run
         </button>
       </div>
+    </section>
+  )
+}
+
+interface AuthGatewayProps {
+  authentication: AuthenticationState
+  onSignIn: (email: string, password: string) => Promise<boolean>
+  onSignOut: () => Promise<boolean>
+}
+
+function AuthGateway({
+  authentication,
+  onSignIn,
+  onSignOut,
+}: AuthGatewayProps) {
+  return (
+    <section className="auth-gateway" aria-labelledby="auth-gateway-title">
+      <div className="dashboard-panel">
+        <p className="screen-kicker">Account access</p>
+        <h2 id="auth-gateway-title">Sign in to continue</h2>
+        <p>
+          Prepare this device for account-backed progression before opening the run dashboard.
+        </p>
+        <AuthPanel
+          authentication={authentication}
+          onSignIn={onSignIn}
+          onSignOut={onSignOut}
+        />
+      </div>
+    </section>
+  )
+}
+
+function AccountSummary({
+  authentication,
+  onSignOut,
+}: {
+  authentication: AuthenticationState
+  onSignOut: () => Promise<boolean>
+}) {
+  return (
+    <section className="account-summary" aria-labelledby="account-summary-title">
+      <p className="screen-kicker">Account</p>
+      <h3 id="account-summary-title">Signed in</h3>
+      <p className="account-email">{authentication.account?.email ?? 'Email unavailable'}</p>
+      {authentication.error ? (
+        <p className="persistence-error" role="alert">
+          {authentication.error}
+        </p>
+      ) : null}
+      <button
+        className="secondary-action"
+        type="button"
+        onClick={() => {
+          void onSignOut()
+        }}
+      >
+        Sign out
+      </button>
     </section>
   )
 }

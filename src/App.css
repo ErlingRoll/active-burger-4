@@ -26,7 +26,8 @@
 }
 
 .dashboard,
-.results-screen {
+.results-screen,
+.auth-gateway {
   display: grid;
   min-height: 0;
   place-items: center;
@@ -84,6 +85,23 @@
   background: #0f172a;
   border: 1px solid #334155;
   border-radius: 0.75rem;
+}
+
+.account-summary {
+  display: grid;
+  gap: 0.4rem;
+  margin: 1.25rem 0 1rem;
+  padding: 0.95rem 1rem;
+  color: #cbd5e1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.account-summary h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.05rem;
 }
 
 .account-panel h3 {
@@ -203,6 +221,25 @@
   margin: 1rem 0;
   color: #bfdbfe;
   font-size: 0.9rem;
+}
+
+.persistence-status {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  color: #dbeafe;
+  background: rgb(15 23 42 / 88%);
+  border: 1px solid #475569;
+  border-left: 4px solid #60a5fa;
+  border-radius: 0.6rem;
+}
+
+.persistence-status strong {
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .persistence-error {
@@ -1568,6 +1605,89 @@
 .upgrade-choice-description {
   color: #cbd5e1;
   font-size: 0.9rem;
+}
+
+@media (min-width: 701px) {
+  .gameplay-hud {
+    display: grid;
+    grid-template-columns:
+      minmax(16rem, 1.1fr)
+      minmax(0, 2fr)
+      minmax(15rem, 0.95fr);
+    grid-template-areas:
+      'stats stats stats'
+      'loadout projection behavior'
+      'skills skills skills';
+    align-items: start;
+    gap: 1rem 1.1rem;
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .hud-stats {
+    grid-area: stats;
+  }
+
+  .equipped-loadout {
+    grid-area: loadout;
+    position: static;
+    width: auto;
+    min-width: 0;
+  }
+
+  .run-projection-hud {
+    grid-area: projection;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: min-content;
+    gap: 0.65rem;
+    align-content: start;
+  }
+
+  .floor-hud {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .timeline-hud {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pickup-hud {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .choice-hud {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .behavior-hud {
+    grid-area: behavior;
+    position: static;
+    top: auto;
+    right: auto;
+    width: auto;
+    min-width: 0;
+    align-self: start;
+  }
+
+  .skill-hud {
+    grid-area: skills;
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+  }
+
+  .loadout-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timeline-hud ol {
+    font-size: 0.76rem;
+  }
 }
 
 @media (max-width: 700px) {

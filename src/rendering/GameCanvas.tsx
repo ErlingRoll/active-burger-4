@@ -94,6 +94,10 @@ export function GameCanvas({
   const choiceFlowKeyRef = useRef<string | null>(null)
   const [behaviorScreenOpen, setBehaviorScreenOpen] = useState(false)
   const behaviorScreenOpenRef = useRef(false)
+  const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
+    () => import.meta.env.DEV &&
+      new URLSearchParams(window.location.search).get('devmenu') === 'open',
+  )
 
   useEffect(() => {
     const container = containerRef.current
@@ -117,6 +121,9 @@ export function GameCanvas({
         if (choiceFlowKeyRef.current !== nextChoiceFlowKey) {
           choiceFlowKeyRef.current = nextChoiceFlowKey
           setChoiceFlow(nextSnapshot.pendingChoiceFlow)
+          if (nextSnapshot.pendingChoiceFlow) {
+            setDevelopmentMenuOpen(false)
+          }
         }
       }
     }
@@ -258,7 +265,13 @@ export function GameCanvas({
         <GameplayHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
       ) : null}
       {import.meta.env.DEV && snapshot && game ? (
-        <DevelopmentMenu game={game} snapshot={snapshot} />
+        <DevelopmentMenu
+          game={game}
+          snapshot={snapshot}
+          open={developmentMenuOpen}
+          choiceFlowActive={choiceFlow !== null}
+          onOpenChange={setDevelopmentMenuOpen}
+        />
       ) : null}
       {phase === 'paused' ? (
         <p className="paused-indicator" role="status">
@@ -642,14 +655,23 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
 interface DevelopmentMenuProps {
   game: Game
   snapshot: GameUiSnapshot
+  open: boolean
+  choiceFlowActive: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
-  const [open, setOpen] = useState(false)
+function DevelopmentMenu({
+  game,
+  snapshot,
+  open,
+  choiceFlowActive,
+  onOpenChange,
+}: DevelopmentMenuProps) {
   const [timeScaleInput, setTimeScaleInput] = useState(() =>
     game.timeScale.toString(),
   )
   const [timeScaleError, setTimeScaleError] = useState<string | null>(null)
+
   const entityCounts = {
     enemies: game.state.enemies.length,
     bosses: game.state.bosses?.length ?? 0,
@@ -751,7 +773,8 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
         type="button"
         aria-expanded={open}
         aria-controls="development-menu"
-        onClick={() => setOpen((isOpen) => !isOpen)}
+        disabled={choiceFlowActive}
+        onClick={() => onOpenChange(!open)}
       >
         Development Menu
       </button>
