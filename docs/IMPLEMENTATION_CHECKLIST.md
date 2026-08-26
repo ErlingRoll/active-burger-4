@@ -52,7 +52,9 @@ milestones in order unless an ADR documents an exception.
 - [x] **11. Gear:** deterministic drops, equipment choices, rarity, and stat
   modifiers. Event-triggered passives and conditional synergies remain deferred.
 - [x] **12. Elites:** selection, Hasted/Giant, visuals, rewards.
-- [ ] **13. Boss:** timeline, boss behavior/bar, victory.
+- [x] **13. Boss:** deterministic 3:00 encounter, Ground Slam/Charge telegraphs,
+      autonomous Dodge, health/status UI, deterministic reward, Development Menu spawn,
+      and resumed normal spawning.
 - [ ] **14. Full Run:** timed difficulty, events, final boss, results.
 - [ ] **15. Local Persistence:** versioned Dexie settings, profile, pending
   results, and migrations.

@@ -57,6 +57,7 @@ import {
 import {
   createInitialPlayerState,
   spawnEnemy,
+  spawnBoss,
   spawnGearPickup,
   spawnSlime,
   spawnXpPickup,
@@ -80,6 +81,19 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
+import {
+  completeBossEncounter,
+  startBossEncounter,
+  updateEncounter,
+} from './systems/encounter/EncounterSystem'
+import {
+  cancelBossTelegraphs,
+  resolveBossTelegraphs,
+  updateBosses,
+} from './systems/boss/BossSystem'
+import { updatePlayerDodge } from './systems/movement/DodgeSystem'
+import type { BossDefinitionId } from '../content/bosses/Bosses'
+import { ENCOUNTER_DEFINITIONS } from '../content/encounters/Encounters'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
 export { MAX_FRAME_SECONDS } from './engine/GameClock'
@@ -93,6 +107,9 @@ export type {
   SkillHudSnapshot,
   SkillUpgradeSnapshot,
   SkillUpgradeStatus,
+  BossHudSnapshot,
+  TelegraphHudSnapshot,
+  DodgeHudSnapshot,
 } from './ui/Snapshots'
 export type {
   GearChoice,
@@ -155,6 +172,12 @@ export class Game {
       },
       player: createInitialPlayerState(this.idAllocator.createEntityId()),
       enemies: [],
+      bosses: [],
+      encounter: {
+        status: 'inactive',
+        normalSpawnsSuspended: false,
+      },
+      telegraphs: [],
       projectiles: [],
       pickups: [],
       summons: [],
@@ -423,6 +446,34 @@ export class Game {
     )
   }
 
+  /** Starts the first boss encounter immediately, for deterministic testing. */
+  startBossEncounter(): boolean {
+    return startBossEncounter(this.gameState, this.idAllocator)
+  }
+
+  spawnBoss(
+    definitionId: BossDefinitionId = 'stone-golem',
+    position: WorldPosition = {
+      x: this.gameState.player.x + 320,
+      y: this.gameState.player.y,
+    },
+  ): EntityId {
+    return spawnBoss(this.gameState, this.idAllocator, definitionId, position)
+  }
+
+  /** Starts a named boss encounter immediately, for development harnesses. */
+  startEncounter(definitionId?: BossDefinitionId): boolean {
+    if (!definitionId) {
+      return this.startBossEncounter()
+    }
+    const definition = ENCOUNTER_DEFINITIONS.find(
+      (candidate) => candidate.bossDefinitionId === definitionId,
+    )
+    return definition
+      ? startBossEncounter(this.gameState, this.idAllocator, definition, true)
+      : false
+  }
+
   /** Adds a pickup through the game's entity allocator. */
   spawnXpPickup(position: WorldPosition, xpAmount: number): EntityId {
     return spawnXpPickup(
@@ -485,6 +536,8 @@ export class Game {
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
+    updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
+    updatePlayerDodge(this.gameState, FIXED_STEP_SECONDS)
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState, enemySpatialHash)
     spawnBasicBoltIfReady(this.gameState, this.idAllocator)
@@ -492,8 +545,31 @@ export class Game {
     const damageEvents = [
       ...collectProjectileDamage(this.gameState, enemySpatialHash),
       ...collectSkillDamage(this.gameState, this.idAllocator),
+      ...resolveBossTelegraphs(this.gameState),
     ]
     applyDamageEvents(this.gameState, damageEvents)
+    if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
+      this.transitionTo('defeat')
+      return
+    }
+    const defeatedBosses = (this.gameState.bosses ?? []).filter(
+      (boss) => boss.hp <= 0,
+    )
+    if (defeatedBosses.length > 0) {
+      cancelBossTelegraphs(
+        this.gameState,
+        new Set(defeatedBosses.map((boss) => boss.id)),
+      )
+      for (const boss of defeatedBosses) {
+        if (boss.xpReward > 0) {
+          this.spawnXpPickup({ x: boss.x, y: boss.y }, boss.xpReward)
+        }
+      }
+      this.gameState.bosses = (this.gameState.bosses ?? []).filter(
+        (boss) => boss.hp > 0,
+      )
+      completeBossEncounter(this.gameState)
+    }
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
     }, (definitionId, position, xpRewardOverride) => {
@@ -513,6 +589,10 @@ export class Game {
       this.enqueueGearPickupFlow(pickup)
     })
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
+    // Evaluate timeline events after this tick's normal spawns. This makes the
+    // exact 3:00 boundary stable: the event is visible at 3:00 and suspension
+    // takes effect on the following fixed step.
+    updateEncounter(this.gameState, this.idAllocator)
   }
 
   private transitionTo(nextPhase: RunPhase): void {

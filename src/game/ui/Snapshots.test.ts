@@ -4,7 +4,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
-import { createGame } from '../Game'
+import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { createUiSnapshot } from './Snapshots'
 
 describe('UI snapshots', () => {
@@ -42,5 +42,34 @@ describe('UI snapshots', () => {
       .toMatchObject({ relevant: true, status: 'available' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('projects the active boss, telegraph, and autonomous Dodge state immutably', () => {
+    const game = createGame({ seed: 72 })
+    expect(game.startEncounter()).toBe(true)
+    game.update(FIXED_STEP_SECONDS)
+
+    const snapshot = createUiSnapshot(game.state)
+
+    expect(snapshot.encounterStatus).toBe('active')
+    expect(snapshot.boss).toMatchObject({
+      name: 'Stone Golem',
+      status: 'active',
+      hp: 900,
+      maxHp: 900,
+      hpProgress: 1,
+    })
+    expect(snapshot.telegraphs).toHaveLength(1)
+    expect(snapshot.dodge).toMatchObject({
+      mode: 'autonomous',
+      level: 1,
+      reactionTime: 0.1,
+      active: true,
+      activeTelegraphCount: 1,
+    })
+    expect(Object.isFrozen(snapshot.boss)).toBe(true)
+    expect(Object.isFrozen(snapshot.telegraphs)).toBe(true)
+    expect(Object.isFrozen(snapshot.telegraphs[0]?.points)).toBe(true)
+    expect(Object.isFrozen(snapshot.dodge)).toBe(true)
   })
 })

@@ -245,7 +245,38 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <dt>Kills</dt>
           <dd>{snapshot.killCount}</dd>
         </div>
+        <div className="hud-stat hud-dodge">
+          <dt>Dodge Lv. {snapshot.dodge.level}</dt>
+          <dd>
+            <progress
+              value={snapshot.dodge.progress * 100}
+              max={100}
+              aria-label="Dodge telegraph progress"
+            />
+            <span>
+              {snapshot.dodge.active
+                ? `Evading (${snapshot.dodge.activeTelegraphCount})`
+                : `${snapshot.dodge.reactionTime.toFixed(2)}s reaction`}
+            </span>
+          </dd>
+        </div>
       </dl>
+      {snapshot.boss ? (
+        <section className="boss-hud" aria-label="Boss status">
+          <div className="boss-hud-heading">
+            <strong>{snapshot.boss.name}</strong>
+            <span>{snapshot.boss.status}</span>
+          </div>
+          <progress
+            value={snapshot.boss.hpProgress * 100}
+            max={100}
+            aria-label={`${snapshot.boss.name} health`}
+          />
+          <span>
+            {Math.ceil(snapshot.boss.hp)} / {Math.ceil(snapshot.boss.maxHp)} HP
+          </span>
+        </section>
+      ) : null}
       <section className="skill-hud" aria-labelledby="acquired-skills-title">
         <h3 id="acquired-skills-title" className="visually-hidden">
           Acquired skills
@@ -405,6 +436,7 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
   const [timeScaleError, setTimeScaleError] = useState<string | null>(null)
   const entityCounts = {
     enemies: game.state.enemies.length,
+    bosses: game.state.bosses?.length ?? 0,
     projectiles: game.state.projectiles.length,
     pickups: game.state.pickups.length,
     summons: game.state.summons.length,
@@ -413,6 +445,7 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
   const totalEntities =
     1 +
     entityCounts.enemies +
+    entityCounts.bosses +
     entityCounts.projectiles +
     entityCounts.pickups +
     entityCounts.summons +
@@ -452,6 +485,16 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
     }
   }
 
+  const canSpawnBoss =
+    snapshot.phase === 'playing' && snapshot.encounterStatus === 'inactive'
+
+  const spawnBoss = (): void => {
+    if (!canSpawnBoss) {
+      return
+    }
+    game.startEncounter()
+  }
+
   return (
     <div className="development-controls">
       <button
@@ -482,6 +525,14 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
           >
             {snapshot.phase === 'paused' ? 'Resume run' : 'Pause run'}
           </button>
+          <button
+            className="debug-spawn-button debug-spawn-boss-button"
+            type="button"
+            onClick={spawnBoss}
+            disabled={!canSpawnBoss}
+          >
+            Spawn Boss
+          </button>
           <dl className="entity-counts" aria-label="Entity counts">
             <div>
               <dt>Total entities</dt>
@@ -490,6 +541,10 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
             <div>
               <dt>Enemies</dt>
               <dd>{entityCounts.enemies}</dd>
+            </div>
+            <div>
+              <dt>Bosses</dt>
+              <dd>{entityCounts.bosses}</dd>
             </div>
             <div>
               <dt>Projectiles</dt>

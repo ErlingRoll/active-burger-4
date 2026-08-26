@@ -76,4 +76,28 @@ describe('SpawnDirector', () => {
       director.update(createState(0, SPAWN_BALANCE.maxActiveEnemies), 10),
     ).toHaveLength(0)
   })
+
+  it('introduces every composition entry during a fixed-timestep run', () => {
+    const director = new SpawnDirector(new Random(20260826))
+    const state = createState()
+    const firstSpawnTimes = new Map<string, number>()
+
+    for (let step = 1; step <= 120 * 60; step += 1) {
+      state.time = step / 60
+      for (const request of director.update(state, 1 / 60)) {
+        firstSpawnTimes.set(
+          request.definitionId,
+          firstSpawnTimes.get(request.definitionId) ?? state.time,
+        )
+      }
+    }
+
+    for (const entry of SPAWN_BALANCE.spawnEntries) {
+      const firstSpawnTime = firstSpawnTimes.get(entry.definitionId)
+      expect(firstSpawnTime).toBeDefined()
+      const startTimeSeconds =
+        'startTimeSeconds' in entry ? entry.startTimeSeconds : 0
+      expect(firstSpawnTime).toBeGreaterThanOrEqual(startTimeSeconds)
+    }
+  })
 })

@@ -74,7 +74,9 @@ function collectWhirlwindDamage(
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
 
-  const enemies = [...state.enemies].sort((left, right) => left.id - right.id)
+  const enemies = [...state.enemies, ...(state.bosses ?? [])].sort(
+    (left, right) => left.id - right.id,
+  )
   for (const enemy of enemies) {
     if (enemy.hp <= 0) {
       continue
@@ -127,7 +129,7 @@ function collectChainLightningDamage(
     let targetDistanceSquared = Number.POSITIVE_INFINITY
     const range = jump === 0 ? maxRange : jumpRange
     const rangeSquared = range * range
-    for (const enemy of state.enemies) {
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
       if (enemy.hp <= 0 || visited.has(enemy.id)) {
         continue
       }

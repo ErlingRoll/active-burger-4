@@ -15,6 +15,7 @@ export interface SpawnRequest {
 export type SpawnDirectorState = Pick<GameState, 'time'> & {
   player: Pick<PlayerState, 'x' | 'y'>
   enemies: readonly Pick<EnemyState, 'id' | 'hp'>[]
+  encounter?: Pick<NonNullable<GameState['encounter']>, 'normalSpawnsSuspended'>
 }
 
 /**
@@ -41,6 +42,12 @@ export class SpawnDirector {
   private readonly random: RandomSource
   private readonly balance: SpawnBalance
   private threatBudget = 0
+  private pendingEntry:
+    | SpawnBalance['spawnEntries'][number]
+    | undefined
+  private readonly introducedEntries = new Set<
+    SpawnBalance['spawnEntries'][number]
+  >()
 
   constructor(random: RandomSource, balance: SpawnBalance = SPAWN_BALANCE) {
     this.random = random
@@ -60,6 +67,9 @@ export class SpawnDirector {
     state: SpawnDirectorState,
     deltaSeconds: number,
   ): SpawnRequest[] {
+    if (state.encounter?.normalSpawnsSuspended) {
+      return []
+    }
     const delta = Math.max(0, deltaSeconds)
     this.threatBudget +=
       calculateThreatPerSecond(state.time, this.balance) * delta
@@ -80,13 +90,18 @@ export class SpawnDirector {
       if (this.threatBudget < this.minimumThreatCost(state.time)) {
         break
       }
-
-      const entry = this.selectSpawnEntry(this.threatBudget, state.time)
+      this.pendingEntry ??= this.selectSpawnEntry(state.time)
+      const entry = this.pendingEntry
       if (!entry) {
+        break
+      }
+      if (this.threatBudget < entry.threatCost) {
         break
       }
 
       this.threatBudget -= entry.threatCost
+      this.introducedEntries.add(entry)
+      this.pendingEntry = undefined
       const angle = this.random.next() * Math.PI * 2
       const radius =
         this.balance.spawnRingInnerRadius +
@@ -146,7 +161,7 @@ export class SpawnDirector {
     return weightedModifiers[weightedModifiers.length - 1]?.[0]
   }
 
-  private selectSpawnEntry(maxThreatCost: number, timeSeconds: number) {
+  private selectSpawnEntry(timeSeconds: number) {
     const entries = this.balance.spawnEntries.filter(
       (entry) =>
         (entry.startTimeSeconds ?? 0) <= Math.max(0, timeSeconds),
@@ -155,11 +170,16 @@ export class SpawnDirector {
       return undefined
     }
 
-    const totalWeight = entries.reduce(
-      (sum, entry) =>
-        entry.threatCost <= maxThreatCost
-          ? sum + Math.max(0, entry.weight)
-          : sum,
+    // Ensure every newly unlocked entry is shown once before returning to the
+    // authored weighted mix. This keeps deterministic runs representative
+    // without removing weighting from the long-term composition.
+    const unintroducedEntries = entries.filter(
+      (entry) => !this.introducedEntries.has(entry),
+    )
+    const candidates =
+      unintroducedEntries.length > 0 ? unintroducedEntries : entries
+    const totalWeight = candidates.reduce(
+      (sum, entry) => sum + Math.max(0, entry.weight),
       0,
     )
     if (totalWeight <= 0) {
@@ -167,18 +187,14 @@ export class SpawnDirector {
     }
 
     let selection = this.random.next() * totalWeight
-    for (const entry of entries) {
-      if (entry.threatCost > maxThreatCost) {
-        continue
-      }
-
+    for (const entry of candidates) {
       selection -= Math.max(0, entry.weight)
       if (selection < 0) {
         return entry
       }
     }
 
-    return entries.find((entry) => entry.threatCost <= maxThreatCost)
+    return candidates[candidates.length - 1]
   }
 
   private minimumThreatCost(timeSeconds: number): number {

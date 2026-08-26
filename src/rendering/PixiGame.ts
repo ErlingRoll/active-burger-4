@@ -14,17 +14,30 @@ import {
   getSkillDefinition,
   isSkillId,
 } from '../content/skills/Skills'
-import type { SkillEffectState, ProjectileState } from '../game/state/GameState'
+import type {
+  BossState,
+  SkillEffectState,
+  ProjectileState,
+  TelegraphState,
+} from '../game/state/GameState'
+import {
+  getBossDefinition,
+  getBossSkillDefinition,
+} from '../content/bosses/Bosses'
 
 export class PixiGame {
   private readonly game: Game
   private readonly app = new Application()
   private readonly camera = new Container()
   private readonly enemyViews = new Map<EntityId, EnemyView>()
+  private readonly bossViews = new Map<EntityId, BossView>()
+  private readonly telegraphViews = new Map<EntityId, TelegraphView>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
   private enemyLayer: Container | undefined
+  private bossLayer: Container | undefined
+  private telegraphLayer: Container | undefined
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
@@ -71,8 +84,12 @@ export class PixiGame {
     const decorations = new Container()
     const pickups = new Container()
     this.pickupLayer = pickups
+    const telegraphs = new Container()
+    this.telegraphLayer = telegraphs
     const enemies = new Container()
     this.enemyLayer = enemies
+    const bosses = new Container()
+    this.bossLayer = bosses
     const player = new Container()
     const projectiles = new Container()
     this.projectileLayer = projectiles
@@ -85,7 +102,9 @@ export class PixiGame {
       ground,
       decorations,
       pickups,
+      telegraphs,
       enemies,
+      bosses,
       player,
       projectiles,
       effects,
@@ -206,6 +225,90 @@ export class PixiGame {
     return view
   }
 
+  private createBossPlaceholder(boss: BossState): BossView {
+    const body = new Graphics()
+      .circle(0, 0, boss.radius)
+      .fill('#7c3aed')
+      .stroke({ color: '#fef08a', width: 4 })
+      .circle(0, 0, boss.radius * 0.72)
+      .stroke({ color: '#c4b5fd', width: 2 })
+    const marker = new Graphics()
+      .poly([
+        0,
+        -boss.radius * 1.35,
+        boss.radius * 0.35,
+        -boss.radius * 1.05,
+        boss.radius * 0.7,
+        -boss.radius * 1.35,
+        boss.radius * 0.45,
+        -boss.radius * 0.72,
+        -boss.radius * 0.45,
+        -boss.radius * 0.72,
+        -boss.radius * 0.7,
+        -boss.radius * 1.35,
+        -boss.radius * 0.35,
+        -boss.radius * 1.05,
+      ])
+      .fill('#fef08a')
+      .stroke({ color: '#451a03', width: 1 })
+    const label = new Text({
+      text: getBossDisplayLabel(boss.bossDefinitionId),
+      style: {
+        fill: '#fef08a',
+        fontSize: 16,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
+        stroke: { color: '#0f172a', width: 5 },
+      },
+    })
+    label.anchor.set(0.5, 1)
+    const hpBar = new Graphics()
+    const root = new Container()
+    root.addChild(body, marker, hpBar, label)
+    return { root, label, hpBar }
+  }
+
+  private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
+    const skill = getBossSkillDefinition(telegraph.skillId)
+    const view = new Graphics()
+    if (telegraph.kind === 'charge') {
+      const start = telegraph.points[0]
+      if (start) {
+        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
+        for (const point of telegraph.points.slice(1)) {
+          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+        }
+        view.stroke({ color: '#fb7185', width: telegraph.radius * 2, alpha: 0.22 })
+        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
+        for (const point of telegraph.points.slice(1)) {
+          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+        }
+        view.stroke({ color: '#fecdd3', width: 4, alpha: 0.9 })
+      }
+    } else {
+      view
+        .circle(0, 0, telegraph.radius)
+        .fill({ color: '#ef4444', alpha: 0.22 })
+        .stroke({ color: '#fca5a5', width: 4, alpha: 0.95 })
+        .circle(0, 0, telegraph.radius * 0.72)
+        .stroke({ color: '#fecaca', width: 2, alpha: 0.8 })
+    }
+    const label = new Text({
+      text: `${skill.name} · DODGE`,
+      style: {
+        fill: '#fee2e2',
+        fontSize: 13,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
+        stroke: { color: '#450a0a', width: 4 },
+      },
+    })
+    label.anchor.set(0.5, 1)
+    const root = new Container()
+    root.addChild(view, label)
+    return { root, label }
+  }
+
   private createPickupPlaceholder(pickup: {
     radius: number
     kind?: 'xp' | 'gear'
@@ -313,6 +416,75 @@ export class PixiGame {
       this.enemyViews.delete(enemyId)
     }
 
+    const activeBossIds = new Set<EntityId>()
+    for (const boss of state.bosses ?? []) {
+      if (boss.hp <= 0) {
+        continue
+      }
+      activeBossIds.add(boss.id)
+      let bossView = this.bossViews.get(boss.id)
+      if (!bossView) {
+        bossView = this.createBossPlaceholder(boss)
+        this.bossViews.set(boss.id, bossView)
+        this.bossLayer?.addChild(bossView.root)
+      }
+      bossView.root.position.set(boss.x, boss.y)
+      const renderScale = 1
+      bossView.label.text = getBossDisplayLabel(boss.bossDefinitionId)
+      bossView.label.position.set(0, -(boss.radius * renderScale + 30))
+      bossView.hpBar.clear()
+      const barWidth = boss.radius * 2.5
+      const barHeight = 7
+      const barY = -(boss.radius * renderScale + 22)
+      bossView.hpBar
+        .rect(-barWidth / 2, barY, barWidth, barHeight)
+        .fill({ color: '#450a0a', alpha: 0.9 })
+        .rect(
+          -barWidth / 2,
+          barY,
+          barWidth * Math.max(0, Math.min(1, boss.hp / boss.maxHp)),
+          barHeight,
+        )
+        .fill('#ef4444')
+        .stroke({ color: '#fee2e2', width: 1 })
+    }
+
+    for (const [bossId, bossView] of this.bossViews) {
+      if (activeBossIds.has(bossId)) {
+        continue
+      }
+      bossView.root.removeFromParent()
+      bossView.root.destroy({ children: true })
+      this.bossViews.delete(bossId)
+    }
+
+    const activeTelegraphIds = new Set<EntityId>()
+    for (const telegraph of state.telegraphs ?? []) {
+      activeTelegraphIds.add(telegraph.id)
+      let telegraphView = this.telegraphViews.get(telegraph.id)
+      if (!telegraphView) {
+        telegraphView = this.createTelegraphPlaceholder(telegraph)
+        this.telegraphViews.set(telegraph.id, telegraphView)
+        this.telegraphLayer?.addChild(telegraphView.root)
+      }
+      telegraphView.root.position.set(telegraph.x, telegraph.y)
+      telegraphView.label.position.set(0, -(telegraph.radius + 10))
+      const progress = telegraph.duration > 0
+        ? Math.max(0, Math.min(1, 1 - telegraph.remainingDuration / telegraph.duration))
+        : 1
+      telegraphView.root.alpha = 0.7 + progress * 0.3
+      telegraphView.label.text = `${getBossSkillDefinition(telegraph.skillId).name} · DODGE`
+    }
+
+    for (const [telegraphId, telegraphView] of this.telegraphViews) {
+      if (activeTelegraphIds.has(telegraphId)) {
+        continue
+      }
+      telegraphView.root.removeFromParent()
+      telegraphView.root.destroy({ children: true })
+      this.telegraphViews.delete(telegraphId)
+    }
+
     const activeProjectileIds = new Set<EntityId>()
     for (const projectile of state.projectiles) {
       activeProjectileIds.add(projectile.id)
@@ -398,6 +570,14 @@ export class PixiGame {
       root.removeFromParent()
       root.destroy({ children: true })
     }
+    for (const { root } of this.bossViews.values()) {
+      root.removeFromParent()
+      root.destroy({ children: true })
+    }
+    for (const { root } of this.telegraphViews.values()) {
+      root.removeFromParent()
+      root.destroy({ children: true })
+    }
     for (const view of this.projectileViews.values()) {
       view.removeFromParent()
       view.destroy()
@@ -411,10 +591,14 @@ export class PixiGame {
       view.destroy()
     }
     this.enemyViews.clear()
+    this.bossViews.clear()
+    this.telegraphViews.clear()
     this.projectileViews.clear()
     this.pickupViews.clear()
     this.effectViews.clear()
     this.enemyLayer = undefined
+    this.bossLayer = undefined
+    this.telegraphLayer = undefined
     this.projectileLayer = undefined
     this.pickupLayer = undefined
     this.effectLayer = undefined
@@ -436,6 +620,17 @@ interface EnemyView {
   label: Text
 }
 
+interface BossView {
+  root: Container
+  label: Text
+  hpBar: Graphics
+}
+
+interface TelegraphView {
+  root: Container
+  label: Text
+}
+
 export function getEnemyDisplayLabel(
   definitionId: string,
   eliteModifier?: EliteModifierId,
@@ -445,4 +640,8 @@ export function getEnemyDisplayLabel(
     return definition.name
   }
   return `${definition.name} · ${getEliteModifierDefinition(eliteModifier).name}`
+}
+
+export function getBossDisplayLabel(definitionId: BossState['bossDefinitionId']): string {
+  return `BOSS · ${getBossDefinition(definitionId).name}`
 }

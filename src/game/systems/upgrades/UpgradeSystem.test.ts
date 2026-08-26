@@ -24,4 +24,22 @@ describe('skill upgrades', () => {
     applyUpgrade(game.state, 'damage-boost')
     expect(game.state.player.attackDamage).toBe(damageBefore + 2)
   })
+
+  it('applies the deterministic Dodge reaction-time upgrade', () => {
+    const game = createGame({ seed: 62 })
+    expect(game.state.player.dodge).toMatchObject({
+      mode: 'autonomous',
+      level: 1,
+      reactionTime: 0.1,
+    })
+
+    applyUpgrade(game.state, 'dodge-reaction')
+
+    expect(game.state.player.dodge).toMatchObject({
+      mode: 'autonomous',
+      level: 2,
+      reactionTime: 0.05,
+    })
+    expect(game.state.player.movementSpeed).toBe(200)
+  })
 })

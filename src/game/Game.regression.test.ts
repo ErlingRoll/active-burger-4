@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { createGame, FIXED_STEP_SECONDS } from './Game'
 
 function round(value: number): number {
@@ -115,5 +116,35 @@ describe('headless deterministic scenario regression', () => {
       projectiles: [],
       pickups: [],
     })
+  })
+
+  it('introduces the scheduled composition through normal runtime updates', () => {
+    const game = createGame({ seed: 20260826 })
+    const firstSpawnTimes = new Map<string, number>()
+
+    for (let step = 1; step <= 120 * 60; step += 1) {
+      game.update(FIXED_STEP_SECONDS)
+      while (game.phase === 'level-up') {
+        const choice = game.getPendingChoices()[0]
+        if (!choice || !game.selectChoice(choice)) {
+          throw new Error('Expected a selectable choice during the run')
+        }
+      }
+
+      for (const enemy of game.state.enemies) {
+        firstSpawnTimes.set(
+          enemy.definitionId,
+          firstSpawnTimes.get(enemy.definitionId) ?? game.state.time,
+        )
+      }
+    }
+
+    for (const entry of SPAWN_BALANCE.spawnEntries) {
+      const firstSpawnTime = firstSpawnTimes.get(entry.definitionId)
+      expect(firstSpawnTime).toBeDefined()
+      const startTimeSeconds =
+        'startTimeSeconds' in entry ? entry.startTimeSeconds : 0
+      expect(firstSpawnTime).toBeGreaterThanOrEqual(startTimeSeconds)
+    }
   })
 })

@@ -9,6 +9,9 @@ export * from './stats/DerivedStats'
 export * from './combat/Targeting'
 export * from './spatial/SpatialHash'
 export * from './systems/combat/EnemyBehaviors'
+export * from './systems/boss/BossSystem'
+export * from './systems/encounter/EncounterSystem'
+export * from './systems/movement/DodgeSystem'
 export * from './spawning/SpawnDirector'
 export * from './upgrades/UpgradeChoices'
 export {
@@ -28,4 +31,7 @@ export {
   type RunHudSnapshot,
   type RunResultSnapshot,
   type GearModifierSnapshot,
+  type BossHudSnapshot,
+  type TelegraphHudSnapshot,
+  type DodgeHudSnapshot,
 } from './Game'

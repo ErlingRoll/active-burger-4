@@ -9,6 +9,49 @@ import type { EquipmentLoadout } from '../equipment/EquipmentState'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
 import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
+import type {
+  BossDefinitionId,
+  BossSkillId,
+} from '../../content/bosses/Bosses'
+
+export type EncounterStatus = 'inactive' | 'active' | 'complete'
+export type EncounterOutcome = 'victory' | 'defeat' | undefined
+
+export interface EncounterState {
+  status: EncounterStatus
+  encounterId?: string
+  bossDefinitionId?: BossDefinitionId
+  bossEntityId?: EntityId
+  startedAt?: number
+  completedAt?: number
+  outcome?: EncounterOutcome
+  /** Normal spawns are suspended only while the encounter is active. */
+  normalSpawnsSuspended: boolean
+}
+
+export interface TelegraphState {
+  id: EntityId
+  sourceId: EntityId
+  skillId: BossSkillId
+  kind: 'ground-slam' | 'charge'
+  x: number
+  y: number
+  radius: number
+  remainingDuration: number
+  duration: number
+  points: readonly SkillEffectPoint[]
+  damage: number
+}
+export type Telegraph = TelegraphState
+
+export interface DodgeState {
+  mode: 'autonomous'
+  level: number
+  /** Seconds of telegraph visibility required before Dodge reacts. */
+  reactionTime: number
+  lastDirectionX: number
+  lastDirectionY: number
+}
 
 /** Configuration required to start a new deterministic run. */
 export interface RunConfig {
@@ -57,6 +100,7 @@ export interface PlayerState {
 
   targetId?: EntityId
   skills: SkillState[]
+  dodge?: DodgeState
 }
 
 export interface SkillState {
@@ -88,6 +132,17 @@ export interface EnemyState {
   eliteModifier?: EliteModifierId
 
   targetId: EntityId
+}
+
+export interface BossSkillState {
+  skillId: BossSkillId
+  cooldownRemaining: number
+}
+
+export interface BossState extends EnemyState {
+  bossDefinitionId: BossDefinitionId
+  skills: BossSkillState[]
+  nextSkillIndex: number
 }
 
 export type DamageType = 'physical' | 'lightning'
@@ -167,6 +222,10 @@ export interface GameState {
   player: PlayerState
 
   enemies: EnemyState[]
+  /** Bosses live separately from normal enemies but share targeting geometry. */
+  bosses?: BossState[]
+  encounter?: EncounterState
+  telegraphs?: TelegraphState[]
   projectiles: ProjectileState[]
   pickups: PickupState[]
   summons: SummonState[]

@@ -1,4 +1,4 @@
-import type { EnemyState, GameState } from '../state/GameState'
+import type { BossState, EnemyState, GameState } from '../state/GameState'
 import { SpatialHash } from '../spatial/SpatialHash'
 
 export interface TargetQuery {
@@ -8,12 +8,17 @@ export interface TargetQuery {
 }
 
 export function createEnemySpatialHash(
-  state: Pick<GameState, 'enemies'>,
-): SpatialHash<EnemyState> {
-  const spatialHash = new SpatialHash<EnemyState>()
+  state: Pick<GameState, 'enemies'> & Partial<Pick<GameState, 'bosses'>>,
+): SpatialHash<EnemyState | BossState> {
+  const spatialHash = new SpatialHash<EnemyState | BossState>()
   for (const enemy of state.enemies) {
     if (enemy.hp > 0) {
       spatialHash.insert(enemy.id, enemy.x, enemy.y, enemy.radius, enemy)
+    }
+  }
+  for (const boss of state.bosses ?? []) {
+    if (boss.hp > 0) {
+      spatialHash.insert(boss.id, boss.x, boss.y, boss.radius, boss)
     }
   }
   return spatialHash
@@ -26,9 +31,9 @@ export function createEnemySpatialHash(
  */
 export function findNearestEnemy(
   query: TargetQuery,
-  state: Pick<GameState, 'enemies'>,
+  state: Pick<GameState, 'enemies'> & Partial<Pick<GameState, 'bosses'>>,
   spatialHash = createEnemySpatialHash(state),
-): EnemyState | undefined {
+): (EnemyState | BossState) | undefined {
   if (query.maxRange < 0) {
     return undefined
   }

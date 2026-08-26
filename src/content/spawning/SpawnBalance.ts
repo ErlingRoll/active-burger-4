@@ -55,6 +55,7 @@ export const SPAWN_BALANCE = {
       definitionId: RUNNER_DEFINITION_ID,
       threatCost: 2,
       weight: 3,
+      startTimeSeconds: 10,
     },
     {
       definitionId: ARCHER_DEFINITION_ID,

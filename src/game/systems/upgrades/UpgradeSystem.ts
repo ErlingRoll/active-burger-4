@@ -13,6 +13,21 @@ export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
   player.statModifiers.push(...getUpgradeModifiers(definition))
   refreshPlayerDerivedStats(player)
 
+  if (definition.dodgeReactionTimeReduction) {
+    const dodge = player.dodge ??= {
+      mode: 'autonomous',
+      level: 1,
+      reactionTime: 0.1,
+      lastDirectionX: 0,
+      lastDirectionY: 0,
+    }
+    dodge.level += 1
+    dodge.reactionTime = Math.max(
+      0,
+      dodge.reactionTime - definition.dodgeReactionTimeReduction,
+    )
+  }
+
   if (definition.skillId && definition.skillAction) {
     const skill = player.skills.find(
       (candidate) => candidate.skillId === definition.skillId,

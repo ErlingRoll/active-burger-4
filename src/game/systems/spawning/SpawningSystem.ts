@@ -9,6 +9,10 @@ import {
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
 import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
+import {
+  getBossDefinition,
+  type BossDefinitionId,
+} from '../../../content/bosses/Bosses'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -17,6 +21,7 @@ import type {
 import type { SpawnDirector } from '../../spawning/SpawnDirector'
 import type {
   EnemyState,
+  BossState,
   GameState,
   GearPickupState,
   XpPickupState,
@@ -53,6 +58,13 @@ export function createInitialPlayerState(id: EntityId): PlayerState {
     statModifiers: [],
     equipment: {},
     targetId: undefined,
+    dodge: {
+      mode: 'autonomous',
+      level: 1,
+      reactionTime: 0.1,
+      lastDirectionX: 0,
+      lastDirectionY: 0,
+    },
     skills: [
       {
         skillId: BASIC_BOLT_SKILL_ID,
@@ -111,6 +123,38 @@ export function spawnSlime(
   return spawnEnemy(state, idAllocator, definition.id, position)
 }
 
+export function spawnBoss(
+  state: GameState,
+  idAllocator: EntityIdAllocator,
+  definitionId: BossDefinitionId,
+  position: WorldPosition,
+): EntityId {
+  const definition = getBossDefinition(definitionId)
+  const boss: BossState = {
+    id: idAllocator.createEntityId(),
+    definitionId: definition.id,
+    bossDefinitionId: definition.id,
+    x: position.x,
+    y: position.y,
+    radius: definition.radius,
+    hp: definition.maxHp,
+    maxHp: definition.maxHp,
+    speed: definition.speed,
+    contactDamage: definition.contactDamage,
+    xpReward: definition.xpReward,
+    targetId: state.player.id,
+    skills: definition.skills.map((skillId, index) => ({
+      skillId,
+      // The first skill is ready on spawn; subsequent skills follow in order.
+      cooldownRemaining: index === 0 ? 0 : 0.5,
+    })),
+    nextSkillIndex: 0,
+  }
+  state.bosses ??= []
+  state.bosses.push(boss)
+  return boss.id
+}
+
 export function spawnXpPickup(
   state: GameState,
   idAllocator: EntityIdAllocator,
@@ -160,6 +204,9 @@ export function updateEnemySpawns(
   idAllocator: EntityIdAllocator,
   fixedStepSeconds: number,
 ): void {
+  if (state.encounter?.normalSpawnsSuspended) {
+    return
+  }
   const requests = spawnDirector.update(state, fixedStepSeconds)
   for (const request of requests) {
     spawnEnemy(

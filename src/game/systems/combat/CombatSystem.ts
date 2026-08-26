@@ -19,6 +19,7 @@ import {
 import type { ChildSpawnRequest } from './EnemyBehaviors'
 import type {
   DamageEvent,
+  BossState,
   EnemyState,
   GameState,
   ProjectileState,
@@ -96,6 +97,8 @@ export function spawnBasicBoltIfReady(
 
   const target = state.enemies.find(
     (enemy) => enemy.id === targetId && enemy.hp > 0,
+  ) ?? state.bosses?.find(
+    (boss) => boss.id === targetId && boss.hp > 0,
   )
   if (!target) {
     player.targetId = undefined
@@ -157,7 +160,7 @@ export function collectProjectileDamage(
       continue
     }
 
-    let hitEnemy: EnemyState | undefined
+    let hitEnemy: EnemyState | BossState | undefined
     let hitDistanceSquared = Number.POSITIVE_INFINITY
 
     for (const enemy of enemies.queryRadius(
@@ -213,14 +216,23 @@ export function applyDamageEvents(
   events: readonly DamageEvent[],
 ): void {
   for (const event of events) {
+    if (event.targetId === state.player.id) {
+      state.player.hp = Math.max(0, state.player.hp - Math.max(0, event.amount))
+      continue
+    }
     const enemy = state.enemies.find(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
-    if (!enemy) {
+    if (enemy) {
+      enemy.hp = Math.max(0, enemy.hp - Math.max(0, event.amount))
       continue
     }
-
-    enemy.hp = Math.max(0, enemy.hp - Math.max(0, event.amount))
+    const boss = state.bosses?.find(
+      (candidate) => candidate.id === event.targetId && candidate.hp > 0,
+    )
+    if (boss) {
+      boss.hp = Math.max(0, boss.hp - Math.max(0, event.amount))
+    }
   }
 }
 

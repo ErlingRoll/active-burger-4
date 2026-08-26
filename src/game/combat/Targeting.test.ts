@@ -36,4 +36,22 @@ describe('findNearestEnemy', () => {
 
     expect(result?.id).toBe(4)
   })
+
+  it('includes living bosses even when no ordinary enemies are present', () => {
+    const result = findNearestEnemy(
+      { originX: 0, originY: 0, maxRange: 50 },
+      {
+        enemies: [],
+        bosses: [{
+          ...enemy(7, 20),
+          definitionId: 'stone-golem',
+          bossDefinitionId: 'stone-golem',
+          skills: [],
+          nextSkillIndex: 0,
+        }],
+      },
+    )
+
+    expect(result?.id).toBe(7)
+  })
 })

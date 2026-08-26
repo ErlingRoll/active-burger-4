@@ -47,6 +47,16 @@ import {
   validateGearDropChances,
   validateGearPickupBalance,
 } from './gear/GearDrops'
+import {
+  BOSS_DEFINITIONS,
+  BOSS_SKILL_DEFINITIONS,
+  type BossDefinition,
+  type BossSkillDefinition,
+} from './bosses/Bosses'
+import {
+  ENCOUNTER_DEFINITIONS,
+  type EncounterDefinition,
+} from './encounters/Encounters'
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
@@ -55,6 +65,9 @@ export interface ContentCatalog {
   upgrades: readonly UpgradeDefinition[]
   items: readonly ItemDefinition[]
   skills: readonly SkillDefinition[]
+  bosses: readonly BossDefinition[]
+  bossSkills: readonly BossSkillDefinition[]
+  encounters: readonly EncounterDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
   upgradeChoicesPerLevel: number
@@ -67,6 +80,9 @@ export const CURRENT_CONTENT: ContentCatalog = {
   upgrades: INITIAL_UPGRADES,
   items: INITIAL_ITEMS,
   skills: Object.values(SKILL_DEFINITIONS),
+  bosses: Object.values(BOSS_DEFINITIONS),
+  bossSkills: Object.values(BOSS_SKILL_DEFINITIONS),
+  encounters: ENCOUNTER_DEFINITIONS,
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
   upgradeChoicesPerLevel: 3,
@@ -432,6 +448,14 @@ function validateDefinitions(
 
   catalog.upgrades.forEach((upgrade, index) => {
     validateFiniteNumber(errors, `upgrades[${index}].amount`, upgrade.amount, 'positive')
+    if (upgrade.dodgeReactionTimeReduction !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].dodgeReactionTimeReduction`,
+        upgrade.dodgeReactionTimeReduction,
+        'positive',
+      )
+    }
     if (typeof upgrade.isEligible !== 'function') {
       errors.push(`upgrades[${index}].isEligible must be a function.`)
     }
@@ -633,6 +657,9 @@ export function validateContent(catalog: ContentCatalog): string[] {
   )
   const projectileIds = validateIds(errors, 'projectiles', catalog.projectiles)
   const skillIds = validateIds(errors, 'skills', catalog.skills)
+  const bossIds = validateIds(errors, 'bosses', catalog.bosses)
+  const bossSkillIds = validateIds(errors, 'bossSkills', catalog.bossSkills)
+  validateIds(errors, 'encounters', catalog.encounters)
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
   validateIds(errors, 'items', catalog.items)
 
@@ -648,6 +675,47 @@ export function validateContent(catalog: ContentCatalog): string[] {
   }
 
   validateDefinitions(errors, catalog, skillIds, projectileIds, enemyIds)
+  catalog.bosses.forEach((boss, index) => {
+    validateFiniteNumber(errors, `bosses[${index}].radius`, boss.radius, 'positive')
+    validateFiniteNumber(errors, `bosses[${index}].maxHp`, boss.maxHp, 'positive')
+    validateFiniteNumber(errors, `bosses[${index}].speed`, boss.speed, 'non-negative')
+    validateFiniteNumber(
+      errors,
+      `bosses[${index}].contactDamage`,
+      boss.contactDamage,
+      'non-negative',
+    )
+    if (!boss.skills.every((skillId) => bossSkillIds.has(skillId))) {
+      errors.push(`bosses[${index}].skills must reference known boss skills.`)
+    }
+  })
+  catalog.bossSkills.forEach((skill, index) => {
+    validateFiniteNumber(errors, `bossSkills[${index}].cooldown`, skill.cooldown, 'positive')
+    validateFiniteNumber(
+      errors,
+      `bossSkills[${index}].telegraphDuration`,
+      skill.telegraphDuration,
+      'positive',
+    )
+    validateFiniteNumber(errors, `bossSkills[${index}].damage`, skill.damage, 'non-negative')
+    validateFiniteNumber(errors, `bossSkills[${index}].radius`, skill.radius, 'positive')
+  })
+  catalog.encounters.forEach((encounter, index) => {
+    validateFiniteNumber(
+      errors,
+      `encounters[${index}].timeSeconds`,
+      encounter.timeSeconds,
+      'non-negative',
+    )
+    if (!bossIds.has(encounter.bossDefinitionId)) {
+      errors.push(
+        `encounters[${index}].bossDefinitionId references unknown boss "${encounter.bossDefinitionId}".`,
+      )
+    }
+    if (encounter.type !== 'boss') {
+      errors.push(`encounters[${index}].type is not supported; received "${String(encounter.type)}".`)
+    }
+  })
   validateXpBalance(errors, catalog.xpBalance)
   validateSpawnBalance(
     errors,

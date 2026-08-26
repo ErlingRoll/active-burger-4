@@ -4412,19 +4412,20 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–12 are complete. The next planned feature is **Milestone 13 — Boss**:
+Milestones 0–13 are complete. The next planned feature is **Milestone 14 — Full Run
+Structure**:
 
 ```text
-encounter timeline
-first boss
-boss health bar
-boss abilities
-boss victory
+15-minute run
+time-based difficulty
+elite events
+boss events
+final encounter
 ```
 
 Keep the current deterministic gameplay loop and responsive build-information UI intact
-while introducing the encounter.
+while defining the complete run timeline.
 
-The completed foundation already provides an autonomous player and enemies driven by
-simulation state that is independent from the renderer. Build the boss encounter on
-that boundary rather than coupling encounter behavior to the UI or Pixi renderer.
+The completed foundation includes autonomous player movement, data-defined boss skills,
+and telegraph-aware Dodge behavior. Extend the run timeline through those simulation
+boundaries rather than coupling progression behavior to the UI or Pixi renderer.

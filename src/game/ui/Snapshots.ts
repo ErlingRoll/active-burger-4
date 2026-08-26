@@ -19,8 +19,18 @@ import {
   INITIAL_UPGRADES,
   type UpgradeId,
 } from '../../content/upgrades/Upgrades'
-import type { GameState } from '../state/GameState'
+import type {
+  BossState,
+  EncounterStatus,
+  GameState,
+  TelegraphState,
+} from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
+import {
+  getBossDefinition,
+  type BossDefinitionId,
+} from '../../content/bosses/Bosses'
+import type { EntityId } from '../ids'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
@@ -60,11 +70,56 @@ export interface SkillHudSnapshot {
   readonly upgrades: readonly SkillUpgradeSnapshot[]
 }
 
+export interface BossHudSnapshot {
+  readonly id: EntityId | undefined
+  readonly bossDefinitionId: BossDefinitionId
+  readonly name: string
+  readonly status: EncounterStatus
+  readonly hp: number
+  readonly maxHp: number
+  readonly hpProgress: number
+}
+
+export interface TelegraphHudSnapshot {
+  readonly id: EntityId
+  readonly sourceId: EntityId
+  readonly skillId: TelegraphState['skillId']
+  readonly kind: TelegraphState['kind']
+  readonly x: number
+  readonly y: number
+  readonly radius: number
+  readonly remainingDuration: number
+  readonly duration: number
+  readonly progress: number
+  readonly points: readonly PointSnapshot[]
+}
+
+export interface DodgeHudSnapshot {
+  readonly mode: 'autonomous'
+  readonly level: number
+  readonly reactionTime: number
+  readonly active: boolean
+  /** Progress through the currently telegraphed Dodge response. */
+  readonly progress: number
+  readonly activeTelegraphCount: number
+  readonly directionX: number
+  readonly directionY: number
+}
+
+interface PointSnapshot {
+  readonly x: number
+  readonly y: number
+}
+
 export interface GameUiSnapshot extends RunHudSnapshot {
   readonly skills: readonly SkillHudSnapshot[]
   readonly equipment: Readonly<
     Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
   >
+  readonly encounterStatus: EncounterStatus
+  readonly boss: BossHudSnapshot | null
+  readonly telegraphs: readonly TelegraphHudSnapshot[]
+  readonly dodge: DodgeHudSnapshot
 }
 
 export interface EquippedItemSnapshot {
@@ -209,6 +264,56 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     }),
   )
 
+  const encounterStatus = state.encounter?.status ?? 'inactive'
+  const bossState = state.encounter?.bossEntityId
+    ? state.bosses?.find((boss) => boss.id === state.encounter?.bossEntityId)
+    : (state.bosses ?? [])
+      .filter((boss) => boss.hp > 0)
+      .sort((left, right) => left.id - right.id)[0]
+  const bossDefinitionId = bossState?.bossDefinitionId ?? state.encounter?.bossDefinitionId
+  const boss = bossDefinitionId
+    ? createBossHudSnapshot(
+      bossState,
+      bossDefinitionId,
+      encounterStatus,
+    )
+    : null
+  const telegraphs = (state.telegraphs ?? [])
+    .slice()
+    .sort((left, right) => left.id - right.id)
+    .map((telegraph) => Object.freeze({
+      id: telegraph.id,
+      sourceId: telegraph.sourceId,
+      skillId: telegraph.skillId,
+      kind: telegraph.kind,
+      x: telegraph.x,
+      y: telegraph.y,
+      radius: telegraph.radius,
+      remainingDuration: telegraph.remainingDuration,
+      duration: telegraph.duration,
+      progress: telegraph.duration > 0
+        ? Math.min(1, Math.max(0, 1 - telegraph.remainingDuration / telegraph.duration))
+        : 1,
+      points: Object.freeze(
+        telegraph.points.map((point) => Object.freeze({ x: point.x, y: point.y })),
+      ),
+    }))
+  const dodgeTelegraphs = telegraphs.filter(
+    (telegraph) => telegraph.remainingDuration > 0,
+  )
+  const dodge = Object.freeze({
+    mode: state.player.dodge?.mode ?? 'autonomous' as const,
+    level: state.player.dodge?.level ?? 1,
+    reactionTime: state.player.dodge?.reactionTime ?? 0.1,
+    active: dodgeTelegraphs.length > 0,
+    progress: dodgeTelegraphs.length > 0
+      ? Math.max(...dodgeTelegraphs.map((telegraph) => telegraph.progress))
+      : 0,
+    activeTelegraphCount: dodgeTelegraphs.length,
+    directionX: state.player.dodge?.lastDirectionX ?? 0,
+    directionY: state.player.dodge?.lastDirectionY ?? 0,
+  })
+
   return Object.freeze({
     phase: state.run.phase,
     hp: state.player.hp,
@@ -221,6 +326,29 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     killCount: state.run.killCount,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
+    encounterStatus,
+    boss,
+    telegraphs: Object.freeze(telegraphs),
+    dodge,
+  })
+}
+
+function createBossHudSnapshot(
+  boss: BossState | undefined,
+  bossDefinitionId: BossDefinitionId,
+  status: EncounterStatus,
+): BossHudSnapshot {
+  const definition = getBossDefinition(bossDefinitionId)
+  const maxHp = boss?.maxHp ?? definition.maxHp
+  const hp = Math.max(0, Math.min(maxHp, boss?.hp ?? (status === 'complete' ? 0 : maxHp)))
+  return Object.freeze({
+    id: boss?.id,
+    bossDefinitionId,
+    name: definition.name,
+    status,
+    hp,
+    maxHp,
+    hpProgress: maxHp > 0 ? hp / maxHp : 0,
   })
 }
 

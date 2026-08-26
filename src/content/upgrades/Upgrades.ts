@@ -16,6 +16,7 @@ export type UpgradeId =
   | 'basic-bolt-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
+  | 'dodge-reaction'
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
 export type UpgradeStat = Extract<
@@ -50,6 +51,8 @@ export interface UpgradeDefinition {
   skillId?: string
   skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
+  /** Optional reduction to the autonomous Dodge reaction delay. */
+  dodgeReactionTimeReduction?: number
 }
 
 const hasSkill = (
@@ -176,6 +179,21 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillAction: 'level',
     isEligible: (state) =>
       skillLevelAtLeast(state, CHAIN_LIGHTNING_SKILL_ID, 1),
+  },
+  {
+    id: 'dodge-reaction',
+    name: 'Quick Reflexes',
+    description: 'Dodge telegraphs sooner.',
+    category: 'passive',
+    rarity: 'common',
+    stat: 'movementSpeed',
+    amount: 1,
+    modifiers: [],
+    valueLabel: '-0.05s Dodge reaction time',
+    dodgeReactionTimeReduction: 0.05,
+    isEligible: (state) =>
+      state.playerLevel >= 3 &&
+      !state.selectedUpgradeIds.includes('dodge-reaction'),
   },
 ]
 
