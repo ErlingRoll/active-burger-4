@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createGame, FIXED_STEP_SECONDS } from './Game'
+import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -148,5 +149,58 @@ describe('Game', () => {
 
     expect(typeof game.state.player.id).toBe('number')
     expect(game.state.player.hp).toBe(game.state.player.maxHp)
+  })
+
+  it('spawns a data-driven Slime with a stable definition and chase target', () => {
+    const game = createGame({ seed: 8 })
+
+    const slimeId = game.spawnSlime({ x: 100, y: 25 })
+    const slime = game.state.enemies[0]
+
+    expect(slime).toMatchObject({
+      id: slimeId,
+      definitionId: SLIME_DEFINITION_ID,
+      x: 100,
+      y: 25,
+      radius: 18,
+      hp: 20,
+      maxHp: 20,
+      speed: 60,
+      contactDamage: 5,
+      xpReward: 5,
+      targetId: game.state.player.id,
+    })
+  })
+
+  it('moves a Slime deterministically toward the player each fixed tick', () => {
+    const gameA = createGame({ seed: 9 })
+    const gameB = createGame({ seed: 9 })
+    gameA.spawnSlime({ x: 100, y: 50 })
+    gameB.spawnSlime({ x: 100, y: 50 })
+
+    gameA.update(FIXED_STEP_SECONDS)
+    gameB.update(FIXED_STEP_SECONDS)
+
+    const initialDistance = Math.hypot(100, 50)
+    const movementDistance = 60 * FIXED_STEP_SECONDS
+    expect(gameA.state.enemies[0]).toEqual(gameB.state.enemies[0])
+    expect(gameA.state.enemies[0].x).toBeCloseTo(
+      100 - (movementDistance * 100) / initialDistance,
+    )
+    expect(gameA.state.enemies[0].y).toBeCloseTo(
+      50 - (movementDistance * 50) / initialDistance,
+    )
+  })
+
+  it('stops at contact range without overshooting the player', () => {
+    const game = createGame({ seed: 10 })
+    game.spawnSlime({ x: 34.5, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.enemies[0].x).toBeCloseTo(
+      game.state.player.radius + game.state.enemies[0].radius,
+    )
+    expect(game.state.enemies[0].x).toBeGreaterThanOrEqual(0)
   })
 })

@@ -1,13 +1,24 @@
 import { createEntityIdAllocator } from './ids'
 import type { EntityId, EntityIdAllocator } from './ids'
+import { getEnemyDefinition, SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import { Random } from './random/Random'
 import type { RandomSource } from './random/Random'
 import { isValidRunPhaseTransition } from './state/RunPhase'
 import type { RunPhase } from './state/RunPhase'
-import type { GameState, PlayerState, RunConfig } from './state/GameState'
+import type {
+  EnemyState,
+  GameState,
+  PlayerState,
+  RunConfig,
+} from './state/GameState'
 
 /** Simulation ticks run at a fixed rate, independent of render FPS. */
 export const FIXED_STEP_SECONDS = 1 / 60
+
+export interface WorldPosition {
+  x: number
+  y: number
+}
 
 /**
  * Upper bound on the elapsed time consumed from a single `update()` call.
@@ -131,8 +142,55 @@ export class Game {
     this.gameState.tick += 1
     this.gameState.time += FIXED_STEP_SECONDS
 
-    // Gameplay systems (see PLAN.md section 14 for the intended update
-    // order) are introduced starting with Milestone 3 and layer in here.
+    this.updateEnemyChase()
+  }
+
+  /**
+   * Adds a Slime at an explicit world position. Spawns are commands owned by
+   * the simulation, so callers do not need to construct or mutate state
+   * objects directly.
+   */
+  spawnSlime(position: WorldPosition): EntityId {
+    const definition = getEnemyDefinition(SLIME_DEFINITION_ID)
+    const enemy: EnemyState = {
+      id: this.idAllocator.createEntityId(),
+      definitionId: definition.id,
+      x: position.x,
+      y: position.y,
+      radius: definition.radius,
+      hp: definition.maxHp,
+      maxHp: definition.maxHp,
+      speed: definition.speed,
+      contactDamage: definition.contactDamage,
+      xpReward: definition.xpReward,
+      targetId: this.gameState.player.id,
+    }
+
+    this.gameState.enemies.push(enemy)
+    return enemy.id
+  }
+
+  private updateEnemyChase(): void {
+    const player = this.gameState.player
+
+    for (const enemy of this.gameState.enemies) {
+      const offsetX = player.x - enemy.x
+      const offsetY = player.y - enemy.y
+      const distance = Math.hypot(offsetX, offsetY)
+      const contactRange = player.radius + enemy.radius
+      const travelDistance = enemy.speed * FIXED_STEP_SECONDS
+
+      if (distance <= contactRange || distance === 0) {
+        continue
+      }
+
+      const distanceToContact = distance - contactRange
+      const movementDistance = Math.min(travelDistance, distanceToContact)
+      const movementRatio = movementDistance / distance
+
+      enemy.x += offsetX * movementRatio
+      enemy.y += offsetY * movementRatio
+    }
   }
 
   private transitionTo(nextPhase: RunPhase): void {

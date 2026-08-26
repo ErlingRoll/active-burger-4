@@ -6,5 +6,7 @@ test('renders the prototype arena canvas', async ({ page }) => {
   await expect(
     page.getByRole('img', { name: 'Active Burger 4 game arena' }),
   ).toBeVisible()
-  await expect(page.locator('.game-canvas canvas')).toHaveCount(1)
+  const canvas = page.locator('.game-canvas canvas')
+  await expect(canvas).toHaveCount(1)
+  await expect(canvas).toBeVisible()
 })

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createGame } from '../game'
 import { PixiGame } from './PixiGame'
 
 export function GameCanvas() {
@@ -11,7 +12,9 @@ export function GameCanvas() {
       return
     }
 
-    const pixiGame = new PixiGame()
+    const game = createGame({ seed: 3 })
+    game.spawnSlime({ x: 320, y: 0 })
+    const pixiGame = new PixiGame(game)
     let disposed = false
 
     void pixiGame.initialize(container).catch((error: unknown) => {

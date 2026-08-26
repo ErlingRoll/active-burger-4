@@ -1,4 +1,4 @@
-import type { EntityId } from '../ids'
+import type { EnemyDefinitionId, EntityId } from '../ids'
 import type { RunPhase } from './RunPhase'
 
 /** Configuration required to start a new deterministic run. */
@@ -39,15 +39,26 @@ export interface PlayerState {
   targetId?: EntityId
 }
 
-/**
- * Placeholder entity shapes for collections introduced by PLAN.md section 11.
- * Only identity is defined for now; fields are added when milestones 3-6
- * introduce enemies, projectiles, pickups, and summons so `GameState` keeps a
- * stable shape for the renderer to project without inventing unspecified
- * gameplay data ahead of time.
- */
 export interface EnemyState {
   id: EntityId
+
+  definitionId: EnemyDefinitionId
+
+  x: number
+  y: number
+
+  radius: number
+
+  hp: number
+  maxHp: number
+
+  speed: number
+
+  contactDamage: number
+
+  xpReward: number
+
+  targetId: EntityId
 }
 
 export interface ProjectileState {

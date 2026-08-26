@@ -1,10 +1,20 @@
-import { Application, Container, Graphics } from 'pixi.js'
+import { Application, Container, Graphics, type Ticker } from 'pixi.js'
+import type { EntityId } from '../game/ids'
+import type { Game } from '../game/Game'
 
 export class PixiGame {
+  private readonly game: Game
   private readonly app = new Application()
   private readonly camera = new Container()
+  private readonly enemyViews = new Map<EntityId, Graphics>()
+  private enemyLayer: Container | undefined
+  private playerView: Graphics | undefined
   private initialized = false
   private disposed = false
+
+  constructor(game: Game) {
+    this.game = game
+  }
 
   async initialize(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -22,8 +32,9 @@ export class PixiGame {
     this.createWorld()
     this.initialized = true
 
-    this.app.ticker.add(this.centerCamera)
+    this.app.ticker.add(this.update)
     this.centerCamera()
+    this.renderState()
   }
 
   destroy(): void {
@@ -40,6 +51,7 @@ export class PixiGame {
     const decorations = new Container()
     const pickups = new Container()
     const enemies = new Container()
+    this.enemyLayer = enemies
     const player = new Container()
     const projectiles = new Container()
     const effects = new Container()
@@ -59,7 +71,8 @@ export class PixiGame {
     this.app.stage.addChild(this.camera)
 
     ground.addChild(this.createGround())
-    player.addChild(this.createPlayerPlaceholder())
+    this.playerView = this.createPlayerPlaceholder()
+    player.addChild(this.playerView)
   }
 
   private createGround(): Graphics {
@@ -90,6 +103,50 @@ export class PixiGame {
       .stroke({ color: '#bfdbfe', width: 3 })
   }
 
+  private createEnemyPlaceholder(enemy: {
+    radius: number
+  }): Graphics {
+    return new Graphics()
+      .circle(0, 0, enemy.radius)
+      .fill('#ef4444')
+      .stroke({ color: '#fecaca', width: 2 })
+  }
+
+  private readonly update = (ticker: Ticker): void => {
+    this.game.update(ticker.deltaMS / 1000)
+    this.renderState()
+    this.centerCamera()
+  }
+
+  private renderState(): void {
+    const state = this.game.state
+    this.playerView?.position.set(state.player.x, state.player.y)
+
+    const activeEnemyIds = new Set<EntityId>()
+    for (const enemy of state.enemies) {
+      activeEnemyIds.add(enemy.id)
+      let view = this.enemyViews.get(enemy.id)
+
+      if (!view) {
+        view = this.createEnemyPlaceholder(enemy)
+        this.enemyViews.set(enemy.id, view)
+        this.enemyLayer?.addChild(view)
+      }
+
+      view.position.set(enemy.x, enemy.y)
+    }
+
+    for (const [enemyId, view] of this.enemyViews) {
+      if (activeEnemyIds.has(enemyId)) {
+        continue
+      }
+
+      view.removeFromParent()
+      view.destroy()
+      this.enemyViews.delete(enemyId)
+    }
+  }
+
   private readonly centerCamera = (): void => {
     this.camera.position.set(
       this.app.renderer.width / 2,
@@ -98,7 +155,10 @@ export class PixiGame {
   }
 
   private destroyApplication(): void {
-    this.app.ticker.remove(this.centerCamera)
+    this.app.ticker.remove(this.update)
+    this.enemyViews.clear()
+    this.enemyLayer = undefined
+    this.playerView = undefined
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false
   }
