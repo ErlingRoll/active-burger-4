@@ -6,6 +6,7 @@ import type {
 } from '../../content/upgrades/Upgrades'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
+import { RARITIES, RARITY_WEIGHTS } from '../../content/rarity/Rarity'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
 
@@ -43,16 +44,49 @@ export function generateUpgradeChoices(
     )
   }
 
-  const shuffled = [...eligible]
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = rng.int(0, index)
-    const current = shuffled[index]
-    const replacement = shuffled[swapIndex]
-    if (current && replacement) {
-      shuffled[index] = replacement
-      shuffled[swapIndex] = current
+  if (new Set(eligible.map((upgrade) => upgrade.rarity)).size === 1) {
+    const shuffled = [...eligible]
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = rng.int(0, index)
+      const current = shuffled[index]
+      const replacement = shuffled[swapIndex]
+      if (current && replacement) {
+        shuffled[index] = replacement
+        shuffled[swapIndex] = current
+      }
     }
+    return shuffled
+      .slice(0, count)
+      .map((upgrade) => ({ upgradeId: upgrade.id, rarity: upgrade.rarity }))
   }
 
-  return shuffled.slice(0, count).map((upgrade) => ({ upgradeId: upgrade.id }))
+  const remaining = [...eligible]
+  const choices: UpgradeChoice[] = []
+  while (choices.length < count) {
+    const availableRarities = RARITIES.filter((rarity) =>
+      remaining.some((upgrade) => upgrade.rarity === rarity),
+    )
+    const totalWeight = availableRarities.reduce(
+      (total, rarity) => total + RARITY_WEIGHTS[rarity],
+      0,
+    )
+    let roll = rng.next() * totalWeight
+    let selectedRarity = availableRarities[availableRarities.length - 1]
+    for (const rarity of availableRarities) {
+      roll -= RARITY_WEIGHTS[rarity]
+      if (roll < 0) {
+        selectedRarity = rarity
+        break
+      }
+    }
+    const candidates = remaining.filter(
+      (upgrade) => upgrade.rarity === selectedRarity,
+    )
+    const selected = candidates[rng.int(0, candidates.length - 1)]
+    if (selected) {
+      choices.push({ upgradeId: selected.id, rarity: selected.rarity })
+      remaining.splice(remaining.indexOf(selected), 1)
+    }
+  }
+  return choices
 }

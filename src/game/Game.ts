@@ -21,6 +21,19 @@ import type {
   UpgradeId,
 } from '../content/upgrades/Upgrades'
 import {
+  generateGearChoices,
+  GEAR_CHOICES_PER_PICKUP,
+  type GearChoice,
+} from './equipment/GearChoices'
+import {
+  equipItem,
+  upgradeEquippedItem,
+} from './equipment/EquipmentState'
+import type {
+  PendingChoiceFlow,
+} from './choices/ChoiceFlows'
+import { cloneChoiceFlow } from './choices/ChoiceFlows'
+import {
   FixedTimestepClock,
   FIXED_STEP_SECONDS,
 } from './engine/GameClock'
@@ -44,6 +57,7 @@ import {
 import {
   createInitialPlayerState,
   spawnEnemy,
+  spawnGearPickup,
   spawnSlime,
   spawnXpPickup,
   updateEnemySpawns,
@@ -64,6 +78,7 @@ import type {
   RunResultSnapshot,
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
+import type { GearPickupState } from './state/GameState'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
 export { MAX_FRAME_SECONDS } from './engine/GameClock'
@@ -72,10 +87,22 @@ export type {
   GameUiSnapshot,
   RunHudSnapshot,
   RunResultSnapshot,
+  EquippedItemSnapshot,
+  GearModifierSnapshot,
   SkillHudSnapshot,
   SkillUpgradeSnapshot,
   SkillUpgradeStatus,
 } from './ui/Snapshots'
+export type {
+  GearChoice,
+  GearItemChoice,
+  UpgradeEquippedItemChoice,
+} from './equipment/GearChoices'
+export type {
+  PendingChoiceFlow,
+  LevelUpChoiceFlow,
+  GearPickupChoiceFlow,
+} from './choices/ChoiceFlows'
 
 export type { RunConfig } from './state/GameState'
 
@@ -100,19 +127,21 @@ export class Game {
   readonly random: RandomSource
 
   private readonly idAllocator: EntityIdAllocator
+  private readonly gearRandom: RandomSource
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
   private resumePhase: RunPhase | undefined
-  private pendingChoices: UpgradeChoice[] = []
-  private pendingLevelUps = 0
+  private choiceFlows: PendingChoiceFlow[] = []
+  private readonly collectedGearPickups: GearPickupState[] = []
   private readonly listeners = new Set<GameStateListener>()
 
   constructor(config: RunConfig) {
     assertValidContent()
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
+    this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
     this.spawnDirector = new SpawnDirector(this.random)
 
     this.gameState = {
@@ -121,6 +150,7 @@ export class Game {
         seed: config.seed,
         killCount: 0,
         selectedUpgradeIds: [],
+        gearDropGenerated: false,
       },
       player: createInitialPlayerState(this.idAllocator.createEntityId()),
       enemies: [],
@@ -187,15 +217,58 @@ export class Game {
   }
 
   /**
-   * Returns a snapshot of the choices awaiting selection. An empty array means
-   * the run is not currently waiting for an upgrade.
+   * Compatibility projection of the active level-up flow. Gear flows are
+   * available through getPendingChoiceFlow().
    */
   getPendingUpgradeChoices(): readonly UpgradeChoice[] {
-    return this.pendingChoices.map((choice) => ({ ...choice }))
+    const flow = this.choiceFlows[0]
+    if (!flow || flow.type !== 'level-up') {
+      return []
+    }
+    return flow.choices.map((choice) => ({ ...choice }))
   }
 
   get upgradeChoices(): readonly UpgradeChoice[] {
     return this.getPendingUpgradeChoices()
+  }
+
+  /** Gear pickups collected by the simulation, awaiting a future gear flow. */
+  getPendingGearPickups(): readonly GearPickupState[] {
+    return this.collectedGearPickups.map((pickup) => ({ ...pickup }))
+  }
+
+  get pendingGearPickups(): readonly GearPickupState[] {
+    return this.getPendingGearPickups()
+  }
+
+  /** Returns the active flow, preserving its discriminated choice type. */
+  getPendingChoiceFlow(): PendingChoiceFlow | undefined {
+    const flow = this.choiceFlows[0]
+    return flow ? cloneChoiceFlow(flow) : undefined
+  }
+
+  /** Returns active and queued flows in the order they will be resolved. */
+  getPendingChoiceFlows(): readonly PendingChoiceFlow[] {
+    return this.choiceFlows.map((flow) => cloneChoiceFlow(flow))
+  }
+
+  get pendingChoiceFlow(): PendingChoiceFlow | undefined {
+    return this.getPendingChoiceFlow()
+  }
+
+  get pendingChoiceFlows(): readonly PendingChoiceFlow[] {
+    return this.getPendingChoiceFlows()
+  }
+
+  getPendingChoices(): readonly (UpgradeChoice | GearChoice)[] {
+    return this.pendingChoiceFlows[0]?.choices.map((choice) => ({ ...choice })) ?? []
+  }
+
+  /** Hands collected gear pickups to a future choice flow and clears the bridge. */
+  consumePendingGearPickups(): readonly GearPickupState[] {
+    const pickups = this.getPendingGearPickups()
+    this.collectedGearPickups.length = 0
+    return pickups
   }
 
   subscribe(listener: GameStateListener): () => void {
@@ -205,14 +278,17 @@ export class Game {
     }
   }
 
-  selectUpgrade(choice: UpgradeChoice | UpgradeId): boolean {
-    if (this.gameState.run.phase !== 'level-up') {
+  selectUpgrade(
+    choice: UpgradeChoice | { upgradeId: UpgradeId } | UpgradeId,
+  ): boolean {
+    const flow = this.choiceFlows[0]
+    if (this.gameState.run.phase !== 'level-up' || !flow || flow.type !== 'level-up') {
       return false
     }
 
     const upgradeId = typeof choice === 'string' ? choice : choice.upgradeId
     if (
-      !this.pendingChoices.some(
+      !flow.choices.some(
         (candidate) => candidate.upgradeId === upgradeId,
       )
     ) {
@@ -222,19 +298,60 @@ export class Game {
     applyUpgrade(this.gameState, upgradeId)
     this.gameState.run.selectedUpgradeIds.push(upgradeId)
 
-    this.pendingChoices = []
-    this.pendingLevelUps -= 1
-    if (this.pendingLevelUps > 0) {
-      this.pendingChoices = generateUpgradeChoices(
-        this.gameState,
-        UPGRADE_CHOICES_PER_LEVEL,
-        this.random,
-      )
-      this.notifyStateChanged()
-    } else {
-      this.transitionTo('playing')
-    }
+    this.completeActiveChoiceFlow()
     return true
+  }
+
+  selectGearChoice(choice: GearChoice): boolean {
+    const flow = this.choiceFlows[0]
+    if (this.gameState.run.phase !== 'level-up' || !flow || flow.type !== 'gear-pickup') {
+      return false
+    }
+
+    const offered = flow.choices.find((candidate) =>
+      candidate.type === choice.type &&
+      candidate.itemId === choice.itemId &&
+      candidate.slot === choice.slot,
+    )
+    if (!offered) {
+      return false
+    }
+    if (offered.type === 'gear') {
+      equipItem(this.gameState.player, offered.itemId)
+    } else {
+      const upgraded = upgradeEquippedItem(
+        this.gameState.player,
+        offered.slot,
+        this.gearRandom,
+      )
+      if (!upgraded) {
+        return false
+      }
+    }
+    this.completeActiveChoiceFlow()
+    return true
+  }
+
+  selectGear(choice: GearChoice | string): boolean {
+    if (typeof choice === 'string') {
+      const flow = this.choiceFlows[0]
+      const offered = flow?.type === 'gear-pickup'
+        ? flow.choices.find(
+          (candidate) => candidate.type === 'gear' && candidate.itemId === choice,
+        )
+        : undefined
+      return offered ? this.selectGearChoice(offered) : false
+    }
+    return this.selectGearChoice(choice)
+  }
+
+  selectChoice(choice: UpgradeChoice | GearChoice | UpgradeId): boolean {
+    if (typeof choice === 'string') {
+      return this.selectUpgrade(choice)
+    }
+    return choice && 'upgradeId' in choice
+      ? this.selectUpgrade(choice)
+      : this.selectGearChoice(choice)
   }
 
   /**
@@ -310,6 +427,18 @@ export class Game {
     )
   }
 
+  spawnGearPickup(
+    position: WorldPosition,
+    sourceEnemyDefinitionId?: EnemyDefinitionId,
+  ): EntityId {
+    return spawnGearPickup(
+      this.gameState,
+      this.idAllocator,
+      position,
+      sourceEnemyDefinitionId,
+    )
+  }
+
   /**
    * Development-only stress helper. It intentionally bypasses the normal
    * director cap and never consumes seeded RNG, so regular run decisions stay
@@ -363,18 +492,17 @@ export class Game {
       this.spawnXpPickup(position, xpAmount)
     }, (definitionId, position, xpRewardOverride) => {
       this.spawnEnemy(definitionId, position, xpRewardOverride)
-    })
+    }, (position, sourceEnemyDefinitionId) => {
+      this.spawnGearPickup(position, sourceEnemyDefinitionId)
+    }, this.gearRandom)
     updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
       const levelsGained = grantExperience(this.gameState, amount)
       if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
-        this.pendingLevelUps = levelsGained
-        this.pendingChoices = generateUpgradeChoices(
-          this.gameState,
-          UPGRADE_CHOICES_PER_LEVEL,
-          this.random,
-        )
-        this.transitionTo('level-up')
+        this.enqueueLevelUpFlows(levelsGained)
       }
+    }, (pickup) => {
+      this.collectedGearPickups.push({ ...pickup })
+      this.enqueueGearPickupFlow(pickup)
     })
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
   }
@@ -383,6 +511,60 @@ export class Game {
     transitionRunPhase(this.gameState, nextPhase, () => {
       this.notifyStateChanged()
     })
+  }
+
+  private enqueueLevelUpFlows(levelsGained: number): void {
+    for (let index = 0; index < levelsGained; index += 1) {
+      this.choiceFlows.push({
+        type: 'level-up',
+        level: this.gameState.player.level - levelsGained + index + 1,
+        choices: generateUpgradeChoices(
+          this.gameState,
+          UPGRADE_CHOICES_PER_LEVEL,
+          this.random,
+        ),
+      })
+    }
+    this.activateChoiceFlow()
+  }
+
+  private enqueueGearPickupFlow(pickup: GearPickupState): void {
+    this.choiceFlows.push({
+      type: 'gear-pickup',
+      pickupId: pickup.id,
+      choices: generateGearChoices(
+        this.gameState,
+        GEAR_CHOICES_PER_PICKUP,
+        this.gearRandom,
+      ),
+    })
+    this.activateChoiceFlow()
+  }
+
+  private activateChoiceFlow(): void {
+    if (
+      this.choiceFlows.length > 0 &&
+      this.gameState.run.phase === 'playing'
+    ) {
+      this.transitionTo('level-up')
+    }
+  }
+
+  private completeActiveChoiceFlow(): void {
+    const completed = this.choiceFlows.shift()
+    if (completed?.type === 'gear-pickup') {
+      const index = this.collectedGearPickups.findIndex(
+        (pickup) => pickup.id === completed.pickupId,
+      )
+      if (index >= 0) {
+        this.collectedGearPickups.splice(index, 1)
+      }
+    }
+    if (this.choiceFlows.length > 0) {
+      this.notifyStateChanged()
+    } else {
+      this.transitionTo('playing')
+    }
   }
 
   private notifyStateChanged(): void {

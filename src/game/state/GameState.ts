@@ -4,6 +4,8 @@ import type {
   ProjectileDefinitionId,
   SkillId,
 } from '../ids'
+import type { StatModifier, StatValues } from '../../content/stats/Stats'
+import type { EquipmentLoadout } from '../equipment/EquipmentState'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
 
@@ -17,6 +19,8 @@ export interface RunState {
   seed: number
   killCount: number
   selectedUpgradeIds: UpgradeId[]
+  /** Remains true after the first gear orb is generated, even after collection. */
+  gearDropGenerated?: boolean
 }
 
 /**
@@ -44,6 +48,11 @@ export interface PlayerState {
   attackSpeed: number
   attackRange: number
   attackCooldownRemaining: number
+
+  /** Base values and modifiers are optional for backwards-compatible fixtures. */
+  baseStats?: StatValues
+  statModifiers?: StatModifier[]
+  equipment?: EquipmentLoadout
 
   targetId?: EntityId
   skills: SkillState[]
@@ -110,15 +119,28 @@ export interface SkillEffectPoint {
   y: number
 }
 
-export interface PickupState {
+export interface PickupStateBase {
   id: EntityId
   x: number
   y: number
-  xpAmount: number
   radius: number
   attractionRadius: number
   attractionSpeed: number
 }
+
+export interface XpPickupState extends PickupStateBase {
+  kind: 'xp'
+  xpAmount: number
+}
+
+export interface GearPickupState extends PickupStateBase {
+  kind: 'gear'
+  /** Gear orbs do not award XP. */
+  xpAmount?: never
+  sourceEnemyDefinitionId?: EnemyDefinitionId
+}
+
+export type PickupState = XpPickupState | GearPickupState
 
 export interface SummonState {
   id: EntityId

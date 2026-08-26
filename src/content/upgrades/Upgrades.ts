@@ -4,6 +4,8 @@ import {
   WHIRLWIND_SKILL_ID,
   type SkillId,
 } from '../skills/Skills'
+import type { Rarity } from '../rarity/Rarity'
+import type { StatModifier, StatKey } from '../stats/Stats'
 
 export type UpgradeId =
   | 'damage-boost'
@@ -15,12 +17,16 @@ export type UpgradeId =
   | 'whirlwind-level'
   | 'chain-lightning-level'
 export type UpgradeCategory = 'passive' | 'skill'
-export type UpgradeRarity = 'common'
-export type UpgradeStat = 'attackDamage' | 'attackSpeed' | 'movementSpeed'
+export type UpgradeRarity = Rarity
+export type UpgradeStat = Extract<
+  StatKey,
+  'attackDamage' | 'attackSpeed' | 'movementSpeed'
+>
 export type SkillUpgradeAction = 'unlock' | 'level'
 
 export interface UpgradeChoice {
   upgradeId: UpgradeId
+  rarity: UpgradeRarity
 }
 
 export interface UpgradeEligibilityState {
@@ -38,6 +44,8 @@ export interface UpgradeDefinition {
   rarity: UpgradeRarity
   stat?: UpgradeStat
   amount: number
+  /** Optional explicit modifiers for passive content and future scaling. */
+  modifiers?: readonly StatModifier[]
   valueLabel: string
   skillId?: string
   skillAction?: SkillUpgradeAction
@@ -68,6 +76,9 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     rarity: 'common',
     stat: 'attackDamage',
     amount: 2,
+    modifiers: [
+      { stat: 'attackDamage', operation: 'add', value: 2, sourceId: 'upgrade:damage-boost' },
+    ],
     valueLabel: '+2 damage',
     skillId: BASIC_BOLT_SKILL_ID,
     isEligible: () => true,
@@ -80,6 +91,9 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     rarity: 'common',
     stat: 'attackSpeed',
     amount: 0.2,
+    modifiers: [
+      { stat: 'attackSpeed', operation: 'add', value: 0.2, sourceId: 'upgrade:attack-speed-boost' },
+    ],
     valueLabel: '+0.2 attacks/sec',
     skillId: BASIC_BOLT_SKILL_ID,
     isEligible: () => true,
@@ -92,6 +106,9 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     rarity: 'common',
     stat: 'movementSpeed',
     amount: 20,
+    modifiers: [
+      { stat: 'movementSpeed', operation: 'add', value: 20, sourceId: 'upgrade:movement-speed-boost' },
+    ],
     valueLabel: '+20 movement speed',
     isEligible: () => true,
   },
@@ -171,4 +188,21 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
   }
 
   return definition
+}
+
+export function getUpgradeModifiers(
+  definition: UpgradeDefinition,
+): readonly StatModifier[] {
+  if (definition.modifiers) {
+    return definition.modifiers
+  }
+  if (!definition.stat) {
+    return []
+  }
+  return [{
+    stat: definition.stat,
+    operation: 'add',
+    value: definition.amount,
+    sourceId: `upgrade:${definition.id}`,
+  }]
 }

@@ -3,6 +3,7 @@ import {
   SLIME_DEFINITION_ID,
 } from '../../../content/enemies/Enemies'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
+import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
 import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
 import type {
   EnemyDefinitionId,
@@ -13,7 +14,8 @@ import type { SpawnDirector } from '../../spawning/SpawnDirector'
 import type {
   EnemyState,
   GameState,
-  PickupState,
+  GearPickupState,
+  XpPickupState,
   PlayerState,
 } from '../../state/GameState'
 
@@ -37,6 +39,15 @@ export function createInitialPlayerState(id: EntityId): PlayerState {
     attackSpeed: 1,
     attackRange: 50,
     attackCooldownRemaining: 0,
+    baseStats: {
+      maxHp: 100,
+      movementSpeed: 200,
+      attackDamage: 10,
+      attackSpeed: 1,
+      attackRange: 50,
+    },
+    statModifiers: [],
+    equipment: {},
     targetId: undefined,
     skills: [
       {
@@ -89,8 +100,9 @@ export function spawnXpPickup(
   position: WorldPosition,
   xpAmount: number,
 ): EntityId {
-  const pickup: PickupState = {
+  const pickup: XpPickupState = {
     id: idAllocator.createEntityId(),
+    kind: 'xp',
     x: position.x,
     y: position.y,
     xpAmount,
@@ -100,6 +112,28 @@ export function spawnXpPickup(
   }
 
   state.pickups.push(pickup)
+  return pickup.id
+}
+
+export function spawnGearPickup(
+  state: GameState,
+  idAllocator: EntityIdAllocator,
+  position: WorldPosition,
+  sourceEnemyDefinitionId?: EnemyDefinitionId,
+): EntityId {
+  const pickup: GearPickupState = {
+    id: idAllocator.createEntityId(),
+    kind: 'gear',
+    x: position.x,
+    y: position.y,
+    radius: GEAR_PICKUP_BALANCE.radius,
+    attractionRadius: GEAR_PICKUP_BALANCE.attractionRadius,
+    attractionSpeed: GEAR_PICKUP_BALANCE.attractionSpeed,
+    ...(sourceEnemyDefinitionId ? { sourceEnemyDefinitionId } : {}),
+  }
+
+  state.pickups.push(pickup)
+  state.run.gearDropGenerated = true
   return pickup.id
 }
 

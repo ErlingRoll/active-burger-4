@@ -203,4 +203,90 @@ describe('content validation', () => {
       ]),
     )
   })
+
+  it('validates shared rarity, equipment slots, and stat modifiers', () => {
+    const errors = validateContent(
+      catalogWith({
+        items: [
+          {
+            id: 'test-item',
+            name: 'Test Item',
+            rarity: 'mythic' as never,
+            slot: 'backpack' as never,
+            modifiers: [
+              {
+                stat: 'unknown' as never,
+                operation: 'divide' as never,
+                value: Number.NaN,
+                sourceId: '',
+              },
+            ],
+          },
+        ],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'items[0].rarity is not supported; received "mythic".',
+        'items[0].slot is not supported; received "backpack".',
+        'items[0].modifiers[0].stat is not supported; received "unknown".',
+        'items[0].modifiers[0].operation is not supported; received "divide".',
+        'items[0].modifiers[0].value must be a finite number; received NaN.',
+        'items[0].modifiers[0].sourceId must be a non-empty string.',
+      ]),
+    )
+  })
+
+  it('validates stable item IDs, non-empty modifiers, and item-owned sources', () => {
+    const errors = validateContent(
+      catalogWith({
+        items: [
+          {
+            ...CURRENT_CONTENT.items[0],
+            id: 'Iron Cleaver' as never,
+            modifiers: [],
+          },
+          {
+            ...CURRENT_CONTENT.items[1],
+            id: CURRENT_CONTENT.items[0].id,
+            modifiers: [
+              {
+                ...CURRENT_CONTENT.items[1].modifiers[0],
+                sourceId: 'upgrade:wrong-source',
+              },
+            ],
+          },
+          {
+            ...CURRENT_CONTENT.items[2],
+            id: CURRENT_CONTENT.items[0].id,
+          },
+        ],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'items[0].id must use lowercase ASCII letters, numbers, and hyphens; received "Iron Cleaver".',
+        'items[0].modifiers must contain at least one modifier.',
+        'items[1].modifiers[0].sourceId must be "item:iron-cleaver"; received "upgrade:wrong-source".',
+        'items contains duplicate id "iron-cleaver".',
+      ]),
+    )
+  })
+
+  it('rejects malformed item modifier entries without throwing', () => {
+    const errors = validateContent(
+      catalogWith({
+        items: [
+          {
+            ...CURRENT_CONTENT.items[0],
+            modifiers: [null as never],
+          },
+        ],
+      }),
+    )
+
+    expect(errors).toContain('items[0].modifiers[0] must define a modifier object.')
+  })
 })

@@ -2,6 +2,10 @@ export * from './ids'
 export * from './random/Random'
 export * from './state/GameState'
 export * from './state/RunPhase'
+export * from './equipment/EquipmentState'
+export * from './equipment/GearChoices'
+export * from './choices/ChoiceFlows'
+export * from './stats/DerivedStats'
 export * from './combat/Targeting'
 export * from './spatial/SpatialHash'
 export * from './systems/combat/EnemyBehaviors'
@@ -23,4 +27,5 @@ export {
   type GameUiSnapshot,
   type RunHudSnapshot,
   type RunResultSnapshot,
+  type GearModifierSnapshot,
 } from './Game'

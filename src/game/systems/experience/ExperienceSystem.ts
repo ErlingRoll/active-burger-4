@@ -1,12 +1,17 @@
 import { xpRequiredForNextLevel } from '../../../content/progression/XpBalance'
 import type { EntityId } from '../../ids'
-import type { GameState } from '../../state/GameState'
+import type {
+  GameState,
+  GearPickupState,
+  PickupState,
+} from '../../state/GameState'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
 export function updatePickups(
   state: GameState,
   fixedStepSeconds: number,
   grantExperience: (amount: number) => void,
+  collectGearPickup: (pickup: GearPickupState) => void = () => {},
 ): void {
   const player = state.player
   const pickups = new SpatialHash<GameState['pickups'][number]>()
@@ -32,7 +37,7 @@ export function updatePickups(
     const contactRange = player.radius + pickup.radius
 
     if (distance <= contactRange || distance === 0) {
-      grantExperience(pickup.xpAmount)
+      collectPickup(pickup, grantExperience, collectGearPickup)
       collectedIds.add(pickup.id)
       if (state.run.phase !== 'playing') {
         break
@@ -55,7 +60,7 @@ export function updatePickups(
     if (
       Math.hypot(player.x - pickup.x, player.y - pickup.y) <= contactRange
     ) {
-      grantExperience(pickup.xpAmount)
+      collectPickup(pickup, grantExperience, collectGearPickup)
       collectedIds.add(pickup.id)
     }
 
@@ -69,6 +74,18 @@ export function updatePickups(
   state.pickups = state.pickups.filter(
     (pickup) => !collectedIds.has(pickup.id),
   )
+}
+
+function collectPickup(
+  pickup: PickupState,
+  grantExperience: (amount: number) => void,
+  collectGearPickup: (pickup: GearPickupState) => void,
+): void {
+  if (pickup.kind === 'gear') {
+    collectGearPickup(pickup)
+  } else {
+    grantExperience(pickup.xpAmount)
+  }
 }
 
 export function grantExperience(state: GameState, amount: number): number {

@@ -49,7 +49,8 @@ milestones in order unless an ADR documents an exception.
 - [x] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.
 - [x] **10. Performance:** spatial hash, debug counts, spawn commands, and
   measured profiling.
-- [ ] **11. Gear:** rarity, passives, tags, and conditional synergy effects.
+- [x] **11. Gear:** deterministic drops, equipment choices, rarity, and stat
+  modifiers. Event-triggered passives and conditional synergies remain deferred.
 - [ ] **12. Elites:** selection, Hasted/Giant, visuals, rewards.
 - [ ] **13. Boss:** timeline, boss behavior/bar, victory.
 - [ ] **14. Full Run:** timed difficulty, events, final boss, results.

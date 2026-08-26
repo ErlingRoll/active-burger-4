@@ -118,3 +118,34 @@ test('displays the level-up choices and resumes after selecting one', async ({
     'playing',
   )
 })
+
+test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
+  page,
+}) => {
+  await page.goto('/?demo=gear')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  const overlay = page.getByRole('dialog', { name: /choose your gear/i })
+  await expect(overlay).toBeVisible()
+  const gearCards = overlay.locator('[data-choice-type="gear"]')
+  await expect(gearCards).toHaveCount(3)
+  await expect(gearCards.first().locator('[data-rarity]')).toBeVisible()
+  await expect(gearCards.first()).toContainText(/weapon|helmet|armor|boots|ring|amulet/i)
+  await expect(gearCards.first()).toContainText(/gain \(empty slot\)|net change/i)
+  await expect(gearCards.first()).toBeFocused()
+
+  await expect(overlay.getByRole('tooltip')).toContainText('Full comparison')
+  await expect(overlay.getByRole('tooltip')).toContainText('Offered')
+  await expect(overlay.getByRole('tooltip')).toContainText('Equipped in')
+  await gearCards.first().click()
+
+  const upgradeCard = overlay.locator('[data-choice-type="gear-upgrade"]')
+  await expect(upgradeCard).toBeVisible()
+  await expect(upgradeCard).toContainText(/current rarity/i)
+  await expect(upgradeCard).toContainText(/upgraded rarity/i)
+  await expect(upgradeCard).toContainText(/modifiers improve/i)
+
+  const loadout = page.getByRole('region', { name: 'Equipped loadout' })
+  await expect(loadout.locator('.loadout-item')).toHaveCount(6)
+  await expect(loadout.locator('.loadout-item:not(:has(.loadout-empty))')).toHaveCount(1)
+})

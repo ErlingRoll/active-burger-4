@@ -23,6 +23,12 @@ import type {
   GameState,
   ProjectileState,
 } from '../../state/GameState'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import {
+  getGearDropChance,
+  GEAR_DROP_FORCE_KILL_COUNT,
+} from '../../../content/gear/GearDrops'
+import type { RandomSource } from '../../random/Random'
 
 export function updateEnemyChase(
   state: GameState,
@@ -55,11 +61,12 @@ export function resolvePlayerTarget(
   enemySpatialHash = createEnemySpatialHash(state),
 ): void {
   const player = state.player
+  const stats = getDerivedPlayerStats(player)
   const target = findNearestEnemy(
     {
       originX: player.x,
       originY: player.y,
-      maxRange: player.attackRange,
+      maxRange: stats.attackRange,
     },
     state,
     enemySpatialHash,
@@ -73,6 +80,7 @@ export function spawnBasicBoltIfReady(
   idAllocator: EntityIdAllocator,
 ): void {
   const player = state.player
+  const stats = getDerivedPlayerStats(player)
   const targetId = player.targetId
   const basicBolt = player.skills.find(
     (skill) => skill.skillId === BASIC_BOLT_SKILL_ID,
@@ -114,14 +122,14 @@ export function spawnBasicBoltIfReady(
     velocityX: directionX * definition.speed,
     velocityY: directionY * definition.speed,
     radius: definition.radius,
-    damage: player.attackDamage + getSkillDamage(skillDefinition, basicBolt.level) -
+    damage: stats.attackDamage + getSkillDamage(skillDefinition, basicBolt.level) -
       skillDefinition.baseDamage,
     remainingLifetime: definition.lifetime,
   }
 
   state.projectiles.push(projectile)
   player.attackCooldownRemaining =
-    player.attackSpeed > 0 ? 1 / player.attackSpeed : Number.POSITIVE_INFINITY
+    stats.attackSpeed > 0 ? 1 / stats.attackSpeed : Number.POSITIVE_INFINITY
   basicBolt.cooldownRemaining = player.attackCooldownRemaining
 }
 
@@ -224,6 +232,11 @@ export function removeDeadEntities(
     position: { x: number; y: number },
     xpRewardOverride?: number,
   ) => void,
+  spawnGearPickup?: (
+    position: { x: number; y: number },
+    sourceEnemyDefinitionId: string,
+  ) => void,
+  random?: RandomSource,
 ): void {
   const livingEnemies: EnemyState[] = []
   const childSpawns: ChildSpawnRequest[] = []
@@ -237,6 +250,20 @@ export function removeDeadEntities(
       // produces exactly one pickup during this cleanup pass.
       if (enemy.xpReward > 0) {
         spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
+      }
+      const killNumber = state.run.killCount + killCount
+      const forceGearDrop =
+        killNumber === GEAR_DROP_FORCE_KILL_COUNT &&
+        state.run.gearDropGenerated !== true
+      const randomGearDrop =
+        !forceGearDrop &&
+        (random?.chance(getGearDropChance(enemy.definitionId)) ?? false)
+      if (forceGearDrop || randomGearDrop) {
+        state.run.gearDropGenerated = true
+        spawnGearPickup?.(
+          { x: enemy.x, y: enemy.y },
+          enemy.definitionId,
+        )
       }
       childSpawns.push(...getSplitChildren(enemy))
     }

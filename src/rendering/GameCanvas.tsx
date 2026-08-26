@@ -8,13 +8,14 @@ import {
   type Game,
   type DebugSpawnCount,
   type GameUiSnapshot,
+  type GearChoice,
+  type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
+import { EQUIPMENT_SLOTS, type EquipmentSlot } from '../content/gear/Items'
+import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
-import type {
-  UpgradeChoice,
-  UpgradeId,
-} from '../content/upgrades/Upgrades'
+import type { UpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { PixiGame } from './PixiGame'
 
@@ -31,15 +32,43 @@ function formatElapsedTime(seconds: number): string {
   return `${minutes}:${remainder.toString().padStart(2, '0')}`
 }
 
+const HUD_STAT_LABELS = {
+  maxHp: 'Max HP',
+  movementSpeed: 'Movement speed',
+  attackDamage: 'Attack damage',
+  attackSpeed: 'Attack speed',
+  attackRange: 'Attack range',
+} as const
+
+const HUD_SLOT_LABELS: Record<EquipmentSlot, string> = {
+  weapon: 'Weapon',
+  helmet: 'Helmet',
+  armor: 'Armor',
+  boots: 'Boots',
+  ring: 'Ring',
+  amulet: 'Amulet',
+}
+
+function formatHudModifier(
+  modifier: GameUiSnapshot['skills'][number]['gearModifiers'][number],
+): string {
+  const value = modifier.operation === 'multiply'
+    ? `${Math.abs((modifier.value - 1) * 100).toFixed(0)}%`
+    : Number.isInteger(modifier.value)
+      ? modifier.value.toString()
+      : Math.abs(modifier.value).toFixed(1)
+  const isPositive = modifier.operation === 'multiply'
+    ? modifier.value >= 1
+    : modifier.value >= 0
+  return `${isPositive ? '+' : '-'}${value} ${HUD_STAT_LABELS[modifier.stat]}`
+}
+
 export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
-  const [levelUp, setLevelUp] = useState<{
-    level: number
-    choices: readonly UpgradeChoice[]
-  } | null>(null)
+  const [choiceFlow, setChoiceFlow] = useState<PendingChoiceFlow | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -62,7 +91,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     }
 
     publishSnapshot()
-    setLevelUp(null)
+    setChoiceFlow(null)
 
     // This deterministic setup is only for browser smoke tests and local
     // development; normal runs retain the standard combat-driven progression.
@@ -71,6 +100,15 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       new URLSearchParams(window.location.search).get('demo') === 'level-up'
     ) {
       game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))
+    }
+    if (
+      import.meta.env.DEV &&
+      new URLSearchParams(window.location.search).get('demo') === 'gear'
+    ) {
+      // Two pickups exercise both the empty-slot comparison and the
+      // replacement/upgrade flow without changing production drop behavior.
+      game.spawnGearPickup({ x: 0, y: 0 })
+      game.spawnGearPickup({ x: 0, y: 0 })
     }
 
     const unsubscribe = game.subscribe(() => {
@@ -81,15 +119,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       // Phase changes are published immediately so the level-up overlay never
       // waits for the throttled HUD interval.
       publishSnapshot()
-      if (game.phase === 'level-up') {
-        const uiSnapshot = game.getUiSnapshot()
-        setLevelUp({
-          level: uiSnapshot.level,
-          choices: game.getPendingUpgradeChoices(),
-        })
-      } else {
-        setLevelUp(null)
-      }
+      setChoiceFlow(game.getPendingChoiceFlow() ?? null)
 
       if (game.phase === 'defeat' && !defeatNotified) {
         defeatNotified = true
@@ -120,8 +150,8 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     }
   }, [onRunEnd])
 
-  const selectUpgrade = (upgradeId: UpgradeId): void => {
-    gameRef.current?.selectUpgrade(upgradeId)
+  const selectChoice = (choice: UpgradeChoice | GearChoice): void => {
+    gameRef.current?.selectChoice(choice)
   }
 
   const phase = snapshot?.phase ?? 'loading'
@@ -141,11 +171,11 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
       ) : null}
-      {levelUp ? (
+      {choiceFlow ? (
         <LevelUpOverlay
-          level={levelUp.level}
-          choices={levelUp.choices}
-          onSelect={selectUpgrade}
+          flow={choiceFlow}
+          equipment={snapshot?.equipment ?? {}}
+          onSelect={selectChoice}
         />
       ) : null}
     </div>
@@ -237,6 +267,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       </b>
                     </p>
                     <p className="skill-assumption">{skill.dpsAssumption}</p>
+                    {skill.gearModifiers.length > 0 ? (
+                      <section className="skill-gear-modifiers" aria-label="Derived gear modifiers">
+                        <p className="skill-upgrade-heading">Derived gear modifiers</p>
+                        <ul className="skill-upgrade-list">
+                          {skill.gearModifiers.map((modifier, index) => (
+                            <li key={`${modifier.sourceId}-${modifier.stat}-${index}`}>
+                              {formatHudModifier(modifier)}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
                     <p className="skill-upgrade-heading">
                       Relevant upgrades
                     </p>
@@ -254,6 +296,36 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     </ul>
                   </div>
                 ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+      <section className="equipped-loadout" aria-labelledby="equipped-loadout-title">
+        <h3 id="equipped-loadout-title">Equipped loadout</h3>
+        <ul className="loadout-list">
+          {EQUIPMENT_SLOTS.map((slot) => {
+            const item = snapshot.equipment[slot]
+            return (
+              <li
+                className={`loadout-item${item ? ` rarity-${item.rarity}` : ''}`}
+                data-slot={slot}
+                key={slot}
+              >
+                <span className="loadout-slot">{HUD_SLOT_LABELS[slot]}</span>
+                {item ? (
+                  <>
+                    <strong>{item.name}</strong>
+                    <span
+                      className="loadout-rarity"
+                      data-rarity={item.rarity}
+                    >
+                      {RARITY_VISUALS[item.rarity].icon} {RARITY_VISUALS[item.rarity].label}
+                    </span>
+                  </>
+                ) : (
+                  <span className="loadout-empty">Empty</span>
+                )}
               </li>
             )
           })}

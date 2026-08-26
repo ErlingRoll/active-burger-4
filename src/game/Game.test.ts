@@ -554,6 +554,11 @@ describe('Game', () => {
     expect(game.state.player.level).toBe(4)
     expect(game.phase).toBe('level-up')
     expect(game.getPendingUpgradeChoices()).toHaveLength(3)
+    expect(game.getPendingChoiceFlows().map((flow) => flow.type)).toEqual([
+      'level-up',
+      'level-up',
+      'level-up',
+    ])
     expect(notifications).toHaveLength(1)
 
     for (let offer = 0; offer < 3; offer += 1) {
@@ -578,5 +583,36 @@ describe('Game', () => {
       'playing',
     ])
     expect(notifications.slice(0, 3).every((notification) => notification.choices.length === 3)).toBe(true)
+  })
+
+  it('queues gear pickup flows behind level-up flows and resumes after both', () => {
+    const game = createGame({ seed: 22 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.spawnGearPickup({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.getPendingChoiceFlow()?.type).toBe('level-up')
+    expect(game.getPendingChoiceFlows()).toHaveLength(1)
+
+    const levelChoice = game.getPendingUpgradeChoices()[0]
+    if (!levelChoice) {
+      throw new Error('Expected a level-up choice')
+    }
+    expect(game.selectUpgrade(levelChoice)).toBe(true)
+    expect(game.phase).toBe('playing')
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+    const gearFlow = game.getPendingChoiceFlow()
+    if (!gearFlow || gearFlow.type !== 'gear-pickup') {
+      throw new Error('Expected a gear flow')
+    }
+    const normal = gearFlow.choices.find((choice) => choice.type === 'gear')
+    if (!normal) {
+      throw new Error('Expected a normal gear choice')
+    }
+    expect(game.selectGearChoice(normal)).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.state.player.equipment?.[normal.slot]?.itemId).toBe(normal.itemId)
   })
 })

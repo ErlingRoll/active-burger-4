@@ -3,6 +3,13 @@ import {
   xpRequiredForNextLevel,
 } from '../../content/progression/XpBalance'
 import {
+  EQUIPMENT_SLOTS,
+  getItemDefinition,
+  type EquipmentSlot,
+} from '../../content/gear/Items'
+import type { StatKey } from '../../content/stats/Stats'
+import type { Rarity } from '../../content/rarity/Rarity'
+import {
   getSkillDefinition,
   getSkillDamage,
   isSkillId,
@@ -14,6 +21,7 @@ import {
 } from '../../content/upgrades/Upgrades'
 import type { GameState } from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
+import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {
@@ -47,11 +55,31 @@ export interface SkillHudSnapshot {
   readonly description: string
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
+  /** Gear modifiers that affect this skill in the current combat systems. */
+  readonly gearModifiers: readonly GearModifierSnapshot[]
   readonly upgrades: readonly SkillUpgradeSnapshot[]
 }
 
 export interface GameUiSnapshot extends RunHudSnapshot {
   readonly skills: readonly SkillHudSnapshot[]
+  readonly equipment: Readonly<
+    Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
+  >
+}
+
+export interface EquippedItemSnapshot {
+  readonly itemId: string
+  readonly name: string
+  readonly slot: EquipmentSlot
+  readonly rarity: Rarity
+  readonly modifiers: readonly GearModifierSnapshot[]
+}
+
+export interface GearModifierSnapshot {
+  readonly stat: StatKey
+  readonly operation: 'add' | 'multiply'
+  readonly value: number
+  readonly sourceId: string
 }
 
 /** Immutable data retained by the results screen after a run ends. */
@@ -64,6 +92,7 @@ export interface RunResultSnapshot {
 }
 
 export function createUiSnapshot(state: GameState): GameUiSnapshot {
+  const playerStats = getDerivedPlayerStats(state.player)
   const currentThreshold = xpRequiredForLevel(state.player.level)
   const xpRequired = xpRequiredForNextLevel(state.player.level)
   const thresholdSpan = Math.max(1, xpRequired - currentThreshold)
@@ -92,12 +121,12 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     const definition = getSkillDefinition(skill.skillId)
     const isBasicBolt = skill.skillId === 'basic-bolt'
     const cooldown = isBasicBolt
-      ? state.player.attackSpeed > 0
-        ? 1 / state.player.attackSpeed
+      ? playerStats.attackSpeed > 0
+        ? 1 / playerStats.attackSpeed
         : Number.POSITIVE_INFINITY
       : definition.cooldown
     const damage = isBasicBolt
-      ? state.player.attackDamage +
+      ? playerStats.attackDamage +
         getSkillDamage(definition, skill.level) -
         definition.baseDamage
       : getSkillDamage(definition, skill.level)
@@ -105,6 +134,20 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
       Number.isFinite(cooldown) && cooldown > 0
         ? damage / cooldown
         : null
+    const applicableGearStats =
+      isBasicBolt
+        ? new Set<StatKey>(['attackDamage', 'attackSpeed', 'attackRange'])
+        : new Set<StatKey>()
+    const gearModifiers = EQUIPMENT_SLOTS.flatMap((slot) => {
+      const equipped = state.player.equipment?.[slot]
+      if (!equipped) {
+        return []
+      }
+      const definition = getItemDefinition(equipped.itemId)
+      return (equipped.modifiers ?? definition.modifiers)
+        .filter((modifier) => applicableGearStats.has(modifier.stat))
+        .map((modifier) => Object.freeze({ ...modifier }))
+    })
     const upgrades = INITIAL_UPGRADES.filter(
       (upgrade) => upgrade.skillId === skill.skillId,
     ).map((upgrade) => {
@@ -139,14 +182,37 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
         : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',
+      gearModifiers: Object.freeze(gearModifiers),
       upgrades: Object.freeze(upgrades),
     })]
   })
 
+  const equipment = Object.fromEntries(
+    EQUIPMENT_SLOTS.flatMap((slot) => {
+      const equipped = state.player.equipment?.[slot]
+      if (!equipped) {
+        return []
+      }
+      const definition = getItemDefinition(equipped.itemId)
+      const modifiers = Object.freeze(
+        (equipped.modifiers ?? definition.modifiers).map((modifier) =>
+          Object.freeze({ ...modifier }),
+        ),
+      )
+      return [[slot, Object.freeze({
+        itemId: equipped.itemId,
+        name: definition.name,
+        slot: definition.slot,
+        rarity: equipped.rarity ?? definition.rarity,
+        modifiers,
+      })]]
+    }),
+  )
+
   return Object.freeze({
     phase: state.run.phase,
     hp: state.player.hp,
-    maxHp: state.player.maxHp,
+    maxHp: playerStats.maxHp,
     level: state.player.level,
     xp: state.player.xp,
     xpRequired,
@@ -154,6 +220,7 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     elapsedTime: state.time,
     killCount: state.run.killCount,
     skills: Object.freeze(skills),
+    equipment: Object.freeze(equipment),
   })
 }
 

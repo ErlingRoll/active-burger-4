@@ -1,5 +1,6 @@
-export type EnemyDefinitionId = string
+import { GEAR_DROP_CHANCES } from '../gear/GearDrops'
 
+export type EnemyDefinitionId = string
 export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split'
 export type EnemyRenderShape = 'circle' | 'diamond' | 'triangle' | 'hexagon'
 
@@ -29,6 +30,7 @@ export interface EnemyDefinition {
   speed: number
   contactDamage: number
   xpReward: number
+  gearDropChance: number
   behavior: EnemyBehaviorDefinition
   render: EnemyRenderDefinition
 }
@@ -47,6 +49,7 @@ export const ENEMY_DEFINITIONS = {
     speed: 60,
     contactDamage: 5,
     xpReward: 5,
+    gearDropChance: GEAR_DROP_CHANCES.slime,
     behavior: { kind: 'chase' },
     render: {
       color: '#ef4444',
@@ -62,6 +65,7 @@ export const ENEMY_DEFINITIONS = {
     speed: 125,
     contactDamage: 4,
     xpReward: 6,
+    gearDropChance: GEAR_DROP_CHANCES.runner,
     behavior: { kind: 'chase' },
     render: {
       color: '#f97316',
@@ -77,6 +81,7 @@ export const ENEMY_DEFINITIONS = {
     speed: 32,
     contactDamage: 10,
     xpReward: 14,
+    gearDropChance: GEAR_DROP_CHANCES.brute,
     behavior: { kind: 'chase' },
     render: {
       color: '#7c3aed',
@@ -92,6 +97,7 @@ export const ENEMY_DEFINITIONS = {
     speed: 48,
     contactDamage: 7,
     xpReward: 10,
+    gearDropChance: GEAR_DROP_CHANCES.archer,
     behavior: {
       kind: 'standoff',
       // Stay just inside player targeting range while avoiding contact.
@@ -112,6 +118,7 @@ export const ENEMY_DEFINITIONS = {
     speed: 42,
     contactDamage: 6,
     xpReward: 12,
+    gearDropChance: GEAR_DROP_CHANCES.splitter,
     behavior: {
       kind: 'split',
       split: {

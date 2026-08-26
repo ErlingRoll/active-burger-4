@@ -22,11 +22,33 @@ import {
   SKILL_DEFINITIONS,
   type SkillDefinition,
 } from './skills/Skills'
+import {
+  EQUIPMENT_SLOTS,
+  INITIAL_ITEMS,
+  isItemId,
+  type ItemDefinition,
+} from './gear/Items'
+import {
+  isRarity,
+  RARITY_WEIGHTS,
+  validateRarityWeights,
+} from './rarity/Rarity'
+import {
+  isStatKey,
+  type StatModifier,
+} from './stats/Stats'
+import {
+  GEAR_DROP_CHANCES,
+  GEAR_PICKUP_BALANCE,
+  validateGearDropChances,
+  validateGearPickupBalance,
+} from './gear/GearDrops'
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
   projectiles: readonly ProjectileDefinition[]
   upgrades: readonly UpgradeDefinition[]
+  items: readonly ItemDefinition[]
   skills: readonly SkillDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
@@ -37,6 +59,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   enemies: Object.values(ENEMY_DEFINITIONS),
   projectiles: Object.values(PROJECTILE_DEFINITIONS),
   upgrades: INITIAL_UPGRADES,
+  items: INITIAL_ITEMS,
   skills: Object.values(SKILL_DEFINITIONS),
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
@@ -60,6 +83,7 @@ const VALID_SKILL_TAGS = new Set([
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
+const VALID_MODIFIER_OPERATIONS = new Set(['add', 'multiply'])
 const VALID_ENEMY_BEHAVIORS = new Set(['chase', 'standoff', 'split'])
 const VALID_ENEMY_SHAPES = new Set([
   'circle',
@@ -118,6 +142,40 @@ function validateFiniteNumber(
   if (!isValid) {
     errors.push(`${path} must be ${requirement}; received ${String(value)}.`)
   }
+}
+
+function validateModifiers(
+  errors: string[],
+  path: string,
+  modifiers: readonly StatModifier[] | undefined,
+  expectedSourceId?: string,
+): void {
+  if (!Array.isArray(modifiers)) {
+    errors.push(`${path} must be an array when provided.`)
+    return
+  }
+  modifiers.forEach((modifier, index) => {
+    if (!modifier || typeof modifier !== 'object') {
+      errors.push(`${path}[${index}] must define a modifier object.`)
+      return
+    }
+    if (!isStatKey(modifier.stat)) {
+      errors.push(`${path}[${index}].stat is not supported; received "${String(modifier.stat)}".`)
+    }
+    if (!VALID_MODIFIER_OPERATIONS.has(modifier.operation)) {
+      errors.push(
+        `${path}[${index}].operation is not supported; received "${String(modifier.operation)}".`,
+      )
+    }
+    validateFiniteNumber(errors, `${path}[${index}].value`, modifier.value, '')
+    if (typeof modifier.sourceId !== 'string' || modifier.sourceId.trim() === '') {
+      errors.push(`${path}[${index}].sourceId must be a non-empty string.`)
+    } else if (expectedSourceId && modifier.sourceId !== expectedSourceId) {
+      errors.push(
+        `${path}[${index}].sourceId must be "${expectedSourceId}"; received "${modifier.sourceId}".`,
+      )
+    }
+  })
 }
 
 function validateDefinitions(
@@ -208,6 +266,15 @@ function validateDefinitions(
       'non-negative',
     )
     validateFiniteNumber(errors, `enemies[${index}].xpReward`, enemy.xpReward, 'non-negative')
+    validateFiniteNumber(
+      errors,
+      `enemies[${index}].gearDropChance`,
+      enemy.gearDropChance,
+      'non-negative',
+    )
+    if (enemy.gearDropChance > 1) {
+      errors.push(`enemies[${index}].gearDropChance must be at most 1.`)
+    }
     if (!enemy.behavior || !VALID_ENEMY_BEHAVIORS.has(enemy.behavior.kind)) {
       errors.push(
         `enemies[${index}].behavior.kind is not supported; received "${String(enemy.behavior?.kind)}".`,
@@ -299,10 +366,39 @@ function validateDefinitions(
     validateFiniteNumber(errors, `projectiles[${index}].lifetime`, projectile.lifetime, 'positive')
   })
 
+  catalog.items.forEach((item, index) => {
+    if (typeof item.name !== 'string' || item.name.trim() === '') {
+      errors.push(`items[${index}].name must be a non-empty string.`)
+    }
+    if (!isRarity(item.rarity)) {
+      errors.push(`items[${index}].rarity is not supported; received "${String(item.rarity)}".`)
+    }
+    if (!EQUIPMENT_SLOTS.includes(item.slot)) {
+      errors.push(`items[${index}].slot is not supported; received "${String(item.slot)}".`)
+    }
+    if (!Array.isArray(item.modifiers) || item.modifiers.length === 0) {
+      errors.push(`items[${index}].modifiers must contain at least one modifier.`)
+    }
+    validateModifiers(
+      errors,
+      `items[${index}].modifiers`,
+      item.modifiers,
+      typeof item.id === 'string' ? `item:${item.id}` : undefined,
+    )
+  })
+
   catalog.upgrades.forEach((upgrade, index) => {
     validateFiniteNumber(errors, `upgrades[${index}].amount`, upgrade.amount, 'positive')
     if (typeof upgrade.isEligible !== 'function') {
       errors.push(`upgrades[${index}].isEligible must be a function.`)
+    }
+    if (!isRarity(upgrade.rarity)) {
+      errors.push(
+        `upgrades[${index}].rarity is not supported; received "${String(upgrade.rarity)}".`,
+      )
+    }
+    if (upgrade.modifiers) {
+      validateModifiers(errors, `upgrades[${index}].modifiers`, upgrade.modifiers)
     }
     if (
       upgrade.category === 'passive' &&
@@ -312,6 +408,7 @@ function validateDefinitions(
         `upgrades[${index}].stat must reference a supported player stat; received "${String(upgrade.stat)}".`,
       )
     }
+
     if (
       !VALID_UPGRADE_CATEGORIES.has(upgrade.category)
     ) {
@@ -442,11 +539,27 @@ function validateSpawnBalance(
 }
 
 export function validateContent(catalog: ContentCatalog): string[] {
-  const errors: string[] = []
+  const errors: string[] = [
+    ...validateRarityWeights(RARITY_WEIGHTS),
+    ...validateGearDropChances(GEAR_DROP_CHANCES),
+    ...validateGearPickupBalance(GEAR_PICKUP_BALANCE),
+  ]
   const enemyIds = validateIds(errors, 'enemies', catalog.enemies)
   const projectileIds = validateIds(errors, 'projectiles', catalog.projectiles)
   const skillIds = validateIds(errors, 'skills', catalog.skills)
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
+  validateIds(errors, 'items', catalog.items)
+
+  catalog.items.forEach((item, index) => {
+    if (typeof item.id === 'string' && !isItemId(item.id)) {
+      errors.push(
+        `items[${index}].id must use lowercase ASCII letters, numbers, and hyphens; received "${item.id}".`,
+      )
+    }
+  })
+  if (new Set(EQUIPMENT_SLOTS).size !== EQUIPMENT_SLOTS.length) {
+    errors.push('equipment slots must be unique.')
+  }
 
   validateDefinitions(errors, catalog, skillIds, projectileIds, enemyIds)
   validateXpBalance(errors, catalog.xpBalance)

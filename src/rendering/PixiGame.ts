@@ -179,7 +179,18 @@ export class PixiGame {
 
   private createPickupPlaceholder(pickup: {
     radius: number
+    kind?: 'xp' | 'gear'
   }): Graphics {
+    if (pickup.kind === 'gear') {
+      const radius = pickup.radius
+      return new Graphics()
+        .poly([0, -radius, radius, 0, 0, radius, -radius, 0])
+        .fill('#f59e0b')
+        .stroke({ color: '#fef3c7', width: 3 })
+        .circle(0, 0, radius * 0.35)
+        .fill('#7c3aed')
+    }
+
     return new Graphics()
       .circle(0, 0, pickup.radius)
       .fill('#22c55e')
