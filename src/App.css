@@ -95,6 +95,66 @@
   color: #f8fafc;
 }
 
+.dashboard-choice-group {
+  margin: 1.5rem 0;
+  padding: 0;
+  border: 0;
+}
+
+.dashboard-choice-group legend {
+  margin-bottom: 0.65rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.dashboard-choice-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.dashboard-choice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  color: #cbd5e1;
+  text-align: left;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.dashboard-choice:hover:not(:disabled),
+.dashboard-choice:focus-visible,
+.dashboard-choice.selected {
+  color: #eff6ff;
+  background: #1d4ed8;
+  border-color: #93c5fd;
+  outline: none;
+}
+
+.dashboard-choice:disabled {
+  color: #64748b;
+  background: #0f172a;
+  border-color: #334155;
+  cursor: not-allowed;
+}
+
+.dashboard-choice span {
+  font-size: 0.82rem;
+}
+
+.persistence-status,
+.persistence-error {
+  margin: 1rem 0;
+  color: #bfdbfe;
+  font-size: 0.9rem;
+}
+
+.persistence-error {
+  color: #fecaca;
+}
+
 .primary-action,
 .end-run-button {
   min-height: 2.75rem;

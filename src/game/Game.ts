@@ -265,6 +265,9 @@ export class Game {
       tick: 0,
       paused: false,
     }
+    if (isBehaviorProfileId(config.behaviorProfileId)) {
+      this.gameState.player.behaviorController!.profileId = config.behaviorProfileId
+    }
 
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.

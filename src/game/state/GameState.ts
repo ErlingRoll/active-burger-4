@@ -96,6 +96,8 @@ export interface BehaviorControllerState {
 /** Configuration required to start a new deterministic run. */
 export interface RunConfig {
   seed: number
+  /** Initial behavior policy for this run. */
+  behaviorProfileId?: BehaviorProfileId
   /** Defaults to the first dungeon; future lengths are selected by unlock state. */
   dungeonId?: DungeonDefinitionId
   /** Optional longer-length contract; omitted runs use the default length. */

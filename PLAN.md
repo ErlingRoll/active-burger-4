@@ -4414,16 +4414,16 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–14 and the deterministic Player Behavior Controller are complete. The
-next planned feature is **Milestone 15 — Local Persistence**:
+Milestones 0–15 and the deterministic Player Behavior Controller are complete. The
+next planned feature is **Milestone 16 — Supabase Authentication**:
 
 ```text
-versioned local settings
-basic local profile
-pending run results
-migrations
+account state
+authentication flow
+no active-run network dependency
+pending-result preparation
 ```
 
-The completed dungeon timeline already exposes a future unlock-gated length contract.
-Persist unlocks, selected dungeon customization, settings, and unsynchronized results
-without allowing active simulation to depend on IndexedDB or network APIs.
+The completed local layer owns versioned settings, a basic profile, future
+dungeon-customization unlocks, and pending results. Add account state without allowing
+active simulation to depend on Supabase or any network API.

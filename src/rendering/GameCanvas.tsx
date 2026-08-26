@@ -10,6 +10,7 @@ import {
   type GameUiSnapshot,
   type GearChoice,
   type BehaviorProfileId,
+  type RunConfig,
   type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
@@ -23,6 +24,8 @@ import { PixiGame } from './PixiGame'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
+  runConfig?: RunConfig
+  onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
@@ -77,9 +80,14 @@ function getChoiceFlowKey(
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
 }
 
-export function GameCanvas({ onRunEnd }: GameCanvasProps) {
+export function GameCanvas({
+  onRunEnd,
+  runConfig,
+  onBehaviorProfileChange,
+}: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
+  const initialRunConfigRef = useRef<RunConfig>(runConfig ?? { seed: 3 })
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
   const [choiceFlow, setChoiceFlow] = useState<Readonly<PendingChoiceFlow> | null>(null)
@@ -94,7 +102,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       return
     }
 
-    const game = createGame({ seed: 3 })
+    const game = createGame(initialRunConfigRef.current)
     const pixiGame = new PixiGame(game)
     let disposed = false
     let runEndNotified = false
@@ -218,7 +226,9 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   }
 
   const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
-    gameRef.current?.setBehaviorProfile(profileId)
+    if (gameRef.current?.setBehaviorProfile(profileId)) {
+      onBehaviorProfileChange?.(profileId)
+    }
   }
 
   const openBehaviorScreen = (): void => {

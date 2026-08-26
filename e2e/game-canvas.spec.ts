@@ -8,6 +8,31 @@ test('shows the pre-run dashboard without mounting the arena', async ({ page }) 
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 })
 
+test('loads and persists dashboard settings while locking future contracts', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  const defaultContract = page.getByRole('button', { name: /10 minutes.*default/i })
+  const fifteenMinuteContract = page.getByRole('button', { name: /15 minutes/i })
+  const twentyMinuteContract = page.getByRole('button', { name: /20 minutes/i })
+  await expect(defaultContract).toBeEnabled()
+  await expect(defaultContract).toHaveAttribute('aria-pressed', 'true')
+  await expect(fifteenMinuteContract).toBeDisabled()
+  await expect(twentyMinuteContract).toBeDisabled()
+
+  await page.getByRole('button', { name: 'Cautious' }).click()
+  await expect(page.getByRole('button', { name: 'Cautious' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Cautious' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+})
+
 test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   page,
 }) => {
@@ -57,12 +82,14 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(page.getByText('Level')).toBeVisible()
   await expect(page.getByText('XP')).toBeVisible()
   await expect(page.getByText('Kills')).toBeVisible()
+  await expect(page.getByRole('status')).toHaveText('Pending local result saved.')
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Return to Dashboard' }).click()
   await expect(
     page.getByRole('heading', { name: /ready for your next run/i }),
   ).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('1 pending local result')
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 })
 

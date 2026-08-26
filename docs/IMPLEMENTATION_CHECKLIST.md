@@ -61,8 +61,8 @@ milestones in order unless an ADR documents an exception.
 - [x] **14. Full Run:** 10-minute default dungeon, unlockable longer lengths,
       floor-scaled monsters, 120-second boss floors, stairs/reward transitions,
       Inferno Warden final boss/enrage, and results.
-- [ ] **15. Local Persistence:** versioned Dexie settings, profile, pending
-  results, and migrations.
+- [x] **15. Local Persistence:** versioned Dexie settings, default-locked
+  dungeon-customization profile, pending results, and migrations.
 - [ ] **16. Authentication:** Supabase account state without simulation calls.
 - [ ] **17. Meta Progression:** currency, unlocks, result queue, idempotent
   submission.
