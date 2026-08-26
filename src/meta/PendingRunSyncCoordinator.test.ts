@@ -53,6 +53,29 @@ describe('pending run sync coordination', () => {
     expect(onSyncSuccess).toHaveBeenCalledWith([queued], { processedCount: 1, snapshot })
   })
 
+  it('keeps manual pending-result synchronization functional', async () => {
+    const queued = pending('queued-1')
+    const syncPendingResults = vi.fn().mockResolvedValue({
+      processedCount: 1,
+      snapshot,
+    })
+    const coordinator = createPendingRunSyncCoordinator({
+      canSync: () => true,
+      getPendingResults: () => [queued],
+      syncPendingResults,
+      removePendingResult: vi.fn().mockResolvedValue(undefined),
+      onSyncStart: vi.fn(),
+      onSyncSuccess: vi.fn(),
+      onNoPendingResults: vi.fn(),
+      onSyncError: vi.fn(),
+    })
+
+    await coordinator.request()
+
+    expect(syncPendingResults).toHaveBeenCalledTimes(1)
+    expect(syncPendingResults).toHaveBeenCalledWith([queued])
+  })
+
   it('does not submit an unauthenticated queued completion', async () => {
     const syncPendingResults = vi.fn()
     const coordinator = createPendingRunSyncCoordinator({
