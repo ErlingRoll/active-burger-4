@@ -25,6 +25,7 @@ import {
   FIXED_STEP_SECONDS,
 } from './engine/GameClock'
 import { transitionRunPhase } from './engine/RunLifecycle'
+import { assertValidContent } from '../content/validation'
 import {
   applyDamageEvents,
   collectProjectileDamage,
@@ -87,6 +88,7 @@ export class Game {
   private readonly listeners = new Set<GameStateListener>()
 
   constructor(config: RunConfig) {
+    assertValidContent()
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
     this.spawnDirector = new SpawnDirector(this.random)
