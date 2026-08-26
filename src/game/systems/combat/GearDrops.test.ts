@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createGame } from '../../Game'
+import { HEALING_POTION_ELITE_DROP_CHANCE, HEALING_POTION_ORDINARY_DROP_CHANCE } from '../../../content/progression/HealingPotions'
 import { removeDeadEntities } from './CombatSystem'
 
 const neverDrops = {
@@ -10,6 +11,75 @@ const neverDrops = {
 }
 
 describe('enemy gear drops', () => {
+  it('spawns a potion only when an ordinary enemy passes its 5% drop roll', () => {
+    const game = createGame({ seed: 4 })
+    game.spawnSlime({ x: 100, y: 200 })
+    const slime = game.state.enemies[0]
+    if (!slime) {
+      throw new Error('Expected a spawned slime')
+    }
+    slime.hp = 0
+    const rolls: number[] = []
+    const potions: { x: number; y: number }[] = []
+    const random = {
+      chance: (chance: number) => {
+        rolls.push(chance)
+        return chance === HEALING_POTION_ORDINARY_DROP_CHANCE
+      },
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    removeDeadEntities(game.state, () => {}, undefined, undefined, random, (position) => {
+      potions.push(position)
+    })
+
+    expect(rolls).toContain(HEALING_POTION_ORDINARY_DROP_CHANCE)
+    expect(potions).toEqual([{ x: 100, y: 200 }])
+  })
+
+  it('does not spawn a potion when an ordinary enemy fails its drop roll', () => {
+    const game = createGame({ seed: 5 })
+    game.spawnSlime({ x: 100, y: 200 })
+    const slime = game.state.enemies[0]
+    if (!slime) {
+      throw new Error('Expected a spawned slime')
+    }
+    slime.hp = 0
+    const potions: unknown[] = []
+
+    removeDeadEntities(game.state, () => {}, undefined, undefined, neverDrops, (position) => {
+      potions.push(position)
+    })
+
+    expect(potions).toEqual([])
+  })
+
+  it('uses the 15% potion drop chance for elite enemies', () => {
+    const game = createGame({ seed: 6 })
+    game.spawnEnemy('slime', { x: 100, y: 200 }, undefined, 'hasted')
+    const elite = game.state.enemies[0]
+    if (!elite) {
+      throw new Error('Expected a spawned elite')
+    }
+    elite.hp = 0
+    const rolls: number[] = []
+    const random = {
+      chance: (chance: number) => {
+        rolls.push(chance)
+        return chance === HEALING_POTION_ELITE_DROP_CHANCE
+      },
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    removeDeadEntities(game.state, () => {}, undefined, undefined, random, () => {})
+
+    expect(rolls).toContain(HEALING_POTION_ELITE_DROP_CHANCE)
+  })
+
   it('keeps seeded drop outcomes deterministic', () => {
     const run = () => {
       const game = createGame({ seed: 47 })

@@ -591,6 +591,25 @@ describe('Game', () => {
     expect(first.player.xp).toBe(3)
   })
 
+  it('collects healing potions for 10% of maximum health without exceeding it', () => {
+    const game = createGame({ seed: 161 })
+    const { maxHp } = game.state.player
+    game.state.player.hp = maxHp / 2
+    game.spawnHealingPotion({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.hp).toBe(maxHp * 0.6)
+    expect(game.state.pickups).toEqual([])
+
+    game.state.player.hp = maxHp - 5
+    game.spawnHealingPotion({ x: 0, y: 0 })
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.hp).toBe(maxHp)
+    expect(game.state.pickups).toEqual([])
+  })
+
   it('retains XP and safely handles multiple level thresholds', () => {
     const game = createGame({ seed: 17 })
     game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(4))

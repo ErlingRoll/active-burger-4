@@ -305,24 +305,27 @@ export function applyDamageEvents(
       boss.hp -= actualDamage
       applyMeleeLeech(state, event, actualDamage)
     }
-
-    function applyMeleeLeech(
-      state: GameState,
-      event: DamageEvent,
-      actualDamage: number,
-    ): void {
-      if (!event.sourceSkillId || event.sourceId !== state.player.id || actualDamage <= 0) {
-        return
-      }
-      if (!isSkillId(event.sourceSkillId) || !getSkillDefinition(event.sourceSkillId).tags.includes('melee')) {
-        return
-      }
-      state.player.hp = Math.min(
-        state.player.maxHp,
-        state.player.hp + actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
-      )
-    }
   }
+}
+
+function applyMeleeLeech(
+  state: GameState,
+  event: DamageEvent,
+  actualDamage: number,
+): void {
+  if (!event.sourceSkillId || event.sourceId !== state.player.id || actualDamage <= 0) {
+    return
+  }
+  if (
+    !isSkillId(event.sourceSkillId) ||
+    !getSkillDefinition(event.sourceSkillId).tags.includes('melee')
+  ) {
+    return
+  }
+  state.player.hp = Math.min(
+    state.player.maxHp,
+    state.player.hp + actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
+  )
 }
 
 export function removeDeadEntities(

@@ -4,6 +4,7 @@ import {
 } from '../../../content/upgrades/Upgrades'
 import type { UpgradeId } from '../../../content/upgrades/Upgrades'
 import type { GameState } from '../../state/GameState'
+import { refreshMeleeLeech } from '../../equipment/EquipmentState'
 import { refreshPlayerDerivedStats } from '../../stats/DerivedStats'
 
 export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
@@ -13,7 +14,9 @@ export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
   player.statModifiers.push(...getUpgradeModifiers(definition))
   refreshPlayerDerivedStats(player)
   if (definition.meleeLeechAmount) {
-    player.meleeLeech = (player.meleeLeech ?? 0) + definition.meleeLeechAmount
+    player.upgradeMeleeLeech =
+      (player.upgradeMeleeLeech ?? 0) + definition.meleeLeechAmount
+    refreshMeleeLeech(player)
   }
 
   if (definition.dodgeReactionTimeReduction) {

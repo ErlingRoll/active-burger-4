@@ -645,6 +645,10 @@ export class Game {
     )
   }
 
+  spawnHealingPotion(position: WorldPosition): EntityId {
+    return spawnHealingPotion(this.gameState, this.idAllocator, position)
+  }
+
   spawnStairs(position: WorldPosition, isFinal = false): EntityId {
     return spawnStairs(
       this.gameState,

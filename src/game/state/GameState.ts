@@ -154,6 +154,8 @@ export interface PlayerState {
   attackCooldownRemaining: number
   /** Additive fraction of actual melee damage restored as health. */
   meleeLeech?: number
+  /** Leech earned from level-up upgrades, separate from equipped-item effects. */
+  upgradeMeleeLeech?: number
 
   /** Base values and modifiers are optional for backwards-compatible fixtures. */
   baseStats?: StatValues

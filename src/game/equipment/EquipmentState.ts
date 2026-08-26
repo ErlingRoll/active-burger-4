@@ -39,7 +39,24 @@ export function equipItem(
   player.equipment ??= {}
   player.equipment[definition.slot] = createEquippedItem(definition)
   refreshPlayerDerivedStats(player, itemDefinitions)
+  refreshMeleeLeech(player, itemDefinitions)
   return definition.slot
+}
+
+export function refreshMeleeLeech(
+  player: PlayerState,
+  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+): void {
+  const equipmentMeleeLeech = Object.values(player.equipment ?? {}).reduce(
+    (total, equipped) => {
+      if (!equipped) {
+        return total
+      }
+      return total + (getItemDefinition(equipped.itemId, itemDefinitions).meleeLeech ?? 0)
+    },
+    0,
+  )
+  player.meleeLeech = (player.upgradeMeleeLeech ?? 0) + equipmentMeleeLeech
 }
 
 export const MIN_ITEM_UPGRADE_INCREASE = 0.1
@@ -89,5 +106,6 @@ export function upgradeEquippedItem(
   equipped.rarity = upgradedRarity
   equipped.modifiers = upgradedModifiers.map((modifier) => ({ ...modifier }))
   refreshPlayerDerivedStats(player, itemDefinitions)
+  refreshMeleeLeech(player, itemDefinitions)
   return true
 }

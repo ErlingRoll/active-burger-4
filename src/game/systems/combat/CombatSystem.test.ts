@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyDamageEvents,
   collectEnemyContactDamage,
   collectProjectileDamage,
 } from './CombatSystem'
@@ -87,6 +88,41 @@ describe('collectProjectileDamage', () => {
         amount: 5,
       }),
     ])
+  })
+
+  describe('melee leech', () => {
+    it('restores 2% of actual Whirlwind damage and never exceeds maximum HP', () => {
+      const gameState = state([enemy(2, 20)])
+      gameState.player.hp = 99
+      gameState.player.meleeLeech = 0.02
+
+      applyDamageEvents(gameState, [{
+        sourceId: gameState.player.id,
+        sourceSkillId: 'whirlwind',
+        targetId: 2,
+        amount: 100,
+        damageType: 'physical',
+      }])
+
+      expect(gameState.enemies[0]?.hp).toBe(0)
+      expect(gameState.player.hp).toBe(99.4)
+    })
+
+    it('does not restore health for ranged damage', () => {
+      const gameState = state([enemy(2, 20)])
+      gameState.player.hp = 50
+      gameState.player.meleeLeech = 0.02
+
+      applyDamageEvents(gameState, [{
+        sourceId: gameState.player.id,
+        sourceSkillId: 'basic-bolt',
+        targetId: 2,
+        amount: 10,
+        damageType: 'physical',
+      }])
+
+      expect(gameState.player.hp).toBe(50)
+    })
   })
 
   describe('collectEnemyContactDamage', () => {

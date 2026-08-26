@@ -25,6 +25,7 @@ export interface ItemDefinition {
   rarity: Rarity
   slot: EquipmentSlot
   modifiers: readonly StatModifier[]
+  meleeLeech?: number
 }
 
 /** Item IDs are content keys, not display names or runtime entity IDs. */
@@ -52,6 +53,7 @@ export const ITEM_DEFINITIONS = {
         sourceId: 'item:iron-cleaver',
       },
     ],
+    meleeLeech: 0.02,
   },
   'watchers-helm': {
     id: 'watchers-helm',

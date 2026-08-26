@@ -42,4 +42,17 @@ describe('skill upgrades', () => {
     })
     expect(game.state.player.movementSpeed).toBe(100)
   })
+
+  it('adds leech without unlocking or ranking the already-owned Whirlwind skill', () => {
+    const game = createGame({ seed: 63 })
+    applyUpgrade(game.state, 'whirlwind-unlock')
+
+    applyUpgrade(game.state, 'whirlwind-leech')
+
+    expect(game.state.player.meleeLeech).toBe(0.02)
+    expect(game.state.player.skills).toEqual([
+      expect.objectContaining({ skillId: 'basic-bolt', level: 1 }),
+      expect.objectContaining({ skillId: WHIRLWIND_SKILL_ID, level: 1 }),
+    ])
+  })
 })

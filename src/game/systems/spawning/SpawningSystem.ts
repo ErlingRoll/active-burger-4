@@ -71,6 +71,7 @@ export function createInitialPlayerState(
     attackRange: playstyle.baseStats.attackRange,
     attackCooldownRemaining: 0,
     meleeLeech: 0,
+    upgradeMeleeLeech: 0,
     baseStats: {
       maxHp,
       movementSpeed,
