@@ -78,26 +78,19 @@ describe('headless deterministic scenario regression', () => {
       time: 3,
       player: {
         id: 1,
-          x: -56.69748481344019,
-          y: 202.2013729326032,
+          x: -4.949780420220977,
+          y: 17.652500811576473,
         hp: 75,
         maxHp: 100,
         level: 2,
-          xp: 15,
+          xp: 20,
         attackDamage: 10,
         attackSpeed: 1.2,
-        movementSpeed: 200,
+        movementSpeed: 100,
         attackRange: 50,
       },
-        kills: 1,
+        kills: 2,
       enemies: [
-        {
-            id: 3,
-          definitionId: 'slime',
-            hp: 10,
-            x: -14.039377,
-            y: 50.068911,
-          },
           {
             id: 6,
             definitionId: 'slime',
@@ -109,15 +102,15 @@ describe('headless deterministic scenario regression', () => {
           id: 10,
           definitionId: 'slime',
           hp: 20,
-          x: -33.7531,
-          y: -495.326649,
+          x: -29.05296,
+          y: -501.820763,
         },
         {
-          id: 11,
+          id: 13,
           definitionId: 'slime',
           hp: 20,
-          x: 420.245696,
-          y: -129.075019,
+          x: 470.640322,
+          y: -308.814154,
         },
       ],
       projectiles: [],
@@ -125,7 +118,7 @@ describe('headless deterministic scenario regression', () => {
     })
   })
 
-  it('introduces the scheduled composition through normal runtime updates', () => {
+  it('does not introduce composition entries before their scheduled gates', () => {
     const game = createGame({ seed: 20260826 })
     const firstSpawnTimes = new Map<string, number>()
 
@@ -146,9 +139,14 @@ describe('headless deterministic scenario regression', () => {
       }
     }
 
-    for (const entry of SPAWN_BALANCE.spawnEntries) {
-      const firstSpawnTime = firstSpawnTimes.get(entry.definitionId)
-      expect(firstSpawnTime).toBeDefined()
+    expect(firstSpawnTimes.get('slime')).toBeDefined()
+    for (const [definitionId, firstSpawnTime] of firstSpawnTimes) {
+      const entry = SPAWN_BALANCE.spawnEntries.find(
+        (candidate) => candidate.definitionId === definitionId,
+      )
+      if (!entry) {
+        throw new Error(`Unknown spawned enemy definition: ${definitionId}`)
+      }
       const startTimeSeconds =
         'startTimeSeconds' in entry ? entry.startTimeSeconds : 0
       expect(firstSpawnTime).toBeGreaterThanOrEqual(startTimeSeconds)
