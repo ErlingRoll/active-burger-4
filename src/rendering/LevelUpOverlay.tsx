@@ -287,9 +287,6 @@ function GearCard({
               Upgraded rarity: <RarityBadge rarity={choice.upgradedRarity} label="Upgraded rarity" />
             </span>
           </span>
-          <span className="gear-upgrade-improvement">
-            This offer's improvement is already determined.
-          </span>
           <span className="gear-stats-heading">Current stats</span>
           <ModifierList modifiers={currentModifiers} />
           <span className="gear-net-heading">Upgrade gains</span>

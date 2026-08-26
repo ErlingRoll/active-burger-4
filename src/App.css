@@ -804,12 +804,6 @@
   flex-wrap: wrap;
 }
 
-.gear-upgrade-improvement {
-  color: #86efac;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
 .gear-comparison {
   position: fixed;
   z-index: 4;
