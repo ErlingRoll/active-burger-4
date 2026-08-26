@@ -1,5 +1,11 @@
-import type { DodgeState, GameState, TelegraphState } from '../../state/GameState'
+import type {
+  DodgeState,
+  DodgeMovementCandidate,
+  GameState,
+  TelegraphState,
+} from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import { applyMovementCandidate } from '../behavior/MovementCandidate'
 
 function pointDistanceSquared(
   px: number,
@@ -49,10 +55,13 @@ function telegraphDistanceSquared(
 }
 
 /**
- * Baseline autonomous Dodge movement. It only moves in response to an active
- * telegraph, so a quiet run remains stationary and fully deterministic.
+ * Produces a movement candidate only in response to an active telegraph. A
+ * quiet run remains stationary and fully deterministic; movement is applied by
+ * the behavior controller.
  */
-export function updatePlayerDodge(state: GameState, fixedStepSeconds: number): void {
+export function getPlayerDodgeCandidate(
+  state: GameState,
+): DodgeMovementCandidate | undefined {
   const player = state.player
   const dodge: DodgeState = player.dodge ??= {
     mode: 'autonomous',
@@ -61,6 +70,7 @@ export function updatePlayerDodge(state: GameState, fixedStepSeconds: number): v
     lastDirectionX: 0,
     lastDirectionY: 0,
   }
+
   const telegraphs = [...(state.telegraphs ?? [])]
     .filter(
       (telegraph) =>
@@ -99,13 +109,32 @@ export function updatePlayerDodge(state: GameState, fixedStepSeconds: number): v
 
   const directionLength = Math.hypot(directionX, directionY)
   if (directionLength === 0) {
-    return
+    return undefined
   }
   directionX /= directionLength
   directionY /= directionLength
   dodge.lastDirectionX = directionX
   dodge.lastDirectionY = directionY
-  const speed = getDerivedPlayerStats(player).movementSpeed
-  player.x += directionX * speed * Math.max(0, fixedStepSeconds)
-  player.y += directionY * speed * Math.max(0, fixedStepSeconds)
+  return {
+    source: 'dodge',
+    directionX,
+    directionY,
+    speed: getDerivedPlayerStats(player).movementSpeed,
+    priority: 100,
+  }
+}
+
+export const getDodgeCandidate = getPlayerDodgeCandidate
+export const createDodgeCandidate = getPlayerDodgeCandidate
+
+/** Legacy name retained while callers migrate to the candidate contract. */
+export function updatePlayerDodge(
+  state: GameState,
+  fixedStepSeconds = 0,
+): DodgeMovementCandidate | undefined {
+  const candidate = getPlayerDodgeCandidate(state)
+  if (candidate) {
+    applyMovementCandidate(state, candidate, fixedStepSeconds)
+  }
+  return candidate
 }

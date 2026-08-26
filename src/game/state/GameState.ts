@@ -13,6 +13,7 @@ import type {
   BossDefinitionId,
   BossSkillId,
 } from '../../content/bosses/Bosses'
+import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -51,6 +52,40 @@ export interface DodgeState {
   reactionTime: number
   lastDirectionX: number
   lastDirectionY: number
+}
+
+/** A movement request produced by a behavior and consumed by its controller. */
+export type PlayerMovementSource =
+  | 'dodge'
+  | 'gear'
+  | 'kite'
+  | 'combat-range'
+  | 'hold'
+
+export interface PlayerMovementCandidate {
+  source: PlayerMovementSource
+  directionX: number
+  directionY: number
+  speed: number
+  priority: number
+  /** The entity that caused this intent, when applicable. */
+  targetId?: EntityId
+  /** The pickup that caused this intent, when applicable. */
+  pickupId?: EntityId
+}
+
+export type DodgeMovementCandidate = PlayerMovementCandidate
+export type DodgeCandidate = DodgeMovementCandidate
+export type MovementCandidate = PlayerMovementCandidate
+
+export interface BehaviorControllerState {
+  profileId: BehaviorProfileId
+  lastCandidate?: PlayerMovementCandidate
+  /** Remaining time for which the current intent is committed. */
+  commitmentRemaining?: number
+  committedSource?: PlayerMovementSource
+  committedTargetId?: EntityId
+  committedPickupId?: EntityId
 }
 
 /** Configuration required to start a new deterministic run. */
@@ -101,6 +136,8 @@ export interface PlayerState {
   targetId?: EntityId
   skills: SkillState[]
   dodge?: DodgeState
+  /** Optional for backwards-compatible state fixtures; new runs initialize it. */
+  behaviorController?: BehaviorControllerState
 }
 
 export interface SkillState {

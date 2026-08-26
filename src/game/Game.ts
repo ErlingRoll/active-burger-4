@@ -91,9 +91,16 @@ import {
   resolveBossTelegraphs,
   updateBosses,
 } from './systems/boss/BossSystem'
-import { updatePlayerDodge } from './systems/movement/DodgeSystem'
+import { updatePlayerBehavior } from './systems/behavior/BehaviorController'
 import type { BossDefinitionId } from '../content/bosses/Bosses'
 import { ENCOUNTER_DEFINITIONS } from '../content/encounters/Encounters'
+import {
+  DEFAULT_BEHAVIOR_PROFILE_ID,
+  getBehaviorProfileDefinition,
+  isBehaviorProfileId,
+  type BehaviorProfileDefinition,
+  type BehaviorProfileId,
+} from '../content/behaviors/BehaviorProfiles'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
 export { MAX_FRAME_SECONDS } from './engine/GameClock'
@@ -110,6 +117,8 @@ export type {
   BossHudSnapshot,
   TelegraphHudSnapshot,
   DodgeHudSnapshot,
+  BehaviorHudSnapshot,
+  BehaviorIntentHudSnapshot,
 } from './ui/Snapshots'
 export type {
   GearChoice,
@@ -123,6 +132,16 @@ export type {
 } from './choices/ChoiceFlows'
 
 export type { RunConfig } from './state/GameState'
+export {
+  BEHAVIOR_PROFILE_DEFINITIONS,
+  DEFAULT_BEHAVIOR_PROFILE_ID,
+  getBehaviorProfileDefinition,
+  isBehaviorProfileId,
+} from '../content/behaviors/BehaviorProfiles'
+export type {
+  BehaviorProfileDefinition,
+  BehaviorProfileId,
+} from '../content/behaviors/BehaviorProfiles'
 
 export type GameStateListener = (state: Readonly<GameState>) => void
 
@@ -207,6 +226,40 @@ export class Game {
 
   get timeScale(): number {
     return this.currentTimeScale
+  }
+
+  get behaviorProfileId(): BehaviorProfileId {
+    return this.gameState.player.behaviorController?.profileId ??
+      DEFAULT_BEHAVIOR_PROFILE_ID
+  }
+
+  get behaviorProfile(): BehaviorProfileDefinition {
+    return getBehaviorProfileDefinition(this.behaviorProfileId)
+  }
+
+  /**
+   * Switches the active behavior profile without consuming RNG. The profile is
+   * state, so the same input sequence always produces the same simulation.
+   */
+  setBehaviorProfile(profileId: BehaviorProfileId | string): boolean {
+    if (!isBehaviorProfileId(profileId)) {
+      return false
+    }
+    const controller = this.gameState.player.behaviorController ??= {
+      profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+    }
+    controller.profileId = profileId
+    controller.lastCandidate = undefined
+    controller.commitmentRemaining = 0
+    controller.committedSource = undefined
+    controller.committedTargetId = undefined
+    controller.committedPickupId = undefined
+    this.notifyStateChanged()
+    return true
+  }
+
+  switchBehaviorProfile(profileId: BehaviorProfileId | string): boolean {
+    return this.setBehaviorProfile(profileId)
   }
 
   /**
@@ -537,7 +590,7 @@ export class Game {
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
-    updatePlayerDodge(this.gameState, FIXED_STEP_SECONDS)
+    updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS)
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState, enemySpatialHash)
     spawnBasicBoltIfReady(this.gameState, this.idAllocator)

@@ -42,10 +42,14 @@ describe('enemy variety behaviors', () => {
     if (!currentArcher) {
       return
     }
-    expect(Math.hypot(currentArcher.x, currentArcher.y)).toBeGreaterThan(
+    const archerDistance = Math.hypot(
+      currentArcher.x - game.state.player.x,
+      currentArcher.y - game.state.player.y,
+    )
+    expect(archerDistance).toBeGreaterThan(
       game.state.player.radius + currentArcher.radius,
     )
-    expect(Math.hypot(currentArcher.x, currentArcher.y)).toBeLessThanOrEqual(
+    expect(archerDistance).toBeLessThanOrEqual(
       game.state.player.attackRange,
     )
     expect(game.state.player.targetId).toBe(currentArcher.id)

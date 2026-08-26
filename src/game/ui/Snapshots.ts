@@ -23,6 +23,7 @@ import type {
   BossState,
   EncounterStatus,
   GameState,
+  PlayerMovementCandidate,
   TelegraphState,
 } from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
@@ -32,6 +33,11 @@ import {
 } from '../../content/bosses/Bosses'
 import type { EntityId } from '../ids'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
+import {
+  DEFAULT_BEHAVIOR_PROFILE_ID,
+  getBehaviorProfileDefinition,
+  type BehaviorProfileId,
+} from '../../content/behaviors/BehaviorProfiles'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {
@@ -106,6 +112,25 @@ export interface DodgeHudSnapshot {
   readonly directionY: number
 }
 
+export interface BehaviorIntentHudSnapshot {
+  readonly source: PlayerMovementCandidate['source']
+  readonly label: string
+  readonly directionX: number
+  readonly directionY: number
+  readonly speed: number
+  readonly priority: number
+  readonly targetId?: EntityId
+  readonly pickupId?: EntityId
+  readonly commitmentRemaining?: number
+}
+
+export interface BehaviorHudSnapshot {
+  readonly profileId: BehaviorProfileId
+  readonly profileName: string
+  readonly profileDescription: string
+  readonly activeIntent: BehaviorIntentHudSnapshot | null
+}
+
 interface PointSnapshot {
   readonly x: number
   readonly y: number
@@ -120,6 +145,7 @@ export interface GameUiSnapshot extends RunHudSnapshot {
   readonly boss: BossHudSnapshot | null
   readonly telegraphs: readonly TelegraphHudSnapshot[]
   readonly dodge: DodgeHudSnapshot
+  readonly behavior: BehaviorHudSnapshot
 }
 
 export interface EquippedItemSnapshot {
@@ -313,6 +339,44 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     directionX: state.player.dodge?.lastDirectionX ?? 0,
     directionY: state.player.dodge?.lastDirectionY ?? 0,
   })
+  const profileId = state.player.behaviorController?.profileId ??
+    DEFAULT_BEHAVIOR_PROFILE_ID
+  const profile = getBehaviorProfileDefinition(profileId)
+  const activeIntent = state.player.behaviorController?.lastCandidate
+  const intentLabels: Record<PlayerMovementCandidate['source'], string> = {
+    dodge: 'Dodge',
+    gear: 'Collect gear',
+    kite: 'Kite away',
+    'combat-range': 'Close to target',
+    hold: 'Hold position',
+  }
+  const behavior = Object.freeze({
+    profileId,
+    profileName: profile.name,
+    profileDescription: profile.description,
+    activeIntent: activeIntent
+      ? Object.freeze({
+        source: activeIntent.source,
+        label: intentLabels[activeIntent.source],
+        directionX: activeIntent.directionX,
+        directionY: activeIntent.directionY,
+        speed: activeIntent.speed,
+        priority: activeIntent.priority,
+        ...(activeIntent.targetId === undefined
+          ? {}
+          : { targetId: activeIntent.targetId }),
+        ...(activeIntent.pickupId === undefined
+          ? {}
+          : { pickupId: activeIntent.pickupId }),
+        ...(state.player.behaviorController?.commitmentRemaining === undefined
+          ? {}
+          : {
+            commitmentRemaining:
+              state.player.behaviorController.commitmentRemaining,
+          }),
+      })
+      : null,
+  })
 
   return Object.freeze({
     phase: state.run.phase,
@@ -330,6 +394,7 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     boss,
     telegraphs: Object.freeze(telegraphs),
     dodge,
+    behavior,
   })
 }
 

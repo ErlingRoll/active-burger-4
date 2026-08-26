@@ -12,6 +12,9 @@ export * from './systems/combat/EnemyBehaviors'
 export * from './systems/boss/BossSystem'
 export * from './systems/encounter/EncounterSystem'
 export * from './systems/movement/DodgeSystem'
+export * from './systems/behavior/BehaviorController'
+export * from './systems/behavior/MovementCandidate'
+export * from '../content/behaviors/BehaviorProfiles'
 export * from './spawning/SpawnDirector'
 export * from './upgrades/UpgradeChoices'
 export {
@@ -34,4 +37,6 @@ export {
   type BossHudSnapshot,
   type TelegraphHudSnapshot,
   type DodgeHudSnapshot,
+  type BehaviorHudSnapshot,
+  type BehaviorIntentHudSnapshot,
 } from './Game'

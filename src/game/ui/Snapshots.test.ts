@@ -72,4 +72,32 @@ describe('UI snapshots', () => {
     expect(Object.isFrozen(snapshot.telegraphs[0]?.points)).toBe(true)
     expect(Object.isFrozen(snapshot.dodge)).toBe(true)
   })
+
+  it('projects the selected behavior profile and active intent immutably', () => {
+    const game = createGame({ seed: 73 })
+    game.setBehaviorProfile('cautious')
+    game.state.player.behaviorController!.lastCandidate = {
+      source: 'dodge',
+      directionX: 1,
+      directionY: 0,
+      speed: 200,
+      priority: 10,
+    }
+
+    const snapshot = createUiSnapshot(game.state)
+
+    expect(snapshot.behavior).toMatchObject({
+      profileId: 'cautious',
+      profileName: 'Cautious',
+      profileDescription: 'Kites earlier around packs and high-threat enemies, even outside skill range.',
+      activeIntent: {
+        source: 'dodge',
+        label: 'Dodge',
+        directionX: 1,
+        speed: 200,
+      },
+    })
+    expect(Object.isFrozen(snapshot.behavior)).toBe(true)
+    expect(Object.isFrozen(snapshot.behavior.activeIntent)).toBe(true)
+  })
 })

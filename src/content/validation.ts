@@ -57,6 +57,11 @@ import {
   ENCOUNTER_DEFINITIONS,
   type EncounterDefinition,
 } from './encounters/Encounters'
+import {
+  BEHAVIOR_PROFILE_DEFINITIONS,
+  type BehaviorProfileDefinition,
+  type BehaviorIntentSource,
+} from './behaviors/BehaviorProfiles'
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
@@ -68,6 +73,7 @@ export interface ContentCatalog {
   bosses: readonly BossDefinition[]
   bossSkills: readonly BossSkillDefinition[]
   encounters: readonly EncounterDefinition[]
+  behaviorProfiles: readonly BehaviorProfileDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
   upgradeChoicesPerLevel: number
@@ -83,6 +89,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   bosses: Object.values(BOSS_DEFINITIONS),
   bossSkills: Object.values(BOSS_SKILL_DEFINITIONS),
   encounters: ENCOUNTER_DEFINITIONS,
+  behaviorProfiles: Object.values(BEHAVIOR_PROFILE_DEFINITIONS),
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
   upgradeChoicesPerLevel: 3,
@@ -113,6 +120,61 @@ const VALID_ENEMY_SHAPES = new Set([
   'triangle',
   'hexagon',
 ])
+
+function validateBehaviorProfiles(
+  errors: string[],
+  profiles: readonly BehaviorProfileDefinition[],
+): void {
+  const intentSources: readonly BehaviorIntentSource[] = [
+    'dodge',
+    'gear',
+    'kite',
+    'combat-range',
+    'hold',
+  ]
+  validateIds(errors, 'behaviorProfiles', profiles)
+  profiles.forEach((profile, index) => {
+    if (typeof profile.id === 'string' && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(profile.id)) {
+      errors.push(
+        `behaviorProfiles[${index}].id must use lowercase ASCII letters, numbers, and hyphens; received "${profile.id}".`,
+      )
+    }
+    if (typeof profile.name !== 'string' || profile.name.trim() === '') {
+      errors.push(`behaviorProfiles[${index}].name must be a non-empty string.`)
+    }
+    if (typeof profile.description !== 'string' || profile.description.trim() === '') {
+      errors.push(`behaviorProfiles[${index}].description must be a non-empty string.`)
+    }
+    for (const source of intentSources) {
+      if (!Number.isFinite(profile.intentPriorities?.[source])) {
+        errors.push(
+          `behaviorProfiles[${index}].intentPriorities.${source} must be a finite number.`,
+        )
+      }
+    }
+    const thresholds = profile.thresholds
+    for (const [name, value] of Object.entries(thresholds ?? {})) {
+      if (!Number.isFinite(value) || value < 0) {
+        errors.push(
+          `behaviorProfiles[${index}].thresholds.${name} must be a non-negative finite number.`,
+        )
+      }
+    }
+    if (!Number.isFinite(profile.commitmentSeconds) || profile.commitmentSeconds < 0) {
+      errors.push(
+        `behaviorProfiles[${index}].commitmentSeconds must be a non-negative finite number.`,
+      )
+    }
+    if (!Number.isFinite(profile.hysteresisPriority) || profile.hysteresisPriority < 0) {
+      errors.push(
+        `behaviorProfiles[${index}].hysteresisPriority must be a non-negative finite number.`,
+      )
+    }
+  })
+  if (profiles.length === 0) {
+    errors.push('behaviorProfiles must contain at least one profile.')
+  }
+}
 
 function validateIds(
   errors: string[],
@@ -660,6 +722,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
   const bossIds = validateIds(errors, 'bosses', catalog.bosses)
   const bossSkillIds = validateIds(errors, 'bossSkills', catalog.bossSkills)
   validateIds(errors, 'encounters', catalog.encounters)
+  validateBehaviorProfiles(errors, catalog.behaviorProfiles ?? [])
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
   validateIds(errors, 'items', catalog.items)
 

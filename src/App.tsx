@@ -65,7 +65,7 @@ function Dashboard({ onStart }: DashboardProps) {
           enemies. Collect XP to level up and choose an upgrade between waves.
         </p>
         <ul className="control-list">
-          <li><strong>Movement:</strong> movement controls arrive in a later pass.</li>
+          <li><strong>Movement:</strong> choose an automatic behavior profile in-run.</li>
           <li><strong>Combat:</strong> attacks happen automatically.</li>
           <li><strong>Upgrade:</strong> choose one option whenever you level up.</li>
         </ul>

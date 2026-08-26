@@ -9,6 +9,7 @@ import {
   type DebugSpawnCount,
   type GameUiSnapshot,
   type GearChoice,
+  type BehaviorProfileId,
   type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
@@ -17,6 +18,7 @@ import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import type { UpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
+import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
 
 interface GameCanvasProps {
@@ -67,6 +69,8 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
   const [choiceFlow, setChoiceFlow] = useState<PendingChoiceFlow | null>(null)
+  const [behaviorScreenOpen, setBehaviorScreenOpen] = useState(false)
+  const behaviorScreenOpenRef = useRef(false)
 
   useEffect(() => {
     const container = containerRef.current
@@ -130,6 +134,13 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         return
       }
 
+      if (behaviorScreenOpenRef.current) {
+        event.preventDefault()
+        behaviorScreenOpenRef.current = false
+        setBehaviorScreenOpen(false)
+        return
+      }
+
       if (game.phase === 'playing' || game.phase === 'level-up') {
         event.preventDefault()
         game.pause()
@@ -160,12 +171,27 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         gameRef.current = null
       }
       setGame(null)
+      behaviorScreenOpenRef.current = false
       pixiGame.destroy()
     }
   }, [onRunEnd])
 
   const selectChoice = (choice: UpgradeChoice | GearChoice): void => {
     gameRef.current?.selectChoice(choice)
+  }
+
+  const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
+    gameRef.current?.setBehaviorProfile(profileId)
+  }
+
+  const openBehaviorScreen = (): void => {
+    behaviorScreenOpenRef.current = true
+    setBehaviorScreenOpen(true)
+  }
+
+  const closeBehaviorScreen = (): void => {
+    behaviorScreenOpenRef.current = false
+    setBehaviorScreenOpen(false)
   }
 
   const phase = snapshot?.phase ?? 'loading'
@@ -181,7 +207,9 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         aria-label="Active Burger 4 game arena"
         role="img"
       />
-      {snapshot ? <GameplayHud snapshot={snapshot} /> : null}
+      {snapshot ? (
+        <GameplayHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
+      ) : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
       ) : null}
@@ -197,15 +225,23 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
           onSelect={selectChoice}
         />
       ) : null}
+      {behaviorScreenOpen && snapshot ? (
+        <BehaviorScreen
+          behavior={snapshot.behavior}
+          onSelectProfile={selectBehaviorProfile}
+          onClose={closeBehaviorScreen}
+        />
+      ) : null}
     </div>
   )
 }
 
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
+  onOpenBehavior: () => void
 }
 
-function GameplayHud({ snapshot }: GameplayHudProps) {
+function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
@@ -353,6 +389,25 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             )
           })}
         </ul>
+      </section>
+      <section className="behavior-hud" aria-labelledby="behavior-hud-title">
+        <h3 id="behavior-hud-title" className="visually-hidden">
+          Behavior
+        </h3>
+        <button
+          className="behavior-summary"
+          type="button"
+          aria-label={`Behavior: ${snapshot.behavior.profileName}. Intent: ${
+            snapshot.behavior.activeIntent?.label ?? 'No active intent'
+          }`}
+          onClick={onOpenBehavior}
+        >
+          <span className="behavior-summary-label">Behavior</span>
+          <strong>{snapshot.behavior.profileName}</strong>
+          <span>
+            Intent: {snapshot.behavior.activeIntent?.label ?? 'No active intent'}
+          </span>
+        </button>
       </section>
       <section className="equipped-loadout" aria-labelledby="equipped-loadout-title">
         <h3 id="equipped-loadout-title">Loadout</h3>

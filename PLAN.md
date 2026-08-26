@@ -940,18 +940,17 @@ Attack automatically
 
 Eventually behavior can become configurable.
 
-Possible future policies:
+Initially unlocked policies:
 
 ```ts
 type PlayerBehavior =
   | 'balanced'
   | 'aggressive'
-  | 'defensive'
-  | 'collector'
-  | 'elite-hunter'
+  | 'cautious'
 ```
 
-Do not implement these variations until basic movement and combat work.
+Profiles use deterministic intent priorities and safety thresholds; Dodge is
+always an emergency preemption.
 
 ---
 
@@ -4412,8 +4411,8 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–13 are complete. The next planned feature is **Milestone 14 — Full Run
-Structure**:
+Milestones 0–13 and the deterministic Player Behavior Controller are complete. The
+next planned feature is **Milestone 14 — Full Run Structure**:
 
 ```text
 15-minute run
@@ -4426,6 +4425,7 @@ final encounter
 Keep the current deterministic gameplay loop and responsive build-information UI intact
 while defining the complete run timeline.
 
-The completed foundation includes autonomous player movement, data-defined boss skills,
-and telegraph-aware Dodge behavior. Extend the run timeline through those simulation
-boundaries rather than coupling progression behavior to the UI or Pixi renderer.
+The completed foundation includes data-defined player behavior profiles, autonomous
+movement, boss skills, and telegraph-aware Dodge. Extend the run timeline through those
+simulation boundaries rather than coupling progression behavior to the UI or Pixi
+renderer.

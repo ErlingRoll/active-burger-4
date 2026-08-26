@@ -55,6 +55,9 @@ milestones in order unless an ADR documents an exception.
 - [x] **13. Boss:** deterministic 3:00 encounter, Ground Slam/Charge telegraphs,
       autonomous Dodge, health/status UI, deterministic reward, Development Menu spawn,
       and resumed normal spawning.
+- [x] **13.5 Player Behavior:** deterministic Balanced, Aggressive, and Cautious
+      profiles; telegraph Dodge, safe gear collection, threat-aware kiting, combat-range
+      positioning, in-run Behavior screen, and intent HUD.
 - [ ] **14. Full Run:** timed difficulty, events, final boss, results.
 - [ ] **15. Local Persistence:** versioned Dexie settings, profile, pending
   results, and migrations.

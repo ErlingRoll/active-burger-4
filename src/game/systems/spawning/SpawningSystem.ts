@@ -9,6 +9,7 @@ import {
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
 import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
+import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
   getBossDefinition,
   type BossDefinitionId,
@@ -64,6 +65,9 @@ export function createInitialPlayerState(id: EntityId): PlayerState {
       reactionTime: 0.1,
       lastDirectionX: 0,
       lastDirectionY: 0,
+    },
+    behaviorController: {
+      profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
     },
     skills: [
       {

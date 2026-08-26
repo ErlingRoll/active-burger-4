@@ -169,6 +169,34 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
   await expect(page.getByRole('tooltip')).toContainText('Relevant upgrades')
 })
 
+test('opens the in-run Behavior screen and switches profiles', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  const behaviorSummary = page.getByRole('button', {
+    name: /Behavior: Balanced/i,
+  })
+  await expect(behaviorSummary).toBeVisible()
+  await expect.poll(
+    () => behaviorSummary.getAttribute('aria-label'),
+  ).toMatch(/Intent: (?!No active intent).+/)
+  await behaviorSummary.click()
+
+  const behaviorScreen = page.getByRole('dialog', { name: 'Behavior' })
+  await expect(behaviorScreen).toBeVisible()
+  const cautious = behaviorScreen.locator('[data-profile-id="cautious"]')
+  await expect(cautious).toContainText('Cautious')
+  await cautious.click()
+  await expect(cautious).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.press('Escape')
+  await expect(behaviorScreen).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: /Behavior: Cautious/i }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('status')).toHaveText('Paused')
+})
+
 test('displays the level-up choices and resumes after selecting one', async ({
   page,
 }) => {
