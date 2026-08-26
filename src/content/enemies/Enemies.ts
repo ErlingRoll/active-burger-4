@@ -1,5 +1,14 @@
 import { GEAR_DROP_CHANCES } from '../gear/GearDrops'
 
+export {
+  ELITE_MODIFIER_DEFINITIONS,
+  getEliteModifierDefinition,
+} from './EliteModifiers'
+export type {
+  EliteModifierDefinition,
+  EliteModifierId,
+} from './EliteModifiers'
+
 export type EnemyDefinitionId = string
 export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split'
 export type EnemyRenderShape = 'circle' | 'diamond' | 'triangle' | 'hexagon'
@@ -25,6 +34,7 @@ export type EnemyBehaviorDefinition =
 
 export interface EnemyDefinition {
   id: EnemyDefinitionId
+  name: string
   radius: number
   maxHp: number
   speed: number
@@ -44,6 +54,7 @@ export const SPLITTER_DEFINITION_ID: EnemyDefinitionId = 'splitter'
 export const ENEMY_DEFINITIONS = {
   [SLIME_DEFINITION_ID]: {
     id: SLIME_DEFINITION_ID,
+    name: 'Slime',
     radius: 18,
     maxHp: 20,
     speed: 60,
@@ -60,6 +71,7 @@ export const ENEMY_DEFINITIONS = {
   },
   [RUNNER_DEFINITION_ID]: {
     id: RUNNER_DEFINITION_ID,
+    name: 'Runner',
     radius: 14,
     maxHp: 10,
     speed: 125,
@@ -76,6 +88,7 @@ export const ENEMY_DEFINITIONS = {
   },
   [BRUTE_DEFINITION_ID]: {
     id: BRUTE_DEFINITION_ID,
+    name: 'Brute',
     radius: 30,
     maxHp: 85,
     speed: 32,
@@ -92,6 +105,7 @@ export const ENEMY_DEFINITIONS = {
   },
   [ARCHER_DEFINITION_ID]: {
     id: ARCHER_DEFINITION_ID,
+    name: 'Archer',
     radius: 16,
     maxHp: 24,
     speed: 48,
@@ -113,6 +127,7 @@ export const ENEMY_DEFINITIONS = {
   },
   [SPLITTER_DEFINITION_ID]: {
     id: SPLITTER_DEFINITION_ID,
+    name: 'Splitter',
     radius: 22,
     maxHp: 42,
     speed: 42,

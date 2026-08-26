@@ -3,6 +3,10 @@ import {
   type EnemyDefinition,
 } from './enemies/Enemies'
 import {
+  ELITE_MODIFIER_DEFINITIONS,
+  type EliteModifierDefinition,
+} from './enemies/EliteModifiers'
+import {
   PROJECTILE_DEFINITIONS,
   type ProjectileDefinition,
 } from './projectiles/Projectiles'
@@ -46,6 +50,7 @@ import {
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
+  eliteModifiers: readonly EliteModifierDefinition[]
   projectiles: readonly ProjectileDefinition[]
   upgrades: readonly UpgradeDefinition[]
   items: readonly ItemDefinition[]
@@ -57,6 +62,7 @@ export interface ContentCatalog {
 
 export const CURRENT_CONTENT: ContentCatalog = {
   enemies: Object.values(ENEMY_DEFINITIONS),
+  eliteModifiers: Object.values(ELITE_MODIFIER_DEFINITIONS),
   projectiles: Object.values(PROJECTILE_DEFINITIONS),
   upgrades: INITIAL_UPGRADES,
   items: INITIAL_ITEMS,
@@ -178,6 +184,39 @@ function validateModifiers(
   })
 }
 
+function validateEliteModifiers(
+  errors: string[],
+  modifiers: readonly EliteModifierDefinition[],
+): Set<string> {
+  const modifierIds = validateIds(errors, 'eliteModifiers', modifiers)
+  modifiers.forEach((modifier, index) => {
+    if (typeof modifier.name !== 'string' || modifier.name.trim() === '') {
+      errors.push(`eliteModifiers[${index}].name must be a non-empty string.`)
+    }
+    for (const key of [
+      'speedMultiplier',
+      'radiusMultiplier',
+      'maxHpMultiplier',
+      'xpRewardMultiplier',
+      'gearDropChanceMultiplier',
+    ] as const) {
+      validateFiniteNumber(
+        errors,
+        `eliteModifiers[${index}].${key}`,
+        modifier[key],
+        'positive',
+      )
+    }
+    if (
+      typeof modifier.markerColor !== 'string' ||
+      modifier.markerColor.trim() === ''
+    ) {
+      errors.push(`eliteModifiers[${index}].markerColor must be a non-empty string.`)
+    }
+  })
+  return modifierIds
+}
+
 function validateDefinitions(
   errors: string[],
   catalog: ContentCatalog,
@@ -256,6 +295,9 @@ function validateDefinitions(
   })
 
   catalog.enemies.forEach((enemy, index) => {
+    if (typeof enemy.name !== 'string' || enemy.name.trim() === '') {
+      errors.push(`enemies[${index}].name must be a non-empty string.`)
+    }
     validateFiniteNumber(errors, `enemies[${index}].radius`, enemy.radius, 'positive')
     validateFiniteNumber(errors, `enemies[${index}].maxHp`, enemy.maxHp, 'positive')
     validateFiniteNumber(errors, `enemies[${index}].speed`, enemy.speed, 'non-negative')
@@ -275,6 +317,7 @@ function validateDefinitions(
     if (enemy.gearDropChance > 1) {
       errors.push(`enemies[${index}].gearDropChance must be at most 1.`)
     }
+
     if (!enemy.behavior || !VALID_ENEMY_BEHAVIORS.has(enemy.behavior.kind)) {
       errors.push(
         `enemies[${index}].behavior.kind is not supported; received "${String(enemy.behavior?.kind)}".`,
@@ -469,6 +512,7 @@ function validateSpawnBalance(
   errors: string[],
   balance: SpawnBalance,
   enemyIds: Set<string>,
+  eliteModifierIds: Set<string>,
 ): void {
   validateFiniteNumber(
     errors,
@@ -482,6 +526,44 @@ function validateSpawnBalance(
     balance.threatGrowthPerMinute,
     'non-negative',
   )
+  validateFiniteNumber(
+    errors,
+    'spawnBalance.eliteChance',
+    balance.eliteChance,
+    'non-negative',
+  )
+  if (balance.eliteChance > 1) {
+    errors.push('spawnBalance.eliteChance must be at most 1.')
+  }
+  validateFiniteNumber(
+    errors,
+    'spawnBalance.eliteStartTimeSeconds',
+    balance.eliteStartTimeSeconds,
+    'non-negative',
+  )
+  const eliteWeights = balance.eliteModifierWeights ?? {}
+  let positiveEliteWeight = false
+  for (const [modifierId, weight] of Object.entries(eliteWeights)) {
+    if (!eliteModifierIds.has(modifierId)) {
+      errors.push(
+        `spawnBalance.eliteModifierWeights.${modifierId} references unknown elite modifier.`,
+      )
+    }
+    validateFiniteNumber(
+      errors,
+      `spawnBalance.eliteModifierWeights.${modifierId}`,
+      weight,
+      'non-negative',
+    )
+    if (weight > 0) {
+      positiveEliteWeight = true
+    }
+  }
+  if (!positiveEliteWeight) {
+    errors.push(
+      'spawnBalance.eliteModifierWeights must contain at least one positive weight.',
+    )
+  }
   validateFiniteNumber(
     errors,
     'spawnBalance.maxActiveEnemies',
@@ -545,6 +627,10 @@ export function validateContent(catalog: ContentCatalog): string[] {
     ...validateGearPickupBalance(GEAR_PICKUP_BALANCE),
   ]
   const enemyIds = validateIds(errors, 'enemies', catalog.enemies)
+  const eliteModifierIds = validateEliteModifiers(
+    errors,
+    catalog.eliteModifiers ?? [],
+  )
   const projectileIds = validateIds(errors, 'projectiles', catalog.projectiles)
   const skillIds = validateIds(errors, 'skills', catalog.skills)
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
@@ -563,7 +649,12 @@ export function validateContent(catalog: ContentCatalog): string[] {
 
   validateDefinitions(errors, catalog, skillIds, projectileIds, enemyIds)
   validateXpBalance(errors, catalog.xpBalance)
-  validateSpawnBalance(errors, catalog.spawnBalance, enemyIds)
+  validateSpawnBalance(
+    errors,
+    catalog.spawnBalance,
+    enemyIds,
+    eliteModifierIds,
+  )
 
   validateFiniteNumber(
     errors,

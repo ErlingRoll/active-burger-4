@@ -204,6 +204,36 @@ describe('content validation', () => {
     )
   })
 
+  it('validates elite modifier tuning and spawn selection configuration', () => {
+    const errors = validateContent(
+      catalogWith({
+        eliteModifiers: [
+          {
+            ...CURRENT_CONTENT.eliteModifiers[0],
+            maxHpMultiplier: 0,
+            markerColor: '',
+          },
+        ],
+        spawnBalance: {
+          ...CURRENT_CONTENT.spawnBalance,
+          eliteChance: 1.5,
+          eliteStartTimeSeconds: -1,
+          eliteModifierWeights: { missing: 1 } as never,
+        },
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'eliteModifiers[0].maxHpMultiplier must be positive; received 0.',
+        'eliteModifiers[0].markerColor must be a non-empty string.',
+        'spawnBalance.eliteChance must be at most 1.',
+        'spawnBalance.eliteStartTimeSeconds must be non-negative; received -1.',
+        'spawnBalance.eliteModifierWeights.missing references unknown elite modifier.',
+      ]),
+    )
+  })
+
   it('validates shared rarity, equipment slots, and stat modifiers', () => {
     const errors = validateContent(
       catalogWith({

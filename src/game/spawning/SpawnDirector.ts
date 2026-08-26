@@ -1,6 +1,7 @@
 import type { SpawnBalance } from '../../content/spawning/SpawnBalance'
 import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
 import type { EnemyDefinitionId } from '../ids'
+import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
 import type { RandomSource } from '../random/Random'
 import type { EnemyState, GameState, PlayerState } from '../state/GameState'
 
@@ -8,6 +9,7 @@ export interface SpawnRequest {
   definitionId: EnemyDefinitionId
   x: number
   y: number
+  eliteModifier?: EliteModifierId
 }
 
 export type SpawnDirectorState = Pick<GameState, 'time'> & {
@@ -92,10 +94,12 @@ export class SpawnDirector {
           (this.balance.spawnRingOuterRadius -
             this.balance.spawnRingInnerRadius)
 
+      const eliteModifier = this.selectEliteModifier(state.time)
       requests.push({
         definitionId: entry.definitionId,
         x: state.player.x + Math.cos(angle) * radius,
         y: state.player.y + Math.sin(angle) * radius,
+        ...(eliteModifier ? { eliteModifier } : {}),
       })
     }
 
@@ -109,6 +113,37 @@ export class SpawnDirector {
     }
 
     return requests
+  }
+
+  private selectEliteModifier(
+    timeSeconds: number,
+  ): EliteModifierId | undefined {
+    if (
+      timeSeconds < this.balance.eliteStartTimeSeconds ||
+      !this.random.chance(this.balance.eliteChance)
+    ) {
+      return undefined
+    }
+
+    const weightedModifiers = Object.entries(
+      this.balance.eliteModifierWeights,
+    ).filter(([, weight]) => weight > 0) as [EliteModifierId, number][]
+    const totalWeight = weightedModifiers.reduce(
+      (sum, [, weight]) => sum + weight,
+      0,
+    )
+    if (totalWeight <= 0) {
+      return undefined
+    }
+
+    let selection = this.random.next() * totalWeight
+    for (const [modifierId, weight] of weightedModifiers) {
+      selection -= weight
+      if (selection < 0) {
+        return modifierId
+      }
+    }
+    return weightedModifiers[weightedModifiers.length - 1]?.[0]
   }
 
   private selectSpawnEntry(maxThreatCost: number, timeSeconds: number) {

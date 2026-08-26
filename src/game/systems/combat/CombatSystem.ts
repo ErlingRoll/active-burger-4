@@ -257,7 +257,9 @@ export function removeDeadEntities(
         state.run.gearDropGenerated !== true
       const randomGearDrop =
         !forceGearDrop &&
-        (random?.chance(getGearDropChance(enemy.definitionId)) ?? false)
+        (random?.chance(
+          getGearDropChance(enemy.definitionId, enemy.eliteModifier),
+        ) ?? false)
       if (forceGearDrop || randomGearDrop) {
         state.run.gearDropGenerated = true
         spawnGearPickup?.(

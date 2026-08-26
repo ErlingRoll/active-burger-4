@@ -6,6 +6,7 @@ import {
   SPLITTER_DEFINITION_ID,
   type EnemyDefinitionId,
 } from '../enemies/Enemies'
+import type { EliteModifierId } from '../enemies/EliteModifiers'
 
 export interface SpawnEntry {
   definitionId: EnemyDefinitionId
@@ -26,6 +27,14 @@ export interface SpawnBalance {
   spawnEntries: readonly SpawnEntry[]
   spawnRingInnerRadius: number
   spawnRingOuterRadius: number
+  /**
+   * Elites begin after 45 seconds so the first composition is readable. Once
+   * enabled, 10% of normal director spawns receive one weighted modifier.
+   * Splitter children bypass this roll and remain ordinary children.
+   */
+  eliteChance: number
+  eliteStartTimeSeconds: number
+  eliteModifierWeights: Readonly<Record<EliteModifierId, number>>
 }
 
 /**
@@ -70,4 +79,10 @@ export const SPAWN_BALANCE = {
   // arena's central view, while the outer radius keeps the ring bounded.
   spawnRingInnerRadius: 500,
   spawnRingOuterRadius: 650,
+  eliteChance: 0.1,
+  eliteStartTimeSeconds: 45,
+  eliteModifierWeights: {
+    hasted: 2,
+    giant: 1,
+  },
 } as const satisfies SpawnBalance

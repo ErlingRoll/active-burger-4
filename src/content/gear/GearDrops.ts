@@ -1,4 +1,8 @@
 import type { EnemyDefinitionId } from '../enemies/Enemies'
+import {
+  getEliteModifierDefinition,
+  type EliteModifierId,
+} from '../enemies/EliteModifiers'
 
 /** Per-enemy probability of generating a gear orb on death. */
 export const GEAR_DROP_CHANCES = {
@@ -23,8 +27,18 @@ export const GEAR_PICKUP_BALANCE = {
   attractionSpeed: 360,
 } as const satisfies GearPickupBalance
 
-export function getGearDropChance(enemyDefinitionId: EnemyDefinitionId): number {
-  return GEAR_DROP_CHANCES[enemyDefinitionId as keyof typeof GEAR_DROP_CHANCES] ?? 0
+export function getGearDropChance(
+  enemyDefinitionId: EnemyDefinitionId,
+  eliteModifier?: EliteModifierId,
+): number {
+  const baseChance =
+    GEAR_DROP_CHANCES[enemyDefinitionId as keyof typeof GEAR_DROP_CHANCES] ?? 0
+  const multiplier = eliteModifier
+    ? getEliteModifierDefinition(eliteModifier).gearDropChanceMultiplier
+    : 1
+  // Elite rewards improve authored chances but never turn ordinary drops into
+  // an unconditional drop; the kill-50 guarantee remains the only guarantee.
+  return Math.min(1, baseChance * multiplier)
 }
 
 export function validateGearDropChances(

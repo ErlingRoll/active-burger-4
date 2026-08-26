@@ -63,6 +63,7 @@ import {
   updateEnemySpawns,
 } from './systems/spawning/SpawningSystem'
 import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
+import type { EliteModifierId } from '../content/enemies/EliteModifiers'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import {
   collectSkillDamage,
@@ -407,6 +408,7 @@ export class Game {
     definitionId: EnemyDefinitionId,
     position: WorldPosition,
     xpRewardOverride?: number,
+    eliteModifier?: EliteModifierId,
   ): EntityId {
     return spawnEnemy(
       this.gameState,
@@ -414,6 +416,7 @@ export class Game {
       definitionId,
       position,
       xpRewardOverride,
+      eliteModifier,
     )
   }
 
@@ -491,6 +494,8 @@ export class Game {
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
     }, (definitionId, position, xpRewardOverride) => {
+      // Splitter children intentionally use the ordinary spawn path without
+      // an elite modifier; only director requests assign elites.
       this.spawnEnemy(definitionId, position, xpRewardOverride)
     }, (position, sourceEnemyDefinitionId) => {
       this.spawnGearPickup(position, sourceEnemyDefinitionId)

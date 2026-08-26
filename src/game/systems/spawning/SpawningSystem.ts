@@ -2,6 +2,10 @@ import {
   getEnemyDefinition,
   SLIME_DEFINITION_ID,
 } from '../../../content/enemies/Enemies'
+import {
+  getEliteModifierDefinition,
+  type EliteModifierId,
+} from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
 import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
@@ -65,19 +69,32 @@ export function spawnEnemy(
   definitionId: EnemyDefinitionId,
   position: WorldPosition,
   xpRewardOverride?: number,
+  eliteModifier?: EliteModifierId,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
+  const modifier = eliteModifier
+    ? getEliteModifierDefinition(eliteModifier)
+    : undefined
+  const baseXpReward = xpRewardOverride ?? definition.xpReward
+  const xpReward =
+    baseXpReward > 0
+      ? Math.round(baseXpReward * (modifier?.xpRewardMultiplier ?? 1))
+      : baseXpReward
+  const maxHp = Math.round(
+    definition.maxHp * (modifier?.maxHpMultiplier ?? 1),
+  )
   const enemy: EnemyState = {
     id: idAllocator.createEntityId(),
     definitionId: definition.id,
     x: position.x,
     y: position.y,
-    radius: definition.radius,
-    hp: definition.maxHp,
-    maxHp: definition.maxHp,
-    speed: definition.speed,
+    radius: definition.radius * (modifier?.radiusMultiplier ?? 1),
+    hp: maxHp,
+    maxHp,
+    speed: definition.speed * (modifier?.speedMultiplier ?? 1),
     contactDamage: definition.contactDamage,
-    xpReward: xpRewardOverride ?? definition.xpReward,
+    xpReward,
+    ...(modifier ? { eliteModifier: modifier.id } : {}),
     targetId: state.player.id,
   }
 
@@ -145,6 +162,13 @@ export function updateEnemySpawns(
 ): void {
   const requests = spawnDirector.update(state, fixedStepSeconds)
   for (const request of requests) {
-    spawnEnemy(state, idAllocator, request.definitionId, request)
+    spawnEnemy(
+      state,
+      idAllocator,
+      request.definitionId,
+      request,
+      undefined,
+      request.eliteModifier,
+    )
   }
 }

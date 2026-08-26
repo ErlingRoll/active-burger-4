@@ -8,6 +8,7 @@ import type { StatModifier, StatValues } from '../../content/stats/Stats'
 import type { EquipmentLoadout } from '../equipment/EquipmentState'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
+import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
 
 /** Configuration required to start a new deterministic run. */
 export interface RunConfig {
@@ -82,6 +83,9 @@ export interface EnemyState {
   contactDamage: number
 
   xpReward: number
+
+  /** Assigned once at spawn and never inferred by the renderer. */
+  eliteModifier?: EliteModifierId
 
   targetId: EntityId
 }

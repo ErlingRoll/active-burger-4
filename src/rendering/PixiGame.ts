@@ -1,10 +1,14 @@
-import { Application, Container, Graphics, type Ticker } from 'pixi.js'
+import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js'
 import type { EntityId } from '../game/ids'
 import type { Game } from '../game/Game'
 import {
   getEnemyDefinition,
   type EnemyRenderDefinition,
 } from '../content/enemies/Enemies'
+import {
+  getEliteModifierDefinition,
+  type EliteModifierId,
+} from '../content/enemies/EliteModifiers'
 import {
   BASIC_BOLT_SKILL_ID,
   getSkillDefinition,
@@ -16,7 +20,7 @@ export class PixiGame {
   private readonly game: Game
   private readonly app = new Application()
   private readonly camera = new Container()
-  private readonly enemyViews = new Map<EntityId, Graphics>()
+  private readonly enemyViews = new Map<EntityId, EnemyView>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
@@ -125,28 +129,53 @@ export class PixiGame {
   private createEnemyPlaceholder(enemy: {
     radius: number
     definitionId: string
-  }): Graphics {
+    eliteModifier?: EliteModifierId
+  }): EnemyView {
     const definition = getEnemyDefinition(enemy.definitionId)
-    const view = new Graphics()
+    const body = new Graphics()
     const radius = enemy.radius
     if (definition.render.shape === 'diamond') {
-      view.poly([0, -radius, radius, 0, 0, radius, -radius, 0])
+      body.poly([0, -radius, radius, 0, 0, radius, -radius, 0])
     } else if (definition.render.shape === 'triangle') {
-      view.poly([0, -radius, radius, radius, -radius, radius])
+      body.poly([0, -radius, radius, radius, -radius, radius])
     } else if (definition.render.shape === 'hexagon') {
       const points = Array.from({ length: 6 }, (_, index) => {
         const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2
         return [Math.cos(angle) * radius, Math.sin(angle) * radius]
       }).flat()
-      view.poly(points)
+      body.poly(points)
     } else {
-      view.circle(0, 0, radius)
+      body.circle(0, 0, radius)
     }
-    view
+    body
       .fill(definition.render.color)
       .stroke({ color: definition.render.outlineColor, width: 2 })
-    applyEnemyRenderScale(view, definition.render)
-    return view
+    applyEnemyRenderScale(body, definition.render)
+
+    const root = new Container()
+    root.addChild(body)
+    if (enemy.eliteModifier) {
+      const modifier = getEliteModifierDefinition(enemy.eliteModifier)
+      const marker = new Graphics()
+        .circle(0, 0, radius * 1.2)
+        .stroke({ color: modifier.markerColor, width: 4 })
+      applyEnemyRenderScale(marker, definition.render)
+      root.addChild(marker)
+    }
+
+    const label = new Text({
+      text: getEnemyDisplayLabel(enemy.definitionId, enemy.eliteModifier),
+      style: {
+        fill: '#f8fafc',
+        fontSize: 14,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
+        stroke: { color: '#0f172a', width: 4 },
+      },
+    })
+    label.anchor.set(0.5, 1)
+    root.addChild(label)
+    return { root, label }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -257,24 +286,30 @@ export class PixiGame {
     const activeEnemyIds = new Set<EntityId>()
     for (const enemy of state.enemies) {
       activeEnemyIds.add(enemy.id)
-      let view = this.enemyViews.get(enemy.id)
+      let enemyView = this.enemyViews.get(enemy.id)
 
-      if (!view) {
-        view = this.createEnemyPlaceholder(enemy)
-        this.enemyViews.set(enemy.id, view)
-        this.enemyLayer?.addChild(view)
+      if (!enemyView) {
+        enemyView = this.createEnemyPlaceholder(enemy)
+        this.enemyViews.set(enemy.id, enemyView)
+        this.enemyLayer?.addChild(enemyView.root)
       }
 
-      view.position.set(enemy.x, enemy.y)
+      enemyView.root.position.set(enemy.x, enemy.y)
+      enemyView.label.text = getEnemyDisplayLabel(
+        enemy.definitionId,
+        enemy.eliteModifier,
+      )
+      const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
+      enemyView.label.position.set(0, -(enemy.radius * renderScale + 8))
     }
 
-    for (const [enemyId, view] of this.enemyViews) {
+    for (const [enemyId, enemyView] of this.enemyViews) {
       if (activeEnemyIds.has(enemyId)) {
         continue
       }
 
-      view.removeFromParent()
-      view.destroy()
+      enemyView.root.removeFromParent()
+      enemyView.root.destroy({ children: true })
       this.enemyViews.delete(enemyId)
     }
 
@@ -359,6 +394,22 @@ export class PixiGame {
 
   private destroyApplication(): void {
     this.app.ticker.remove(this.update)
+    for (const { root } of this.enemyViews.values()) {
+      root.removeFromParent()
+      root.destroy({ children: true })
+    }
+    for (const view of this.projectileViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    for (const view of this.pickupViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    for (const view of this.effectViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
     this.enemyViews.clear()
     this.projectileViews.clear()
     this.pickupViews.clear()
@@ -378,4 +429,20 @@ function applyEnemyRenderScale(
   render: EnemyRenderDefinition,
 ): void {
   view.scale.set(render.scale)
+}
+
+interface EnemyView {
+  root: Container
+  label: Text
+}
+
+export function getEnemyDisplayLabel(
+  definitionId: string,
+  eliteModifier?: EliteModifierId,
+): string {
+  const definition = getEnemyDefinition(definitionId)
+  if (!eliteModifier) {
+    return definition.name
+  }
+  return `${definition.name} · ${getEliteModifierDefinition(eliteModifier).name}`
 }

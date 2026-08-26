@@ -51,7 +51,7 @@ milestones in order unless an ADR documents an exception.
   measured profiling.
 - [x] **11. Gear:** deterministic drops, equipment choices, rarity, and stat
   modifiers. Event-triggered passives and conditional synergies remain deferred.
-- [ ] **12. Elites:** selection, Hasted/Giant, visuals, rewards.
+- [x] **12. Elites:** selection, Hasted/Giant, visuals, rewards.
 - [ ] **13. Boss:** timeline, boss behavior/bar, victory.
 - [ ] **14. Full Run:** timed difficulty, events, final boss, results.
 - [ ] **15. Local Persistence:** versioned Dexie settings, profile, pending
