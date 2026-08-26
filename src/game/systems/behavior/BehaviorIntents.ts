@@ -160,6 +160,24 @@ function createKiteCandidate(
     return undefined
   }
 
+  const nearestThreatDistance = nearby.reduce(
+    (nearest, entity) => Math.min(
+      nearest,
+      Math.sqrt(distanceSquared(state.player.x, state.player.y, entity.x, entity.y)),
+    ),
+    Number.POSITIVE_INFINITY,
+  )
+  const isSingleManageableThreat = nearby.length === 1 &&
+    !nearby[0].eliteModifier &&
+    !('bossDefinitionId' in nearby[0]) &&
+    threatScore(nearby[0], threats, policy.thresholds.packRadius) <=
+      policy.thresholds.kiteThreatScore
+  const engagementDistance = getDerivedPlayerStats(state.player).attackRange +
+    state.player.radius
+  if (isSingleManageableThreat && nearestThreatDistance >= engagementDistance) {
+    return undefined
+  }
+
   let awayX = 0
   let awayY = 0
   for (const entity of nearby) {
@@ -200,9 +218,8 @@ function createCombatRangeCandidate(
     return undefined
   }
   const attackRange = Math.max(0, getDerivedPlayerStats(state.player).attackRange)
-  // Targeting uses center-to-center attack range, so movement should use the
-  // same boundary rather than adding collision radii a second time.
-  const desiredDistance = attackRange
+  // Movement holds the same center-to-center engagement boundary as targeting.
+  const desiredDistance = attackRange + state.player.radius
   const currentDistance = Math.sqrt(
     distanceSquared(state.player.x, state.player.y, target.x, target.y),
   )

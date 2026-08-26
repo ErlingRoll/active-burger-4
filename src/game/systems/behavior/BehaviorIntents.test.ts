@@ -155,6 +155,18 @@ describe('data-driven player behavior intents', () => {
     expect(combatRange?.targetId).toBe(activeTarget.id)
   })
 
+  it('holds a lone Runner at engagement range instead of kiting out of attack range', () => {
+    const runner = enemy(4, 'runner', 66)
+    const state = createState([runner])
+    state.player.behaviorController = {
+      profileId: 'cautious',
+    }
+
+    const candidates = getPlayerBehaviorCandidates(state)
+    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('hold')
+  })
+
   it('selects distinct profile intents from the same deterministic state', () => {
     const state = createState(
       [enemy(5, 'archer', 180)],

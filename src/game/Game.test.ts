@@ -465,7 +465,7 @@ describe('Game', () => {
     expect(game.state.projectiles).toHaveLength(1)
   })
 
-  it('keeps pursuing the current target when another enemy moves closer', () => {
+  it('keeps pursuing and firing at the current target when another enemy moves closer', () => {
     const game = createGame({ seed: 112 })
     const firstTargetId = game.spawnSlime({ x: 64, y: 0 })
     const closerEnemyId = game.spawnSlime({ x: 72, y: 0 })
@@ -485,7 +485,8 @@ describe('Game', () => {
 
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.player.targetId).toBe(firstTargetId)
-    expect(game.state.projectiles).toHaveLength(0)
+    expect(game.state.player.attackCooldownRemaining).toBeGreaterThan(0)
+    expect(closerEnemy.hp).toBeLessThan(closerEnemy.maxHp)
   })
 
   it('waits for the attack cooldown before creating another projectile', () => {

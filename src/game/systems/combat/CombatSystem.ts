@@ -173,8 +173,8 @@ export function spawnBasicBoltIfReady(
   const offsetX = target.x - player.x
   const offsetY = target.y - player.y
   const distanceSquared = offsetX * offsetX + offsetY * offsetY
-  const engagementRange = stats.attackRange + player.radius
-  if (distanceSquared > engagementRange * engagementRange) {
+  const projectileRange = definition.speed * definition.lifetime + definition.radius
+  if (distanceSquared > projectileRange * projectileRange) {
     return
   }
   const distance = Math.sqrt(distanceSquared)
