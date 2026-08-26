@@ -163,4 +163,6 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   const loadout = page.getByRole('region', { name: 'Loadout' })
   await expect(loadout.locator('.loadout-item')).toHaveCount(6)
   await expect(loadout.locator('.loadout-item:not(:has(.loadout-empty))')).toHaveCount(1)
+  await loadout.getByRole('button', { name: /armor: bastion plate/i }).focus()
+  await expect(loadout.getByRole('tooltip')).toContainText('Bastion Plate')
 })

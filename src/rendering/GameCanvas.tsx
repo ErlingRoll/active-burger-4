@@ -190,6 +190,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
+  const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlot | null>(
+    null,
+  )
 
   return (
     <section className="gameplay-hud" aria-labelledby="run-status-title">
@@ -306,26 +309,61 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
         <ul className="loadout-list">
           {EQUIPMENT_SLOTS.map((slot) => {
             const item = snapshot.equipment[slot]
+            const tooltipId = `loadout-tooltip-${slot}`
+            const isActive = activeLoadoutSlot === slot
             return (
-              <li
-                className={`loadout-item${item ? ` rarity-${item.rarity}` : ''}`}
-                data-slot={slot}
-                key={slot}
-              >
-                <span className="loadout-slot">{HUD_SLOT_LABELS[slot]}</span>
-                {item ? (
-                  <>
-                    <strong>{item.name}</strong>
-                    <span
-                      className="loadout-rarity"
-                      data-rarity={item.rarity}
-                    >
-                      {RARITY_VISUALS[item.rarity].icon} {RARITY_VISUALS[item.rarity].label}
-                    </span>
-                  </>
-                ) : (
-                  <span className="loadout-empty">Empty</span>
-                )}
+              <li className="loadout-entry" key={slot}>
+                <button
+                  className={`loadout-item${item ? ` rarity-${item.rarity}` : ''}`}
+                  data-slot={slot}
+                  type="button"
+                  aria-label={
+                    item
+                      ? `${HUD_SLOT_LABELS[slot]}: ${item.name}`
+                      : `${HUD_SLOT_LABELS[slot]} slot empty`
+                  }
+                  aria-describedby={isActive ? tooltipId : undefined}
+                  onFocus={() => setActiveLoadoutSlot(slot)}
+                  onBlur={() => setActiveLoadoutSlot(null)}
+                  onMouseEnter={() => setActiveLoadoutSlot(slot)}
+                  onMouseLeave={() => setActiveLoadoutSlot(null)}
+                >
+                  <span className="loadout-slot">{HUD_SLOT_LABELS[slot]}</span>
+                  {item ? (
+                    <>
+                      <strong>{item.name}</strong>
+                      <span
+                        className="loadout-rarity"
+                        data-rarity={item.rarity}
+                      >
+                        {RARITY_VISUALS[item.rarity].icon} {RARITY_VISUALS[item.rarity].label}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="loadout-empty">Empty</span>
+                  )}
+                </button>
+                {isActive ? (
+                  <div className="loadout-tooltip" id={tooltipId} role="tooltip">
+                    <strong>{HUD_SLOT_LABELS[slot]}</strong>
+                    {item ? (
+                      <>
+                        <p>
+                          {RARITY_VISUALS[item.rarity].label} {item.name}
+                        </p>
+                        <ul>
+                          {item.modifiers.map((modifier, index) => (
+                            <li key={`${modifier.sourceId}-${modifier.stat}-${index}`}>
+                              {formatHudModifier(modifier)}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p>Empty slot</p>
+                    )}
+                  </div>
+                ) : null}
               </li>
             )
           })}

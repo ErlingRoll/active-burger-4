@@ -186,14 +186,14 @@
   position: absolute;
   top: 5.75rem;
   left: 1rem;
-  width: min(12rem, calc(100% - 2rem));
+  width: min(15rem, calc(100% - 2rem));
   pointer-events: auto;
 }
 
 .equipped-loadout h3 {
   margin: 0 0 0.4rem;
   color: #bfdbfe;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -209,20 +209,24 @@
 
 .loadout-item {
   display: grid;
+  width: 100%;
   min-width: 7.5rem;
-  min-height: 3.25rem;
+  min-height: 4rem;
   gap: 0.15rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.55rem 0.65rem;
   color: #cbd5e1;
+  font: inherit;
+  text-align: left;
   background: rgb(15 23 42 / 88%);
   border: 1px solid #475569;
   border-top: 2px solid #64748b;
   border-radius: 0.45rem;
+  cursor: pointer;
 }
 
 .loadout-empty {
   color: #94a3b8;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-style: italic;
 }
 
@@ -243,7 +247,7 @@
 .loadout-item strong {
   overflow: hidden;
   color: #f8fafc;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -260,9 +264,51 @@
 .loadout-item.rarity-epic .loadout-rarity { color: #c084fc; }
 .loadout-item.rarity-legendary .loadout-rarity { color: #fbbf24; }
 
-.loadout-empty {
-  color: #64748b;
-  font-size: 0.75rem;
+.loadout-item:hover,
+.loadout-item:focus-visible {
+  background: #263a5a;
+  border-color: #fef08a;
+  outline: 3px solid rgb(254 240 138 / 35%);
+  outline-offset: 2px;
+}
+
+.loadout-entry {
+  position: relative;
+}
+
+.loadout-tooltip {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: calc(100% + 0.6rem);
+  width: min(16rem, calc(100vw - 18rem));
+  padding: 0.8rem;
+  color: #dbeafe;
+  background: #0f172a;
+  border: 1px solid #fef08a;
+  border-radius: 0.6rem;
+  box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
+  pointer-events: none;
+}
+
+.loadout-tooltip strong {
+  color: #f8fafc;
+}
+
+.loadout-tooltip p {
+  margin: 0.35rem 0;
+  color: #bfdbfe;
+  font-size: 0.8rem;
+}
+
+.loadout-tooltip ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  color: #86efac;
+  font-size: 0.78rem;
+  list-style: none;
 }
 
 .skill-list {
@@ -939,6 +985,14 @@
   .equipped-loadout {
     top: 5.25rem;
     left: 0.75rem;
+  }
+
+  .loadout-tooltip {
+    position: fixed;
+    top: auto;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    width: min(16rem, calc(100vw - 1.5rem));
   }
 
   .development-controls {
