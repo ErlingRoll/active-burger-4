@@ -129,6 +129,7 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await expect(overlay).toBeVisible()
   const gearCards = overlay.locator('[data-choice-type="gear"]')
   await expect(gearCards).toHaveCount(3)
+  await expect(gearCards.locator('.gear-upgrade-type')).toHaveCount(0)
   await expect(gearCards.first().locator('[data-rarity]')).toBeVisible()
   await expect(gearCards.first()).toContainText(/weapon|helmet|armor|boots|ring|amulet/i)
   await expect(gearCards.first()).toContainText(/gains|net change/i)
@@ -142,9 +143,22 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
 
   const upgradeCard = overlay.locator('[data-choice-type="gear-upgrade"]')
   await expect(upgradeCard).toBeVisible()
+  await expect(upgradeCard).toHaveClass(/gear-upgrade-card/)
+  await expect(upgradeCard.locator('.gear-upgrade-type')).toHaveText(
+    /upgrade equipped item/i,
+  )
+  await expect(upgradeCard.locator('.upgrade-choice-name')).toHaveText(
+    /^Upgrade: /,
+  )
+  await expect(
+    upgradeCard.locator('.choice-card-header [data-rarity="rare"]'),
+  ).toBeVisible()
+  await expect(upgradeCard).toContainText(/Upgrade equipped item/i)
   await expect(upgradeCard).toContainText(/current rarity/i)
   await expect(upgradeCard).toContainText(/upgraded rarity/i)
   await expect(upgradeCard).toContainText(/upgrade gains/i)
+  await expect(upgradeCard.locator('.modifier-delta')).toBeVisible()
+  await expect(upgradeCard).not.toContainText('Select to equip immediately')
 
   const loadout = page.getByRole('region', { name: 'Loadout' })
   await expect(loadout.locator('.loadout-item')).toHaveCount(1)

@@ -268,16 +268,20 @@ function GearCard({
       <div className="choice-card-wrap">
         <button
           ref={index === 0 ? firstButtonRef : undefined}
-          className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
+          className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-upgrade"
           type="button"
           onClick={() => onSelect(choice)}
         >
+          <span className="gear-upgrade-type">
+            <span className="gear-upgrade-icon" aria-hidden="true">↗</span>
+            UPGRADE EQUIPPED ITEM
+          </span>
           <span className="choice-card-header">
-            <span className="upgrade-choice-name">{item.name}</span>
+            <span className="upgrade-choice-name">Upgrade: {item.name}</span>
             <RarityBadge rarity={choice.rarity} label="Choice rarity" />
           </span>
-          <span className="gear-slot">{SLOT_LABELS[choice.slot]} · Upgrade equipped item</span>
+          <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {item.name}</span>
           <span className="gear-rarity-transition">
             <span>
               Current rarity: <RarityBadge rarity={choice.fromRarity} label="Current rarity" />
@@ -287,12 +291,10 @@ function GearCard({
               Upgraded rarity: <RarityBadge rarity={choice.upgradedRarity} label="Upgraded rarity" />
             </span>
           </span>
-          <span className="gear-stats-heading">Current stats</span>
-          <ModifierList modifiers={currentModifiers} />
           <span className="gear-net-heading">Upgrade gains</span>
           <ModifierList modifiers={gains} emptyLabel="No stat change" delta />
           <span className="upgrade-choice-description">
-            Select to equip the upgrade immediately.
+            Select to upgrade equipped item.
           </span>
         </button>
       </div>

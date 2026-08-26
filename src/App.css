@@ -712,11 +712,23 @@
   border-top: 3px solid #64748b;
 }
 
+.gear-upgrade-card {
+  background:
+    linear-gradient(145deg, rgb(120 53 15 / 35%), transparent 58%),
+    #2a2117;
+  border-color: #b45309;
+  border-top-color: #f59e0b;
+}
+
 .choice-card.rarity-common { border-top-color: #d1d5db; }
 .choice-card.rarity-uncommon { border-top-color: #4ade80; }
 .choice-card.rarity-rare { border-top-color: #60a5fa; }
 .choice-card.rarity-epic { border-top-color: #c084fc; }
 .choice-card.rarity-legendary { border-top-color: #fbbf24; }
+
+.choice-card.gear-upgrade-card {
+  border-top-color: #f59e0b;
+}
 
 .choice-card-header {
   display: flex;
@@ -724,6 +736,29 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.gear-upgrade-type {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.gear-upgrade-icon {
+  display: inline-grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  color: #451a03;
+  font-size: 1rem;
+  line-height: 1;
+  background: #f59e0b;
+  border-radius: 0.3rem;
 }
 
 .rarity-badge {
@@ -861,6 +896,15 @@
   border-color: #93c5fd;
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
+}
+
+.upgrade-choice.gear-upgrade-card:hover,
+.upgrade-choice.gear-upgrade-card:focus-visible {
+  background:
+    linear-gradient(145deg, rgb(146 64 14 / 42%), transparent 58%),
+    #3a2a18;
+  border-color: #fbbf24;
+  outline-color: rgb(251 191 36 / 35%);
 }
 
 .upgrade-choice-name {
