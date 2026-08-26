@@ -16,15 +16,22 @@ export interface AuthAccount {
   email: string | null
 }
 
+export interface SignInOptions {
+  persistSession?: boolean
+}
+
 export interface AuthenticationService {
   getSession(): Promise<AuthAccount | null>
-  signInWithPassword(email: string, password: string): Promise<AuthAccount>
+  signInWithPassword(
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ): Promise<AuthAccount>
   signOut(): Promise<void>
   subscribe(onAccountChange: (account: AuthAccount | null) => void): () => void
 }
 
-let browserClient: SupabaseClient | null = null
-let browserClientConfiguration: string | null = null
+const browserClients = new Map<string, SupabaseClient>()
 
 export function resolveAuthEnvironment(
   environment: AuthEnvironment,
@@ -44,34 +51,91 @@ export function resolveAuthEnvironment(
 export function createAuthenticationService(
   environment: AuthEnvironment,
 ): AuthenticationService {
-  return createAuthenticationServiceFromClient(getSupabaseClient(environment))
+  const persistentClient = getSupabaseClient(environment, { persistSession: true })
+  const sessionClient = getSupabaseClient(environment, { persistSession: false })
+  return createAuthenticationServiceFromClient(
+    persistentClient,
+    (persistSession) => persistSession ? persistentClient : sessionClient,
+  )
 }
 
-export function getSupabaseClient(environment: AuthEnvironment): SupabaseClient {
+export function getSupabaseClient(
+  environment: AuthEnvironment,
+  options: SignInOptions = {},
+): SupabaseClient {
   const { supabaseUrl, supabasePublishableKey } = resolveAuthEnvironment(environment)
-  const configuration = `${supabaseUrl}\u0000${supabasePublishableKey}`
-  const client = browserClientConfiguration === configuration && browserClient
-    ? browserClient
-    : createClient(supabaseUrl, supabasePublishableKey)
-  browserClient = client
-  browserClientConfiguration = configuration
+  const persistSession = options.persistSession ?? true
+  const configuration = `${supabaseUrl}\u0000${supabasePublishableKey}\u0000${persistSession}`
+  const existingClient = browserClients.get(configuration)
+  if (existingClient) {
+    return existingClient
+  }
+  const authOptions = persistSession
+    ? { persistSession }
+    : {
+        persistSession,
+        storageKey: `active-burger-4-session-${encodeURIComponent(supabaseUrl)}`,
+      }
+  const client = createClient(supabaseUrl, supabasePublishableKey, {
+    auth: authOptions,
+  })
+  browserClients.set(configuration, client)
   return client
 }
 
 export function createAuthenticationServiceFromClient(
   client: SupabaseClient,
+  resolveClient: (persistSession: boolean) => SupabaseClient = () => client,
 ): AuthenticationService {
+  let activeClient = client
+  const listeners = new Set<(account: AuthAccount | null) => void>()
+  const subscriptions = new Map<
+    (account: AuthAccount | null) => void,
+    { unsubscribe: () => void }
+  >()
+
+  const subscribeToActiveClient = (
+    onAccountChange: (account: AuthAccount | null) => void,
+  ): void => {
+    const { data } = activeClient.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        onAccountChange(toAuthAccount(session))
+      },
+    )
+    subscriptions.set(onAccountChange, data.subscription)
+  }
+
+  const switchClient = (persistSession: boolean): void => {
+    const nextClient = resolveClient(persistSession)
+    if (nextClient === activeClient) {
+      return
+    }
+    for (const subscription of subscriptions.values()) {
+      subscription.unsubscribe()
+    }
+    subscriptions.clear()
+    activeClient = nextClient
+    for (const onAccountChange of listeners) {
+      subscribeToActiveClient(onAccountChange)
+    }
+  }
+
   return {
     async getSession(): Promise<AuthAccount | null> {
-      const { data, error } = await client.auth.getSession()
+      const { data, error } = await activeClient.auth.getSession()
       if (error) {
         throw error
       }
       return toAuthAccount(data.session)
     },
 
-    async signInWithPassword(email: string, password: string): Promise<AuthAccount> {
-      const { data, error } = await client.auth.signInWithPassword({ email, password })
+    async signInWithPassword(
+      email: string,
+      password: string,
+      options: SignInOptions = {},
+    ): Promise<AuthAccount> {
+      switchClient(options.persistSession ?? true)
+      const { data, error } = await activeClient.auth.signInWithPassword({ email, password })
       if (error) {
         throw error
       }
@@ -79,25 +143,24 @@ export function createAuthenticationServiceFromClient(
       if (!account) {
         throw new Error('Authentication completed without an active session.')
       }
-      await ensureProfile(client, account.id)
+      await ensureProfile(activeClient, account.id)
       return account
     },
 
     async signOut(): Promise<void> {
-      const { error } = await client.auth.signOut()
+      const { error } = await activeClient.auth.signOut()
       if (error) {
         throw error
       }
     },
 
     subscribe(onAccountChange: (account: AuthAccount | null) => void): () => void {
-      const { data } = client.auth.onAuthStateChange(
-        (_event: AuthChangeEvent, session: Session | null) => {
-          onAccountChange(toAuthAccount(session))
-        },
-      )
+      listeners.add(onAccountChange)
+      subscribeToActiveClient(onAccountChange)
       return () => {
-        data.subscription.unsubscribe()
+        listeners.delete(onAccountChange)
+        subscriptions.get(onAccountChange)?.unsubscribe()
+        subscriptions.delete(onAccountChange)
       }
     },
   }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { AuthAccount } from './AuthService'
+import type { AuthAccount, SignInOptions } from './AuthService'
 
 export type AuthenticationStatus = 'unavailable' | 'loading' | 'ready' | 'error'
 
@@ -11,7 +11,11 @@ export interface AuthenticationState {
 
 interface AuthPanelProps {
   authentication: AuthenticationState
-  onSignIn: (email: string, password: string) => Promise<boolean>
+  onSignIn: (
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ) => Promise<boolean>
   onSignOut: () => Promise<boolean>
 }
 
@@ -22,13 +26,14 @@ export function AuthPanel({
 }: AuthPanelProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [persistSession, setPersistSession] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const submitSignIn = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     setSubmitting(true)
     try {
-      await onSignIn(email, password)
+      await onSignIn(email, password, { persistSession })
       setPassword('')
     } finally {
       setSubmitting(false)
@@ -102,6 +107,16 @@ export function AuthPanel({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
+        </label>
+        <label className="remember-session">
+          <input
+            checked={persistSession}
+            disabled={authentication.status === 'loading' || submitting}
+            name="persist-session"
+            type="checkbox"
+            onChange={(event) => setPersistSession(event.target.checked)}
+          />
+          Keep me signed in on this browser
         </label>
         {authentication.error ? (
           <p className="persistence-error" role="alert">{authentication.error}</p>

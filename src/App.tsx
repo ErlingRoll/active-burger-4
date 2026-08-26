@@ -20,6 +20,7 @@ import {
   createAuthenticationService,
   type AuthenticationState,
   type AuthenticationService,
+  type SignInOptions,
 } from './auth'
 import {
   createMetaProgressionService,
@@ -447,7 +448,11 @@ function App() {
   }, [])
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
+    async (
+      email: string,
+      password: string,
+      options?: SignInOptions,
+    ): Promise<boolean> => {
       const service = authenticationService.service
       if (!service) {
         setAuthentication({
@@ -458,7 +463,7 @@ function App() {
         return false
       }
       try {
-        const account = await service.signInWithPassword(email, password)
+        const account = await service.signInWithPassword(email, password, options)
         setAuthentication({ status: 'ready', account, error: null })
         setMetaLoadAttempt((attempt) => attempt + 1)
         return true
@@ -1035,7 +1040,11 @@ function Dashboard({
 
 interface AuthGatewayProps {
   authentication: AuthenticationState
-  onSignIn: (email: string, password: string) => Promise<boolean>
+  onSignIn: (
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ) => Promise<boolean>
   onSignOut: () => Promise<boolean>
 }
 
