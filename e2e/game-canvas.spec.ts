@@ -93,7 +93,7 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
       'Estimated SINGLE-TARGET sustained DPS',
     ),
   ).toBeVisible()
-  await expect(page.getByRole('tooltip')).toContainText('10.0')
+  await expect(page.getByRole('tooltip')).toContainText('10')
   await expect(page.getByRole('tooltip')).toContainText('Relevant upgrades')
 })
 

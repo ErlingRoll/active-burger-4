@@ -5,8 +5,6 @@ import {
   type ItemDefinition,
 } from '../content/gear/Items'
 import {
-} from '../game/equipment/EquipmentState'
-import {
   RARITY_VISUALS,
   type Rarity,
 } from '../content/rarity/Rarity'
@@ -47,10 +45,7 @@ const SLOT_LABELS: Record<EquipmentSlot, string> = {
 }
 
 function formatNumber(value: number): string {
-  if (Number.isInteger(value)) {
-    return value.toString()
-  }
-  return value.toFixed(1)
+  return Math.ceil(value).toString()
 }
 
 function formatModifierValue(modifier: Pick<GearModifierSnapshot, 'operation' | 'value'>): string {

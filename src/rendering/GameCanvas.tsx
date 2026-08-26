@@ -53,10 +53,8 @@ function formatHudModifier(
   modifier: GameUiSnapshot['skills'][number]['gearModifiers'][number],
 ): string {
   const value = modifier.operation === 'multiply'
-    ? `${Math.abs((modifier.value - 1) * 100).toFixed(0)}%`
-    : Number.isInteger(modifier.value)
-      ? modifier.value.toString()
-      : Math.abs(modifier.value).toFixed(1)
+    ? `${Math.ceil(Math.abs((modifier.value - 1) * 100))}%`
+    : Math.ceil(Math.abs(modifier.value)).toString()
   const isPositive = modifier.operation === 'multiply'
     ? modifier.value >= 1
     : modifier.value >= 0
@@ -204,7 +202,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <dt>HP</dt>
           <dd>
             <progress value={hp} max={snapshot.maxHp} aria-label="Player health" />
-            <span>{Math.ceil(hp)} / {snapshot.maxHp}</span>
+            <span>{Math.ceil(hp)} / {Math.ceil(snapshot.maxHp)}</span>
           </dd>
         </div>
         <div className="hud-stat">
@@ -266,7 +264,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       <b>
                         {skill.estimatedSingleTargetDps === null
                           ? 'N/A'
-                          : skill.estimatedSingleTargetDps.toFixed(1)}
+                          : Math.ceil(skill.estimatedSingleTargetDps)}
                       </b>
                     </p>
                     <p className="skill-assumption">{skill.dpsAssumption}</p>
