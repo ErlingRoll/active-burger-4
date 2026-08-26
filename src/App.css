@@ -77,6 +77,60 @@
   font-size: clamp(1.75rem, 5vw, 3rem);
 }
 
+.account-panel {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  color: #cbd5e1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.account-panel h3 {
+  margin: 0.35rem 0;
+  color: #f8fafc;
+  font-size: 1.1rem;
+}
+
+.account-panel > p:not(.screen-kicker):not(.persistence-error) {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.account-email {
+  overflow-wrap: anywhere;
+}
+
+.sign-in-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.sign-in-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.sign-in-form input {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.65rem;
+  color: #f8fafc;
+  font: inherit;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.4rem;
+}
+
+.sign-in-form input:focus-visible {
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 1px;
+}
+
 .dashboard-panel p:not(.screen-kicker),
 .results-summary {
   color: #cbd5e1;
@@ -156,6 +210,7 @@
 }
 
 .primary-action,
+.secondary-action,
 .end-run-button {
   min-height: 2.75rem;
   padding: 0.65rem 1.2rem;
@@ -169,6 +224,8 @@
 
 .primary-action:hover,
 .primary-action:focus-visible,
+.secondary-action:hover,
+.secondary-action:focus-visible,
 .end-run-button:hover,
 .end-run-button:focus-visible {
   background: #1d4ed8;

@@ -14,6 +14,12 @@ import {
   type SettingsPatch,
 } from './persistence'
 import { DEFAULT_DUNGEON_LENGTH_CONTRACT_ID } from './persistence'
+import {
+  AuthPanel,
+  createAuthenticationService,
+  type AuthenticationState,
+  type AuthenticationService,
+} from './auth'
 import { GameCanvas } from './rendering/GameCanvas'
 import './App.css'
 
@@ -54,6 +60,19 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unable to access local persistence.'
 }
 
+function createInitialAuthenticationState(
+  service: AuthenticationService | null,
+  configurationError: string | null,
+): AuthenticationState {
+  return service
+    ? { status: 'loading', account: null, error: null }
+    : {
+        status: 'unavailable',
+        account: null,
+        error: configurationError ?? 'Authentication is unavailable.',
+      }
+}
+
 function isContractUnlocked(
   profile: BasicProfileDto,
   contractId: string,
@@ -71,6 +90,28 @@ function App() {
     [],
   )
   const [screen, setScreen] = useState<AppScreen>('dashboard')
+  const authenticationService = useMemo(() => {
+    try {
+      return {
+        service: createAuthenticationService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [])
+  const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
+    createInitialAuthenticationState(
+      authenticationService.service,
+      authenticationService.configurationError,
+    ),
+  )
   const [runId, setRunId] = useState(0)
   const [activeRunId, setActiveRunId] = useState<string | null>(null)
   const [result, setResult] = useState<RunResultSnapshot | null>(null)
@@ -85,6 +126,37 @@ function App() {
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const service = authenticationService.service
+    if (!service) {
+      return
+    }
+
+    let cancelled = false
+    const unsubscribe = service.subscribe((account) => {
+      if (!cancelled) {
+        setAuthentication({ status: 'ready', account, error: null })
+      }
+    })
+    void service
+      .getSession()
+      .then((account) => {
+        if (!cancelled) {
+          setAuthentication({ status: 'ready', account, error: null })
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setAuthentication({ status: 'error', account: null, error: errorMessage(error) })
+        }
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [authenticationService])
 
   useEffect(() => {
     let cancelled = false
@@ -180,6 +252,53 @@ function App() {
     },
     [persistSettings],
   )
+
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<boolean> => {
+      const service = authenticationService.service
+      if (!service) {
+        setAuthentication({
+          status: 'unavailable',
+          account: null,
+          error: authenticationService.configurationError ?? 'Authentication unavailable.',
+        })
+        return false
+      }
+      try {
+        const account = await service.signInWithPassword(email, password)
+        setAuthentication({ status: 'ready', account, error: null })
+        return true
+      } catch (error: unknown) {
+        setAuthentication({ status: 'error', account: null, error: errorMessage(error) })
+        return false
+      }
+    },
+    [authenticationService],
+  )
+
+  const signOut = useCallback(async (): Promise<boolean> => {
+    const service = authenticationService.service
+    if (!service) {
+      setAuthentication({
+        status: 'unavailable',
+        account: null,
+        error: authenticationService.configurationError ?? 'Authentication unavailable.',
+      })
+      return false
+    }
+    try {
+      await service.signOut()
+      setAuthentication({ status: 'ready', account: null, error: null })
+      return true
+    } catch (error: unknown) {
+      setAuthentication((current) => ({
+        ...current,
+        status: 'error',
+        error: errorMessage(error),
+      }))
+      return false
+    }
+  }, [authenticationService])
 
   const selectDungeonContract = useCallback(
     (contractId: string): void => {
@@ -299,7 +418,10 @@ function App() {
           profile={profile}
           pendingCount={persistence.pendingCount}
           writeError={writeError}
+          authentication={authentication}
           onStart={startRun}
+          onSignIn={signIn}
+          onSignOut={signOut}
           onSelectBehaviorProfile={selectBehaviorProfile}
           onSelectDungeonContract={selectDungeonContract}
         />
@@ -338,7 +460,10 @@ interface DashboardProps {
   profile: BasicProfileDto
   pendingCount: number
   writeError: string | null
+  authentication: AuthenticationState
   onStart: () => void
+  onSignIn: (email: string, password: string) => Promise<boolean>
+  onSignOut: () => Promise<boolean>
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
 }
@@ -348,7 +473,10 @@ function Dashboard({
   profile,
   pendingCount,
   writeError,
+  authentication,
   onStart,
+  onSignIn,
+  onSignOut,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
 }: DashboardProps) {
@@ -361,6 +489,11 @@ function Dashboard({
           Survive the arena while your hero automatically targets nearby
           enemies. Collect XP to level up and choose an upgrade between waves.
         </p>
+        <AuthPanel
+          authentication={authentication}
+          onSignIn={onSignIn}
+          onSignOut={onSignOut}
+        />
         <fieldset className="dashboard-choice-group">
           <legend>Behavior profile</legend>
           <div className="dashboard-choice-list">

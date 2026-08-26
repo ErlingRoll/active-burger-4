@@ -4414,16 +4414,17 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–15 and the deterministic Player Behavior Controller are complete. The
-next planned feature is **Milestone 16 — Supabase Authentication**:
+Milestones 0–16 and the deterministic Player Behavior Controller are complete. The
+next planned feature is **Milestone 17 — Meta Progression**:
 
 ```text
-account state
-authentication flow
-no active-run network dependency
-pending-result preparation
+meta currency
+unlock definitions
+idempotent pending-result submission
+progression persistence
 ```
 
 The completed local layer owns versioned settings, a basic profile, future
-dungeon-customization unlocks, and pending results. Add account state without allowing
-active simulation to depend on Supabase or any network API.
+dungeon-customization unlocks, and pending results. The authentication layer owns
+session state and an RLS-protected profile. Consume queued results only outside active
+gameplay, preserving the no-network simulation boundary.

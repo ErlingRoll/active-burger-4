@@ -63,7 +63,8 @@ milestones in order unless an ADR documents an exception.
       Inferno Warden final boss/enrage, and results.
 - [x] **15. Local Persistence:** versioned Dexie settings, default-locked
   dungeon-customization profile, pending results, and migrations.
-- [ ] **16. Authentication:** Supabase account state without simulation calls.
+- [x] **16. Authentication:** Supabase sign-in/out, durable account state,
+  RLS-protected profiles, and no simulation calls.
 - [ ] **17. Meta Progression:** currency, unlocks, result queue, idempotent
   submission.
 - [ ] **18. World Modifiers:** selection, difficulty score, reward multiplier.

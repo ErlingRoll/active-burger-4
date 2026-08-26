@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test'
+import { loadEnv } from 'vite'
+
+const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
+const testUserEmail = testEnvironment.VITE_TEST_USER_EMAIL
+const testUserPassword = testEnvironment.VITE_TEST_USER_PASSWORD
 
 test('shows the pre-run dashboard without mounting the arena', async ({ page }) => {
   await page.goto('/')
@@ -31,6 +36,28 @@ test('loads and persists dashboard settings while locking future contracts', asy
     'aria-pressed',
     'true',
   )
+})
+
+test('signs in and out with the configured Supabase test account', async ({ page }) => {
+  test.skip(
+    !testUserEmail || !testUserPassword,
+    'VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD are required for this test.',
+  )
+
+  await page.goto('/')
+  await page.getByLabel('Email').fill(testUserEmail)
+  await page.getByLabel('Password').fill(testUserPassword)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
+  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
+  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
 })
 
 test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
