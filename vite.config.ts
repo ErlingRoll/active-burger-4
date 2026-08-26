@@ -4,6 +4,9 @@ import { configDefaults, defineConfig } from 'vitest/config'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    port: 3000,
+  },
   test: {
     // Playwright specs under e2e/ are not Vitest unit tests; keep the two
     // runners from colliding by excluding the e2e/ directory here.
