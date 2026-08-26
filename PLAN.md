@@ -3586,6 +3586,51 @@ This is the first true playable prototype.
 
 ---
 
+# 106.5 Milestone 7.5 — Basic Run UI
+
+## Goal
+
+Make the existing combat/progression prototype playable as a complete,
+understandable run flow before expanding its skill content.
+
+## Implement
+
+```text
+pre-run dashboard
+start run action
+gameplay HUD
+level, XP, kill count, elapsed time, and health display
+explicit temporary End Run control
+defeat transition with player HP set to zero
+end-game results screen
+return-to-dashboard action
+```
+
+The temporary End Run control is development/prototype UI only. It must use the
+same `defeat` run-state transition and result data path that future player death
+will use; it must not bypass simulation cleanup or invent a separate result
+flow.
+
+React owns these screen-space UI surfaces. The game simulation remains the
+source of truth for run phase, player health, time, level, XP, and kills.
+
+## Definition of Done
+
+```text
+dashboard
+  ↓ start run
+gameplay HUD with active combat
+  ↓ End Run
+defeat/results screen
+  ↓ return
+dashboard
+```
+
+The level-up overlay must continue to pause and resume the run correctly within
+this flow.
+
+---
+
 # 107. Milestone 8 — Skills
 
 ## Goal
