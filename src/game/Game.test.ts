@@ -293,6 +293,112 @@ describe('Game', () => {
       xpReward: 5,
       targetId: game.state.player.id,
     })
+
+  })
+
+  it('spawns stairs at the final boss death and collects floor rewards before transitioning', () => {
+      const game = createGame({ seed: 20260826 })
+      expect(game.startBossEncounter()).toBe(true)
+      const boss = game.state.bosses?.[0]
+      expect(boss).toBeDefined()
+      game.state.player.x = boss!.x
+      game.state.player.y = boss!.y
+      game.spawnXpPickup({ x: boss!.x, y: boss!.y }, 10)
+      game.spawnGearPickup({ x: boss!.x, y: boss!.y })
+      boss!.hp = 0
+
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.stairs).toMatchObject({
+        x: boss!.x,
+        y: boss!.y,
+        rewardsCollected: true,
+      })
+      expect(game.state.pickups).toEqual([])
+      expect(game.getPendingChoiceFlows().length).toBeGreaterThan(1)
+      expect(game.phase).toBe('level-up')
+
+      while (game.phase === 'level-up') {
+        const flow = game.getPendingChoiceFlow()
+        expect(flow).toBeDefined()
+        if (flow?.type === 'level-up') {
+          expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
+        } else if (flow?.type === 'gear-pickup') {
+          expect(game.selectGearChoice(flow.choices[0]!)).toBe(true)
+        }
+      }
+
+      expect(game.phase).toBe('floor-transition')
+      expect(game.state.floorTransition?.remainingSeconds).toBeCloseTo(1)
+      for (let index = 0; index < 60; index += 1) {
+        game.update(FIXED_STEP_SECONDS)
+      }
+      expect(game.phase).toBe('playing')
+      expect(game.state.run.floor).toBe(3)
+  })
+
+  it('waits for every boss in an event before creating stairs', () => {
+      const game = createGame({ seed: 20260828 })
+      expect(game.startBossEncounter()).toBe(true)
+      const first = game.state.bosses?.[0]
+      expect(first).toBeDefined()
+      if (!first) {
+        throw new Error('Expected the first boss encounter to spawn a boss')
+      }
+      const secondId = game.spawnBoss()
+      const second = game.state.bosses?.find((boss) => boss.id === secondId)
+      expect(second).toBeDefined()
+      if (!second) {
+        throw new Error('Expected the manually spawned boss to exist')
+      }
+      first.xpReward = 0
+      second.xpReward = 0
+      first.hp = 0
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.encounter?.status).toBe('active')
+      expect(game.state.stairs).toBeUndefined()
+      expect(game.state.bosses).toHaveLength(1)
+
+      game.state.player.x = second.x
+      game.state.player.y = second.y
+      second.hp = 0
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.encounter?.status).toBe('complete')
+      expect(game.phase).toBe('floor-transition')
+  })
+
+  it('takes final boss stairs through victory into results after choices resolve', () => {
+      const game = createGame({ seed: 20260827 })
+      expect(game.startBossEncounter()).toBe(true)
+      game.state.encounter!.isFinal = true
+      const boss = game.state.bosses?.[0]
+      expect(boss).toBeDefined()
+      if (!boss) {
+        throw new Error('Expected the final encounter to spawn a boss')
+      }
+      game.state.player.x = boss.x
+      game.state.player.y = boss.y
+      boss.hp = 0
+
+      game.update(FIXED_STEP_SECONDS)
+
+      while (game.phase === 'level-up') {
+        const flow = game.getPendingChoiceFlow()
+        expect(flow).toBeDefined()
+        if (flow?.type === 'level-up') {
+          expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
+        } else if (flow?.type === 'gear-pickup') {
+          expect(game.selectGearChoice(flow.choices[0]!)).toBe(true)
+        }
+      }
+      expect(game.phase).toBe('floor-transition')
+      for (let index = 0; index < 60; index += 1) {
+        game.update(FIXED_STEP_SECONDS)
+      }
+      expect(game.phase).toBe('results')
+      expect(game.getRunResultSnapshot().phase).toBe('results')
   })
 
   it('moves a Slime deterministically toward the player each fixed tick', () => {

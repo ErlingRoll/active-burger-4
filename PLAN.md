@@ -3768,19 +3768,22 @@ A run has a clear intermediate objective.
 Create:
 
 ```text
-15-minute run
-time-based difficulty
-elite events
-boss events
-final boss
-victory
-defeat
-results screen
+10-minute default dungeon
+unlockable longer dungeon lengths
+1% base-stat floor scaling for ordinary monsters
+120-second Stone Golem boss floors
+boss-event spawn suspension
+stairs, pickup collection, queued choices, floor transition
+Inferno Warden final boss
+compounding final-boss enrage
+victory, defeat, and results screen
 ```
 
 ## Definition of Done
 
-The game has a complete beginning, middle and end.
+The game has a complete beginning, middle and end. Every boss floor ends with
+stairs; touching stairs collects floor rewards and resolves choices before a
+one-second transition. The final boss's stairs complete the run.
 
 ---
 
@@ -4411,21 +4414,16 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–13 and the deterministic Player Behavior Controller are complete. The
-next planned feature is **Milestone 14 — Full Run Structure**:
+Milestones 0–14 and the deterministic Player Behavior Controller are complete. The
+next planned feature is **Milestone 15 — Local Persistence**:
 
 ```text
-15-minute run
-time-based difficulty
-elite events
-boss events
-final encounter
+versioned local settings
+basic local profile
+pending run results
+migrations
 ```
 
-Keep the current deterministic gameplay loop and responsive build-information UI intact
-while defining the complete run timeline.
-
-The completed foundation includes data-defined player behavior profiles, autonomous
-movement, boss skills, and telegraph-aware Dodge. Extend the run timeline through those
-simulation boundaries rather than coupling progression behavior to the UI or Pixi
-renderer.
+The completed dungeon timeline already exposes a future unlock-gated length contract.
+Persist unlocks, selected dungeon customization, settings, and unsynchronized results
+without allowing active simulation to depend on IndexedDB or network APIs.

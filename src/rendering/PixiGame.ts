@@ -19,6 +19,7 @@ import type {
   SkillEffectState,
   ProjectileState,
   TelegraphState,
+  StairsState,
 } from '../game/state/GameState'
 import {
   getBossDefinition,
@@ -42,12 +43,14 @@ export class PixiGame {
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
+  private readonly stairsViews = new Map<EntityId, StairsView>()
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
   private telegraphLayer: Container | undefined
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
+  private stairsLayer: Container | undefined
   private playerView: PlayerView | undefined
   private host: HTMLElement | undefined
   private cameraScale = PixiGame.MAX_CAMERA_SCALE
@@ -98,6 +101,8 @@ export class PixiGame {
     const decorations = new Container()
     const pickups = new Container()
     this.pickupLayer = pickups
+    const stairs = new Container()
+    this.stairsLayer = stairs
     const telegraphs = new Container()
     this.telegraphLayer = telegraphs
     const enemies = new Container()
@@ -116,6 +121,7 @@ export class PixiGame {
       ground,
       decorations,
       pickups,
+      stairs,
       telegraphs,
       enemies,
       bosses,
@@ -323,6 +329,40 @@ export class PixiGame {
       },
     })
     label.anchor.set(0.5, 1)
+    const root = new Container()
+    root.addChild(view, label)
+    return { root, label }
+  }
+
+  private createStairsPlaceholder(stairs: StairsState): StairsView {
+    const radius = stairs.radius
+    const view = new Graphics()
+      .circle(0, 0, radius)
+      .fill({ color: stairs.isFinal ? '#991b1b' : '#0e7490', alpha: 0.92 })
+      .stroke({ color: stairs.isFinal ? '#fef08a' : '#67e8f9', width: 4 })
+      .circle(0, 0, radius * 0.72)
+      .stroke({ color: '#e0f2fe', width: 2, alpha: 0.9 })
+      .moveTo(-radius * 0.38, -radius * 0.22)
+      .lineTo(radius * 0.38, -radius * 0.22)
+      .moveTo(-radius * 0.38, 0)
+      .lineTo(radius * 0.38, 0)
+      .moveTo(-radius * 0.38, radius * 0.22)
+      .lineTo(radius * 0.38, radius * 0.22)
+      .stroke({ color: '#f8fafc', width: 3 })
+    const label = new Text({
+      text: stairs.isFinal ? 'STAIRS · FINAL' : 'STAIRS · NEXT FLOOR',
+      style: {
+        fill: stairs.isFinal ? '#fef08a' : '#cffafe',
+        fontSize: 13,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
+        stroke: { color: '#0f172a', width: 4 },
+      },
+    })
+    // Keep the world label below the ring so it cannot overlap a boss health
+    // bar or the player's health marker at the same world position.
+    label.anchor.set(0.5, 0)
+    label.position.set(0, radius + 10)
     const root = new Container()
     root.addChild(view, label)
     return { root, label }
@@ -589,6 +629,31 @@ export class PixiGame {
       view.destroy()
       this.effectViews.delete(effectId)
     }
+
+    const activeStairsIds = new Set<EntityId>()
+    const stairs = state.stairs
+    if (stairs) {
+      activeStairsIds.add(stairs.id)
+      let stairsView = this.stairsViews.get(stairs.id)
+      if (!stairsView) {
+        stairsView = this.createStairsPlaceholder(stairs)
+        this.stairsViews.set(stairs.id, stairsView)
+        this.stairsLayer?.addChild(stairsView.root)
+      }
+      stairsView.root.position.set(stairs.x, stairs.y)
+      stairsView.label.text = stairs.isFinal
+        ? 'STAIRS · FINAL'
+        : 'STAIRS · NEXT FLOOR'
+      stairsView.root.alpha = stairs.rewardsCollected ? 0.65 : 1
+    }
+    for (const [stairsId, stairsView] of this.stairsViews) {
+      if (activeStairsIds.has(stairsId)) {
+        continue
+      }
+      stairsView.root.removeFromParent()
+      stairsView.root.destroy({ children: true })
+      this.stairsViews.delete(stairsId)
+    }
   }
 
   private readonly centerCamera = (deltaSeconds: number): void => {
@@ -703,18 +768,24 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const { root } of this.stairsViews.values()) {
+      root.removeFromParent()
+      root.destroy({ children: true })
+    }
     this.enemyViews.clear()
     this.bossViews.clear()
     this.telegraphViews.clear()
     this.projectileViews.clear()
     this.pickupViews.clear()
     this.effectViews.clear()
+    this.stairsViews.clear()
     this.enemyLayer = undefined
     this.bossLayer = undefined
     this.telegraphLayer = undefined
     this.projectileLayer = undefined
     this.pickupLayer = undefined
     this.effectLayer = undefined
+    this.stairsLayer = undefined
     this.playerView = undefined
     this.host = undefined
     this.cameraFocusInitialized = false
@@ -748,6 +819,11 @@ interface BossView {
 }
 
 interface TelegraphView {
+  root: Container
+  label: Text
+}
+
+interface StairsView {
   root: Container
   label: Text
 }

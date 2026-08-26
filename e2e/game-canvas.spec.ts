@@ -169,6 +169,26 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
   await expect(page.getByRole('tooltip')).toContainText('Relevant upgrades')
 })
 
+test('projects the final boss, stairs, transition, and victory result in development mode', async ({
+  page,
+}) => {
+  await page.goto('/?demo=final-boss')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  await expect(page.getByRole('region', { name: 'Boss status' })).toContainText(
+    'Inferno Warden',
+  )
+  await expect(page.getByLabel('Inferno Warden enrage')).toContainText('Enrage')
+
+  await page.getByRole('button', { name: 'Development Menu' }).click()
+  const menu = page.getByRole('heading', { name: 'Development Menu' }).locator('..')
+  await menu.getByRole('button', { name: 'Test final stairs & results' }).click()
+  await expect(page.getByRole('status')).toContainText('Descending')
+  await expect(page.getByRole('heading', { name: 'Victory' })).toBeVisible({
+    timeout: 3_000,
+  })
+})
+
 test('opens the in-run Behavior screen and switches profiles', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Start Run' }).click()

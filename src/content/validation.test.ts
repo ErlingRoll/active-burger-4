@@ -152,6 +152,34 @@ describe('content validation', () => {
     )
   })
 
+  it('validates final-boss enrage tuning', () => {
+    const inferno = CURRENT_CONTENT.bosses.find(
+      (boss) => boss.id === 'inferno-warden',
+    )
+    if (!inferno || !inferno.enrage) {
+      throw new Error('Expected Inferno Warden content')
+    }
+    const errors = validateContent(
+      catalogWith({
+        bosses: [{
+          ...inferno,
+          enrage: {
+            ...inferno.enrage,
+            movementSpeedPerSecond: -1,
+            cooldownReductionPerSecond: 1,
+          },
+        }],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'bosses[0].enrage.movementSpeedPerSecond must be non-negative; received -1.',
+        'bosses[0].enrage.cooldownReductionPerSecond must be less than 1.',
+      ]),
+    )
+  })
+
   it('validates enemy behavior, split, render, and spawn timing configuration', () => {
     const splitter = CURRENT_CONTENT.enemies.find((enemy) => enemy.id === 'splitter')
     if (!splitter || splitter.behavior.kind !== 'split') {

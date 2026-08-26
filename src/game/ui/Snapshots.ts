@@ -38,6 +38,23 @@ import {
   getBehaviorProfileDefinition,
   type BehaviorProfileId,
 } from '../../content/behaviors/BehaviorProfiles'
+import {
+  createDungeonEncounterTimeline,
+  getDungeonDefinition,
+} from '../../content/dungeons/Dungeons'
+import type { EncounterDefinition } from '../../content/encounters/Encounters'
+import {
+  getInfernoWardenEnrageMultipliers,
+  type BossEnrageMultipliers,
+} from '../systems/boss/BossSystem'
+import {
+  FLOOR_TRANSITION_SECONDS,
+  isPlayerTouchingStairs,
+} from '../systems/stairs/StairsSystem'
+import {
+  cloneChoiceFlow,
+  type PendingChoiceFlow,
+} from '../choices/ChoiceFlows'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {
@@ -50,6 +67,9 @@ export interface RunHudSnapshot {
   readonly xpProgress: number
   readonly elapsedTime: number
   readonly killCount: number
+  readonly floor: number
+  readonly floorProgress: number
+  readonly floorDurationSeconds: number
 }
 
 export type SkillUpgradeStatus = 'acquired' | 'available' | 'unavailable'
@@ -84,6 +104,51 @@ export interface BossHudSnapshot {
   readonly hp: number
   readonly maxHp: number
   readonly hpProgress: number
+  readonly isFinal: boolean
+  readonly enrage: BossEnrageHudSnapshot | null
+}
+
+export interface BossEnrageHudSnapshot extends BossEnrageMultipliers {
+  readonly elapsedSeconds: number
+}
+
+export type EncounterTimelineStatus = 'completed' | 'active' | 'upcoming'
+
+export interface EncounterTimelineHudSnapshot {
+  readonly id: string
+  readonly floorNumber: number
+  readonly timeSeconds: number
+  readonly name: string
+  readonly status: EncounterTimelineStatus
+  readonly isFinal: boolean
+}
+
+export interface StairsHudSnapshot {
+  readonly id: EntityId
+  readonly x: number
+  readonly y: number
+  readonly radius: number
+  readonly floorNumber: number
+  readonly isFinal: boolean
+  readonly rewardsCollected: boolean
+  readonly playerTouching: boolean
+}
+
+export interface FloorTransitionHudSnapshot {
+  readonly remainingSeconds: number
+  readonly fromFloor: number
+  readonly toFloor: number
+  readonly isFinal: boolean
+  readonly progress: number
+}
+
+export interface PickupHudSnapshot {
+  readonly id: EntityId
+  readonly kind: 'xp' | 'gear'
+  readonly x: number
+  readonly y: number
+  readonly radius: number
+  readonly amount?: number
 }
 
 export interface TelegraphHudSnapshot {
@@ -146,6 +211,12 @@ export interface GameUiSnapshot extends RunHudSnapshot {
   readonly telegraphs: readonly TelegraphHudSnapshot[]
   readonly dodge: DodgeHudSnapshot
   readonly behavior: BehaviorHudSnapshot
+  readonly timeline: readonly EncounterTimelineHudSnapshot[]
+  readonly stairs: StairsHudSnapshot | null
+  readonly floorTransition: FloorTransitionHudSnapshot | null
+  readonly pickups: readonly PickupHudSnapshot[]
+  readonly pendingChoiceFlow: Readonly<PendingChoiceFlow> | null
+  readonly pendingChoiceCount: number
 }
 
 export interface EquippedItemSnapshot {
@@ -170,9 +241,14 @@ export interface RunResultSnapshot {
   readonly level: number
   readonly xp: number
   readonly killCount: number
+  /** Present only when the completed run ended in a final-boss victory. */
+  readonly outcome?: 'victory'
 }
 
-export function createUiSnapshot(state: GameState): GameUiSnapshot {
+export function createUiSnapshot(
+  state: GameState,
+  pendingChoiceFlows: readonly PendingChoiceFlow[] = [],
+): GameUiSnapshot {
   const playerStats = getDerivedPlayerStats(state.player)
   const currentThreshold = xpRequiredForLevel(state.player.level)
   const xpRequired = xpRequiredForNextLevel(state.player.level)
@@ -302,8 +378,81 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
       bossState,
       bossDefinitionId,
       encounterStatus,
+      state,
     )
     : null
+  const dungeon = getDungeonDefinition(state.run.dungeonId)
+  const floor = state.run.floor ?? 1
+  const floorProgress = Math.min(
+    1,
+    Math.max(
+      0,
+      (state.time - (floor - 1) * dungeon.floorDurationSeconds) /
+        dungeon.floorDurationSeconds,
+    ),
+  )
+  const completedEncounterIds = new Set(state.run.completedEncounterIds ?? [])
+  const encounterTimeline = state.run.dungeonLengthSeconds === undefined ||
+    state.run.dungeonLengthSeconds === dungeon.defaultLengthSeconds
+    ? dungeon.encounterTimeline
+    : createDungeonEncounterTimeline(
+      state.run.dungeonLengthSeconds,
+      dungeon.floorDurationSeconds,
+    )
+  const timeline = encounterTimeline.map((event) =>
+    createEncounterTimelineSnapshot(
+      event,
+      state.encounter?.encounterId,
+      completedEncounterIds,
+      dungeon.floorDurationSeconds,
+    ),
+  )
+  const stairs = state.stairs
+    ? Object.freeze({
+      id: state.stairs.id,
+      x: state.stairs.x,
+      y: state.stairs.y,
+      radius: state.stairs.radius,
+      floorNumber: state.stairs.floorNumber,
+      isFinal: state.stairs.isFinal,
+      rewardsCollected: state.stairs.rewardsCollected,
+      playerTouching: isPlayerTouchingStairs(state, state.stairs),
+    })
+    : null
+  const floorTransition = state.floorTransition
+    ? Object.freeze({
+      remainingSeconds: Math.max(0, state.floorTransition.remainingSeconds),
+      fromFloor: state.floorTransition.fromFloor,
+      toFloor: state.floorTransition.toFloor,
+      isFinal: state.floorTransition.isFinal,
+      progress: Math.min(
+        1,
+        Math.max(
+          0,
+          1 - state.floorTransition.remainingSeconds / FLOOR_TRANSITION_SECONDS,
+        ),
+      ),
+    })
+    : null
+  const pickups = Object.freeze(
+    state.pickups
+      .slice()
+      .sort((left, right) => left.id - right.id)
+      .map((pickup) =>
+        Object.freeze({
+          id: pickup.id,
+          kind: pickup.kind,
+          x: pickup.x,
+          y: pickup.y,
+          radius: pickup.radius,
+          ...(pickup.kind === 'xp' ? { amount: pickup.xpAmount } : {}),
+        }),
+      ),
+  )
+  const pendingChoiceFlow = pendingChoiceFlows[0]
+    ? freezeChoiceFlow(pendingChoiceFlows[0])
+    : null
+
   const telegraphs = (state.telegraphs ?? [])
     .slice()
     .sort((left, right) => left.id - right.id)
@@ -388,6 +537,9 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     xpProgress,
     elapsedTime: state.time,
     killCount: state.run.killCount,
+    floor,
+    floorProgress,
+    floorDurationSeconds: dungeon.floorDurationSeconds,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
     encounterStatus,
@@ -395,6 +547,12 @@ export function createUiSnapshot(state: GameState): GameUiSnapshot {
     telegraphs: Object.freeze(telegraphs),
     dodge,
     behavior,
+    timeline: Object.freeze(timeline),
+    stairs,
+    floorTransition,
+    pickups,
+    pendingChoiceFlow,
+    pendingChoiceCount: pendingChoiceFlows.length,
   })
 }
 
@@ -402,10 +560,28 @@ function createBossHudSnapshot(
   boss: BossState | undefined,
   bossDefinitionId: BossDefinitionId,
   status: EncounterStatus,
+  state: Readonly<GameState>,
 ): BossHudSnapshot {
   const definition = getBossDefinition(bossDefinitionId)
   const maxHp = boss?.maxHp ?? definition.maxHp
   const hp = Math.max(0, Math.min(maxHp, boss?.hp ?? (status === 'complete' ? 0 : maxHp)))
+  const isFinal = state.encounter?.isFinal === true ||
+    bossDefinitionId === 'inferno-warden'
+  const enrage = bossDefinitionId === 'inferno-warden'
+    ? Object.freeze({
+      elapsedSeconds: Math.max(
+        0,
+        state.time - (boss?.spawnTime ?? state.encounter?.startedAt ?? state.time),
+      ),
+      ...getInfernoWardenEnrageMultipliers(
+        Math.max(
+          0,
+          state.time - (boss?.spawnTime ?? state.encounter?.startedAt ?? state.time),
+        ),
+        definition.enrage,
+      ),
+    })
+    : null
   return Object.freeze({
     id: boss?.id,
     bossDefinitionId,
@@ -414,17 +590,71 @@ function createBossHudSnapshot(
     hp,
     maxHp,
     hpProgress: maxHp > 0 ? hp / maxHp : 0,
+    isFinal,
+    enrage,
   })
 }
 
 export function createRunResultSnapshot(
   state: GameState,
 ): RunResultSnapshot {
-  return Object.freeze({
+  const result = {
     phase: state.run.phase,
     elapsedTime: state.time,
     level: state.player.level,
     xp: state.player.xp,
     killCount: state.run.killCount,
+    ...(state.run.phase === 'results' &&
+    state.player.hp > 0
+      ? { outcome: 'victory' as const }
+      : {}),
+  }
+  return Object.freeze(result)
+}
+
+function createEncounterTimelineSnapshot(
+  event: EncounterDefinition,
+  activeEncounterId: string | undefined,
+  completedEncounterIds: ReadonlySet<string>,
+  floorDurationSeconds: number,
+): EncounterTimelineHudSnapshot {
+  const status: EncounterTimelineStatus = completedEncounterIds.has(event.id)
+    ? 'completed'
+    : activeEncounterId === event.id
+      ? 'active'
+      : 'upcoming'
+  return Object.freeze({
+    id: event.id,
+    floorNumber:
+      event.floorNumber ??
+      Math.floor(event.timeSeconds / floorDurationSeconds) + 1,
+    timeSeconds: event.timeSeconds,
+    name: getBossDefinition(event.bossDefinitionId).name,
+    status,
+    isFinal: event.isFinal === true,
   })
+}
+
+function freezeChoiceFlow(
+  flow: Readonly<PendingChoiceFlow>,
+): Readonly<PendingChoiceFlow> {
+  const cloned = cloneChoiceFlow(flow)
+  const choices = cloned.type === 'gear-pickup'
+    ? cloned.choices.map((choice) =>
+      Object.freeze(
+        choice.type === 'upgrade-equipped-item'
+          ? {
+            ...choice,
+            upgradedModifiers: Object.freeze(
+              choice.upgradedModifiers.map((modifier) => Object.freeze({ ...modifier })),
+            ),
+          }
+          : { ...choice },
+      ),
+    )
+    : cloned.choices.map((choice) => Object.freeze({ ...choice }))
+  return Object.freeze({
+    ...cloned,
+    choices: Object.freeze(choices),
+  }) as Readonly<PendingChoiceFlow>
 }

@@ -58,6 +58,10 @@ import {
   type EncounterDefinition,
 } from './encounters/Encounters'
 import {
+  DEFAULT_DUNGEON_CONFIG,
+  type DungeonDefinition,
+} from './dungeons/Dungeons'
+import {
   BEHAVIOR_PROFILE_DEFINITIONS,
   type BehaviorProfileDefinition,
   type BehaviorIntentSource,
@@ -73,6 +77,7 @@ export interface ContentCatalog {
   bosses: readonly BossDefinition[]
   bossSkills: readonly BossSkillDefinition[]
   encounters: readonly EncounterDefinition[]
+  dungeons?: readonly DungeonDefinition[]
   behaviorProfiles: readonly BehaviorProfileDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
@@ -89,6 +94,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   bosses: Object.values(BOSS_DEFINITIONS),
   bossSkills: Object.values(BOSS_SKILL_DEFINITIONS),
   encounters: ENCOUNTER_DEFINITIONS,
+  dungeons: [DEFAULT_DUNGEON_CONFIG],
   behaviorProfiles: Object.values(BEHAVIOR_PROFILE_DEFINITIONS),
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
@@ -621,6 +627,7 @@ function validateSpawnBalance(
   if (balance.eliteChance > 1) {
     errors.push('spawnBalance.eliteChance must be at most 1.')
   }
+
   validateFiniteNumber(
     errors,
     'spawnBalance.eliteStartTimeSeconds',
@@ -706,6 +713,68 @@ function validateSpawnBalance(
   })
 }
 
+function validateDungeons(
+  errors: string[],
+  dungeons: readonly DungeonDefinition[],
+  encounterIds: Set<string>,
+): void {
+  validateIds(errors, 'dungeons', dungeons)
+  dungeons.forEach((dungeon, index) => {
+    const path = `dungeons[${index}]`
+    if (typeof dungeon.name !== 'string' || dungeon.name.trim() === '') {
+      errors.push(`${path}.name must be a non-empty string.`)
+    }
+    validateFiniteNumber(errors, `${path}.defaultLengthSeconds`, dungeon.defaultLengthSeconds, 'positive')
+    validateFiniteNumber(errors, `${path}.floorDurationSeconds`, dungeon.floorDurationSeconds, 'positive')
+    validateFiniteNumber(
+      errors,
+      `${path}.ordinaryEnemyStatScalingPerFloor`,
+      dungeon.ordinaryEnemyStatScalingPerFloor,
+      'non-negative',
+    )
+    validateFiniteNumber(
+      errors,
+      `${path}.bossFloorDurationSeconds`,
+      dungeon.bossFloorDurationSeconds,
+      'positive',
+    )
+    dungeon.encounterTimeline.forEach((event, eventIndex) => {
+      if (!encounterIds.has(event.id)) {
+        errors.push(
+          `${path}.encounterTimeline[${eventIndex}].id references unknown encounter "${event.id}".`,
+        )
+      }
+    })
+    const contractIds = new Set<string>()
+    dungeon.longerLengthContracts.forEach((contract, contractIndex) => {
+      const contractPath = `${path}.longerLengthContracts[${contractIndex}]`
+      if (contractIds.has(contract.id)) {
+        errors.push(
+          `${path}.longerLengthContracts contains duplicate id "${contract.id}".`,
+        )
+      }
+      contractIds.add(contract.id)
+      validateFiniteNumber(
+        errors,
+        `${contractPath}.lengthSeconds`,
+        contract.lengthSeconds,
+        'positive',
+      )
+      if (
+        typeof contract.requiredUnlockId !== 'string' ||
+        contract.requiredUnlockId.trim() === ''
+      ) {
+        errors.push(`${contractPath}.requiredUnlockId must be a non-empty string.`)
+      }
+      if (contract.lengthSeconds <= dungeon.defaultLengthSeconds) {
+        errors.push(
+          `${contractPath}.lengthSeconds must exceed defaultLengthSeconds.`,
+        )
+      }
+    })
+  })
+}
+
 export function validateContent(catalog: ContentCatalog): string[] {
   const errors: string[] = [
     ...validateRarityWeights(RARITY_WEIGHTS),
@@ -721,7 +790,8 @@ export function validateContent(catalog: ContentCatalog): string[] {
   const skillIds = validateIds(errors, 'skills', catalog.skills)
   const bossIds = validateIds(errors, 'bosses', catalog.bosses)
   const bossSkillIds = validateIds(errors, 'bossSkills', catalog.bossSkills)
-  validateIds(errors, 'encounters', catalog.encounters)
+  const encounterIds = validateIds(errors, 'encounters', catalog.encounters)
+  validateDungeons(errors, catalog.dungeons ?? [], encounterIds)
   validateBehaviorProfiles(errors, catalog.behaviorProfiles ?? [])
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
   validateIds(errors, 'items', catalog.items)
@@ -739,6 +809,9 @@ export function validateContent(catalog: ContentCatalog): string[] {
 
   validateDefinitions(errors, catalog, skillIds, projectileIds, enemyIds)
   catalog.bosses.forEach((boss, index) => {
+    if (typeof boss.name !== 'string' || boss.name.trim() === '') {
+      errors.push(`bosses[${index}].name must be a non-empty string.`)
+    }
     validateFiniteNumber(errors, `bosses[${index}].radius`, boss.radius, 'positive')
     validateFiniteNumber(errors, `bosses[${index}].maxHp`, boss.maxHp, 'positive')
     validateFiniteNumber(errors, `bosses[${index}].speed`, boss.speed, 'non-negative')
@@ -748,11 +821,44 @@ export function validateContent(catalog: ContentCatalog): string[] {
       boss.contactDamage,
       'non-negative',
     )
-    if (!boss.skills.every((skillId) => bossSkillIds.has(skillId))) {
+    validateFiniteNumber(errors, `bosses[${index}].xpReward`, boss.xpReward, 'non-negative')
+    if (
+      !Array.isArray(boss.skills) ||
+      boss.skills.length === 0 ||
+      !boss.skills.every((skillId) => bossSkillIds.has(skillId))
+    ) {
       errors.push(`bosses[${index}].skills must reference known boss skills.`)
+    }
+    if (boss.id === 'inferno-warden' && !boss.enrage) {
+      errors.push(`bosses[${index}].enrage must be defined for Inferno Warden.`)
+    }
+    if (boss.enrage) {
+      for (const property of [
+        'movementSpeedPerSecond',
+        'damagePerSecond',
+        'cooldownReductionPerSecond',
+      ] as const) {
+        validateFiniteNumber(
+          errors,
+          `bosses[${index}].enrage.${property}`,
+          boss.enrage[property],
+          'non-negative',
+        )
+      }
+      if (boss.enrage.cooldownReductionPerSecond >= 1) {
+        errors.push(
+          `bosses[${index}].enrage.cooldownReductionPerSecond must be less than 1.`,
+        )
+      }
     }
   })
   catalog.bossSkills.forEach((skill, index) => {
+    if (typeof skill.name !== 'string' || skill.name.trim() === '') {
+      errors.push(`bossSkills[${index}].name must be a non-empty string.`)
+    }
+    if (typeof skill.description !== 'string' || skill.description.trim() === '') {
+      errors.push(`bossSkills[${index}].description must be a non-empty string.`)
+    }
     validateFiniteNumber(errors, `bossSkills[${index}].cooldown`, skill.cooldown, 'positive')
     validateFiniteNumber(
       errors,
@@ -762,6 +868,9 @@ export function validateContent(catalog: ContentCatalog): string[] {
     )
     validateFiniteNumber(errors, `bossSkills[${index}].damage`, skill.damage, 'non-negative')
     validateFiniteNumber(errors, `bossSkills[${index}].radius`, skill.radius, 'positive')
+    if (skill.range !== undefined) {
+      validateFiniteNumber(errors, `bossSkills[${index}].range`, skill.range, 'positive')
+    }
   })
   catalog.encounters.forEach((encounter, index) => {
     validateFiniteNumber(
@@ -770,10 +879,45 @@ export function validateContent(catalog: ContentCatalog): string[] {
       encounter.timeSeconds,
       'non-negative',
     )
+    validateFiniteNumber(
+      errors,
+      `encounters[${index}].durationSeconds`,
+      encounter.durationSeconds,
+      'positive',
+    )
+    if (
+      encounter.floorNumber !== undefined &&
+      (!Number.isInteger(encounter.floorNumber) || encounter.floorNumber < 1)
+    ) {
+      errors.push(
+        `encounters[${index}].floorNumber must be integer-positive; received ${String(encounter.floorNumber)}.`,
+      )
+    }
     if (!bossIds.has(encounter.bossDefinitionId)) {
       errors.push(
         `encounters[${index}].bossDefinitionId references unknown boss "${encounter.bossDefinitionId}".`,
       )
+    }
+    if (
+      encounter.bossDefinitionIds !== undefined &&
+      (!Array.isArray(encounter.bossDefinitionIds) ||
+        encounter.bossDefinitionIds.length === 0)
+    ) {
+      errors.push(`encounters[${index}].bossDefinitionIds must not be empty.`)
+    } else {
+      encounter.bossDefinitionIds?.forEach((bossDefinitionId, bossIndex) => {
+        if (!bossIds.has(bossDefinitionId)) {
+          errors.push(
+            `encounters[${index}].bossDefinitionIds[${bossIndex}] references unknown boss "${bossDefinitionId}".`,
+          )
+        }
+      })
+    }
+    if (
+      encounter.isFinal !== undefined &&
+      typeof encounter.isFinal !== 'boolean'
+    ) {
+      errors.push(`encounters[${index}].isFinal must be a boolean.`)
     }
     if (encounter.type !== 'boss') {
       errors.push(`encounters[${index}].type is not supported; received "${String(encounter.type)}".`)

@@ -1,7 +1,13 @@
 import {
+  FLAME_LINE_SKILL_ID,
+  FIRE_NOVA_SKILL_ID,
   getBossDefinition,
   getBossSkillDefinition,
+  INFERNO_WARDEN_BOSS_ID,
+  INFERNO_WARDEN_ENRAGE_DEFINITION,
+  METEOR_ZONE_SKILL_ID,
   type BossDefinitionId,
+  type BossEnrageDefinition,
 } from '../../../content/bosses/Bosses'
 import type { EntityIdAllocator } from '../../ids'
 import type {
@@ -10,6 +16,56 @@ import type {
   GameState,
   TelegraphState,
 } from '../../state/GameState'
+
+export const INFERNO_WARDEN_ENRAGE_RATE_PER_SECOND = 0.01
+
+export interface BossEnrageMultipliers {
+  movementSpeedMultiplier: number
+  damageMultiplier: number
+  cooldownMultiplier: number
+}
+
+export function getInfernoWardenEnrageMultipliers(
+  elapsedSeconds: number,
+  enrage: BossEnrageDefinition = INFERNO_WARDEN_ENRAGE_DEFINITION,
+): BossEnrageMultipliers {
+  const multiplier = Math.pow(
+    1 + enrage.movementSpeedPerSecond,
+    Math.max(0, elapsedSeconds),
+  )
+  const cooldownMultiplier = Math.pow(
+    1 - enrage.cooldownReductionPerSecond,
+    Math.max(0, elapsedSeconds),
+  )
+  return {
+    movementSpeedMultiplier: multiplier,
+    damageMultiplier: Math.pow(
+      1 + enrage.damagePerSecond,
+      Math.max(0, elapsedSeconds),
+    ),
+    cooldownMultiplier,
+  }
+}
+
+export const getBossEnrageMultipliers = getInfernoWardenEnrageMultipliers
+
+function getBossEnrage(
+  state: GameState,
+  boss: BossState,
+): BossEnrageMultipliers {
+  if (boss.bossDefinitionId !== INFERNO_WARDEN_BOSS_ID) {
+    return {
+      movementSpeedMultiplier: 1,
+      damageMultiplier: 1,
+      cooldownMultiplier: 1,
+    }
+  }
+  const definition = getBossDefinition(boss.bossDefinitionId)
+  return getInfernoWardenEnrageMultipliers(
+    state.time - (boss.spawnTime ?? state.time),
+    definition.enrage,
+  )
+}
 
 function moveBossTowardPlayer(
   state: GameState,
@@ -28,7 +84,7 @@ function moveBossTowardPlayer(
   boss.y += (dy / distance) * amount
 }
 
-function chargeDistanceSquared(
+function lineDistanceSquared(
   px: number,
   py: number,
   telegraph: TelegraphState,
@@ -51,12 +107,25 @@ function chargeDistanceSquared(
   return offsetX * offsetX + offsetY * offsetY
 }
 
+function isLineTelegraph(telegraph: TelegraphState): boolean {
+  return telegraph.kind === 'charge' || telegraph.kind === 'flame-line'
+}
+
+function telegraphKind(
+  skillId: TelegraphState['skillId'],
+): TelegraphState['kind'] {
+  return skillId
+}
+
 function castNextSkill(
   state: GameState,
   boss: BossState,
   allocator: EntityIdAllocator,
 ): void {
-  if ((state.telegraphs ?? []).some((telegraph) => telegraph.sourceId === boss.id)) {
+  if (
+    boss.skills.length === 0 ||
+    (state.telegraphs ?? []).some((telegraph) => telegraph.sourceId === boss.id)
+  ) {
     return
   }
   const skillState = boss.skills[boss.nextSkillIndex % boss.skills.length]
@@ -64,8 +133,11 @@ function castNextSkill(
     return
   }
   const definition = getBossSkillDefinition(skillState.skillId)
-  const points = skillState.skillId === 'ground-slam'
+  const points = skillState.skillId === 'ground-slam' ||
+    skillState.skillId === METEOR_ZONE_SKILL_ID
     ? [{ x: state.player.x, y: state.player.y }]
+    : skillState.skillId === FIRE_NOVA_SKILL_ID
+      ? [{ x: boss.x, y: boss.y }]
     : (() => {
         const dx = state.player.x - boss.x
         const dy = state.player.y - boss.y
@@ -81,22 +153,23 @@ function castNextSkill(
   if (!origin) {
     return
   }
+  const enrage = getBossEnrage(state, boss)
   const telegraph: TelegraphState = {
     id: allocator.createEntityId(),
     sourceId: boss.id,
     skillId: skillState.skillId,
-    kind: skillState.skillId,
+    kind: telegraphKind(skillState.skillId),
     x: origin.x,
     y: origin.y,
     radius: definition.radius,
     remainingDuration: definition.telegraphDuration,
     duration: definition.telegraphDuration,
     points,
-    damage: definition.damage,
+    damage: definition.damage * enrage.damageMultiplier,
   }
   state.telegraphs ??= []
   state.telegraphs.push(telegraph)
-  skillState.cooldownRemaining = definition.cooldown
+  skillState.cooldownRemaining = definition.cooldown * enrage.cooldownMultiplier
   boss.nextSkillIndex = (boss.nextSkillIndex + 1) % boss.skills.length
 }
 
@@ -109,6 +182,10 @@ export function updateBosses(
     if (boss.hp <= 0) {
       continue
     }
+    const definition = getBossDefinition(boss.bossDefinitionId)
+    const enrage = getBossEnrage(state, boss)
+    boss.speed = definition.speed * enrage.movementSpeedMultiplier
+    boss.contactDamage = definition.contactDamage * enrage.damageMultiplier
     moveBossTowardPlayer(state, boss, fixedStepSeconds)
     for (const skill of boss.skills) {
       skill.cooldownRemaining = Math.max(0, skill.cooldownRemaining - fixedStepSeconds)
@@ -134,8 +211,8 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
     if (!sourceBoss || sourceBoss.hp <= 0) {
       continue
     }
-    const playerDistanceSquared = telegraph.kind === 'charge'
-      ? chargeDistanceSquared(state.player.x, state.player.y, telegraph)
+    const playerDistanceSquared = isLineTelegraph(telegraph)
+      ? lineDistanceSquared(state.player.x, state.player.y, telegraph)
       : (state.player.x - telegraph.x) ** 2 + (state.player.y - telegraph.y) ** 2
     const range = telegraph.radius + state.player.radius
     if (playerDistanceSquared <= range * range) {
@@ -143,7 +220,11 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
         sourceId: telegraph.sourceId,
         targetId: state.player.id,
         amount: telegraph.damage,
-        damageType: 'physical',
+        damageType: telegraph.kind === FIRE_NOVA_SKILL_ID ||
+          telegraph.kind === FLAME_LINE_SKILL_ID ||
+          telegraph.kind === METEOR_ZONE_SKILL_ID
+          ? 'fire'
+          : 'physical',
       })
     }
     if (telegraph.kind === 'charge') {
@@ -183,6 +264,7 @@ export function createBossState(
     id,
     definitionId: definition.id,
     bossDefinitionId: definition.id,
+    spawnTime: state.time,
     x,
     y,
     radius: definition.radius,

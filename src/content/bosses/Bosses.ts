@@ -1,6 +1,11 @@
-/** Stable identifiers for the first encounter boss and its reusable skills. */
-export type BossDefinitionId = 'stone-golem'
-export type BossSkillId = 'ground-slam' | 'charge'
+/** Stable identifiers for encounter bosses and their reusable skills. */
+export type BossDefinitionId = 'stone-golem' | 'inferno-warden'
+export type BossSkillId =
+  | 'ground-slam'
+  | 'charge'
+  | 'fire-nova'
+  | 'flame-line'
+  | 'meteor-zone'
 
 export interface BossSkillDefinition {
   id: BossSkillId
@@ -14,6 +19,12 @@ export interface BossSkillDefinition {
 }
 export type BossSkill = BossSkillDefinition
 
+export interface BossEnrageDefinition {
+  movementSpeedPerSecond: number
+  damagePerSecond: number
+  cooldownReductionPerSecond: number
+}
+
 export interface BossDefinition {
   id: BossDefinitionId
   name: string
@@ -23,12 +34,24 @@ export interface BossDefinition {
   contactDamage: number
   xpReward: number
   skills: readonly BossSkillId[]
+  enrage?: BossEnrageDefinition
 }
 export type Boss = BossDefinition
 
 export const GROUND_SLAM_SKILL_ID: BossSkillId = 'ground-slam'
 export const CHARGE_SKILL_ID: BossSkillId = 'charge'
+export const FIRE_NOVA_SKILL_ID: BossSkillId = 'fire-nova'
+export const RADIAL_FIRE_NOVA_SKILL_ID = FIRE_NOVA_SKILL_ID
+export const FLAME_LINE_SKILL_ID: BossSkillId = 'flame-line'
+export const METEOR_ZONE_SKILL_ID: BossSkillId = 'meteor-zone'
+export const TARGETED_METEOR_ZONES_SKILL_ID = METEOR_ZONE_SKILL_ID
 export const STONE_GOLEM_BOSS_ID: BossDefinitionId = 'stone-golem'
+export const INFERNO_WARDEN_BOSS_ID: BossDefinitionId = 'inferno-warden'
+export const INFERNO_WARDEN_ENRAGE_DEFINITION: BossEnrageDefinition = {
+  movementSpeedPerSecond: 0.01,
+  damagePerSecond: 0.01,
+  cooldownReductionPerSecond: 0.01,
+}
 
 export const BOSS_SKILL_DEFINITIONS = {
   [GROUND_SLAM_SKILL_ID]: {
@@ -50,6 +73,34 @@ export const BOSS_SKILL_DEFINITIONS = {
     radius: 28,
     range: 360,
   },
+  [FIRE_NOVA_SKILL_ID]: {
+    id: FIRE_NOVA_SKILL_ID,
+    name: 'Fire Nova',
+    description: 'Telegraphs a radial burst of fire around the Warden.',
+    cooldown: 4.5,
+    telegraphDuration: 0.8,
+    damage: 42,
+    radius: 150,
+  },
+  [FLAME_LINE_SKILL_ID]: {
+    id: FLAME_LINE_SKILL_ID,
+    name: 'Flame Line',
+    description: 'Telegraphs a searing line of flame toward the player.',
+    cooldown: 5.5,
+    telegraphDuration: 0.9,
+    damage: 55,
+    radius: 34,
+    range: 480,
+  },
+  [METEOR_ZONE_SKILL_ID]: {
+    id: METEOR_ZONE_SKILL_ID,
+    name: 'Meteor Zones',
+    description: 'Marks the player location for a delayed meteor impact.',
+    cooldown: 6,
+    telegraphDuration: 0.75,
+    damage: 65,
+    radius: 85,
+  },
 } as const satisfies Record<BossSkillId, BossSkillDefinition>
 
 export const BOSS_DEFINITIONS = {
@@ -62,6 +113,17 @@ export const BOSS_DEFINITIONS = {
     contactDamage: 18,
     xpReward: 100,
     skills: [GROUND_SLAM_SKILL_ID, CHARGE_SKILL_ID],
+  },
+  [INFERNO_WARDEN_BOSS_ID]: {
+    id: INFERNO_WARDEN_BOSS_ID,
+    name: 'Inferno Warden',
+    radius: 48,
+    maxHp: 3000,
+    speed: 32,
+    contactDamage: 30,
+    xpReward: 250,
+    skills: [FIRE_NOVA_SKILL_ID, FLAME_LINE_SKILL_ID, METEOR_ZONE_SKILL_ID],
+    enrage: INFERNO_WARDEN_ENRAGE_DEFINITION,
   },
 } as const satisfies Record<BossDefinitionId, BossDefinition>
 

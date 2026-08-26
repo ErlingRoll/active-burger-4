@@ -88,13 +88,25 @@ import {
   updateEncounter,
 } from './systems/encounter/EncounterSystem'
 import {
+  FLOOR_TRANSITION_SECONDS,
+  spawnStairs,
+  updateStairs,
+} from './systems/stairs/StairsSystem'
+import {
   cancelBossTelegraphs,
   resolveBossTelegraphs,
   updateBosses,
 } from './systems/boss/BossSystem'
 import { updatePlayerBehavior } from './systems/behavior/BehaviorController'
 import type { BossDefinitionId } from '../content/bosses/Bosses'
-import { ENCOUNTER_DEFINITIONS } from '../content/encounters/Encounters'
+import {
+  DEFAULT_DUNGEON_ID,
+  createDungeonEncounterTimeline,
+  getDungeonDefinition,
+  getDungeonFloor,
+  resolveDungeonLengthSeconds,
+  type DungeonDefinition,
+} from '../content/dungeons/Dungeons'
 import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   getBehaviorProfileDefinition,
@@ -116,6 +128,11 @@ export type {
   SkillUpgradeSnapshot,
   SkillUpgradeStatus,
   BossHudSnapshot,
+  BossEnrageHudSnapshot,
+  EncounterTimelineHudSnapshot,
+  StairsHudSnapshot,
+  FloorTransitionHudSnapshot,
+  PickupHudSnapshot,
   TelegraphHudSnapshot,
   DodgeHudSnapshot,
   BehaviorHudSnapshot,
@@ -133,6 +150,25 @@ export type {
 } from './choices/ChoiceFlows'
 
 export type { RunConfig } from './state/GameState'
+export {
+  BOSS_FLOOR_EVENT_DURATION_SECONDS,
+  DEFAULT_DUNGEON_CONFIG,
+  DEFAULT_DUNGEON_ID,
+  DEFAULT_DUNGEON_LENGTH_SECONDS,
+  DUNGEON_FLOOR_DURATION_SECONDS,
+  DUNGEON_DEFINITIONS,
+  ORDINARY_ENEMY_FLOOR_STAT_SCALING,
+  getDungeonDefinition,
+  getDungeonFloor,
+  getFloorStatMultiplier,
+  isDungeonLengthUnlocked,
+  scaleOrdinaryEnemyStats,
+} from '../content/dungeons/Dungeons'
+export type {
+  DungeonDefinition,
+  DungeonDefinitionId,
+  DungeonLengthContract,
+} from '../content/dungeons/Dungeons'
 export {
   BEHAVIOR_PROFILE_DEFINITIONS,
   DEFAULT_BEHAVIOR_PROFILE_ID,
@@ -168,6 +204,7 @@ export class Game {
   private readonly gearRandom: RandomSource
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
+  readonly dungeon: DungeonDefinition
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
   private resumePhase: RunPhase | undefined
@@ -181,11 +218,33 @@ export class Game {
     this.random = new Random(config.seed)
     this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
     this.spawnDirector = new SpawnDirector(this.random)
+    const dungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
+    const dungeonLengthSeconds = resolveDungeonLengthSeconds(
+      dungeon,
+      config.dungeonLengthContractId,
+      new Set(config.unlockedDungeonLengthIds ?? []),
+    )
+    this.dungeon = dungeonLengthSeconds === dungeon.defaultLengthSeconds
+      ? dungeon
+      : {
+        ...dungeon,
+        encounterTimeline: createDungeonEncounterTimeline(
+          dungeonLengthSeconds,
+          dungeon.floorDurationSeconds,
+        ),
+      }
 
     this.gameState = {
       run: {
         phase: 'loading',
         seed: config.seed,
+        dungeonId: this.dungeon.id,
+        ...(config.dungeonLengthContractId
+          ? { dungeonLengthContractId: config.dungeonLengthContractId }
+          : {}),
+        dungeonLengthSeconds,
+        floor: 1,
+        completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
         gearDropGenerated: false,
@@ -287,7 +346,7 @@ export class Game {
   }
 
   getUiSnapshot(): GameUiSnapshot {
-    return createUiSnapshot(this.gameState)
+    return createUiSnapshot(this.gameState, this.choiceFlows)
   }
 
   getRunResultSnapshot(): RunResultSnapshot {
@@ -433,14 +492,16 @@ export class Game {
   }
 
   /**
-   * Advances the simulation with a fixed-timestep accumulator. Suspended
-   * phases do not consume wall-clock time or run any active systems.
+   * Advances the simulation with a fixed-timestep accumulator. Choice and
+   * paused phases do not advance; floor transitions run only their timer.
    */
   update(rawDeltaSeconds: number): void {
     this.clock.advance(
       rawDeltaSeconds,
       this.currentTimeScale,
-      () => this.gameState.run.phase === 'playing',
+      () =>
+        this.gameState.run.phase === 'playing' ||
+        this.gameState.run.phase === 'floor-transition',
       () => this.step(),
     )
   }
@@ -520,7 +581,7 @@ export class Game {
     if (!definitionId) {
       return this.startBossEncounter()
     }
-    const definition = ENCOUNTER_DEFINITIONS.find(
+    const definition = this.dungeon.encounterTimeline.find(
       (candidate) => candidate.bossDefinitionId === definitionId,
     )
     return definition
@@ -548,6 +609,15 @@ export class Game {
       position,
       sourceEnemyDefinitionId,
     )
+  }
+
+  spawnStairs(position: WorldPosition, isFinal = false): EntityId {
+    return spawnStairs(
+      this.gameState,
+      this.idAllocator,
+      position,
+      isFinal,
+    ).id
   }
 
   /**
@@ -578,6 +648,18 @@ export class Game {
   private step(): void {
     this.gameState.tick += 1
     this.gameState.time += FIXED_STEP_SECONDS
+    if (this.gameState.run.phase === 'floor-transition') {
+      this.advanceFloorTransition()
+      return
+    }
+    this.gameState.run.floor = Math.max(
+      this.gameState.run.floor ?? 1,
+      getDungeonFloor(this.gameState.time, this.dungeon),
+    )
+
+    // Start due boss events before normal spawning so the final timer never
+    // produces an ordinary enemy alongside the final boss.
+    updateEncounter(this.gameState, this.idAllocator)
 
     // Keep this order explicit: decisions happen before projectile movement,
     // collision produces queued damage, and cleanup is last.
@@ -623,7 +705,22 @@ export class Game {
       this.gameState.bosses = (this.gameState.bosses ?? []).filter(
         (boss) => boss.hp > 0,
       )
-      completeBossEncounter(this.gameState)
+      if (
+        (this.gameState.bosses ?? []).length === 0 &&
+        completeBossEncounter(this.gameState)
+      ) {
+        const lastBoss = [...defeatedBosses].sort(
+          (left, right) => left.id - right.id,
+        )[defeatedBosses.length - 1]
+        if (lastBoss) {
+          spawnStairs(
+            this.gameState,
+            this.idAllocator,
+            { x: lastBoss.x, y: lastBoss.y },
+            this.gameState.encounter?.isFinal === true,
+          )
+        }
+      }
     }
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
@@ -634,6 +731,13 @@ export class Game {
     }, (position, sourceEnemyDefinitionId) => {
       this.spawnGearPickup(position, sourceEnemyDefinitionId)
     }, this.gearRandom)
+    updateStairs(this.gameState, (stairs) => {
+      stairs.rewardsCollected = true
+      this.collectFloorPickupsAt(stairs.x, stairs.y)
+      if (this.choiceFlows.length === 0) {
+        this.beginFloorTransition(stairs)
+      }
+    })
     updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
       const levelsGained = grantExperience(this.gameState, amount)
       if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
@@ -644,10 +748,60 @@ export class Game {
       this.enqueueGearPickupFlow(pickup)
     })
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
-    // Evaluate timeline events after this tick's normal spawns. This makes the
-    // exact 3:00 boundary stable: the event is visible at 3:00 and suspension
-    // takes effect on the following fixed step.
-    updateEncounter(this.gameState, this.idAllocator)
+  }
+
+  private collectFloorPickupsAt(x: number, y: number): void {
+    const pickups = this.gameState.pickups
+    this.gameState.pickups = []
+    for (const pickup of pickups) {
+      pickup.x = x
+      pickup.y = y
+      if (pickup.kind === 'xp') {
+        const levelsGained = grantExperience(this.gameState, pickup.xpAmount)
+        if (levelsGained > 0) {
+          this.enqueueLevelUpFlows(levelsGained)
+        }
+      } else {
+        this.collectedGearPickups.push({ ...pickup })
+        this.enqueueGearPickupFlow(pickup)
+      }
+    }
+  }
+
+  private beginFloorTransition(
+    stairs: NonNullable<GameState['stairs']>,
+  ): void {
+    if (this.gameState.floorTransition || this.gameState.run.phase !== 'playing') {
+      return
+    }
+    this.gameState.floorTransition = {
+      remainingSeconds: FLOOR_TRANSITION_SECONDS,
+      fromFloor: this.gameState.run.floor ?? stairs.floorNumber,
+      toFloor: (this.gameState.run.floor ?? stairs.floorNumber) + 1,
+      isFinal: stairs.isFinal,
+    }
+    this.gameState.stairs = undefined
+    this.transitionTo('floor-transition')
+  }
+
+  private advanceFloorTransition(): void {
+    const transition = this.gameState.floorTransition
+    if (!transition) {
+      this.transitionTo('playing')
+      return
+    }
+    transition.remainingSeconds -= FIXED_STEP_SECONDS
+    if (transition.remainingSeconds > 1e-9) {
+      return
+    }
+    this.gameState.floorTransition = undefined
+    if (transition.isFinal) {
+      this.transitionTo('victory')
+      this.transitionTo('results')
+      return
+    }
+    this.gameState.run.floor = transition.toFloor
+    this.transitionTo('playing')
   }
 
   private transitionTo(nextPhase: RunPhase): void {
@@ -705,6 +859,13 @@ export class Game {
     }
     if (this.choiceFlows.length > 0) {
       this.notifyStateChanged()
+    } else if (
+      this.gameState.stairs?.rewardsCollected &&
+      this.gameState.run.phase === 'level-up'
+    ) {
+      const stairs = this.gameState.stairs
+      this.transitionTo('playing')
+      this.beginFloorTransition(stairs)
     } else {
       this.transitionTo('playing')
     }

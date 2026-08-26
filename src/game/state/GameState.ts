@@ -8,6 +8,7 @@ import type { StatModifier, StatValues } from '../../content/stats/Stats'
 import type { EquipmentLoadout } from '../equipment/EquipmentState'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
+import type { DungeonDefinitionId } from '../../content/dungeons/Dungeons'
 import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
 import type {
   BossDefinitionId,
@@ -23,7 +24,11 @@ export interface EncounterState {
   encounterId?: string
   bossDefinitionId?: BossDefinitionId
   bossEntityId?: EntityId
+  bossEntityIds?: EntityId[]
   startedAt?: number
+  durationSeconds?: number
+  floorNumber?: number
+  isFinal?: boolean
   completedAt?: number
   outcome?: EncounterOutcome
   /** Normal spawns are suspended only while the encounter is active. */
@@ -34,7 +39,7 @@ export interface TelegraphState {
   id: EntityId
   sourceId: EntityId
   skillId: BossSkillId
-  kind: 'ground-slam' | 'charge'
+  kind: 'ground-slam' | 'charge' | 'fire-nova' | 'flame-line' | 'meteor-zone'
   x: number
   y: number
   radius: number
@@ -91,11 +96,22 @@ export interface BehaviorControllerState {
 /** Configuration required to start a new deterministic run. */
 export interface RunConfig {
   seed: number
+  /** Defaults to the first dungeon; future lengths are selected by unlock state. */
+  dungeonId?: DungeonDefinitionId
+  /** Optional longer-length contract; omitted runs use the default length. */
+  dungeonLengthContractId?: string
+  /** Unlock IDs supplied by a future meta-progression layer. */
+  unlockedDungeonLengthIds?: readonly string[]
 }
 
 export interface RunState {
   phase: RunPhase
   seed: number
+  dungeonId?: DungeonDefinitionId
+  dungeonLengthContractId?: string
+  dungeonLengthSeconds?: number
+  floor?: number
+  completedEncounterIds?: string[]
   killCount: number
   selectedUpgradeIds: UpgradeId[]
   /** Remains true after the first gear orb is generated, even after collection. */
@@ -180,11 +196,13 @@ export interface BossSkillState {
 
 export interface BossState extends EnemyState {
   bossDefinitionId: BossDefinitionId
+  /** Absolute simulation time at which this boss was spawned. */
+  spawnTime?: number
   skills: BossSkillState[]
   nextSkillIndex: number
 }
 
-export type DamageType = 'physical' | 'lightning'
+export type DamageType = 'physical' | 'lightning' | 'fire'
 
 export interface DamageEvent {
   sourceId?: EntityId
@@ -240,6 +258,24 @@ export interface GearPickupState extends PickupStateBase {
 
 export type PickupState = XpPickupState | GearPickupState
 
+export interface StairsState {
+  id: EntityId
+  x: number
+  y: number
+  radius: number
+  spawnedAt: number
+  floorNumber: number
+  isFinal: boolean
+  rewardsCollected: boolean
+}
+
+export interface FloorTransitionState {
+  remainingSeconds: number
+  fromFloor: number
+  toFloor: number
+  isFinal: boolean
+}
+
 export interface SummonState {
   id: EntityId
 }
@@ -264,6 +300,8 @@ export interface GameState {
   /** Bosses live separately from normal enemies but share targeting geometry. */
   bosses?: BossState[]
   encounter?: EncounterState
+  stairs?: StairsState
+  floorTransition?: FloorTransitionState
   telegraphs?: TelegraphState[]
   projectiles: ProjectileState[]
   pickups: PickupState[]

@@ -4,6 +4,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
+import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { createUiSnapshot } from './Snapshots'
 
@@ -99,5 +100,63 @@ describe('UI snapshots', () => {
     })
     expect(Object.isFrozen(snapshot.behavior)).toBe(true)
     expect(Object.isFrozen(snapshot.behavior.activeIntent)).toBe(true)
+  })
+
+  it('projects floor, stairs, transition, pickups, and Inferno enrage state', () => {
+    const game = createGame({ seed: 74 })
+    game.spawnXpPickup({ x: 0, y: 0 }, 5)
+    game.spawnStairs({ x: 0, y: 0 }, true)
+    game.spawnBoss('inferno-warden', { x: 320, y: 0 })
+
+    const snapshot = game.getUiSnapshot()
+
+    expect(snapshot.floor).toBe(1)
+    expect(snapshot.timeline[0]).toMatchObject({
+      name: 'Stone Golem',
+      status: 'upcoming',
+    })
+    expect(snapshot.pickups).toHaveLength(1)
+    expect(snapshot.stairs).toMatchObject({
+      isFinal: true,
+      playerTouching: true,
+      rewardsCollected: false,
+    })
+    expect(snapshot.boss).toMatchObject({
+      name: 'Inferno Warden',
+      isFinal: true,
+      enrage: {
+        elapsedSeconds: expect.any(Number),
+        movementSpeedMultiplier: expect.any(Number),
+        damageMultiplier: expect.any(Number),
+        cooldownMultiplier: expect.any(Number),
+      },
+    })
+    expect(Object.isFrozen(snapshot.timeline[0])).toBe(true)
+    expect(Object.isFrozen(snapshot.stairs)).toBe(true)
+    expect(Object.isFrozen(snapshot.pickups[0])).toBe(true)
+
+    const transitionGame = createGame({ seed: 76 })
+    transitionGame.spawnStairs({ x: 0, y: 0 })
+    transitionGame.update(FIXED_STEP_SECONDS)
+    const transitionSnapshot = transitionGame.getUiSnapshot()
+    expect(transitionSnapshot.floorTransition).toMatchObject({
+      fromFloor: 1,
+      toFloor: 2,
+      progress: 0,
+    })
+    expect(transitionSnapshot.phase).toBe('floor-transition')
+  })
+
+  it('projects queued choices without exposing mutable simulation arrays', () => {
+    const game = createGame({ seed: 75 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))
+    game.update(FIXED_STEP_SECONDS)
+
+    const snapshot = game.getUiSnapshot()
+
+    expect(snapshot.pendingChoiceCount).toBe(1)
+    expect(snapshot.pendingChoiceFlow?.type).toBe('level-up')
+    expect(Object.isFrozen(snapshot.pendingChoiceFlow)).toBe(true)
+    expect(Object.isFrozen(snapshot.pendingChoiceFlow?.choices)).toBe(true)
   })
 })

@@ -8,6 +8,7 @@ export type RunPhase =
   | 'loading'
   | 'playing'
   | 'level-up'
+  | 'floor-transition'
   | 'paused'
   | 'victory'
   | 'defeat'
@@ -15,8 +16,9 @@ export type RunPhase =
 
 const ALLOWED_RUN_PHASE_TRANSITIONS: Record<RunPhase, readonly RunPhase[]> = {
   loading: ['playing'],
-  playing: ['paused', 'level-up', 'victory', 'defeat'],
+  playing: ['paused', 'level-up', 'floor-transition', 'victory', 'defeat'],
   'level-up': ['playing', 'paused'],
+  'floor-transition': ['playing', 'victory'],
   paused: ['playing', 'level-up'],
   victory: ['results'],
   defeat: ['results'],

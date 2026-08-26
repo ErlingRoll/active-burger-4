@@ -11,10 +11,12 @@ export * from './spatial/SpatialHash'
 export * from './systems/combat/EnemyBehaviors'
 export * from './systems/boss/BossSystem'
 export * from './systems/encounter/EncounterSystem'
+export * from './systems/stairs/StairsSystem'
 export * from './systems/movement/DodgeSystem'
 export * from './systems/behavior/BehaviorController'
 export * from './systems/behavior/MovementCandidate'
 export * from '../content/behaviors/BehaviorProfiles'
+export * from '../content/dungeons/Dungeons'
 export * from './spawning/SpawnDirector'
 export * from './upgrades/UpgradeChoices'
 export {
@@ -35,6 +37,11 @@ export {
   type RunResultSnapshot,
   type GearModifierSnapshot,
   type BossHudSnapshot,
+  type BossEnrageHudSnapshot,
+  type EncounterTimelineHudSnapshot,
+  type StairsHudSnapshot,
+  type FloorTransitionHudSnapshot,
+  type PickupHudSnapshot,
   type TelegraphHudSnapshot,
   type DodgeHudSnapshot,
   type BehaviorHudSnapshot,

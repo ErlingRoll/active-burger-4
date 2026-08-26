@@ -58,7 +58,9 @@ milestones in order unless an ADR documents an exception.
 - [x] **13.5 Player Behavior:** deterministic Balanced, Aggressive, and Cautious
       profiles; telegraph Dodge, safe gear collection, threat-aware kiting, combat-range
       positioning, in-run Behavior screen, and intent HUD.
-- [ ] **14. Full Run:** timed difficulty, events, final boss, results.
+- [x] **14. Full Run:** 10-minute default dungeon, unlockable longer lengths,
+      floor-scaled monsters, 120-second boss floors, stairs/reward transitions,
+      Inferno Warden final boss/enrage, and results.
 - [ ] **15. Local Persistence:** versioned Dexie settings, profile, pending
   results, and migrations.
 - [ ] **16. Authentication:** Supabase account state without simulation calls.

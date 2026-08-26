@@ -63,12 +63,27 @@ function formatHudModifier(
   return `${isPositive ? '+' : '-'}${value} ${HUD_STAT_LABELS[modifier.stat]}`
 }
 
+function getChoiceFlowKey(
+  flow: Readonly<PendingChoiceFlow> | null,
+): string | null {
+  if (!flow) {
+    return null
+  }
+  const choices = flow.choices.map((choice) =>
+    'upgradeId' in choice
+      ? choice.upgradeId
+      : `${choice.type}:${choice.itemId}:${choice.slot}`,
+  )
+  return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
+}
+
 export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
-  const [choiceFlow, setChoiceFlow] = useState<PendingChoiceFlow | null>(null)
+  const [choiceFlow, setChoiceFlow] = useState<Readonly<PendingChoiceFlow> | null>(null)
+  const choiceFlowKeyRef = useRef<string | null>(null)
   const [behaviorScreenOpen, setBehaviorScreenOpen] = useState(false)
   const behaviorScreenOpenRef = useRef(false)
 
@@ -82,35 +97,54 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     const game = createGame({ seed: 3 })
     const pixiGame = new PixiGame(game)
     let disposed = false
-    let defeatNotified = false
+    let runEndNotified = false
     gameRef.current = game
     setGame(game)
 
     const publishSnapshot = (): void => {
       if (!disposed) {
-        setSnapshot(game.getUiSnapshot())
+        const nextSnapshot = game.getUiSnapshot()
+        setSnapshot(nextSnapshot)
+        const nextChoiceFlowKey = getChoiceFlowKey(nextSnapshot.pendingChoiceFlow)
+        if (choiceFlowKeyRef.current !== nextChoiceFlowKey) {
+          choiceFlowKeyRef.current = nextChoiceFlowKey
+          setChoiceFlow(nextSnapshot.pendingChoiceFlow)
+        }
       }
     }
 
     publishSnapshot()
     setChoiceFlow(null)
+    choiceFlowKeyRef.current = null
+    const demo = new URLSearchParams(window.location.search).get('demo')
 
     // This deterministic setup is only for browser smoke tests and local
     // development; normal runs retain the standard combat-driven progression.
     if (
       import.meta.env.DEV &&
-      new URLSearchParams(window.location.search).get('demo') === 'level-up'
+      demo === 'level-up'
     ) {
       game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))
     }
     if (
       import.meta.env.DEV &&
-      new URLSearchParams(window.location.search).get('demo') === 'gear'
+      demo === 'gear'
     ) {
       // Two pickups exercise both the empty-slot comparison and the
       // replacement/upgrade flow without changing production drop behavior.
       game.spawnGearPickup({ x: 0, y: 0 })
       game.spawnGearPickup({ x: 0, y: 0 })
+    }
+    if (
+      import.meta.env.DEV &&
+      (demo === 'final' || demo === 'final-boss' || demo === 'inferno')
+    ) {
+      // This only exercises the existing simulation spawn API; production
+      // encounter scheduling remains owned by the encounter system.
+      game.spawnBoss('inferno-warden')
+    }
+    if (import.meta.env.DEV && demo === 'stairs') {
+      game.spawnStairs({ x: 0, y: 0 })
     }
 
     const unsubscribe = game.subscribe(() => {
@@ -121,10 +155,12 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       // Phase changes are published immediately so the level-up overlay never
       // waits for the throttled HUD interval.
       publishSnapshot()
-      setChoiceFlow(game.getPendingChoiceFlow() ?? null)
 
-      if (game.phase === 'defeat' && !defeatNotified) {
-        defeatNotified = true
+      if (
+        (game.phase === 'defeat' || game.phase === 'results') &&
+        !runEndNotified
+      ) {
+        runEndNotified = true
         onRunEnd(game.getRunResultSnapshot())
       }
     })
@@ -172,6 +208,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       }
       setGame(null)
       behaviorScreenOpenRef.current = false
+      choiceFlowKeyRef.current = null
       pixiGame.destroy()
     }
   }, [onRunEnd])
@@ -297,11 +334,73 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
           </dd>
         </div>
       </dl>
+      <section className="run-projection-hud" aria-label="Run projection">
+        <div className="floor-hud">
+          <div className="projection-heading">
+            <strong>Floor {snapshot.floor}</strong>
+            <span>{Math.ceil(snapshot.floorProgress * 100)}%</span>
+          </div>
+          <progress
+            value={snapshot.floorProgress * 100}
+            max={100}
+            aria-label={`Floor ${snapshot.floor} progress`}
+          />
+          <span>
+            {Math.floor(snapshot.elapsedTime % snapshot.floorDurationSeconds)}s /{' '}
+            {snapshot.floorDurationSeconds}s
+          </span>
+        </div>
+        <div className="timeline-hud">
+          <span className="projection-label">Encounter timeline</span>
+          {snapshot.timeline.length > 0 ? (
+            <ol>
+              {snapshot.timeline.map((event) => (
+                <li className={`timeline-${event.status}`} key={event.id}>
+                  <span aria-hidden="true">
+                    {event.status === 'completed'
+                      ? '✓'
+                      : event.status === 'active'
+                        ? '●'
+                        : '○'}
+                  </span>
+                  <span>
+                    Floor {event.floorNumber}: {event.name}
+                    {event.isFinal ? ' · Final' : ''}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <span>No encounters scheduled</span>
+          )}
+        </div>
+        <div className="pickup-hud" aria-label="Pickup status">
+          <span className="projection-label">Pickups</span>
+          <strong>{snapshot.pickups.length}</strong>
+          <span>
+            {snapshot.pickups.filter((pickup) => pickup.kind === 'xp').length} XP ·{' '}
+            {snapshot.pickups.filter((pickup) => pickup.kind === 'gear').length} gear
+          </span>
+        </div>
+        {snapshot.pendingChoiceCount > 0 ? (
+          <div className="choice-hud" aria-live="polite">
+            <span className="projection-label">Choices</span>
+            <strong>
+              {snapshot.pendingChoiceFlow?.type === 'gear-pickup'
+                ? 'Gear pickup'
+                : 'Level-up'}
+            </strong>
+            <span>{snapshot.pendingChoiceCount} awaiting</span>
+          </div>
+        ) : null}
+      </section>
       {snapshot.boss ? (
         <section className="boss-hud" aria-label="Boss status">
           <div className="boss-hud-heading">
             <strong>{snapshot.boss.name}</strong>
-            <span>{snapshot.boss.status}</span>
+            <span>
+              {snapshot.boss.isFinal ? 'Final boss' : snapshot.boss.status}
+            </span>
           </div>
           <progress
             value={snapshot.boss.hpProgress * 100}
@@ -310,6 +409,58 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
           />
           <span>
             {Math.ceil(snapshot.boss.hp)} / {Math.ceil(snapshot.boss.maxHp)} HP
+          </span>
+          {snapshot.boss.enrage ? (
+            <div className="boss-enrage" aria-label="Inferno Warden enrage">
+              <strong>Enrage</strong>
+              <span>
+                {Math.floor(snapshot.boss.enrage.elapsedSeconds)}s · speed{' '}
+                {snapshot.boss.enrage.movementSpeedMultiplier.toFixed(2)}x · damage{' '}
+                {snapshot.boss.enrage.damageMultiplier.toFixed(2)}x · cooldown{' '}
+                {snapshot.boss.enrage.cooldownMultiplier.toFixed(2)}x
+              </span>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      {snapshot.stairs ? (
+        <section
+          className={`stairs-hud${snapshot.stairs.isFinal ? ' stairs-final' : ''}`}
+          aria-label="Stairs status"
+          aria-live="polite"
+        >
+          <div className="stairs-heading">
+            <strong>
+              {snapshot.stairs.isFinal ? 'Final stairs' : 'Stairs'}
+            </strong>
+            <span>Floor {snapshot.stairs.floorNumber}</span>
+          </div>
+          <span>
+            {snapshot.stairs.rewardsCollected
+              ? 'Rewards collected · resolve choices'
+              : snapshot.stairs.playerTouching
+                ? 'Touching stairs · collecting rewards'
+                : 'Touch the stairs to descend'}
+          </span>
+        </section>
+      ) : null}
+      {snapshot.floorTransition ? (
+        <section className="floor-transition-hud" role="status" aria-live="polite">
+          <p className="screen-kicker">
+            {snapshot.floorTransition.isFinal ? 'Run complete' : 'Floor transition'}
+          </p>
+          <strong>
+            {snapshot.floorTransition.isFinal
+              ? 'Descending to results'
+              : `Entering Floor ${snapshot.floorTransition.toFloor}`}
+          </strong>
+          <progress
+            value={snapshot.floorTransition.progress * 100}
+            max={100}
+            aria-label="Floor transition progress"
+          />
+          <span>
+            {snapshot.floorTransition.remainingSeconds.toFixed(1)}s remaining
           </span>
         </section>
       ) : null}
@@ -550,6 +701,39 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
     game.startEncounter()
   }
 
+  const spawnInfernoWarden = (): void => {
+    if (
+      snapshot.phase !== 'playing' ||
+      (game.state.bosses?.length ?? 0) > 0 ||
+      game.state.stairs !== undefined
+    ) {
+      return
+    }
+    // startEncounter uses the normal named encounter when content provides it.
+    // The direct spawn fallback keeps this development harness useful while
+    // authored final encounter scheduling is being assembled.
+    if (!game.startEncounter('inferno-warden')) {
+      game.spawnBoss('inferno-warden')
+    }
+  }
+
+  const spawnStairsAtPlayer = (isFinal: boolean): void => {
+    if (
+      snapshot.phase !== 'playing' ||
+      game.state.stairs !== undefined ||
+      game.state.floorTransition !== undefined
+    ) {
+      return
+    }
+    game.spawnStairs(
+      { x: game.state.player.x, y: game.state.player.y },
+      isFinal,
+    )
+    // Touch the stairs through the normal update path instead of changing
+    // simulation state from React.
+    game.update(1 / 60)
+  }
+
   return (
     <div className="development-controls">
       <button
@@ -588,6 +772,38 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
           >
             Spawn Boss
           </button>
+          <button
+            className="debug-spawn-button debug-spawn-final-button"
+            type="button"
+            onClick={spawnInfernoWarden}
+            disabled={
+              snapshot.phase !== 'playing' ||
+              (game.state.bosses?.length ?? 0) > 0
+            }
+          >
+            Spawn Inferno Warden
+          </button>
+          <div className="debug-transition-control">
+            <p className="development-control-label">Run-flow preview</p>
+            <div className="debug-spawn-actions">
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={() => spawnStairsAtPlayer(false)}
+                disabled={snapshot.phase !== 'playing'}
+              >
+                Test stairs transition
+              </button>
+              <button
+                className="debug-spawn-button debug-spawn-final-button"
+                type="button"
+                onClick={() => spawnStairsAtPlayer(true)}
+                disabled={snapshot.phase !== 'playing'}
+              >
+                Test final stairs & results
+              </button>
+            </div>
+          </div>
           <dl className="entity-counts" aria-label="Entity counts">
             <div>
               <dt>Total entities</dt>

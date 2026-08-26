@@ -14,6 +14,11 @@ import {
   getBossDefinition,
   type BossDefinitionId,
 } from '../../../content/bosses/Bosses'
+import {
+  getDungeonDefinition,
+  getDungeonFloor,
+  scaleOrdinaryEnemyStats,
+} from '../../../content/dungeons/Dungeons'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -96,9 +101,17 @@ export function spawnEnemy(
     baseXpReward > 0
       ? Math.round(baseXpReward * (modifier?.xpRewardMultiplier ?? 1))
       : baseXpReward
-  const maxHp = Math.round(
-    definition.maxHp * (modifier?.maxHpMultiplier ?? 1),
+  const dungeon = getDungeonDefinition(state.run.dungeonId)
+  const floor = state.run.floor ?? getDungeonFloor(state.time, dungeon)
+  const scaledStats = scaleOrdinaryEnemyStats(
+    {
+      maxHp: definition.maxHp,
+      contactDamage: definition.contactDamage,
+    },
+    floor,
+    dungeon,
   )
+  const maxHp = scaledStats.maxHp * (modifier?.maxHpMultiplier ?? 1)
   const enemy: EnemyState = {
     id: idAllocator.createEntityId(),
     definitionId: definition.id,
@@ -108,7 +121,7 @@ export function spawnEnemy(
     hp: maxHp,
     maxHp,
     speed: definition.speed * (modifier?.speedMultiplier ?? 1),
-    contactDamage: definition.contactDamage,
+    contactDamage: scaledStats.contactDamage,
     contactCooldownRemaining: 0,
     xpReward,
     ...(modifier ? { eliteModifier: modifier.id } : {}),
@@ -146,6 +159,7 @@ export function spawnBoss(
     maxHp: definition.maxHp,
     speed: definition.speed,
     contactDamage: definition.contactDamage,
+    spawnTime: state.time,
     xpReward: definition.xpReward,
     targetId: state.player.id,
     skills: definition.skills.map((skillId, index) => ({
@@ -209,7 +223,11 @@ export function updateEnemySpawns(
   idAllocator: EntityIdAllocator,
   fixedStepSeconds: number,
 ): void {
-  if (state.encounter?.normalSpawnsSuspended) {
+  if (
+    state.encounter?.normalSpawnsSuspended ||
+    state.stairs !== undefined ||
+    state.floorTransition !== undefined
+  ) {
     return
   }
   const requests = spawnDirector.update(state, fixedStepSeconds)

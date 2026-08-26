@@ -83,12 +83,20 @@ interface ResultsScreenProps {
 }
 
 function ResultsScreen({ result, onReturn }: ResultsScreenProps) {
+  const victory = result.outcome === 'victory'
   return (
-    <section className="results-screen" aria-labelledby="results-title">
+    <section
+      className={`results-screen${victory ? ' victory-screen' : ''}`}
+      aria-labelledby="results-title"
+    >
       <div className="results-panel">
-        <p className="screen-kicker">Run complete</p>
-        <h2 id="results-title">Defeat</h2>
-        <p className="results-summary">Your run has ended. Here are your results.</p>
+        <p className="screen-kicker">{victory ? 'Run victorious' : 'Run complete'}</p>
+        <h2 id="results-title">{victory ? 'Victory' : 'Defeat'}</h2>
+        <p className="results-summary">
+          {victory
+            ? 'The final boss has fallen. The depths are conquered.'
+            : 'Your run has ended. Here are your results.'}
+        </p>
         <dl className="results-stats">
           <div>
             <dt>Elapsed time</dt>

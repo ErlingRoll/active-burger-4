@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { createGame, FIXED_STEP_SECONDS } from '../../Game'
 
 describe('boss encounter timeline', () => {
-  it('starts once at the deterministic 3:00 boundary and suspends normal spawns', () => {
+  it('starts at the first completed-floor boundary and suspends normal spawns', () => {
     const game = createGame({ seed: 123 })
-    for (let index = 0; index < 180 * 60; index += 1) {
+    for (let index = 0; index < 120 * 60; index += 1) {
       game.update(FIXED_STEP_SECONDS)
       if (game.phase === 'level-up') {
         const choice = game.getPendingChoices()[0]
@@ -23,6 +23,22 @@ describe('boss encounter timeline', () => {
     const enemyCount = game.state.enemies.length
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.enemies.length).toBe(enemyCount)
+  })
+
+  it('schedules Inferno Warden at the final timer, not another Stone Golem', () => {
+    const game = createGame({ seed: 124 })
+    expect(game.dungeon.encounterTimeline.map((event) => event.timeSeconds)).toEqual([
+      120,
+      240,
+      360,
+      480,
+      600,
+    ])
+    expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
+      timeSeconds: 600,
+      bossDefinitionId: 'inferno-warden',
+      isFinal: true,
+    })
   })
 
   it('supports a manual encounter and resumes normal spawns after victory', () => {
