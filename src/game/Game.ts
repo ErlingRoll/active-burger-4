@@ -1,5 +1,9 @@
 import { createEntityIdAllocator } from './ids'
-import type { EntityId, EntityIdAllocator } from './ids'
+import type {
+  EnemyDefinitionId,
+  EntityId,
+  EntityIdAllocator,
+} from './ids'
 import { getEnemyDefinition, SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import {
   BASIC_BOLT_DEFINITION_ID,
@@ -10,6 +14,7 @@ import type { RandomSource } from './random/Random'
 import { isValidRunPhaseTransition } from './state/RunPhase'
 import type { RunPhase } from './state/RunPhase'
 import { findNearestEnemy } from './combat/Targeting'
+import { SpawnDirector } from './spawning/SpawnDirector'
 import type {
   DamageEvent,
   EnemyState,
@@ -66,15 +71,17 @@ export class Game {
 
   private readonly idAllocator: EntityIdAllocator
   private readonly gameState: GameState
+  readonly spawnDirector: SpawnDirector
   private accumulatedSeconds = 0
   private resumePhase: RunPhase | undefined
 
   constructor(config: RunConfig) {
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
+    this.spawnDirector = new SpawnDirector(this.random)
 
     this.gameState = {
-      run: { phase: 'loading', seed: config.seed },
+      run: { phase: 'loading', seed: config.seed, killCount: 0 },
       player: createInitialPlayerState(this.idAllocator.createEntityId()),
       enemies: [],
       projectiles: [],
@@ -152,6 +159,7 @@ export class Game {
 
     // Keep this order explicit: all decisions happen before projectile
     // movement, collision produces queued damage, and cleanup is last.
+    this.spawnEnemies()
     this.updateAttackCooldown()
     this.updateEnemyChase()
     this.resolvePlayerTarget()
@@ -169,6 +177,14 @@ export class Game {
    */
   spawnSlime(position: WorldPosition): EntityId {
     const definition = getEnemyDefinition(SLIME_DEFINITION_ID)
+    return this.spawnEnemy(definition.id, position)
+  }
+
+  spawnEnemy(
+    definitionId: EnemyDefinitionId,
+    position: WorldPosition,
+  ): EntityId {
+    const definition = getEnemyDefinition(definitionId)
     const enemy: EnemyState = {
       id: this.idAllocator.createEntityId(),
       definitionId: definition.id,
@@ -185,6 +201,16 @@ export class Game {
 
     this.gameState.enemies.push(enemy)
     return enemy.id
+  }
+
+  private spawnEnemies(): void {
+    const requests = this.spawnDirector.update(
+      this.gameState,
+      FIXED_STEP_SECONDS,
+    )
+    for (const request of requests) {
+      this.spawnEnemy(request.definitionId, request)
+    }
   }
 
   private updateEnemyChase(): void {
@@ -355,9 +381,17 @@ export class Game {
   }
 
   private removeDeadEntities(): void {
-    this.gameState.enemies = this.gameState.enemies.filter(
-      (enemy) => enemy.hp > 0,
-    )
+    const livingEnemies: EnemyState[] = []
+    let killCount = 0
+    for (const enemy of this.gameState.enemies) {
+      if (enemy.hp > 0) {
+        livingEnemies.push(enemy)
+      } else {
+        killCount += 1
+      }
+    }
+    this.gameState.enemies = livingEnemies
+    this.gameState.run.killCount += killCount
     this.gameState.projectiles = this.gameState.projectiles.filter(
       (projectile) => projectile.remainingLifetime > 0,
     )

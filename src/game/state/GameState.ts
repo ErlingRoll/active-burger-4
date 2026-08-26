@@ -13,6 +13,7 @@ export interface RunConfig {
 export interface RunState {
   phase: RunPhase
   seed: number
+  killCount: number
 }
 
 /**

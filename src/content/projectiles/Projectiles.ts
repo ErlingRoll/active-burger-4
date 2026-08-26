@@ -1,4 +1,4 @@
-import type { ProjectileDefinitionId } from '../../game/ids'
+export type ProjectileDefinitionId = string
 
 export interface ProjectileDefinition {
   id: ProjectileDefinitionId

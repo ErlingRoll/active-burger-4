@@ -13,7 +13,6 @@ export function GameCanvas() {
     }
 
     const game = createGame({ seed: 3 })
-    game.spawnSlime({ x: 320, y: 0 })
     const pixiGame = new PixiGame(game)
     let disposed = false
 

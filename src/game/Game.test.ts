@@ -259,4 +259,24 @@ describe('Game', () => {
     expect(game.state.enemies).toHaveLength(0)
     expect(game.state.projectiles).toHaveLength(0)
   })
+
+  it('increments the run kill counter once for each enemy removed', () => {
+    const game = createGame({ seed: 14 })
+    const firstId = game.spawnSlime({ x: 0, y: 0 })
+    const secondId = game.spawnSlime({ x: 0, y: 0 })
+
+    for (const enemy of game.state.enemies) {
+      enemy.hp = 0
+    }
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.run.killCount).toBe(2)
+    expect(game.state.enemies).toHaveLength(0)
+
+    // A later cleanup pass must not count entities that were already removed.
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.run.killCount).toBe(2)
+    expect(firstId).not.toBe(secondId)
+  })
 })

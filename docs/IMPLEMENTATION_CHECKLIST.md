@@ -39,7 +39,7 @@ milestones in order unless an ADR documents an exception.
 - [x] **3. First Enemy:** Slime state/content, spawn, chase behavior, renderer.
 - [x] **4. Automatic Combat:** targeting, cooldowns, projectiles, collision,
   damage, and death.
-- [ ] **5. Endless Spawning:** spawn director/ring, threat curve, cleanup, and
+- [x] **5. Endless Spawning:** spawn director/ring, threat curve, cleanup, and
   kill count.
 - [ ] **6. XP and Leveling:** drops, pickup, thresholds, level pause.
 - [ ] **7. Upgrade Screen:** seeded three-choice overlay and stat upgrades.
