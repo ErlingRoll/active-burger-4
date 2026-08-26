@@ -77,6 +77,26 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   await expect(canvas).toBeVisible()
 })
 
+test('shows an accessible acquired-skill tooltip with a DPS assumption', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  const skill = page.getByRole('button', {
+    name: 'Basic Bolt, level 1',
+  })
+  await expect(skill).toBeVisible()
+  await skill.focus()
+  await expect(
+    page.getByRole('tooltip').getByText(
+      'Estimated SINGLE-TARGET sustained DPS',
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole('tooltip')).toContainText('10.0')
+  await expect(page.getByRole('tooltip')).toContainText('Relevant upgrades')
+})
+
 test('displays the level-up choices and resumes after selecting one', async ({
   page,
 }) => {

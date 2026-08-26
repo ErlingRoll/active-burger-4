@@ -91,6 +91,8 @@ export interface ProjectileState {
   id: EntityId
   ownerId: EntityId
   definitionId: ProjectileDefinitionId
+  /** Optional for backwards-compatible projectile fixtures; skill spawns set it. */
+  skillId?: SkillId
 
   x: number
   y: number
@@ -101,6 +103,11 @@ export interface ProjectileState {
   radius: number
   damage: number
   remainingLifetime: number
+}
+
+export interface SkillEffectPoint {
+  x: number
+  y: number
 }
 
 export interface PickupState {
@@ -125,6 +132,8 @@ export interface SkillEffectState {
   radius: number
   lifetime: number
   remainingLifetime: number
+  /** Deterministic world-space path, with the first point at x/y. */
+  points: readonly SkillEffectPoint[]
 }
 
 export interface GameState {

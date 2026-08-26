@@ -72,6 +72,9 @@ export type {
   GameUiSnapshot,
   RunHudSnapshot,
   RunResultSnapshot,
+  SkillHudSnapshot,
+  SkillUpgradeSnapshot,
+  SkillUpgradeStatus,
 } from './ui/Snapshots'
 
 export type { RunConfig } from './state/GameState'

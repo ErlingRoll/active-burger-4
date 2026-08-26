@@ -50,6 +50,7 @@ const VALID_UPGRADE_STATS = new Set([
 ])
 
 const VALID_SKILL_KINDS = new Set(['projectile', 'area', 'chain'])
+const VALID_SKILL_VISUAL_KINDS = new Set(['projectile', 'area', 'chain'])
 const VALID_SKILL_TAGS = new Set([
   'physical',
   'projectile',
@@ -129,6 +130,29 @@ function validateDefinitions(
   catalog.skills.forEach((skill, index) => {
     if (!VALID_SKILL_KINDS.has(skill.kind)) {
       errors.push(`skills[${index}].kind is not supported; received "${String(skill.kind)}".`)
+    }
+    if (
+      !skill.visual ||
+      !VALID_SKILL_VISUAL_KINDS.has(skill.visual.kind) ||
+      skill.visual.kind !== skill.kind
+    ) {
+      errors.push(`skills[${index}].visual.kind must match the skill kind.`)
+    }
+    if (
+      !skill.visual ||
+      typeof skill.visual.icon !== 'string' ||
+      skill.visual.icon.trim() === ''
+    ) {
+      errors.push(`skills[${index}].visual.icon must be a non-empty string.`)
+    }
+    for (const property of ['primaryColor', 'secondaryColor', 'outlineColor'] as const) {
+      if (
+        !skill.visual ||
+        typeof skill.visual[property] !== 'string' ||
+        skill.visual[property].trim() === ''
+      ) {
+        errors.push(`skills[${index}].visual.${property} must be a non-empty string.`)
+      }
     }
     validateFiniteNumber(errors, `skills[${index}].cooldown`, skill.cooldown, 'positive')
     validateFiniteNumber(errors, `skills[${index}].baseDamage`, skill.baseDamage, 'non-negative')

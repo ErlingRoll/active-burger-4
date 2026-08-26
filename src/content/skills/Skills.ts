@@ -17,6 +17,21 @@ export type SkillTag =
 
 export type SkillKind = 'projectile' | 'area' | 'chain'
 
+/**
+ * Rendering metadata owned by skill content. The renderer uses this contract
+ * to project effects without knowing individual skill IDs.
+ */
+export interface SkillVisualPresentation {
+  kind: 'projectile' | 'area' | 'chain'
+  icon: string
+  primaryColor: string
+  secondaryColor: string
+  outlineColor: string
+  trailLength?: number
+  trailWidth?: number
+  nodeRadius?: number
+}
+
 export interface SkillDefinition {
   id: SkillId
   name: string
@@ -32,6 +47,7 @@ export interface SkillDefinition {
   jumpRange?: number
   projectileDefinitionId?: ProjectileDefinitionId
   effectLifetime: number
+  visual: SkillVisualPresentation
 }
 
 export const BASIC_BOLT_SKILL_ID: SkillId = 'basic-bolt'
@@ -50,6 +66,15 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: 2,
     projectileDefinitionId: BASIC_BOLT_DEFINITION_ID,
     effectLifetime: 0.12,
+    visual: {
+      kind: 'projectile',
+      icon: '✦',
+      primaryColor: '#fbbf24',
+      secondaryColor: '#fb923c',
+      outlineColor: '#fef3c7',
+      trailLength: 18,
+      trailWidth: 4,
+    },
   },
   [WHIRLWIND_SKILL_ID]: {
     id: WHIRLWIND_SKILL_ID,
@@ -62,6 +87,13 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: 3,
     radius: 90,
     effectLifetime: 0.2,
+    visual: {
+      kind: 'area',
+      icon: '⟳',
+      primaryColor: '#a78bfa',
+      secondaryColor: '#c4b5fd',
+      outlineColor: '#ede9fe',
+    },
   },
   [CHAIN_LIGHTNING_SKILL_ID]: {
     id: CHAIN_LIGHTNING_SKILL_ID,
@@ -76,6 +108,14 @@ export const SKILL_DEFINITIONS = {
     jumpRange: 150,
     maxTargets: 3,
     effectLifetime: 0.18,
+    visual: {
+      kind: 'chain',
+      icon: '⚡',
+      primaryColor: '#22d3ee',
+      secondaryColor: '#fef08a',
+      outlineColor: '#cffafe',
+      nodeRadius: 10,
+    },
   },
 } as const satisfies Record<SkillId, SkillDefinition>
 

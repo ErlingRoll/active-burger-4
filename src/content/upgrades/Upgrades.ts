@@ -69,6 +69,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     stat: 'attackDamage',
     amount: 2,
     valueLabel: '+2 damage',
+    skillId: BASIC_BOLT_SKILL_ID,
     isEligible: () => true,
   },
   {
@@ -80,6 +81,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     stat: 'attackSpeed',
     amount: 0.2,
     valueLabel: '+0.2 attacks/sec',
+    skillId: BASIC_BOLT_SKILL_ID,
     isEligible: () => true,
   },
   {

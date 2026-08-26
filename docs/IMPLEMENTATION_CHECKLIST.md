@@ -45,8 +45,8 @@ milestones in order unless an ADR documents an exception.
 - [x] **7. Upgrade Screen:** seeded three-choice overlay and stat upgrades.
 - [x] **7.5 Basic Run UI:** dashboard, start action, gameplay HUD,
   development-only End Run control, results screen, and return to dashboard.
-- [ ] **8. Skills:** Basic Bolt, Whirlwind, Chain Lightning, skill upgrades.
-- [ ] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.
+- [x] **8. Skills:** Basic Bolt, Whirlwind, Chain Lightning, skill upgrades.
+- [x] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.
 - [x] **10. Performance:** spatial hash, debug counts, spawn commands, and
   measured profiling.
 - [ ] **11. Gear:** rarity, passives, tags, and conditional synergy effects.

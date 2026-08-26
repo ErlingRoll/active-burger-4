@@ -108,6 +108,7 @@ export function spawnBasicBoltIfReady(
     id: idAllocator.createEntityId(),
     ownerId: player.id,
     definitionId: definition.id,
+    skillId: BASIC_BOLT_SKILL_ID,
     x: player.x,
     y: player.y,
     velocityX: directionX * definition.speed,

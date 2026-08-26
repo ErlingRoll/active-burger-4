@@ -6,25 +6,35 @@ import {
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
-import type { SkillState, DamageEvent, GameState, SkillEffectState } from '../../state/GameState'
+import type {
+  SkillState,
+  DamageEvent,
+  GameState,
+  SkillEffectPoint,
+  SkillEffectState,
+} from '../../state/GameState'
 
 function addEffect(
   state: GameState,
   allocator: EntityIdAllocator,
   skillId: string,
-  x: number,
-  y: number,
+  points: readonly SkillEffectPoint[],
   radius: number,
   lifetime: number,
 ): void {
+  const origin = points[0]
+  if (!origin) {
+    return
+  }
   const effect: SkillEffectState = {
     id: allocator.createEntityId(),
     skillId,
-    x,
-    y,
+    x: origin.x,
+    y: origin.y,
     radius,
     remainingLifetime: lifetime,
     lifetime,
+    points: points.map((point) => ({ x: point.x, y: point.y })),
   }
   state.effects.push(effect)
 }
@@ -87,8 +97,7 @@ function collectWhirlwindDamage(
       state,
       allocator,
       skill.skillId,
-      state.player.x,
-      state.player.y,
+      [{ x: state.player.x, y: state.player.y }],
       radius,
       definition.effectLifetime,
     )
@@ -111,6 +120,7 @@ function collectChainLightningDamage(
   const visited = new Set<number>()
   let originX = state.player.x
   let originY = state.player.y
+  const path: SkillEffectPoint[] = [{ x: originX, y: originY }]
 
   for (let jump = 0; jump < maxTargets; jump += 1) {
     let target = undefined
@@ -149,20 +159,20 @@ function collectChainLightningDamage(
       amount: damage,
       damageType: 'lightning',
     })
-    addEffect(
-      state,
-      allocator,
-      skill.skillId,
-      target.x,
-      target.y,
-      16,
-      definition.effectLifetime,
-    )
+    path.push({ x: target.x, y: target.y })
     originX = target.x
     originY = target.y
   }
 
   if (events.length > 0) {
+    addEffect(
+      state,
+      allocator,
+      skill.skillId,
+      path,
+      16,
+      definition.effectLifetime,
+    )
     skill.cooldownRemaining = definition.cooldown
   }
   return events

@@ -24,6 +24,7 @@ describe('skill system', () => {
     const events = collectSkillDamage(game.state, allocator)
     expect(events.map((event) => event.targetId)).toEqual([firstId, secondId])
     expect(events.every((event) => event.amount === 8)).toBe(true)
+    expect(game.state.effects[0]?.points).toEqual([{ x: 0, y: 0 }])
     expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(2.5)
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
 
@@ -51,6 +52,12 @@ describe('skill system', () => {
     ])
     expect(new Set(events.map((event) => event.targetId)).size).toBe(3)
     expect(events.every((event) => event.targetId !== outOfRangeId)).toBe(true)
+    expect(game.state.effects[0]?.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 200, y: 0 },
+      { x: 220, y: 0 },
+    ])
     expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(3.5)
 
     expect(collectSkillDamage(game.state, allocator)).toEqual([])

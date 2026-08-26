@@ -159,6 +159,7 @@ interface GameplayHudProps {
 function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
+  const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
 
   return (
     <section className="gameplay-hud" aria-labelledby="run-status-title">
@@ -193,6 +194,71 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <dd>{snapshot.killCount}</dd>
         </div>
       </dl>
+      <section className="skill-hud" aria-labelledby="acquired-skills-title">
+        <h3 id="acquired-skills-title" className="visually-hidden">
+          Acquired skills
+        </h3>
+        <ul className="skill-list">
+          {snapshot.skills.map((skill) => {
+            const tooltipId = `skill-tooltip-${skill.skillId}`
+            const isActive = activeSkillId === skill.skillId
+            return (
+              <li className="skill-entry" key={skill.skillId}>
+                <button
+                  className="skill-card"
+                  type="button"
+                  aria-label={`${skill.name}, level ${skill.level}`}
+                  aria-describedby={isActive ? tooltipId : undefined}
+                  onFocus={() => setActiveSkillId(skill.skillId)}
+                  onBlur={() => setActiveSkillId(null)}
+                  onMouseEnter={() => setActiveSkillId(skill.skillId)}
+                  onMouseLeave={() => setActiveSkillId(null)}
+                >
+                  <span className="skill-icon" aria-hidden="true">
+                    {skill.icon}
+                  </span>
+                  <span className="skill-card-name">{skill.name}</span>
+                  <span className="skill-card-level">Lv. {skill.level}</span>
+                </button>
+                {isActive ? (
+                  <div
+                    className="skill-tooltip"
+                    id={tooltipId}
+                    role="tooltip"
+                  >
+                    <strong>{skill.name}</strong>
+                    <p>{skill.description}</p>
+                    <p className="skill-dps">
+                      <span>Estimated SINGLE-TARGET sustained DPS</span>
+                      <b>
+                        {skill.estimatedSingleTargetDps === null
+                          ? 'N/A'
+                          : skill.estimatedSingleTargetDps.toFixed(1)}
+                      </b>
+                    </p>
+                    <p className="skill-assumption">{skill.dpsAssumption}</p>
+                    <p className="skill-upgrade-heading">
+                      Relevant upgrades
+                    </p>
+                    <ul className="skill-upgrade-list">
+                      {skill.upgrades.map((upgrade) => (
+                        <li key={upgrade.upgradeId}>
+                          <span>
+                            {upgrade.name} ({upgrade.valueLabel})
+                          </span>
+                          <span className={`upgrade-status ${upgrade.status}`}>
+                            {upgrade.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
     </section>
   )
 }

@@ -5,6 +5,12 @@ import {
   getEnemyDefinition,
   type EnemyRenderDefinition,
 } from '../content/enemies/Enemies'
+import {
+  BASIC_BOLT_SKILL_ID,
+  getSkillDefinition,
+  isSkillId,
+} from '../content/skills/Skills'
+import type { SkillEffectState, ProjectileState } from '../game/state/GameState'
 
 export class PixiGame {
   private readonly game: Game
@@ -143,13 +149,32 @@ export class PixiGame {
     return view
   }
 
-  private createProjectilePlaceholder(projectile: {
-    radius: number
-  }): Graphics {
-    return new Graphics()
-      .circle(0, 0, projectile.radius)
-      .fill('#fbbf24')
-      .stroke({ color: '#fef3c7', width: 1 })
+  private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
+    const skillId =
+      projectile.skillId && isSkillId(projectile.skillId)
+        ? projectile.skillId
+        : BASIC_BOLT_SKILL_ID
+    const visual = getSkillDefinition(skillId).visual
+    const trailLength = visual.trailLength ?? projectile.radius * 3
+    const trailWidth = visual.trailWidth ?? projectile.radius
+    const view = new Graphics()
+      .moveTo(-trailLength, 0)
+      .lineTo(0, 0)
+      .stroke({ color: visual.secondaryColor, width: trailWidth, alpha: 0.8 })
+      .circle(0, 0, projectile.radius * 1.8)
+      .fill(visual.primaryColor)
+      .stroke({ color: visual.outlineColor, width: 2 })
+      .poly([
+        projectile.radius * 2.4,
+        0,
+        projectile.radius * 0.4,
+        -projectile.radius,
+        projectile.radius * 0.4,
+        projectile.radius,
+      ])
+      .fill(visual.secondaryColor)
+      .stroke({ color: visual.outlineColor, width: 1 })
+    return view
   }
 
   private createPickupPlaceholder(pickup: {
@@ -161,12 +186,51 @@ export class PixiGame {
       .stroke({ color: '#bbf7d0', width: 2 })
   }
 
-  private createEffectPlaceholder(effect: {
-    radius: number
-  }): Graphics {
-    return new Graphics()
-      .circle(0, 0, effect.radius)
-      .stroke({ color: '#a78bfa', width: 3, alpha: 0.75 })
+  private createEffectPlaceholder(effect: SkillEffectState): Graphics {
+    const skillId = isSkillId(effect.skillId)
+      ? effect.skillId
+      : BASIC_BOLT_SKILL_ID
+    const visual = getSkillDefinition(skillId).visual
+    const view = new Graphics()
+
+    if (visual.kind === 'area') {
+      view
+        .circle(0, 0, effect.radius)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 4 })
+        .circle(0, 0, effect.radius * 0.72)
+        .stroke({ color: visual.secondaryColor, width: 3 })
+    } else if (visual.kind === 'chain') {
+      const points = effect.points.length > 0
+        ? effect.points
+        : [{ x: effect.x, y: effect.y }]
+      const origin = points[0]
+      if (origin) {
+        view.moveTo(origin.x - effect.x, origin.y - effect.y)
+        for (const point of points.slice(1)) {
+          view.lineTo(point.x - effect.x, point.y - effect.y)
+        }
+        view.stroke({ color: visual.secondaryColor, width: 8, alpha: 0.35 })
+        view.moveTo(origin.x - effect.x, origin.y - effect.y)
+        for (const point of points.slice(1)) {
+          view.lineTo(point.x - effect.x, point.y - effect.y)
+        }
+        view.stroke({ color: visual.primaryColor, width: 3 })
+        for (const point of points) {
+          view
+            .circle(point.x - effect.x, point.y - effect.y, visual.nodeRadius ?? 10)
+            .fill(visual.primaryColor)
+            .stroke({ color: visual.outlineColor, width: 2 })
+        }
+      }
+    } else {
+      view
+        .circle(0, 0, effect.radius * 0.6)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 2 })
+    }
+
+    return view
   }
 
   private readonly update = (ticker: Ticker): void => {
@@ -215,6 +279,7 @@ export class PixiGame {
       }
 
       view.position.set(projectile.x, projectile.y)
+      view.rotation = Math.atan2(projectile.velocityY, projectile.velocityX)
     }
 
     for (const [projectileId, view] of this.projectileViews) {
