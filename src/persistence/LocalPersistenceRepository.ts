@@ -21,6 +21,7 @@ export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
   selectedDungeonLengthContractId?: string
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
+  selectedPlaystyleId?: SettingsDto['selectedPlaystyleId']
 }
 
 export interface PersistenceRepository {

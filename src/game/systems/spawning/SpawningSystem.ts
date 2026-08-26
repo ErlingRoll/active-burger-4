@@ -8,7 +8,6 @@ import {
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
-import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
   getBossDefinition,
@@ -20,6 +19,11 @@ import {
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
 import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
+import {
+  DEFAULT_PLAYSTYLE_ID,
+  getPlaystyleDefinition,
+  type PlaystyleId,
+} from '../../../content/playstyles/Playstyles'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -43,13 +47,16 @@ export interface WorldPosition {
 export function createInitialPlayerState(
   id: EntityId,
   effects?: Pick<WorldModifierEffects, 'playerStatMultipliers'>,
+  playstyleId: PlaystyleId = DEFAULT_PLAYSTYLE_ID,
 ): PlayerState {
+  const playstyle = getPlaystyleDefinition(playstyleId)
   const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
-  const maxHp = 100 * (playerStatMultipliers.maxHp ?? 1)
-  const movementSpeed = 100 * (playerStatMultipliers.movementSpeed ?? 1)
-  const attackDamage = 10 * (playerStatMultipliers.attackDamage ?? 1)
+  const maxHp = playstyle.baseStats.maxHp * (playerStatMultipliers.maxHp ?? 1)
+  const movementSpeed = playstyle.baseStats.movementSpeed * (playerStatMultipliers.movementSpeed ?? 1)
+  const attackDamage = playstyle.baseStats.attackDamage * (playerStatMultipliers.attackDamage ?? 1)
   return {
     id,
+    playstyleId,
     x: 0,
     y: 0,
     radius: 16,
@@ -59,15 +66,15 @@ export function createInitialPlayerState(
     xp: 0,
     movementSpeed,
     attackDamage,
-    attackSpeed: 1,
-    attackRange: 50,
+    attackSpeed: playstyle.baseStats.attackSpeed,
+    attackRange: playstyle.baseStats.attackRange,
     attackCooldownRemaining: 0,
     baseStats: {
       maxHp,
       movementSpeed,
       attackDamage,
-      attackSpeed: 1,
-      attackRange: 50,
+      attackSpeed: playstyle.baseStats.attackSpeed,
+      attackRange: playstyle.baseStats.attackRange,
     },
     statModifiers: [],
     equipment: {},
@@ -82,13 +89,11 @@ export function createInitialPlayerState(
     behaviorController: {
       profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
     },
-    skills: [
-      {
-        skillId: BASIC_BOLT_SKILL_ID,
-        level: 1,
-        cooldownRemaining: 0,
-      },
-    ],
+    skills: playstyle.startingSkillIds.map((skillId) => ({
+      skillId,
+      level: 1,
+      cooldownRemaining: 0,
+    })),
   }
 }
 

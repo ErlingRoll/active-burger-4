@@ -79,6 +79,18 @@ test('selects and persists world modifiers before starting a deterministic run',
   )
 })
 
+test('selects and persists a character before starting a run', async ({ page }) => {
+  await page.goto('/')
+  await signIn(page)
+  const ranger = page.getByRole('button', { name: 'Ranger' })
+  await ranger.click()
+  await expect(ranger).toHaveAttribute('aria-pressed', 'true')
+  await page.reload()
+  await expect(ranger).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute('data-playstyle', 'ranger')
+})
+
 test('loads account progression outside the active run', async ({ page }) => {
   await page.goto('/')
   await signIn(page)

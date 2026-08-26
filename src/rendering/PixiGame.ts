@@ -25,6 +25,10 @@ import {
   getBossDefinition,
   getBossSkillDefinition,
 } from '../content/bosses/Bosses'
+import {
+  DEFAULT_PLAYSTYLE_ID,
+  getPlaystyleDefinition,
+} from '../content/playstyles/Playstyles'
 
 export class PixiGame {
   private static readonly MIN_CAMERA_SCALE = 1 / 3
@@ -159,10 +163,13 @@ export class PixiGame {
   }
 
   private createPlayerPlaceholder(): PlayerView {
+    const playstyle = getPlaystyleDefinition(
+      this.game.state.player.playstyleId ?? DEFAULT_PLAYSTYLE_ID,
+    )
     const body = new Graphics()
       .circle(0, 0, 24)
-      .fill('#3b82f6')
-      .stroke({ color: '#bfdbfe', width: 3 })
+      .fill(playstyle.visual.fillColor)
+      .stroke({ color: playstyle.visual.outlineColor, width: 3 })
     const hpBar = new Graphics()
     const root = new Container()
     root.addChild(body, hpBar)

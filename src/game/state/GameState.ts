@@ -16,6 +16,7 @@ import type {
 } from '../../content/bosses/Bosses'
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
+import type { PlaystyleId } from '../../content/playstyles/Playstyles'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -107,6 +108,7 @@ export interface RunConfig {
   unlockedDungeonLengthIds?: readonly string[]
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
+  playstyleId?: PlaystyleId
 }
 
 export interface RunState {
@@ -131,6 +133,7 @@ export interface RunState {
  */
 export interface PlayerState {
   id: EntityId
+  playstyleId?: PlaystyleId
 
   x: number
   y: number
@@ -284,6 +287,10 @@ export interface FloorTransitionState {
 
 export interface SummonState {
   id: EntityId
+  ownerId: EntityId
+  x: number
+  y: number
+  attackCooldownRemaining: number
 }
 
 export interface SkillEffectState {

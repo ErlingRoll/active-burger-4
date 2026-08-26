@@ -1,5 +1,6 @@
 import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
 import type { WorldModifierId } from '../content/modifiers/WorldModifiers'
+import type { PlaystyleId } from '../content/playstyles/Playstyles'
 
 export const PERSISTENCE_SCHEMA_VERSION = 1
 
@@ -13,6 +14,7 @@ export interface SettingsDto {
   selectedBehaviorProfileId: BehaviorProfileId
   selectedDungeonLengthContractId: DungeonLengthContractId
   selectedWorldModifierIds: WorldModifierId[]
+  selectedPlaystyleId: PlaystyleId
 }
 
 export interface BasicProfileDto {

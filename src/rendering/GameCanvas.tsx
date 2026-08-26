@@ -248,6 +248,7 @@ export function GameCanvas({
       className="game-canvas"
       data-game-phase={phase}
       data-world-modifiers={(runConfig?.worldModifierIds ?? []).join(',')}
+      data-playstyle={runConfig?.playstyleId ?? 'knight'}
     >
       <div
         ref={containerRef}

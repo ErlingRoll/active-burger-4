@@ -4,6 +4,10 @@ import {
 } from '../content/behaviors/BehaviorProfiles'
 import { normalizeWorldModifierIds } from '../content/modifiers/WorldModifiers'
 import {
+  DEFAULT_PLAYSTYLE_ID,
+  isPlaystyleId,
+} from '../content/playstyles/Playstyles'
+import {
   DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
   PERSISTENCE_SCHEMA_VERSION,
   type BasicProfileDto,
@@ -26,6 +30,7 @@ export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   selectedBehaviorProfileId: DEFAULT_BEHAVIOR_PROFILE_ID,
   selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
   selectedWorldModifierIds: [],
+  selectedPlaystyleId: DEFAULT_PLAYSTYLE_ID,
 })
 
 export const DEFAULT_BASIC_PROFILE: Readonly<BasicProfileDto> = Object.freeze({
@@ -115,6 +120,9 @@ export function migrateSettings(value: unknown): SettingsDto {
         ? candidate.selectedWorldModifierIds
         : [],
     ),
+    selectedPlaystyleId: isPlaystyleId(candidate.selectedPlaystyleId)
+      ? candidate.selectedPlaystyleId
+      : DEFAULT_PLAYSTYLE_ID,
   }
 }
 

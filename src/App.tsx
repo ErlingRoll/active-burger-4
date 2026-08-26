@@ -37,6 +37,10 @@ import {
   type WorldModifierId,
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
+import {
+  PLAYSTYLE_DEFINITIONS,
+  type PlaystyleId,
+} from './content/playstyles/Playstyles'
 import './App.css'
 
 type AppScreen = 'dashboard' | 'meta-progression' | 'gameplay' | 'results'
@@ -305,6 +309,7 @@ function App() {
     return {
       seed: 3,
       behaviorProfileId: settings.selectedBehaviorProfileId,
+      playstyleId: settings.selectedPlaystyleId,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
@@ -435,6 +440,15 @@ function App() {
       })
     },
     [persistSettings, profile],
+  )
+
+  const selectPlaystyle = useCallback(
+    (playstyleId: PlaystyleId): void => {
+      void persistSettings({ selectedPlaystyleId: playstyleId }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings],
   )
 
   const toggleWorldModifier = useCallback(
@@ -710,6 +724,7 @@ function App() {
             onStart={startRun}
             onSelectBehaviorProfile={selectBehaviorProfile}
             onSelectDungeonContract={selectDungeonContract}
+            onSelectPlaystyle={selectPlaystyle}
             onToggleWorldModifier={toggleWorldModifier}
             onOpenMetaProgression={openMetaProgression}
           />
@@ -800,6 +815,7 @@ interface DashboardProps {
   onStart: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
+  onSelectPlaystyle: (playstyleId: PlaystyleId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onOpenMetaProgression: () => void
 }
@@ -812,6 +828,7 @@ function Dashboard({
   onStart,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
+  onSelectPlaystyle,
   onToggleWorldModifier,
   onOpenMetaProgression,
 }: DashboardProps) {
@@ -857,6 +874,26 @@ function Dashboard({
                 <span>{profileDefinition.description}</span>
               </button>
             ))}
+          </div>
+        </fieldset>
+        <fieldset className="dashboard-choice-group">
+          <legend>Character</legend>
+          <div className="dashboard-choice-list">
+            {Object.values(PLAYSTYLE_DEFINITIONS).map((playstyle) => {
+              const selected = settings.selectedPlaystyleId === playstyle.id
+              return (
+                <button
+                  className={`dashboard-choice${selected ? ' selected' : ''}`}
+                  type="button"
+                  aria-pressed={selected}
+                  key={playstyle.id}
+                  onClick={() => onSelectPlaystyle(playstyle.id)}
+                >
+                  <strong>{playstyle.name}</strong>
+                  <span>{playstyle.description}</span>
+                </button>
+              )
+            })}
           </div>
         </fieldset>
         <fieldset className="dashboard-choice-group">

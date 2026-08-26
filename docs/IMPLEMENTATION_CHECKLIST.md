@@ -68,7 +68,7 @@ milestones in order unless an ADR documents an exception.
 - [x] **17. Meta Progression:** Essence wallet, dungeon-length unlocks, result
   queue sync, and idempotent submission.
 - [x] **18. World Modifiers:** selection, difficulty score, reward multiplier.
-- [ ] **19. Characters:** content-driven Knight, Ranger, Necromancer.
+- [x] **19. Characters:** content-driven Knight, Ranger, Necromancer.
 - [ ] **20. Polish:** art, VFX, audio, UX, accessibility, responsive layout.
 
 ## First Playable Gate
