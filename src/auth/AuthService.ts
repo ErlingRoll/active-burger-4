@@ -22,6 +22,7 @@ export interface SignInOptions {
 
 export interface AuthenticationService {
   getSession(): Promise<AuthAccount | null>
+  getClient(): SupabaseClient
   signInWithPassword(
     email: string,
     password: string,
@@ -121,6 +122,10 @@ export function createAuthenticationServiceFromClient(
   }
 
   return {
+    getClient(): SupabaseClient {
+      return activeClient
+    },
+
     async getSession(): Promise<AuthAccount | null> {
       const { data, error } = await activeClient.auth.getSession()
       if (error) {

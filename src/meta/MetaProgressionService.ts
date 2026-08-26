@@ -1,4 +1,5 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PendingCompletedRunResultDto } from '../persistence'
 
 export interface MetaWallet {
@@ -135,10 +136,13 @@ function toSnapshot(
 
 export function createMetaProgressionService(
   environment: AuthEnvironment,
+  resolveClient?: () => SupabaseClient | undefined,
 ): MetaProgressionService {
-  const client = getSupabaseClient(environment)
+  const defaultClient = getSupabaseClient(environment)
+  const getClient = (): SupabaseClient => resolveClient?.() ?? defaultClient
 
   const load = async (): Promise<MetaProgressionSnapshot> => {
+    const client = getClient()
     const [walletResponse, definitionsResponse, unlocksResponse] = await Promise.all([
       client.from('meta_wallets').select('essence_balance, essence_earned, essence_spent').maybeSingle(),
       client.from('meta_unlock_definitions').select(
@@ -162,6 +166,7 @@ export function createMetaProgressionService(
     load,
 
     async syncPendingResults(results): Promise<RunSyncResult> {
+      const client = getClient()
       let processedCount = 0
       for (const result of results) {
         const response = await client.rpc('submit_meta_run_result', {
@@ -184,6 +189,7 @@ export function createMetaProgressionService(
     },
 
     async purchaseUnlock(unlockId): Promise<MetaProgressionSnapshot> {
+      const client = getClient()
       const response = await client.rpc('purchase_meta_unlock', {
         p_unlock_id: unlockId,
       })

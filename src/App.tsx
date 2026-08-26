@@ -178,7 +178,7 @@ function App() {
         service: createMetaProgressionService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }),
+        }, () => authenticationService.service?.getClient()),
         configurationError: null,
       }
     } catch (error: unknown) {
@@ -187,7 +187,7 @@ function App() {
         configurationError: errorMessage(error),
       }
     }
-  }, [])
+  }, [authenticationService])
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
       authenticationService.service,

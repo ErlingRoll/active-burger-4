@@ -205,8 +205,12 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(
     page.getByRole('heading', { name: /ready for your next run/i }),
   ).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('1 run queued for local sync')
   await expect(page.locator('.game-canvas')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Open Meta Progression' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Essence and unlocks' }),
+  ).toBeVisible()
+  await expect(page.getByText('Pending results synced.')).toBeVisible()
 })
 
 test('keeps the arena running after endless combat begins', async ({ page }) => {
