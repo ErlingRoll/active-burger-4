@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { collectProjectileDamage } from './CombatSystem'
+import {
+  collectEnemyContactDamage,
+  collectProjectileDamage,
+} from './CombatSystem'
 import type {
   EnemyState,
   GameState,
@@ -84,5 +87,24 @@ describe('collectProjectileDamage', () => {
         amount: 5,
       }),
     ])
+  })
+
+  describe('collectEnemyContactDamage', () => {
+    it('applies deterministic rate-limited damage when an enemy reaches the player', () => {
+      const gameState = state([enemy(2, 34)])
+
+      expect(collectEnemyContactDamage(gameState, 1 / 60)).toEqual([
+        expect.objectContaining({
+          sourceId: 2,
+          targetId: 1,
+          amount: 5,
+        }),
+      ])
+      expect(collectEnemyContactDamage(gameState, 1 / 60)).toEqual([])
+
+      expect(collectEnemyContactDamage(gameState, 1)).toEqual([
+        expect.objectContaining({ amount: 5 }),
+      ])
+    })
   })
 })

@@ -162,6 +162,8 @@ export interface EnemyState {
   speed: number
 
   contactDamage: number
+  /** Seconds until this enemy can deal contact damage again. */
+  contactCooldownRemaining?: number
 
   xpReward: number
 

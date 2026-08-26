@@ -31,6 +31,8 @@ import {
 } from '../../../content/gear/GearDrops'
 import type { RandomSource } from '../../random/Random'
 
+const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
+
 export function updateEnemyChase(
   state: GameState,
   fixedStepSeconds: number,
@@ -38,6 +40,50 @@ export function updateEnemyChase(
   for (const enemy of state.enemies) {
     updateEnemyBehavior(state, enemy, fixedStepSeconds)
   }
+}
+
+/**
+ * Emits at most one contact hit per enemy each second. This keeps sustained
+ * melee pressure readable while preserving fixed-step deterministic damage.
+ */
+export function collectEnemyContactDamage(
+  state: GameState,
+  fixedStepSeconds: number,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const elapsed = Math.max(0, fixedStepSeconds)
+
+  for (const enemy of [...state.enemies].sort((left, right) => left.id - right.id)) {
+    if (enemy.hp <= 0) {
+      continue
+    }
+
+    const cooldown = Math.max(
+      0,
+      (enemy.contactCooldownRemaining ?? 0) - elapsed,
+    )
+    enemy.contactCooldownRemaining = cooldown
+    const contactDistance = state.player.radius + enemy.radius
+    const distanceSquared =
+      (enemy.x - state.player.x) ** 2 + (enemy.y - state.player.y) ** 2
+    if (
+      cooldown > 0 ||
+      distanceSquared > contactDistance * contactDistance ||
+      enemy.contactDamage <= 0
+    ) {
+      continue
+    }
+
+    events.push({
+      sourceId: enemy.id,
+      targetId: state.player.id,
+      amount: enemy.contactDamage,
+      damageType: 'physical',
+    })
+    enemy.contactCooldownRemaining = ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS
+  }
+
+  return events
 }
 
 export function updateAttackCooldown(

@@ -120,6 +120,19 @@ describe('data-driven player behavior intents', () => {
     expect(getPlayerBehaviorCandidates(state).at(-1)?.source).toBe('hold')
   })
 
+  it('kites a nearby Slime pack before it can sustain contact damage', () => {
+    const state = createState([
+      enemy(7, 'slime', 34),
+      enemy(2, 'slime', -34),
+      enemy(5, 'slime', 0, 34),
+    ])
+
+    expect(getPlayerBehaviorCandidates(state)[0]).toMatchObject({
+      source: 'kite',
+      targetId: 2,
+    })
+  })
+
   it('selects distinct profile intents from the same deterministic state', () => {
     const state = createState(
       [enemy(5, 'archer', 180)],

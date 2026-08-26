@@ -109,6 +109,7 @@ export function spawnEnemy(
     maxHp,
     speed: definition.speed * (modifier?.speedMultiplier ?? 1),
     contactDamage: definition.contactDamage,
+    contactCooldownRemaining: 0,
     xpReward,
     ...(modifier ? { eliteModifier: modifier.id } : {}),
     targetId: state.player.id,

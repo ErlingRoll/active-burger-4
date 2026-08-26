@@ -41,6 +41,7 @@ import { transitionRunPhase } from './engine/RunLifecycle'
 import { assertValidContent } from '../content/validation'
 import {
   applyDamageEvents,
+  collectEnemyContactDamage,
   collectProjectileDamage,
   removeDeadEntities,
   resolvePlayerTarget,
@@ -596,6 +597,7 @@ export class Game {
     spawnBasicBoltIfReady(this.gameState, this.idAllocator)
     updateProjectiles(this.gameState, FIXED_STEP_SECONDS)
     const damageEvents = [
+      ...collectEnemyContactDamage(this.gameState, FIXED_STEP_SECONDS),
       ...collectProjectileDamage(this.gameState, enemySpatialHash),
       ...collectSkillDamage(this.gameState, this.idAllocator),
       ...resolveBossTelegraphs(this.gameState),
