@@ -20,6 +20,7 @@ const PROFILE_ID = 'profile' as const
 export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
   selectedDungeonLengthContractId?: string
+  selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
 }
 
 export interface PersistenceRepository {

@@ -15,6 +15,7 @@ import type {
   BossSkillId,
 } from '../../content/bosses/Bosses'
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
+import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -104,6 +105,8 @@ export interface RunConfig {
   dungeonLengthContractId?: string
   /** Unlock IDs supplied by a future meta-progression layer. */
   unlockedDungeonLengthIds?: readonly string[]
+  /** Optional deterministic challenge modifiers selected before the run starts. */
+  worldModifierIds?: readonly WorldModifierId[]
 }
 
 export interface RunState {
@@ -118,6 +121,7 @@ export interface RunState {
   selectedUpgradeIds: UpgradeId[]
   /** Remains true after the first gear orb is generated, even after collection. */
   gearDropGenerated?: boolean
+  worldModifierIds?: readonly WorldModifierId[]
 }
 
 /**

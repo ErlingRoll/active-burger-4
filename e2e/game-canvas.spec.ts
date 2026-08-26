@@ -55,6 +55,30 @@ test('loads and persists dashboard settings while locking future contracts', asy
   )
 })
 
+test('selects and persists world modifiers before starting a deterministic run', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await signIn(page)
+
+  const swarming = page.getByRole('button', { name: /swarming.*\+2/i })
+  const eliteInvasion = page.getByRole('button', { name: /elite invasion.*\+5/i })
+  await swarming.click()
+  await eliteInvasion.click()
+  await expect(swarming).toHaveAttribute('aria-pressed', 'true')
+  await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('Difficulty 7 · Essence reward 1.38x')).toBeVisible()
+
+  await page.reload()
+  await expect(swarming).toHaveAttribute('aria-pressed', 'true')
+  await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-world-modifiers',
+    'elite-invasion,swarming',
+  )
+})
+
 test('loads account progression outside the active run', async ({ page }) => {
   await page.goto('/')
   await signIn(page)

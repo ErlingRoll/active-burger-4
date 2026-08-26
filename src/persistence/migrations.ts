@@ -2,6 +2,7 @@ import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   isBehaviorProfileId,
 } from '../content/behaviors/BehaviorProfiles'
+import { normalizeWorldModifierIds } from '../content/modifiers/WorldModifiers'
 import {
   DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
   PERSISTENCE_SCHEMA_VERSION,
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
   selectedBehaviorProfileId: DEFAULT_BEHAVIOR_PROFILE_ID,
   selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
+  selectedWorldModifierIds: [],
 })
 
 export const DEFAULT_BASIC_PROFILE: Readonly<BasicProfileDto> = Object.freeze({
@@ -69,6 +71,16 @@ function migratePayload(value: unknown): CompletedRunResultPayloadDto {
   if (candidate.outcome === 'victory') {
     next.outcome = 'victory'
   }
+  const worldModifierIds = normalizeWorldModifierIds(
+    Array.isArray(candidate.worldModifierIds) ? candidate.worldModifierIds : [],
+  )
+  if (worldModifierIds.length > 0) {
+    next.worldModifierIds = worldModifierIds
+    next.worldModifierRewardMultiplier = finiteNumber(
+      candidate.worldModifierRewardMultiplier,
+      1,
+    )
+  }
   return next
 }
 
@@ -98,6 +110,11 @@ export function migrateSettings(value: unknown): SettingsDto {
     schemaVersion: PERSISTENCE_SCHEMA_VERSION,
     selectedBehaviorProfileId,
     selectedDungeonLengthContractId,
+    selectedWorldModifierIds: normalizeWorldModifierIds(
+      Array.isArray(candidate.selectedWorldModifierIds)
+        ? candidate.selectedWorldModifierIds
+        : [],
+    ),
   }
 }
 

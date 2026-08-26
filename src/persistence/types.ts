@@ -1,4 +1,5 @@
 import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
+import type { WorldModifierId } from '../content/modifiers/WorldModifiers'
 
 export const PERSISTENCE_SCHEMA_VERSION = 1
 
@@ -11,6 +12,7 @@ export interface SettingsDto {
   schemaVersion: number
   selectedBehaviorProfileId: BehaviorProfileId
   selectedDungeonLengthContractId: DungeonLengthContractId
+  selectedWorldModifierIds: WorldModifierId[]
 }
 
 export interface BasicProfileDto {
@@ -32,6 +34,8 @@ export interface CompletedRunResultPayloadDto {
   level: number
   xp: number
   killCount: number
+  worldModifierIds?: WorldModifierId[]
+  worldModifierRewardMultiplier?: number
   outcome?: 'victory'
 }
 
@@ -52,4 +56,3 @@ export type PendingCompletedRunResultInput = Omit<
   PendingCompletedRunResultDto,
   'id' | 'schemaVersion'
 > & { id?: string }
-

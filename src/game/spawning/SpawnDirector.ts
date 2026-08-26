@@ -41,6 +41,8 @@ export function calculateThreatPerSecond(
 export class SpawnDirector {
   private readonly random: RandomSource
   private readonly balance: SpawnBalance
+  private readonly fastStartThreatMultiplier: number
+  private readonly fastStartDurationSeconds: number
   private threatBudget = 0
   private pendingEntry:
     | SpawnBalance['spawnEntries'][number]
@@ -49,9 +51,16 @@ export class SpawnDirector {
     SpawnBalance['spawnEntries'][number]
   >()
 
-  constructor(random: RandomSource, balance: SpawnBalance = SPAWN_BALANCE) {
+  constructor(
+    random: RandomSource,
+    balance: SpawnBalance = SPAWN_BALANCE,
+    fastStartThreatMultiplier = 1,
+    fastStartDurationSeconds = 0,
+  ) {
     this.random = random
     this.balance = balance
+    this.fastStartThreatMultiplier = fastStartThreatMultiplier
+    this.fastStartDurationSeconds = fastStartDurationSeconds
   }
 
   get maxActiveEnemies(): number {
@@ -71,8 +80,11 @@ export class SpawnDirector {
       return []
     }
     const delta = Math.max(0, deltaSeconds)
+    const fastStartActive = state.time < this.fastStartDurationSeconds
     this.threatBudget +=
-      calculateThreatPerSecond(state.time, this.balance) * delta
+      calculateThreatPerSecond(state.time, this.balance) *
+      (fastStartActive ? this.fastStartThreatMultiplier : 1) *
+      delta
 
     const requests: SpawnRequest[] = []
     let activeEnemyCount = 0

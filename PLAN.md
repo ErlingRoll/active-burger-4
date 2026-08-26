@@ -4414,15 +4414,11 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–17 and the deterministic Player Behavior Controller are complete. The
-next planned feature is **Milestone 18 — World Modifiers**:
+Milestones 0–18 and the deterministic Player Behavior Controller are complete. World
+Modifiers are selected before a run, persisted locally, passed as plain deterministic
+run configuration, and rewarded through idempotent hosted result submission without
+network activity during gameplay.
 
-```text
-modifier selection
-difficulty score
-reward multiplier
-```
-
-The completed progression layer owns Essence, unlock definitions, idempotent
-queued-result submission, and local dashboard unlock mirroring. World modifiers must
-remain pre-run configuration and preserve the no-network active-simulation boundary.
+The next planned feature is **Milestone 19 — Multiple Characters**. Add Knight,
+Ranger, and Necromancer playstyles as content-driven configurations that reuse the
+same deterministic simulation systems.

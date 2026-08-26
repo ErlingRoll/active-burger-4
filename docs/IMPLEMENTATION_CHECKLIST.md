@@ -67,7 +67,7 @@ milestones in order unless an ADR documents an exception.
   RLS-protected profiles, and no simulation calls.
 - [x] **17. Meta Progression:** Essence wallet, dungeon-length unlocks, result
   queue sync, and idempotent submission.
-- [ ] **18. World Modifiers:** selection, difficulty score, reward multiplier.
+- [x] **18. World Modifiers:** selection, difficulty score, reward multiplier.
 - [ ] **19. Characters:** content-driven Knight, Ranger, Necromancer.
 - [ ] **20. Polish:** art, VFX, audio, UX, accessibility, responsive layout.
 

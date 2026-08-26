@@ -27,6 +27,8 @@ import type {
   TelegraphState,
 } from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
+import { resolveWorldModifierEffects } from '../../content/modifiers/WorldModifiers'
+import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
 import {
   getBossDefinition,
   type BossDefinitionId,
@@ -67,6 +69,8 @@ export interface RunHudSnapshot {
   readonly xpProgress: number
   readonly elapsedTime: number
   readonly killCount: number
+  readonly worldModifierIds?: readonly string[]
+  readonly worldModifierRewardMultiplier?: number
   readonly floor: number
   readonly floorProgress: number
   readonly floorDurationSeconds: number
@@ -537,6 +541,15 @@ export function createUiSnapshot(
     xpProgress,
     elapsedTime: state.time,
     killCount: state.run.killCount,
+    ...(state.run.worldModifierIds?.length
+      ? {
+          worldModifierIds: state.run.worldModifierIds,
+          worldModifierRewardMultiplier: resolveWorldModifierEffects(
+            state.run.worldModifierIds,
+            SPAWN_BALANCE,
+          ).essenceRewardMultiplier,
+        }
+      : {}),
     floor,
     floorProgress,
     floorDurationSeconds: dungeon.floorDurationSeconds,

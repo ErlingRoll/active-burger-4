@@ -19,6 +19,7 @@ import {
   getDungeonFloor,
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
+import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -39,25 +40,32 @@ export interface WorldPosition {
   y: number
 }
 
-export function createInitialPlayerState(id: EntityId): PlayerState {
+export function createInitialPlayerState(
+  id: EntityId,
+  effects?: Pick<WorldModifierEffects, 'playerStatMultipliers'>,
+): PlayerState {
+  const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
+  const maxHp = 100 * (playerStatMultipliers.maxHp ?? 1)
+  const movementSpeed = 100 * (playerStatMultipliers.movementSpeed ?? 1)
+  const attackDamage = 10 * (playerStatMultipliers.attackDamage ?? 1)
   return {
     id,
     x: 0,
     y: 0,
     radius: 16,
-    hp: 100,
-    maxHp: 100,
+    hp: maxHp,
+    maxHp,
     level: 1,
     xp: 0,
-    movementSpeed: 100,
-    attackDamage: 10,
+    movementSpeed,
+    attackDamage,
     attackSpeed: 1,
     attackRange: 50,
     attackCooldownRemaining: 0,
     baseStats: {
-      maxHp: 100,
-      movementSpeed: 100,
-      attackDamage: 10,
+      maxHp,
+      movementSpeed,
+      attackDamage,
       attackSpeed: 1,
       attackRange: 50,
     },
@@ -91,6 +99,12 @@ export function spawnEnemy(
   position: WorldPosition,
   xpRewardOverride?: number,
   eliteModifier?: EliteModifierId,
+  effects?: Pick<
+    WorldModifierEffects,
+    | 'ordinaryEnemyMaxHpMultiplier'
+    | 'ordinaryEnemyContactDamageMultiplier'
+    | 'ordinaryEnemySpeedMultiplier'
+  >,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
   const modifier = eliteModifier
@@ -111,7 +125,9 @@ export function spawnEnemy(
     floor,
     dungeon,
   )
-  const maxHp = scaledStats.maxHp * (modifier?.maxHpMultiplier ?? 1)
+  const maxHp = scaledStats.maxHp *
+    (modifier?.maxHpMultiplier ?? 1) *
+    (effects?.ordinaryEnemyMaxHpMultiplier ?? 1)
   const enemy: EnemyState = {
     id: idAllocator.createEntityId(),
     definitionId: definition.id,
@@ -120,8 +136,11 @@ export function spawnEnemy(
     radius: definition.radius * (modifier?.radiusMultiplier ?? 1),
     hp: maxHp,
     maxHp,
-    speed: definition.speed * (modifier?.speedMultiplier ?? 1),
-    contactDamage: scaledStats.contactDamage,
+    speed: definition.speed *
+      (modifier?.speedMultiplier ?? 1) *
+      (effects?.ordinaryEnemySpeedMultiplier ?? 1),
+    contactDamage: scaledStats.contactDamage *
+      (effects?.ordinaryEnemyContactDamageMultiplier ?? 1),
     contactCooldownRemaining: 0,
     xpReward,
     ...(modifier ? { eliteModifier: modifier.id } : {}),
@@ -222,6 +241,12 @@ export function updateEnemySpawns(
   spawnDirector: SpawnDirector,
   idAllocator: EntityIdAllocator,
   fixedStepSeconds: number,
+  effects?: Pick<
+    WorldModifierEffects,
+    | 'ordinaryEnemyMaxHpMultiplier'
+    | 'ordinaryEnemyContactDamageMultiplier'
+    | 'ordinaryEnemySpeedMultiplier'
+  >,
 ): void {
   if (
     state.encounter?.normalSpawnsSuspended ||
@@ -239,6 +264,7 @@ export function updateEnemySpawns(
       request,
       undefined,
       request.eliteModifier,
+      effects,
     )
   }
 }

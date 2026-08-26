@@ -12,6 +12,9 @@ import type {
   RunConfig,
 } from './state/GameState'
 import { SpawnDirector } from './spawning/SpawnDirector'
+import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
+import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
+import type { WorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   generateUpgradeChoices,
   UPGRADE_CHOICES_PER_LEVEL,
@@ -204,6 +207,7 @@ export class Game {
   private readonly gearRandom: RandomSource
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
+  private readonly worldModifierEffects: WorldModifierEffects
   readonly dungeon: DungeonDefinition
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
@@ -217,7 +221,16 @@ export class Game {
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
     this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
-    this.spawnDirector = new SpawnDirector(this.random)
+    this.worldModifierEffects = resolveWorldModifierEffects(
+      config.worldModifierIds,
+      SPAWN_BALANCE,
+    )
+    this.spawnDirector = new SpawnDirector(
+      this.random,
+      this.worldModifierEffects.spawnBalance,
+      this.worldModifierEffects.fastStartThreatMultiplier,
+      this.worldModifierEffects.fastStartDurationSeconds,
+    )
     const dungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
     const dungeonLengthSeconds = resolveDungeonLengthSeconds(
       dungeon,
@@ -248,8 +261,14 @@ export class Game {
         killCount: 0,
         selectedUpgradeIds: [],
         gearDropGenerated: false,
+        ...(this.worldModifierEffects.ids.length > 0
+          ? { worldModifierIds: this.worldModifierEffects.ids }
+          : {}),
       },
-      player: createInitialPlayerState(this.idAllocator.createEntityId()),
+      player: createInitialPlayerState(
+        this.idAllocator.createEntityId(),
+        this.worldModifierEffects,
+      ),
       enemies: [],
       bosses: [],
       encounter: {
@@ -561,6 +580,7 @@ export class Game {
       position,
       xpRewardOverride,
       eliteModifier,
+      this.worldModifierEffects,
     )
   }
 
@@ -671,6 +691,7 @@ export class Game {
       this.spawnDirector,
       this.idAllocator,
       FIXED_STEP_SECONDS,
+      this.worldModifierEffects,
     )
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)

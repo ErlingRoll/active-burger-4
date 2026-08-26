@@ -29,6 +29,14 @@ import {
 } from './meta'
 import { MetaProgressionScreen } from './meta/MetaProgressionScreen'
 import { GameCanvas } from './rendering/GameCanvas'
+import {
+  getWorldModifierDefinitions,
+  normalizeWorldModifierIds,
+  resolveWorldModifierEffects,
+  WORLD_MODIFIER_DEFINITIONS,
+  type WorldModifierId,
+} from './content/modifiers/WorldModifiers'
+import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import './App.css'
 
 type AppScreen = 'dashboard' | 'meta-progression' | 'gameplay' | 'results'
@@ -297,6 +305,7 @@ function App() {
     return {
       seed: 3,
       behaviorProfileId: settings.selectedBehaviorProfileId,
+      worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
         : {
@@ -426,6 +435,25 @@ function App() {
       })
     },
     [persistSettings, profile],
+  )
+
+  const toggleWorldModifier = useCallback(
+    (modifierId: WorldModifierId): void => {
+      if (!settings) {
+        return
+      }
+      const selected = settings.selectedWorldModifierIds.includes(modifierId)
+      void persistSettings({
+        selectedWorldModifierIds: normalizeWorldModifierIds(
+          selected
+            ? settings.selectedWorldModifierIds.filter((id) => id !== modifierId)
+            : [...settings.selectedWorldModifierIds, modifierId],
+        ),
+      }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings, settings],
   )
 
   const startRun = useCallback((): void => {
@@ -682,6 +710,7 @@ function App() {
             onStart={startRun}
             onSelectBehaviorProfile={selectBehaviorProfile}
             onSelectDungeonContract={selectDungeonContract}
+            onToggleWorldModifier={toggleWorldModifier}
             onOpenMetaProgression={openMetaProgression}
           />
         ) : (
@@ -771,6 +800,7 @@ interface DashboardProps {
   onStart: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
+  onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onOpenMetaProgression: () => void
 }
 
@@ -782,8 +812,13 @@ function Dashboard({
   onStart,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
+  onToggleWorldModifier,
   onOpenMetaProgression,
 }: DashboardProps) {
+  const worldModifierEffects = resolveWorldModifierEffects(
+    settings.selectedWorldModifierIds,
+    SPAWN_BALANCE,
+  )
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
       <div className="dashboard-panel">
@@ -822,6 +857,32 @@ function Dashboard({
                 <span>{profileDefinition.description}</span>
               </button>
             ))}
+          </div>
+        </fieldset>
+        <fieldset className="dashboard-choice-group">
+          <legend>World modifiers</legend>
+          <p className="world-modifier-summary">
+            Difficulty {worldModifierEffects.difficulty} · Essence reward{' '}
+            {worldModifierEffects.essenceRewardMultiplier.toFixed(2)}x
+          </p>
+          <div className="dashboard-choice-list">
+            {getWorldModifierDefinitions(
+              normalizeWorldModifierIds(Object.keys(WORLD_MODIFIER_DEFINITIONS)),
+            ).map((modifier) => {
+              const selected = settings.selectedWorldModifierIds.includes(modifier.id)
+              return (
+                <button
+                  className={`dashboard-choice${selected ? ' selected' : ''}`}
+                  type="button"
+                  aria-pressed={selected}
+                  key={modifier.id}
+                  onClick={() => onToggleWorldModifier(modifier.id)}
+                >
+                  <strong>{modifier.name} · +{modifier.difficulty}</strong>
+                  <span>{modifier.description} Reward {modifier.essenceRewardMultiplier.toFixed(2)}x</span>
+                </button>
+              )
+            })}
           </div>
         </fieldset>
         <fieldset className="dashboard-choice-group">
