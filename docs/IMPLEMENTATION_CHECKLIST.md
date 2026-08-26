@@ -34,7 +34,7 @@ milestones in order unless an ADR documents an exception.
   structure, environment template, CI, README, ADRs, and baseline validation.
 - [x] **1. Pixi Prototype:** canvas, Pixi application, world/camera, visible
   player placeholder.
-- [ ] **2. Simulation Loop:** headless `Game`/`GameState`, fixed timestep,
+- [x] **2. Simulation Loop:** headless `Game`/`GameState`, fixed timestep,
   clock, pause/resume, seeded RNG, and deterministic tests.
 - [ ] **3. First Enemy:** Slime state/content, spawn, chase behavior, renderer.
 - [ ] **4. Automatic Combat:** targeting, cooldowns, projectiles, collision,
