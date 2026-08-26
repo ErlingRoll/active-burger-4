@@ -133,6 +133,16 @@ describe('data-driven player behavior intents', () => {
     })
   })
 
+  it('does not kite a lone damaged Slime', () => {
+    const state = createState([enemy(4, 'slime', 36)])
+    state.enemies[0].hp = 10
+    state.enemies[0].maxHp = 20
+
+    const candidates = getPlayerBehaviorCandidates(state)
+    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).not.toBe('kite')
+  })
+
   it('selects distinct profile intents from the same deterministic state', () => {
     const state = createState(
       [enemy(5, 'archer', 180)],

@@ -30,13 +30,6 @@ interface GameCanvasProps {
 
 const UI_UPDATE_INTERVAL_MS = 100
 
-function formatElapsedTime(seconds: number): string {
-  const totalSeconds = Math.max(0, Math.floor(seconds))
-  const minutes = Math.floor(totalSeconds / 60)
-  const remainder = totalSeconds % 60
-  return `${minutes}:${remainder.toString().padStart(2, '0')}`
-}
-
 const HUD_STAT_LABELS = {
   maxHp: 'Max HP',
   movementSpeed: 'Movement speed',
@@ -333,14 +326,6 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
             <span>{snapshot.xp} / {snapshot.xpRequired}</span>
           </dd>
         </div>
-        <div className="hud-stat">
-          <dt>Time</dt>
-          <dd>{formatElapsedTime(snapshot.elapsedTime)}</dd>
-        </div>
-        <div className="hud-stat">
-          <dt>Kills</dt>
-          <dd>{snapshot.killCount}</dd>
-        </div>
         <div className="hud-stat hud-dodge">
           <dt>Dodge Lv. {snapshot.dodge.level}</dt>
           <dd>
@@ -371,38 +356,6 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
           <span>
             {Math.floor(snapshot.elapsedTime % snapshot.floorDurationSeconds)}s /{' '}
             {snapshot.floorDurationSeconds}s
-          </span>
-        </div>
-        <div className="timeline-hud">
-          <span className="projection-label">Encounter timeline</span>
-          {snapshot.timeline.length > 0 ? (
-            <ol>
-              {snapshot.timeline.map((event) => (
-                <li className={`timeline-${event.status}`} key={event.id}>
-                  <span aria-hidden="true">
-                    {event.status === 'completed'
-                      ? '✓'
-                      : event.status === 'active'
-                        ? '●'
-                        : '○'}
-                  </span>
-                  <span>
-                    Floor {event.floorNumber}: {event.name}
-                    {event.isFinal ? ' · Final' : ''}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <span>No encounters scheduled</span>
-          )}
-        </div>
-        <div className="pickup-hud" aria-label="Pickup status">
-          <span className="projection-label">Pickups</span>
-          <strong>{snapshot.pickups.length}</strong>
-          <span>
-            {snapshot.pickups.filter((pickup) => pickup.kind === 'xp').length} XP ·{' '}
-            {snapshot.pickups.filter((pickup) => pickup.kind === 'gear').length} gear
           </span>
         </div>
         {snapshot.pendingChoiceCount > 0 ? (

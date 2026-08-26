@@ -368,7 +368,7 @@ function App() {
   if (persistence.loadState === 'loading') {
     return (
       <main className="app-shell">
-        <AppHeader />
+        <AppHeader authentication={authentication} onSignOut={signOut} />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
             <p className="screen-kicker">Local persistence</p>
@@ -383,7 +383,7 @@ function App() {
   if (persistence.loadState === 'error' || !settings || !profile || !runConfig) {
     return (
       <main className="app-shell">
-        <AppHeader />
+        <AppHeader authentication={authentication} onSignOut={signOut} />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
             <p className="screen-kicker">Local persistence error</p>
@@ -411,7 +411,7 @@ function App() {
 
   return (
     <main className="app-shell">
-      <AppHeader />
+      <AppHeader authentication={authentication} onSignOut={signOut} />
       {screen === 'dashboard' ? (
         authentication.account ? (
           <Dashboard
@@ -419,9 +419,7 @@ function App() {
             profile={profile}
             pendingCount={persistence.pendingCount}
             writeError={writeError}
-            authentication={authentication}
             onStart={startRun}
-            onSignOut={signOut}
             onSelectBehaviorProfile={selectBehaviorProfile}
             onSelectDungeonContract={selectDungeonContract}
           />
@@ -453,11 +451,35 @@ function App() {
   )
 }
 
-function AppHeader() {
+interface AppHeaderProps {
+  authentication: AuthenticationState
+  onSignOut: () => Promise<boolean>
+}
+
+function AppHeader({
+  authentication,
+  onSignOut,
+}: AppHeaderProps) {
   return (
     <header className="app-header">
-      <p className="app-kicker">Active Burger 4</p>
-      <h1>Prototype Arena</h1>
+      <div>
+        <p className="app-kicker">Active Burger 4</p>
+        <h1>Prototype Arena</h1>
+      </div>
+      {authentication.account ? (
+        <div className="app-account">
+          <span className="app-account-label">Signed in</span>
+          <strong className="app-account-email">
+            {authentication.account.email ?? 'Email unavailable'}
+          </strong>
+          {authentication.error ? (
+            <span className="app-account-error">{authentication.error}</span>
+          ) : null}
+          <button className="app-sign-out" type="button" onClick={() => { void onSignOut() }}>
+            Sign out
+          </button>
+        </div>
+      ) : null}
     </header>
   )
 }
@@ -467,9 +489,7 @@ interface DashboardProps {
   profile: BasicProfileDto
   pendingCount: number
   writeError: string | null
-  authentication: AuthenticationState
   onStart: () => void
-  onSignOut: () => Promise<boolean>
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
 }
@@ -479,9 +499,7 @@ function Dashboard({
   profile,
   pendingCount,
   writeError,
-  authentication,
   onStart,
-  onSignOut,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
 }: DashboardProps) {
@@ -494,7 +512,6 @@ function Dashboard({
           Survive the arena while your hero automatically targets nearby
           enemies. Collect XP to level up and choose an upgrade between waves.
         </p>
-        <AccountSummary authentication={authentication} onSignOut={onSignOut} />
         {pendingCount > 0 ? (
           <p className="persistence-status" role="status">
             <strong>Pending local result</strong>
@@ -587,36 +604,6 @@ function AuthGateway({
           onSignOut={onSignOut}
         />
       </div>
-    </section>
-  )
-}
-
-function AccountSummary({
-  authentication,
-  onSignOut,
-}: {
-  authentication: AuthenticationState
-  onSignOut: () => Promise<boolean>
-}) {
-  return (
-    <section className="account-summary" aria-labelledby="account-summary-title">
-      <p className="screen-kicker">Account</p>
-      <h3 id="account-summary-title">Signed in</h3>
-      <p className="account-email">{authentication.account?.email ?? 'Email unavailable'}</p>
-      {authentication.error ? (
-        <p className="persistence-error" role="alert">
-          {authentication.error}
-        </p>
-      ) : null}
-      <button
-        className="secondary-action"
-        type="button"
-        onClick={() => {
-          void onSignOut()
-        }}
-      >
-        Sign out
-      </button>
     </section>
   )
 }

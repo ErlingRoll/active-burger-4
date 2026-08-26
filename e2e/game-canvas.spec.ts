@@ -15,8 +15,8 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Email').fill(testUserEmail)
   await page.getByLabel('Password').fill(testUserPassword)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
   await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
 }
 
 test('shows the sign-in gateway without mounting the arena', async ({ page }) => {
@@ -32,6 +32,9 @@ test('loads and persists dashboard settings while locking future contracts', asy
 }) => {
   await page.goto('/')
   await signIn(page)
+  await expect(
+    page.getByRole('region', { name: 'Ready for your next run?' }).getByText(testUserEmail, { exact: true }),
+  ).toHaveCount(0)
 
   const defaultContract = page.getByRole('button', { name: /10 minutes.*default/i })
   const fifteenMinuteContract = page.getByRole('button', { name: /15 minutes/i })
@@ -59,7 +62,6 @@ test('signs in and out with the configured Supabase test account', async ({ page
   await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Signed in' })).toBeVisible()
   await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
@@ -78,6 +80,11 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   ).toBeVisible()
   await expect(page.locator('.game-canvas canvas')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'Run status' })).toBeAttached()
+  await expect(page.locator('.hud-stats .hud-stat')).toHaveCount(4)
+  await expect(page.locator('.hud-stats .hud-stat').filter({ hasText: 'Time' })).toHaveCount(0)
+  await expect(page.locator('.hud-stats .hud-stat').filter({ hasText: 'Kills' })).toHaveCount(0)
+  await expect(page.getByText('Encounter timeline')).toHaveCount(0)
+  await expect(page.getByText('Pickups')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'End Run' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Development Menu' }).click()
@@ -132,8 +139,15 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
   const canvas = page.locator('.game-canvas canvas')
+  const behaviorHud = page.locator('.behavior-hud')
 
   await expect(canvas).toBeVisible()
+  const behaviorBox = await behaviorHud.boundingBox()
+  if (!behaviorBox) {
+    throw new Error('Expected behavior HUD to be visible')
+  }
+  expect(behaviorBox.x).toBeLessThan(120)
+  expect(behaviorBox.y).toBeGreaterThan(400)
   // The director's first budgeted spawn occurs after roughly one second.
   await page.waitForTimeout(1_200)
   await expect(canvas).toBeVisible()
