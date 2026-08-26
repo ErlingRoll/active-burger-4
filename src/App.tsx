@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RunResultSnapshot, RunConfig } from './game'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -23,7 +23,9 @@ import {
 } from './auth'
 import {
   createMetaProgressionService,
+  createPendingRunSyncCoordinator,
   getDungeonLengthContractId,
+  type PendingRunSyncCoordinator,
   type MetaProgressionService,
   type MetaProgressionSnapshot,
 } from './meta'
@@ -213,6 +215,77 @@ function App() {
   const [metaLoadAttempt, setMetaLoadAttempt] = useState(0)
   const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
+  const pendingResultsRef = useRef(persistence.pendingResults)
+  const syncRuntimeRef = useRef({
+    account: authentication.account,
+    screen,
+    service: metaProgressionService.service,
+  })
+  const [pendingRunSyncCoordinator] = useState<PendingRunSyncCoordinator>(
+    () => createPendingRunSyncCoordinator({
+      canSync: () => {
+        const { account, screen: currentScreen, service } = syncRuntimeRef.current
+        return account !== null && service !== null && currentScreen !== 'gameplay'
+      },
+      getPendingResults: () => pendingResultsRef.current,
+      syncPendingResults: (results) => {
+        const service = syncRuntimeRef.current.service
+        if (!service) {
+          throw new Error('Meta progression is unavailable.')
+        }
+        return service.syncPendingResults(results)
+      },
+      removePendingResult: (id) => repository.removePendingRunResult(id),
+      onSyncStart: () => {
+        setMetaProgression((current) => ({
+          ...current,
+          syncState: 'syncing',
+          syncError: null,
+        }))
+      },
+      onSyncSuccess: (results, syncResult) => {
+        const resultIds = new Set(results.map((result) => result.id))
+        const remainingResults = pendingResultsRef.current.filter(
+          (result) => !resultIds.has(result.id),
+        )
+        pendingResultsRef.current = remainingResults
+        setPersistence((current) => ({
+          ...current,
+          pendingResults: current.pendingResults.filter(
+            (result) => !resultIds.has(result.id),
+          ),
+        }))
+        setMetaProgression((current) => ({
+          ...current,
+          snapshot: syncResult.snapshot,
+          syncState: 'saved',
+          syncError: null,
+        }))
+      },
+      onNoPendingResults: () => {
+        setMetaProgression((current) => ({
+          ...current,
+          syncState: 'saved',
+          syncError: null,
+        }))
+      },
+      onSyncError: (error: unknown) => {
+        setMetaProgression((current) => ({
+          ...current,
+          syncState: 'error',
+          syncError: errorMessage(error),
+        }))
+      },
+    }),
+  )
+
+  useEffect(() => {
+    syncRuntimeRef.current = {
+      account: authentication.account,
+      screen,
+      service: metaProgressionService.service,
+    }
+  }, [authentication.account, metaProgressionService.service, screen])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -267,6 +340,7 @@ function App() {
               selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
             })
         if (!cancelled) {
+          pendingResultsRef.current = pendingResults
           setPersistence({
             loadState: 'ready',
             settings,
@@ -473,6 +547,7 @@ function App() {
   const startRun = useCallback((): void => {
     const nextRunId = globalThis.crypto?.randomUUID?.() ??
       `run-${Date.now()}-${runId + 1}`
+    syncRuntimeRef.current.screen = 'gameplay'
     setResult(null)
     setPendingResultState('idle')
     setWriteError(null)
@@ -483,6 +558,7 @@ function App() {
 
   const handleRunEnd = useCallback(
     (runResult: RunResultSnapshot): void => {
+      syncRuntimeRef.current.screen = 'results'
       setResult(runResult)
       setScreen('results')
       setPendingResultState('saving')
@@ -496,62 +572,41 @@ function App() {
           },
         })
         .then((queuedResult) => {
+          const nextPendingResults = [...pendingResultsRef.current, queuedResult]
+          pendingResultsRef.current = nextPendingResults
           setPersistence((current) => ({
             ...current,
-            pendingResults: [...current.pendingResults, queuedResult],
+            pendingResults: nextPendingResults,
           }))
           setPendingResultState('saved')
+          void pendingRunSyncCoordinator.request([queuedResult])
         })
         .catch((error: unknown) => {
           setPendingResultState('error')
           setWriteError(errorMessage(error))
         })
     },
-    [activeRunId, repository, runId],
+    [activeRunId, pendingRunSyncCoordinator, repository, runId],
   )
 
-  const syncPendingResults = useCallback(async (): Promise<void> => {
-    if (!metaProgressionService.service || !authentication.account || screen === 'gameplay') {
+  const syncPendingResults = useCallback(
+    (): Promise<void> => pendingRunSyncCoordinator.request(),
+    [pendingRunSyncCoordinator],
+  )
+
+  useEffect(() => {
+    if (persistence.loadState !== 'ready' || screen === 'gameplay') {
       return
     }
-    if (pendingResults.length === 0) {
-      setMetaProgression((current) => ({
-        ...current,
-        syncState: 'saved',
-        syncError: null,
-      }))
-      return
-    }
-    setMetaProgression((current) => ({
-      ...current,
-      syncState: 'syncing',
-      syncError: null,
-    }))
-    try {
-      const result = await metaProgressionService.service.syncPendingResults(pendingResults)
-      for (const pendingResult of pendingResults) {
-        await repository.removePendingRunResult(pendingResult.id)
-      }
-      setPersistence((current) => ({
-        ...current,
-        pendingResults: current.pendingResults.filter(
-          (pendingResult) => !pendingResults.some((result) => result.id === pendingResult.id),
-        ),
-      }))
-      setMetaProgression((current) => ({
-        ...current,
-        snapshot: result.snapshot,
-        syncState: 'saved',
-        syncError: null,
-      }))
-    } catch (error: unknown) {
-      setMetaProgression((current) => ({
-        ...current,
-        syncState: 'error',
-        syncError: errorMessage(error),
-      }))
-    }
-  }, [authentication.account, metaProgressionService.service, pendingResults, repository, screen])
+    void pendingRunSyncCoordinator.request()
+  }, [
+    authentication.account,
+    metaProgressionService.service,
+    pendingResults,
+    pendingRunSyncCoordinator,
+    persistence.loadState,
+    screen,
+  ])
 
   const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
     if (!metaProgressionService.service || !authentication.account) {
