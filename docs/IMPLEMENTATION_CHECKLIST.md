@@ -32,7 +32,7 @@ milestones in order unless an ADR documents an exception.
 
 - [x] **0. Repository Foundation:** scaffold, dependencies, scripts, project
   structure, environment template, CI, README, ADRs, and baseline validation.
-- [ ] **1. Pixi Prototype:** canvas, Pixi application, world/camera, visible
+- [x] **1. Pixi Prototype:** canvas, Pixi application, world/camera, visible
   player placeholder.
 - [ ] **2. Simulation Loop:** headless `Game`/`GameState`, fixed timestep,
   clock, pause/resume, seeded RNG, and deterministic tests.
