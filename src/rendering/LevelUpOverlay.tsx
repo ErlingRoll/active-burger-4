@@ -405,9 +405,11 @@ export function LevelUpOverlay({
   }, [flow, isGearFlow])
 
   return (
+    <>
+      <div className="level-up-overlay" aria-hidden="true" />
     <section
       ref={dialogRef}
-      className={`level-up-overlay ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
+      className={`level-up-dialog ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="choice-dialog-title"
@@ -459,5 +461,6 @@ export function LevelUpOverlay({
         </div>
       </div>
     </section>
+    </>
   )
 }

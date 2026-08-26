@@ -1204,11 +1204,18 @@
 .level-up-overlay {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 1;
+  background: rgb(2 6 23 / 75%);
+  pointer-events: none;
+}
+
+.level-up-dialog {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   display: grid;
   place-items: center;
   padding: 1.25rem;
-  background: rgb(2 6 23 / 75%);
   pointer-events: none;
 }
 
