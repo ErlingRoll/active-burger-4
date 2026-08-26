@@ -1,5 +1,9 @@
 import {
+  ARCHER_DEFINITION_ID,
+  BRUTE_DEFINITION_ID,
+  RUNNER_DEFINITION_ID,
   SLIME_DEFINITION_ID,
+  SPLITTER_DEFINITION_ID,
   type EnemyDefinitionId,
 } from '../enemies/Enemies'
 
@@ -7,6 +11,8 @@ export interface SpawnEntry {
   definitionId: EnemyDefinitionId
   threatCost: number
   weight: number
+  /** Optional time gate for introducing a composition entry. */
+  startTimeSeconds?: number
 }
 
 export interface SpawnBalance {
@@ -23,9 +29,8 @@ export interface SpawnBalance {
 }
 
 /**
- * The first endless-combat slice deliberately has one enemy entry. Keeping
- * the entry and all pacing/ring values here lets later content expand the
- * director without putting balance constants in the simulation engine.
+ * Composition is intentionally data-driven. Entries are introduced over time
+ * while the director keeps the same seeded selection and ring-placement order.
  */
 export const SPAWN_BALANCE = {
   baseThreatPerSecond: 1,
@@ -35,7 +40,30 @@ export const SPAWN_BALANCE = {
     {
       definitionId: SLIME_DEFINITION_ID,
       threatCost: 1,
+      weight: 8,
+    },
+    {
+      definitionId: RUNNER_DEFINITION_ID,
+      threatCost: 2,
+      weight: 3,
+    },
+    {
+      definitionId: ARCHER_DEFINITION_ID,
+      threatCost: 3,
+      weight: 2,
+      startTimeSeconds: 30,
+    },
+    {
+      definitionId: BRUTE_DEFINITION_ID,
+      threatCost: 4,
       weight: 1,
+      startTimeSeconds: 60,
+    },
+    {
+      definitionId: SPLITTER_DEFINITION_ID,
+      threatCost: 5,
+      weight: 1,
+      startTimeSeconds: 90,
     },
   ],
   // The inner radius is outside the close-combat area and the default browser

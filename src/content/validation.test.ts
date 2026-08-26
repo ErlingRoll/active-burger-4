@@ -151,4 +151,56 @@ describe('content validation', () => {
       ]),
     )
   })
+
+  it('validates enemy behavior, split, render, and spawn timing configuration', () => {
+    const splitter = CURRENT_CONTENT.enemies.find((enemy) => enemy.id === 'splitter')
+    if (!splitter || splitter.behavior.kind !== 'split') {
+      throw new Error('Expected splitter content')
+    }
+    const errors = validateContent(
+      catalogWith({
+        enemies: [
+          {
+            ...splitter,
+            behavior: {
+              kind: 'split',
+              split: {
+                ...splitter.behavior.split,
+                childDefinitionId: 'missing-child',
+                childCount: 0,
+                spreadRadius: -1,
+                childrenAwardXp: 'yes' as never,
+              },
+            },
+            render: {
+              ...splitter.render,
+              shape: 'unknown' as never,
+              scale: 0,
+            },
+          },
+        ],
+        spawnBalance: {
+          ...CURRENT_CONTENT.spawnBalance,
+          spawnEntries: [
+            {
+              ...CURRENT_CONTENT.spawnBalance.spawnEntries[0],
+              startTimeSeconds: -1,
+            },
+          ],
+        },
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'enemies[0].behavior.split.childDefinitionId must reference an enemy.',
+        'enemies[0].behavior.split.childCount must be integer-positive; received 0.',
+        'enemies[0].behavior.split.spreadRadius must be non-negative; received -1.',
+        'enemies[0].behavior.split.childrenAwardXp must be a boolean.',
+        'enemies[0].render.shape is not supported; received "unknown".',
+        'enemies[0].render.scale must be positive; received 0.',
+        'spawnBalance.spawnEntries[0].startTimeSeconds must be non-negative; received -1.',
+      ]),
+    )
+  })
 })

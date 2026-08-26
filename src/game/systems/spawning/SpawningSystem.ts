@@ -53,6 +53,7 @@ export function spawnEnemy(
   idAllocator: EntityIdAllocator,
   definitionId: EnemyDefinitionId,
   position: WorldPosition,
+  xpRewardOverride?: number,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
   const enemy: EnemyState = {
@@ -65,7 +66,7 @@ export function spawnEnemy(
     maxHp: definition.maxHp,
     speed: definition.speed,
     contactDamage: definition.contactDamage,
-    xpReward: definition.xpReward,
+    xpReward: xpRewardOverride ?? definition.xpReward,
     targetId: state.player.id,
   }
 

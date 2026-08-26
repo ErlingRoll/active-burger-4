@@ -244,12 +244,14 @@ export class Game {
   spawnEnemy(
     definitionId: EnemyDefinitionId,
     position: WorldPosition,
+    xpRewardOverride?: number,
   ): EntityId {
     return spawnEnemy(
       this.gameState,
       this.idAllocator,
       definitionId,
       position,
+      xpRewardOverride,
     )
   }
 
@@ -288,6 +290,8 @@ export class Game {
     applyDamageEvents(this.gameState, damageEvents)
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
+    }, (definitionId, position, xpRewardOverride) => {
+      this.spawnEnemy(definitionId, position, xpRewardOverride)
     })
     updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
       const levelsGained = grantExperience(this.gameState, amount)

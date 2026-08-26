@@ -59,6 +59,13 @@ const VALID_SKILL_TAGS = new Set([
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
+const VALID_ENEMY_BEHAVIORS = new Set(['chase', 'standoff', 'split'])
+const VALID_ENEMY_SHAPES = new Set([
+  'circle',
+  'diamond',
+  'triangle',
+  'hexagon',
+])
 
 function validateIds(
   errors: string[],
@@ -117,6 +124,7 @@ function validateDefinitions(
   catalog: ContentCatalog,
   skillIds: Set<string>,
   projectileIds: Set<string>,
+  enemyIds: Set<string>,
 ): void {
   catalog.skills.forEach((skill, index) => {
     if (!VALID_SKILL_KINDS.has(skill.kind)) {
@@ -176,6 +184,89 @@ function validateDefinitions(
       'non-negative',
     )
     validateFiniteNumber(errors, `enemies[${index}].xpReward`, enemy.xpReward, 'non-negative')
+    if (!enemy.behavior || !VALID_ENEMY_BEHAVIORS.has(enemy.behavior.kind)) {
+      errors.push(
+        `enemies[${index}].behavior.kind is not supported; received "${String(enemy.behavior?.kind)}".`,
+      )
+    } else if (enemy.behavior.kind === 'standoff') {
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.desiredDistance`,
+        enemy.behavior.desiredDistance,
+        'positive',
+      )
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.retreatDistance`,
+        enemy.behavior.retreatDistance,
+        'positive',
+      )
+      if (enemy.behavior.retreatDistance >= enemy.behavior.desiredDistance) {
+        errors.push(
+          `enemies[${index}].behavior.retreatDistance must be less than desiredDistance.`,
+        )
+      }
+    } else if (enemy.behavior.kind === 'split') {
+      const split = enemy.behavior.split
+      const child = split
+        ? catalog.enemies.find(
+            (candidate) => candidate.id === split.childDefinitionId,
+          )
+        : undefined
+      if (!split || !child || !enemyIds.has(split.childDefinitionId)) {
+        errors.push(
+          `enemies[${index}].behavior.split.childDefinitionId must reference an enemy.`,
+        )
+      } else if (child.radius >= enemy.radius) {
+        errors.push(
+          `enemies[${index}].behavior.split child enemy must be smaller than its parent.`,
+        )
+      }
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.split.childCount`,
+        split?.childCount ?? Number.NaN,
+        'integer-positive',
+      )
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.split.spreadRadius`,
+        split?.spreadRadius ?? Number.NaN,
+        'non-negative',
+      )
+      if (typeof split?.childrenAwardXp !== 'boolean') {
+        errors.push(
+          `enemies[${index}].behavior.split.childrenAwardXp must be a boolean.`,
+        )
+      }
+    }
+    if (
+      !enemy.render ||
+      typeof enemy.render.color !== 'string' ||
+      enemy.render.color.trim() === ''
+    ) {
+      errors.push(`enemies[${index}].render.color must be a non-empty string.`)
+    }
+    if (
+      !enemy.render ||
+      typeof enemy.render.outlineColor !== 'string' ||
+      enemy.render.outlineColor.trim() === ''
+    ) {
+      errors.push(
+        `enemies[${index}].render.outlineColor must be a non-empty string.`,
+      )
+    }
+    if (!enemy.render || !VALID_ENEMY_SHAPES.has(enemy.render.shape)) {
+      errors.push(
+        `enemies[${index}].render.shape is not supported; received "${String(enemy.render?.shape)}".`,
+      )
+    }
+    validateFiniteNumber(
+      errors,
+      `enemies[${index}].render.scale`,
+      enemy.render?.scale ?? Number.NaN,
+      'positive',
+    )
   })
 
   catalog.projectiles.forEach((projectile, index) => {
@@ -315,6 +406,14 @@ function validateSpawnBalance(
       entry.weight,
       'positive',
     )
+    if (entry.startTimeSeconds !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `spawnBalance.spawnEntries[${index}].startTimeSeconds`,
+        entry.startTimeSeconds,
+        'non-negative',
+      )
+    }
   })
 }
 
@@ -325,7 +424,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
   const skillIds = validateIds(errors, 'skills', catalog.skills)
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
 
-  validateDefinitions(errors, catalog, skillIds, projectileIds)
+  validateDefinitions(errors, catalog, skillIds, projectileIds, enemyIds)
   validateXpBalance(errors, catalog.xpBalance)
   validateSpawnBalance(errors, catalog.spawnBalance, enemyIds)
 

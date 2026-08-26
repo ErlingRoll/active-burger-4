@@ -75,11 +75,11 @@ export class SpawnDirector {
     )
 
     while (requests.length < availableSlots) {
-      if (this.threatBudget < this.minimumThreatCost()) {
+      if (this.threatBudget < this.minimumThreatCost(state.time)) {
         break
       }
 
-      const entry = this.selectSpawnEntry(this.threatBudget)
+      const entry = this.selectSpawnEntry(this.threatBudget, state.time)
       if (!entry) {
         break
       }
@@ -104,15 +104,18 @@ export class SpawnDirector {
     if (availableSlots === 0) {
       this.threatBudget = Math.min(
         this.threatBudget,
-        this.minimumThreatCost(),
+        this.minimumThreatCost(state.time),
       )
     }
 
     return requests
   }
 
-  private selectSpawnEntry(maxThreatCost: number) {
-    const entries = this.balance.spawnEntries
+  private selectSpawnEntry(maxThreatCost: number, timeSeconds: number) {
+    const entries = this.balance.spawnEntries.filter(
+      (entry) =>
+        (entry.startTimeSeconds ?? 0) <= Math.max(0, timeSeconds),
+    )
     if (entries.length === 0) {
       return undefined
     }
@@ -143,8 +146,12 @@ export class SpawnDirector {
     return entries.find((entry) => entry.threatCost <= maxThreatCost)
   }
 
-  private minimumThreatCost(): number {
-    return this.balance.spawnEntries.reduce(
+  private minimumThreatCost(timeSeconds: number): number {
+    const entries = this.balance.spawnEntries.filter(
+      (entry) =>
+        (entry.startTimeSeconds ?? 0) <= Math.max(0, timeSeconds),
+    )
+    return entries.reduce(
       (minimum, entry) => Math.min(minimum, entry.threatCost),
       Number.POSITIVE_INFINITY,
     )

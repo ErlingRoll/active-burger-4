@@ -9,6 +9,11 @@ import {
 } from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
 import { findNearestEnemy } from '../../combat/Targeting'
+import {
+  getSplitChildren,
+  updateEnemyBehavior,
+} from './EnemyBehaviors'
+import type { ChildSpawnRequest } from './EnemyBehaviors'
 import type {
   DamageEvent,
   EnemyState,
@@ -20,25 +25,8 @@ export function updateEnemyChase(
   state: GameState,
   fixedStepSeconds: number,
 ): void {
-  const player = state.player
-
   for (const enemy of state.enemies) {
-    const offsetX = player.x - enemy.x
-    const offsetY = player.y - enemy.y
-    const distance = Math.hypot(offsetX, offsetY)
-    const contactRange = player.radius + enemy.radius
-    const travelDistance = enemy.speed * fixedStepSeconds
-
-    if (distance <= contactRange || distance === 0) {
-      continue
-    }
-
-    const distanceToContact = distance - contactRange
-    const movementDistance = Math.min(travelDistance, distanceToContact)
-    const movementRatio = movementDistance / distance
-
-    enemy.x += offsetX * movementRatio
-    enemy.y += offsetY * movementRatio
+    updateEnemyBehavior(state, enemy, fixedStepSeconds)
   }
 }
 
@@ -220,8 +208,14 @@ export function applyDamageEvents(
 export function removeDeadEntities(
   state: GameState,
   spawnPickup: (position: { x: number; y: number }, xpAmount: number) => void,
+  spawnEnemy?: (
+    definitionId: string,
+    position: { x: number; y: number },
+    xpRewardOverride?: number,
+  ) => void,
 ): void {
   const livingEnemies: EnemyState[] = []
+  const childSpawns: ChildSpawnRequest[] = []
   let killCount = 0
   for (const enemy of state.enemies) {
     if (enemy.hp > 0) {
@@ -230,11 +224,23 @@ export function removeDeadEntities(
       killCount += 1
       // Create the drop before removing the enemy so every observed death
       // produces exactly one pickup during this cleanup pass.
-      spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
+      if (enemy.xpReward > 0) {
+        spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
+      }
+      childSpawns.push(...getSplitChildren(enemy))
     }
   }
   state.enemies = livingEnemies
   state.run.killCount += killCount
+  if (spawnEnemy) {
+    for (const child of childSpawns) {
+      spawnEnemy(
+        child.definitionId,
+        { x: child.x, y: child.y },
+        child.xpRewardOverride,
+      )
+    }
+  }
   state.projectiles = state.projectiles.filter(
     (projectile) => projectile.remainingLifetime > 0,
   )

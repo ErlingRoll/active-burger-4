@@ -1,6 +1,10 @@
 import { Application, Container, Graphics, type Ticker } from 'pixi.js'
 import type { EntityId } from '../game/ids'
 import type { Game } from '../game/Game'
+import {
+  getEnemyDefinition,
+  type EnemyRenderDefinition,
+} from '../content/enemies/Enemies'
 
 export class PixiGame {
   private readonly game: Game
@@ -114,11 +118,29 @@ export class PixiGame {
 
   private createEnemyPlaceholder(enemy: {
     radius: number
+    definitionId: string
   }): Graphics {
-    return new Graphics()
-      .circle(0, 0, enemy.radius)
-      .fill('#ef4444')
-      .stroke({ color: '#fecaca', width: 2 })
+    const definition = getEnemyDefinition(enemy.definitionId)
+    const view = new Graphics()
+    const radius = enemy.radius
+    if (definition.render.shape === 'diamond') {
+      view.poly([0, -radius, radius, 0, 0, radius, -radius, 0])
+    } else if (definition.render.shape === 'triangle') {
+      view.poly([0, -radius, radius, radius, -radius, radius])
+    } else if (definition.render.shape === 'hexagon') {
+      const points = Array.from({ length: 6 }, (_, index) => {
+        const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2
+        return [Math.cos(angle) * radius, Math.sin(angle) * radius]
+      }).flat()
+      view.poly(points)
+    } else {
+      view.circle(0, 0, radius)
+    }
+    view
+      .fill(definition.render.color)
+      .stroke({ color: definition.render.outlineColor, width: 2 })
+    applyEnemyRenderScale(view, definition.render)
+    return view
   }
 
   private createProjectilePlaceholder(projectile: {
@@ -273,4 +295,11 @@ export class PixiGame {
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false
   }
+}
+
+function applyEnemyRenderScale(
+  view: Graphics,
+  render: EnemyRenderDefinition,
+): void {
+  view.scale.set(render.scale)
 }
