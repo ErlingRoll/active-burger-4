@@ -1012,10 +1012,10 @@ function ResultsScreen({
       <div className="results-panel">
         <p className="screen-kicker">{victory ? 'Run victorious' : 'Run complete'}</p>
         <h2 id="results-title">{victory ? 'Victory' : 'Defeat'}</h2>
-        <p className="results-summary">
+        <p className="results-summary" aria-live="polite">
           {victory
-            ? 'The final boss has fallen. The depths are conquered.'
-            : 'Your run has ended. Here are your results.'}
+            ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
+            : `Your run ended with ${result.killCount} enemies defeated.`}
         </p>
         <dl className="results-stats">
           <div><dt>Elapsed time</dt><dd>{formatElapsedTime(result.elapsedTime)}</dd></div>
