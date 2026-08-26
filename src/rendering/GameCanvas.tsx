@@ -169,13 +169,6 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   }
 
   const phase = snapshot?.phase ?? 'loading'
-  const togglePause = (): void => {
-    if (gameRef.current?.phase === 'paused') {
-      gameRef.current.resume()
-    } else {
-      gameRef.current?.pause()
-    }
-  }
 
   return (
     <div
@@ -188,12 +181,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         aria-label="Active Burger 4 game arena"
         role="img"
       />
-      {snapshot ? (
-        <GameplayHud
-          snapshot={snapshot}
-          onTogglePause={togglePause}
-        />
-      ) : null}
+      {snapshot ? <GameplayHud snapshot={snapshot} /> : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
       ) : null}
@@ -215,10 +203,9 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
 
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
-  onTogglePause: () => void
 }
 
-function GameplayHud({ snapshot, onTogglePause }: GameplayHudProps) {
+function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
@@ -259,13 +246,6 @@ function GameplayHud({ snapshot, onTogglePause }: GameplayHudProps) {
           <dd>{snapshot.killCount}</dd>
         </div>
       </dl>
-      <button
-        className="pause-toggle"
-        type="button"
-        onClick={onTogglePause}
-      >
-        {snapshot.phase === 'paused' ? 'Resume' : 'Pause'}
-      </button>
       <section className="skill-hud" aria-labelledby="acquired-skills-title">
         <h3 id="acquired-skills-title" className="visually-hidden">
           Acquired skills
@@ -464,6 +444,14 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
     setTimeScaleError(null)
   }
 
+  const togglePause = (): void => {
+    if (game.phase === 'paused') {
+      game.resume()
+    } else {
+      game.pause()
+    }
+  }
+
   return (
     <div className="development-controls">
       <button
@@ -483,6 +471,17 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
         >
           <p className="development-kicker">Development-only controls</p>
           <h2 id="development-menu-title">Development Menu</h2>
+          <button
+            className="debug-spawn-button"
+            type="button"
+            onClick={togglePause}
+            disabled={
+              snapshot.phase !== 'playing' && snapshot.phase !== 'paused' &&
+              snapshot.phase !== 'level-up'
+            }
+          >
+            {snapshot.phase === 'paused' ? 'Resume run' : 'Pause run'}
+          </button>
           <dl className="entity-counts" aria-label="Entity counts">
             <div>
               <dt>Total entities</dt>

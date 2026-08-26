@@ -115,9 +115,9 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   )
   await expect(page.getByRole('status')).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Pause' }).click()
+  await page.getByRole('button', { name: 'Pause run' }).click()
   await expect(page.getByRole('status')).toHaveText('Paused')
-  await page.getByRole('button', { name: 'Resume' }).click()
+  await page.getByRole('button', { name: 'Resume run' }).click()
   await expect(page.getByRole('status')).toHaveCount(0)
 })
 
