@@ -4,13 +4,11 @@ import {
   DEFAULT_BASIC_PROFILE,
   DEFAULT_SETTINGS,
   migrateBasicProfile,
-  migratePendingCompletedRunResult,
   migrateSettings,
 } from './index'
 import type { PersistenceStore, PersistenceTable } from './database'
 import type {
   BasicProfileRecord,
-  PendingCompletedRunResultDto,
   SettingsRecord,
 } from './types'
 import { createPersistenceRepository } from './LocalPersistenceRepository'
@@ -38,7 +36,6 @@ function memoryStore(): PersistenceStore {
   return {
     settings: memoryTable<SettingsRecord>(),
     profile: memoryTable<BasicProfileRecord>(),
-    pendingResults: memoryTable<PendingCompletedRunResultDto>(),
   }
 }
 
@@ -85,7 +82,7 @@ describe('local persistence schema', () => {
   })
 
   it('uses the profile unlock set as the contract selection boundary', async () => {
-    const repository = createPersistenceRepository(memoryStore(), () => 'result-1')
+    const repository = createPersistenceRepository(memoryStore())
     const profile = await repository.getBasicProfile()
     expect(profile.unlockedDungeonLengthIds).toEqual([
       DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
@@ -108,62 +105,5 @@ describe('local persistence schema', () => {
     expect((await repository.getBasicProfile()).unlockedDungeonLengthIds).toContain(
       'default-dungeon-15-minute',
     )
-  })
-
-  it('queues, orders, and removes completed run results', async () => {
-    const repository = createPersistenceRepository(memoryStore(), () => 'generated-id')
-    await repository.enqueuePendingRunResult({
-      id: 'later',
-      runId: 'run-later',
-      completedAt: 20,
-      payload: {
-        phase: 'results',
-        elapsedTime: 20,
-        level: 3,
-        xp: 12,
-        killCount: 4,
-      },
-    })
-    const queued = await repository.enqueuePendingRunResult({
-      runId: 'run-first',
-      completedAt: 10,
-      payload: {
-        phase: 'defeat',
-        elapsedTime: 10,
-        level: 1,
-        xp: 2,
-        killCount: 1,
-      },
-    })
-    expect(queued.id).toBe('generated-id')
-    expect(await repository.listPendingRunResults()).toMatchObject([
-      { runId: 'run-first' },
-      { runId: 'run-later' },
-    ])
-    await repository.removePendingRunResult(queued.id)
-    expect(await repository.listPendingRunResults()).toHaveLength(1)
-  })
-
-  it('migrates a queued result with missing optional fields without dropping it', () => {
-    expect(
-      migratePendingCompletedRunResult({
-        id: 'queued-1',
-        runId: 'run-1',
-        completedAt: 12,
-        payload: { phase: 'defeat', elapsedSeconds: 12 },
-      }),
-    ).toEqual({
-      id: 'queued-1',
-      schemaVersion: 1,
-      runId: 'run-1',
-      completedAt: 12,
-      payload: {
-        phase: 'defeat',
-        elapsedTime: 12,
-        level: 1,
-        xp: 0,
-        killCount: 0,
-      },
-    })
   })
 })

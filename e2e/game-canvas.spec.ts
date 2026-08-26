@@ -119,7 +119,6 @@ test('loads account progression outside the active run', async ({ page }) => {
       hasText: /^default-dungeon-15-minute$/,
     }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Sync pending results' })).toBeVisible()
 })
 
 test('signs in and out with the configured Supabase test account', async ({ page }) => {
@@ -198,7 +197,6 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(page.getByText('Level')).toBeVisible()
   await expect(page.getByText('XP')).toBeVisible()
   await expect(page.getByText('Kills')).toBeVisible()
-  await expect(page.getByRole('status')).toHaveText('Pending local result saved.')
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Return to Dashboard' }).click()
@@ -210,7 +208,6 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(
     page.getByRole('heading', { name: 'Essence and unlocks' }),
   ).toBeVisible()
-  await expect(page.getByText('Pending results synced.')).toBeVisible()
 })
 
 test('keeps the arena running after endless combat begins', async ({ page }) => {

@@ -1,6 +1,5 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PendingCompletedRunResultDto } from '../persistence'
 
 export interface MetaWallet {
   essenceBalance: number
@@ -23,16 +22,8 @@ export interface MetaProgressionSnapshot {
   unlockedIds: string[]
 }
 
-export interface RunSyncResult {
-  processedCount: number
-  snapshot: MetaProgressionSnapshot
-}
-
 export interface MetaProgressionService {
   load(): Promise<MetaProgressionSnapshot>
-  syncPendingResults(
-    results: readonly PendingCompletedRunResultDto[],
-  ): Promise<RunSyncResult>
   purchaseUnlock(unlockId: string): Promise<MetaProgressionSnapshot>
 }
 
@@ -53,10 +44,6 @@ interface UnlockDefinitionRow {
 
 interface UnlockRow {
   unlock_id: string
-}
-
-interface RunSubmissionRow {
-  was_processed: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -84,11 +71,6 @@ function isUnlockDefinitionRow(value: unknown): value is UnlockDefinitionRow {
 function isUnlockRow(value: unknown): value is UnlockRow {
   return isRecord(value) &&
     'unlock_id' in value && typeof value.unlock_id === 'string'
-}
-
-function isRunSubmissionRow(value: unknown): value is RunSubmissionRow {
-  return isRecord(value) &&
-    'was_processed' in value && typeof value.was_processed === 'boolean'
 }
 
 function defaultWallet(): MetaWallet {
@@ -164,29 +146,6 @@ export function createMetaProgressionService(
 
   return {
     load,
-
-    async syncPendingResults(results): Promise<RunSyncResult> {
-      const client = getClient()
-      let processedCount = 0
-      for (const result of results) {
-        const response = await client.rpc('submit_meta_run_result', {
-          p_run_id: result.runId,
-          p_pending_result_id: result.id,
-          p_completed_at: new Date(result.completedAt).toISOString(),
-          p_payload: result.payload,
-        })
-        if (response.error) {
-          throw response.error
-        }
-        if (!Array.isArray(response.data) || !isRunSubmissionRow(response.data[0])) {
-          throw new Error('Run submission returned an invalid response.')
-        }
-        if (response.data[0].was_processed) {
-          processedCount += 1
-        }
-      }
-      return { processedCount, snapshot: await load() }
-    },
 
     async purchaseUnlock(unlockId): Promise<MetaProgressionSnapshot> {
       const client = getClient()

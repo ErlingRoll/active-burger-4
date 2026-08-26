@@ -482,7 +482,7 @@
 .floor-hud {
   display: grid;
   gap: 0.15rem;
-  width: 18rem;
+  width: 28rem;
   max-width: calc(100% - 2rem);
   box-sizing: border-box;
 }
@@ -1693,6 +1693,7 @@
       minmax(15rem, 0.95fr);
     grid-template-areas:
       'stats stats stats'
+      'boss boss boss'
       'loadout projection behavior'
       'skills skills skills';
     align-items: start;
@@ -1702,6 +1703,14 @@
 
   .hud-stats {
     grid-area: stats;
+  }
+
+  .boss-hud {
+    grid-area: boss;
+    justify-self: center;
+    width: min(42rem, 100%);
+    max-width: 100%;
+    margin-top: 0.75rem;
   }
 
   .equipped-loadout {
@@ -1727,7 +1736,7 @@
 
   .floor-hud-top {
     grid-column: auto;
-    width: 18rem;
+    width: 28rem;
     max-width: calc(100vw - 2rem);
   }
 
@@ -1842,6 +1851,392 @@
       width: min(24rem, calc(100% - 1.5rem));
     }
   }
+  }
+
+  /* Shared worn-arena visual language for the non-dashboard application surfaces. */
+  :root {
+    color: #e7e5e4;
+    background: #101113;
+  }
+
+  .app-header {
+    position: relative;
+    align-items: center;
+    padding-block: 0.85rem;
+    color: #f5f5f4;
+    background:
+      repeating-linear-gradient(112deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 7px),
+      linear-gradient(90deg, #18181b, #27272a 58%, #1c1917);
+    border-bottom-color: rgb(245 158 11 / 34%);
+    box-shadow: 0 0.7rem 1.8rem rgb(0 0 0 / 22%);
+  }
+
+  .app-header::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.32rem;
+    content: '';
+    background: #f97316;
+  }
+
+  .app-kicker {
+    color: #fbbf24;
+    font-size: 0.68rem;
+    letter-spacing: 0.13em;
+  }
+
+  .app-header h1 {
+    color: #fafaf9;
+    font-size: clamp(1.35rem, 3vw, 2.05rem);
+    letter-spacing: -0.045em;
+  }
+
+  .app-account {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding-left: 0.9rem;
+    border-left: 1px solid rgb(245 158 11 / 26%);
+    text-align: left;
+  }
+
+  .app-account-label,
+  .app-account-email {
+    color: #f5f5f4;
+  }
+
+  .app-account-label {
+    color: #fbbf24;
+  }
+
+  .app-sign-out,
+  .primary-action,
+  .secondary-action {
+    border-radius: 0.3rem;
+  }
+
+  .app-sign-out {
+    color: #18181b;
+    background: #fbbf24;
+    border-color: #fef3c7;
+    box-shadow: 0 0.2rem 0 #92400e;
+  }
+
+  .app-sign-out:hover,
+  .app-sign-out:focus-visible {
+    background: #fde68a;
+    outline-color: rgb(251 191 36 / 32%);
+  }
+
+  .auth-gateway,
+  .results-screen {
+    position: relative;
+    overflow: hidden;
+    place-items: start center;
+    padding-block: clamp(1rem, 4vw, 3rem);
+    background:
+      repeating-linear-gradient(112deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 7px),
+      radial-gradient(circle at 88% 10%, rgb(245 158 11 / 15%), transparent 25rem),
+      radial-gradient(circle at 5% 90%, rgb(194 65 12 / 12%), transparent 24rem),
+      linear-gradient(135deg, #111315 0%, #211b1a 46%, #101113 100%);
+  }
+
+  .dashboard:not(.run-dashboard):not(.meta-progression-screen) {
+    background:
+      repeating-linear-gradient(112deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 7px),
+      radial-gradient(circle at 88% 10%, rgb(245 158 11 / 15%), transparent 25rem),
+      linear-gradient(135deg, #111315 0%, #211b1a 46%, #101113 100%);
+  }
+
+  .dashboard-panel:not(.run-dashboard-panel):not(.meta-shop-panel),
+  .results-panel {
+    width: min(48rem, 100%);
+    color: #e7e5e4;
+    background:
+      linear-gradient(110deg, rgb(255 255 255 / 2%), transparent 38%),
+      rgb(24 24 27 / 91%);
+    border-color: rgb(245 158 11 / 24%);
+    border-radius: 0.65rem 1.1rem 0.8rem 0.95rem;
+    box-shadow: 0 2rem 5rem rgb(0 0 0 / 48%), inset 0 1px rgb(255 255 255 / 4%);
+  }
+
+  .dashboard-panel:not(.run-dashboard-panel):not(.meta-shop-panel) h2,
+  .results-panel h2 {
+    color: #fafaf9;
+    letter-spacing: -0.045em;
+  }
+
+  .dashboard-panel:not(.run-dashboard-panel):not(.meta-shop-panel) p:not(.screen-kicker),
+  .results-summary {
+    color: #d6d3d1;
+  }
+
+  .account-panel,
+  .account-summary {
+    color: #e7e5e4;
+    background:
+      linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+      #27272a;
+    border-color: rgb(245 158 11 / 20%);
+    border-radius: 0.35rem 0.65rem 0.45rem 0.55rem;
+  }
+
+  .account-panel h3,
+  .account-summary h3 {
+    color: #fafaf9;
+  }
+
+  .sign-in-form label {
+    color: #e7e5e4;
+  }
+
+  .sign-in-form input:not([type='checkbox']),
+  .time-scale-input-row input {
+    color: #fafaf9;
+    background: #18181b;
+    border-color: rgb(245 158 11 / 30%);
+    border-radius: 0.25rem;
+  }
+
+  .sign-in-form input:focus-visible,
+  .time-scale-input-row input:focus-visible {
+    border-color: #fbbf24;
+    outline-color: rgb(251 191 36 / 25%);
+  }
+
+  .primary-action {
+    color: #18181b;
+    background: #fbbf24;
+    border-color: #fef3c7;
+    box-shadow: 0 0.25rem 0 #92400e;
+  }
+
+  .secondary-action {
+    color: #fef3c7;
+    background: #292524;
+    border-color: rgb(251 146 60 / 55%);
+  }
+
+  .primary-action:hover,
+  .primary-action:focus-visible {
+    background: #fde68a;
+    outline-color: rgb(251 191 36 / 30%);
+  }
+
+  .secondary-action:hover,
+  .secondary-action:focus-visible {
+    background: #3f3531;
+    border-color: #fb923c;
+    outline-color: rgb(251 146 60 / 22%);
+  }
+
+  .results-stats div {
+    background:
+      linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+      #27272a;
+    border-color: rgb(245 158 11 / 17%);
+    border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  }
+
+  .results-stats dt {
+    color: #fbbf24;
+    letter-spacing: 0.08em;
+  }
+
+  .results-stats dd {
+    color: #fef3c7;
+  }
+
+  .victory-screen {
+    background:
+      repeating-linear-gradient(112deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 7px),
+      radial-gradient(circle at 50% 2%, rgb(251 191 36 / 25%), transparent 28rem),
+      linear-gradient(135deg, #241609, #1c1917 55%, #101113);
+  }
+
+  .victory-screen .results-panel {
+    border-color: rgb(251 191 36 / 62%);
+  }
+
+  .game-canvas {
+    background:
+      radial-gradient(circle at 50% 30%, rgb(120 53 15 / 18%), transparent 45%),
+      #101113;
+  }
+
+  .hud-stat,
+  .floor-hud,
+  .choice-hud,
+  .stairs-hud,
+  .run-guide,
+  .behavior-summary,
+  .loadout-item,
+  .skill-card,
+  .development-menu,
+  .floor-transition-hud {
+    color: #e7e5e4;
+    background:
+      linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+      rgb(24 24 27 / 92%);
+    border-color: rgb(245 158 11 / 25%);
+    border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+    box-shadow: 0 0.85rem 1.6rem rgb(0 0 0 / 25%);
+  }
+
+  .hud-stat dt,
+  .projection-heading span,
+  .floor-hud > span,
+  .choice-hud > span:last-child,
+  .behavior-summary-label,
+  .loadout-slot,
+  .development-kicker,
+  .entity-counts dt {
+    color: #fbbf24;
+  }
+
+  .hud-stat dd,
+  .projection-heading strong,
+  .choice-hud strong,
+  .behavior-summary strong,
+  .loadout-item strong,
+  .skill-card,
+  .development-menu h2 {
+    color: #fafaf9;
+  }
+
+  .boss-hud {
+    background:
+      linear-gradient(115deg, rgb(239 68 68 / 15%), transparent 45%),
+      rgb(69 10 10 / 92%);
+    border-color: rgb(251 113 133 / 62%);
+    border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  }
+
+  .stairs-hud {
+    background:
+      linear-gradient(115deg, rgb(245 158 11 / 12%), transparent 45%),
+      rgb(41 37 36 / 92%);
+    border-color: rgb(251 146 60 / 55%);
+  }
+
+  .run-guide strong,
+  .skill-icon,
+  .skill-dps span,
+  .behavior-profile-heading span {
+    color: #fbbf24;
+  }
+
+  .run-guide button,
+  .behavior-close,
+  .debug-spawn-button,
+  .development-menu-toggle {
+    color: #fef3c7;
+    background: #292524;
+    border-color: rgb(251 146 60 / 52%);
+    border-radius: 0.25rem;
+  }
+
+  .run-guide button:hover,
+  .run-guide button:focus-visible,
+  .behavior-summary:hover,
+  .behavior-summary:focus-visible,
+  .loadout-item:hover,
+  .loadout-item:focus-visible,
+  .skill-card:hover,
+  .skill-card:focus-visible {
+    background: #3f3531;
+    border-color: #fb923c;
+    outline-color: rgb(251 146 60 / 22%);
+  }
+
+  .behavior-screen,
+  .level-up-overlay {
+    background: rgb(9 9 11 / 80%);
+    backdrop-filter: blur(3px);
+  }
+
+  .behavior-panel,
+  .level-up-panel {
+    color: #e7e5e4;
+    background:
+      linear-gradient(110deg, rgb(255 255 255 / 3%), transparent 42%),
+      #18181b;
+    border-color: rgb(245 158 11 / 45%);
+    border-radius: 0.65rem 1.1rem 0.8rem 0.95rem;
+    box-shadow: 0 2rem 5rem rgb(0 0 0 / 62%), inset 0 1px rgb(255 255 255 / 4%);
+  }
+
+  .behavior-panel h2,
+  .level-up-panel h2 {
+    color: #fafaf9;
+    letter-spacing: -0.05em;
+  }
+
+  .behavior-instructions,
+  .level-up-instructions {
+    color: #d6d3d1;
+  }
+
+  .behavior-profile,
+  .upgrade-choice {
+    color: #d6d3d1;
+    background:
+      linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+      #27272a;
+    border-color: rgb(245 158 11 / 17%);
+    border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  }
+
+  .behavior-profile.selected,
+  .upgrade-choice:hover,
+  .upgrade-choice:focus-visible {
+    background: linear-gradient(145deg, #3f3531, #292524);
+    border-color: #fb923c;
+    outline-color: rgb(251 146 60 / 22%);
+  }
+
+  .behavior-profile-heading strong,
+  .upgrade-choice-name {
+    color: #fafaf9;
+  }
+
+  .level-up-kicker,
+  .upgrade-choice-value,
+  .gear-slot,
+  .gear-stats-heading,
+  .comparison-heading {
+    color: #fbbf24;
+  }
+
+  .gear-upgrade-card {
+    background:
+      linear-gradient(145deg, rgb(120 53 15 / 34%), transparent 58%),
+      #292117;
+    border-color: #b45309;
+  }
+
+  .gear-comparison,
+  .loadout-tooltip,
+  .skill-tooltip {
+    color: #e7e5e4;
+    background: #18181b;
+    border-color: rgb(251 146 60 / 62%);
+    border-radius: 0.35rem 0.65rem 0.45rem 0.55rem;
+    box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 62%);
+  }
+
+  @media (max-width: 700px) {
+    .app-header {
+      align-items: flex-start;
+    }
+
+    .app-account {
+      align-items: flex-end;
+      flex-direction: column;
+      padding-left: 0;
+      border-left: 0;
+      text-align: right;
+    }
   }
 
   /* Dashboard-only visual system. Other application screens retain the existing prototype styling. */
@@ -2258,3 +2653,215 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+.meta-progression-screen {
+  position: relative;
+  overflow: hidden;
+  place-items: start center;
+  padding-block: clamp(1rem, 4vw, 3rem);
+  background:
+    repeating-linear-gradient(112deg, rgb(255 255 255 / 1.8%) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 91% 8%, rgb(245 158 11 / 17%), transparent 25rem),
+    radial-gradient(circle at 7% 90%, rgb(194 65 12 / 13%), transparent 24rem),
+    linear-gradient(135deg, #111315 0%, #211b1a 46%, #101113 100%);
+}
+
+.meta-shop-panel {
+  width: min(72rem, 100%);
+  padding: clamp(1.25rem, 4vw, 3rem);
+  color: #e7e5e4;
+  background:
+    linear-gradient(110deg, rgb(255 255 255 / 2%), transparent 38%),
+    rgb(24 24 27 / 91%);
+  border-color: rgb(245 158 11 / 24%);
+  border-radius: 0.65rem 1.1rem 0.8rem 0.95rem;
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 48%), inset 0 1px rgb(255 255 255 / 4%);
+}
+
+.meta-progression-screen .screen-kicker {
+  color: #fbbf24;
+}
+
+.meta-shop-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.meta-shop-header h2 {
+  margin: 0.35rem 0 0.7rem;
+  color: #fafaf9;
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.meta-shop-header p:last-child {
+  max-width: 38rem;
+  margin: 0;
+  color: #d6d3d1;
+  line-height: 1.55;
+}
+
+.meta-progression-screen .secondary-action,
+.meta-progression-screen .primary-action {
+  color: #fef3c7;
+  background: #292524;
+  border-color: rgb(251 146 60 / 55%);
+  border-radius: 0.3rem;
+}
+
+.meta-progression-screen .secondary-action:hover,
+.meta-progression-screen .secondary-action:focus-visible,
+.meta-progression-screen .primary-action:hover,
+.meta-progression-screen .primary-action:focus-visible {
+  background: #3f3531;
+  border-color: #fb923c;
+  outline-color: rgb(251 146 60 / 22%);
+}
+
+.meta-shop-back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meta-wallet {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 2.25rem 0;
+}
+
+.meta-progression-screen .results-stats div {
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+    #27272a;
+  border-color: rgb(245 158 11 / 17%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.meta-progression-screen .results-stats dt {
+  color: #fbbf24;
+  letter-spacing: 0.08em;
+}
+
+.meta-progression-screen .results-stats dd {
+  color: #fef3c7;
+}
+
+.meta-wallet div:first-child {
+  background:
+    linear-gradient(135deg, rgb(245 158 11 / 24%), transparent 65%),
+    #3a2d1e;
+  border-color: rgb(251 191 36 / 55%);
+}
+
+.meta-wallet div:first-child dd {
+  color: #fbbf24;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+}
+
+.meta-shop-unlocks {
+  margin-top: 2.75rem;
+  padding-top: 2.25rem;
+  border-top: 1px solid rgb(245 158 11 / 17%);
+}
+
+.meta-shop-section-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.meta-shop-section-heading h3 {
+  margin: 0;
+  color: #fafaf9;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  letter-spacing: -0.03em;
+}
+
+.meta-progression-screen .persistence-status {
+  color: #e7e5e4;
+  background: rgb(39 39 42 / 78%);
+  border-color: rgb(245 158 11 / 24%);
+  border-left-color: #fbbf24;
+}
+
+.meta-progression-screen .dashboard-choice-list {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.meta-progression-screen .meta-unlock-card {
+  min-height: 11rem;
+  align-content: start;
+  padding: 1rem;
+  color: #d6d3d1;
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+    #27272a;
+  border-color: rgb(245 158 11 / 17%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.meta-unlock-card-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.meta-unlock-card strong {
+  color: #fafaf9;
+  overflow-wrap: anywhere;
+}
+
+.meta-unlock-card-heading span,
+.meta-unlock-state {
+  color: #a8a29e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.meta-unlock-state {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.meta-progression-screen .meta-purchase-action {
+  width: 100%;
+  margin-top: auto;
+  color: #18181b;
+  background: #fbbf24;
+  border-color: #fef3c7;
+  box-shadow: 0 0.24rem 0 #92400e;
+}
+
+.meta-progression-screen .meta-purchase-action:hover:not(:disabled),
+.meta-progression-screen .meta-purchase-action:focus-visible {
+  background: #fde68a;
+}
+
+.meta-progression-screen .meta-purchase-action:disabled {
+  color: #a8a29e;
+  background: #292524;
+  border-color: rgb(168 162 158 / 30%);
+  box-shadow: none;
+}
+
+@media (max-width: 700px) {
+  .meta-progression-screen {
+    padding: 0.75rem;
+  }
+
+  .meta-shop-header {
+    flex-direction: column;
+  }
+
+  .meta-wallet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .meta-shop-back {
+    align-self: stretch;
+    justify-content: center;
+  }
+}

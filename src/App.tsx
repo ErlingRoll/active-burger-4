@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { RunResultSnapshot, RunConfig } from './game'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -9,7 +9,6 @@ import {
   createDexiePersistenceStore,
   createPersistenceRepository,
   type BasicProfileDto,
-  type PendingCompletedRunResultDto,
   type PersistenceRepository,
   type SettingsDto,
   type SettingsPatch,
@@ -24,9 +23,7 @@ import {
 } from './auth'
 import {
   createMetaProgressionService,
-  createPendingRunSyncCoordinator,
   getDungeonLengthContractId,
-  type PendingRunSyncCoordinator,
   type MetaProgressionService,
   type MetaProgressionSnapshot,
 } from './meta'
@@ -48,13 +45,10 @@ import './App.css'
 
 type AppScreen = 'dashboard' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
-type PendingResultState = 'idle' | 'saving' | 'saved' | 'error'
-
 interface PersistenceState {
   loadState: PersistenceLoadState
   settings: SettingsDto | null
   profile: BasicProfileDto | null
-  pendingResults: PendingCompletedRunResultDto[]
   error: string | null
 }
 
@@ -62,8 +56,6 @@ interface MetaProgressionState {
   loadState: 'idle' | 'loading' | 'ready' | 'error' | 'unavailable'
   snapshot: MetaProgressionSnapshot | null
   error: string | null
-  syncState: 'idle' | 'syncing' | 'saved' | 'error'
-  syncError: string | null
   purchaseState: 'idle' | 'purchasing' | 'saved' | 'error'
   purchaseError: string | null
   activePurchaseUnlockId: string | null
@@ -103,8 +95,6 @@ function createInitialMetaProgressionState(
         loadState: 'idle',
         snapshot: null,
         error: null,
-        syncState: 'idle',
-        syncError: null,
         purchaseState: 'idle',
         purchaseError: null,
         activePurchaseUnlockId: null,
@@ -113,8 +103,6 @@ function createInitialMetaProgressionState(
         loadState: 'unavailable',
         snapshot: null,
         error: configurationError ?? 'Meta progression is unavailable.',
-        syncState: 'idle',
-        syncError: null,
         purchaseState: 'idle',
         purchaseError: null,
         activePurchaseUnlockId: null,
@@ -201,101 +189,17 @@ function App() {
     ),
   )
   const [runId, setRunId] = useState(0)
-  const [activeRunId, setActiveRunId] = useState<string | null>(null)
   const [result, setResult] = useState<RunResultSnapshot | null>(null)
-  const [pendingResultState, setPendingResultState] =
-    useState<PendingResultState>('idle')
   const [persistence, setPersistence] = useState<PersistenceState>({
     loadState: 'loading',
     settings: null,
     profile: null,
-    pendingResults: [],
     error: null,
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [metaLoadAttempt, setMetaLoadAttempt] = useState(0)
   const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
-  const pendingResultsRef = useRef(persistence.pendingResults)
-  const syncRuntimeRef = useRef({
-    account: authentication.account,
-    screen,
-    service: metaProgressionService.service,
-    metaLoadState: metaProgression.loadState,
-  })
-  const [pendingRunSyncCoordinator, setPendingRunSyncCoordinator] =
-    useState<PendingRunSyncCoordinator | null>(null)
-
-  useEffect(() => {
-    syncRuntimeRef.current = {
-      account: authentication.account,
-      screen,
-      service: metaProgressionService.service,
-      metaLoadState: metaProgression.loadState,
-    }
-  }, [authentication.account, metaProgression.loadState, metaProgressionService.service, screen])
-
-  useEffect(() => {
-    setPendingRunSyncCoordinator((current) => current ?? createPendingRunSyncCoordinator({
-      canSync: () => {
-        const { account, screen: currentScreen, service, metaLoadState } =
-          syncRuntimeRef.current
-        return account !== null &&
-          service !== null &&
-          metaLoadState === 'ready' &&
-          currentScreen !== 'gameplay'
-      },
-      getPendingResults: () => pendingResultsRef.current,
-      syncPendingResults: (results) => {
-        const service = syncRuntimeRef.current.service
-        if (!service) {
-          throw new Error('Meta progression is unavailable.')
-        }
-        return service.syncPendingResults(results)
-      },
-      removePendingResult: (id) => repository.removePendingRunResult(id),
-      onSyncStart: () => {
-        setMetaProgression((current) => ({
-          ...current,
-          syncState: 'syncing',
-          syncError: null,
-        }))
-      },
-      onSyncSuccess: (results, syncResult) => {
-        const resultIds = new Set(results.map((result) => result.id))
-        const remainingResults = pendingResultsRef.current.filter(
-          (result) => !resultIds.has(result.id),
-        )
-        pendingResultsRef.current = remainingResults
-        setPersistence((current) => ({
-          ...current,
-          pendingResults: current.pendingResults.filter(
-            (result) => !resultIds.has(result.id),
-          ),
-        }))
-        setMetaProgression((current) => ({
-          ...current,
-          snapshot: syncResult.snapshot,
-          syncState: 'saved',
-          syncError: null,
-        }))
-      },
-      onNoPendingResults: () => {
-        setMetaProgression((current) => ({
-          ...current,
-          syncState: 'saved',
-          syncError: null,
-        }))
-      },
-      onSyncError: (error: unknown) => {
-        setMetaProgression((current) => ({
-          ...current,
-          syncState: 'error',
-          syncError: errorMessage(error),
-        }))
-      },
-    }))
-  }, [repository])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -330,12 +234,8 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
-    void Promise.all([
-      repository.getSettings(),
-      repository.getBasicProfile(),
-      repository.listPendingRunResults(),
-    ])
-      .then(async ([loadedSettings, profile, pendingResults]) => {
+    void Promise.all([repository.getSettings(), repository.getBasicProfile()])
+      .then(async ([loadedSettings, profile]) => {
         const selectedContract = DUNGEON_CONTRACTS.find(
           (contract) => contract.id === loadedSettings.selectedDungeonLengthContractId,
         )
@@ -349,14 +249,12 @@ function App() {
               ...loadedSettings,
               selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
             })
-        if (!cancelled) {
-          pendingResultsRef.current = pendingResults
-          setPersistence({
-            loadState: 'ready',
-            settings,
-            profile,
-            pendingResults,
-            error: null,
+            if (!cancelled) {
+              setPersistence({
+                loadState: 'ready',
+                settings,
+                profile,
+                error: null,
           })
         }
       })
@@ -377,8 +275,6 @@ function App() {
 
   const settings = persistence.settings
   const profile = persistence.profile
-  const pendingResults = persistence.pendingResults
-  const pendingCount = pendingResults.length
   const runConfig = useMemo<RunConfig | null>(() => {
     if (!settings || !profile) {
       return null
@@ -559,76 +455,16 @@ function App() {
   )
 
   const startRun = useCallback((): void => {
-    const nextRunId = globalThis.crypto?.randomUUID?.() ??
-      `run-${Date.now()}-${runId + 1}`
-    syncRuntimeRef.current.screen = 'gameplay'
     setResult(null)
-    setPendingResultState('idle')
     setWriteError(null)
-    setActiveRunId(nextRunId)
     setRunId((currentRunId) => currentRunId + 1)
     setScreen('gameplay')
-  }, [runId])
+  }, [])
 
-  const handleRunEnd = useCallback(
-    (runResult: RunResultSnapshot): void => {
-      syncRuntimeRef.current.screen = 'results'
-      setResult(runResult)
-      setScreen('results')
-      setPendingResultState('saving')
-      void repository
-        .enqueuePendingRunResult({
-          runId: activeRunId ?? `run-${runId}`,
-          completedAt: Date.now(),
-          payload: {
-            ...runResult,
-            phase: runResult.phase === 'defeat' ? 'defeat' : 'results',
-          },
-        })
-        .then((queuedResult) => {
-          const nextPendingResults = [...pendingResultsRef.current, queuedResult]
-          pendingResultsRef.current = nextPendingResults
-          setPersistence((current) => ({
-            ...current,
-            pendingResults: nextPendingResults,
-          }))
-          setPendingResultState('saved')
-          if (pendingRunSyncCoordinator) {
-            void pendingRunSyncCoordinator.request([queuedResult])
-          }
-        })
-        .catch((error: unknown) => {
-          setPendingResultState('error')
-          setWriteError(errorMessage(error))
-        })
-    },
-    [activeRunId, pendingRunSyncCoordinator, repository, runId],
-  )
-
-  const syncPendingResults = useCallback(
-    (): Promise<void> => pendingRunSyncCoordinator?.request() ?? Promise.resolve(),
-    [pendingRunSyncCoordinator],
-  )
-
-  useEffect(() => {
-    if (
-      pendingRunSyncCoordinator === null ||
-      persistence.loadState !== 'ready' ||
-      metaProgression.loadState !== 'ready' ||
-      screen === 'gameplay'
-    ) {
-      return
-    }
-    void pendingRunSyncCoordinator.request()
-  }, [
-    authentication.account,
-    metaProgressionService.service,
-    metaProgression.loadState,
-    pendingResults,
-    pendingRunSyncCoordinator,
-    persistence.loadState,
-    screen,
-  ])
+  const handleRunEnd = useCallback((runResult: RunResultSnapshot): void => {
+    setResult(runResult)
+    setScreen('results')
+  }, [])
 
   const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
     if (!metaProgressionService.service || !authentication.account) {
@@ -713,8 +549,6 @@ function App() {
             loadState: 'ready',
             snapshot,
             error: null,
-            syncState: 'idle',
-            syncError: null,
             purchaseState: 'idle',
             purchaseError: null,
             activePurchaseUnlockId: null,
@@ -752,7 +586,7 @@ function App() {
           <div className="dashboard-panel" role="status">
             <p className="screen-kicker">Local persistence</p>
             <h2 id="persistence-loading-title">Loading saved run settings…</h2>
-            <p>Opening your local profile and pending results.</p>
+            <p>Opening your local profile and saved run settings.</p>
           </div>
         </section>
       </main>
@@ -797,7 +631,6 @@ function App() {
             settings={settings}
             profile={profile}
             essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
-            pendingCount={pendingCount}
             writeError={writeError}
             onStart={startRun}
             onSelectBehaviorProfile={selectBehaviorProfile}
@@ -818,17 +651,13 @@ function App() {
         <MetaProgressionScreen
           snapshot={metaProgression.snapshot}
           profile={profile}
-          pendingCount={pendingCount}
           loadState={metaProgression.loadState}
           loadError={metaProgression.error}
-          syncState={metaProgression.syncState}
-          syncError={metaProgression.syncError}
           purchaseState={metaProgression.purchaseState}
           purchaseError={metaProgression.purchaseError}
           activePurchaseUnlockId={metaProgression.activePurchaseUnlockId}
           onBack={closeMetaProgression}
           onRefresh={refreshMetaProgression}
-          onSyncPendingResults={() => { void syncPendingResults() }}
           onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
         />
       ) : null}
@@ -843,8 +672,6 @@ function App() {
       {screen === 'results' && result ? (
         <ResultsScreen
           result={result}
-          pendingResultState={pendingResultState}
-          writeError={writeError}
           onReturn={returnToDashboard}
         />
       ) : null}
@@ -889,7 +716,6 @@ interface DashboardProps {
   settings: SettingsDto
   profile: BasicProfileDto
   essenceBalance: number | null
-  pendingCount: number
   writeError: string | null
   onStart: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
@@ -903,7 +729,6 @@ function Dashboard({
   settings,
   profile,
   essenceBalance,
-  pendingCount,
   writeError,
   onStart,
   onSelectBehaviorProfile,
@@ -946,14 +771,6 @@ function Dashboard({
             <span aria-hidden="true">→</span>
           </button>
         </div>
-        {pendingCount > 0 ? (
-          <p className="persistence-status" role="status">
-            <strong>Pending local result</strong>
-            <span>
-              {pendingCount} {pendingCount === 1 ? 'run' : 'runs'} queued for local sync.
-            </span>
-          </p>
-        ) : null}
         <div className="run-dashboard-utility">
           <div className="essence-balance" aria-live="polite">
             <span className="essence-balance-label">Essence</span>
@@ -1118,15 +935,11 @@ function AuthGateway({
 
 interface ResultsScreenProps {
   result: RunResultSnapshot
-  pendingResultState: PendingResultState
-  writeError: string | null
   onReturn: () => void
 }
 
 function ResultsScreen({
   result,
-  pendingResultState,
-  writeError,
   onReturn,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
@@ -1149,15 +962,6 @@ function ResultsScreen({
           <div><dt>XP</dt><dd>{result.xp}</dd></div>
           <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
         </dl>
-        <p className="persistence-status" role={pendingResultState === 'error' ? 'alert' : 'status'}>
-          {pendingResultState === 'saving'
-            ? 'Saving pending local result…'
-            : pendingResultState === 'saved'
-              ? 'Pending local result saved.'
-              : pendingResultState === 'error'
-                ? `Pending result could not be saved: ${writeError ?? 'unknown storage error'}`
-                : null}
-        </p>
         <button className="primary-action" type="button" onClick={onReturn}>
           Return to Dashboard
         </button>

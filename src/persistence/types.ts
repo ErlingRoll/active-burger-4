@@ -23,38 +23,5 @@ export interface BasicProfileDto {
   unlockedDungeonLengthIds: string[]
 }
 
-export type PendingRunPhase = 'victory' | 'defeat' | 'results'
-
-/**
- * Deliberately duplicates the small result boundary instead of importing game
- * state. The simulation can hand this DTO to persistence without depending on
- * IndexedDB, Dexie, or React.
- */
-export interface CompletedRunResultPayloadDto {
-  phase: PendingRunPhase
-  elapsedTime: number
-  level: number
-  xp: number
-  killCount: number
-  worldModifierIds?: WorldModifierId[]
-  worldModifierRewardMultiplier?: number
-  outcome?: 'victory'
-}
-
-export interface PendingCompletedRunResultDto {
-  id: string
-  schemaVersion: number
-  runId: string
-  completedAt: number
-  payload: CompletedRunResultPayloadDto
-}
-
-export type PendingRunResultDto = PendingCompletedRunResultDto
-
 export type SettingsRecord = SettingsDto & { id: 'settings' }
 export type BasicProfileRecord = BasicProfileDto & { id: 'profile' }
-
-export type PendingCompletedRunResultInput = Omit<
-  PendingCompletedRunResultDto,
-  'id' | 'schemaVersion'
-> & { id?: string }

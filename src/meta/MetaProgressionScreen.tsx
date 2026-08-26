@@ -5,17 +5,13 @@ import { getDungeonLengthContractId } from './MetaProgressionService'
 export interface MetaProgressionScreenProps {
   snapshot: MetaProgressionSnapshot | null
   profile: BasicProfileDto
-  pendingCount: number
   loadState: 'idle' | 'loading' | 'ready' | 'error' | 'unavailable'
   loadError: string | null
-  syncState: 'idle' | 'syncing' | 'saved' | 'error'
-  syncError: string | null
   purchaseState: 'idle' | 'purchasing' | 'saved' | 'error'
   purchaseError: string | null
   activePurchaseUnlockId: string | null
   onBack: () => void
   onRefresh: () => void
-  onSyncPendingResults: () => void
   onPurchaseUnlock: (unlockId: string) => void
 }
 
@@ -45,17 +41,13 @@ function getUnlockState(
 export function MetaProgressionScreen({
   snapshot,
   profile,
-  pendingCount,
   loadState,
   loadError,
-  syncState,
-  syncError,
   purchaseState,
   purchaseError,
   activePurchaseUnlockId,
   onBack,
   onRefresh,
-  onSyncPendingResults,
   onPurchaseUnlock,
 }: MetaProgressionScreenProps) {
   if (loadState === 'loading') {
@@ -64,7 +56,7 @@ export function MetaProgressionScreen({
         <div className="dashboard-panel" role="status">
           <p className="screen-kicker">Meta progression</p>
           <h2 id="meta-progression-loading-title">Loading account progression...</h2>
-          <p>Syncing Essence, unlocks, and pending run results.</p>
+          <p>Loading Essence balance and available contract unlocks.</p>
           <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
         </div>
       </section>
@@ -86,51 +78,45 @@ export function MetaProgressionScreen({
   }
 
   return (
-    <section className="dashboard" aria-labelledby="meta-progression-title">
-      <div className="dashboard-panel">
-        <p className="screen-kicker">Meta progression</p>
-        <h2 id="meta-progression-title">Essence and unlocks</h2>
-        <p>Account-backed progression stays outside the active run.</p>
+    <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
+      <div className="dashboard-panel meta-shop-panel">
+        <header className="meta-shop-header">
+          <div>
+            <p className="screen-kicker">Arena upgrades</p>
+            <h2 id="meta-progression-title">Spend your Essence.</h2>
+            <p>Bank earned Essence between runs and unlock tougher contracts.</p>
+          </div>
+          <button className="secondary-action meta-shop-back" type="button" onClick={onBack}>
+            <span aria-hidden="true">←</span>
+            Dashboard
+          </button>
+        </header>
 
-        <dl className="results-stats">
+        <dl className="results-stats meta-wallet">
           <div><dt>Essence</dt><dd>{formatCurrency(snapshot.wallet.essenceBalance)}</dd></div>
           <div><dt>Earned</dt><dd>{formatCurrency(snapshot.wallet.essenceEarned)}</dd></div>
           <div><dt>Spent</dt><dd>{formatCurrency(snapshot.wallet.essenceSpent)}</dd></div>
-          <div><dt>Pending results</dt><dd>{pendingCount}</dd></div>
         </dl>
 
-        <section aria-labelledby="meta-sync-title">
-          <h3 id="meta-sync-title">Sync pending results</h3>
-          <p>Submit queued results now. This only runs outside gameplay.</p>
-          {syncError ? <p className="persistence-error" role="alert">{syncError}</p> : null}
-          <p className="persistence-status" role="status">
-            {syncState === 'syncing'
-              ? 'Syncing pending results...'
-              : syncState === 'saved'
-                ? 'Pending results synced.'
-                : pendingCount === 0
-                  ? 'No pending results to sync.'
-                  : 'Ready to sync pending results.'}
-          </p>
-          <button className="primary-action" type="button" onClick={onSyncPendingResults} disabled={pendingCount === 0 || syncState === 'syncing'}>
-            Sync pending results
-          </button>
-        </section>
-
-        <section aria-labelledby="meta-unlocks-title">
-          <h3 id="meta-unlocks-title">Dungeon-length unlocks</h3>
+        <section className="meta-shop-unlocks" aria-labelledby="meta-unlocks-title">
+          <div className="meta-shop-section-heading">
+            <p className="screen-kicker">Contract shop</p>
+            <h3 id="meta-unlocks-title">Unlock longer runs</h3>
+          </div>
           <div className="dashboard-choice-list">
             {snapshot.definitions.map((definition) => {
               const contractId = getDungeonLengthContractId(definition)
               const owned = contractId !== null && profile.unlockedDungeonLengthIds.includes(contractId)
               const state = getUnlockState(definition, snapshot, profile)
               return (
-                <div className="dashboard-choice" key={definition.id}>
-                  <strong>{definition.id}</strong>
-                  <span>{contractId ?? 'No contract mapping'}</span>
-                  <span>{state.label}</span>
+                <div className="dashboard-choice meta-unlock-card" key={definition.id}>
+                  <div className="meta-unlock-card-heading">
+                    <strong>{definition.id}</strong>
+                    <span>{contractId ?? 'No contract mapping'}</span>
+                  </div>
+                  <span className="meta-unlock-state">{state.label}</span>
                   <button
-                    className="secondary-action"
+                    className="secondary-action meta-purchase-action"
                     type="button"
                     disabled={state.disabled || purchaseState === 'purchasing'}
                     onClick={() => { if (contractId !== null) { onPurchaseUnlock(definition.id) } }}
@@ -152,7 +138,6 @@ export function MetaProgressionScreen({
         </section>
 
         {loadError ? <p className="persistence-error" role="alert">{loadError}</p> : null}
-        <button className="primary-action" type="button" onClick={onBack}>Back to dashboard</button>
       </div>
     </section>
   )

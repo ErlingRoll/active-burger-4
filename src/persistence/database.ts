@@ -1,10 +1,8 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   BasicProfileRecord,
-  PendingCompletedRunResultDto,
   SettingsRecord,
 } from './types'
-import { PERSISTENCE_SCHEMA_VERSION } from './types'
 
 export const LOCAL_PERSISTENCE_DATABASE_NAME = 'active-burger-local'
 
@@ -19,24 +17,38 @@ export interface PersistenceTable<T extends { id: string }> {
 export interface PersistenceStore {
   settings: PersistenceTable<SettingsRecord>
   profile: PersistenceTable<BasicProfileRecord>
-  pendingResults: PersistenceTable<PendingCompletedRunResultDto>
 }
 
 /**
  * Opening this database is explicit. There is intentionally no browser
  * detection or fallback here: callers in SSR/tests inject a PersistenceStore.
+ *
+ * These Dexie version numbers track the *physical* IndexedDB schema and are
+ * intentionally independent of PERSISTENCE_SCHEMA_VERSION, which only
+ * versions the shape of individual DTOs.
  */
 export class LocalPersistenceDatabase extends Dexie {
   settings!: Table<SettingsRecord, string>
   profile!: Table<BasicProfileRecord, string>
-  pendingResults!: Table<PendingCompletedRunResultDto, string>
 
   constructor(name = LOCAL_PERSISTENCE_DATABASE_NAME) {
     super(name)
-    this.version(PERSISTENCE_SCHEMA_VERSION).stores({
+    // Version 1 is the original schema, which included a pendingResults
+    // queue table for completed runs awaiting Supabase sync. Declaring it
+    // here lets Dexie run the version 2 migration below for existing
+    // installs instead of failing to open the database.
+    this.version(1).stores({
       settings: 'id',
       profile: 'id',
       pendingResults: 'id, runId, completedAt',
+    })
+    // Version 2 drops the pending-result queue: runs no longer queue
+    // locally for later sync, so remove the legacy table for anyone
+    // upgrading from version 1.
+    this.version(2).stores({
+      settings: 'id',
+      profile: 'id',
+      pendingResults: null,
     })
   }
 }
@@ -47,7 +59,6 @@ export function createDexiePersistenceStore(
   return {
     settings: database.settings,
     profile: database.profile,
-    pendingResults: database.pendingResults,
   }
 }
 

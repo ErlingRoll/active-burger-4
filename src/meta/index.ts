@@ -4,12 +4,4 @@ export type {
   MetaProgressionSnapshot,
   MetaUnlockDefinition,
   MetaWallet,
-  RunSyncResult,
 } from './MetaProgressionService'
-export {
-  createPendingRunSyncCoordinator,
-} from './PendingRunSyncCoordinator'
-export type {
-  PendingRunSyncCoordinator,
-  PendingRunSyncCoordinatorOptions,
-} from './PendingRunSyncCoordinator'

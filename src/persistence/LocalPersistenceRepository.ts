@@ -2,16 +2,12 @@ import {
   DEFAULT_BASIC_PROFILE,
   DEFAULT_SETTINGS,
   migrateBasicProfile,
-  migratePendingCompletedRunResult,
   migrateSettings,
 } from './migrations'
 import type { PersistenceStore } from './database'
-import {
-  PERSISTENCE_SCHEMA_VERSION,
-  type BasicProfileDto,
-  type PendingCompletedRunResultDto,
-  type PendingCompletedRunResultInput,
-  type SettingsDto,
+import type {
+  BasicProfileDto,
+  SettingsDto,
 } from './types'
 
 const SETTINGS_ID = 'settings' as const
@@ -34,34 +30,13 @@ export interface PersistenceRepository {
   getBasicProfile(): Promise<BasicProfileDto>
   saveBasicProfile(profile: BasicProfileDto): Promise<BasicProfileDto>
   unlockDungeonLength(contractId: string): Promise<BasicProfileDto>
-  listPendingRunResults(): Promise<PendingCompletedRunResultDto[]>
-  enqueuePendingRunResult(
-    result: PendingCompletedRunResultInput,
-  ): Promise<PendingCompletedRunResultDto>
-  removePendingRunResult(id: string): Promise<void>
-}
-
-export type PersistenceIdFactory = () => string
-
-function defaultIdFactory(): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID()
-  }
-  throw new Error(
-    'A PersistenceIdFactory is required when crypto.randomUUID is unavailable.',
-  )
 }
 
 export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
   private readonly store: PersistenceStore
-  private readonly createId: PersistenceIdFactory
 
-  constructor(
-    store: PersistenceStore,
-    createId: PersistenceIdFactory = defaultIdFactory,
-  ) {
+  constructor(store: PersistenceStore) {
     this.store = store
-    this.createId = createId
   }
 
   async getSettings(): Promise<SettingsDto> {
@@ -109,40 +84,12 @@ export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
     }
     return this.saveBasicProfile(profile)
   }
-
-  async listPendingRunResults(): Promise<PendingCompletedRunResultDto[]> {
-    const records = await this.store.pendingResults.toArray()
-    return records
-      .map((record) => migratePendingCompletedRunResult(record, record.id))
-      .sort((a, b) => a.completedAt - b.completedAt || a.id.localeCompare(b.id))
-  }
-
-  async enqueuePendingRunResult(
-    result: PendingCompletedRunResultInput,
-  ): Promise<PendingCompletedRunResultDto> {
-    const id = result.id ?? this.createId()
-    if (id.length === 0 || result.runId.length === 0) {
-      throw new Error('A pending run result requires non-empty id and runId.')
-    }
-    const next = migratePendingCompletedRunResult({
-      ...result,
-      id,
-      schemaVersion: PERSISTENCE_SCHEMA_VERSION,
-    })
-    await this.store.pendingResults.put(next)
-    return next
-  }
-
-  async removePendingRunResult(id: string): Promise<void> {
-    await this.store.pendingResults.delete(id)
-  }
 }
 
 export function createPersistenceRepository(
   store: PersistenceStore,
-  createId?: PersistenceIdFactory,
 ): PersistenceRepository {
-  return new LocalPersistenceRepositoryImpl(store, createId)
+  return new LocalPersistenceRepositoryImpl(store)
 }
 
 export const DEFAULT_PERSISTENCE_SETTINGS = DEFAULT_SETTINGS

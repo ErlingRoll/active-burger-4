@@ -2221,20 +2221,8 @@ Initial database:
 
 ```text
 localSettings
-pendingRunResults
 cachedProfile
 optionalRunSnapshot
-```
-
-Example:
-
-```ts
-interface PendingRunResult {
-  runId: string
-  completedAt: number
-
-  payload: RunResult
-}
 ```
 
 Flow:
@@ -2242,20 +2230,19 @@ Flow:
 ```text
 run finishes
     ↓
-save result to IndexedDB
-    ↓
-attempt Supabase upload
+submit result to Supabase directly
     ↓
 success?
  ┌──┴──┐
 yes    no
  ↓      ↓
-delete  keep locally
-local   retry later
-copy
+update  surface a
+account retryable
+locally error
 ```
 
-This prevents earned progress from disappearing because the network failed after the run.
+Completed run results are submitted directly rather than queued locally, so a
+failed submission surfaces to the player instead of silently retrying later.
 
 ---
 
@@ -3106,7 +3093,7 @@ At minimum:
 
 ```text
 local persistence errors → log + notify gracefully
-Supabase errors → preserve pending result
+Supabase errors → surface a retryable error to the player
 content definition errors → fail loudly in development
 missing asset → use placeholder if possible
 invalid upgrade → reject safely
@@ -3795,13 +3782,12 @@ Persist:
 
 ```text
 settings
-pending run result
 basic local profile
 ```
 
 ## Definition of Done
 
-Refreshing the browser does not erase settings or an unsynchronized completed run result.
+Refreshing the browser does not erase settings or the local profile.
 
 ---
 
@@ -3839,8 +3825,6 @@ Run completion:
 
 ```text
 RunResult
-    ↓
-local queue
     ↓
 Supabase
     ↓
@@ -4223,7 +4207,7 @@ Example:
 interface LocalSaveV1 {
   version: 1
   settings: SettingsData
-  pendingRuns: PendingRunResult[]
+  profile: BasicProfileData
 }
 ```
 
