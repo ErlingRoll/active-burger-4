@@ -391,7 +391,7 @@ export class PixiGame {
 
   private createPickupPlaceholder(pickup: {
     radius: number
-    kind?: 'xp' | 'gear'
+    kind?: 'xp' | 'gear' | 'healing-potion'
   }): Graphics {
     if (pickup.kind === 'gear') {
       const radius = pickup.radius
@@ -401,6 +401,15 @@ export class PixiGame {
         .stroke({ color: '#fef3c7', width: 3 })
         .circle(0, 0, radius * 0.35)
         .fill('#7c3aed')
+    }
+    if (pickup.kind === 'healing-potion') {
+      const radius = pickup.radius
+      return new Graphics()
+        .rect(-radius * 0.55, -radius * 0.25, radius * 1.1, radius * 1.05)
+        .fill('#dc2626')
+        .stroke({ color: '#fecaca', width: 2 })
+        .rect(-radius * 0.28, -radius * 0.7, radius * 0.56, radius * 0.45)
+        .fill('#fee2e2')
     }
 
     return new Graphics()

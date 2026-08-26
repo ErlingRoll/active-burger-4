@@ -12,6 +12,9 @@ export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
   player.statModifiers ??= []
   player.statModifiers.push(...getUpgradeModifiers(definition))
   refreshPlayerDerivedStats(player)
+  if (definition.meleeLeechAmount) {
+    player.meleeLeech = (player.meleeLeech ?? 0) + definition.meleeLeechAmount
+  }
 
   if (definition.dodgeReactionTimeReduction) {
     const dodge = player.dodge ??= {

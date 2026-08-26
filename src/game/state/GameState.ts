@@ -152,6 +152,8 @@ export interface PlayerState {
   attackSpeed: number
   attackRange: number
   attackCooldownRemaining: number
+  /** Additive fraction of actual melee damage restored as health. */
+  meleeLeech?: number
 
   /** Base values and modifiers are optional for backwards-compatible fixtures. */
   baseStats?: StatValues
@@ -265,7 +267,12 @@ export interface GearPickupState extends PickupStateBase {
   sourceEnemyDefinitionId?: EnemyDefinitionId
 }
 
-export type PickupState = XpPickupState | GearPickupState
+export interface HealingPotionPickupState extends PickupStateBase {
+  kind: 'healing-potion'
+  xpAmount?: never
+}
+
+export type PickupState = XpPickupState | GearPickupState | HealingPotionPickupState
 
 export interface StairsState {
   id: EntityId

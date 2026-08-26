@@ -148,7 +148,7 @@ export interface FloorTransitionHudSnapshot {
 
 export interface PickupHudSnapshot {
   readonly id: EntityId
-  readonly kind: 'xp' | 'gear'
+  readonly kind: 'xp' | 'gear' | 'healing-potion'
   readonly x: number
   readonly y: number
   readonly radius: number

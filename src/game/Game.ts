@@ -13,6 +13,7 @@ import type {
 } from './state/GameState'
 import { SpawnDirector } from './spawning/SpawnDirector'
 import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
+import { HEALING_POTION_MAX_HP_FRACTION } from '../content/progression/HealingPotions'
 import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   DEFAULT_PLAYSTYLE_ID,
@@ -68,6 +69,7 @@ import {
   spawnEnemy,
   spawnBoss,
   spawnGearPickup,
+  spawnHealingPotion,
   spawnSlime,
   spawnXpPickup,
   updateEnemySpawns,
@@ -764,7 +766,9 @@ export class Game {
       this.spawnEnemy(definitionId, position, xpRewardOverride)
     }, (position, sourceEnemyDefinitionId) => {
       this.spawnGearPickup(position, sourceEnemyDefinitionId)
-    }, this.gearRandom)
+    }, this.gearRandom, (position) => {
+      spawnHealingPotion(this.gameState, this.idAllocator, position)
+    })
     updateStairs(this.gameState, (stairs) => {
       stairs.rewardsCollected = true
       this.collectFloorPickupsAt(stairs.x, stairs.y)
@@ -777,9 +781,14 @@ export class Game {
       if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
         this.enqueueLevelUpFlows(levelsGained)
       }
-    }, (pickup) => {
+    }, (pickup: GearPickupState) => {
       this.collectedGearPickups.push({ ...pickup })
       this.enqueueGearPickupFlow(pickup)
+    }, () => {
+      this.gameState.player.hp = Math.min(
+        this.gameState.player.maxHp,
+        this.gameState.player.hp + this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+      )
     })
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
   }
@@ -795,9 +804,14 @@ export class Game {
         if (levelsGained > 0) {
           this.enqueueLevelUpFlows(levelsGained)
         }
-      } else {
+      } else if (pickup.kind === 'gear') {
         this.collectedGearPickups.push({ ...pickup })
         this.enqueueGearPickupFlow(pickup)
+      } else {
+        this.gameState.player.hp = Math.min(
+          this.gameState.player.maxHp,
+          this.gameState.player.hp + this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+        )
       }
     }
   }

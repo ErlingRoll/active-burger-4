@@ -16,6 +16,7 @@ export type UpgradeId =
   | 'basic-bolt-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
+  | 'whirlwind-leech'
   | 'dodge-reaction'
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
@@ -53,6 +54,7 @@ export interface UpgradeDefinition {
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
   /** Optional reduction to the autonomous Dodge reaction delay. */
   dodgeReactionTimeReduction?: number
+  meleeLeechAmount?: number
 }
 
 const hasSkill = (
@@ -71,6 +73,19 @@ const skillLevelAtLeast = (
  * while rank upgrades become eligible once their skill is owned.
  */
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
+  {
+    id: 'whirlwind-leech',
+    name: 'Sanguine Whirlwind',
+    description: 'Whirlwind restores 2% of actual melee damage dealt.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 0.02,
+    valueLabel: '+2% melee leech',
+    skillId: WHIRLWIND_SKILL_ID,
+    skillAction: 'unlock',
+    meleeLeechAmount: 0.02,
+    isEligible: (state) => hasSkill(state, WHIRLWIND_SKILL_ID),
+  },
   {
     id: 'damage-boost',
     name: 'Heavy Hitter',

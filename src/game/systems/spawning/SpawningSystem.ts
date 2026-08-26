@@ -35,6 +35,7 @@ import type {
   BossState,
   GameState,
   GearPickupState,
+  HealingPotionPickupState,
   XpPickupState,
   PlayerState,
 } from '../../state/GameState'
@@ -69,6 +70,7 @@ export function createInitialPlayerState(
     attackSpeed: playstyle.baseStats.attackSpeed,
     attackRange: playstyle.baseStats.attackRange,
     attackCooldownRemaining: 0,
+    meleeLeech: 0,
     baseStats: {
       maxHp,
       movementSpeed,
@@ -238,6 +240,24 @@ export function spawnGearPickup(
 
   state.pickups.push(pickup)
   state.run.gearDropGenerated = true
+  return pickup.id
+}
+
+export function spawnHealingPotion(
+  state: GameState,
+  idAllocator: EntityIdAllocator,
+  position: WorldPosition,
+): EntityId {
+  const pickup: HealingPotionPickupState = {
+    id: idAllocator.createEntityId(),
+    kind: 'healing-potion',
+    x: position.x,
+    y: position.y,
+    radius: 12,
+    attractionRadius: 180,
+    attractionSpeed: 360,
+  }
+  state.pickups.push(pickup)
   return pickup.id
 }
 

@@ -6,6 +6,7 @@ import {
   BASIC_BOLT_SKILL_ID,
   getSkillDamage,
   getSkillDefinition,
+  isSkillId,
 } from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
 import {
@@ -27,6 +28,10 @@ import type {
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
 import type { RandomSource } from '../../random/Random'
+import {
+  HEALING_POTION_ELITE_DROP_CHANCE,
+  HEALING_POTION_ORDINARY_DROP_CHANCE,
+} from '../../../content/progression/HealingPotions'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 
@@ -287,14 +292,35 @@ export function applyDamageEvents(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (enemy) {
-      enemy.hp = Math.max(0, enemy.hp - Math.max(0, event.amount))
+      const actualDamage = Math.min(enemy.hp, Math.max(0, event.amount))
+      enemy.hp -= actualDamage
+      applyMeleeLeech(state, event, actualDamage)
       continue
     }
     const boss = state.bosses?.find(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (boss) {
-      boss.hp = Math.max(0, boss.hp - Math.max(0, event.amount))
+      const actualDamage = Math.min(boss.hp, Math.max(0, event.amount))
+      boss.hp -= actualDamage
+      applyMeleeLeech(state, event, actualDamage)
+    }
+
+    function applyMeleeLeech(
+      state: GameState,
+      event: DamageEvent,
+      actualDamage: number,
+    ): void {
+      if (!event.sourceSkillId || event.sourceId !== state.player.id || actualDamage <= 0) {
+        return
+      }
+      if (!isSkillId(event.sourceSkillId) || !getSkillDefinition(event.sourceSkillId).tags.includes('melee')) {
+        return
+      }
+      state.player.hp = Math.min(
+        state.player.maxHp,
+        state.player.hp + actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
+      )
     }
   }
 }
@@ -312,6 +338,7 @@ export function removeDeadEntities(
     sourceEnemyDefinitionId: string,
   ) => void,
   random?: RandomSource,
+  spawnHealingPotion?: (position: { x: number; y: number }) => void,
 ): void {
   const livingEnemies: EnemyState[] = []
   const childSpawns: ChildSpawnRequest[] = []
@@ -335,6 +362,12 @@ export function removeDeadEntities(
           { x: enemy.x, y: enemy.y },
           enemy.definitionId,
         )
+      }
+      const potionChance = enemy.eliteModifier
+        ? HEALING_POTION_ELITE_DROP_CHANCE
+        : HEALING_POTION_ORDINARY_DROP_CHANCE
+      if (random?.chance(potionChance) ?? false) {
+        spawnHealingPotion?.({ x: enemy.x, y: enemy.y })
       }
       childSpawns.push(...getSplitChildren(enemy))
     }

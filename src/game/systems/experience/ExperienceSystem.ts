@@ -3,6 +3,7 @@ import type { EntityId } from '../../ids'
 import type {
   GameState,
   GearPickupState,
+  HealingPotionPickupState,
   PickupState,
 } from '../../state/GameState'
 import { SpatialHash } from '../../spatial/SpatialHash'
@@ -12,6 +13,7 @@ export function updatePickups(
   fixedStepSeconds: number,
   grantExperience: (amount: number) => void,
   collectGearPickup: (pickup: GearPickupState) => void = () => {},
+  collectHealingPotion: (pickup: HealingPotionPickupState) => void = () => {},
 ): void {
   const player = state.player
   const pickups = new SpatialHash<GameState['pickups'][number]>()
@@ -37,7 +39,7 @@ export function updatePickups(
     const contactRange = player.radius + pickup.radius
 
     if (distance <= contactRange || distance === 0) {
-      collectPickup(pickup, grantExperience, collectGearPickup)
+      collectPickup(pickup, grantExperience, collectGearPickup, collectHealingPotion)
       collectedIds.add(pickup.id)
       if (state.run.phase !== 'playing') {
         break
@@ -60,7 +62,7 @@ export function updatePickups(
     if (
       Math.hypot(player.x - pickup.x, player.y - pickup.y) <= contactRange
     ) {
-      collectPickup(pickup, grantExperience, collectGearPickup)
+      collectPickup(pickup, grantExperience, collectGearPickup, collectHealingPotion)
       collectedIds.add(pickup.id)
     }
 
@@ -80,9 +82,12 @@ function collectPickup(
   pickup: PickupState,
   grantExperience: (amount: number) => void,
   collectGearPickup: (pickup: GearPickupState) => void,
+  collectHealingPotion: (pickup: HealingPotionPickupState) => void,
 ): void {
   if (pickup.kind === 'gear') {
     collectGearPickup(pickup)
+  } else if (pickup.kind === 'healing-potion') {
+    collectHealingPotion(pickup)
   } else {
     grantExperience(pickup.xpAmount)
   }
