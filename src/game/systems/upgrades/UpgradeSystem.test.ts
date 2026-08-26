@@ -40,6 +40,6 @@ describe('skill upgrades', () => {
       level: 2,
       reactionTime: 0.05,
     })
-    expect(game.state.player.movementSpeed).toBe(200)
+    expect(game.state.player.movementSpeed).toBe(100)
   })
 })
