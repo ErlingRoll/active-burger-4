@@ -247,6 +247,7 @@ export function GameCanvas({
     <div
       className="game-canvas"
       data-game-phase={phase}
+      data-world-modifiers={(runConfig?.worldModifierIds ?? []).join(',')}
     >
       <div
         ref={containerRef}
