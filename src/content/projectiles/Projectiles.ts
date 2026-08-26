@@ -5,16 +5,34 @@ export interface ProjectileDefinition {
   speed: number
   radius: number
   lifetime: number
+  guidance: 'straight' | 'homing'
+  turnRateDegreesPerSecond?: number
+  retargetRange?: number
 }
 
-export const BASIC_BOLT_DEFINITION_ID: ProjectileDefinitionId = 'basic-bolt'
+export const PLAYER_PROJECTILE_CHAIN_RANGE = 180
+
+export const BASIC_ATTACK_ARROW_DEFINITION_ID: ProjectileDefinitionId =
+  'basic-attack-arrow'
+export const BASIC_ATTACK_ORB_DEFINITION_ID: ProjectileDefinitionId =
+  'basic-attack-orb'
 
 export const PROJECTILE_DEFINITIONS = {
-  [BASIC_BOLT_DEFINITION_ID]: {
-    id: BASIC_BOLT_DEFINITION_ID,
-    speed: 360,
-    radius: 5,
+  [BASIC_ATTACK_ARROW_DEFINITION_ID]: {
+    id: BASIC_ATTACK_ARROW_DEFINITION_ID,
+    speed: 420,
+    radius: 4,
+    lifetime: 1.8,
+    guidance: 'straight',
+  },
+  [BASIC_ATTACK_ORB_DEFINITION_ID]: {
+    id: BASIC_ATTACK_ORB_DEFINITION_ID,
+    speed: 320,
+    radius: 6,
     lifetime: 2,
+    guidance: 'homing',
+    turnRateDegreesPerSecond: 300,
+    retargetRange: 280,
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>
 

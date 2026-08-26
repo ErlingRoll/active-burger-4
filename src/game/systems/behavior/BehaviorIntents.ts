@@ -78,9 +78,12 @@ function threatScore(
   )
 }
 
-function nearestGearPickup(state: GameState): GameState['pickups'][number] | undefined {
+function nearestPickup(
+  state: GameState,
+  kind: 'gear' | 'xp',
+): GameState['pickups'][number] | undefined {
   return [...(state.pickups ?? [])]
-    .filter((pickup) => pickup.kind === 'gear')
+    .filter((pickup) => pickup.kind === kind)
     .sort((left, right) =>
       distanceSquared(state.player.x, state.player.y, left.x, left.y) -
         distanceSquared(state.player.x, state.player.y, right.x, right.y) ||
@@ -112,10 +115,11 @@ function chooseCombatTarget(
     })[0]
 }
 
-function createGearCandidate(
+function createPickupCandidate(
   state: GameState,
   pickup: GameState['pickups'][number],
   speed: number,
+  source: 'gear' | 'xp',
 ): PlayerMovementCandidate | undefined {
   const vector = direction(
     state.player.x,
@@ -131,10 +135,10 @@ function createGearCandidate(
     return undefined
   }
   return {
-    source: 'gear',
+    source,
     ...vector,
     speed,
-    priority: BEHAVIOR_INTENT_PRIORITIES.gear,
+    priority: BEHAVIOR_INTENT_PRIORITIES[source],
     pickupId: pickup.id,
   }
 }
@@ -219,7 +223,7 @@ function createCombatRangeCandidate(
   }
   const attackRange = Math.max(0, getDerivedPlayerStats(state.player).attackRange)
   // Movement holds the same center-to-center engagement boundary as targeting.
-  const desiredDistance = attackRange + state.player.radius
+  const desiredDistance = attackRange + state.player.radius + target.radius
   const currentDistance = Math.sqrt(
     distanceSquared(state.player.x, state.player.y, target.x, target.y),
   )
@@ -277,7 +281,8 @@ export function getPlayerBehaviorCandidates(
     })
   }
 
-  const pickup = nearestGearPickup(state)
+  const gearPickup = nearestPickup(state, 'gear')
+  const xpPickup = nearestPickup(state, 'xp')
   const nearestThreatDistance = playerThreats.reduce(
     (nearest, entity) => Math.min(
       nearest,
@@ -286,15 +291,38 @@ export function getPlayerBehaviorCandidates(
     Number.POSITIVE_INFINITY,
   )
   if (
-    pickup &&
+    gearPickup &&
     totalThreatScore <= policy.thresholds.safeGearThreatScore &&
     nearestThreatDistance >= policy.thresholds.safeGearDistance
   ) {
-    const gear = createGearCandidate(state, pickup, playerStats.movementSpeed)
+    const gear = createPickupCandidate(
+      state,
+      gearPickup,
+      playerStats.movementSpeed,
+      'gear',
+    )
     if (gear) {
       candidates.push({
         ...gear,
         priority: policy.intentPriorities.gear,
+      })
+    }
+  }
+  if (
+    xpPickup &&
+    totalThreatScore <= policy.thresholds.safeGearThreatScore &&
+    nearestThreatDistance >= policy.thresholds.safeGearDistance
+  ) {
+    const xp = createPickupCandidate(
+      state,
+      xpPickup,
+      playerStats.movementSpeed,
+      'xp',
+    )
+    if (xp) {
+      candidates.push({
+        ...xp,
+        priority: policy.intentPriorities.xp,
       })
     }
   }

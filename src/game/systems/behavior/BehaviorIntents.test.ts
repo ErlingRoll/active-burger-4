@@ -193,6 +193,31 @@ describe('data-driven player behavior intents', () => {
     expect(selectedByProfile('cautious')).toBe('kite')
   })
 
+  it('prioritizes safe XP pickups over ordinary combat movement for balanced and cautious profiles', () => {
+    const state = createState(
+      [enemy(9, 'slime', 320)],
+      [{
+        id: 3,
+        kind: 'xp',
+        x: 120,
+        y: 0,
+        radius: 8,
+        attractionRadius: 180,
+        attractionSpeed: 360,
+        xpAmount: 5,
+      }],
+    )
+
+    for (const profileId of ['balanced', 'cautious'] as const) {
+      state.player.behaviorController = {
+        profileId,
+        lastCandidate: undefined,
+        commitmentRemaining: 0,
+      }
+      expect(updatePlayerBehavior(state, 0)?.source).toBe('xp')
+    }
+  })
+
   it('commits a movement intent briefly while Dodge remains an interrupt', () => {
     const state = createState([enemy(2, 'slime', 320)])
     const first = updatePlayerBehavior(state, 0)
@@ -215,7 +240,13 @@ describe('data-driven player behavior intents', () => {
       remainingDuration: 0.8,
       duration: 1,
       points: [{ x: state.player.x, y: state.player.y }],
-      damage: 1,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
     }]
     expect(updatePlayerBehavior(state, 0.05)?.source).toBe('dodge')
   })

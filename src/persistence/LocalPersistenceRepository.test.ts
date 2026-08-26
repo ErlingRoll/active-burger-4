@@ -45,6 +45,8 @@ describe('local persistence schema', () => {
       schemaVersion: 1,
       selectedBehaviorProfileId: 'balanced',
       selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
+      selectedWorldModifierIds: [],
+      selectedPlaystyleId: 'knight',
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
       schemaVersion: 1,

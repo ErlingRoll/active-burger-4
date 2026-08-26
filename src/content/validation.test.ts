@@ -137,8 +137,8 @@ describe('content validation', () => {
         ],
         upgrades: [
           {
-            ...CURRENT_CONTENT.upgrades[3],
-            skillId: 'missing-skill',
+            ...CURRENT_CONTENT.upgrades[4],
+            skillId: 'missing-skill' as never,
           },
         ],
       }),
@@ -262,7 +262,7 @@ describe('content validation', () => {
     )
   })
 
-  it('validates shared rarity, equipment slots, and stat modifiers', () => {
+  it('validates shared rarity, equipment slots, and gear modifiers', () => {
     const errors = validateContent(
       catalogWith({
         items: [
@@ -273,8 +273,8 @@ describe('content validation', () => {
             slot: 'backpack' as never,
             modifiers: [
               {
-                stat: 'unknown' as never,
-                operation: 'divide' as never,
+                id: 'unknown' as never,
+                tier: 9 as never,
                 value: Number.NaN,
                 sourceId: '',
               },
@@ -288,8 +288,8 @@ describe('content validation', () => {
       expect.arrayContaining([
         'items[0].rarity is not supported; received "mythic".',
         'items[0].slot is not supported; received "backpack".',
-        'items[0].modifiers[0].stat is not supported; received "unknown".',
-        'items[0].modifiers[0].operation is not supported; received "divide".',
+        'items[0].modifiers[0].id is not supported; received "unknown".',
+        'items[0].modifiers[0].tier is not supported; received "9".',
         'items[0].modifiers[0].value must be a finite number; received NaN.',
         'items[0].modifiers[0].sourceId must be a non-empty string.',
       ]),
@@ -327,7 +327,7 @@ describe('content validation', () => {
       expect.arrayContaining([
         'items[0].id must use lowercase ASCII letters, numbers, and hyphens; received "Iron Cleaver".',
         'items[0].modifiers must contain at least one modifier.',
-        'items[1].modifiers[0].sourceId must be "item:iron-cleaver"; received "upgrade:wrong-source".',
+        'items[1].modifiers[0].sourceId must start with "item:iron-cleaver:"; received "upgrade:wrong-source".',
         'items contains duplicate id "iron-cleaver".',
       ]),
     )
@@ -346,5 +346,39 @@ describe('content validation', () => {
     )
 
     expect(errors).toContain('items[0].modifiers[0] must define a modifier object.')
+  })
+
+  it('validates weapon archetypes and archetype-restricted gear modifiers', () => {
+    const errors = validateContent(
+      catalogWith({
+        items: [
+          {
+            ...CURRENT_CONTENT.items.find((item) => item.id === 'iron-cleaver')!,
+            weaponArchetype: 'spear' as never,
+          },
+          {
+            ...CURRENT_CONTENT.items.find((item) => item.id === 'watchers-helm')!,
+            weaponArchetype: 'bow' as never,
+          },
+          {
+            ...CURRENT_CONTENT.items.find((item) => item.id === 'iron-cleaver')!,
+            modifiers: [{
+              id: 'projectile-chains',
+              tier: 4,
+              value: 2,
+              sourceId: 'item:iron-cleaver:projectile-chains',
+            }],
+          },
+        ],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'items[0].weaponArchetype is required for weapons and must be supported; received "spear".',
+        'items[1].weaponArchetype is only supported on weapon items.',
+        'items[2].modifiers[0].id is not available for slot weapon (sword).',
+      ]),
+    )
   })
 })

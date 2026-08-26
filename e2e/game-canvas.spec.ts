@@ -260,10 +260,10 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   await expect(page.getByRole('status')).toHaveText('Paused')
 
   const skill = page.getByRole('button', {
-    name: 'Basic Bolt, level 1',
+    name: 'Basic Attack, level 1',
   })
   await skill.focus()
-  await expect(page.getByRole('tooltip')).toContainText('Basic Bolt')
+  await expect(page.getByRole('tooltip')).toContainText('Basic Attack')
 
   await page.getByRole('button', { name: 'Development Menu' }).click()
   await expect(
@@ -301,10 +301,10 @@ test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Development Menu' })).toBeDisabled()
 
   const skill = page.getByRole('button', {
-    name: 'Basic Bolt, level 1',
+    name: 'Basic Attack, level 1',
   })
   await skill.hover()
-  await expect(page.getByRole('tooltip')).toContainText('Basic Bolt')
+  await expect(page.getByRole('tooltip')).toContainText('Basic Attack')
 
   await page.keyboard.press('Escape')
   await expect(page.locator('.game-canvas')).toHaveAttribute(
@@ -329,7 +329,7 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
   await page.getByRole('button', { name: 'Start Run' }).click()
 
   const skill = page.getByRole('button', {
-    name: 'Basic Bolt, level 1',
+    name: 'Basic Attack, level 1',
   })
   await expect(skill).toBeVisible()
   await skill.focus()

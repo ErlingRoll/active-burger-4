@@ -126,6 +126,10 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unable to access local persistence.'
 }
 
+function createRunSeed(): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0]
+}
+
 function createInitialMetaProgressionState(
   service: MetaProgressionService | null,
   configurationError: string | null,
@@ -229,6 +233,7 @@ function App() {
     ),
   )
   const [runId, setRunId] = useState(0)
+  const [runSeed, setRunSeed] = useState(createRunSeed)
   const [activeRunSubmission, setActiveRunSubmission] = useState<MetaRunResultInput | null>(null)
   const [result, setResult] = useState<RunResultSnapshot | null>(null)
   const [runReward, setRunReward] = useState<RunRewardState>({
@@ -333,7 +338,7 @@ function App() {
     const selectedContractIsDefault =
       settings.selectedDungeonLengthContractId === DEFAULT_DUNGEON_LENGTH_CONTRACT_ID
     return {
-      seed: 3,
+      seed: runSeed,
       behaviorProfileId: settings.selectedBehaviorProfileId,
       playstyleId: settings.selectedPlaystyleId,
       worldModifierIds: settings.selectedWorldModifierIds,
@@ -344,7 +349,7 @@ function App() {
             unlockedDungeonLengthIds,
           }),
     }
-  }, [profile, settings])
+  }, [profile, runSeed, settings])
 
   const persistSettings = useCallback(
     async (patch: SettingsPatch): Promise<void> => {
@@ -503,6 +508,7 @@ function App() {
   const startRun = useCallback((): void => {
     setResult(null)
     setWriteError(null)
+    setRunSeed(createRunSeed())
     setActiveRunSubmission({
       runId: crypto.randomUUID(),
       pendingResultId: crypto.randomUUID(),

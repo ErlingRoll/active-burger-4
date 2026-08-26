@@ -9,7 +9,9 @@ import {
   type BossDefinitionId,
   type BossEnrageDefinition,
 } from '../../../content/bosses/Bosses'
+import { createDamageValues } from '../../../content/stats/Damage'
 import type { EntityIdAllocator } from '../../ids'
+import { createBossDamageProfile } from '../../combat/DamageSources'
 import type {
   BossState,
   DamageEvent,
@@ -117,6 +119,16 @@ function telegraphKind(
   return skillId
 }
 
+function telegraphDamageType(
+  skillId: TelegraphState['skillId'],
+): 'physical' | 'fire' {
+  return skillId === FIRE_NOVA_SKILL_ID ||
+      skillId === FLAME_LINE_SKILL_ID ||
+      skillId === METEOR_ZONE_SKILL_ID
+    ? 'fire'
+    : 'physical'
+}
+
 function castNextSkill(
   state: GameState,
   boss: BossState,
@@ -165,7 +177,18 @@ function castNextSkill(
     remainingDuration: definition.telegraphDuration,
     duration: definition.telegraphDuration,
     points,
-    damage: definition.damage * enrage.damageMultiplier,
+    ...(() => {
+      const damage = createBossDamageProfile(
+        boss,
+        createDamageValues({
+          [telegraphDamageType(skillState.skillId)]: definition.damage * enrage.damageMultiplier,
+        }),
+      )
+      return {
+        damage: damage.damage,
+        criticalStrike: damage.criticalStrike,
+      }
+    })(),
   }
   state.telegraphs ??= []
   state.telegraphs.push(telegraph)
@@ -219,12 +242,8 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
       events.push({
         sourceId: telegraph.sourceId,
         targetId: state.player.id,
-        amount: telegraph.damage,
-        damageType: telegraph.kind === FIRE_NOVA_SKILL_ID ||
-          telegraph.kind === FLAME_LINE_SKILL_ID ||
-          telegraph.kind === METEOR_ZONE_SKILL_ID
-          ? 'fire'
-          : 'physical',
+        damage: telegraph.damage,
+        criticalStrike: telegraph.criticalStrike,
       })
     }
     if (telegraph.kind === 'charge') {

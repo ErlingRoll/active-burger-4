@@ -48,9 +48,10 @@ export function selectMovementCandidate(
   const sourceOrder: Record<PlayerMovementCandidate['source'], number> = {
     dodge: 0,
     gear: 1,
-    kite: 2,
-    'combat-range': 3,
-    hold: 4,
+    xp: 2,
+    kite: 3,
+    'combat-range': 4,
+    hold: 5,
   }
   return candidates
     .map((candidate, index) => ({ candidate, index }))

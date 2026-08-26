@@ -9,6 +9,8 @@ import {
 } from './Game'
 import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
+import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
+import { equipItem } from './equipment/EquipmentState'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -200,6 +202,7 @@ describe('Game', () => {
       level: game.state.player.level,
       xp: game.state.player.xp,
       killCount: game.state.run.killCount,
+      worldModifierIds: [],
     })
     expect(Object.isFrozen(result)).toBe(true)
   })
@@ -433,8 +436,11 @@ describe('Game', () => {
     expect(game.state.enemies[0].x).toBeGreaterThanOrEqual(0)
   })
 
-  it('automatically creates a Basic Bolt when a living enemy is in attack range', () => {
+  it('automatically creates a wand-like Basic Attack when no weapon is equipped', () => {
     const game = createGame({ seed: 11 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
     game.spawnSlime({ x: 50, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
@@ -443,21 +449,56 @@ describe('Game', () => {
     expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
     expect(game.state.projectiles[0]).toMatchObject({
       ownerId: game.state.player.id,
-      definitionId: 'basic-bolt',
-      x: 6,
+      definitionId: 'basic-attack-orb',
+      basicAttackWeaponArchetype: 'wand',
       y: 0,
-      velocityX: 360,
+      velocityX: 320,
       velocityY: 0,
-      damage: game.state.player.attackDamage,
+      damage: {
+        physical: game.state.player.attackDamage,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
     })
+    expect(game.state.projectiles[0]?.x).toBeCloseTo(320 / 60)
     expect(game.state.player.skills).toEqual([
-      expect.objectContaining({ skillId: 'basic-bolt', level: 1 }),
+      expect.objectContaining({ skillId: 'basic-attack', level: 1 }),
     ])
+  })
+
+  it('resolves sword Basic Attack hits without spawning projectiles', () => {
+    const game = createGame({ seed: 110 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    equipItem(game.state.player, 'iron-cleaver')
+    const firstTargetId = game.spawnSlime({ x: 35, y: 0 })
+    const secondTargetId = game.spawnSlime({ x: 32, y: 16 })
+    const outsideArcId = game.spawnSlime({ x: 0, y: 60 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    const firstTarget = game.state.enemies.find((enemy) => enemy.id === firstTargetId)
+    const secondTarget = game.state.enemies.find((enemy) => enemy.id === secondTargetId)
+    const outsideArc = game.state.enemies.find((enemy) => enemy.id === outsideArcId)
+    expect(game.state.projectiles).toHaveLength(0)
+    expect(firstTarget?.hp).toBeLessThan(firstTarget?.maxHp ?? Infinity)
+    expect(secondTarget?.hp).toBeLessThan(secondTarget?.maxHp ?? Infinity)
+    expect(outsideArc?.hp).toBe(outsideArc?.maxHp)
+    expect(game.state.effects[0]).toMatchObject({
+      shape: 'arc',
+      basicAttackWeaponArchetype: 'sword',
+    })
   })
 
   it('keeps a lone slime inside the engagement envelope targeted and firing', () => {
     const game = createGame({ seed: 111 })
-    game.spawnSlime({ x: 64, y: 0 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    game.spawnSlime({ x: 60, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
 
@@ -467,8 +508,11 @@ describe('Game', () => {
 
   it('keeps pursuing and firing at the current target when another enemy moves closer', () => {
     const game = createGame({ seed: 112 })
-    const firstTargetId = game.spawnSlime({ x: 64, y: 0 })
-    const closerEnemyId = game.spawnSlime({ x: 72, y: 0 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    const firstTargetId = game.spawnSlime({ x: 60, y: 0 })
+    const closerEnemyId = game.spawnSlime({ x: 68, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.player.targetId).toBe(firstTargetId)
@@ -491,6 +535,9 @@ describe('Game', () => {
 
   it('waits for the attack cooldown before creating another projectile', () => {
     const game = createGame({ seed: 12 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
     const slimeId = game.spawnSlime({ x: 0, y: 0 })
     const slime = game.state.enemies.find((enemy) => enemy.id === slimeId)
     if (!slime) {
@@ -514,6 +561,9 @@ describe('Game', () => {
 
   it('applies projectile damage and removes an enemy when its health reaches zero', () => {
     const game = createGame({ seed: 13 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
     const slimeId = game.spawnSlime({ x: 0, y: 0 })
     const slime = game.state.enemies.find((enemy) => enemy.id === slimeId)
     if (!slime) {

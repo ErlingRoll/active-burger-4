@@ -13,8 +13,17 @@ describe('updateSummons', () => {
     expect(events).toEqual([{
       sourceId: game.state.summons[0]!.id,
       targetId,
-      amount: 6,
-      damageType: 'physical',
+      damage: {
+        physical: 6,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+      criticalStrike: {
+        chance: 5,
+        multiplier: 200,
+      },
     }])
   })
 })

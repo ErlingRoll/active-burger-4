@@ -1,20 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import { createGearModifier } from '../../content/gear/ModifierPools'
 import {
-  BASIC_BOLT_SKILL_ID,
+  BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
 import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
+import { equipRolledItem } from '../equipment/EquipmentState'
 import { createUiSnapshot } from './Snapshots'
 
 describe('UI snapshots', () => {
   it('projects only acquired skills with actual single-target DPS assumptions', () => {
     const game = createGame({ seed: 71 })
-    game.state.player.skills.push(
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
       { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
       { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 2, cooldownRemaining: 0 },
-    )
+    ]
     game.state.run.selectedUpgradeIds.push(
       'damage-boost',
       'whirlwind-unlock',
@@ -23,23 +26,24 @@ describe('UI snapshots', () => {
     const snapshot = createUiSnapshot(game.state)
 
     expect(snapshot.skills.map((skill) => skill.skillId)).toEqual([
-      BASIC_BOLT_SKILL_ID,
+      BASIC_ATTACK_SKILL_ID,
       WHIRLWIND_SKILL_ID,
       CHAIN_LIGHTNING_SKILL_ID,
     ])
-    expect(snapshot.skills.map((skill) => skill.estimatedSingleTargetDps)).toEqual([
-      10,
-      3.2,
-      9 / 3.5,
-    ])
-    expect(snapshot.skills[0]?.dpsAssumption).toContain('attack cadence')
+    expect(snapshot.skills[0]?.name).toBe('Basic Attack')
+    expect(snapshot.skills[0]?.damage).toMatchObject({ physical: 14 })
+    expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
+    expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
+    expect(snapshot.skills[1]?.estimatedSingleTargetDps).toBeCloseTo(3.36)
+    expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(2.7)
+    expect(snapshot.skills[0]?.dpsAssumption).toContain('Basic Attack cadence')
     expect(snapshot.skills[1]?.dpsAssumption).toContain('Whirlwind range')
     expect(snapshot.skills[2]?.dpsAssumption).toContain('Primary target')
 
     const basicUpgrades = snapshot.skills[0]?.upgrades ?? []
     expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'damage-boost'))
       .toMatchObject({ relevant: true, status: 'acquired' })
-    expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-bolt-level'))
+    expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-attack-level'))
       .toMatchObject({ relevant: true, status: 'available' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
@@ -72,6 +76,123 @@ describe('UI snapshots', () => {
     expect(Object.isFrozen(snapshot.telegraphs)).toBe(true)
     expect(Object.isFrozen(snapshot.telegraphs[0]?.points)).toBe(true)
     expect(Object.isFrozen(snapshot.dodge)).toBe(true)
+  })
+
+  it('projects weapon-driven Basic Attack presentation and relevant gear modifiers', () => {
+    const game = createGame({ seed: 78 })
+    equipRolledItem(
+      game.state.player,
+      'swiftstride-boots',
+      'epic',
+      [
+        createGearModifier('swiftstride-boots', 'movement-speed', 3, 11),
+        createGearModifier('swiftstride-boots', 'attack-speed', 5, 6),
+        createGearModifier('swiftstride-boots', 'attack-range', 4, 20),
+        createGearModifier('swiftstride-boots', 'elemental-resistance', 5, 7),
+      ],
+    )
+    equipRolledItem(
+      game.state.player,
+      'starcaller-amulet',
+      'legendary',
+      [
+        createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
+        createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
+        createGearModifier('starcaller-amulet', 'crit-multiplier', 4, 28),
+        createGearModifier('starcaller-amulet', 'attack-range', 3, 28),
+        createGearModifier('starcaller-amulet', 'elemental-resistance', 4, 18),
+      ],
+    )
+    equipRolledItem(
+      game.state.player,
+      'hunters-bow',
+      'rare',
+      [
+        createGearModifier('hunters-bow', 'increased-projectile-damage', 4, 14),
+        createGearModifier('hunters-bow', 'basic-attack-extra-projectiles', 4, 1),
+      ],
+    )
+
+    const snapshot = createUiSnapshot(game.state)
+
+    expect(snapshot.skills[0]).toMatchObject({
+      skillId: BASIC_ATTACK_SKILL_ID,
+      name: 'Basic Attack',
+      icon: '➶',
+      tags: ['physical', 'projectile'],
+    })
+    expect(snapshot.skills[0]?.description).toContain('arrows')
+    expect(snapshot.skills[0]?.gearModifiers.map((modifier) => modifier.id)).toEqual(
+      expect.arrayContaining([
+        'increased-projectile-damage',
+        'basic-attack-extra-projectiles',
+      ]),
+    )
+    expect(snapshot.characterStats.groups.map((group) => group.id)).toEqual(
+      expect.arrayContaining([
+        'offence',
+        'defence',
+      ]),
+    )
+    expect(snapshot.characterStats.groups.find((group) => group.id === 'offence')?.stats)
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: 'cooldown-reduction',
+          value: '0%',
+          appliesTo: 'Whirlwind and Chain Lightning; never Basic Attack.',
+        }),
+        expect.objectContaining({
+          id: 'basic-attack-extra-projectiles',
+          value: '1',
+          appliesTo: expect.stringContaining('Projectile-tagged Basic Attack variants only.'),
+        }),
+      ]))
+    expect(snapshot.characterStats.groups.find((group) => group.id === 'offence')?.stats)
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'flat-damage-lightning', value: '+7' }),
+        expect.objectContaining({ id: 'increased-damage-elemental', value: '+24%' }),
+        expect.objectContaining({ id: 'increased-damage-projectile', value: '+14%' }),
+      ]))
+    expect(snapshot.characterStats.groups.find((group) => group.id === 'defence')?.stats)
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: 'resistance-lightning',
+          value: '25%',
+        }),
+        expect.objectContaining({
+          id: 'resistance-fire',
+          value: '25%',
+        }),
+        expect.objectContaining({
+          id: 'resistance-cold',
+          value: '25%',
+        }),
+      ]))
+    expect(Object.isFrozen(snapshot.characterStats)).toBe(true)
+    expect(
+      Object.isFrozen(snapshot.characterStats.groups[0]?.stats),
+    ).toBe(true)
+  })
+
+  it('uses equipped weapon variant tags for Basic Attack snapshots', () => {
+    const game = createGame({ seed: 79 })
+    equipRolledItem(
+      game.state.player,
+      'iron-cleaver',
+      'common',
+      [
+        createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+      ],
+    )
+
+    const snapshot = createUiSnapshot(game.state)
+
+    expect(snapshot.skills[0]).toMatchObject({
+      skillId: BASIC_ATTACK_SKILL_ID,
+      icon: '🗡',
+      tags: ['physical', 'melee', 'area'],
+    })
+    expect(snapshot.skills[0]?.description).toContain('melee arc')
   })
 
   it('projects the selected behavior profile and active intent immutably', () => {

@@ -10,7 +10,8 @@ import {
   type EliteModifierId,
 } from '../content/enemies/EliteModifiers'
 import {
-  BASIC_BOLT_SKILL_ID,
+  BASIC_ATTACK_SKILL_ID,
+  getBasicAttackVariant,
   getSkillDefinition,
   isSkillId,
 } from '../content/skills/Skills'
@@ -244,30 +245,43 @@ export class PixiGame {
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
-    const skillId =
-      projectile.skillId && isSkillId(projectile.skillId)
-        ? projectile.skillId
-        : BASIC_BOLT_SKILL_ID
-    const visual = getSkillDefinition(skillId).visual
+    const visual =
+      projectile.skillId === BASIC_ATTACK_SKILL_ID
+        ? getBasicAttackVariant(projectile.basicAttackWeaponArchetype).visual
+        : getSkillDefinition(
+            projectile.skillId && isSkillId(projectile.skillId)
+              ? projectile.skillId
+              : BASIC_ATTACK_SKILL_ID,
+          ).visual
     const trailLength = visual.trailLength ?? projectile.radius * 3
     const trailWidth = visual.trailWidth ?? projectile.radius
     const view = new Graphics()
       .moveTo(-trailLength, 0)
       .lineTo(0, 0)
       .stroke({ color: visual.secondaryColor, width: trailWidth, alpha: 0.8 })
-      .circle(0, 0, projectile.radius * 1.8)
-      .fill(visual.primaryColor)
-      .stroke({ color: visual.outlineColor, width: 2 })
-      .poly([
-        projectile.radius * 2.4,
-        0,
-        projectile.radius * 0.4,
-        -projectile.radius,
-        projectile.radius * 0.4,
-        projectile.radius,
-      ])
-      .fill(visual.secondaryColor)
-      .stroke({ color: visual.outlineColor, width: 1 })
+    if (visual.projectileShape === 'orb') {
+      view
+        .circle(0, 0, projectile.radius * 1.9)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 2 })
+        .circle(0, 0, projectile.radius * 0.85)
+        .fill(visual.secondaryColor)
+    } else {
+      view
+        .circle(0, 0, projectile.radius * 1.8)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 2 })
+        .poly([
+          projectile.radius * 2.4,
+          0,
+          projectile.radius * 0.4,
+          -projectile.radius,
+          projectile.radius * 0.4,
+          projectile.radius,
+        ])
+        .fill(visual.secondaryColor)
+        .stroke({ color: visual.outlineColor, width: 1 })
+    }
     return view
   }
 
@@ -419,13 +433,30 @@ export class PixiGame {
   }
 
   private createEffectPlaceholder(effect: SkillEffectState): Graphics {
-    const skillId = isSkillId(effect.skillId)
-      ? effect.skillId
-      : BASIC_BOLT_SKILL_ID
-    const visual = getSkillDefinition(skillId).visual
+    const visual =
+      effect.skillId === BASIC_ATTACK_SKILL_ID
+        ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
+        : getSkillDefinition(
+            isSkillId(effect.skillId)
+              ? effect.skillId
+              : BASIC_ATTACK_SKILL_ID,
+          ).visual
     const view = new Graphics()
 
-    if (visual.kind === 'area') {
+    if (effect.shape === 'arc') {
+      const points = effect.points.length > 0
+        ? effect.points
+        : [{ x: effect.x, y: effect.y }]
+      if (points.length > 1) {
+        view
+          .poly(points.flatMap((point) => [
+            point.x - effect.x,
+            point.y - effect.y,
+          ]))
+          .fill({ color: visual.primaryColor, alpha: 0.22 })
+          .stroke({ color: visual.secondaryColor, width: 4, alpha: 0.95 })
+      }
+    } else if (visual.kind === 'area') {
       view
         .circle(0, 0, effect.radius)
         .fill(visual.primaryColor)

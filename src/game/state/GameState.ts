@@ -2,10 +2,19 @@ import type {
   EnemyDefinitionId,
   EntityId,
   ProjectileDefinitionId,
-  SkillId,
 } from '../ids'
 import type { StatModifier, StatValues } from '../../content/stats/Stats'
+import type {
+  SkillId,
+  SkillTag,
+} from '../../content/skills/Skills'
+import type {
+  CriticalStrikeStats,
+  DamageResistanceValues,
+  DamageValues,
+} from '../../content/stats/Damage'
 import type { EquipmentLoadout } from '../equipment/EquipmentState'
+import type { WeaponArchetype } from '../../content/gear/Items'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
 import type { DungeonDefinitionId } from '../../content/dungeons/Dungeons'
@@ -48,7 +57,8 @@ export interface TelegraphState {
   remainingDuration: number
   duration: number
   points: readonly SkillEffectPoint[]
-  damage: number
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
 }
 export type Telegraph = TelegraphState
 
@@ -65,6 +75,7 @@ export interface DodgeState {
 export type PlayerMovementSource =
   | 'dodge'
   | 'gear'
+  | 'xp'
   | 'kite'
   | 'combat-range'
   | 'hold'
@@ -156,6 +167,9 @@ export interface PlayerState {
   meleeLeech?: number
   /** Leech earned from level-up upgrades, separate from equipped-item effects. */
   upgradeMeleeLeech?: number
+  resistances?: Partial<DamageResistanceValues>
+  critChance?: number
+  critMultiplier?: number
 
   /** Base values and modifiers are optional for backwards-compatible fixtures. */
   baseStats?: StatValues
@@ -198,6 +212,9 @@ export interface EnemyState {
 
   /** Assigned once at spawn and never inferred by the renderer. */
   eliteModifier?: EliteModifierId
+  resistances?: Partial<DamageResistanceValues>
+  critChance?: number
+  critMultiplier?: number
 
   targetId: EntityId
 }
@@ -215,14 +232,13 @@ export interface BossState extends EnemyState {
   nextSkillIndex: number
 }
 
-export type DamageType = 'physical' | 'lightning' | 'fire'
-
 export interface DamageEvent {
   sourceId?: EntityId
   sourceSkillId?: SkillId
+  sourceTags?: readonly SkillTag[]
   targetId: EntityId
-  amount: number
-  damageType: DamageType
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
 }
 
 export interface ProjectileState {
@@ -231,6 +247,12 @@ export interface ProjectileState {
   definitionId: ProjectileDefinitionId
   /** Optional for backwards-compatible projectile fixtures; skill spawns set it. */
   skillId?: SkillId
+  targetId?: EntityId
+  sourceTags?: readonly SkillTag[]
+  basicAttackWeaponArchetype?: WeaponArchetype
+  remainingChains?: number
+  chainRange?: number
+  lastHitTargetId?: EntityId
 
   x: number
   y: number
@@ -239,7 +261,8 @@ export interface ProjectileState {
   velocityY: number
 
   radius: number
-  damage: number
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
   remainingLifetime: number
 }
 
@@ -305,12 +328,14 @@ export interface SummonState {
 export interface SkillEffectState {
   id: EntityId
   skillId: SkillId
+  shape?: 'arc'
+  basicAttackWeaponArchetype?: WeaponArchetype
   x: number
   y: number
   radius: number
   lifetime: number
   remainingLifetime: number
-  /** Deterministic world-space path, with the first point at x/y. */
+  /** Deterministic world-space path or polygon, with the first point at x/y. */
   points: readonly SkillEffectPoint[]
 }
 

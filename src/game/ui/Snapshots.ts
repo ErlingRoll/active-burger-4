@@ -6,14 +6,21 @@ import {
   EQUIPMENT_SLOTS,
   getItemDefinition,
   type EquipmentSlot,
+  type WeaponArchetype,
 } from '../../content/gear/Items'
-import type { StatKey } from '../../content/stats/Stats'
 import type { Rarity } from '../../content/rarity/Rarity'
 import {
+  doesGearModifierAffectSkill,
+  type GearModifier,
+} from '../../content/gear/ModifierPools'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  getBasicAttackVariant,
   getSkillDefinition,
   getSkillDamage,
   isSkillId,
   type SkillId,
+  type SkillTag,
 } from '../../content/skills/Skills'
 import {
   INITIAL_UPGRADES,
@@ -35,6 +42,19 @@ import {
 } from '../../content/bosses/Bosses'
 import type { EntityId } from '../ids'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
+import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
+import {
+  addDamageValues,
+  DAMAGE_INCREASE_TYPES,
+  DAMAGE_TYPES,
+  getAverageCriticalStrikeFactor,
+  getResistanceForDamageType,
+  sumDamageValues,
+  type DamageIncreaseType,
+  type DamageResistanceType,
+  type DamageType,
+  type DamageValues,
+} from '../../content/stats/Damage'
 import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   getBehaviorProfileDefinition,
@@ -57,6 +77,7 @@ import {
   cloneChoiceFlow,
   type PendingChoiceFlow,
 } from '../choices/ChoiceFlows'
+import { getEquippedWeaponArchetype } from '../equipment/EquipmentState'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {
@@ -93,11 +114,37 @@ export interface SkillHudSnapshot {
   readonly icon: string
   readonly level: number
   readonly description: string
+  readonly tags: readonly SkillTag[]
+  /** Damage after flat and increased gear modifiers, before critical strikes and resistance. */
+  readonly damage: DamageValues
+  readonly damageTypes: readonly DamageType[]
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
   /** Gear modifiers that affect this skill in the current combat systems. */
   readonly gearModifiers: readonly GearModifierSnapshot[]
   readonly upgrades: readonly SkillUpgradeSnapshot[]
+}
+
+export type CharacterStatGroupId =
+  | 'offence'
+  | 'defence'
+
+export interface CharacterStatSnapshot {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+  readonly description: string
+  readonly appliesTo: string
+}
+
+export interface CharacterStatGroupSnapshot {
+  readonly id: CharacterStatGroupId
+  readonly title: string
+  readonly stats: readonly CharacterStatSnapshot[]
+}
+
+export interface CharacterStatsHudSnapshot {
+  readonly groups: readonly CharacterStatGroupSnapshot[]
 }
 
 export interface BossHudSnapshot {
@@ -210,6 +257,7 @@ export interface GameUiSnapshot extends RunHudSnapshot {
   readonly equipment: Readonly<
     Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
   >
+  readonly characterStats: CharacterStatsHudSnapshot
   readonly encounterStatus: EncounterStatus
   readonly boss: BossHudSnapshot | null
   readonly telegraphs: readonly TelegraphHudSnapshot[]
@@ -232,10 +280,245 @@ export interface EquippedItemSnapshot {
 }
 
 export interface GearModifierSnapshot {
-  readonly stat: StatKey
-  readonly operation: 'add' | 'multiply'
+  readonly id: GearModifier['id']
+  readonly tier: GearModifier['tier']
   readonly value: number
   readonly sourceId: string
+}
+
+const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
+  physical: 'Physical damage',
+  lightning: 'Lightning damage',
+  fire: 'Fire damage',
+  cold: 'Cold damage',
+  chaos: 'Chaos damage',
+}
+
+const DAMAGE_INCREASE_LABELS: Record<DamageIncreaseType, string> = {
+  global: 'Global damage',
+  physical: 'Physical damage',
+  elemental: 'Elemental damage',
+  chaos: 'Chaos damage',
+  projectile: 'Projectile damage',
+}
+
+const RESISTANCE_LABELS: Record<DamageResistanceType, string> = {
+  physical: 'Physical resistance',
+  elemental: 'Elemental resistance',
+  lightning: 'Lightning resistance',
+  fire: 'Fire resistance',
+  cold: 'Cold resistance',
+  chaos: 'Chaos resistance',
+}
+
+function formatStatNumber(value: number, maximumFractionDigits = 2): string {
+  const rounded = Number(value.toFixed(maximumFractionDigits))
+  if (Number.isInteger(rounded)) {
+    return rounded.toString()
+  }
+  return rounded
+    .toFixed(maximumFractionDigits)
+    .replace(/\.?0+$/, '')
+}
+
+function formatUnsignedPercent(value: number, maximumFractionDigits = 2): string {
+  return `${formatStatNumber(value, maximumFractionDigits)}%`
+}
+
+function formatSignedPercent(value: number, maximumFractionDigits = 2): string {
+  const prefix = value > 0 ? '+' : value < 0 ? '-' : ''
+  return `${prefix}${formatStatNumber(Math.abs(value), maximumFractionDigits)}%`
+}
+
+function formatSignedFlatValue(value: number, maximumFractionDigits = 2): string {
+  const prefix = value > 0 ? '+' : value < 0 ? '-' : ''
+  return `${prefix}${formatStatNumber(Math.abs(value), maximumFractionDigits)}`
+}
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function createCharacterStatSnapshot(
+  id: string,
+  label: string,
+  value: string,
+  description: string,
+  appliesTo: string,
+): CharacterStatSnapshot {
+  return Object.freeze({
+    id,
+    label,
+    value,
+    description,
+    appliesTo,
+  })
+}
+
+function createCharacterStatGroupSnapshot(
+  id: CharacterStatGroupId,
+  title: string,
+  stats: readonly CharacterStatSnapshot[],
+): CharacterStatGroupSnapshot {
+  return Object.freeze({
+    id,
+    title,
+    stats: Object.freeze([...stats]),
+  })
+}
+
+function createCharacterStatsSnapshot(
+  playerStats: ReturnType<typeof getDerivedPlayerStats>,
+  weaponArchetype: WeaponArchetype | undefined,
+): CharacterStatsHudSnapshot {
+  const basicAttackVariant = getBasicAttackVariant(weaponArchetype)
+  const projectileVariantNote = basicAttackVariant.kind === 'projectile'
+    ? `Currently applies to your ${titleCase(basicAttackVariant.id)} Basic Attack variant.`
+    : 'Sword Basic Attack is not projectile-tagged, so this is currently inactive unless you swap weapons.'
+  const areaApplicability = basicAttackVariant.id === 'sword'
+    ? 'Whirlwind, your sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
+    : 'Whirlwind, sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
+  const offenceStats = [
+    createCharacterStatSnapshot(
+      'attack-damage',
+      'Attack damage',
+      formatStatNumber(playerStats.attackDamage),
+      'Adds flat physical damage to Basic Attack before increased damage and critical strikes.',
+      'Basic Attack only.',
+    ),
+    createCharacterStatSnapshot(
+      'attack-speed',
+      'Attack speed',
+      `${formatStatNumber(playerStats.attackSpeed)} atk/s`,
+      'Controls Basic Attack cadence. Higher values reduce the time between Basic Attacks.',
+      'Basic Attack only.',
+    ),
+    createCharacterStatSnapshot(
+      'attack-range',
+      'Attack range',
+      formatStatNumber(playerStats.attackRange),
+      'Extends how far Basic Attack can engage targets. Sword Basic Attack also uses it as swing reach.',
+      'Basic Attack targeting and reach.',
+    ),
+    createCharacterStatSnapshot(
+      'cooldown-reduction',
+      'Cooldown reduction',
+      formatUnsignedPercent(playerStats.cooldownReduction),
+      'Shortens non-Basic-Attack cooldowns multiplicatively, down to a 0.1 second minimum.',
+      'Whirlwind and Chain Lightning; never Basic Attack.',
+    ),
+    createCharacterStatSnapshot(
+      'area-of-effect',
+      'Area of effect',
+      formatUnsignedPercent(playerStats.areaOfEffect),
+      'Scales the size-based combat systems that currently read area scaling.',
+      areaApplicability,
+    ),
+    createCharacterStatSnapshot(
+      'crit-chance',
+      'Crit chance',
+      formatUnsignedPercent(playerStats.critChance),
+      'Determines how often player hits critically strike.',
+      'All player damage sources.',
+    ),
+    createCharacterStatSnapshot(
+      'crit-multiplier',
+      'Crit multiplier',
+      formatUnsignedPercent(playerStats.critMultiplier),
+      'Determines how much damage a critical strike deals.',
+      'All player critical strikes.',
+    ),
+    createCharacterStatSnapshot(
+      'melee-leech',
+      'Melee leech',
+      formatUnsignedPercent(playerStats.meleeLeech * 100),
+      'Restores life based on actual damage dealt after mitigation.',
+      'Melee-tagged hits only, including Whirlwind and sword Basic Attack.',
+    ),
+    createCharacterStatSnapshot(
+      'basic-attack-extra-projectiles',
+      'Basic Attack extra projectiles',
+      formatStatNumber(playerStats.basicAttackExtraProjectiles),
+      'Adds extra arrows or bolts to projectile Basic Attack variants, up to that weapon variant’s cap.',
+      `Projectile-tagged Basic Attack variants only. ${projectileVariantNote}`,
+    ),
+    createCharacterStatSnapshot(
+      'projectile-chains',
+      'Projectile chains',
+      formatStatNumber(playerStats.projectileChains),
+      'Lets a projectile Basic Attack relaunch to a new target after a hit. Each point adds one additional chain.',
+      `Projectile-tagged Basic Attack variants only. ${projectileVariantNote}`,
+    ),
+  ]
+  const flatDamageStats = DAMAGE_TYPES.flatMap((damageType) =>
+    playerStats.flatDamage[damageType] === 0
+      ? []
+      : [createCharacterStatSnapshot(
+          `flat-damage-${damageType}`,
+          DAMAGE_TYPE_LABELS[damageType],
+          formatSignedFlatValue(playerStats.flatDamage[damageType]),
+          `Adds flat ${damageType} damage to every player hit before increased damage and critical strikes.`,
+          'All player damage sources.',
+        )]
+  )
+  const increasedDamageStats = DAMAGE_INCREASE_TYPES.flatMap((increaseType) => {
+    const value = playerStats.increasedDamage[increaseType]
+    if (value === 0) {
+      return []
+    }
+    const appliesTo = increaseType === 'global'
+      ? 'All player damage sources.'
+      : increaseType === 'physical'
+        ? 'Physical damage from any skill or Basic Attack hit.'
+        : increaseType === 'elemental'
+          ? 'Fire, cold, and lightning damage from any skill or Basic Attack hit.'
+          : increaseType === 'chaos'
+            ? 'Chaos damage from any skill or Basic Attack hit.'
+            : `Projectile-tagged hits only. ${projectileVariantNote}`
+    return [createCharacterStatSnapshot(
+      `increased-damage-${increaseType}`,
+      DAMAGE_INCREASE_LABELS[increaseType],
+      formatSignedPercent(value),
+      `Multiplies matching damage after flat damage is added. ${increaseType === 'global' ? 'Global damage affects every outgoing damage type.' : ''}`.trim(),
+      appliesTo,
+    )]
+  })
+  const resistanceStats = DAMAGE_TYPES.map((damageType) => {
+    const value = getResistanceForDamageType(playerStats.resistances, damageType)
+    const description = damageType === 'lightning' ||
+      damageType === 'fire' ||
+      damageType === 'cold'
+      ? `Reduces ${damageType} damage taken. Elemental resistance contributes to this value; the total is capped at 75%.`
+      : `Reduces ${damageType} damage taken, capped at 75%.`
+    return createCharacterStatSnapshot(
+      `resistance-${damageType}`,
+      RESISTANCE_LABELS[damageType],
+      formatUnsignedPercent(value),
+      description,
+      'Incoming damage taken by the player.',
+    )
+  })
+  const defenceStats = [
+    createCharacterStatSnapshot(
+      'movement-speed',
+      'Movement speed',
+      formatStatNumber(playerStats.movementSpeed),
+      'Controls player movement for pathing, kiting, pickup collection, and autonomous dodge repositioning.',
+      'Player movement, not outgoing damage.',
+    ),
+    ...resistanceStats,
+  ]
+  const groups = [
+    createCharacterStatGroupSnapshot(
+      'offence',
+      'Offence',
+      [...offenceStats, ...flatDamageStats, ...increasedDamageStats],
+    ),
+    createCharacterStatGroupSnapshot('defence', 'Defence', defenceStats),
+  ]
+  return Object.freeze({
+    groups: Object.freeze(groups),
+  })
 }
 
 /** Immutable data retained by the results screen after a run ends. */
@@ -255,6 +538,8 @@ export function createUiSnapshot(
   pendingChoiceFlows: readonly PendingChoiceFlow[] = [],
 ): GameUiSnapshot {
   const playerStats = getDerivedPlayerStats(state.player)
+  const equippedWeaponArchetype = getEquippedWeaponArchetype(state.player)
+  const basicAttackVariant = getBasicAttackVariant(equippedWeaponArchetype)
   const currentThreshold = xpRequiredForLevel(state.player.level)
   const xpRequired = xpRequiredForNextLevel(state.player.level)
   const thresholdSpan = Math.max(1, xpRequired - currentThreshold)
@@ -281,25 +566,39 @@ export function createUiSnapshot(
       return []
     }
     const definition = getSkillDefinition(skill.skillId)
-    const isBasicBolt = skill.skillId === 'basic-bolt'
-    const cooldown = isBasicBolt
+    const isBasicAttack = skill.skillId === BASIC_ATTACK_SKILL_ID
+    const skillTags = isBasicAttack ? basicAttackVariant.tags : definition.tags
+    const supportsAreaOfEffect = isBasicAttack
+      ? basicAttackVariant.kind === 'area'
+      : definition.kind === 'area' && definition.radius !== undefined
+    const cooldown = isBasicAttack
       ? playerStats.attackSpeed > 0
         ? 1 / playerStats.attackSpeed
         : Number.POSITIVE_INFINITY
-      : definition.cooldown
-    const damage = isBasicBolt
-      ? playerStats.attackDamage +
-        getSkillDamage(definition, skill.level) -
-        definition.baseDamage
+      : Math.max(
+          0.1,
+          definition.cooldown * (1 - Math.max(0, playerStats.cooldownReduction) / 100),
+        )
+    const baseDamage = isBasicAttack
+      ? addDamageValues(
+          getSkillDamage(definition, skill.level),
+          { physical: playerStats.attackDamage },
+        )
       : getSkillDamage(definition, skill.level)
+    const outgoingDamage = createPlayerDamageProfileFromStats(
+      playerStats,
+      baseDamage,
+      { isProjectile: skillTags.includes('projectile') },
+    )
+    const damage = sumDamageValues(outgoingDamage.damage) *
+      getAverageCriticalStrikeFactor(outgoingDamage.criticalStrike)
+    const damageTypes = (Object.keys(outgoingDamage.damage) as DamageType[]).filter(
+      (damageType) => outgoingDamage.damage[damageType] > 0,
+    )
     const estimatedSingleTargetDps =
       Number.isFinite(cooldown) && cooldown > 0
         ? damage / cooldown
         : null
-    const applicableGearStats =
-      isBasicBolt
-        ? new Set<StatKey>(['attackDamage', 'attackSpeed', 'attackRange'])
-        : new Set<StatKey>()
     const gearModifiers = EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]
       if (!equipped) {
@@ -307,7 +606,14 @@ export function createUiSnapshot(
       }
       const definition = getItemDefinition(equipped.itemId)
       return (equipped.modifiers ?? definition.modifiers)
-        .filter((modifier) => applicableGearStats.has(modifier.stat))
+        .filter((modifier) => doesGearModifierAffectSkill(
+          modifier,
+          skill.skillId,
+          {
+            tags: skillTags,
+            supportsAreaOfEffect,
+          },
+        ))
         .map((modifier) => Object.freeze({ ...modifier }))
     })
     const upgrades = INITIAL_UPGRADES.filter(
@@ -335,12 +641,17 @@ export function createUiSnapshot(
     return [Object.freeze({
       skillId: skill.skillId,
       name: definition.name,
-      icon: definition.visual.icon,
+      icon: isBasicAttack ? basicAttackVariant.visual.icon : definition.visual.icon,
       level: skill.level,
-      description: definition.description,
+      description: isBasicAttack ? basicAttackVariant.description : definition.description,
+      tags: Object.freeze([...skillTags]),
+      damage: outgoingDamage.damage,
+      damageTypes: Object.freeze(damageTypes),
       estimatedSingleTargetDps,
-      dpsAssumption: isBasicBolt
-        ? 'One target sustained at the current Basic Bolt attack cadence.'
+      dpsAssumption: isBasicAttack
+        ? basicAttackVariant.kind === 'area'
+          ? 'One target in the current front-facing Basic Attack arc, sustained over attack cadence.'
+          : 'One target sustained at the current Basic Attack cadence.'
         : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',
@@ -500,6 +811,7 @@ export function createUiSnapshot(
   const intentLabels: Record<PlayerMovementCandidate['source'], string> = {
     dodge: 'Dodge',
     gear: 'Collect gear',
+    xp: 'Collect XP',
     kite: 'Kite away',
     'combat-range': 'Close to target',
     hold: 'Hold position',
@@ -567,6 +879,10 @@ export function createUiSnapshot(
     pickups,
     pendingChoiceFlow,
     pendingChoiceCount: pendingChoiceFlows.length,
+    characterStats: createCharacterStatsSnapshot(
+      playerStats,
+      equippedWeaponArchetype,
+    ),
   })
 }
 

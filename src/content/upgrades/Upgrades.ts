@@ -1,5 +1,5 @@
 import {
-  BASIC_BOLT_SKILL_ID,
+  BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   type SkillId,
@@ -10,19 +10,17 @@ import type { StatModifier, StatKey } from '../stats/Stats'
 export type UpgradeId =
   | 'damage-boost'
   | 'attack-speed-boost'
-  | 'movement-speed-boost'
   | 'whirlwind-unlock'
   | 'chain-lightning-unlock'
-  | 'basic-bolt-level'
+  | 'basic-attack-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
   | 'whirlwind-leech'
-  | 'dodge-reaction'
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
 export type UpgradeStat = Extract<
   StatKey,
-  'attackDamage' | 'attackSpeed' | 'movementSpeed'
+  'attackDamage' | 'attackSpeed'
 >
 export type SkillUpgradeAction = 'unlock' | 'level'
 
@@ -49,11 +47,9 @@ export interface UpgradeDefinition {
   /** Optional explicit modifiers for passive content and future scaling. */
   modifiers?: readonly StatModifier[]
   valueLabel: string
-  skillId?: string
+  skillId?: SkillId
   skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
-  /** Optional reduction to the autonomous Dodge reaction delay. */
-  dodgeReactionTimeReduction?: number
   meleeLeechAmount?: number
 }
 
@@ -89,7 +85,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'damage-boost',
     name: 'Heavy Hitter',
-    description: 'Increase Basic Bolt damage.',
+    description: 'Increase Basic Attack damage.',
     category: 'passive',
     rarity: 'common',
     stat: 'attackDamage',
@@ -98,13 +94,13 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       { stat: 'attackDamage', operation: 'add', value: 2, sourceId: 'upgrade:damage-boost' },
     ],
     valueLabel: '+2 damage',
-    skillId: BASIC_BOLT_SKILL_ID,
+    skillId: BASIC_ATTACK_SKILL_ID,
     isEligible: () => true,
   },
   {
     id: 'attack-speed-boost',
     name: 'Rapid Fire',
-    description: 'Attack more often with Basic Bolt.',
+    description: 'Attack more often with Basic Attack.',
     category: 'passive',
     rarity: 'common',
     stat: 'attackSpeed',
@@ -113,21 +109,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       { stat: 'attackSpeed', operation: 'add', value: 0.2, sourceId: 'upgrade:attack-speed-boost' },
     ],
     valueLabel: '+0.2 attacks/sec',
-    skillId: BASIC_BOLT_SKILL_ID,
-    isEligible: () => true,
-  },
-  {
-    id: 'movement-speed-boost',
-    name: 'Fleet Footed',
-    description: 'Move faster through the arena.',
-    category: 'passive',
-    rarity: 'common',
-    stat: 'movementSpeed',
-    amount: 20,
-    modifiers: [
-      { stat: 'movementSpeed', operation: 'add', value: 20, sourceId: 'upgrade:movement-speed-boost' },
-    ],
-    valueLabel: '+20 movement speed',
+    skillId: BASIC_ATTACK_SKILL_ID,
     isEligible: () => true,
   },
   {
@@ -159,16 +141,16 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('chain-lightning-unlock'),
   },
   {
-    id: 'basic-bolt-level',
-    name: 'Empowered Bolt',
-    description: 'Increase Basic Bolt skill rank.',
+    id: 'basic-attack-level',
+    name: 'Empowered Attack',
+    description: 'Increase Basic Attack skill rank.',
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: '+1 Basic Bolt rank',
-    skillId: BASIC_BOLT_SKILL_ID,
+    valueLabel: '+1 Basic Attack rank',
+    skillId: BASIC_ATTACK_SKILL_ID,
     skillAction: 'level',
-    isEligible: (state) => skillLevelAtLeast(state, BASIC_BOLT_SKILL_ID, 1),
+    isEligible: (state) => skillLevelAtLeast(state, BASIC_ATTACK_SKILL_ID, 1),
   },
   {
     id: 'whirlwind-level',
@@ -194,21 +176,6 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillAction: 'level',
     isEligible: (state) =>
       skillLevelAtLeast(state, CHAIN_LIGHTNING_SKILL_ID, 1),
-  },
-  {
-    id: 'dodge-reaction',
-    name: 'Quick Reflexes',
-    description: 'Dodge telegraphs sooner.',
-    category: 'passive',
-    rarity: 'common',
-    stat: 'movementSpeed',
-    amount: 1,
-    modifiers: [],
-    valueLabel: '-0.05s Dodge reaction time',
-    dodgeReactionTimeReduction: 0.05,
-    isEligible: (state) =>
-      state.playerLevel >= 3 &&
-      !state.selectedUpgradeIds.includes('dodge-reaction'),
   },
 ]
 

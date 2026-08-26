@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import {
   getItemDefinition,
   type EquipmentSlot,
-  type ItemDefinition,
 } from '../content/gear/Items'
+import {
+  formatGearModifier,
+  getGearModifierDefinition,
+  sortGearModifiers,
+} from '../content/gear/ModifierPools'
 import {
   RARITY_VISUALS,
   type Rarity,
 } from '../content/rarity/Rarity'
-import type { StatKey } from '../content/stats/Stats'
 import {
   getUpgradeDefinition,
   type UpgradeChoice,
@@ -27,14 +30,6 @@ interface LevelUpOverlayProps {
   onSelect: (choice: UpgradeChoice | GearChoice) => void
 }
 
-const STAT_LABELS: Record<StatKey, string> = {
-  maxHp: 'Max HP',
-  movementSpeed: 'Movement speed',
-  attackDamage: 'Attack damage',
-  attackSpeed: 'Attack speed',
-  attackRange: 'Attack range',
-}
-
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   weapon: 'Weapon',
   helmet: 'Helmet',
@@ -44,99 +39,45 @@ const SLOT_LABELS: Record<EquipmentSlot, string> = {
   amulet: 'Amulet',
 }
 
-function formatNumber(value: number): string {
-  return Math.ceil(value).toString()
-}
-
-function formatModifierValue(modifier: Pick<GearModifierSnapshot, 'operation' | 'value'>): string {
-  if (modifier.operation === 'multiply') {
-    return `${formatNumber((modifier.value - 1) * 100)}%`
-  }
-  return formatNumber(modifier.value)
-}
-
 function formatModifier(modifier: GearModifierSnapshot): string {
-  return `+${formatModifierValue(modifier)} ${STAT_LABELS[modifier.stat]}`
+  return formatGearModifier(modifier)
 }
 
 function formatDeltaModifier(modifier: GearModifierSnapshot): string {
-  const negative =
-    modifier.operation === 'multiply' ? modifier.value < 1 : modifier.value < 0
-  const magnitude =
-    modifier.operation === 'multiply'
-      ? Math.abs((modifier.value - 1) * 100)
-      : Math.abs(modifier.value)
-  return `${negative ? '-' : '+'}${formatNumber(magnitude)}${
-    modifier.operation === 'multiply' ? '%' : ''
-  } ${STAT_LABELS[modifier.stat]}`
+  return formatGearModifier(modifier, {
+    includeTier: false,
+  })
 }
 
-function getModifierTotal(
-  modifiers: readonly GearModifierSnapshot[],
-  stat: StatKey,
-  operation: GearModifierSnapshot['operation'],
-): number {
-  if (operation === 'add') {
-    return modifiers
-      .filter((modifier) => modifier.stat === stat && modifier.operation === operation)
-      .reduce((total, modifier) => total + modifier.value, 0)
-  }
-
-  return modifiers
-    .filter((modifier) => modifier.stat === stat && modifier.operation === operation)
-    .reduce((total, modifier) => total * modifier.value, 1)
-}
-
-interface StatDelta {
-  stat: StatKey
-  operation: GearModifierSnapshot['operation']
-  value: number
-}
-
-function getStatDeltas(
+function getModifierDeltas(
   offered: readonly GearModifierSnapshot[],
   equipped: readonly GearModifierSnapshot[],
-): StatDelta[] {
-  const deltas: StatDelta[] = []
-  const operations: readonly GearModifierSnapshot['operation'][] = ['add', 'multiply']
-  const stats: readonly StatKey[] = [
-    'maxHp',
-    'movementSpeed',
-    'attackDamage',
-    'attackSpeed',
-    'attackRange',
-  ]
-
-  for (const stat of stats) {
-    for (const operation of operations) {
-      const hasOffered = offered.some(
-        (modifier) => modifier.stat === stat && modifier.operation === operation,
-      )
-      const hasEquipped = equipped.some(
-        (modifier) => modifier.stat === stat && modifier.operation === operation,
-      )
-      if (!hasOffered && !hasEquipped) {
-        continue
+): GearModifierSnapshot[] {
+  const equippedById = new Map(
+    equipped.map((modifier) => [modifier.id, modifier] as const),
+  )
+  const offeredById = new Map(
+    offered.map((modifier) => [modifier.id, modifier] as const),
+  )
+  return sortGearModifiers(
+    [...new Set([
+      ...offered.map((modifier) => modifier.id),
+      ...equipped.map((modifier) => modifier.id),
+    ])].flatMap((modifierId) => {
+      const offeredModifier = offeredById.get(modifierId)
+      const equippedModifier = equippedById.get(modifierId)
+      const value = (offeredModifier?.value ?? 0) - (equippedModifier?.value ?? 0)
+      if (Math.abs(value) <= 0.0001) {
+        return []
       }
-
-      const offeredTotal = getModifierTotal(offered, stat, operation)
-      const equippedTotal = getModifierTotal(equipped, stat, operation)
-      const value = offeredTotal - equippedTotal
-      if (Math.abs(value) > 0.0001) {
-        deltas.push({ stat, operation, value })
-      }
-    }
-  }
-  return deltas
-}
-
-function modifierFromDelta(delta: StatDelta): GearModifierSnapshot {
-  return {
-    stat: delta.stat,
-    operation: delta.operation,
-    value: delta.operation === 'multiply' ? 1 + delta.value : delta.value,
-    sourceId: 'comparison',
-  }
+      return [{
+        id: modifierId,
+        tier: offeredModifier?.tier ?? equippedModifier?.tier ?? 5,
+        value,
+        sourceId: 'comparison',
+      }]
+    }),
+  )
 }
 
 function ModifierList({
@@ -157,13 +98,11 @@ function ModifierList({
         <li
           className={
             delta &&
-            (modifier.operation === 'multiply'
-              ? modifier.value < 1
-              : modifier.value < 0)
+            modifier.value < 0
               ? 'modifier-lost'
               : undefined
           }
-          key={`${modifier.stat}-${modifier.operation}-${modifier.sourceId}-${index}`}
+          key={`${modifier.id}-${modifier.sourceId}-${index}`}
         >
           {delta ? formatDeltaModifier(modifier) : formatModifier(modifier)}
         </li>
@@ -191,17 +130,21 @@ function RarityBadge({ rarity, label = 'Rarity' }: { rarity: Rarity; label?: str
 
 function GearComparison({
   id,
-  offered,
+  offeredName,
+  offeredSlot,
+  offeredModifiers,
   equipped,
 }: {
   id: string
-  offered: ItemDefinition
+  offeredName: string
+  offeredSlot: EquipmentSlot
+  offeredModifiers: readonly GearModifierSnapshot[]
   equipped: EquippedItemSnapshot | undefined
 }) {
-  const deltas = getStatDeltas(
-    offered.modifiers,
+  const deltas = getModifierDeltas(
+    offeredModifiers,
     equipped?.modifiers ?? [],
-  ).map(modifierFromDelta)
+  )
   const emptySlot = !equipped
 
   return (
@@ -210,11 +153,11 @@ function GearComparison({
       <div className="comparison-columns">
         <section>
           <span className="comparison-heading">Offered</span>
-          <strong>{offered.name}</strong>
-          <ModifierList modifiers={offered.modifiers} />
+          <strong>{offeredName}</strong>
+          <ModifierList modifiers={offeredModifiers} />
         </section>
         <section>
-          <span className="comparison-heading">Equipped in {SLOT_LABELS[offered.slot]}</span>
+          <span className="comparison-heading">Equipped in {SLOT_LABELS[offeredSlot]}</span>
           <strong>{equipped?.name ?? 'Empty slot'}</strong>
           <ModifierList modifiers={equipped?.modifiers ?? []} />
         </section>
@@ -255,10 +198,16 @@ function GearCard({
 
   if (choice.type === 'upgrade-equipped-item') {
     const currentModifiers = equipped?.modifiers ?? item.modifiers
-    const gains = getStatDeltas(
+    const gains = getModifierDeltas(
       choice.upgradedModifiers,
       currentModifiers,
-    ).map(modifierFromDelta)
+    )
+    const currentModifier = currentModifiers.find(
+      (modifier) => modifier.id === choice.upgradedModifierId,
+    )
+    const upgradedModifier = choice.upgradedModifiers.find(
+      (modifier) => modifier.id === choice.upgradedModifierId,
+    )
     return (
       <div className="choice-card-wrap">
         <button
@@ -274,17 +223,13 @@ function GearCard({
           </span>
           <span className="choice-card-header">
             <span className="upgrade-choice-name">Upgrade: {item.name}</span>
-            <RarityBadge rarity={choice.rarity} label="Choice rarity" />
+            <RarityBadge rarity={choice.rarity} label="Item rarity" />
           </span>
           <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {item.name}</span>
           <span className="gear-rarity-transition">
-            <span>
-              Current rarity: <RarityBadge rarity={choice.fromRarity} label="Current rarity" />
-            </span>
-            <span aria-hidden="true">→</span>
-            <span>
-              Upgraded rarity: <RarityBadge rarity={choice.upgradedRarity} label="Upgraded rarity" />
-            </span>
+            {currentModifier && upgradedModifier
+              ? `${formatGearModifier(currentModifier)} → ${formatGearModifier(upgradedModifier)}`
+              : `Improves one ${getGearModifierDefinition(choice.upgradedModifierId).label.toLowerCase()} roll by one tier.`}
           </span>
           <span className="gear-net-heading">Upgrade gains</span>
           <ModifierList modifiers={gains} emptyLabel="No stat change" delta />
@@ -321,10 +266,10 @@ function GearCard({
         {equipped ? (
           <>
             <span className="gear-stats-heading">Item modifiers</span>
-            <ModifierList modifiers={item.modifiers} />
+            <ModifierList modifiers={choice.modifiers} />
             <span className="gear-net-heading">Net change</span>
             <ModifierList
-              modifiers={getStatDeltas(item.modifiers, equipped.modifiers).map(modifierFromDelta)}
+              modifiers={getModifierDeltas(choice.modifiers, equipped.modifiers)}
               emptyLabel="No stat change"
               delta
             />
@@ -333,7 +278,7 @@ function GearCard({
           <>
             <span className="gear-net-heading">Gains</span>
             <ModifierList
-              modifiers={item.modifiers}
+              modifiers={choice.modifiers}
               emptyLabel="No modifiers"
               delta
             />
@@ -346,7 +291,9 @@ function GearCard({
       {active ? (
         <GearComparison
           id={comparisonId}
-          offered={item}
+          offeredName={item.name}
+          offeredSlot={choice.slot}
+          offeredModifiers={choice.modifiers}
           equipped={equipped}
         />
       ) : null}

@@ -1,5 +1,8 @@
 import type { Rarity } from '../rarity/Rarity'
-import type { StatModifier } from '../stats/Stats'
+import {
+  createGearModifier,
+  type GearModifier,
+} from './ModifierPools'
 
 export type ItemId = string
 export type EquipmentSlot =
@@ -10,6 +13,8 @@ export type EquipmentSlot =
   | 'ring'
   | 'amulet'
 
+export type WeaponArchetype = 'sword' | 'bow' | 'wand'
+
 export const EQUIPMENT_SLOTS = [
   'weapon',
   'helmet',
@@ -19,14 +24,30 @@ export const EQUIPMENT_SLOTS = [
   'amulet',
 ] as const satisfies readonly EquipmentSlot[]
 
-export interface ItemDefinition {
+export const WEAPON_ARCHETYPES = [
+  'sword',
+  'bow',
+  'wand',
+] as const satisfies readonly WeaponArchetype[]
+
+interface ItemDefinitionBase {
   id: ItemId
   name: string
   rarity: Rarity
-  slot: EquipmentSlot
-  modifiers: readonly StatModifier[]
-  meleeLeech?: number
+  modifiers: readonly GearModifier[]
 }
+
+interface WeaponItemDefinition extends ItemDefinitionBase {
+  slot: 'weapon'
+  weaponArchetype: WeaponArchetype
+}
+
+interface NonWeaponItemDefinition extends ItemDefinitionBase {
+  slot: Exclude<EquipmentSlot, 'weapon'>
+  weaponArchetype?: never
+}
+
+export type ItemDefinition = WeaponItemDefinition | NonWeaponItemDefinition
 
 /** Item IDs are content keys, not display names or runtime entity IDs. */
 export const ITEM_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -35,25 +56,44 @@ export function isItemId(value: unknown): value is ItemId {
   return typeof value === 'string' && ITEM_ID_PATTERN.test(value)
 }
 
-/**
- * A deliberately small first catalog. Every modifier is a plain stat
- * modifier; item-specific effects and tags belong to a later content task.
- */
+export function isWeaponArchetype(value: unknown): value is WeaponArchetype {
+  return typeof value === 'string' &&
+    WEAPON_ARCHETYPES.some((archetype) => archetype === value)
+}
+
 export const ITEM_DEFINITIONS = {
   'iron-cleaver': {
     id: 'iron-cleaver',
     name: 'Iron Cleaver',
     rarity: 'common',
     slot: 'weapon',
+    weaponArchetype: 'sword',
     modifiers: [
-      {
-        stat: 'attackDamage',
-        operation: 'add',
-        value: 3,
-        sourceId: 'item:iron-cleaver',
-      },
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
     ],
-    meleeLeech: 0.02,
+  },
+  'hunters-bow': {
+    id: 'hunters-bow',
+    name: "Hunter's Bow",
+    rarity: 'uncommon',
+    slot: 'weapon',
+    weaponArchetype: 'bow',
+    modifiers: [
+      createGearModifier('hunters-bow', 'attack-speed', 5, 6),
+      createGearModifier('hunters-bow', 'increased-projectile-damage', 5, 8),
+    ],
+  },
+  'starcall-wand': {
+    id: 'starcall-wand',
+    name: 'Starcall Wand',
+    rarity: 'rare',
+    slot: 'weapon',
+    weaponArchetype: 'wand',
+    modifiers: [
+      createGearModifier('starcall-wand', 'flat-lightning-damage', 5, 2),
+      createGearModifier('starcall-wand', 'increased-projectile-damage', 4, 14),
+      createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 4, 1),
+    ],
   },
   'watchers-helm': {
     id: 'watchers-helm',
@@ -61,12 +101,8 @@ export const ITEM_DEFINITIONS = {
     rarity: 'uncommon',
     slot: 'helmet',
     modifiers: [
-      {
-        stat: 'maxHp',
-        operation: 'add',
-        value: 20,
-        sourceId: 'item:watchers-helm',
-      },
+      createGearModifier('watchers-helm', 'max-hp', 4, 24),
+      createGearModifier('watchers-helm', 'elemental-resistance', 5, 8),
     ],
   },
   'bastion-plate': {
@@ -75,12 +111,9 @@ export const ITEM_DEFINITIONS = {
     rarity: 'rare',
     slot: 'armor',
     modifiers: [
-      {
-        stat: 'maxHp',
-        operation: 'add',
-        value: 45,
-        sourceId: 'item:bastion-plate',
-      },
+      createGearModifier('bastion-plate', 'max-hp', 3, 38),
+      createGearModifier('bastion-plate', 'physical-resistance', 4, 16),
+      createGearModifier('bastion-plate', 'chaos-resistance', 5, 9),
     ],
   },
   'swiftstride-boots': {
@@ -89,12 +122,10 @@ export const ITEM_DEFINITIONS = {
     rarity: 'epic',
     slot: 'boots',
     modifiers: [
-      {
-        stat: 'movementSpeed',
-        operation: 'multiply',
-        value: 1.15,
-        sourceId: 'item:swiftstride-boots',
-      },
+      createGearModifier('swiftstride-boots', 'movement-speed', 3, 11),
+      createGearModifier('swiftstride-boots', 'attack-speed', 5, 6),
+      createGearModifier('swiftstride-boots', 'attack-range', 4, 20),
+      createGearModifier('swiftstride-boots', 'elemental-resistance', 5, 7),
     ],
   },
   'duelists-band': {
@@ -103,18 +134,9 @@ export const ITEM_DEFINITIONS = {
     rarity: 'rare',
     slot: 'ring',
     modifiers: [
-      {
-        stat: 'attackDamage',
-        operation: 'add',
-        value: 2,
-        sourceId: 'item:duelists-band',
-      },
-      {
-        stat: 'attackSpeed',
-        operation: 'multiply',
-        value: 1.15,
-        sourceId: 'item:duelists-band',
-      },
+      createGearModifier('duelists-band', 'flat-lightning-damage', 3, 5),
+      createGearModifier('duelists-band', 'crit-chance', 4, 6),
+      createGearModifier('duelists-band', 'attack-speed', 4, 9),
     ],
   },
   'starcaller-amulet': {
@@ -123,18 +145,11 @@ export const ITEM_DEFINITIONS = {
     rarity: 'legendary',
     slot: 'amulet',
     modifiers: [
-      {
-        stat: 'attackDamage',
-        operation: 'multiply',
-        value: 1.1,
-        sourceId: 'item:starcaller-amulet',
-      },
-      {
-        stat: 'attackRange',
-        operation: 'add',
-        value: 20,
-        sourceId: 'item:starcaller-amulet',
-      },
+      createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
+      createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
+      createGearModifier('starcaller-amulet', 'crit-multiplier', 4, 28),
+      createGearModifier('starcaller-amulet', 'attack-range', 3, 28),
+      createGearModifier('starcaller-amulet', 'elemental-resistance', 4, 18),
     ],
   },
 } as const satisfies Record<string, ItemDefinition>

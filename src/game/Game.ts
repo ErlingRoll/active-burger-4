@@ -32,10 +32,11 @@ import type {
 import {
   generateGearChoices,
   GEAR_CHOICES_PER_PICKUP,
+  gearChoiceSignature,
   type GearChoice,
 } from './equipment/GearChoices'
 import {
-  equipItem,
+  equipRolledItem,
   upgradeEquippedItem,
 } from './equipment/EquipmentState'
 import type {
@@ -52,9 +53,9 @@ import {
   applyDamageEvents,
   collectEnemyContactDamage,
   collectProjectileDamage,
+  performBasicAttackIfReady,
   removeDeadEntities,
   resolvePlayerTarget,
-  spawnBasicBoltIfReady,
   updateAttackCooldown,
   updateEnemyChase,
   updateProjectiles,
@@ -137,6 +138,9 @@ export type {
   SkillHudSnapshot,
   SkillUpgradeSnapshot,
   SkillUpgradeStatus,
+  CharacterStatsHudSnapshot,
+  CharacterStatGroupSnapshot,
+  CharacterStatSnapshot,
   BossHudSnapshot,
   BossEnrageHudSnapshot,
   EncounterTimelineHudSnapshot,
@@ -479,15 +483,18 @@ export class Game {
     }
 
     const offered = flow.choices.find((candidate) =>
-      candidate.type === choice.type &&
-      candidate.itemId === choice.itemId &&
-      candidate.slot === choice.slot,
+      gearChoiceSignature(candidate) === gearChoiceSignature(choice),
     )
     if (!offered) {
       return false
     }
     if (offered.type === 'gear') {
-      equipItem(this.gameState.player, offered.itemId)
+      equipRolledItem(
+        this.gameState.player,
+        offered.itemId,
+        offered.rarity,
+        offered.modifiers,
+      )
     } else {
       const upgraded = upgradeEquippedItem(
         this.gameState.player,
@@ -715,16 +722,20 @@ export class Game {
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS)
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState, enemySpatialHash)
-    spawnBasicBoltIfReady(this.gameState, this.idAllocator)
+    const basicAttackEvents = performBasicAttackIfReady(
+      this.gameState,
+      this.idAllocator,
+    )
     updateProjectiles(this.gameState, FIXED_STEP_SECONDS)
     const damageEvents = [
       ...collectEnemyContactDamage(this.gameState, FIXED_STEP_SECONDS),
+      ...basicAttackEvents,
       ...collectProjectileDamage(this.gameState, enemySpatialHash),
       ...collectSkillDamage(this.gameState, this.idAllocator),
       ...updateSummons(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
     ]
-    applyDamageEvents(this.gameState, damageEvents)
+    applyDamageEvents(this.gameState, damageEvents, this.random)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
       this.transitionTo('defeat')
       return

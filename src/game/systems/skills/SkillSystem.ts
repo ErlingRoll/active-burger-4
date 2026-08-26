@@ -1,11 +1,15 @@
 import {
-  BASIC_BOLT_SKILL_ID,
+  BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
   getSkillDefinition,
   getSkillDamage,
+  type SkillId,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
+import {
+  createPlayerDamageEventFromStats,
+} from '../../combat/DamageSources'
 import type {
   SkillState,
   DamageEvent,
@@ -13,11 +17,16 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
 } from '../../state/GameState'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+
+function scaleAreaValue(value: number, areaOfEffect: number): number {
+  return value * (1 + Math.max(0, areaOfEffect) / 100)
+}
 
 function addEffect(
   state: GameState,
   allocator: EntityIdAllocator,
-  skillId: string,
+  skillId: SkillId,
   points: readonly SkillEffectPoint[],
   radius: number,
   lifetime: number,
@@ -44,7 +53,7 @@ export function updateSkillCooldowns(
   fixedStepSeconds: number,
 ): void {
   for (const skill of state.player.skills) {
-    if (skill.skillId === BASIC_BOLT_SKILL_ID) {
+    if (skill.skillId === BASIC_ATTACK_SKILL_ID) {
       continue
     }
     skill.cooldownRemaining = Math.max(
@@ -64,13 +73,24 @@ export function updateSkillEffects(
   state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
 }
 
+function applyPlayerCooldownReduction(
+  baseCooldown: number,
+  cooldownReduction: number,
+): number {
+  return Math.max(0.1, baseCooldown * (1 - Math.max(0, cooldownReduction) / 100))
+}
+
 function collectWhirlwindDamage(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
 ): DamageEvent[] {
   const definition = getSkillDefinition(WHIRLWIND_SKILL_ID)
-  const radius = definition.radius ?? 0
+  const playerStats = getDerivedPlayerStats(state.player)
+  const radius = scaleAreaValue(
+    definition.radius ?? 0,
+    playerStats.areaOfEffect,
+  )
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
 
@@ -85,13 +105,14 @@ function collectWhirlwindDamage(
     if (distance > radius + enemy.radius) {
       continue
     }
-    events.push({
-      sourceId: state.player.id,
-      sourceSkillId: skill.skillId,
-      targetId: enemy.id,
-      amount: damage,
-      damageType: 'physical',
-    })
+    events.push(createPlayerDamageEventFromStats(
+      playerStats,
+      state.player.id,
+      enemy.id,
+      skill.skillId,
+      damage,
+      { sourceTags: definition.tags },
+    ))
   }
 
   if (events.length > 0) {
@@ -103,7 +124,10 @@ function collectWhirlwindDamage(
       radius,
       definition.effectLifetime,
     )
-    skill.cooldownRemaining = definition.cooldown
+    skill.cooldownRemaining = applyPlayerCooldownReduction(
+      definition.cooldown,
+      playerStats.cooldownReduction,
+    )
   }
   return events
 }
@@ -117,6 +141,7 @@ function collectChainLightningDamage(
   const maxRange = definition.maxRange ?? 0
   const jumpRange = definition.jumpRange ?? 0
   const maxTargets = definition.maxTargets ?? 1
+  const playerStats = getDerivedPlayerStats(state.player)
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
   const visited = new Set<number>()
@@ -154,13 +179,14 @@ function collectChainLightningDamage(
     }
 
     visited.add(target.id)
-    events.push({
-      sourceId: state.player.id,
-      sourceSkillId: skill.skillId,
-      targetId: target.id,
-      amount: damage,
-      damageType: 'lightning',
-    })
+    events.push(createPlayerDamageEventFromStats(
+      playerStats,
+      state.player.id,
+      target.id,
+      skill.skillId,
+      damage,
+      { sourceTags: definition.tags },
+    ))
     path.push({ x: target.x, y: target.y })
     originX = target.x
     originY = target.y
@@ -175,7 +201,10 @@ function collectChainLightningDamage(
       16,
       definition.effectLifetime,
     )
-    skill.cooldownRemaining = definition.cooldown
+    skill.cooldownRemaining = applyPlayerCooldownReduction(
+      definition.cooldown,
+      playerStats.cooldownReduction,
+    )
   }
   return events
 }

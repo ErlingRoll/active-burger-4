@@ -15,6 +15,10 @@ import {
   type RunResultSnapshot,
 } from '../game'
 import { EQUIPMENT_SLOTS, type EquipmentSlot } from '../content/gear/Items'
+import {
+  formatGearModifier,
+  serializeGearModifiers,
+} from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import type { UpgradeChoice } from '../content/upgrades/Upgrades'
@@ -33,14 +37,7 @@ interface GameCanvasProps {
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
-
-const HUD_STAT_LABELS = {
-  maxHp: 'Max HP',
-  movementSpeed: 'Movement speed',
-  attackDamage: 'Attack damage',
-  attackSpeed: 'Attack speed',
-  attackRange: 'Attack range',
-} as const
+const DEVELOPMENT_TIME_SCALE_STORAGE_KEY = 'active-burger:development-time-scale'
 
 const HUD_SLOT_LABELS: Record<EquipmentSlot, string> = {
   weapon: 'Weapon',
@@ -54,13 +51,7 @@ const HUD_SLOT_LABELS: Record<EquipmentSlot, string> = {
 function formatHudModifier(
   modifier: GameUiSnapshot['skills'][number]['gearModifiers'][number],
 ): string {
-  const value = modifier.operation === 'multiply'
-    ? `${Math.ceil(Math.abs((modifier.value - 1) * 100))}%`
-    : Math.ceil(Math.abs(modifier.value)).toString()
-  const isPositive = modifier.operation === 'multiply'
-    ? modifier.value >= 1
-    : modifier.value >= 0
-  return `${isPositive ? '+' : '-'}${value} ${HUD_STAT_LABELS[modifier.stat]}`
+  return formatGearModifier(modifier)
 }
 
 function getChoiceFlowKey(
@@ -72,9 +63,26 @@ function getChoiceFlowKey(
   const choices = flow.choices.map((choice) =>
     'upgradeId' in choice
       ? choice.upgradeId
-      : `${choice.type}:${choice.itemId}:${choice.slot}`,
+      : choice.type === 'gear'
+        ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${serializeGearModifiers(choice.modifiers)}`
+        : `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`,
   )
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
+}
+
+function getStoredDevelopmentTimeScale(): number | null {
+  const storedValue = window.localStorage.getItem(DEVELOPMENT_TIME_SCALE_STORAGE_KEY)
+  if (storedValue === null) {
+    return null
+  }
+  const value = Number(storedValue)
+  return Number.isFinite(value) && value >= MIN_TIME_SCALE && value <= MAX_TIME_SCALE
+    ? value
+    : null
+}
+
+function storeDevelopmentTimeScale(value: number): void {
+  window.localStorage.setItem(DEVELOPMENT_TIME_SCALE_STORAGE_KEY, value.toString())
 }
 
 export function GameCanvas({
@@ -105,6 +113,10 @@ export function GameCanvas({
     }
 
     const game = createGame(initialRunConfigRef.current)
+    const storedTimeScale = getStoredDevelopmentTimeScale()
+    if (storedTimeScale !== null) {
+      game.setTimeScale(storedTimeScale)
+    }
     const pixiGame = new PixiGame(game)
     let disposed = false
     let runEndNotified = false
@@ -119,9 +131,6 @@ export function GameCanvas({
         if (choiceFlowKeyRef.current !== nextChoiceFlowKey) {
           choiceFlowKeyRef.current = nextChoiceFlowKey
           setChoiceFlow(nextSnapshot.pendingChoiceFlow)
-          if (nextSnapshot.pendingChoiceFlow) {
-            setDevelopmentMenuOpen(false)
-          }
         }
       }
     }
@@ -279,7 +288,6 @@ export function GameCanvas({
           game={game}
           snapshot={snapshot}
           open={developmentMenuOpen}
-          choiceFlowActive={choiceFlow !== null}
           onOpenChange={setDevelopmentMenuOpen}
         />
       ) : null}
@@ -340,6 +348,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
   const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlot | null>(
+    null,
+  )
+  const [activeCharacterStatId, setActiveCharacterStatId] = useState<string | null>(
     null,
   )
 
@@ -472,8 +483,29 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   >
                     <strong>{skill.name}</strong>
                     <p>{skill.description}</p>
+                    <section className="skill-tags-section" aria-label="Skill tags">
+                      <p className="skill-upgrade-heading">Skill tags</p>
+                      <ul className="skill-tag-list">
+                        {skill.tags.map((tag) => (
+                          <li className="skill-tag" key={tag}>
+                            {tag}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                    <section className="skill-damage-breakdown" aria-label="Calculated damage">
+                      <p className="skill-upgrade-heading">Calculated damage</p>
+                      <ul className="skill-upgrade-list">
+                        {skill.damageTypes.map((damageType) => (
+                          <li key={damageType}>
+                            <span>{damageType}</span>
+                            <span>{Math.round(skill.damage[damageType])}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                     <p className="skill-dps">
-                      <span>Estimated SINGLE-TARGET sustained DPS</span>
+                      <span>Estimated combined single-target sustained DPS</span>
                       <b>
                         {skill.estimatedSingleTargetDps === null
                           ? 'N/A'
@@ -486,7 +518,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <p className="skill-upgrade-heading">Derived gear modifiers</p>
                         <ul className="skill-upgrade-list">
                           {skill.gearModifiers.map((modifier, index) => (
-                            <li key={`${modifier.sourceId}-${modifier.stat}-${index}`}>
+                            <li key={`${modifier.sourceId}-${modifier.id}-${index}`}>
                               {formatHudModifier(modifier)}
                             </li>
                           ))}
@@ -564,7 +596,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </p>
                         <ul>
                           {item.modifiers.map((modifier, index) => (
-                            <li key={`${modifier.sourceId}-${modifier.stat}-${index}`}>
+                            <li key={`${modifier.sourceId}-${modifier.id}-${index}`}>
                               {formatHudModifier(modifier)}
                             </li>
                           ))}
@@ -579,6 +611,59 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             )
           })}
         </ul>
+        <section className="character-stats" aria-labelledby="character-stats-title">
+          <h4 id="character-stats-title">Character Stats</h4>
+          <div className="character-stat-groups">
+            {snapshot.characterStats.groups.map((group) => (
+              <section
+                className="character-stat-group"
+                aria-labelledby={`character-stat-group-${group.id}`}
+                key={group.id}
+              >
+                <h5 id={`character-stat-group-${group.id}`}>{group.title}</h5>
+                <ul className="character-stat-list">
+                  {group.stats.map((stat) => {
+                    const tooltipId = `character-stat-tooltip-${stat.id}`
+                    const isActive = activeCharacterStatId === stat.id
+                    return (
+                      <li className="character-stat-entry" key={stat.id}>
+                        <button
+                          className="character-stat-button"
+                          type="button"
+                          aria-label={`${stat.label}: ${stat.value}`}
+                          aria-describedby={isActive ? tooltipId : undefined}
+                          onFocus={() => setActiveCharacterStatId(stat.id)}
+                          onBlur={() => setActiveCharacterStatId(null)}
+                          onMouseEnter={() => setActiveCharacterStatId(stat.id)}
+                          onMouseLeave={() => setActiveCharacterStatId(null)}
+                        >
+                          <span>{stat.label}</span>
+                          <strong>{stat.value}</strong>
+                        </button>
+                        {isActive ? (
+                          <div
+                            className="character-stat-tooltip"
+                            id={tooltipId}
+                            role="tooltip"
+                          >
+                            <strong>{stat.label}</strong>
+                            <p className="character-stat-tooltip-value">
+                              Current value: {stat.value}
+                            </p>
+                            <p>{stat.description}</p>
+                            <p className="character-stat-tooltip-applies">
+                              <span>Applies to:</span> {stat.appliesTo}
+                            </p>
+                          </div>
+                        ) : null}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </section>
       </section>
     </section>
   )
@@ -639,7 +724,6 @@ interface DevelopmentMenuProps {
   game: Game
   snapshot: GameUiSnapshot
   open: boolean
-  choiceFlowActive: boolean
   onOpenChange: (open: boolean) => void
 }
 
@@ -647,7 +731,6 @@ function DevelopmentMenu({
   game,
   snapshot,
   open,
-  choiceFlowActive,
   onOpenChange,
 }: DevelopmentMenuProps) {
   const [timeScaleInput, setTimeScaleInput] = useState(() =>
@@ -696,6 +779,7 @@ function DevelopmentMenu({
     }
 
     setTimeScaleError(null)
+    storeDevelopmentTimeScale(value)
   }
 
   const togglePause = (): void => {
@@ -756,7 +840,6 @@ function DevelopmentMenu({
         type="button"
         aria-expanded={open}
         aria-controls="development-menu"
-        disabled={choiceFlowActive}
         onClick={() => onOpenChange(!open)}
       >
         Development Menu

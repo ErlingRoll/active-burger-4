@@ -54,4 +54,13 @@ describe('findNearestEnemy', () => {
 
     expect(result?.id).toBe(7)
   })
+
+  it('can exclude the most recent target from deterministic retargeting', () => {
+    const result = findNearestEnemy(
+      { originX: 0, originY: 0, maxRange: 50, excludeTargetId: 4 },
+      { enemies: [enemy(9, 20), enemy(4, -20)] },
+    )
+
+    expect(result?.id).toBe(9)
+  })
 })

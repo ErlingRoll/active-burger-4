@@ -1,5 +1,7 @@
 import type { EntityIdAllocator } from '../../ids'
 import type { DamageEvent, GameState } from '../../state/GameState'
+import { createPlayerDamageEventFromStats } from '../../combat/DamageSources'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 
 const SKELETON_ATTACK_RANGE = 140
 const SKELETON_DAMAGE = 6
@@ -23,6 +25,7 @@ export function updateSummons(
   fixedStepSeconds: number,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
+  const playerStats = getDerivedPlayerStats(state.player)
   const targets = state.enemies
     .filter((enemy) => enemy.hp > 0)
     .sort((left, right) => left.id - right.id)
@@ -49,12 +52,13 @@ export function updateSummons(
       continue
     }
     summon.attackCooldownRemaining = SKELETON_ATTACK_COOLDOWN
-    events.push({
-      sourceId: summon.id,
-      targetId: target.id,
-      amount: SKELETON_DAMAGE,
-      damageType: 'physical',
-    })
+    events.push(createPlayerDamageEventFromStats(
+      playerStats,
+      summon.id,
+      target.id,
+      undefined,
+      { physical: SKELETON_DAMAGE },
+    ))
   }
   return events
 }

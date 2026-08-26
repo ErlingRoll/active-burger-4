@@ -36,7 +36,12 @@ export function cloneChoiceFlow(
               ...modifier,
             })),
           }
-        : { ...choice },
+        : {
+            ...choice,
+            modifiers: choice.modifiers.map((modifier) => ({
+              ...modifier,
+            })),
+          },
     ),
   } as PendingChoiceFlow
 }

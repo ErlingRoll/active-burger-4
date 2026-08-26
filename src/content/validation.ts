@@ -30,13 +30,28 @@ import {
   EQUIPMENT_SLOTS,
   INITIAL_ITEMS,
   isItemId,
+  isWeaponArchetype,
   type ItemDefinition,
 } from './gear/Items'
+import {
+  getGearModifierCountForRarity,
+  getGearModifierDefinition,
+  isGearModifierAvailableForItem,
+  isGearModifierId,
+  isGearModifierTier,
+  isGearModifierValueInTier,
+  type GearModifier,
+  type GearModifierTier,
+} from './gear/ModifierPools'
 import {
   isRarity,
   RARITY_WEIGHTS,
   validateRarityWeights,
 } from './rarity/Rarity'
+import {
+  isDamageType,
+  type PartialDamageValues,
+} from './stats/Damage'
 import {
   isStatKey,
   type StatModifier,
@@ -104,7 +119,6 @@ export const CURRENT_CONTENT: ContentCatalog = {
 const VALID_UPGRADE_STATS = new Set([
   'attackDamage',
   'attackSpeed',
-  'movementSpeed',
 ])
 
 const VALID_SKILL_KINDS = new Set(['projectile', 'area', 'chain'])
@@ -115,6 +129,9 @@ const VALID_SKILL_TAGS = new Set([
   'melee',
   'area',
   'lightning',
+  'fire',
+  'cold',
+  'chaos',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
@@ -134,6 +151,7 @@ function validateBehaviorProfiles(
   const intentSources: readonly BehaviorIntentSource[] = [
     'dodge',
     'gear',
+    'xp',
     'kite',
     'combat-range',
     'hold',
@@ -234,6 +252,24 @@ function validateFiniteNumber(
   }
 }
 
+function validateDamageValues(
+  errors: string[],
+  path: string,
+  values: PartialDamageValues | undefined,
+): void {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) {
+    errors.push(`${path} must define a damage object.`)
+    return
+  }
+  for (const [damageType, value] of Object.entries(values)) {
+    if (!isDamageType(damageType)) {
+      errors.push(`${path}.${damageType} is not supported; received "${damageType}".`)
+      continue
+    }
+    validateFiniteNumber(errors, `${path}.${damageType}`, value, 'non-negative')
+  }
+}
+
 function validateModifiers(
   errors: string[],
   path: string,
@@ -263,6 +299,66 @@ function validateModifiers(
     } else if (expectedSourceId && modifier.sourceId !== expectedSourceId) {
       errors.push(
         `${path}[${index}].sourceId must be "${expectedSourceId}"; received "${modifier.sourceId}".`,
+      )
+    }
+  })
+}
+
+function validateGearModifiers(
+  errors: string[],
+  path: string,
+  modifiers: readonly GearModifier[] | undefined,
+  item: Pick<ItemDefinition, 'id' | 'slot'> & Partial<Pick<ItemDefinition, 'weaponArchetype'>>,
+): void {
+  if (!Array.isArray(modifiers)) {
+    errors.push(`${path} must be an array when provided.`)
+    return
+  }
+  const seenModifierIds = new Set<string>()
+  modifiers.forEach((modifier, index) => {
+    if (!modifier || typeof modifier !== 'object') {
+      errors.push(`${path}[${index}] must define a modifier object.`)
+      return
+    }
+    const hasValidId = isGearModifierId(modifier.id)
+    if (!hasValidId) {
+      errors.push(`${path}[${index}].id is not supported; received "${String(modifier.id)}".`)
+    } else {
+      if (seenModifierIds.has(modifier.id)) {
+        errors.push(`${path} contains duplicate modifier id "${modifier.id}".`)
+      }
+      seenModifierIds.add(modifier.id)
+    }
+    const hasValidTier = isGearModifierTier(modifier.tier)
+    if (!hasValidTier) {
+      errors.push(`${path}[${index}].tier is not supported; received "${String(modifier.tier)}".`)
+    }
+    const tier = modifier.tier as GearModifierTier
+    validateFiniteNumber(errors, `${path}[${index}].value`, modifier.value, 'non-negative')
+    if (
+      hasValidId &&
+      hasValidTier &&
+      !isGearModifierValueInTier(modifier.id, tier, modifier.value)
+    ) {
+      const range = getGearModifierDefinition(modifier.id).tiers[tier]
+      errors.push(
+        `${path}[${index}].value must be between ${range.min} and ${range.max} for ${modifier.id} Tier ${tier}.`,
+      )
+    }
+    if (hasValidId) {
+      if (!isGearModifierAvailableForItem(modifier, item)) {
+        const suffix = item.slot === 'weapon' && item.weaponArchetype
+          ? ` (${item.weaponArchetype})`
+          : ''
+        errors.push(`${path}[${index}].id is not available for slot ${item.slot}${suffix}.`)
+      }
+    }
+    const expectedSourceIdPrefix = `item:${item.id}:`
+    if (typeof modifier.sourceId !== 'string' || modifier.sourceId.trim() === '') {
+      errors.push(`${path}[${index}].sourceId must be a non-empty string.`)
+    } else if (!modifier.sourceId.startsWith(expectedSourceIdPrefix)) {
+      errors.push(
+        `${path}[${index}].sourceId must start with "${expectedSourceIdPrefix}"; received "${modifier.sourceId}".`,
       )
     }
   })
@@ -336,7 +432,7 @@ function validateDefinitions(
       }
     }
     validateFiniteNumber(errors, `skills[${index}].cooldown`, skill.cooldown, 'positive')
-    validateFiniteNumber(errors, `skills[${index}].baseDamage`, skill.baseDamage, 'non-negative')
+    validateDamageValues(errors, `skills[${index}].baseDamage`, skill.baseDamage)
     if (
       !Array.isArray(skill.tags) ||
       skill.tags.length === 0 ||
@@ -344,12 +440,7 @@ function validateDefinitions(
     ) {
       errors.push(`skills[${index}].tags must contain supported skill tags.`)
     }
-    validateFiniteNumber(
-      errors,
-      `skills[${index}].damagePerLevel`,
-      skill.damagePerLevel,
-      'non-negative',
-    )
+    validateDamageValues(errors, `skills[${index}].damagePerLevel`, skill.damagePerLevel)
     validateFiniteNumber(
       errors,
       `skills[${index}].effectLifetime`,
@@ -503,27 +594,36 @@ function validateDefinitions(
     if (!EQUIPMENT_SLOTS.includes(item.slot)) {
       errors.push(`items[${index}].slot is not supported; received "${String(item.slot)}".`)
     }
+    if (item.slot === 'weapon') {
+      if (!isWeaponArchetype(item.weaponArchetype)) {
+        errors.push(
+          `items[${index}].weaponArchetype is required for weapons and must be supported; received "${String(item.weaponArchetype)}".`,
+        )
+      }
+    } else if (item.weaponArchetype !== undefined) {
+      errors.push(`items[${index}].weaponArchetype is only supported on weapon items.`)
+    }
     if (!Array.isArray(item.modifiers) || item.modifiers.length === 0) {
       errors.push(`items[${index}].modifiers must contain at least one modifier.`)
     }
-    validateModifiers(
+    if (isRarity(item.rarity) && Array.isArray(item.modifiers)) {
+      const expectedCount = getGearModifierCountForRarity(item.rarity)
+      if (item.modifiers.length !== expectedCount) {
+        errors.push(
+          `items[${index}].modifiers must contain exactly ${expectedCount} modifiers for ${item.rarity} rarity.`,
+        )
+      }
+    }
+    validateGearModifiers(
       errors,
       `items[${index}].modifiers`,
       item.modifiers,
-      typeof item.id === 'string' ? `item:${item.id}` : undefined,
+      item,
     )
   })
 
   catalog.upgrades.forEach((upgrade, index) => {
     validateFiniteNumber(errors, `upgrades[${index}].amount`, upgrade.amount, 'positive')
-    if (upgrade.dodgeReactionTimeReduction !== undefined) {
-      validateFiniteNumber(
-        errors,
-        `upgrades[${index}].dodgeReactionTimeReduction`,
-        upgrade.dodgeReactionTimeReduction,
-        'positive',
-      )
-    }
     if (typeof upgrade.isEligible !== 'function') {
       errors.push(`upgrades[${index}].isEligible must be a function.`)
     }
@@ -952,8 +1052,8 @@ export function validateContent(catalog: ContentCatalog): string[] {
   const eligibilityState = {
     playerLevel: 1,
     selectedUpgradeIds: [] as const,
-    ownedSkillIds: ['basic-bolt'] as const,
-    skillLevels: { 'basic-bolt': 1 },
+    ownedSkillIds: ['basic-attack'] as const,
+    skillLevels: { 'basic-attack': 1 },
   }
   let eligibleUpgradeCount = 0
   catalog.upgrades.forEach((upgrade, index) => {

@@ -18,6 +18,8 @@ import {
 } from '../../../content/bosses/Bosses'
 import type { GameState } from '../../state/GameState'
 
+const neverCrit = { next: () => 1 }
+
 function state(): GameState {
   return {
     run: {
@@ -74,8 +76,8 @@ describe('boss skills', () => {
 
     gameState.telegraphs![0]!.remainingDuration = 0
     const damage = resolveBossTelegraphs(gameState)
-    applyDamageEvents(gameState, damage)
-    expect(gameState.player.hp).toBe(76)
+    applyDamageEvents(gameState, damage, neverCrit)
+    expect(gameState.player.hp).toBe(126)
     expect(gameState.telegraphs).toEqual([])
   })
 
@@ -88,8 +90,8 @@ describe('boss skills', () => {
     expect(gameState.telegraphs?.[0]?.kind).toBe('charge')
 
     gameState.telegraphs![0]!.remainingDuration = 0
-    applyDamageEvents(gameState, resolveBossTelegraphs(gameState))
-    expect(gameState.player.hp).toBe(70)
+    applyDamageEvents(gameState, resolveBossTelegraphs(gameState), neverCrit)
+    expect(gameState.player.hp).toBe(120)
   })
 
   it('cancels a defeated boss telegraph before it can affect Dodge', () => {
@@ -139,7 +141,7 @@ describe('boss skills', () => {
       kind: 'fire-nova',
       x: 0,
       y: 0,
-      damage: fireNova.damage * enrage.damageMultiplier,
+      damage: { fire: fireNova.damage * enrage.damageMultiplier },
     })
   })
 
@@ -180,7 +182,10 @@ describe('boss skills', () => {
     expect(gameState.telegraphs?.[0]).toMatchObject({ kind: 'flame-line' })
     gameState.telegraphs![0]!.remainingDuration = 0
     expect(resolveBossTelegraphs(gameState)).toMatchObject([
-      { targetId: gameState.player.id, damageType: 'fire' },
+      {
+        targetId: gameState.player.id,
+        damage: { fire: getBossSkillDefinition('flame-line').damage },
+      },
     ])
 
     gameState.bosses![0]!.skills[1]!.cooldownRemaining = 100

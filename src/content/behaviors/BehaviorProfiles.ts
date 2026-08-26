@@ -11,6 +11,7 @@ export type BehaviorProfileId =
 export type BehaviorIntentSource =
   | 'dodge'
   | 'gear'
+  | 'xp'
   | 'kite'
   | 'combat-range'
   | 'hold'
@@ -58,6 +59,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     intentPriorities: {
       dodge: DODGE_PRIORITY,
       gear: 800,
+      xp: 700,
       kite: 600,
       'combat-range': 400,
       hold: 0,
@@ -79,6 +81,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     intentPriorities: {
       dodge: DODGE_PRIORITY,
       gear: 250,
+      xp: 400,
       kite: 100,
       'combat-range': 800,
       hold: 0,
@@ -100,6 +103,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     intentPriorities: {
       dodge: DODGE_PRIORITY,
       gear: 700,
+      xp: 500,
       kite: 850,
       'combat-range': 300,
       hold: 0,
