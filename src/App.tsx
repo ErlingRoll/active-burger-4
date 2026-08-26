@@ -222,13 +222,26 @@ function App() {
     service: metaProgressionService.service,
     metaLoadState: metaProgression.loadState,
   })
-  const [pendingRunSyncCoordinator] = useState<PendingRunSyncCoordinator>(
-    () => createPendingRunSyncCoordinator({
+  const [pendingRunSyncCoordinator, setPendingRunSyncCoordinator] =
+    useState<PendingRunSyncCoordinator | null>(null)
+
+  useEffect(() => {
+    syncRuntimeRef.current = {
+      account: authentication.account,
+      screen,
+      service: metaProgressionService.service,
+      metaLoadState: metaProgression.loadState,
+    }
+  }, [authentication.account, metaProgression.loadState, metaProgressionService.service, screen])
+
+  useEffect(() => {
+    setPendingRunSyncCoordinator((current) => current ?? createPendingRunSyncCoordinator({
       canSync: () => {
-        const { account, screen: currentScreen, service } = syncRuntimeRef.current
+        const { account, screen: currentScreen, service, metaLoadState } =
+          syncRuntimeRef.current
         return account !== null &&
           service !== null &&
-          syncRuntimeRef.current.metaLoadState === 'ready' &&
+          metaLoadState === 'ready' &&
           currentScreen !== 'gameplay'
       },
       getPendingResults: () => pendingResultsRef.current,
@@ -280,17 +293,8 @@ function App() {
           syncError: errorMessage(error),
         }))
       },
-    }),
-  )
-
-  useEffect(() => {
-    syncRuntimeRef.current = {
-      account: authentication.account,
-      screen,
-      service: metaProgressionService.service,
-      metaLoadState: metaProgression.loadState,
-    }
-  }, [authentication.account, metaProgression.loadState, metaProgressionService.service, screen])
+    }))
+  }, [repository])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -584,7 +588,9 @@ function App() {
             pendingResults: nextPendingResults,
           }))
           setPendingResultState('saved')
-          void pendingRunSyncCoordinator.request([queuedResult])
+          if (pendingRunSyncCoordinator) {
+            void pendingRunSyncCoordinator.request([queuedResult])
+          }
         })
         .catch((error: unknown) => {
           setPendingResultState('error')
@@ -595,12 +601,13 @@ function App() {
   )
 
   const syncPendingResults = useCallback(
-    (): Promise<void> => pendingRunSyncCoordinator.request(),
+    (): Promise<void> => pendingRunSyncCoordinator?.request() ?? Promise.resolve(),
     [pendingRunSyncCoordinator],
   )
 
   useEffect(() => {
     if (
+      pendingRunSyncCoordinator === null ||
       persistence.loadState !== 'ready' ||
       metaProgression.loadState !== 'ready' ||
       screen === 'gameplay'
