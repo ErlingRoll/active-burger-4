@@ -320,14 +320,27 @@ function GearCard({
         <span className="gear-equipped-summary">
           Current: {equipped?.name ?? 'Empty slot'}
         </span>
-        <span className="gear-stats-heading">Stats</span>
-        <ModifierList modifiers={item.modifiers} />
-        <span className="gear-net-heading">{equipped ? 'Net change' : 'Gain (empty slot)'}</span>
-        <ModifierList
-          modifiers={getStatDeltas(item.modifiers, equipped?.modifiers ?? []).map(modifierFromDelta)}
-          emptyLabel="No stat change"
-          delta
-        />
+        {equipped ? (
+          <>
+            <span className="gear-stats-heading">Item modifiers</span>
+            <ModifierList modifiers={item.modifiers} />
+            <span className="gear-net-heading">Net change</span>
+            <ModifierList
+              modifiers={getStatDeltas(item.modifiers, equipped.modifiers).map(modifierFromDelta)}
+              emptyLabel="No stat change"
+              delta
+            />
+          </>
+        ) : (
+          <>
+            <span className="gear-net-heading">Gains</span>
+            <ModifierList
+              modifiers={item.modifiers}
+              emptyLabel="No modifiers"
+              delta
+            />
+          </>
+        )}
         <span className="upgrade-choice-description">
           Select to equip immediately.
         </span>
@@ -380,20 +393,27 @@ export function LevelUpOverlay({
   equipment,
   onSelect,
 }: LevelUpOverlayProps) {
+  const dialogRef = useRef<HTMLElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
 
   useEffect(() => {
-    firstButtonRef.current?.focus()
-  }, [flow])
+    if (isGearFlow) {
+      dialogRef.current?.focus()
+    } else {
+      firstButtonRef.current?.focus()
+    }
+  }, [flow, isGearFlow])
 
   return (
     <section
+      ref={dialogRef}
       className={`level-up-overlay ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="choice-dialog-title"
+      tabIndex={-1}
     >
       <div className="level-up-panel">
         <p className="level-up-kicker">

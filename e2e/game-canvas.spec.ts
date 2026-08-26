@@ -131,9 +131,10 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await expect(gearCards).toHaveCount(3)
   await expect(gearCards.first().locator('[data-rarity]')).toBeVisible()
   await expect(gearCards.first()).toContainText(/weapon|helmet|armor|boots|ring|amulet/i)
-  await expect(gearCards.first()).toContainText(/gain \(empty slot\)|net change/i)
-  await expect(gearCards.first()).toBeFocused()
+  await expect(gearCards.first()).toContainText(/gains|net change/i)
+  await expect(overlay).toBeFocused()
 
+  await gearCards.first().focus()
   await expect(overlay.getByRole('tooltip')).toContainText('Full comparison')
   await expect(overlay.getByRole('tooltip')).toContainText('Offered')
   await expect(overlay.getByRole('tooltip')).toContainText('Equipped in')
@@ -145,7 +146,6 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await expect(upgradeCard).toContainText(/upgraded rarity/i)
   await expect(upgradeCard).toContainText(/modifiers improve/i)
 
-  const loadout = page.getByRole('region', { name: 'Equipped loadout' })
-  await expect(loadout.locator('.loadout-item')).toHaveCount(6)
-  await expect(loadout.locator('.loadout-item:not(:has(.loadout-empty))')).toHaveCount(1)
+  const loadout = page.getByRole('region', { name: 'Loadout' })
+  await expect(loadout.locator('.loadout-item')).toHaveCount(1)
 })
