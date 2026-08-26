@@ -29,6 +29,9 @@ export class PixiGame {
   private static readonly MIN_CAMERA_SCALE = 1 / 3
   private static readonly MAX_CAMERA_SCALE = 1
   private static readonly WHEEL_ZOOM_SENSITIVITY = 0.001
+  private static readonly CAMERA_DEAD_ZONE_PIXELS = 28
+  private static readonly CAMERA_FOLLOW_RESPONSIVENESS = 12
+  private static readonly CAMERA_SNAP_DISTANCE = 150
 
   private readonly game: Game
   private readonly app = new Application()
@@ -48,6 +51,9 @@ export class PixiGame {
   private playerView: Graphics | undefined
   private host: HTMLElement | undefined
   private cameraScale = PixiGame.MAX_CAMERA_SCALE
+  private cameraFocusX = 0
+  private cameraFocusY = 0
+  private cameraFocusInitialized = false
   private initialized = false
   private disposed = false
 
@@ -74,7 +80,7 @@ export class PixiGame {
     this.initialized = true
 
     this.app.ticker.add(this.update)
-    this.centerCamera()
+    this.centerCamera(0)
     this.renderState()
   }
 
@@ -385,9 +391,10 @@ export class PixiGame {
   }
 
   private readonly update = (ticker: Ticker): void => {
-    this.game.update(ticker.deltaMS / 1000)
+    const deltaSeconds = ticker.deltaMS / 1000
+    this.game.update(deltaSeconds)
     this.renderState()
-    this.centerCamera()
+    this.centerCamera(deltaSeconds)
   }
 
   private renderState(): void {
@@ -565,12 +572,50 @@ export class PixiGame {
     }
   }
 
-  private readonly centerCamera = (): void => {
+  private readonly centerCamera = (deltaSeconds: number): void => {
     const player = this.game.state.player
+    if (!this.cameraFocusInitialized) {
+      this.cameraFocusX = player.x
+      this.cameraFocusY = player.y
+      this.cameraFocusInitialized = true
+    }
+
+    const offsetX = player.x - this.cameraFocusX
+    const offsetY = player.y - this.cameraFocusY
+    const offsetDistance = Math.hypot(offsetX, offsetY)
+    const deadZoneWorldRadius =
+      PixiGame.CAMERA_DEAD_ZONE_PIXELS / this.cameraScale
+    let targetFocusX = this.cameraFocusX
+    let targetFocusY = this.cameraFocusY
+
+    if (offsetDistance > deadZoneWorldRadius) {
+      const offsetRatio = deadZoneWorldRadius / offsetDistance
+      targetFocusX = player.x - offsetX * offsetRatio
+      targetFocusY = player.y - offsetY * offsetRatio
+    }
+
+    const targetDistance = Math.hypot(
+      targetFocusX - this.cameraFocusX,
+      targetFocusY - this.cameraFocusY,
+    )
+    if (targetDistance >= PixiGame.CAMERA_SNAP_DISTANCE) {
+      this.cameraFocusX = targetFocusX
+      this.cameraFocusY = targetFocusY
+    } else {
+      const elapsed = Number.isFinite(deltaSeconds)
+        ? Math.max(0, deltaSeconds)
+        : 0
+      const followAmount = 1 - Math.exp(
+        -PixiGame.CAMERA_FOLLOW_RESPONSIVENESS * elapsed,
+      )
+      this.cameraFocusX += (targetFocusX - this.cameraFocusX) * followAmount
+      this.cameraFocusY += (targetFocusY - this.cameraFocusY) * followAmount
+    }
+
     this.camera.scale.set(this.cameraScale)
     this.camera.position.set(
-      this.app.renderer.width / 2 - player.x * this.cameraScale,
-      this.app.renderer.height / 2 - player.y * this.cameraScale,
+      this.app.renderer.width / 2 - this.cameraFocusX * this.cameraScale,
+      this.app.renderer.height / 2 - this.cameraFocusY * this.cameraScale,
     )
   }
 
@@ -586,7 +631,7 @@ export class PixiGame {
         this.cameraScale * scaleChange,
       ),
     )
-    this.centerCamera()
+    this.centerCamera(0)
   }
 
   private destroyApplication(): void {
@@ -630,6 +675,7 @@ export class PixiGame {
     this.effectLayer = undefined
     this.playerView = undefined
     this.host = undefined
+    this.cameraFocusInitialized = false
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false
   }
