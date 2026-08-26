@@ -43,8 +43,8 @@ milestones in order unless an ADR documents an exception.
   kill count.
 - [x] **6. XP and Leveling:** drops, pickup, thresholds, level pause.
 - [x] **7. Upgrade Screen:** seeded three-choice overlay and stat upgrades.
-- [x] **7.5 Basic Run UI:** dashboard, start action, gameplay HUD, temporary
-  End Run defeat path, results screen, and return to dashboard.
+- [x] **7.5 Basic Run UI:** dashboard, start action, gameplay HUD,
+  development-only End Run control, results screen, and return to dashboard.
 - [ ] **8. Skills:** Basic Bolt, Whirlwind, Chain Lightning, skill upgrades.
 - [ ] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.
 - [ ] **10. Performance:** spatial hash, debug counts, spawn commands, and

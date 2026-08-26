@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { createGame, FIXED_STEP_SECONDS } from './Game'
+import {
+  createGame,
+  DEFAULT_TIME_SCALE,
+  FIXED_STEP_SECONDS,
+  MAX_FRAME_SECONDS,
+  MAX_TIME_SCALE,
+  MIN_TIME_SCALE,
+} from './Game'
 import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 
@@ -38,6 +45,51 @@ describe('Game', () => {
 
     expect(game.state.tick).toBe(1)
     expect(game.state.time).toBeCloseTo(FIXED_STEP_SECONDS)
+  })
+
+  it('accepts inclusive time-scale boundaries and rejects invalid values', () => {
+    const game = createGame({ seed: 2 })
+
+    expect(game.timeScale).toBe(DEFAULT_TIME_SCALE)
+    expect(game.setTimeScale(MIN_TIME_SCALE)).toEqual({
+      ok: true,
+      value: MIN_TIME_SCALE,
+    })
+    expect(game.timeScale).toBe(MIN_TIME_SCALE)
+    expect(game.setTimeScale(MAX_TIME_SCALE)).toEqual({
+      ok: true,
+      value: MAX_TIME_SCALE,
+    })
+    expect(game.timeScale).toBe(MAX_TIME_SCALE)
+
+    for (const invalidValue of [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      MIN_TIME_SCALE - 0.01,
+      MAX_TIME_SCALE + 0.01,
+    ]) {
+      const result = game.setTimeScale(invalidValue)
+      expect(result.ok).toBe(false)
+      expect(game.timeScale).toBe(MAX_TIME_SCALE)
+    }
+  })
+
+  it('applies 10x to a clamped raw frame delta before fixed-step accumulation', () => {
+    const game = createGame({ seed: 2 })
+    expect(game.setTimeScale(MAX_TIME_SCALE).ok).toBe(true)
+
+    game.update(0.1)
+    expect(game.state.tick).toBe(60)
+    expect(game.state.time).toBeCloseTo(1)
+
+    game.update(10)
+    expect(game.state.tick).toBe(
+      60 +
+        Math.floor(
+          (MAX_FRAME_SECONDS * MAX_TIME_SCALE) / FIXED_STEP_SECONDS,
+        ),
+    )
   })
 
   it('produces the same tick/time progression regardless of how irregular the frame deltas are', () => {

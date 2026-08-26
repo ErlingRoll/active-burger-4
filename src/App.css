@@ -191,6 +191,113 @@
   opacity: 0.6;
 }
 
+.development-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.development-menu-toggle {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  color: #e0f2fe;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #164e63;
+  border: 1px solid #67e8f9;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.development-menu-toggle:hover,
+.development-menu-toggle:focus-visible {
+  background: #155e75;
+  outline: 3px solid rgb(103 232 249 / 35%);
+  outline-offset: 2px;
+}
+
+.development-menu {
+  width: min(20rem, calc(100vw - 2rem));
+  margin-top: 0.6rem;
+  padding: 1rem;
+  color: #dbeafe;
+  background: #0f172a;
+  border: 1px solid #67e8f9;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgb(2 6 23 / 55%);
+}
+
+.development-kicker {
+  margin: 0;
+  color: #67e8f9;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.development-menu h2 {
+  margin: 0.25rem 0 1rem;
+  color: #f8fafc;
+  font-size: 1.2rem;
+}
+
+.time-scale-control {
+  margin-bottom: 1rem;
+}
+
+.time-scale-control label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.time-scale-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.time-scale-input-row input {
+  width: 7rem;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.55rem;
+  color: #f8fafc;
+  font: inherit;
+  background: #1e293b;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+}
+
+.time-scale-input-row input:focus-visible {
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 1px;
+}
+
+.time-scale-input-row input[aria-invalid='true'] {
+  border-color: #fca5a5;
+}
+
+.input-help,
+.input-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+}
+
+.input-help {
+  color: #94a3b8;
+}
+
+.input-error {
+  color: #fca5a5;
+}
+
 .results-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -321,8 +428,9 @@
     flex-direction: column;
   }
 
-  .end-run-button {
-    align-self: flex-start;
+  .development-controls {
+    top: 0.75rem;
+    right: 0.75rem;
   }
 
   .upgrade-choice-list {

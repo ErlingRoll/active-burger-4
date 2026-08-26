@@ -19,9 +19,29 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   ).toBeVisible()
   await expect(page.locator('.game-canvas canvas')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'Run status' })).toBeAttached()
-  await expect(page.getByRole('button', { name: 'End Run' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'End Run' })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'End Run' }).click()
+  await page.getByRole('button', { name: 'Development Menu' }).click()
+  const developmentMenu = page.getByRole('heading', {
+    name: 'Development Menu',
+  }).locator('..')
+  await expect(developmentMenu).toBeVisible()
+
+  const speedInput = page.getByRole('spinbutton', {
+    name: 'Simulation speed',
+  })
+  await expect(speedInput).toHaveValue('1')
+  await speedInput.fill('2.5')
+  await expect(speedInput).toHaveValue('2.5')
+  await expect(developmentMenu.getByText('Applied: 2.5x')).toBeVisible()
+
+  await speedInput.fill('11')
+  await expect(speedInput).toHaveValue('11')
+  await expect(
+    developmentMenu.getByRole('alert'),
+  ).toContainText('between 0.1x and 10x')
+
+  await developmentMenu.getByRole('button', { name: 'End Run' }).click()
   await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
   await expect(page.getByText('Elapsed time')).toBeVisible()
   await expect(page.getByText('Level')).toBeVisible()

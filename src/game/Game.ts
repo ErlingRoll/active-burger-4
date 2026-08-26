@@ -64,6 +64,7 @@ import type {
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
+export { MAX_FRAME_SECONDS } from './engine/GameClock'
 export type { WorldPosition } from './systems/spawning/SpawningSystem'
 export type {
   GameUiSnapshot,
@@ -74,6 +75,14 @@ export type {
 export type { RunConfig } from './state/GameState'
 
 export type GameStateListener = (state: Readonly<GameState>) => void
+
+export const MIN_TIME_SCALE = 0.1
+export const MAX_TIME_SCALE = 10
+export const DEFAULT_TIME_SCALE = 1
+
+export type TimeScaleUpdateResult =
+  | { ok: true; value: number }
+  | { ok: false; error: string }
 
 /**
  * Renderer-independent game simulation facade. The run owns its state, seeded
@@ -87,6 +96,7 @@ export class Game {
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
   private readonly clock = new FixedTimestepClock()
+  private currentTimeScale = DEFAULT_TIME_SCALE
   private resumePhase: RunPhase | undefined
   private pendingChoices: UpgradeChoice[] = []
   private pendingLevelUps = 0
@@ -132,6 +142,33 @@ export class Game {
 
   get paused(): boolean {
     return this.gameState.paused
+  }
+
+  get timeScale(): number {
+    return this.currentTimeScale
+  }
+
+  /**
+   * Sets the simulation speed multiplier. Invalid values leave the current
+   * scale unchanged and return an actionable validation error.
+   */
+  setTimeScale(value: number): TimeScaleUpdateResult {
+    if (!Number.isFinite(value)) {
+      return {
+        ok: false,
+        error: 'Simulation speed must be a finite number.',
+      }
+    }
+
+    if (value < MIN_TIME_SCALE || value > MAX_TIME_SCALE) {
+      return {
+        ok: false,
+        error: `Simulation speed must be between ${MIN_TIME_SCALE}x and ${MAX_TIME_SCALE}x.`,
+      }
+    }
+
+    this.currentTimeScale = value
+    return { ok: true, value }
   }
 
   getUiSnapshot(): GameUiSnapshot {
@@ -200,6 +237,7 @@ export class Game {
   update(rawDeltaSeconds: number): void {
     this.clock.advance(
       rawDeltaSeconds,
+      this.currentTimeScale,
       () => this.gameState.run.phase === 'playing',
       () => this.step(),
     )
