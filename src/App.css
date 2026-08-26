@@ -811,18 +811,21 @@
 }
 
 .gear-comparison {
-  position: absolute;
+  position: fixed;
   z-index: 4;
-  top: calc(100% + 0.6rem);
-  left: 0;
+  bottom: 1rem;
+  left: 50%;
   width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
   padding: 0.85rem;
   color: #dbeafe;
   background: #0f172a;
   border: 1px solid #fef08a;
   border-radius: 0.6rem;
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 65%);
+  overflow-y: auto;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .gear-comparison > strong {
@@ -916,19 +919,8 @@
     min-height: auto;
   }
 
-  .gear-comparison {
-    width: min(30rem, calc(100vw - 2rem));
-  }
-
   .results-stats {
     grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 701px) {
-    .choice-card-wrap:nth-child(3) .gear-comparison {
-      right: 0;
-      left: auto;
-    }
   }
 
   @media (max-width: 420px) {
