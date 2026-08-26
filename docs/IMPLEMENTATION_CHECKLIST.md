@@ -69,7 +69,7 @@ milestones in order unless an ADR documents an exception.
   queue sync, and idempotent submission.
 - [x] **18. World Modifiers:** selection, difficulty score, reward multiplier.
 - [x] **19. Characters:** content-driven Knight, Ranger, Necromancer.
-- [ ] **20. Polish:** art, VFX, audio, UX, accessibility, responsive layout.
+- [x] **20. Polish:** onboarding, combat readability, reduced motion, responsive HUD, and results presentation.
 
 ## First Playable Gate
 

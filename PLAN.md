@@ -4414,9 +4414,8 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–19 and the deterministic Player Behavior Controller are complete. World
+Milestones 0–20 and the deterministic Player Behavior Controller are complete. World
 Modifiers and character selection are persisted locally and passed as plain
-deterministic run configuration without network activity during gameplay.
-
-The next planned feature is **Milestone 20 — Polish**. Improve the proven core loop
-with art, animation, VFX, audio, accessibility, and tutorial work.
+deterministic run configuration without network activity during gameplay. Future work
+can expand production art, animation, VFX, audio, additional content, and platform
+support based on playtest feedback.
