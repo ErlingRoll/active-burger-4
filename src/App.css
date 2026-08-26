@@ -244,6 +244,72 @@
   font-size: 1.2rem;
 }
 
+.entity-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.entity-counts div {
+  padding: 0.5rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.4rem;
+}
+
+.entity-counts dt {
+  color: #93c5fd;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.entity-counts dd {
+  margin: 0.15rem 0 0;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.debug-spawn-control {
+  margin-bottom: 1rem;
+}
+
+.development-control-label {
+  margin: 0 0 0.4rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.debug-spawn-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.debug-spawn-button {
+  min-height: 2.3rem;
+  padding: 0.45rem 0.65rem;
+  color: #cffafe;
+  font-weight: 700;
+  text-align: left;
+  background: #164e63;
+  border: 1px solid #0891b2;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.debug-spawn-button:hover,
+.debug-spawn-button:focus-visible {
+  background: #155e75;
+  outline: 3px solid rgb(103 232 249 / 35%);
+  outline-offset: 2px;
+}
+
+.debug-spawn-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .time-scale-control {
   margin-bottom: 1rem;
 }

@@ -4,7 +4,9 @@ import {
   createGame,
   MAX_TIME_SCALE,
   MIN_TIME_SCALE,
+  DEBUG_SPAWN_COUNTS,
   type Game,
+  type DebugSpawnCount,
   type GameUiSnapshot,
   type RunResultSnapshot,
 } from '../game'
@@ -206,6 +208,20 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
     game.timeScale.toString(),
   )
   const [timeScaleError, setTimeScaleError] = useState<string | null>(null)
+  const entityCounts = {
+    enemies: game.state.enemies.length,
+    projectiles: game.state.projectiles.length,
+    pickups: game.state.pickups.length,
+    summons: game.state.summons.length,
+    effects: game.state.effects.length,
+  }
+  const totalEntities =
+    1 +
+    entityCounts.enemies +
+    entityCounts.projectiles +
+    entityCounts.pickups +
+    entityCounts.summons +
+    entityCounts.effects
 
   const handleTimeScaleChange = (
     event: ChangeEvent<HTMLInputElement>,
@@ -252,6 +268,52 @@ function DevelopmentMenu({ game, snapshot }: DevelopmentMenuProps) {
         >
           <p className="development-kicker">Development-only controls</p>
           <h2 id="development-menu-title">Development Menu</h2>
+          <dl className="entity-counts" aria-label="Entity counts">
+            <div>
+              <dt>Total entities</dt>
+              <dd>{totalEntities}</dd>
+            </div>
+            <div>
+              <dt>Enemies</dt>
+              <dd>{entityCounts.enemies}</dd>
+            </div>
+            <div>
+              <dt>Projectiles</dt>
+              <dd>{entityCounts.projectiles}</dd>
+            </div>
+            <div>
+              <dt>Pickups</dt>
+              <dd>{entityCounts.pickups}</dd>
+            </div>
+            <div>
+              <dt>Summons</dt>
+              <dd>{entityCounts.summons}</dd>
+            </div>
+            <div>
+              <dt>Effects</dt>
+              <dd>{entityCounts.effects}</dd>
+            </div>
+          </dl>
+          <div className="debug-spawn-control">
+            <p className="development-control-label">Stress spawn</p>
+            <div className="debug-spawn-actions">
+              {DEBUG_SPAWN_COUNTS.map((count: DebugSpawnCount) => (
+                <button
+                  className="debug-spawn-button"
+                  key={count}
+                  type="button"
+                  onClick={() => game.spawnDebugEnemies(count)}
+                  disabled={snapshot.phase !== 'playing'}
+                >
+                  Spawn {count} enemies
+                </button>
+              ))}
+            </div>
+            <p className="input-help">
+              Development-only stress spawns intentionally bypass the normal
+              active-enemy cap.
+            </p>
+          </div>
           <div className="time-scale-control">
             <label htmlFor="time-scale-input">Simulation speed</label>
             <div className="time-scale-input-row">

@@ -8,7 +8,10 @@ import {
   getSkillDefinition,
 } from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
-import { findNearestEnemy } from '../../combat/Targeting'
+import {
+  createEnemySpatialHash,
+  findNearestEnemy,
+} from '../../combat/Targeting'
 import {
   getSplitChildren,
   updateEnemyBehavior,
@@ -47,7 +50,10 @@ export function updateAttackCooldown(
   }
 }
 
-export function resolvePlayerTarget(state: GameState): void {
+export function resolvePlayerTarget(
+  state: GameState,
+  enemySpatialHash = createEnemySpatialHash(state),
+): void {
   const player = state.player
   const target = findNearestEnemy(
     {
@@ -56,6 +62,7 @@ export function resolvePlayerTarget(state: GameState): void {
       maxRange: player.attackRange,
     },
     state,
+    enemySpatialHash,
   )
 
   player.targetId = target?.id
@@ -128,15 +135,14 @@ export function updateProjectiles(
   }
 }
 
-export function collectProjectileDamage(state: GameState): DamageEvent[] {
+export function collectProjectileDamage(
+  state: GameState,
+  enemies = createEnemySpatialHash(state),
+): DamageEvent[] {
   const damageEvents: DamageEvent[] = []
   const projectiles = [...state.projectiles].sort(
     (left, right) => left.id - right.id,
   )
-  const enemies = [...state.enemies]
-    .filter((enemy) => enemy.hp > 0)
-    .sort((left, right) => left.id - right.id)
-
   for (const projectile of projectiles) {
     if (projectile.remainingLifetime <= 0) {
       continue
@@ -145,7 +151,11 @@ export function collectProjectileDamage(state: GameState): DamageEvent[] {
     let hitEnemy: EnemyState | undefined
     let hitDistanceSquared = Number.POSITIVE_INFINITY
 
-    for (const enemy of enemies) {
+    for (const enemy of enemies.queryRadius(
+      projectile.x,
+      projectile.y,
+      projectile.radius,
+    )) {
       const offsetX = enemy.x - projectile.x
       const offsetY = enemy.y - projectile.y
       const collisionDistance = enemy.radius + projectile.radius

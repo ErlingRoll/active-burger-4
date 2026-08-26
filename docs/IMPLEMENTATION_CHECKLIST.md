@@ -47,7 +47,7 @@ milestones in order unless an ADR documents an exception.
   development-only End Run control, results screen, and return to dashboard.
 - [ ] **8. Skills:** Basic Bolt, Whirlwind, Chain Lightning, skill upgrades.
 - [ ] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.
-- [ ] **10. Performance:** spatial hash, debug counts, spawn commands, and
+- [x] **10. Performance:** spatial hash, debug counts, spawn commands, and
   measured profiling.
 - [ ] **11. Gear:** rarity, passives, tags, and conditional synergy effects.
 - [ ] **12. Elites:** selection, Hasted/Giant, visuals, rewards.

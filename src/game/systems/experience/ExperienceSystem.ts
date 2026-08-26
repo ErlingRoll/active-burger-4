@@ -1,6 +1,7 @@
 import { xpRequiredForNextLevel } from '../../../content/progression/XpBalance'
 import type { EntityId } from '../../ids'
 import type { GameState } from '../../state/GameState'
+import { SpatialHash } from '../../spatial/SpatialHash'
 
 export function updatePickups(
   state: GameState,
@@ -8,10 +9,23 @@ export function updatePickups(
   grantExperience: (amount: number) => void,
 ): void {
   const player = state.player
-  const pickups = [...state.pickups].sort((left, right) => left.id - right.id)
+  const pickups = new SpatialHash<GameState['pickups'][number]>()
+  let broadphaseRadius = 0
+  for (const pickup of state.pickups) {
+    pickups.insert(pickup.id, pickup.x, pickup.y, pickup.radius, pickup)
+    broadphaseRadius = Math.max(
+      broadphaseRadius,
+      pickup.attractionRadius,
+      player.radius + pickup.radius,
+    )
+  }
   const collectedIds = new Set<EntityId>()
 
-  for (const pickup of pickups) {
+  for (const pickup of pickups.queryRadius(
+    player.x,
+    player.y,
+    broadphaseRadius,
+  )) {
     const offsetX = player.x - pickup.x
     const offsetY = player.y - pickup.y
     const distance = Math.hypot(offsetX, offsetY)

@@ -36,6 +36,7 @@ import {
   updateEnemyChase,
   updateProjectiles,
 } from './systems/combat/CombatSystem'
+import { createEnemySpatialHash } from './combat/Targeting'
 import {
   grantExperience,
   updatePickups,
@@ -47,6 +48,7 @@ import {
   spawnXpPickup,
   updateEnemySpawns,
 } from './systems/spawning/SpawningSystem'
+import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import {
   collectSkillDamage,
@@ -79,6 +81,8 @@ export type GameStateListener = (state: Readonly<GameState>) => void
 export const MIN_TIME_SCALE = 0.1
 export const MAX_TIME_SCALE = 10
 export const DEFAULT_TIME_SCALE = 1
+export const DEBUG_SPAWN_COUNTS = [100, 500, 1000] as const
+export type DebugSpawnCount = (typeof DEBUG_SPAWN_COUNTS)[number]
 
 export type TimeScaleUpdateResult =
   | { ok: true; value: number }
@@ -303,6 +307,31 @@ export class Game {
     )
   }
 
+  /**
+   * Development-only stress helper. It intentionally bypasses the normal
+   * director cap and never consumes seeded RNG, so regular run decisions stay
+   * reproducible around a debug spawn.
+   */
+  spawnDebugEnemies(count: DebugSpawnCount): number {
+    if (
+      this.gameState.run.phase !== 'playing' ||
+      !DEBUG_SPAWN_COUNTS.includes(count)
+    ) {
+      return 0
+    }
+
+    for (let index = 0; index < count; index += 1) {
+      const angle = index * 2.399963229728653
+      const radius = 500 + (index % 16) * 10
+      this.spawnEnemy(SLIME_DEFINITION_ID, {
+        x: this.gameState.player.x + Math.cos(angle) * radius,
+        y: this.gameState.player.y + Math.sin(angle) * radius,
+      })
+    }
+
+    return count
+  }
+
   private step(): void {
     this.gameState.tick += 1
     this.gameState.time += FIXED_STEP_SECONDS
@@ -318,11 +347,12 @@ export class Game {
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
-    resolvePlayerTarget(this.gameState)
+    const enemySpatialHash = createEnemySpatialHash(this.gameState)
+    resolvePlayerTarget(this.gameState, enemySpatialHash)
     spawnBasicBoltIfReady(this.gameState, this.idAllocator)
     updateProjectiles(this.gameState, FIXED_STEP_SECONDS)
     const damageEvents = [
-      ...collectProjectileDamage(this.gameState),
+      ...collectProjectileDamage(this.gameState, enemySpatialHash),
       ...collectSkillDamage(this.gameState, this.idAllocator),
     ]
     applyDamageEvents(this.gameState, damageEvents)

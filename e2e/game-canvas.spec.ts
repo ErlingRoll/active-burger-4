@@ -26,6 +26,16 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
     name: 'Development Menu',
   }).locator('..')
   await expect(developmentMenu).toBeVisible()
+  await expect(developmentMenu.getByText('Total entities')).toBeVisible()
+  await expect(
+    developmentMenu.getByRole('button', { name: 'Spawn 100 enemies' }),
+  ).toBeVisible()
+  await expect(
+    developmentMenu.getByRole('button', { name: 'Spawn 500 enemies' }),
+  ).toBeVisible()
+  await expect(
+    developmentMenu.getByRole('button', { name: 'Spawn 1000 enemies' }),
+  ).toBeVisible()
 
   const speedInput = page.getByRole('spinbutton', {
     name: 'Simulation speed',

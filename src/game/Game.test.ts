@@ -245,6 +245,35 @@ describe('Game', () => {
     expect(game.state.player.hp).toBe(game.state.player.maxHp)
   })
 
+  it('supports deterministic development stress spawns without consuming the run RNG', () => {
+    const game = createGame({ seed: 43 })
+    const firstRandomValue = game.random.next()
+
+    expect(game.spawnDebugEnemies(100)).toBe(100)
+    expect(game.spawnDebugEnemies(500)).toBe(500)
+    expect(game.spawnDebugEnemies(1000)).toBe(1000)
+    expect(game.state.enemies).toHaveLength(1600)
+    expect(game.state.enemies[0]).toMatchObject({
+      id: 2,
+      definitionId: SLIME_DEFINITION_ID,
+    })
+    expect(game.state.enemies.every((enemy) => Number.isFinite(enemy.x))).toBe(
+      true,
+    )
+
+    const comparison = createGame({ seed: 43 })
+    expect(comparison.random.next()).toBe(firstRandomValue)
+    expect(comparison.spawnDebugEnemies(100)).toBe(100)
+    expect(comparison.state.enemies).toEqual(game.state.enemies.slice(0, 100))
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.phase).toBe('playing')
+    expect(game.state.enemies).toHaveLength(1600)
+
+    game.endRun()
+    expect(game.spawnDebugEnemies(100)).toBe(0)
+  })
+
   it('spawns a data-driven Slime with a stable definition and chase target', () => {
     const game = createGame({ seed: 8 })
 
