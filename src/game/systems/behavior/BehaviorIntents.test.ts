@@ -143,6 +143,18 @@ describe('data-driven player behavior intents', () => {
     expect(updatePlayerBehavior(state, 1 / 60)?.source).not.toBe('kite')
   })
 
+  it('keeps movement aligned with the active combat target', () => {
+    const activeTarget = enemy(4, 'slime', 90)
+    const higherThreat = enemy(9, 'brute', 120)
+    const state = createState([activeTarget, higherThreat])
+    state.player.targetId = activeTarget.id
+
+    const combatRange = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'combat-range',
+    )
+    expect(combatRange?.targetId).toBe(activeTarget.id)
+  })
+
   it('selects distinct profile intents from the same deterministic state', () => {
     const state = createState(
       [enemy(5, 'archer', 180)],

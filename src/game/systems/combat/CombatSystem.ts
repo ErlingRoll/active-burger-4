@@ -110,17 +110,43 @@ export function resolvePlayerTarget(
   const player = state.player
   const stats = getDerivedPlayerStats(player)
   const engagementRange = stats.attackRange + player.radius
-  const target = findNearestEnemy(
-    {
-      originX: player.x,
-      originY: player.y,
-      maxRange: engagementRange,
-    },
-    state,
-    enemySpatialHash,
-  )
+  const currentTarget = findLivingTarget(state, player.targetId)
+  const currentTargetInRange = currentTarget !== undefined &&
+    distanceSquared(player.x, player.y, currentTarget.x, currentTarget.y) <=
+      engagementRange * engagementRange
+  const target = currentTargetInRange
+    ? currentTarget
+    : findNearestEnemy(
+        {
+          originX: player.x,
+          originY: player.y,
+          maxRange: engagementRange,
+        },
+        state,
+        enemySpatialHash,
+      )
 
   player.targetId = target?.id
+}
+
+function findLivingTarget(
+  state: GameState,
+  targetId: number | undefined,
+): EnemyState | BossState | undefined {
+  if (targetId === undefined) {
+    return undefined
+  }
+  return state.enemies.find((enemy) => enemy.id === targetId && enemy.hp > 0) ??
+    state.bosses?.find((boss) => boss.id === targetId && boss.hp > 0)
+}
+
+function distanceSquared(
+  leftX: number,
+  leftY: number,
+  rightX: number,
+  rightY: number,
+): number {
+  return (leftX - rightX) ** 2 + (leftY - rightY) ** 2
 }
 
 export function spawnBasicBoltIfReady(

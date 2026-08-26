@@ -93,6 +93,10 @@ function chooseCombatTarget(
   threats: readonly ThreatEntity[],
   thresholds: BehaviorProfileThresholds,
 ): ThreatEntity | undefined {
+  const currentTarget = threats.find((entity) => entity.id === state.player.targetId)
+  if (currentTarget) {
+    return currentTarget
+  }
   return [...threats]
     .sort((left, right) => {
       const scoreOrder =
