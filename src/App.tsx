@@ -796,6 +796,7 @@ function App() {
           <Dashboard
             settings={settings}
             profile={profile}
+            essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
             pendingCount={pendingCount}
             writeError={writeError}
             onStart={startRun}
@@ -887,6 +888,7 @@ function AppHeader({
 interface DashboardProps {
   settings: SettingsDto
   profile: BasicProfileDto
+  essenceBalance: number | null
   pendingCount: number
   writeError: string | null
   onStart: () => void
@@ -900,6 +902,7 @@ interface DashboardProps {
 function Dashboard({
   settings,
   profile,
+  essenceBalance,
   pendingCount,
   writeError,
   onStart,
@@ -914,14 +917,35 @@ function Dashboard({
     SPAWN_BALANCE,
   )
   return (
-    <section className="dashboard" aria-labelledby="dashboard-title">
-      <div className="dashboard-panel">
-        <p className="screen-kicker">Run dashboard</p>
-        <h2 id="dashboard-title">Ready for your next run?</h2>
-        <p>
-          Survive the arena while your hero automatically targets nearby
-          enemies. Collect XP to level up and choose an upgrade between waves.
-        </p>
+    <section className="dashboard run-dashboard" aria-labelledby="dashboard-title">
+      <div className="dashboard-panel run-dashboard-panel">
+        <div className="run-dashboard-hero">
+          <div>
+            <p className="screen-kicker">Arena briefing</p>
+            <h2 id="dashboard-title">Build your next run.</h2>
+            <p>
+              Survive the arena while your hero automatically targets nearby
+              enemies. Collect XP to level up and choose an upgrade between waves.
+            </p>
+          </div>
+          <div className="run-dashboard-emblem" aria-hidden="true">
+            <span>AB</span>
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+        <div className="run-dashboard-command">
+          <div>
+            <span className="run-dashboard-command-label">Run briefing</span>
+            <strong>Arena run</strong>
+            <span>Configure your fighter, contract, and risk level.</span>
+          </div>
+          <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
+            <span>Start Run</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
         {pendingCount > 0 ? (
           <p className="persistence-status" role="status">
             <strong>Pending local result</strong>
@@ -930,11 +954,22 @@ function Dashboard({
             </span>
           </p>
         ) : null}
-        <button className="secondary-action" type="button" onClick={onOpenMetaProgression}>
-          Open Meta Progression
-        </button>
+        <div className="run-dashboard-utility">
+          <div className="essence-balance" aria-live="polite">
+            <span className="essence-balance-label">Essence</span>
+            <strong>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</strong>
+          </div>
+          <button className="secondary-action" type="button" onClick={onOpenMetaProgression}>
+            <span>Upgrades!</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
-        <fieldset className="dashboard-choice-group">
+        <div className="run-dashboard-section-heading">
+          <p className="screen-kicker">Set the pace</p>
+          <h3>Choose how the run plays</h3>
+        </div>
+        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Behavior profile</legend>
           <div className="dashboard-choice-list">
             {Object.values(BEHAVIOR_PROFILE_DEFINITIONS).map((profileDefinition) => (
@@ -953,7 +988,7 @@ function Dashboard({
             ))}
           </div>
         </fieldset>
-        <fieldset className="dashboard-choice-group">
+        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
           <div className="dashboard-choice-list">
             {Object.values(PLAYSTYLE_DEFINITIONS).map((playstyle) => {
@@ -973,7 +1008,11 @@ function Dashboard({
             })}
           </div>
         </fieldset>
-        <fieldset className="dashboard-choice-group">
+        <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">
+          <p className="screen-kicker">Raise the heat</p>
+          <h3>Pick your arena conditions</h3>
+        </div>
+        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>World modifiers</legend>
           <p className="world-modifier-summary">
             Difficulty {worldModifierEffects.difficulty} · Essence reward{' '}
@@ -999,7 +1038,7 @@ function Dashboard({
             })}
           </div>
         </fieldset>
-        <fieldset className="dashboard-choice-group">
+        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Dungeon contract</legend>
           <div className="dashboard-choice-list">
             {DUNGEON_CONTRACTS.map((contract) => {
@@ -1025,14 +1064,20 @@ function Dashboard({
             })}
           </div>
         </fieldset>
-        <ul className="control-list">
+        <div className="run-dashboard-footer">
+          <div>
+            <p className="screen-kicker">How it works</p>
+            <ul className="control-list">
           <li><strong>Movement:</strong> your selected behavior profile guides actions.</li>
           <li><strong>Combat:</strong> attacks happen automatically.</li>
           <li><strong>Upgrade:</strong> choose one option whenever you level up.</li>
         </ul>
-        <button className="primary-action" type="button" onClick={onStart}>
-          Start Run
-        </button>
+          </div>
+          <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
+            <span>Start Run</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
       </div>
     </section>
   )
