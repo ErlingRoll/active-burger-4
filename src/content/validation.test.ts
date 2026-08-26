@@ -124,4 +124,31 @@ describe('content validation', () => {
       ]),
     )
   })
+
+  it('validates skill tuning and skill upgrade references', () => {
+    const errors = validateContent(
+      catalogWith({
+        skills: [
+          {
+            ...CURRENT_CONTENT.skills[0],
+            kind: 'area',
+            radius: 0,
+          },
+        ],
+        upgrades: [
+          {
+            ...CURRENT_CONTENT.upgrades[3],
+            skillId: 'missing-skill',
+          },
+        ],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'skills[0].radius must be positive; received 0.',
+        'upgrades[0] must define a known skillId and skillAction.',
+      ]),
+    )
+  })
 })

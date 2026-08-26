@@ -9,9 +9,11 @@ export class PixiGame {
   private readonly enemyViews = new Map<EntityId, Graphics>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
+  private readonly effectViews = new Map<EntityId, Graphics>()
   private enemyLayer: Container | undefined
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
+  private effectLayer: Container | undefined
   private playerView: Graphics | undefined
   private initialized = false
   private disposed = false
@@ -61,6 +63,7 @@ export class PixiGame {
     const projectiles = new Container()
     this.projectileLayer = projectiles
     const effects = new Container()
+    this.effectLayer = effects
     const worldUi = new Container()
 
     this.camera.addChild(world)
@@ -134,6 +137,14 @@ export class PixiGame {
       .circle(0, 0, pickup.radius)
       .fill('#22c55e')
       .stroke({ color: '#bbf7d0', width: 2 })
+  }
+
+  private createEffectPlaceholder(effect: {
+    radius: number
+  }): Graphics {
+    return new Graphics()
+      .circle(0, 0, effect.radius)
+      .stroke({ color: '#a78bfa', width: 3, alpha: 0.75 })
   }
 
   private readonly update = (ticker: Ticker): void => {
@@ -217,6 +228,28 @@ export class PixiGame {
       view.destroy()
       this.pickupViews.delete(pickupId)
     }
+
+    const activeEffectIds = new Set<EntityId>()
+    for (const effect of state.effects) {
+      activeEffectIds.add(effect.id)
+      let view = this.effectViews.get(effect.id)
+      if (!view) {
+        view = this.createEffectPlaceholder(effect)
+        this.effectViews.set(effect.id, view)
+        this.effectLayer?.addChild(view)
+      }
+      view.position.set(effect.x, effect.y)
+      view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
+    }
+
+    for (const [effectId, view] of this.effectViews) {
+      if (activeEffectIds.has(effectId)) {
+        continue
+      }
+      view.removeFromParent()
+      view.destroy()
+      this.effectViews.delete(effectId)
+    }
   }
 
   private readonly centerCamera = (): void => {
@@ -231,9 +264,11 @@ export class PixiGame {
     this.enemyViews.clear()
     this.projectileViews.clear()
     this.pickupViews.clear()
+    this.effectViews.clear()
     this.enemyLayer = undefined
     this.projectileLayer = undefined
     this.pickupLayer = undefined
+    this.effectLayer = undefined
     this.playerView = undefined
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false

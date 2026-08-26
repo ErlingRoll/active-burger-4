@@ -2,7 +2,9 @@ import type {
   EnemyDefinitionId,
   EntityId,
   ProjectileDefinitionId,
+  SkillId,
 } from '../ids'
+import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
 
 /** Configuration required to start a new deterministic run. */
@@ -14,6 +16,7 @@ export interface RunState {
   phase: RunPhase
   seed: number
   killCount: number
+  selectedUpgradeIds: UpgradeId[]
 }
 
 /**
@@ -43,6 +46,13 @@ export interface PlayerState {
   attackCooldownRemaining: number
 
   targetId?: EntityId
+  skills: SkillState[]
+}
+
+export interface SkillState {
+  skillId: SkillId
+  level: number
+  cooldownRemaining: number
 }
 
 export interface EnemyState {
@@ -67,10 +77,11 @@ export interface EnemyState {
   targetId: EntityId
 }
 
-export type DamageType = 'physical'
+export type DamageType = 'physical' | 'lightning'
 
 export interface DamageEvent {
   sourceId?: EntityId
+  sourceSkillId?: SkillId
   targetId: EntityId
   amount: number
   damageType: DamageType
@@ -106,6 +117,16 @@ export interface SummonState {
   id: EntityId
 }
 
+export interface SkillEffectState {
+  id: EntityId
+  skillId: SkillId
+  x: number
+  y: number
+  radius: number
+  lifetime: number
+  remainingLifetime: number
+}
+
 export interface GameState {
   run: RunState
   player: PlayerState
@@ -114,6 +135,7 @@ export interface GameState {
   projectiles: ProjectileState[]
   pickups: PickupState[]
   summons: SummonState[]
+  effects: SkillEffectState[]
 
   time: number
   tick: number

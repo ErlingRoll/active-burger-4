@@ -256,12 +256,16 @@ describe('Game', () => {
     expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
     expect(game.state.projectiles[0]).toMatchObject({
       ownerId: game.state.player.id,
+      definitionId: 'basic-bolt',
       x: 6,
       y: 0,
       velocityX: 360,
       velocityY: 0,
       damage: game.state.player.attackDamage,
     })
+    expect(game.state.player.skills).toEqual([
+      expect.objectContaining({ skillId: 'basic-bolt', level: 1 }),
+    ])
   })
 
   it('waits for the attack cooldown before creating another projectile', () => {

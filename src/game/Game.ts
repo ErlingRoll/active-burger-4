@@ -49,6 +49,11 @@ import {
 } from './systems/spawning/SpawningSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import {
+  collectSkillDamage,
+  updateSkillCooldowns,
+  updateSkillEffects,
+} from './systems/skills/SkillSystem'
+import {
   createRunResultSnapshot,
   createUiSnapshot,
 } from './ui/Snapshots'
@@ -94,12 +99,18 @@ export class Game {
     this.spawnDirector = new SpawnDirector(this.random)
 
     this.gameState = {
-      run: { phase: 'loading', seed: config.seed, killCount: 0 },
+      run: {
+        phase: 'loading',
+        seed: config.seed,
+        killCount: 0,
+        selectedUpgradeIds: [],
+      },
       player: createInitialPlayerState(this.idAllocator.createEntityId()),
       enemies: [],
       projectiles: [],
       pickups: [],
       summons: [],
+      effects: [],
       time: 0,
       tick: 0,
       paused: false,
@@ -165,6 +176,7 @@ export class Game {
     }
 
     applyUpgrade(this.gameState, upgradeId)
+    this.gameState.run.selectedUpgradeIds.push(upgradeId)
 
     this.pendingChoices = []
     this.pendingLevelUps -= 1
@@ -264,11 +276,15 @@ export class Game {
       FIXED_STEP_SECONDS,
     )
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
+    updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     resolvePlayerTarget(this.gameState)
     spawnBasicBoltIfReady(this.gameState, this.idAllocator)
     updateProjectiles(this.gameState, FIXED_STEP_SECONDS)
-    const damageEvents = collectProjectileDamage(this.gameState)
+    const damageEvents = [
+      ...collectProjectileDamage(this.gameState),
+      ...collectSkillDamage(this.gameState, this.idAllocator),
+    ]
     applyDamageEvents(this.gameState, damageEvents)
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
@@ -285,6 +301,7 @@ export class Game {
         this.transitionTo('level-up')
       }
     })
+    updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
   }
 
   private transitionTo(nextPhase: RunPhase): void {

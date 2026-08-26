@@ -2,6 +2,11 @@ import {
   BASIC_BOLT_DEFINITION_ID,
   getProjectileDefinition,
 } from '../../../content/projectiles/Projectiles'
+import {
+  BASIC_BOLT_SKILL_ID,
+  getSkillDamage,
+  getSkillDefinition,
+} from '../../../content/skills/Skills'
 import type { EntityIdAllocator } from '../../ids'
 import { findNearestEnemy } from '../../combat/Targeting'
 import type {
@@ -42,10 +47,16 @@ export function updateAttackCooldown(
   fixedStepSeconds: number,
 ): void {
   const player = state.player
+  const basicBolt = player.skills.find(
+    (skill) => skill.skillId === BASIC_BOLT_SKILL_ID,
+  )
   player.attackCooldownRemaining = Math.max(
     0,
     player.attackCooldownRemaining - fixedStepSeconds,
   )
+  if (basicBolt) {
+    basicBolt.cooldownRemaining = player.attackCooldownRemaining
+  }
 }
 
 export function resolvePlayerTarget(state: GameState): void {
@@ -68,8 +79,15 @@ export function spawnBasicBoltIfReady(
 ): void {
   const player = state.player
   const targetId = player.targetId
+  const basicBolt = player.skills.find(
+    (skill) => skill.skillId === BASIC_BOLT_SKILL_ID,
+  )
 
-  if (targetId === undefined || player.attackCooldownRemaining > 0) {
+  if (
+    targetId === undefined ||
+    player.attackCooldownRemaining > 0 ||
+    !basicBolt
+  ) {
     return
   }
 
@@ -81,7 +99,10 @@ export function spawnBasicBoltIfReady(
     return
   }
 
-  const definition = getProjectileDefinition(BASIC_BOLT_DEFINITION_ID)
+  const skillDefinition = getSkillDefinition(BASIC_BOLT_SKILL_ID)
+  const definition = getProjectileDefinition(
+    skillDefinition.projectileDefinitionId ?? BASIC_BOLT_DEFINITION_ID,
+  )
   const offsetX = target.x - player.x
   const offsetY = target.y - player.y
   const distance = Math.hypot(offsetX, offsetY)
@@ -97,13 +118,15 @@ export function spawnBasicBoltIfReady(
     velocityX: directionX * definition.speed,
     velocityY: directionY * definition.speed,
     radius: definition.radius,
-    damage: player.attackDamage,
+    damage: player.attackDamage + getSkillDamage(skillDefinition, basicBolt.level) -
+      skillDefinition.baseDamage,
     remainingLifetime: definition.lifetime,
   }
 
   state.projectiles.push(projectile)
   player.attackCooldownRemaining =
     player.attackSpeed > 0 ? 1 / player.attackSpeed : Number.POSITIVE_INFINITY
+  basicBolt.cooldownRemaining = player.attackCooldownRemaining
 }
 
 export function updateProjectiles(
@@ -157,6 +180,7 @@ export function collectProjectileDamage(state: GameState): DamageEvent[] {
     if (hitEnemy) {
       damageEvents.push({
         sourceId: projectile.ownerId,
+        sourceSkillId: BASIC_BOLT_SKILL_ID,
         targetId: hitEnemy.id,
         amount: projectile.damage,
         damageType: 'physical',

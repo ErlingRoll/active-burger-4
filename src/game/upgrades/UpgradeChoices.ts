@@ -1,3 +1,4 @@
+import { isSkillId } from '../../content/skills/Skills'
 import { INITIAL_UPGRADES } from '../../content/upgrades/Upgrades'
 import type {
   UpgradeChoice,
@@ -24,7 +25,13 @@ export function generateUpgradeChoices(
 
   const eligibilityState: UpgradeEligibilityState = {
     playerLevel: state.player.level,
-    selectedUpgradeIds: [],
+    selectedUpgradeIds: state.run.selectedUpgradeIds,
+    ownedSkillIds: state.player.skills
+      .map((skill) => skill.skillId)
+      .filter(isSkillId),
+    skillLevels: Object.fromEntries(
+      state.player.skills.map((skill) => [skill.skillId, skill.level]),
+    ),
   }
   const eligible = INITIAL_UPGRADES.filter((upgrade) =>
     upgrade.isEligible(eligibilityState),

@@ -18,11 +18,16 @@ import {
   INITIAL_UPGRADES,
   type UpgradeDefinition,
 } from './upgrades/Upgrades'
+import {
+  SKILL_DEFINITIONS,
+  type SkillDefinition,
+} from './skills/Skills'
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
   projectiles: readonly ProjectileDefinition[]
   upgrades: readonly UpgradeDefinition[]
+  skills: readonly SkillDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
   upgradeChoicesPerLevel: number
@@ -32,6 +37,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   enemies: Object.values(ENEMY_DEFINITIONS),
   projectiles: Object.values(PROJECTILE_DEFINITIONS),
   upgrades: INITIAL_UPGRADES,
+  skills: Object.values(SKILL_DEFINITIONS),
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
   upgradeChoicesPerLevel: 3,
@@ -42,6 +48,17 @@ const VALID_UPGRADE_STATS = new Set([
   'attackSpeed',
   'movementSpeed',
 ])
+
+const VALID_SKILL_KINDS = new Set(['projectile', 'area', 'chain'])
+const VALID_SKILL_TAGS = new Set([
+  'physical',
+  'projectile',
+  'melee',
+  'area',
+  'lightning',
+])
+const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
+const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
 
 function validateIds(
   errors: string[],
@@ -98,7 +115,56 @@ function validateFiniteNumber(
 function validateDefinitions(
   errors: string[],
   catalog: ContentCatalog,
+  skillIds: Set<string>,
+  projectileIds: Set<string>,
 ): void {
+  catalog.skills.forEach((skill, index) => {
+    if (!VALID_SKILL_KINDS.has(skill.kind)) {
+      errors.push(`skills[${index}].kind is not supported; received "${String(skill.kind)}".`)
+    }
+    validateFiniteNumber(errors, `skills[${index}].cooldown`, skill.cooldown, 'positive')
+    validateFiniteNumber(errors, `skills[${index}].baseDamage`, skill.baseDamage, 'non-negative')
+    if (
+      !Array.isArray(skill.tags) ||
+      skill.tags.length === 0 ||
+      skill.tags.some((tag) => !VALID_SKILL_TAGS.has(tag))
+    ) {
+      errors.push(`skills[${index}].tags must contain supported skill tags.`)
+    }
+    validateFiniteNumber(
+      errors,
+      `skills[${index}].damagePerLevel`,
+      skill.damagePerLevel,
+      'non-negative',
+    )
+    validateFiniteNumber(
+      errors,
+      `skills[${index}].effectLifetime`,
+      skill.effectLifetime,
+      'positive',
+    )
+    if (skill.kind === 'area') {
+      validateFiniteNumber(errors, `skills[${index}].radius`, skill.radius ?? Number.NaN, 'positive')
+    }
+    if (skill.kind === 'chain') {
+      validateFiniteNumber(errors, `skills[${index}].maxRange`, skill.maxRange ?? Number.NaN, 'positive')
+      validateFiniteNumber(errors, `skills[${index}].jumpRange`, skill.jumpRange ?? Number.NaN, 'positive')
+      validateFiniteNumber(
+        errors,
+        `skills[${index}].maxTargets`,
+        skill.maxTargets ?? Number.NaN,
+        'integer-positive',
+      )
+    }
+    if (
+      skill.kind === 'projectile' &&
+      (!skill.projectileDefinitionId ||
+        !projectileIds.has(skill.projectileDefinitionId))
+    ) {
+      errors.push(`skills[${index}].projectileDefinitionId must reference a projectile.`)
+    }
+  })
+
   catalog.enemies.forEach((enemy, index) => {
     validateFiniteNumber(errors, `enemies[${index}].radius`, enemy.radius, 'positive')
     validateFiniteNumber(errors, `enemies[${index}].maxHp`, enemy.maxHp, 'positive')
@@ -123,12 +189,28 @@ function validateDefinitions(
     if (typeof upgrade.isEligible !== 'function') {
       errors.push(`upgrades[${index}].isEligible must be a function.`)
     }
-    if (!VALID_UPGRADE_STATS.has(upgrade.stat)) {
+    if (
+      upgrade.category === 'passive' &&
+      (upgrade.stat === undefined || !VALID_UPGRADE_STATS.has(upgrade.stat))
+    ) {
       errors.push(
         `upgrades[${index}].stat must reference a supported player stat; received "${String(upgrade.stat)}".`,
       )
     }
-
+    if (
+      !VALID_UPGRADE_CATEGORIES.has(upgrade.category)
+    ) {
+      errors.push(`upgrades[${index}].category is not supported; received "${String(upgrade.category)}".`)
+    }
+    if (
+      upgrade.category === 'skill' &&
+      (!upgrade.skillId ||
+        !skillIds.has(upgrade.skillId) ||
+        !upgrade.skillAction ||
+        !VALID_SKILL_ACTIONS.has(upgrade.skillAction))
+    ) {
+      errors.push(`upgrades[${index}] must define a known skillId and skillAction.`)
+    }
   })
 }
 
@@ -239,10 +321,11 @@ function validateSpawnBalance(
 export function validateContent(catalog: ContentCatalog): string[] {
   const errors: string[] = []
   const enemyIds = validateIds(errors, 'enemies', catalog.enemies)
-  validateIds(errors, 'projectiles', catalog.projectiles)
+  const projectileIds = validateIds(errors, 'projectiles', catalog.projectiles)
+  const skillIds = validateIds(errors, 'skills', catalog.skills)
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
 
-  validateDefinitions(errors, catalog)
+  validateDefinitions(errors, catalog, skillIds, projectileIds)
   validateXpBalance(errors, catalog.xpBalance)
   validateSpawnBalance(errors, catalog.spawnBalance, enemyIds)
 
@@ -264,7 +347,12 @@ export function validateContent(catalog: ContentCatalog): string[] {
 
   // Eligibility is intentionally evaluated against a neutral state so broken
   // content predicates fail validation before a run tries to show choices.
-  const eligibilityState = { playerLevel: 1, selectedUpgradeIds: [] as const }
+  const eligibilityState = {
+    playerLevel: 1,
+    selectedUpgradeIds: [] as const,
+    ownedSkillIds: ['basic-bolt'] as const,
+    skillLevels: { 'basic-bolt': 1 },
+  }
   let eligibleUpgradeCount = 0
   catalog.upgrades.forEach((upgrade, index) => {
     if (typeof upgrade.isEligible !== 'function') {
@@ -292,6 +380,31 @@ export function validateContent(catalog: ContentCatalog): string[] {
   ) {
     errors.push(
       `upgradeChoicesPerLevel (${catalog.upgradeChoicesPerLevel}) exceeds the ${eligibleUpgradeCount} upgrades eligible at player level 1.`,
+    )
+  }
+
+  // Check the other meaningful boundary as well: a completed skill set must
+  // still leave enough repeatable choices for the level-up UI.
+  const fullyOwnedState = {
+    playerLevel: 2,
+    selectedUpgradeIds: [] as const,
+    ownedSkillIds: catalog.skills.map((skill) => skill.id),
+    skillLevels: Object.fromEntries(catalog.skills.map((skill) => [skill.id, 1])),
+  }
+  const fullyOwnedEligibleCount = catalog.upgrades.filter((upgrade) => {
+    try {
+      return upgrade.isEligible(fullyOwnedState)
+    } catch {
+      return false
+    }
+  }).length
+  if (
+    Number.isInteger(catalog.upgradeChoicesPerLevel) &&
+    catalog.upgradeChoicesPerLevel > 0 &&
+    fullyOwnedEligibleCount < catalog.upgradeChoicesPerLevel
+  ) {
+    errors.push(
+      `upgradeChoicesPerLevel (${catalog.upgradeChoicesPerLevel}) exceeds the ${fullyOwnedEligibleCount} upgrades eligible with all skills owned.`,
     )
   }
 

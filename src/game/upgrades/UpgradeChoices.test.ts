@@ -3,6 +3,7 @@ import { INITIAL_UPGRADES } from '../../content/upgrades/Upgrades'
 import { Random } from '../random/Random'
 import { createGame } from '../Game'
 import { generateUpgradeChoices } from './UpgradeChoices'
+import { applyUpgrade } from '../systems/upgrades/UpgradeSystem'
 
 describe('upgrade choice generation', () => {
   it('generates the same three-choice order for the same seed', () => {
@@ -21,8 +22,20 @@ describe('upgrade choice generation', () => {
 
     expect(choices).toHaveLength(3)
     expect(new Set(choices.map((choice) => choice.upgradeId)).size).toBe(3)
-    expect(choices.map((choice) => choice.upgradeId).sort()).toEqual(
-      INITIAL_UPGRADES.map((upgrade) => upgrade.id).sort(),
-    )
+    expect(
+      choices.every((choice) =>
+        INITIAL_UPGRADES.some((upgrade) => upgrade.id === choice.upgradeId),
+      ),
+    ).toBe(true)
+  })
+
+  it('enables a skill rank choice after its unlock and never offers the unlock twice', () => {
+    const game = createGame({ seed: 457 })
+    applyUpgrade(game.state, 'whirlwind-unlock')
+    const choices = generateUpgradeChoices(game.state, 6, new Random(1))
+    const ids = choices.map((choice) => choice.upgradeId)
+
+    expect(ids).toContain('whirlwind-level')
+    expect(ids).not.toContain('whirlwind-unlock')
   })
 })

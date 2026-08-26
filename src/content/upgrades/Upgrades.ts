@@ -1,10 +1,23 @@
+import {
+  BASIC_BOLT_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
+  WHIRLWIND_SKILL_ID,
+  type SkillId,
+} from '../skills/Skills'
+
 export type UpgradeId =
   | 'damage-boost'
   | 'attack-speed-boost'
   | 'movement-speed-boost'
-export type UpgradeCategory = 'passive'
+  | 'whirlwind-unlock'
+  | 'chain-lightning-unlock'
+  | 'basic-bolt-level'
+  | 'whirlwind-level'
+  | 'chain-lightning-level'
+export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = 'common'
 export type UpgradeStat = 'attackDamage' | 'attackSpeed' | 'movementSpeed'
+export type SkillUpgradeAction = 'unlock' | 'level'
 
 export interface UpgradeChoice {
   upgradeId: UpgradeId
@@ -13,6 +26,8 @@ export interface UpgradeChoice {
 export interface UpgradeEligibilityState {
   playerLevel: number
   selectedUpgradeIds: readonly UpgradeId[]
+  ownedSkillIds: readonly SkillId[]
+  skillLevels: Readonly<Record<string, number>>
 }
 
 export interface UpgradeDefinition {
@@ -21,16 +36,28 @@ export interface UpgradeDefinition {
   description: string
   category: UpgradeCategory
   rarity: UpgradeRarity
-  stat: UpgradeStat
+  stat?: UpgradeStat
   amount: number
   valueLabel: string
+  skillId?: string
+  skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
 }
 
+const hasSkill = (
+  state: Readonly<UpgradeEligibilityState>,
+  skillId: SkillId,
+): boolean => state.ownedSkillIds.includes(skillId)
+
+const skillLevelAtLeast = (
+  state: Readonly<UpgradeEligibilityState>,
+  skillId: SkillId,
+  level: number,
+): boolean => (state.skillLevels[skillId] ?? 0) >= level
+
 /**
- * The first upgrade set is intentionally small and repeatable. Values are
- * additive to the corresponding player stat so each selection is easy to
- * understand and deterministic.
+ * Stat upgrades remain repeatable. Unlock upgrades disappear after acquisition,
+ * while rank upgrades become eligible once their skill is owned.
  */
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -65,6 +92,71 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 20,
     valueLabel: '+20 movement speed',
     isEligible: () => true,
+  },
+  {
+    id: 'whirlwind-unlock',
+    name: 'Whirlwind',
+    description: 'Unlock a close-range area attack.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: WHIRLWIND_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      !hasSkill(state, WHIRLWIND_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('whirlwind-unlock'),
+  },
+  {
+    id: 'chain-lightning-unlock',
+    name: 'Chain Lightning',
+    description: 'Unlock a lightning attack that jumps between enemies.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: CHAIN_LIGHTNING_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      !hasSkill(state, CHAIN_LIGHTNING_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('chain-lightning-unlock'),
+  },
+  {
+    id: 'basic-bolt-level',
+    name: 'Empowered Bolt',
+    description: 'Increase Basic Bolt skill rank.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: '+1 Basic Bolt rank',
+    skillId: BASIC_BOLT_SKILL_ID,
+    skillAction: 'level',
+    isEligible: (state) => skillLevelAtLeast(state, BASIC_BOLT_SKILL_ID, 1),
+  },
+  {
+    id: 'whirlwind-level',
+    name: 'Sharpened Whirlwind',
+    description: 'Increase Whirlwind damage with a skill rank.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: '+1 Whirlwind rank',
+    skillId: WHIRLWIND_SKILL_ID,
+    skillAction: 'level',
+    isEligible: (state) => skillLevelAtLeast(state, WHIRLWIND_SKILL_ID, 1),
+  },
+  {
+    id: 'chain-lightning-level',
+    name: 'Conductive Lightning',
+    description: 'Increase Chain Lightning damage with a skill rank.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: '+1 Chain Lightning rank',
+    skillId: CHAIN_LIGHTNING_SKILL_ID,
+    skillAction: 'level',
+    isEligible: (state) =>
+      skillLevelAtLeast(state, CHAIN_LIGHTNING_SKILL_ID, 1),
   },
 ]
 

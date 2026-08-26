@@ -3,6 +3,7 @@ import {
   SLIME_DEFINITION_ID,
 } from '../../../content/enemies/Enemies'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
+import { BASIC_BOLT_SKILL_ID } from '../../../content/skills/Skills'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -37,6 +38,13 @@ export function createInitialPlayerState(id: EntityId): PlayerState {
     attackRange: 50,
     attackCooldownRemaining: 0,
     targetId: undefined,
+    skills: [
+      {
+        skillId: BASIC_BOLT_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      },
+    ],
   }
 }
 
