@@ -30,6 +30,105 @@
   position: relative;
 }
 
-.game-canvas canvas {
+.game-renderer {
+  position: absolute;
+  inset: 0;
+}
+
+.game-renderer canvas {
   display: block;
+}
+
+.level-up-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(2 6 23 / 75%);
+}
+
+.level-up-panel {
+  width: min(62rem, 100%);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  color: #e2e8f0;
+  background: #111827;
+  border: 1px solid #60a5fa;
+  border-radius: 1rem;
+  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 55%);
+}
+
+.level-up-kicker {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.level-up-panel h2 {
+  margin: 0.35rem 0 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+.level-up-instructions {
+  margin: 0.5rem 0 1.5rem;
+  color: #cbd5e1;
+}
+
+.upgrade-choice-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.upgrade-choice {
+  display: flex;
+  min-height: 9rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #e2e8f0;
+  text-align: left;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.upgrade-choice:hover,
+.upgrade-choice:focus-visible {
+  background: #263a5a;
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 2px;
+}
+
+.upgrade-choice-name {
+  color: #f8fafc;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.upgrade-choice-value {
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.upgrade-choice-description {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .upgrade-choice-list {
+    grid-template-columns: 1fr;
+  }
+
+  .upgrade-choice {
+    min-height: auto;
+  }
 }

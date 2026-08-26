@@ -19,6 +19,15 @@ import {
   XP_BALANCE,
   xpRequiredForNextLevel,
 } from '../content/progression/XpBalance'
+import {
+  getUpgradeDefinition,
+  type UpgradeChoice,
+  type UpgradeId,
+} from '../content/upgrades/Upgrades'
+import {
+  generateUpgradeChoices,
+  UPGRADE_CHOICES_PER_LEVEL,
+} from './upgrades/UpgradeChoices'
 import type {
   DamageEvent,
   EnemyState,
@@ -44,6 +53,8 @@ export interface WorldPosition {
  * PLAN.md section 13).
  */
 const MAX_FRAME_SECONDS = 0.25
+
+export type GameStateListener = (state: Readonly<GameState>) => void
 
 function createInitialPlayerState(id: EntityId): PlayerState {
   return {
@@ -79,6 +90,9 @@ export class Game {
   readonly spawnDirector: SpawnDirector
   private accumulatedSeconds = 0
   private resumePhase: RunPhase | undefined
+  private pendingChoices: UpgradeChoice[] = []
+  private pendingLevelUps = 0
+  private readonly listeners = new Set<GameStateListener>()
 
   constructor(config: RunConfig) {
     this.idAllocator = createEntityIdAllocator()
@@ -114,6 +128,73 @@ export class Game {
 
   get paused(): boolean {
     return this.gameState.paused
+  }
+
+  /**
+   * Returns a snapshot of the choices awaiting selection. An empty array means
+   * the run is not currently waiting for an upgrade.
+   */
+  getPendingUpgradeChoices(): readonly UpgradeChoice[] {
+    return this.pendingChoices.map((choice) => ({ ...choice }))
+  }
+
+  get upgradeChoices(): readonly UpgradeChoice[] {
+    return this.getPendingUpgradeChoices()
+  }
+
+  /**
+   * Subscribes to low-frequency run changes such as phase transitions. Entity
+   * simulation remains owned by Game; consumers receive only a read-only view.
+   */
+  subscribe(listener: GameStateListener): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  /**
+   * Applies one of the currently offered upgrades and resumes the run. An
+   * invalid or repeated selection is rejected without changing simulation
+   * state.
+   */
+  selectUpgrade(choice: UpgradeChoice | UpgradeId): boolean {
+    if (this.gameState.run.phase !== 'level-up') {
+      return false
+    }
+
+    const upgradeId = typeof choice === 'string' ? choice : choice.upgradeId
+    if (!this.pendingChoices.some((candidate) => candidate.upgradeId === upgradeId)) {
+      return false
+    }
+
+    const definition = getUpgradeDefinition(upgradeId)
+    const player = this.gameState.player
+    switch (definition.stat) {
+      case 'attackDamage':
+        player.attackDamage += definition.amount
+        break
+      case 'attackSpeed':
+        player.attackSpeed += definition.amount
+        break
+      case 'movementSpeed':
+        player.movementSpeed += definition.amount
+        break
+    }
+
+    this.pendingChoices = []
+    this.pendingLevelUps -= 1
+    if (this.pendingLevelUps > 0) {
+      this.pendingChoices = generateUpgradeChoices(
+        this.gameState,
+        UPGRADE_CHOICES_PER_LEVEL,
+        this.random,
+      )
+      this.notifyStateChanged()
+    } else {
+      this.transitionTo('playing')
+    }
+    return true
   }
 
   /**
@@ -449,6 +530,9 @@ export class Game {
       if (distance <= contactRange || distance === 0) {
         this.grantExperience(pickup.xpAmount)
         collectedIds.add(pickup.id)
+        if (this.gameState.run.phase !== 'playing') {
+          break
+        }
         continue
       }
 
@@ -487,17 +571,22 @@ export class Game {
     const experience = Number.isFinite(amount) ? Math.max(0, amount) : 0
     this.gameState.player.xp += experience
 
+    let levelsGained = 0
     while (
       this.gameState.player.xp >=
       xpRequiredForNextLevel(this.gameState.player.level)
     ) {
       this.gameState.player.level += 1
+      levelsGained += 1
     }
 
-    if (
-      this.gameState.player.level > 1 &&
-      this.gameState.run.phase === 'playing'
-    ) {
+    if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
+      this.pendingLevelUps = levelsGained
+      this.pendingChoices = generateUpgradeChoices(
+        this.gameState,
+        UPGRADE_CHOICES_PER_LEVEL,
+        this.random,
+      )
       this.transitionTo('level-up')
     }
   }
@@ -511,6 +600,13 @@ export class Game {
 
     this.gameState.run.phase = nextPhase
     this.gameState.paused = nextPhase === 'paused'
+    this.notifyStateChanged()
+  }
+
+  private notifyStateChanged(): void {
+    for (const listener of this.listeners) {
+      listener(this.gameState)
+    }
   }
 }
 

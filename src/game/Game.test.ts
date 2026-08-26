@@ -368,4 +368,92 @@ describe('Game', () => {
     expect(game.phase).toBe('level-up')
     expect(game.paused).toBe(false)
   })
+
+  it('offers three seeded, unique choices when a level-up begins', () => {
+    const gameA = createGame({ seed: 19 })
+    const gameB = createGame({ seed: 19 })
+    const xp = xpRequiredForLevel(2)
+    gameA.spawnXpPickup({ x: 0, y: 0 }, xp)
+    gameB.spawnXpPickup({ x: 0, y: 0 }, xp)
+
+    gameA.update(FIXED_STEP_SECONDS)
+    gameB.update(FIXED_STEP_SECONDS)
+
+    expect(gameA.phase).toBe('level-up')
+    expect(gameA.getPendingUpgradeChoices()).toHaveLength(3)
+    expect(gameA.getPendingUpgradeChoices()).toEqual(
+      gameB.getPendingUpgradeChoices(),
+    )
+    expect(
+      new Set(
+        gameA.getPendingUpgradeChoices().map((choice) => choice.upgradeId),
+      ).size,
+    ).toBe(3)
+  })
+
+  it('applies an offered upgrade once and resumes without a catch-up burst', () => {
+    const game = createGame({ seed: 20 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.update(FIXED_STEP_SECONDS)
+
+    const tickAtLevelUp = game.state.tick
+    const damageBefore = game.state.player.attackDamage
+
+    expect(game.selectUpgrade('damage-boost')).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.getPendingUpgradeChoices()).toEqual([])
+    expect(game.state.player.attackDamage).toBe(damageBefore + 2)
+    expect(game.selectUpgrade('damage-boost')).toBe(false)
+    expect(game.state.player.attackDamage).toBe(damageBefore + 2)
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.tick).toBe(tickAtLevelUp + 1)
+  })
+
+  it('offers and notifies once for every level in a multi-level XP award', () => {
+    const game = createGame({ seed: 21 })
+    const notifications: Array<{
+      phase: string
+      choices: readonly string[]
+    }> = []
+    game.subscribe(() => {
+      notifications.push({
+        phase: game.phase,
+        choices: game
+          .getPendingUpgradeChoices()
+          .map((choice) => choice.upgradeId),
+      })
+    })
+
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(4))
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.level).toBe(4)
+    expect(game.phase).toBe('level-up')
+    expect(game.getPendingUpgradeChoices()).toHaveLength(3)
+    expect(notifications).toHaveLength(1)
+
+    for (let offer = 0; offer < 3; offer += 1) {
+      const choice = game.getPendingUpgradeChoices()[0]
+      if (!choice) {
+        throw new Error('Expected a pending upgrade choice')
+      }
+
+      expect(game.selectUpgrade(choice)).toBe(true)
+      if (offer < 2) {
+        expect(game.phase).toBe('level-up')
+        expect(game.getPendingUpgradeChoices()).toHaveLength(3)
+      }
+    }
+
+    expect(game.phase).toBe('playing')
+    expect(game.getPendingUpgradeChoices()).toEqual([])
+    expect(notifications.map((notification) => notification.phase)).toEqual([
+      'level-up',
+      'level-up',
+      'level-up',
+      'playing',
+    ])
+    expect(notifications.slice(0, 3).every((notification) => notification.choices.length === 3)).toBe(true)
+  })
 })
