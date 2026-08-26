@@ -109,6 +109,28 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   await expect(page.getByRole('status')).toHaveCount(0)
 })
 
+test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
+  await page.goto('/?demo=gear')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  const overlay = page.getByRole('dialog', { name: /choose your gear/i })
+  await expect(overlay).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'paused',
+  )
+  await expect(page.getByRole('status')).toHaveText('Paused')
+
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'level-up',
+  )
+  await expect(overlay).toBeVisible()
+})
+
 test('shows an accessible acquired-skill tooltip with a DPS assumption', async ({
   page,
 }) => {

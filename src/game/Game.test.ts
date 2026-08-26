@@ -464,7 +464,7 @@ describe('Game', () => {
     expect(game.state.pickups).toHaveLength(0)
   })
 
-  it('halts every simulation system in level-up without changing explicit pause semantics', () => {
+  it('halts simulation in level-up and supports explicit user pause', () => {
     const game = createGame({ seed: 18 })
     game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
     game.update(1)
@@ -488,6 +488,10 @@ describe('Game', () => {
     expect(game.state.pickups).toEqual(snapshot.pickups)
 
     game.pause()
+    expect(game.phase).toBe('paused')
+    expect(game.paused).toBe(true)
+
+    game.resume()
     expect(game.phase).toBe('level-up')
     expect(game.paused).toBe(false)
   })

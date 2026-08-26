@@ -130,7 +130,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         return
       }
 
-      if (game.phase === 'playing') {
+      if (game.phase === 'playing' || game.phase === 'level-up') {
         event.preventDefault()
         game.pause()
       } else if (game.phase === 'paused') {

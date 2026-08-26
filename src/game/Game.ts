@@ -368,9 +368,12 @@ export class Game {
     )
   }
 
-  /** Pauses the run, remembering the phase to return to on resume(). */
+  /** Pauses the run, remembering the playable phase to return to on resume(). */
   pause(): void {
-    if (this.gameState.run.phase !== 'playing') {
+    if (
+      this.gameState.run.phase !== 'playing' &&
+      this.gameState.run.phase !== 'level-up'
+    ) {
       return
     }
 
