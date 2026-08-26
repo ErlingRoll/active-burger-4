@@ -47,6 +47,7 @@ export class PixiGame {
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
+  private readonly summonViews = new Map<EntityId, Graphics>()
   private readonly stairsViews = new Map<EntityId, StairsView>()
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
@@ -54,6 +55,7 @@ export class PixiGame {
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
+  private summonLayer: Container | undefined
   private stairsLayer: Container | undefined
   private playerView: PlayerView | undefined
   private host: HTMLElement | undefined
@@ -114,6 +116,8 @@ export class PixiGame {
     const bosses = new Container()
     this.bossLayer = bosses
     const player = new Container()
+    const summons = new Container()
+    this.summonLayer = summons
     const projectiles = new Container()
     this.projectileLayer = projectiles
     const effects = new Container()
@@ -129,6 +133,7 @@ export class PixiGame {
       telegraphs,
       enemies,
       bosses,
+      summons,
       player,
       projectiles,
       effects,
@@ -174,6 +179,15 @@ export class PixiGame {
     const root = new Container()
     root.addChild(body, hpBar)
     return { root, hpBar }
+  }
+
+  private createSummonPlaceholder(): Graphics {
+    return new Graphics()
+      .circle(0, 0, 13)
+      .fill('#d8b4fe')
+      .stroke({ color: '#faf5ff', width: 2 })
+      .circle(0, 0, 7)
+      .fill('#7e22ce')
   }
 
   private createEnemyPlaceholder(enemy: {
@@ -462,6 +476,25 @@ export class PixiGame {
         state.player.maxHp,
       )
     }
+    const activeSummonIds = new Set<EntityId>()
+    for (const summon of state.summons) {
+      activeSummonIds.add(summon.id)
+      let summonView = this.summonViews.get(summon.id)
+      if (!summonView) {
+        summonView = this.createSummonPlaceholder()
+        this.summonViews.set(summon.id, summonView)
+        this.summonLayer?.addChild(summonView)
+      }
+      summonView.position.set(summon.x, summon.y)
+      summonView.rotation = state.time * 1.5
+    }
+    for (const [summonId, summonView] of this.summonViews) {
+      if (!activeSummonIds.has(summonId)) {
+        summonView.removeFromParent()
+        summonView.destroy()
+        this.summonViews.delete(summonId)
+      }
+    }
 
     const activeEnemyIds = new Set<EntityId>()
     for (const enemy of state.enemies) {
@@ -515,6 +548,8 @@ export class PixiGame {
         this.bossLayer?.addChild(bossView.root)
       }
       bossView.root.position.set(boss.x, boss.y)
+      const bossPulse = 1 + Math.sin(state.time * 3 + boss.id) * 0.025
+      bossView.root.scale.set(bossPulse)
       const renderScale = 1
       bossView.label.text = getBossDisplayLabel(boss.bossDefinitionId)
       bossView.label.position.set(0, -(boss.radius * renderScale + 30))

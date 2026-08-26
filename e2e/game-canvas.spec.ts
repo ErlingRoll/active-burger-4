@@ -91,6 +91,20 @@ test('selects and persists a character before starting a run', async ({ page }) 
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-playstyle', 'ranger')
 })
 
+test('shows and dismisses the in-run character guide', async ({ page }) => {
+  await page.goto('/')
+  await signIn(page)
+  await page.getByRole('button', { name: 'Necromancer' }).click()
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  const guide = page.getByRole('complementary', { name: 'Run guide' })
+  await expect(guide).toContainText('Necromancer')
+  await expect(guide).toContainText('skeleton follows you')
+  await guide.getByRole('button', { name: 'Dismiss run guide' }).click()
+  await expect(guide).toBeHidden()
+  await expect(page.locator('.game-canvas')).toHaveAttribute('data-game-phase', 'playing')
+})
+
 test('loads account progression outside the active run', async ({ page }) => {
   await page.goto('/')
   await signIn(page)
