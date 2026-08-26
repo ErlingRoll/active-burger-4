@@ -220,12 +220,16 @@ function App() {
     account: authentication.account,
     screen,
     service: metaProgressionService.service,
+    metaLoadState: metaProgression.loadState,
   })
   const [pendingRunSyncCoordinator] = useState<PendingRunSyncCoordinator>(
     () => createPendingRunSyncCoordinator({
       canSync: () => {
         const { account, screen: currentScreen, service } = syncRuntimeRef.current
-        return account !== null && service !== null && currentScreen !== 'gameplay'
+        return account !== null &&
+          service !== null &&
+          syncRuntimeRef.current.metaLoadState === 'ready' &&
+          currentScreen !== 'gameplay'
       },
       getPendingResults: () => pendingResultsRef.current,
       syncPendingResults: (results) => {
@@ -284,8 +288,9 @@ function App() {
       account: authentication.account,
       screen,
       service: metaProgressionService.service,
+      metaLoadState: metaProgression.loadState,
     }
-  }, [authentication.account, metaProgressionService.service, screen])
+  }, [authentication.account, metaProgression.loadState, metaProgressionService.service, screen])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -595,13 +600,18 @@ function App() {
   )
 
   useEffect(() => {
-    if (persistence.loadState !== 'ready' || screen === 'gameplay') {
+    if (
+      persistence.loadState !== 'ready' ||
+      metaProgression.loadState !== 'ready' ||
+      screen === 'gameplay'
+    ) {
       return
     }
     void pendingRunSyncCoordinator.request()
   }, [
     authentication.account,
     metaProgressionService.service,
+    metaProgression.loadState,
     pendingResults,
     pendingRunSyncCoordinator,
     persistence.loadState,
