@@ -176,6 +176,27 @@
   accent-color: #60a5fa;
 }
 
+.pause-toggle {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  color: #e0f2fe;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgb(15 23 42 / 92%);
+  border: 1px solid #64748b;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.pause-toggle:hover,
+.pause-toggle:focus-visible {
+  background: #263a5a;
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 2px;
+}
+
 .skill-hud {
   flex: 0 1 min(22rem, 100%);
   min-width: min(22rem, 100%);

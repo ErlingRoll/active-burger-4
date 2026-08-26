@@ -83,6 +83,13 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   await page.goto('/')
   await page.getByRole('button', { name: 'Start Run' }).click()
 
+  await page.evaluate(() => {
+    document.addEventListener(
+      'keydown',
+      (event) => event.preventDefault(),
+      { once: true },
+    )
+  })
   await page.keyboard.press('Escape')
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
@@ -106,6 +113,11 @@ test('pauses on Escape without blocking HUD or development controls', async ({
     'data-game-phase',
     'playing',
   )
+  await expect(page.getByRole('status')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Pause' }).click()
+  await expect(page.getByRole('status')).toHaveText('Paused')
+  await page.getByRole('button', { name: 'Resume' }).click()
   await expect(page.getByRole('status')).toHaveCount(0)
 })
 

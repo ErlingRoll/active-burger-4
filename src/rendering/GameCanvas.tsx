@@ -126,7 +126,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     })
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.defaultPrevented) {
+      if (event.key !== 'Escape') {
         return
       }
 
@@ -139,7 +139,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
     const snapshotTimer = window.setInterval(
       publishSnapshot,
       UI_UPDATE_INTERVAL_MS,
@@ -154,7 +154,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     return () => {
       disposed = true
       window.clearInterval(snapshotTimer)
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
       unsubscribe()
       if (gameRef.current === game) {
         gameRef.current = null
@@ -169,6 +169,13 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
   }
 
   const phase = snapshot?.phase ?? 'loading'
+  const togglePause = (): void => {
+    if (gameRef.current?.phase === 'paused') {
+      gameRef.current.resume()
+    } else {
+      gameRef.current?.pause()
+    }
+  }
 
   return (
     <div
@@ -181,7 +188,12 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         aria-label="Active Burger 4 game arena"
         role="img"
       />
-      {snapshot ? <GameplayHud snapshot={snapshot} /> : null}
+      {snapshot ? (
+        <GameplayHud
+          snapshot={snapshot}
+          onTogglePause={togglePause}
+        />
+      ) : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
       ) : null}
@@ -203,9 +215,10 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
 
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
+  onTogglePause: () => void
 }
 
-function GameplayHud({ snapshot }: GameplayHudProps) {
+function GameplayHud({ snapshot, onTogglePause }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
@@ -246,6 +259,13 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <dd>{snapshot.killCount}</dd>
         </div>
       </dl>
+      <button
+        className="pause-toggle"
+        type="button"
+        onClick={onTogglePause}
+      >
+        {snapshot.phase === 'paused' ? 'Resume' : 'Pause'}
+      </button>
       <section className="skill-hud" aria-labelledby="acquired-skills-title">
         <h3 id="acquired-skills-title" className="visually-hidden">
           Acquired skills
