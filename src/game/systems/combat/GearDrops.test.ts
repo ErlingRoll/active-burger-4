@@ -68,11 +68,11 @@ describe('enemy gear drops', () => {
     )
 
     expect(game.state.run.killCount).toBe(50)
-    expect(game.state.run.gearDropGenerated).toBe(true)
-    expect(gearPickups).toHaveLength(1)
+    expect(game.state.run.gearDropGenerated).toBe(false)
+    expect(gearPickups).toHaveLength(0)
   })
 
-  it('does not force another orb after one was already generated', () => {
+  it('does not create gear at kill 50 when normal drop rolls fail', () => {
     const game = createGame({ seed: 2 })
     const gearPickups: number[] = []
     const random = {
@@ -95,7 +95,7 @@ describe('enemy gear drops', () => {
       () => gearPickups.push(1),
       random,
     )
-    expect(gearPickups).toHaveLength(1)
+    expect(gearPickups).toHaveLength(0)
 
     game.spawnSlime({ x: 1_100, y: 0 })
     const enemy = game.state.enemies.at(-1)
@@ -105,7 +105,7 @@ describe('enemy gear drops', () => {
     enemy.hp = 0
     removeDeadEntities(game.state, () => {}, undefined, () => gearPickups.push(1), random)
     expect(game.state.run.killCount).toBe(51)
-    expect(gearPickups).toHaveLength(1)
+    expect(gearPickups).toHaveLength(0)
   })
 
   it('collects gear orbs through the pending gear bridge, not XP', () => {

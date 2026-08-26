@@ -25,10 +25,7 @@ import type {
   ProjectileState,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
-import {
-  getGearDropChance,
-  GEAR_DROP_FORCE_KILL_COUNT,
-} from '../../../content/gear/GearDrops'
+import { getGearDropChance } from '../../../content/gear/GearDrops'
 import type { RandomSource } from '../../random/Random'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -329,16 +326,10 @@ export function removeDeadEntities(
       if (enemy.xpReward > 0) {
         spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
       }
-      const killNumber = state.run.killCount + killCount
-      const forceGearDrop =
-        killNumber === GEAR_DROP_FORCE_KILL_COUNT &&
-        state.run.gearDropGenerated !== true
-      const randomGearDrop =
-        !forceGearDrop &&
-        (random?.chance(
-          getGearDropChance(enemy.definitionId, enemy.eliteModifier),
-        ) ?? false)
-      if (forceGearDrop || randomGearDrop) {
+      const randomGearDrop = random?.chance(
+        getGearDropChance(enemy.definitionId, enemy.eliteModifier),
+      ) ?? false
+      if (randomGearDrop) {
         state.run.gearDropGenerated = true
         spawnGearPickup?.(
           { x: enemy.x, y: enemy.y },
