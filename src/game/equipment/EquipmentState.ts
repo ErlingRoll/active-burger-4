@@ -45,14 +45,29 @@ export function equipItem(
 export const MIN_ITEM_UPGRADE_INCREASE = 0.1
 export const MAX_ITEM_UPGRADE_INCREASE = 0.25
 
+export function rollItemUpgradeModifiers(
+  modifiers: readonly StatModifier[],
+  rng: RandomSource,
+): StatModifier[] {
+  return modifiers.map((modifier) => {
+    const increase =
+      MIN_ITEM_UPGRADE_INCREASE +
+      rng.next() * (MAX_ITEM_UPGRADE_INCREASE - MIN_ITEM_UPGRADE_INCREASE)
+    return {
+      ...modifier,
+      value: modifier.value * (1 + increase),
+    }
+  })
+}
+
 /**
- * Improves every modifier once and stores the rolled result on the equipped
- * item. Only the three lowest item rarities can be upgraded.
+ * Stores an offer's previously rolled modifier values on the equipped item.
+ * Only the three lowest item rarities can be upgraded.
  */
 export function upgradeEquippedItem(
   player: PlayerState,
   slot: EquipmentSlot,
-  rng: RandomSource,
+  upgradedModifiers: readonly StatModifier[],
   itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
 ): boolean {
   const equipped = player.equipment?.[slot]
@@ -71,17 +86,8 @@ export function upgradeEquippedItem(
     return false
   }
 
-  const modifiers = equipped.modifiers ?? definition.modifiers
   equipped.rarity = upgradedRarity
-  equipped.modifiers = modifiers.map((modifier) => {
-    const increase =
-      MIN_ITEM_UPGRADE_INCREASE +
-      rng.next() * (MAX_ITEM_UPGRADE_INCREASE - MIN_ITEM_UPGRADE_INCREASE)
-    return {
-      ...modifier,
-      value: modifier.value * (1 + increase),
-    }
-  })
+  equipped.modifiers = upgradedModifiers.map((modifier) => ({ ...modifier }))
   refreshPlayerDerivedStats(player, itemDefinitions)
   return true
 }

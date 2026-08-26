@@ -19,8 +19,24 @@ export type PendingChoiceFlow = LevelUpChoiceFlow | GearPickupChoiceFlow
 export function cloneChoiceFlow(
   flow: Readonly<PendingChoiceFlow>,
 ): PendingChoiceFlow {
+  if (flow.type === 'level-up') {
+    return {
+      ...flow,
+      choices: flow.choices.map((choice) => ({ ...choice })),
+    }
+  }
+
   return {
     ...flow,
-    choices: flow.choices.map((choice) => ({ ...choice })),
+    choices: flow.choices.map((choice) =>
+      choice.type === 'upgrade-equipped-item'
+        ? {
+            ...choice,
+            upgradedModifiers: choice.upgradedModifiers.map((modifier) => ({
+              ...modifier,
+            })),
+          }
+        : { ...choice },
+    ),
   } as PendingChoiceFlow
 }

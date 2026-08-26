@@ -322,7 +322,7 @@ export class Game {
       const upgraded = upgradeEquippedItem(
         this.gameState.player,
         offered.slot,
-        this.gearRandom,
+        offered.upgradedModifiers,
       )
       if (!upgraded) {
         return false

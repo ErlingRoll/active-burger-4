@@ -12,6 +12,8 @@ import {
 } from '../../content/rarity/Rarity'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
+import { rollItemUpgradeModifiers } from './EquipmentState'
+import type { StatModifier } from '../../content/stats/Stats'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 
@@ -30,6 +32,7 @@ export interface UpgradeEquippedItemChoice {
   rarity: 'rare'
   fromRarity: 'common' | 'uncommon' | 'rare'
   upgradedRarity: 'uncommon' | 'rare' | 'epic'
+  upgradedModifiers: readonly StatModifier[]
 }
 
 export type GearChoice = GearItemChoice | UpgradeEquippedItemChoice
@@ -58,11 +61,19 @@ function weightedPick(
   return candidates[rng.int(0, candidates.length - 1)] as ItemDefinition
 }
 
+interface EligibleUpgradeTarget {
+  itemId: ItemId
+  slot: EquipmentSlot
+  fromRarity: 'common' | 'uncommon' | 'rare'
+  upgradedRarity: 'uncommon' | 'rare' | 'epic'
+  modifiers: readonly StatModifier[]
+}
+
 function eligibleUpgradeTargets(
   state: Readonly<GameState>,
   itemDefinitions: readonly ItemDefinition[],
-): UpgradeEquippedItemChoice[] {
-  const choices: UpgradeEquippedItemChoice[] = []
+): EligibleUpgradeTarget[] {
+  const choices: EligibleUpgradeTarget[] = []
   for (const [slot, equipped] of Object.entries(state.player.equipment ?? {})) {
     if (!equipped) {
       continue
@@ -81,12 +92,11 @@ function eligibleUpgradeTargets(
       continue
     }
     choices.push({
-      type: 'upgrade-equipped-item',
       itemId: equipped.itemId,
       slot: slot as EquipmentSlot,
-      rarity: 'rare',
       fromRarity: fromRarity as 'common' | 'uncommon' | 'rare',
       upgradedRarity: upgradedRarity as 'uncommon' | 'rare' | 'epic',
+      modifiers: equipped.modifiers ?? definition.modifiers,
     })
   }
   return choices
@@ -137,7 +147,12 @@ export function generateGearChoices(
       existingTargetIndex >= 0
         ? existingTargetIndex
         : rng.int(0, choices.length - 1)
-    choices[replacementIndex] = target
+    choices[replacementIndex] = {
+      ...target,
+      type: 'upgrade-equipped-item',
+      rarity: 'rare',
+      upgradedModifiers: rollItemUpgradeModifiers(target.modifiers, rng),
+    }
   }
   return choices
 }

@@ -60,10 +60,17 @@ describe('gear choices', () => {
     if (!upgrade || upgrade.type !== 'upgrade-equipped-item') {
       throw new Error('Expected an equipped-item upgrade choice')
     }
-    expect(upgradeEquippedItem(game.state.player, upgrade.slot, new Random(9))).toBe(true)
+    expect(upgrade.upgradedModifiers[0]?.value).toBeGreaterThan(3)
+    expect(
+      upgradeEquippedItem(
+        game.state.player,
+        upgrade.slot,
+        upgrade.upgradedModifiers,
+      ),
+    ).toBe(true)
     const rolled = game.state.player.equipment?.weapon
     expect(rolled?.rarity).toBe('uncommon')
-    expect(rolled?.modifiers?.[0]?.value).toBeGreaterThan(3)
+    expect(rolled?.modifiers).toEqual(upgrade.upgradedModifiers)
 
     const before = createUiSnapshot(game.state)
     const after = createUiSnapshot(game.state)

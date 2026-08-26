@@ -5,8 +5,6 @@ import {
   type ItemDefinition,
 } from '../content/gear/Items'
 import {
-  MAX_ITEM_UPGRADE_INCREASE,
-  MIN_ITEM_UPGRADE_INCREASE,
 } from '../game/equipment/EquipmentState'
 import {
   RARITY_VISUALS,
@@ -262,6 +260,10 @@ function GearCard({
 
   if (choice.type === 'upgrade-equipped-item') {
     const currentModifiers = equipped?.modifiers ?? item.modifiers
+    const gains = getStatDeltas(
+      choice.upgradedModifiers,
+      currentModifiers,
+    ).map(modifierFromDelta)
     return (
       <div className="choice-card-wrap">
         <button
@@ -286,10 +288,12 @@ function GearCard({
             </span>
           </span>
           <span className="gear-upgrade-improvement">
-            All modifiers improve by {MIN_ITEM_UPGRADE_INCREASE * 100}–{MAX_ITEM_UPGRADE_INCREASE * 100}%.
+            This offer's improvement is already determined.
           </span>
           <span className="gear-stats-heading">Current stats</span>
           <ModifierList modifiers={currentModifiers} />
+          <span className="gear-net-heading">Upgrade gains</span>
+          <ModifierList modifiers={gains} emptyLabel="No stat change" delta />
           <span className="upgrade-choice-description">
             Select to equip the upgrade immediately.
           </span>

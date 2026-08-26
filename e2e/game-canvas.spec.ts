@@ -144,7 +144,7 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await expect(upgradeCard).toBeVisible()
   await expect(upgradeCard).toContainText(/current rarity/i)
   await expect(upgradeCard).toContainText(/upgraded rarity/i)
-  await expect(upgradeCard).toContainText(/modifiers improve/i)
+  await expect(upgradeCard).toContainText(/upgrade gains/i)
 
   const loadout = page.getByRole('region', { name: 'Loadout' })
   await expect(loadout.locator('.loadout-item')).toHaveCount(1)
