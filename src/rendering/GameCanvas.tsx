@@ -255,7 +255,11 @@ export function GameCanvas({
         role="img"
       />
       {snapshot ? (
-        <GameplayHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
+        <GameplayHud snapshot={snapshot} />
+      ) : null}
+      {snapshot ? <FloorHud snapshot={snapshot} /> : null}
+      {snapshot ? (
+        <BehaviorHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
       ) : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu
@@ -291,10 +295,9 @@ export function GameCanvas({
 
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
-  onOpenBehavior: () => void
 }
 
-function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
+function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
@@ -326,50 +329,7 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
             <span>{snapshot.xp} / {snapshot.xpRequired}</span>
           </dd>
         </div>
-        <div className="hud-stat hud-dodge">
-          <dt>Dodge Lv. {snapshot.dodge.level}</dt>
-          <dd>
-            <progress
-              value={snapshot.dodge.progress * 100}
-              max={100}
-              aria-label="Dodge telegraph progress"
-            />
-            <span>
-              {snapshot.dodge.active
-                ? `Evading (${snapshot.dodge.activeTelegraphCount})`
-                : `${snapshot.dodge.reactionTime.toFixed(2)}s reaction`}
-            </span>
-          </dd>
-        </div>
       </dl>
-      <section className="run-projection-hud" aria-label="Run projection">
-        <div className="floor-hud">
-          <div className="projection-heading">
-            <strong>Floor {snapshot.floor}</strong>
-            <span>{Math.ceil(snapshot.floorProgress * 100)}%</span>
-          </div>
-          <progress
-            value={snapshot.floorProgress * 100}
-            max={100}
-            aria-label={`Floor ${snapshot.floor} progress`}
-          />
-          <span>
-            {Math.floor(snapshot.elapsedTime % snapshot.floorDurationSeconds)}s /{' '}
-            {snapshot.floorDurationSeconds}s
-          </span>
-        </div>
-        {snapshot.pendingChoiceCount > 0 ? (
-          <div className="choice-hud" aria-live="polite">
-            <span className="projection-label">Choices</span>
-            <strong>
-              {snapshot.pendingChoiceFlow?.type === 'gear-pickup'
-                ? 'Gear pickup'
-                : 'Level-up'}
-            </strong>
-            <span>{snapshot.pendingChoiceCount} awaiting</span>
-          </div>
-        ) : null}
-      </section>
       {snapshot.boss ? (
         <section className="boss-hud" aria-label="Boss status">
           <div className="boss-hud-heading">
@@ -517,25 +477,6 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
           })}
         </ul>
       </section>
-      <section className="behavior-hud" aria-labelledby="behavior-hud-title">
-        <h3 id="behavior-hud-title" className="visually-hidden">
-          Behavior
-        </h3>
-        <button
-          className="behavior-summary"
-          type="button"
-          aria-label={`Behavior: ${snapshot.behavior.profileName}. Intent: ${
-            snapshot.behavior.activeIntent?.label ?? 'No active intent'
-          }`}
-          onClick={onOpenBehavior}
-        >
-          <span className="behavior-summary-label">Behavior</span>
-          <strong>{snapshot.behavior.profileName}</strong>
-          <span>
-            Intent: {snapshot.behavior.activeIntent?.label ?? 'No active intent'}
-          </span>
-        </button>
-      </section>
       <section className="equipped-loadout" aria-labelledby="equipped-loadout-title">
         <h3 id="equipped-loadout-title">Loadout</h3>
         <ul className="loadout-list">
@@ -601,6 +542,57 @@ function GameplayHud({ snapshot, onOpenBehavior }: GameplayHudProps) {
           })}
         </ul>
       </section>
+    </section>
+  )
+}
+
+function FloorHud({ snapshot }: { snapshot: GameUiSnapshot }) {
+  return (
+    <section
+      className="floor-hud floor-hud-top"
+      aria-label="Floor status"
+    >
+      <div className="projection-heading">
+        <strong>Floor {snapshot.floor}</strong>
+        <span>{Math.ceil(snapshot.floorProgress * 100)}%</span>
+      </div>
+      <progress
+        value={snapshot.floorProgress * 100}
+        max={100}
+        aria-label={`Floor ${snapshot.floor} progress`}
+      />
+      <span>
+        {Math.floor(snapshot.elapsedTime % snapshot.floorDurationSeconds)}s /{' '}
+        {snapshot.floorDurationSeconds}s
+      </span>
+    </section>
+  )
+}
+
+function BehaviorHud({
+  snapshot,
+  onOpenBehavior,
+}: {
+  snapshot: GameUiSnapshot
+  onOpenBehavior: () => void
+}) {
+  return (
+    <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title">
+      <h3 id="behavior-hud-title" className="visually-hidden">
+        Behavior
+      </h3>
+      <button
+        className="behavior-summary"
+        type="button"
+        aria-label={`Behavior: ${snapshot.behavior.profileName}. Intent: ${
+          snapshot.behavior.activeIntent?.label ?? 'No active intent'
+        }`}
+        onClick={onOpenBehavior}
+      >
+        <span className="behavior-summary-label">Behavior</span>
+        <strong>{snapshot.behavior.profileName}</strong>
+        <span>Intent: {snapshot.behavior.activeIntent?.label ?? 'No active intent'}</span>
+      </button>
     </section>
   )
 }

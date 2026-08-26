@@ -109,11 +109,12 @@ export function resolvePlayerTarget(
 ): void {
   const player = state.player
   const stats = getDerivedPlayerStats(player)
+  const engagementRange = stats.attackRange + player.radius
   const target = findNearestEnemy(
     {
       originX: player.x,
       originY: player.y,
-      maxRange: stats.attackRange,
+      maxRange: engagementRange,
     },
     state,
     enemySpatialHash,

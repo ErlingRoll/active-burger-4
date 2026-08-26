@@ -133,7 +133,7 @@ describe('data-driven player behavior intents', () => {
     })
   })
 
-  it('does not kite a lone damaged Slime', () => {
+  it('does not kite a lone manageable threat', () => {
     const state = createState([enemy(4, 'slime', 36)])
     state.enemies[0].hp = 10
     state.enemies[0].maxHp = 20

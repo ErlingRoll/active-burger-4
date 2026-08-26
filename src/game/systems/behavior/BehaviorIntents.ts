@@ -142,13 +142,6 @@ function createKiteCandidate(
   totalThreatScore: number,
   policy: BehaviorProfilePolicy,
 ): PlayerMovementCandidate | undefined {
-  if (
-    threats.length === 1 &&
-    threats[0].definitionId === 'slime' &&
-    !threats[0].eliteModifier
-  ) {
-    return undefined
-  }
   const nearby = threats.filter((entity) => {
     const range = policy.thresholds.threatRadius + entity.radius
     return distanceSquared(state.player.x, state.player.y, entity.x, entity.y) <=

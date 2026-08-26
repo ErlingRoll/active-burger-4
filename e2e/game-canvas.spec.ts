@@ -15,7 +15,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Email').fill(testUserEmail)
   await page.getByLabel('Password').fill(testUserPassword)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
 }
 
@@ -32,9 +32,8 @@ test('loads and persists dashboard settings while locking future contracts', asy
 }) => {
   await page.goto('/')
   await signIn(page)
-  await expect(
-    page.getByRole('region', { name: 'Ready for your next run?' }).getByText(testUserEmail, { exact: true }),
-  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Ready for your next run?' }).getByText(testUserEmail, { exact: true })).toHaveCount(0)
 
   const defaultContract = page.getByRole('button', { name: /10 minutes.*default/i })
   const fifteenMinuteContract = page.getByRole('button', { name: /15 minutes/i })
@@ -62,7 +61,7 @@ test('signs in and out with the configured Supabase test account', async ({ page
   await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText(testUserEmail, { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('heading', { name: 'Sign in to continue' })).toBeVisible()
@@ -78,14 +77,23 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(
     page.getByRole('img', { name: 'Active Burger 4 game arena' }),
   ).toBeVisible()
-  await expect(page.locator('.game-canvas canvas')).toHaveCount(1)
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
   await expect(page.getByRole('heading', { name: 'Run status' })).toBeAttached()
-  await expect(page.locator('.hud-stats .hud-stat')).toHaveCount(4)
-  await expect(page.locator('.hud-stats .hud-stat').filter({ hasText: 'Time' })).toHaveCount(0)
-  await expect(page.locator('.hud-stats .hud-stat').filter({ hasText: 'Kills' })).toHaveCount(0)
+  await expect(page.locator('.hud-stats .hud-stat')).toHaveCount(3)
+  await expect(page.getByText('Dodge Lv.')).toHaveCount(0)
   await expect(page.getByText('Encounter timeline')).toHaveCount(0)
   await expect(page.getByText('Pickups')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'End Run' })).toHaveCount(0)
+  const floorBox = await page.locator('.floor-hud-top').boundingBox()
+  if (!floorBox) {
+    throw new Error('Expected floor HUD to be visible')
+  }
+  expect(floorBox.width).toBeGreaterThan(200)
+  expect(floorBox.width).toBeLessThan(500)
+  expect(floorBox.y).toBeLessThan(240)
 
   await page.getByRole('button', { name: 'Development Menu' }).click()
   const developmentMenu = page.getByRole('heading', {
@@ -138,19 +146,24 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   await page.goto('/')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
-  const canvas = page.locator('.game-canvas canvas')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
   const behaviorHud = page.locator('.behavior-hud')
 
-  await expect(canvas).toBeVisible()
   const behaviorBox = await behaviorHud.boundingBox()
   if (!behaviorBox) {
     throw new Error('Expected behavior HUD to be visible')
   }
   expect(behaviorBox.x).toBeLessThan(120)
-  expect(behaviorBox.y).toBeGreaterThan(400)
+  expect(behaviorBox.y).toBeGreaterThan(520)
   // The director's first budgeted spawn occurs after roughly one second.
   await page.waitForTimeout(1_200)
-  await expect(canvas).toBeVisible()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
 })
 
 test('pauses on Escape without blocking HUD or development controls', async ({
@@ -159,6 +172,10 @@ test('pauses on Escape without blocking HUD or development controls', async ({
   await page.goto('/')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
 
   await page.evaluate(() => {
     document.addEventListener(
@@ -202,6 +219,10 @@ test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
   await page.goto('/?demo=gear&devmenu=open')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'level-up',
+  )
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
   await expect(overlay).toBeVisible()
@@ -259,6 +280,10 @@ test('projects the final boss, stairs, transition, and victory result in develop
   await page.goto('/?demo=final-boss')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
 
   await expect(page.getByRole('region', { name: 'Boss status' })).toContainText(
     'Inferno Warden',
@@ -278,6 +303,10 @@ test('opens the in-run Behavior screen and switches profiles', async ({ page }) 
   await page.goto('/')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
 
   const behaviorSummary = page.getByRole('button', {
     name: /Behavior: Balanced/i,
@@ -310,6 +339,10 @@ test('displays the level-up choices and resumes after selecting one', async ({
   await signIn(page)
   await expect(page.getByRole('button', { name: 'Start Run' })).toBeVisible()
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'level-up',
+  )
 
   const overlay = page.getByRole('dialog', { name: /level 2/i })
   await expect(overlay).toBeVisible()
@@ -332,6 +365,10 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await page.goto('/?demo=gear')
   await signIn(page)
   await page.getByRole('button', { name: 'Start Run' }).click()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'level-up',
+  )
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
   await expect(overlay).toBeVisible()

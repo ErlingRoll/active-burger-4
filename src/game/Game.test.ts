@@ -455,6 +455,16 @@ describe('Game', () => {
     ])
   })
 
+  it('keeps a lone slime inside the engagement envelope targeted and firing', () => {
+    const game = createGame({ seed: 111 })
+    game.spawnSlime({ x: 64, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
+    expect(game.state.projectiles).toHaveLength(1)
+  })
+
   it('waits for the attack cooldown before creating another projectile', () => {
     const game = createGame({ seed: 12 })
     const slimeId = game.spawnSlime({ x: 0, y: 0 })
