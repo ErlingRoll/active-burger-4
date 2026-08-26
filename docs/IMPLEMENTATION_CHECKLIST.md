@@ -41,7 +41,7 @@ milestones in order unless an ADR documents an exception.
   damage, and death.
 - [x] **5. Endless Spawning:** spawn director/ring, threat curve, cleanup, and
   kill count.
-- [ ] **6. XP and Leveling:** drops, pickup, thresholds, level pause.
+- [x] **6. XP and Leveling:** drops, pickup, thresholds, level pause.
 - [ ] **7. Upgrade Screen:** seeded three-choice overlay and stat upgrades.
 - [ ] **8. Skills:** Basic Bolt, Whirlwind, Chain Lightning, skill upgrades.
 - [ ] **9. Enemy Variety:** Runner, Brute, Archer, and Splitter.

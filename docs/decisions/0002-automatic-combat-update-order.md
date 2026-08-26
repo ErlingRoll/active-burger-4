@@ -10,9 +10,15 @@ and enemy removal while preserving headless deterministic simulation.
 Each fixed simulation tick updates the attack cooldown, moves enemies, resolves
 the nearest living target, spawns a data-driven Basic Bolt when ready, moves
 projectiles, queues projectile collision damage, applies damage in stable
-EntityId order, and finally removes expired projectiles and dead enemies.
+EntityId order, removes expired projectiles and dead enemies (creating one XP
+pickup per removed enemy), then moves and collects pickups in EntityId order.
 Target and collision candidates are ordered by distance and then EntityId rather
 than relying on array insertion order.
+
+The `playing` phase is the only phase that advances this order. Explicit
+`paused` and `level-up` phases both leave simulation state unchanged, while
+remaining distinct run phases so an upgrade flow can resume level-up
+independently of user pause/resume.
 
 ## Consequences
 

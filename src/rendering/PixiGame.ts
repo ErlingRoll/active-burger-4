@@ -8,8 +8,10 @@ export class PixiGame {
   private readonly camera = new Container()
   private readonly enemyViews = new Map<EntityId, Graphics>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
+  private readonly pickupViews = new Map<EntityId, Graphics>()
   private enemyLayer: Container | undefined
   private projectileLayer: Container | undefined
+  private pickupLayer: Container | undefined
   private playerView: Graphics | undefined
   private initialized = false
   private disposed = false
@@ -52,6 +54,7 @@ export class PixiGame {
     const ground = new Container()
     const decorations = new Container()
     const pickups = new Container()
+    this.pickupLayer = pickups
     const enemies = new Container()
     this.enemyLayer = enemies
     const player = new Container()
@@ -124,6 +127,15 @@ export class PixiGame {
       .stroke({ color: '#fef3c7', width: 1 })
   }
 
+  private createPickupPlaceholder(pickup: {
+    radius: number
+  }): Graphics {
+    return new Graphics()
+      .circle(0, 0, pickup.radius)
+      .fill('#22c55e')
+      .stroke({ color: '#bbf7d0', width: 2 })
+  }
+
   private readonly update = (ticker: Ticker): void => {
     this.game.update(ticker.deltaMS / 1000)
     this.renderState()
@@ -181,6 +193,30 @@ export class PixiGame {
       view.destroy()
       this.projectileViews.delete(projectileId)
     }
+
+    const activePickupIds = new Set<EntityId>()
+    for (const pickup of state.pickups) {
+      activePickupIds.add(pickup.id)
+      let view = this.pickupViews.get(pickup.id)
+
+      if (!view) {
+        view = this.createPickupPlaceholder(pickup)
+        this.pickupViews.set(pickup.id, view)
+        this.pickupLayer?.addChild(view)
+      }
+
+      view.position.set(pickup.x, pickup.y)
+    }
+
+    for (const [pickupId, view] of this.pickupViews) {
+      if (activePickupIds.has(pickupId)) {
+        continue
+      }
+
+      view.removeFromParent()
+      view.destroy()
+      this.pickupViews.delete(pickupId)
+    }
   }
 
   private readonly centerCamera = (): void => {
@@ -194,8 +230,10 @@ export class PixiGame {
     this.app.ticker.remove(this.update)
     this.enemyViews.clear()
     this.projectileViews.clear()
+    this.pickupViews.clear()
     this.enemyLayer = undefined
     this.projectileLayer = undefined
+    this.pickupLayer = undefined
     this.playerView = undefined
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false

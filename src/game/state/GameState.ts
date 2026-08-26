@@ -94,6 +94,12 @@ export interface ProjectileState {
 
 export interface PickupState {
   id: EntityId
+  x: number
+  y: number
+  xpAmount: number
+  radius: number
+  attractionRadius: number
+  attractionSpeed: number
 }
 
 export interface SummonState {

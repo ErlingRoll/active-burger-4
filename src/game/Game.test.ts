@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createGame, FIXED_STEP_SECONDS } from './Game'
 import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
+import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -19,12 +20,15 @@ describe('Game', () => {
     // `Game` instance itself, demonstrating Milestone 2's definition of done.
     const game = createGame({ seed: 12345 })
 
-    for (let i = 0; i < 60 * 60; i += 1) {
+    for (let i = 0; i < 60 * 60 && game.phase === 'playing'; i += 1) {
       game.update(1 / 60)
     }
 
-    expect(game.state.tick).toBe(60 * 60)
-    expect(game.state.time).toBeCloseTo(60)
+    // The first level-up intentionally suspends the otherwise headless run;
+    // Milestone 7 will provide the choice that resumes it.
+    expect(game.phase).toBe('level-up')
+    expect(game.state.tick).toBeGreaterThan(0)
+    expect(game.state.time).toBeCloseTo(game.state.tick / 60)
   })
 
   it('advances by exactly one fixed step per FIXED_STEP_SECONDS of input', () => {
@@ -278,5 +282,90 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.run.killCount).toBe(2)
     expect(firstId).not.toBe(secondId)
+  })
+
+  it('creates exactly one XP pickup for each enemy death', () => {
+    const game = createGame({ seed: 15 })
+    const firstId = game.spawnSlime({ x: 100, y: 0 })
+    const secondId = game.spawnSlime({ x: 200, y: 0 })
+
+    for (const enemy of game.state.enemies) {
+      enemy.hp = 0
+    }
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.enemies).toHaveLength(0)
+    expect(game.state.pickups).toHaveLength(2)
+    expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toEqual([5, 5])
+    expect(game.state.pickups.map((pickup) => pickup.x)).toEqual([95, 199])
+    expect(firstId).not.toBe(secondId)
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.pickups).toHaveLength(2)
+  })
+
+  it('attracts pickups deterministically and collects them at contact range', () => {
+    const run = () => {
+      const game = createGame({ seed: 16 })
+      game.spawnXpPickup({ x: XP_BALANCE.pickupAttractionRadius, y: 0 }, 3)
+      for (let tick = 0; tick < 60; tick += 1) {
+        game.update(FIXED_STEP_SECONDS)
+        if (game.state.pickups.length === 0) {
+          break
+        }
+      }
+      return {
+        player: { ...game.state.player },
+        pickups: [...game.state.pickups],
+      }
+    }
+
+    const first = run()
+    const second = run()
+    expect(first).toEqual(second)
+    expect(first.pickups).toHaveLength(0)
+    expect(first.player.xp).toBe(3)
+  })
+
+  it('retains XP and safely handles multiple level thresholds', () => {
+    const game = createGame({ seed: 17 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(4))
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.xp).toBe(xpRequiredForLevel(4))
+    expect(game.state.player.level).toBe(4)
+    expect(game.phase).toBe('level-up')
+    expect(game.paused).toBe(false)
+    expect(game.state.pickups).toHaveLength(0)
+  })
+
+  it('halts every simulation system in level-up without changing explicit pause semantics', () => {
+    const game = createGame({ seed: 18 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.update(1)
+
+    const snapshot = {
+      tick: game.state.tick,
+      time: game.state.time,
+      enemies: [...game.state.enemies],
+      projectiles: [...game.state.projectiles],
+      pickups: [...game.state.pickups],
+    }
+
+    game.update(10)
+
+    expect(game.phase).toBe('level-up')
+    expect(game.paused).toBe(false)
+    expect(game.state.tick).toBe(snapshot.tick)
+    expect(game.state.time).toBe(snapshot.time)
+    expect(game.state.enemies).toEqual(snapshot.enemies)
+    expect(game.state.projectiles).toEqual(snapshot.projectiles)
+    expect(game.state.pickups).toEqual(snapshot.pickups)
+
+    game.pause()
+    expect(game.phase).toBe('level-up')
+    expect(game.paused).toBe(false)
   })
 })

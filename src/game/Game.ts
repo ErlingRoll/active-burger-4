@@ -15,10 +15,15 @@ import { isValidRunPhaseTransition } from './state/RunPhase'
 import type { RunPhase } from './state/RunPhase'
 import { findNearestEnemy } from './combat/Targeting'
 import { SpawnDirector } from './spawning/SpawnDirector'
+import {
+  XP_BALANCE,
+  xpRequiredForNextLevel,
+} from '../content/progression/XpBalance'
 import type {
   DamageEvent,
   EnemyState,
   GameState,
+  PickupState,
   PlayerState,
   ProjectileState,
   RunConfig,
@@ -119,22 +124,33 @@ export class Game {
    * caller's actual frame rate.
    */
   update(rawDeltaSeconds: number): void {
-    if (this.gameState.paused) {
+    // Explicit pause and level-up are distinct phases, but both suspend all
+    // active simulation systems while they await a caller action.
+    if (this.gameState.run.phase !== 'playing') {
       return
     }
 
     const clampedDelta = Math.min(Math.max(rawDeltaSeconds, 0), MAX_FRAME_SECONDS)
     this.accumulatedSeconds += clampedDelta
 
-    while (this.accumulatedSeconds >= FIXED_STEP_SECONDS) {
+    while (
+      this.accumulatedSeconds >= FIXED_STEP_SECONDS &&
+      this.gameState.run.phase === 'playing'
+    ) {
       this.step()
       this.accumulatedSeconds -= FIXED_STEP_SECONDS
+    }
+
+    // Wall-clock time accumulated in the frame that triggered level-up must
+    // not become catch-up time after the future choice resumes the run.
+    if (this.gameState.run.phase !== 'playing') {
+      this.accumulatedSeconds = 0
     }
   }
 
   /** Pauses the run, remembering the phase to return to on `resume()`. */
   pause(): void {
-    if (this.gameState.paused) {
+    if (this.gameState.run.phase !== 'playing') {
       return
     }
 
@@ -144,7 +160,7 @@ export class Game {
 
   /** Resumes a paused run, returning to the phase active before pausing. */
   resume(): void {
-    if (!this.gameState.paused) {
+    if (this.gameState.run.phase !== 'paused') {
       return
     }
 
@@ -168,6 +184,7 @@ export class Game {
     const damageEvents = this.collectProjectileDamage()
     this.applyDamageEvents(damageEvents)
     this.removeDeadEntities()
+    this.updatePickups()
   }
 
   /**
@@ -201,6 +218,22 @@ export class Game {
 
     this.gameState.enemies.push(enemy)
     return enemy.id
+  }
+
+  /** Adds a pickup through the same entity allocator used by enemy drops. */
+  spawnXpPickup(position: WorldPosition, xpAmount: number): EntityId {
+    const pickup: PickupState = {
+      id: this.idAllocator.createEntityId(),
+      x: position.x,
+      y: position.y,
+      xpAmount,
+      radius: XP_BALANCE.pickupRadius,
+      attractionRadius: XP_BALANCE.pickupAttractionRadius,
+      attractionSpeed: XP_BALANCE.pickupAttractionSpeed,
+    }
+
+    this.gameState.pickups.push(pickup)
+    return pickup.id
   }
 
   private spawnEnemies(): void {
@@ -388,6 +421,9 @@ export class Game {
         livingEnemies.push(enemy)
       } else {
         killCount += 1
+        // Create the drop before removing the enemy so every observed death
+        // produces exactly one pickup during this cleanup pass.
+        this.spawnXpPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
       }
     }
     this.gameState.enemies = livingEnemies
@@ -395,6 +431,75 @@ export class Game {
     this.gameState.projectiles = this.gameState.projectiles.filter(
       (projectile) => projectile.remainingLifetime > 0,
     )
+  }
+
+  private updatePickups(): void {
+    const player = this.gameState.player
+    const pickups = [...this.gameState.pickups].sort(
+      (left, right) => left.id - right.id,
+    )
+    const collectedIds = new Set<EntityId>()
+
+    for (const pickup of pickups) {
+      const offsetX = player.x - pickup.x
+      const offsetY = player.y - pickup.y
+      const distance = Math.hypot(offsetX, offsetY)
+      const contactRange = player.radius + pickup.radius
+
+      if (distance <= contactRange || distance === 0) {
+        this.grantExperience(pickup.xpAmount)
+        collectedIds.add(pickup.id)
+        continue
+      }
+
+      if (distance > pickup.attractionRadius) {
+        continue
+      }
+
+      const movementDistance = Math.min(
+        pickup.attractionSpeed * FIXED_STEP_SECONDS,
+        distance - contactRange,
+      )
+      const movementRatio = movementDistance / distance
+      pickup.x += offsetX * movementRatio
+      pickup.y += offsetY * movementRatio
+
+      if (
+        Math.hypot(player.x - pickup.x, player.y - pickup.y) <= contactRange
+      ) {
+        this.grantExperience(pickup.xpAmount)
+        collectedIds.add(pickup.id)
+      }
+
+      // Once level-up is reached, leave remaining pickups in state. They will
+      // be collected after the future upgrade flow resumes the run.
+      if (this.gameState.run.phase !== 'playing') {
+        break
+      }
+    }
+
+    this.gameState.pickups = this.gameState.pickups.filter(
+      (pickup) => !collectedIds.has(pickup.id),
+    )
+  }
+
+  private grantExperience(amount: number): void {
+    const experience = Number.isFinite(amount) ? Math.max(0, amount) : 0
+    this.gameState.player.xp += experience
+
+    while (
+      this.gameState.player.xp >=
+      xpRequiredForNextLevel(this.gameState.player.level)
+    ) {
+      this.gameState.player.level += 1
+    }
+
+    if (
+      this.gameState.player.level > 1 &&
+      this.gameState.run.phase === 'playing'
+    ) {
+      this.transitionTo('level-up')
+    }
   }
 
   private transitionTo(nextPhase: RunPhase): void {
