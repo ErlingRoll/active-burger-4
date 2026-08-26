@@ -8,7 +8,7 @@ and enemy removal while preserving headless deterministic simulation.
 ## Decision
 
 Each fixed simulation tick updates the attack cooldown, moves enemies, resolves
-the nearest living target, spawns a data-driven Basic Bolt when ready, moves
+the nearest living target, resolves a data-driven Basic Attack when ready, moves
 projectiles, queues projectile collision damage, applies damage in stable
 EntityId order, removes expired projectiles and dead enemies (creating one XP
 pickup per removed enemy), then moves and collects pickups in EntityId order.
@@ -24,5 +24,5 @@ independently of user pause/resume.
 
 Combat has reproducible outcomes across render frame rates and can be tested
 without PixiJS or browser APIs. The initial attack is intentionally limited to
-the Basic Bolt projectile; additional skills and effects remain future
+the Basic Attack system; additional skills and effects remain future
 milestones.

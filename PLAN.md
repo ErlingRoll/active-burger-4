@@ -1423,12 +1423,12 @@ Never let modifier order depend on upgrade acquisition order unless deliberately
 
 The initial vertical slice should contain approximately three skills:
 
-## Basic Bolt
+## Basic Attack
 
 ```text
-Type: projectile
-Target: nearest enemy
-Effect: direct damage
+Type: weapon-driven (sword area / bow projectile / wand homing projectile)
+Target: nearest enemy or front-facing arc
+Effect: direct damage based on equipped weapon
 ```
 
 ## Whirlwind
@@ -1453,11 +1453,11 @@ These three exercise different pieces of architecture.
 
 # 34. Skill Upgrade Example
 
-Basic Bolt:
+Basic Attack:
 
 ```text
 Level 1
-1 projectile
+1 strike or projectile
 10 damage
 1.0 second cooldown
 
@@ -1465,13 +1465,13 @@ Level 2
 +30% damage
 
 Level 3
-+1 projectile
++1 projectile while using a bow or wand
 
 Level 4
 +20% attack speed
 
 Evolution
-projectiles pierce enemies
+weapon attacks gain an archetype-specific upgrade
 ```
 
 The actual values are placeholders.
@@ -1532,11 +1532,11 @@ Example placeholder values:
 
 ```ts
 const rarityWeights = {
-  common: 60,
-  uncommon: 25,
-  rare: 10,
-  epic: 4,
-  legendary: 1,
+  common: 1000,
+  uncommon: 800,
+  rare: 300,
+  epic: 50,
+  legendary: 10,
 }
 ```
 
@@ -2603,7 +2603,7 @@ Example:
 Adventurer
 
 Starting skill:
-Basic Bolt
+Basic Attack
 
 Behavior:
 Balanced
@@ -3626,7 +3626,7 @@ Transform simple stat choices into builds.
 Add:
 
 ```text
-Basic Bolt
+Basic Attack
 Whirlwind
 Chain Lightning
 ```
