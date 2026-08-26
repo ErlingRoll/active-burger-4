@@ -4412,41 +4412,19 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Start with **Milestone 0**.
-
-Once repository initialization is complete, implement the smallest possible end-to-end architecture:
+Milestones 0–12 are complete. The next planned feature is **Milestone 13 — Boss**:
 
 ```text
-React page
-    ↓
-<GameCanvas>
-    ↓
-PixiJS
-    ↓
-Game
-    ↓
-GameState
-    ↓
-fixed timestep
-    ↓
-player placeholder
+encounter timeline
+first boss
+boss health bar
+boss abilities
+boss victory
 ```
 
-Then add exactly one enemy.
+Keep the current deterministic gameplay loop and responsive build-information UI intact
+while introducing the encounter.
 
-Do not start by implementing:
-
-```text
-Supabase progression
-gear
-rarity
-50 skills
-boss systems
-meta progression
-```
-
-The first engineering objective is much simpler:
-
-> **Open the browser and watch an autonomous player fight an autonomous enemy using simulation state that is independent from the renderer.**
-
-Once that works cleanly, every major system in the game can be built on top of it.
+The completed foundation already provides an autonomous player and enemies driven by
+simulation state that is independent from the renderer. Build the boss encounter on
+that boundary rather than coupling encounter behavior to the UI or Pixi renderer.

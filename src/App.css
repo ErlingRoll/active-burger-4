@@ -119,6 +119,7 @@
 .gameplay-hud {
   position: absolute;
   inset: 0 0 auto;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -713,10 +714,12 @@
 .level-up-overlay {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: grid;
   place-items: center;
   padding: 1.25rem;
   background: rgb(2 6 23 / 75%);
+  pointer-events: none;
 }
 
 .level-up-panel {
@@ -727,6 +730,7 @@
   border: 1px solid #60a5fa;
   border-radius: 1rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 55%);
+  pointer-events: auto;
 }
 
 .level-up-kicker {

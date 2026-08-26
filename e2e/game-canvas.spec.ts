@@ -128,6 +128,12 @@ test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
   await expect(overlay).toBeVisible()
 
+  const skill = page.getByRole('button', {
+    name: 'Basic Bolt, level 1',
+  })
+  await skill.hover()
+  await expect(page.getByRole('tooltip')).toContainText('Basic Bolt')
+
   await page.keyboard.press('Escape')
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
