@@ -166,7 +166,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
         role="img"
       />
       {snapshot ? <GameplayHud snapshot={snapshot} /> : null}
-      {import.meta.env.DEV && snapshot && game && !choiceFlow ? (
+      {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
       ) : null}
       {choiceFlow ? (

@@ -127,13 +127,22 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
   await expect(overlay).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Development Menu' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Development Menu' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Development Menu' }),
+  ).toBeVisible()
   const gearCards = overlay.locator('[data-choice-type="gear"]')
   await expect(gearCards).toHaveCount(3)
   await expect(gearCards.locator('.gear-upgrade-type')).toHaveCount(0)
   await expect(gearCards.first().locator('[data-rarity]')).toBeVisible()
   await expect(gearCards.first()).toContainText(/weapon|helmet|armor|boots|ring|amulet/i)
   await expect(gearCards.first()).toContainText(/gains|net change/i)
-  await expect(overlay).toBeFocused()
+  await expect(
+    page.getByRole('button', { name: 'Development Menu' }),
+  ).toBeFocused()
 
   await gearCards.first().focus()
   await expect(overlay.getByRole('tooltip')).toContainText('Full comparison')
