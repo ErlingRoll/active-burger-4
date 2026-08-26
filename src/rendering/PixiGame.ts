@@ -26,6 +26,10 @@ import {
 } from '../content/bosses/Bosses'
 
 export class PixiGame {
+  private static readonly MIN_CAMERA_SCALE = 1 / 3
+  private static readonly MAX_CAMERA_SCALE = 1
+  private static readonly WHEEL_ZOOM_SENSITIVITY = 0.001
+
   private readonly game: Game
   private readonly app = new Application()
   private readonly camera = new Container()
@@ -42,6 +46,8 @@ export class PixiGame {
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
   private playerView: Graphics | undefined
+  private host: HTMLElement | undefined
+  private cameraScale = PixiGame.MAX_CAMERA_SCALE
   private initialized = false
   private disposed = false
 
@@ -62,6 +68,8 @@ export class PixiGame {
     }
 
     host.appendChild(this.app.canvas)
+    this.host = host
+    host.addEventListener('wheel', this.handleWheel, { passive: false })
     this.createWorld()
     this.initialized = true
 
@@ -558,14 +566,32 @@ export class PixiGame {
   }
 
   private readonly centerCamera = (): void => {
+    const player = this.game.state.player
+    this.camera.scale.set(this.cameraScale)
     this.camera.position.set(
-      this.app.renderer.width / 2,
-      this.app.renderer.height / 2,
+      this.app.renderer.width / 2 - player.x * this.cameraScale,
+      this.app.renderer.height / 2 - player.y * this.cameraScale,
     )
+  }
+
+  private readonly handleWheel = (event: WheelEvent): void => {
+    event.preventDefault()
+    const scaleChange = Math.exp(
+      -event.deltaY * PixiGame.WHEEL_ZOOM_SENSITIVITY,
+    )
+    this.cameraScale = Math.min(
+      PixiGame.MAX_CAMERA_SCALE,
+      Math.max(
+        PixiGame.MIN_CAMERA_SCALE,
+        this.cameraScale * scaleChange,
+      ),
+    )
+    this.centerCamera()
   }
 
   private destroyApplication(): void {
     this.app.ticker.remove(this.update)
+    this.host?.removeEventListener('wheel', this.handleWheel)
     for (const { root } of this.enemyViews.values()) {
       root.removeFromParent()
       root.destroy({ children: true })
@@ -603,6 +629,7 @@ export class PixiGame {
     this.pickupLayer = undefined
     this.effectLayer = undefined
     this.playerView = undefined
+    this.host = undefined
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false
   }
