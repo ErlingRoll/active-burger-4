@@ -1,14 +1,21 @@
 import { createEntityIdAllocator } from './ids'
 import type { EntityId, EntityIdAllocator } from './ids'
 import { getEnemyDefinition, SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
+import {
+  BASIC_BOLT_DEFINITION_ID,
+  getProjectileDefinition,
+} from '../content/projectiles/Projectiles'
 import { Random } from './random/Random'
 import type { RandomSource } from './random/Random'
 import { isValidRunPhaseTransition } from './state/RunPhase'
 import type { RunPhase } from './state/RunPhase'
+import { findNearestEnemy } from './combat/Targeting'
 import type {
+  DamageEvent,
   EnemyState,
   GameState,
   PlayerState,
+  ProjectileState,
   RunConfig,
 } from './state/GameState'
 
@@ -42,6 +49,7 @@ function createInitialPlayerState(id: EntityId): PlayerState {
     attackDamage: 10,
     attackSpeed: 1,
     attackRange: 50,
+    attackCooldownRemaining: 0,
     targetId: undefined,
   }
 }
@@ -142,7 +150,16 @@ export class Game {
     this.gameState.tick += 1
     this.gameState.time += FIXED_STEP_SECONDS
 
+    // Keep this order explicit: all decisions happen before projectile
+    // movement, collision produces queued damage, and cleanup is last.
+    this.updateAttackCooldown()
     this.updateEnemyChase()
+    this.resolvePlayerTarget()
+    this.spawnBasicBoltIfReady()
+    this.updateProjectiles()
+    const damageEvents = this.collectProjectileDamage()
+    this.applyDamageEvents(damageEvents)
+    this.removeDeadEntities()
   }
 
   /**
@@ -191,6 +208,159 @@ export class Game {
       enemy.x += offsetX * movementRatio
       enemy.y += offsetY * movementRatio
     }
+  }
+
+  private updateAttackCooldown(): void {
+    const player = this.gameState.player
+    player.attackCooldownRemaining = Math.max(
+      0,
+      player.attackCooldownRemaining - FIXED_STEP_SECONDS,
+    )
+  }
+
+  private resolvePlayerTarget(): void {
+    const player = this.gameState.player
+    const target = findNearestEnemy(
+      {
+        originX: player.x,
+        originY: player.y,
+        maxRange: player.attackRange,
+      },
+      this.gameState,
+    )
+
+    player.targetId = target?.id
+  }
+
+  private spawnBasicBoltIfReady(): void {
+    const player = this.gameState.player
+    const targetId = player.targetId
+
+    if (targetId === undefined || player.attackCooldownRemaining > 0) {
+      return
+    }
+
+    const target = this.gameState.enemies.find(
+      (enemy) => enemy.id === targetId && enemy.hp > 0,
+    )
+    if (!target) {
+      player.targetId = undefined
+      return
+    }
+
+    const definition = getProjectileDefinition(BASIC_BOLT_DEFINITION_ID)
+    const offsetX = target.x - player.x
+    const offsetY = target.y - player.y
+    const distance = Math.hypot(offsetX, offsetY)
+    const directionX = distance === 0 ? 0 : offsetX / distance
+    const directionY = distance === 0 ? 0 : offsetY / distance
+
+    const projectile: ProjectileState = {
+      id: this.idAllocator.createEntityId(),
+      ownerId: player.id,
+      definitionId: definition.id,
+      x: player.x,
+      y: player.y,
+      velocityX: directionX * definition.speed,
+      velocityY: directionY * definition.speed,
+      radius: definition.radius,
+      damage: player.attackDamage,
+      remainingLifetime: definition.lifetime,
+    }
+
+    this.gameState.projectiles.push(projectile)
+    player.attackCooldownRemaining =
+      player.attackSpeed > 0 ? 1 / player.attackSpeed : Number.POSITIVE_INFINITY
+  }
+
+  private updateProjectiles(): void {
+    for (const projectile of this.gameState.projectiles) {
+      projectile.x += projectile.velocityX * FIXED_STEP_SECONDS
+      projectile.y += projectile.velocityY * FIXED_STEP_SECONDS
+      projectile.remainingLifetime -= FIXED_STEP_SECONDS
+    }
+  }
+
+  private collectProjectileDamage(): DamageEvent[] {
+    const damageEvents: DamageEvent[] = []
+    const projectiles = [...this.gameState.projectiles].sort(
+      (left, right) => left.id - right.id,
+    )
+    const enemies = [...this.gameState.enemies]
+      .filter((enemy) => enemy.hp > 0)
+      .sort((left, right) => left.id - right.id)
+
+    for (const projectile of projectiles) {
+      if (projectile.remainingLifetime <= 0) {
+        continue
+      }
+
+      let hitEnemy: EnemyState | undefined
+      let hitDistanceSquared = Number.POSITIVE_INFINITY
+
+      for (const enemy of enemies) {
+        const offsetX = enemy.x - projectile.x
+        const offsetY = enemy.y - projectile.y
+        const collisionDistance = enemy.radius + projectile.radius
+        const distanceSquared = offsetX * offsetX + offsetY * offsetY
+
+        if (distanceSquared > collisionDistance * collisionDistance) {
+          continue
+        }
+
+        if (
+          distanceSquared < hitDistanceSquared ||
+          (distanceSquared === hitDistanceSquared &&
+            (hitEnemy === undefined || enemy.id < hitEnemy.id))
+        ) {
+          hitEnemy = enemy
+          hitDistanceSquared = distanceSquared
+        }
+      }
+
+      if (hitEnemy) {
+        damageEvents.push({
+          sourceId: projectile.ownerId,
+          targetId: hitEnemy.id,
+          amount: projectile.damage,
+          damageType: 'physical',
+        })
+        projectile.remainingLifetime = 0
+      }
+    }
+
+    return damageEvents.sort((left, right) => {
+      const targetOrder = left.targetId - right.targetId
+      if (targetOrder !== 0) {
+        return targetOrder
+      }
+
+      const leftSourceId = left.sourceId ?? Number.MAX_SAFE_INTEGER
+      const rightSourceId = right.sourceId ?? Number.MAX_SAFE_INTEGER
+      return leftSourceId - rightSourceId
+    })
+  }
+
+  private applyDamageEvents(events: readonly DamageEvent[]): void {
+    for (const event of events) {
+      const enemy = this.gameState.enemies.find(
+        (candidate) => candidate.id === event.targetId && candidate.hp > 0,
+      )
+      if (!enemy) {
+        continue
+      }
+
+      enemy.hp = Math.max(0, enemy.hp - Math.max(0, event.amount))
+    }
+  }
+
+  private removeDeadEntities(): void {
+    this.gameState.enemies = this.gameState.enemies.filter(
+      (enemy) => enemy.hp > 0,
+    )
+    this.gameState.projectiles = this.gameState.projectiles.filter(
+      (projectile) => projectile.remainingLifetime > 0,
+    )
   }
 
   private transitionTo(nextPhase: RunPhase): void {

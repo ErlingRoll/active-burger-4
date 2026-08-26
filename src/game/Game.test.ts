@@ -203,4 +203,60 @@ describe('Game', () => {
     )
     expect(game.state.enemies[0].x).toBeGreaterThanOrEqual(0)
   })
+
+  it('automatically creates a Basic Bolt when a living enemy is in attack range', () => {
+    const game = createGame({ seed: 11 })
+    game.spawnSlime({ x: 50, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.projectiles).toHaveLength(1)
+    expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
+    expect(game.state.projectiles[0]).toMatchObject({
+      ownerId: game.state.player.id,
+      x: 6,
+      y: 0,
+      velocityX: 360,
+      velocityY: 0,
+      damage: game.state.player.attackDamage,
+    })
+  })
+
+  it('waits for the attack cooldown before creating another projectile', () => {
+    const game = createGame({ seed: 12 })
+    const slimeId = game.spawnSlime({ x: 0, y: 0 })
+    const slime = game.state.enemies.find((enemy) => enemy.id === slimeId)
+    if (!slime) {
+      throw new Error('Expected the spawned slime to exist')
+    }
+    slime.hp = 100
+    slime.maxHp = 100
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.player.attackCooldownRemaining).toBeCloseTo(1)
+    expect(game.state.projectiles).toHaveLength(0)
+
+    for (let tick = 0; tick < 59; tick += 1) {
+      game.update(FIXED_STEP_SECONDS)
+    }
+    expect(game.state.projectiles).toHaveLength(0)
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.player.attackCooldownRemaining).toBeCloseTo(1)
+  })
+
+  it('applies projectile damage and removes an enemy when its health reaches zero', () => {
+    const game = createGame({ seed: 13 })
+    const slimeId = game.spawnSlime({ x: 0, y: 0 })
+    const slime = game.state.enemies.find((enemy) => enemy.id === slimeId)
+    if (!slime) {
+      throw new Error('Expected the spawned slime to exist')
+    }
+    slime.hp = game.state.player.attackDamage
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.enemies).toHaveLength(0)
+    expect(game.state.projectiles).toHaveLength(0)
+  })
 })

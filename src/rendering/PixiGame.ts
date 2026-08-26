@@ -7,7 +7,9 @@ export class PixiGame {
   private readonly app = new Application()
   private readonly camera = new Container()
   private readonly enemyViews = new Map<EntityId, Graphics>()
+  private readonly projectileViews = new Map<EntityId, Graphics>()
   private enemyLayer: Container | undefined
+  private projectileLayer: Container | undefined
   private playerView: Graphics | undefined
   private initialized = false
   private disposed = false
@@ -54,6 +56,7 @@ export class PixiGame {
     this.enemyLayer = enemies
     const player = new Container()
     const projectiles = new Container()
+    this.projectileLayer = projectiles
     const effects = new Container()
     const worldUi = new Container()
 
@@ -112,6 +115,15 @@ export class PixiGame {
       .stroke({ color: '#fecaca', width: 2 })
   }
 
+  private createProjectilePlaceholder(projectile: {
+    radius: number
+  }): Graphics {
+    return new Graphics()
+      .circle(0, 0, projectile.radius)
+      .fill('#fbbf24')
+      .stroke({ color: '#fef3c7', width: 1 })
+  }
+
   private readonly update = (ticker: Ticker): void => {
     this.game.update(ticker.deltaMS / 1000)
     this.renderState()
@@ -145,6 +157,30 @@ export class PixiGame {
       view.destroy()
       this.enemyViews.delete(enemyId)
     }
+
+    const activeProjectileIds = new Set<EntityId>()
+    for (const projectile of state.projectiles) {
+      activeProjectileIds.add(projectile.id)
+      let view = this.projectileViews.get(projectile.id)
+
+      if (!view) {
+        view = this.createProjectilePlaceholder(projectile)
+        this.projectileViews.set(projectile.id, view)
+        this.projectileLayer?.addChild(view)
+      }
+
+      view.position.set(projectile.x, projectile.y)
+    }
+
+    for (const [projectileId, view] of this.projectileViews) {
+      if (activeProjectileIds.has(projectileId)) {
+        continue
+      }
+
+      view.removeFromParent()
+      view.destroy()
+      this.projectileViews.delete(projectileId)
+    }
   }
 
   private readonly centerCamera = (): void => {
@@ -157,7 +193,9 @@ export class PixiGame {
   private destroyApplication(): void {
     this.app.ticker.remove(this.update)
     this.enemyViews.clear()
+    this.projectileViews.clear()
     this.enemyLayer = undefined
+    this.projectileLayer = undefined
     this.playerView = undefined
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false

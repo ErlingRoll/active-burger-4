@@ -9,6 +9,7 @@ export type EnemyDefinitionId = string
 export type ItemId = string
 export type UpgradeId = string
 export type CharacterId = string
+export type ProjectileDefinitionId = string
 
 /**
  * Numeric identity assigned to every runtime entity (player, enemies,

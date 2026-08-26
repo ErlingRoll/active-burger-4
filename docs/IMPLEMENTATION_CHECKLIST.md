@@ -37,7 +37,7 @@ milestones in order unless an ADR documents an exception.
 - [x] **2. Simulation Loop:** headless `Game`/`GameState`, fixed timestep,
   clock, pause/resume, seeded RNG, and deterministic tests.
 - [x] **3. First Enemy:** Slime state/content, spawn, chase behavior, renderer.
-- [ ] **4. Automatic Combat:** targeting, cooldowns, projectiles, collision,
+- [x] **4. Automatic Combat:** targeting, cooldowns, projectiles, collision,
   damage, and death.
 - [ ] **5. Endless Spawning:** spawn director/ring, threat curve, cleanup, and
   kill count.

@@ -1,4 +1,8 @@
-import type { EnemyDefinitionId, EntityId } from '../ids'
+import type {
+  EnemyDefinitionId,
+  EntityId,
+  ProjectileDefinitionId,
+} from '../ids'
 import type { RunPhase } from './RunPhase'
 
 /** Configuration required to start a new deterministic run. */
@@ -35,6 +39,7 @@ export interface PlayerState {
   attackDamage: number
   attackSpeed: number
   attackRange: number
+  attackCooldownRemaining: number
 
   targetId?: EntityId
 }
@@ -61,8 +66,29 @@ export interface EnemyState {
   targetId: EntityId
 }
 
+export type DamageType = 'physical'
+
+export interface DamageEvent {
+  sourceId?: EntityId
+  targetId: EntityId
+  amount: number
+  damageType: DamageType
+}
+
 export interface ProjectileState {
   id: EntityId
+  ownerId: EntityId
+  definitionId: ProjectileDefinitionId
+
+  x: number
+  y: number
+
+  velocityX: number
+  velocityY: number
+
+  radius: number
+  damage: number
+  remainingLifetime: number
 }
 
 export interface PickupState {
