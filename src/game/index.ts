@@ -11,4 +11,7 @@ export {
   FIXED_STEP_SECONDS,
   type WorldPosition,
   type GameStateListener,
+  type GameUiSnapshot,
+  type RunHudSnapshot,
+  type RunResultSnapshot,
 } from './Game'

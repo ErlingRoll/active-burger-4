@@ -133,6 +133,44 @@ describe('Game', () => {
     expect(game.phase).toBe('playing')
   })
 
+  it('ends a run through defeat and exposes an immutable result snapshot', () => {
+    const game = createGame({ seed: 7 })
+    game.update(0.5)
+
+    expect(game.endRun()).toBe(true)
+    expect(game.phase).toBe('defeat')
+    expect(game.state.player.hp).toBe(0)
+
+    const result = game.getRunResultSnapshot()
+    expect(result).toEqual({
+      phase: 'defeat',
+      elapsedTime: game.state.time,
+      level: game.state.player.level,
+      xp: game.state.player.xp,
+      killCount: game.state.run.killCount,
+    })
+    expect(Object.isFrozen(result)).toBe(true)
+  })
+
+  it('does not update any simulation state after defeat', () => {
+    const game = createGame({ seed: 8 })
+    game.update(1)
+    game.endRun()
+    const stateAfterDefeat = {
+      tick: game.state.tick,
+      time: game.state.time,
+      kills: game.state.run.killCount,
+    }
+
+    expect(game.endRun()).toBe(false)
+    game.update(10)
+
+    expect(game.phase).toBe('defeat')
+    expect(game.state.tick).toBe(stateAfterDefeat.tick)
+    expect(game.state.time).toBe(stateAfterDefeat.time)
+    expect(game.state.run.killCount).toBe(stateAfterDefeat.kills)
+  })
+
   it('gives each game instance its own deterministic RNG derived from its seed', () => {
     const gameA = createGame({ seed: 999 })
     const gameB = createGame({ seed: 999 })

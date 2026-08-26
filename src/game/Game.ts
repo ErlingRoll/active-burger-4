@@ -17,6 +17,7 @@ import { findNearestEnemy } from './combat/Targeting'
 import { SpawnDirector } from './spawning/SpawnDirector'
 import {
   XP_BALANCE,
+  xpRequiredForLevel,
   xpRequiredForNextLevel,
 } from '../content/progression/XpBalance'
 import {
@@ -55,6 +56,30 @@ export interface WorldPosition {
 const MAX_FRAME_SECONDS = 0.25
 
 export type GameStateListener = (state: Readonly<GameState>) => void
+
+/** Narrow, immutable run data intended for screen-space UI consumers. */
+export interface RunHudSnapshot {
+  readonly phase: RunPhase
+  readonly hp: number
+  readonly maxHp: number
+  readonly level: number
+  readonly xp: number
+  readonly xpRequired: number
+  readonly xpProgress: number
+  readonly elapsedTime: number
+  readonly killCount: number
+}
+
+export type GameUiSnapshot = RunHudSnapshot
+
+/** Immutable data retained by the results screen after a run ends. */
+export interface RunResultSnapshot {
+  readonly phase: RunPhase
+  readonly elapsedTime: number
+  readonly level: number
+  readonly xp: number
+  readonly killCount: number
+}
 
 function createInitialPlayerState(id: EntityId): PlayerState {
   return {
@@ -128,6 +153,46 @@ export class Game {
 
   get paused(): boolean {
     return this.gameState.paused
+  }
+
+  /**
+   * Returns the small computed projection needed by the React HUD. The full
+   * simulation state stays private to the game systems and renderer.
+   */
+  getUiSnapshot(): GameUiSnapshot {
+    const currentThreshold = xpRequiredForLevel(this.gameState.player.level)
+    const xpRequired = xpRequiredForNextLevel(this.gameState.player.level)
+    const thresholdSpan = Math.max(1, xpRequired - currentThreshold)
+    const xpProgress = Math.min(
+      1,
+      Math.max(
+        0,
+        (this.gameState.player.xp - currentThreshold) / thresholdSpan,
+      ),
+    )
+
+    return Object.freeze({
+      phase: this.gameState.run.phase,
+      hp: this.gameState.player.hp,
+      maxHp: this.gameState.player.maxHp,
+      level: this.gameState.player.level,
+      xp: this.gameState.player.xp,
+      xpRequired,
+      xpProgress,
+      elapsedTime: this.gameState.time,
+      killCount: this.gameState.run.killCount,
+    })
+  }
+
+  /** Returns immutable computed data for the canonical end-of-run path. */
+  getRunResultSnapshot(): RunResultSnapshot {
+    return Object.freeze({
+      phase: this.gameState.run.phase,
+      elapsedTime: this.gameState.time,
+      level: this.gameState.player.level,
+      xp: this.gameState.player.xp,
+      killCount: this.gameState.run.killCount,
+    })
   }
 
   /**
@@ -247,6 +312,21 @@ export class Game {
 
     this.transitionTo(this.resumePhase ?? 'playing')
     this.resumePhase = undefined
+  }
+
+  /**
+   * Ends the active run through the normal defeat transition. This temporary
+   * prototype command deliberately uses the same state and result path as
+   * future player-death systems.
+   */
+  endRun(): boolean {
+    if (this.gameState.run.phase !== 'playing') {
+      return false
+    }
+
+    this.gameState.player.hp = 0
+    this.transitionTo('defeat')
+    return true
   }
 
   /** Runs a single fixed-size simulation tick. */
