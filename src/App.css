@@ -485,6 +485,26 @@
   pointer-events: auto;
 }
 
+.paused-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  color: #f8fafc;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(15 23 42 / 90%);
+  border: 1px solid #93c5fd;
+  border-radius: 0.65rem;
+  box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 55%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
 .development-menu-toggle {
   min-height: 2.5rem;
   padding: 0.55rem 0.9rem;

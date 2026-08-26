@@ -125,6 +125,21 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       }
     })
 
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.defaultPrevented) {
+        return
+      }
+
+      if (game.phase === 'playing') {
+        event.preventDefault()
+        game.pause()
+      } else if (game.phase === 'paused') {
+        event.preventDefault()
+        game.resume()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
     const snapshotTimer = window.setInterval(
       publishSnapshot,
       UI_UPDATE_INTERVAL_MS,
@@ -139,6 +154,7 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
     return () => {
       disposed = true
       window.clearInterval(snapshotTimer)
+      window.removeEventListener('keydown', handleKeyDown)
       unsubscribe()
       if (gameRef.current === game) {
         gameRef.current = null
@@ -168,6 +184,11 @@ export function GameCanvas({ onRunEnd }: GameCanvasProps) {
       {snapshot ? <GameplayHud snapshot={snapshot} /> : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu game={game} snapshot={snapshot} />
+      ) : null}
+      {phase === 'paused' ? (
+        <p className="paused-indicator" role="status">
+          Paused
+        </p>
       ) : null}
       {choiceFlow ? (
         <LevelUpOverlay

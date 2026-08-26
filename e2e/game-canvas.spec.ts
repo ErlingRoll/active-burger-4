@@ -77,6 +77,38 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   await expect(canvas).toBeVisible()
 })
 
+test('pauses on Escape without blocking HUD or development controls', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Start Run' }).click()
+
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'paused',
+  )
+  await expect(page.getByRole('status')).toHaveText('Paused')
+
+  const skill = page.getByRole('button', {
+    name: 'Basic Bolt, level 1',
+  })
+  await skill.focus()
+  await expect(page.getByRole('tooltip')).toContainText('Basic Bolt')
+
+  await page.getByRole('button', { name: 'Development Menu' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Development Menu' }),
+  ).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
+  await expect(page.getByRole('status')).toHaveCount(0)
+})
+
 test('shows an accessible acquired-skill tooltip with a DPS assumption', async ({
   page,
 }) => {
