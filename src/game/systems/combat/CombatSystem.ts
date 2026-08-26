@@ -111,10 +111,7 @@ export function resolvePlayerTarget(
   const stats = getDerivedPlayerStats(player)
   const engagementRange = stats.attackRange + player.radius
   const currentTarget = findLivingTarget(state, player.targetId)
-  const currentTargetInRange = currentTarget !== undefined &&
-    distanceSquared(player.x, player.y, currentTarget.x, currentTarget.y) <=
-      engagementRange * engagementRange
-  const target = currentTargetInRange
+  const target = currentTarget
     ? currentTarget
     : findNearestEnemy(
         {
@@ -138,15 +135,6 @@ function findLivingTarget(
   }
   return state.enemies.find((enemy) => enemy.id === targetId && enemy.hp > 0) ??
     state.bosses?.find((boss) => boss.id === targetId && boss.hp > 0)
-}
-
-function distanceSquared(
-  leftX: number,
-  leftY: number,
-  rightX: number,
-  rightY: number,
-): number {
-  return (leftX - rightX) ** 2 + (leftY - rightY) ** 2
 }
 
 export function spawnBasicBoltIfReady(
@@ -184,7 +172,12 @@ export function spawnBasicBoltIfReady(
   )
   const offsetX = target.x - player.x
   const offsetY = target.y - player.y
-  const distance = Math.hypot(offsetX, offsetY)
+  const distanceSquared = offsetX * offsetX + offsetY * offsetY
+  const engagementRange = stats.attackRange + player.radius
+  if (distanceSquared > engagementRange * engagementRange) {
+    return
+  }
+  const distance = Math.sqrt(distanceSquared)
   const directionX = distance === 0 ? 0 : offsetX / distance
   const directionY = distance === 0 ? 0 : offsetY / distance
 

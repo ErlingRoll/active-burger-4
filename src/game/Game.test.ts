@@ -465,7 +465,7 @@ describe('Game', () => {
     expect(game.state.projectiles).toHaveLength(1)
   })
 
-  it('keeps attacking the current target when another enemy moves closer', () => {
+  it('keeps pursuing the current target when another enemy moves closer', () => {
     const game = createGame({ seed: 112 })
     const firstTargetId = game.spawnSlime({ x: 64, y: 0 })
     const closerEnemyId = game.spawnSlime({ x: 72, y: 0 })
@@ -473,14 +473,19 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.player.targetId).toBe(firstTargetId)
 
+    const firstTarget = game.state.enemies.find((enemy) => enemy.id === firstTargetId)
     const closerEnemy = game.state.enemies.find((enemy) => enemy.id === closerEnemyId)
-    if (!closerEnemy) {
-      throw new Error('Expected the second Slime to be spawned.')
+    if (!firstTarget || !closerEnemy) {
+      throw new Error('Expected both Slimes to be spawned.')
     }
+    firstTarget.x = 160
     closerEnemy.x = 8
+    game.state.player.attackCooldownRemaining = 0
+    game.state.projectiles.splice(0)
 
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.player.targetId).toBe(firstTargetId)
+    expect(game.state.projectiles).toHaveLength(0)
   })
 
   it('waits for the attack cooldown before creating another projectile', () => {
