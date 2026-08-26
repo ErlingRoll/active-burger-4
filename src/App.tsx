@@ -24,6 +24,7 @@ import {
 import {
   createMetaProgressionService,
   getDungeonLengthContractId,
+  type MetaRunResultInput,
   type MetaProgressionService,
   type MetaProgressionSnapshot,
 } from './meta'
@@ -61,6 +62,12 @@ interface MetaProgressionState {
   activePurchaseUnlockId: string | null
 }
 
+interface RunRewardState {
+  status: 'idle' | 'submitting' | 'saved' | 'error' | 'unavailable'
+  essenceAwarded: number | null
+  error: string | null
+}
+
 const DEFAULT_CONTRACT = {
   id: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
   lengthSeconds: DEFAULT_DUNGEON_CONFIG.defaultLengthSeconds,
@@ -80,6 +87,39 @@ function formatElapsedTime(seconds: number): string {
   const minutes = Math.floor(totalSeconds / 60)
   const remainder = totalSeconds % 60
   return `${minutes}:${remainder.toString().padStart(2, '0')}`
+}
+
+interface EssenceReceipt {
+  levelReward: number
+  killReward: number
+  victoryBonus: number
+  baseEssence: number
+  modifierMultiplier: number
+  projectedReward: number
+  modifiers: ReturnType<typeof getWorldModifierDefinitions>
+}
+
+function createEssenceReceipt(result: RunResultSnapshot): EssenceReceipt {
+  const modifiers = getWorldModifierDefinitions(
+    normalizeWorldModifierIds(result.worldModifierIds),
+  )
+  const levelReward = Math.max(1, result.level)
+  const killReward = Math.floor(Math.max(0, result.killCount) / 10)
+  const victoryBonus = result.outcome === 'victory' ? 20 : 0
+  const baseEssence = levelReward + killReward + victoryBonus
+  const modifierMultiplier = modifiers.reduce(
+    (total, modifier) => total * modifier.essenceRewardMultiplier,
+    1,
+  )
+  return {
+    levelReward,
+    killReward,
+    victoryBonus,
+    baseEssence,
+    modifierMultiplier,
+    projectedReward: Math.max(1, Math.floor(baseEssence * modifierMultiplier)),
+    modifiers,
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -189,7 +229,13 @@ function App() {
     ),
   )
   const [runId, setRunId] = useState(0)
+  const [activeRunSubmission, setActiveRunSubmission] = useState<MetaRunResultInput | null>(null)
   const [result, setResult] = useState<RunResultSnapshot | null>(null)
+  const [runReward, setRunReward] = useState<RunRewardState>({
+    status: 'idle',
+    essenceAwarded: null,
+    error: null,
+  })
   const [persistence, setPersistence] = useState<PersistenceState>({
     loadState: 'loading',
     settings: null,
@@ -457,14 +503,76 @@ function App() {
   const startRun = useCallback((): void => {
     setResult(null)
     setWriteError(null)
+    setActiveRunSubmission({
+      runId: crypto.randomUUID(),
+      pendingResultId: crypto.randomUUID(),
+      completedAt: '',
+      level: 1,
+      killCount: 0,
+      outcome: 'defeat',
+      worldModifierIds: [],
+    })
+    setRunReward({ status: 'idle', essenceAwarded: null, error: null })
     setRunId((currentRunId) => currentRunId + 1)
     setScreen('gameplay')
   }, [])
 
+  const submitRunReward = useCallback(async (submission: MetaRunResultInput): Promise<void> => {
+    const service = metaProgressionService.service
+    if (!service || !authentication.account) {
+      setRunReward({
+        status: 'unavailable',
+        essenceAwarded: null,
+        error: 'Sign in with progression available to earn Essence.',
+      })
+      return
+    }
+    setRunReward({ status: 'submitting', essenceAwarded: null, error: null })
+    try {
+      const reward = await service.submitRunResult(submission)
+      const snapshot = await service.load()
+      setMetaProgression((current) => ({
+        ...current,
+        loadState: 'ready',
+        snapshot,
+        error: null,
+      }))
+      setRunReward({
+        status: 'saved',
+        essenceAwarded: reward.essenceAwarded,
+        error: null,
+      })
+    } catch (error: unknown) {
+      setRunReward({
+        status: 'error',
+        essenceAwarded: null,
+        error: errorMessage(error),
+      })
+    }
+  }, [authentication.account, metaProgressionService.service])
+
   const handleRunEnd = useCallback((runResult: RunResultSnapshot): void => {
     setResult(runResult)
     setScreen('results')
-  }, [])
+    if (!activeRunSubmission) {
+      setRunReward({
+        status: 'error',
+        essenceAwarded: null,
+        error: 'Unable to identify this run for Essence rewards.',
+      })
+      return
+    }
+    const submission: MetaRunResultInput = {
+      ...activeRunSubmission,
+      completedAt: new Date().toISOString(),
+      level: runResult.level,
+      killCount: runResult.killCount,
+      outcome: runResult.outcome === 'victory' ? 'victory' : 'defeat',
+      worldModifierIds: runResult.worldModifierIds,
+    }
+    setActiveRunSubmission(submission)
+    void submitRunReward(submission)
+  }, [activeRunSubmission, submitRunReward])
 
   const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
     if (!metaProgressionService.service || !authentication.account) {
@@ -672,7 +780,13 @@ function App() {
       {screen === 'results' && result ? (
         <ResultsScreen
           result={result}
+          runReward={runReward}
           onReturn={returnToDashboard}
+          onRetryReward={() => {
+            if (activeRunSubmission) {
+              void submitRunReward(activeRunSubmission)
+            }
+          }}
         />
       ) : null}
     </main>
@@ -935,14 +1049,19 @@ function AuthGateway({
 
 interface ResultsScreenProps {
   result: RunResultSnapshot
+  runReward: RunRewardState
   onReturn: () => void
+  onRetryReward: () => void
 }
 
 function ResultsScreen({
   result,
+  runReward,
   onReturn,
+  onRetryReward,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
+  const essenceReceipt = createEssenceReceipt(result)
   return (
     <section
       className={`results-screen${victory ? ' victory-screen' : ''}`}
@@ -962,6 +1081,47 @@ function ResultsScreen({
           <div><dt>XP</dt><dd>{result.xp}</dd></div>
           <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
         </dl>
+        <section className="essence-receipt" aria-labelledby="essence-receipt-title">
+          <div className="essence-receipt-heading">
+            <p className="screen-kicker">Run reward</p>
+            <h3 id="essence-receipt-title">Essence receipt</h3>
+          </div>
+          <dl className="essence-receipt-calculation">
+            <div><dt>Level {result.level}</dt><dd>+{essenceReceipt.levelReward}</dd></div>
+            <div>
+              <dt>Kill bonus ({result.killCount} kills / 10)</dt>
+              <dd>+{essenceReceipt.killReward}</dd>
+            </div>
+            <div><dt>Victory bonus</dt><dd>+{essenceReceipt.victoryBonus}</dd></div>
+            <div className="essence-receipt-subtotal">
+              <dt>Base Essence</dt><dd>{essenceReceipt.baseEssence}</dd>
+            </div>
+            {essenceReceipt.modifiers.length > 0
+              ? essenceReceipt.modifiers.map((modifier) => (
+                <div key={modifier.id}>
+                  <dt>{modifier.name}</dt>
+                  <dd>×{modifier.essenceRewardMultiplier.toFixed(2)}</dd>
+                </div>
+              ))
+              : <div><dt>No world modifiers</dt><dd>×1.00</dd></div>}
+            <div className="essence-receipt-subtotal">
+              <dt>Total multiplier</dt>
+              <dd>×{essenceReceipt.modifierMultiplier.toFixed(2)}</dd>
+            </div>
+            <div className="essence-receipt-total">
+              <dt>Projected Essence</dt>
+              <dd>{essenceReceipt.projectedReward}</dd>
+            </div>
+          </dl>
+        </section>
+        {runReward.status === 'error' || runReward.status === 'unavailable' ? (
+          <p className="persistence-error" role="alert">{runReward.error}</p>
+        ) : null}
+        {runReward.status === 'error' ? (
+          <button className="secondary-action" type="button" onClick={onRetryReward}>
+            Retry Essence reward
+          </button>
+        ) : null}
         <button className="primary-action" type="button" onClick={onReturn}>
           Return to Dashboard
         </button>

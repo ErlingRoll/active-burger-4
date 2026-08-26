@@ -245,6 +245,7 @@ export interface RunResultSnapshot {
   readonly level: number
   readonly xp: number
   readonly killCount: number
+  readonly worldModifierIds: readonly string[]
   /** Present only when the completed run ended in a final-boss victory. */
   readonly outcome?: 'victory'
 }
@@ -617,6 +618,7 @@ export function createRunResultSnapshot(
     level: state.player.level,
     xp: state.player.xp,
     killCount: state.run.killCount,
+    worldModifierIds: state.run.worldModifierIds ?? [],
     ...(state.run.phase === 'results' &&
     state.player.hp > 0
       ? { outcome: 'victory' as const }

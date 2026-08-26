@@ -300,6 +300,64 @@
   border-radius: 0.6rem;
 }
 
+.essence-receipt {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.75rem;
+}
+
+.essence-receipt-heading {
+  margin-bottom: 0.75rem;
+}
+
+.essence-receipt-heading h3 {
+  margin: 0.25rem 0 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.essence-receipt-calculation {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.essence-receipt-calculation div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #cbd5e1;
+}
+
+.essence-receipt-calculation dt {
+  font-size: 0.9rem;
+}
+
+.essence-receipt-calculation dd {
+  margin: 0;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.essence-receipt-calculation .essence-receipt-subtotal {
+  padding-top: 0.45rem;
+  border-top: 1px solid #334155;
+}
+
+.essence-receipt-calculation .essence-receipt-total {
+  padding-top: 0.6rem;
+  color: #fef3c7;
+  border-top: 1px solid #f59e0b;
+}
+
+.essence-receipt-calculation .essence-receipt-total dd {
+  color: #fbbf24;
+  font-size: 1.2rem;
+}
+
 .persistence-status strong {
   color: #f8fafc;
   font-size: 0.72rem;

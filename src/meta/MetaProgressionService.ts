@@ -24,7 +24,24 @@ export interface MetaProgressionSnapshot {
 
 export interface MetaProgressionService {
   load(): Promise<MetaProgressionSnapshot>
+  submitRunResult(input: MetaRunResultInput): Promise<MetaRunReward>
   purchaseUnlock(unlockId: string): Promise<MetaProgressionSnapshot>
+}
+
+export interface MetaRunResultInput {
+  runId: string
+  pendingResultId: string
+  completedAt: string
+  level: number
+  killCount: number
+  outcome: 'victory' | 'defeat'
+  worldModifierIds: readonly string[]
+}
+
+export interface MetaRunReward {
+  essenceAwarded: number
+  essenceBalance: number
+  wasProcessed: boolean
 }
 
 interface WalletRow {
@@ -44,6 +61,12 @@ interface UnlockDefinitionRow {
 
 interface UnlockRow {
   unlock_id: string
+}
+
+interface RunRewardRow {
+  essence_awarded: number
+  essence_balance: number
+  was_processed: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -71,6 +94,13 @@ function isUnlockDefinitionRow(value: unknown): value is UnlockDefinitionRow {
 function isUnlockRow(value: unknown): value is UnlockRow {
   return isRecord(value) &&
     'unlock_id' in value && typeof value.unlock_id === 'string'
+}
+
+function isRunRewardRow(value: unknown): value is RunRewardRow {
+  return isRecord(value) &&
+    'essence_awarded' in value && typeof value.essence_awarded === 'number' &&
+    'essence_balance' in value && typeof value.essence_balance === 'number' &&
+    'was_processed' in value && typeof value.was_processed === 'boolean'
 }
 
 function defaultWallet(): MetaWallet {
@@ -146,6 +176,34 @@ export function createMetaProgressionService(
 
   return {
     load,
+
+    async submitRunResult(input): Promise<MetaRunReward> {
+      const client = getClient()
+      const response = await client.rpc('submit_meta_run_result', {
+        p_run_id: input.runId,
+        p_pending_result_id: input.pendingResultId,
+        p_completed_at: input.completedAt,
+        p_payload: {
+          level: input.level,
+          killCount: input.killCount,
+          outcome: input.outcome,
+          worldModifierIds: input.worldModifierIds,
+        },
+      })
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isRunRewardRow(response.data[0])) {
+        throw new Error('Run reward returned an invalid response.')
+      }
+      const reward = response.data[0]
+      return {
+        essenceAwarded: reward.essence_awarded,
+        essenceBalance: reward.essence_balance,
+        wasProcessed: reward.was_processed,
+      }
+    },
 
     async purchaseUnlock(unlockId): Promise<MetaProgressionSnapshot> {
       const client = getClient()

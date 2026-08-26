@@ -2,6 +2,8 @@ export { createMetaProgressionService, getDungeonLengthContractId } from './Meta
 export type {
   MetaProgressionService,
   MetaProgressionSnapshot,
+  MetaRunResultInput,
+  MetaRunReward,
   MetaUnlockDefinition,
   MetaWallet,
 } from './MetaProgressionService'
