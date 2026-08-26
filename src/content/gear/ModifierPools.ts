@@ -71,6 +71,7 @@ interface GearModifierDefinitionBase {
   valueType: 'flat' | 'percent'
   availableSlots: readonly EquipmentSlot[]
   availableWeaponArchetypes?: readonly WeaponArchetype[]
+  weaponArchetypeRollWeights?: Partial<Record<WeaponArchetype, number>>
   sortOrder: number
   tiers: Record<GearModifierTier, TierRange>
 }
@@ -292,6 +293,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     label: 'Area of effect',
     valueType: 'percent',
     availableSlots: ALL_SLOTS,
+    weaponArchetypeRollWeights: { sword: 4 },
     sortOrder: 55,
     tiers: defineTiers(
       { min: 21, max: 25 },
@@ -307,6 +309,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     label: 'Melee leech',
     valueType: 'percent',
     availableSlots: ['weapon'],
+    availableWeaponArchetypes: ['sword'],
     sortOrder: 60,
     tiers: defineTiers(
       { min: 5, max: 5 },
@@ -730,6 +733,39 @@ export function getAvailableGearModifiersForItem(
     .filter((modifier) => isGearModifierAvailableForItem(modifier, item))
 }
 
+function getGearModifierRollWeight(
+  modifier: GearModifierDefinition,
+  item: Readonly<GearModifierTargetItem>,
+): number {
+  if (item.slot !== 'weapon' || item.weaponArchetype === undefined) {
+    return 1
+  }
+  return modifier.weaponArchetypeRollWeights?.[item.weaponArchetype] ?? 1
+}
+
+function takeWeightedGearModifier(
+  available: GearModifierDefinition[],
+  item: Readonly<GearModifierTargetItem>,
+  rng: RandomSource,
+): GearModifierDefinition {
+  const totalWeight = available.reduce(
+    (total, modifier) => total + getGearModifierRollWeight(modifier, item),
+    0,
+  )
+  let roll = rng.int(0, totalWeight - 1)
+  for (let index = 0; index < available.length; index += 1) {
+    const modifier = available[index]
+    if (!modifier) {
+      continue
+    }
+    roll -= getGearModifierRollWeight(modifier, item)
+    if (roll < 0) {
+      return available.splice(index, 1)[0] as GearModifierDefinition
+    }
+  }
+  throw new Error(`Unable to choose a gear modifier for item ${item.id}.`)
+}
+
 export function rollGearModifiersForItem(
   item: Readonly<GearModifierTargetItem>,
   rarity: Rarity,
@@ -744,11 +780,7 @@ export function rollGearModifiersForItem(
   }
   const rolled: GearModifier[] = []
   while (rolled.length < count) {
-    const index = rng.int(0, available.length - 1)
-    const definition = available.splice(index, 1)[0]
-    if (!definition) {
-      break
-    }
+    const definition = takeWeightedGearModifier(available, item, rng)
     rolled.push(rollGearModifier(item.id, definition.id, rng))
   }
   return sortGearModifiers(rolled)
@@ -849,6 +881,15 @@ export function validateGearModifierDefinitions(): string[] {
         range.min > range.max
       ) {
         errors.push(`gearModifierDefinitions.${modifierId}.tiers.${tier} must define a valid range.`)
+      }
+    }
+    for (const [archetype, weight] of Object.entries(
+      definition.weaponArchetypeRollWeights ?? {},
+    )) {
+      if (!Number.isFinite(weight) || weight <= 0) {
+        errors.push(
+          `gearModifierDefinitions.${modifierId}.weaponArchetypeRollWeights.${archetype} must be a positive finite number.`,
+        )
       }
     }
   }

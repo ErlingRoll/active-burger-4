@@ -40,12 +40,21 @@ export function getInfernoWardenEnrageMultipliers(
     Math.max(0, elapsedSeconds),
   )
   return {
-    movementSpeedMultiplier: multiplier,
-    damageMultiplier: Math.pow(
-      1 + enrage.damagePerSecond,
-      Math.max(0, elapsedSeconds),
+    movementSpeedMultiplier: Math.min(
+      enrage.maxMovementSpeedMultiplier,
+      multiplier,
     ),
-    cooldownMultiplier,
+    damageMultiplier: Math.min(
+      enrage.maxDamageMultiplier,
+      Math.pow(
+        1 + enrage.damagePerSecond,
+        Math.max(0, elapsedSeconds),
+      ),
+    ),
+    cooldownMultiplier: Math.max(
+      enrage.minCooldownMultiplier,
+      cooldownMultiplier,
+    ),
   }
 }
 
@@ -244,6 +253,7 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
         targetId: state.player.id,
         damage: telegraph.damage,
         criticalStrike: telegraph.criticalStrike,
+        sourceLabel: `${getBossDefinition(sourceBoss.bossDefinitionId).name}: ${getBossSkillDefinition(telegraph.skillId).name}`,
       })
     }
     if (telegraph.kind === 'charge') {

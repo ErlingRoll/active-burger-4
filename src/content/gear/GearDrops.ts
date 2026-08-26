@@ -6,11 +6,11 @@ import {
 
 /** Per-enemy probability of generating a gear orb on death. */
 export const GEAR_DROP_CHANCES = {
-  slime: 0.02,
-  runner: 0.02,
-  archer: 0.04,
-  splitter: 0.04,
-  brute: 0.06,
+  slime: 0.1,
+  runner: 0.1,
+  archer: 0.1,
+  splitter: 0.1,
+  brute: 0.1,
 } as const satisfies Record<EnemyDefinitionId, number>
 
 export const GEAR_DROP_FORCE_KILL_COUNT = 50

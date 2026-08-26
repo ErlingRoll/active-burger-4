@@ -77,7 +77,7 @@ describe('boss skills', () => {
     gameState.telegraphs![0]!.remainingDuration = 0
     const damage = resolveBossTelegraphs(gameState)
     applyDamageEvents(gameState, damage, neverCrit)
-    expect(gameState.player.hp).toBe(126)
+    expect(gameState.player.hp).toBe(134)
     expect(gameState.telegraphs).toEqual([])
   })
 
@@ -91,7 +91,7 @@ describe('boss skills', () => {
 
     gameState.telegraphs![0]!.remainingDuration = 0
     applyDamageEvents(gameState, resolveBossTelegraphs(gameState), neverCrit)
-    expect(gameState.player.hp).toBe(120)
+    expect(gameState.player.hp).toBe(130)
   })
 
   it('cancels a defeated boss telegraph before it can affect Dodge', () => {
@@ -142,6 +142,16 @@ describe('boss skills', () => {
       x: 0,
       y: 0,
       damage: { fire: fireNova.damage * enrage.damageMultiplier },
+    })
+  })
+
+  it('caps Inferno Warden enrage before attacks become one-shot damage', () => {
+    const enrage = getInfernoWardenEnrageMultipliers(600)
+
+    expect(enrage).toEqual({
+      movementSpeedMultiplier: 1.25,
+      damageMultiplier: 1.5,
+      cooldownMultiplier: 0.75,
     })
   })
 

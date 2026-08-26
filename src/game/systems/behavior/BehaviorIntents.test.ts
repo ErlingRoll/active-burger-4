@@ -56,6 +56,60 @@ function enemy(
 }
 
 describe('data-driven player behavior intents', () => {
+  it('prioritizes available stairs regardless of distance, threats, or behavior profile', () => {
+    const state = createState([
+      enemy(7, 'brute', 35),
+      enemy(3, 'archer', -80),
+    ])
+    state.stairs = {
+      id: 99,
+      x: 10_000,
+      y: -2_000,
+      radius: 24,
+      spawnedAt: 0,
+      floorNumber: 1,
+      isFinal: false,
+      rewardsCollected: true,
+    }
+
+    for (const profileId of ['balanced', 'aggressive', 'cautious'] as const) {
+      state.player.behaviorController = { profileId }
+      expect(getPlayerBehaviorCandidates(state)).toEqual([
+        expect.objectContaining({
+          source: 'stairs',
+          targetId: state.stairs.id,
+          directionX: expect.any(Number),
+          directionY: expect.any(Number),
+        }),
+      ])
+      expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('stairs')
+    }
+  })
+
+  it('holds position on stairs until the floor transition collects them', () => {
+    const state = createState([enemy(7, 'brute', 35)])
+    state.stairs = {
+      id: 99,
+      x: state.player.x,
+      y: state.player.y,
+      radius: 24,
+      spawnedAt: 0,
+      floorNumber: 1,
+      isFinal: false,
+      rewardsCollected: true,
+    }
+
+    expect(getPlayerBehaviorCandidates(state)).toEqual([
+      expect.objectContaining({
+        source: 'stairs',
+        targetId: state.stairs.id,
+        directionX: 0,
+        directionY: 0,
+        speed: 0,
+      }),
+    ])
+  })
+
   it('chooses safe gear before combat-range and ties pickups by entity ID', () => {
     const state = createState(
       [enemy(9, 'slime', 320)],

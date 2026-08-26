@@ -824,7 +824,7 @@ function validateDungeons(
     if (typeof dungeon.name !== 'string' || dungeon.name.trim() === '') {
       errors.push(`${path}.name must be a non-empty string.`)
     }
-    validateFiniteNumber(errors, `${path}.defaultLengthSeconds`, dungeon.defaultLengthSeconds, 'positive')
+    validateFiniteNumber(errors, `${path}.defaultMaxFloor`, dungeon.defaultMaxFloor, 'integer-positive')
     validateFiniteNumber(errors, `${path}.floorDurationSeconds`, dungeon.floorDurationSeconds, 'positive')
     validateFiniteNumber(
       errors,
@@ -846,19 +846,19 @@ function validateDungeons(
       }
     })
     const contractIds = new Set<string>()
-    dungeon.longerLengthContracts.forEach((contract, contractIndex) => {
-      const contractPath = `${path}.longerLengthContracts[${contractIndex}]`
+    dungeon.maximumFloorContracts.forEach((contract, contractIndex) => {
+      const contractPath = `${path}.maximumFloorContracts[${contractIndex}]`
       if (contractIds.has(contract.id)) {
         errors.push(
-          `${path}.longerLengthContracts contains duplicate id "${contract.id}".`,
+          `${path}.maximumFloorContracts contains duplicate id "${contract.id}".`,
         )
       }
       contractIds.add(contract.id)
       validateFiniteNumber(
         errors,
-        `${contractPath}.lengthSeconds`,
-        contract.lengthSeconds,
-        'positive',
+        `${contractPath}.maxFloor`,
+        contract.maxFloor,
+        'integer-positive',
       )
       if (
         typeof contract.requiredUnlockId !== 'string' ||
@@ -866,9 +866,9 @@ function validateDungeons(
       ) {
         errors.push(`${contractPath}.requiredUnlockId must be a non-empty string.`)
       }
-      if (contract.lengthSeconds <= dungeon.defaultLengthSeconds) {
+      if (contract.maxFloor <= dungeon.defaultMaxFloor) {
         errors.push(
-          `${contractPath}.lengthSeconds must exceed defaultLengthSeconds.`,
+          `${contractPath}.maxFloor must exceed defaultMaxFloor.`,
         )
       }
     })
@@ -975,19 +975,12 @@ export function validateContent(catalog: ContentCatalog): string[] {
   catalog.encounters.forEach((encounter, index) => {
     validateFiniteNumber(
       errors,
-      `encounters[${index}].timeSeconds`,
-      encounter.timeSeconds,
-      'non-negative',
-    )
-    validateFiniteNumber(
-      errors,
       `encounters[${index}].durationSeconds`,
       encounter.durationSeconds,
       'positive',
     )
     if (
-      encounter.floorNumber !== undefined &&
-      (!Number.isInteger(encounter.floorNumber) || encounter.floorNumber < 1)
+      !Number.isInteger(encounter.floorNumber) || encounter.floorNumber < 1
     ) {
       errors.push(
         `encounters[${index}].floorNumber must be integer-positive; received ${String(encounter.floorNumber)}.`,

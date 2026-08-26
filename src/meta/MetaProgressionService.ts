@@ -107,11 +107,21 @@ function defaultWallet(): MetaWallet {
   return { essenceBalance: 0, essenceEarned: 0, essenceSpent: 0 }
 }
 
-export function getDungeonLengthContractId(
+export function getDungeonMaxFloorContractId(
   definition: MetaUnlockDefinition,
 ): string | null {
-  const contractId = definition.payload.contractId
-  return typeof contractId === 'string' && contractId.length > 0 ? contractId : null
+  const contractId = definition.payload.maxFloorContractId
+  if (typeof contractId === 'string' && contractId.length > 0) {
+    return contractId
+  }
+  switch (definition.payload.contractId) {
+    case 'default-dungeon-15-minute':
+      return 'default-dungeon-20-floor'
+    case 'default-dungeon-20-minute':
+      return 'default-dungeon-50-floor'
+    default:
+      return null
+  }
 }
 
 function toSnapshot(

@@ -35,6 +35,7 @@ interface ItemDefinitionBase {
   name: string
   rarity: Rarity
   modifiers: readonly GearModifier[]
+  starterOnly?: boolean
 }
 
 interface WeaponItemDefinition extends ItemDefinitionBase {
@@ -62,6 +63,33 @@ export function isWeaponArchetype(value: unknown): value is WeaponArchetype {
 }
 
 export const ITEM_DEFINITIONS = {
+  'knight-training-sword': {
+    id: 'knight-training-sword',
+    name: 'Knight Training Sword',
+    rarity: 'common',
+    slot: 'weapon',
+    weaponArchetype: 'sword',
+    modifiers: [],
+    starterOnly: true,
+  },
+  'ranger-training-bow': {
+    id: 'ranger-training-bow',
+    name: 'Ranger Training Bow',
+    rarity: 'common',
+    slot: 'weapon',
+    weaponArchetype: 'bow',
+    modifiers: [],
+    starterOnly: true,
+  },
+  'necromancer-training-wand': {
+    id: 'necromancer-training-wand',
+    name: 'Necromancer Training Wand',
+    rarity: 'common',
+    slot: 'weapon',
+    weaponArchetype: 'wand',
+    modifiers: [],
+    starterOnly: true,
+  },
   'iron-cleaver': {
     id: 'iron-cleaver',
     name: 'Iron Cleaver',
@@ -154,12 +182,16 @@ export const ITEM_DEFINITIONS = {
   },
 } as const satisfies Record<string, ItemDefinition>
 
-export const INITIAL_ITEMS: readonly ItemDefinition[] = Object.values(ITEM_DEFINITIONS)
+export const ALL_ITEM_DEFINITIONS: readonly ItemDefinition[] = Object.values(ITEM_DEFINITIONS)
+
+export const INITIAL_ITEMS: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS.filter(
+  (item) => !item.starterOnly,
+)
 
 /** Resolves content data at the content-to-game boundary. */
 export function getItemDefinition(
   itemId: ItemId,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): ItemDefinition {
   const definition = itemDefinitions.find((candidate) => candidate.id === itemId)
   if (!definition) {

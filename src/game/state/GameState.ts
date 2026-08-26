@@ -10,6 +10,7 @@ import type {
 } from '../../content/skills/Skills'
 import type {
   CriticalStrikeStats,
+  DamageType,
   DamageResistanceValues,
   DamageValues,
 } from '../../content/stats/Damage'
@@ -73,6 +74,7 @@ export interface DodgeState {
 
 /** A movement request produced by a behavior and consumed by its controller. */
 export type PlayerMovementSource =
+  | 'stairs'
   | 'dodge'
   | 'gear'
   | 'xp'
@@ -111,12 +113,12 @@ export interface RunConfig {
   seed: number
   /** Initial behavior policy for this run. */
   behaviorProfileId?: BehaviorProfileId
-  /** Defaults to the first dungeon; future lengths are selected by unlock state. */
+  /** Defaults to the first dungeon; maximum floors are selected by unlock state. */
   dungeonId?: DungeonDefinitionId
-  /** Optional longer-length contract; omitted runs use the default length. */
-  dungeonLengthContractId?: string
+  /** Optional maximum-floor contract; omitted runs use the default maximum floor. */
+  dungeonMaxFloorContractId?: string
   /** Unlock IDs supplied by a future meta-progression layer. */
-  unlockedDungeonLengthIds?: readonly string[]
+  unlockedDungeonMaxFloorIds?: readonly string[]
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId
@@ -126,15 +128,28 @@ export interface RunState {
   phase: RunPhase
   seed: number
   dungeonId?: DungeonDefinitionId
-  dungeonLengthContractId?: string
-  dungeonLengthSeconds?: number
+  dungeonMaxFloorContractId?: string
+  dungeonMaxFloor?: number
   floor?: number
+  /** Simulation time at which the current floor began. */
+  floorStartedAt?: number
   completedEncounterIds?: string[]
   killCount: number
   selectedUpgradeIds: UpgradeId[]
   /** Remains true after the first gear orb is generated, even after collection. */
   gearDropGenerated?: boolean
   worldModifierIds?: readonly WorldModifierId[]
+  /** Recent player damage and healing, retained to explain a defeat. */
+  playerCombatLog?: PlayerCombatLogEntry[]
+}
+
+export interface PlayerCombatLogEntry {
+  time: number
+  kind: 'damage' | 'healing'
+  amount: number
+  source: string
+  resultingHp: number
+  damageType?: DamageType
 }
 
 /**
@@ -236,6 +251,7 @@ export interface DamageEvent {
   sourceId?: EntityId
   sourceSkillId?: SkillId
   sourceTags?: readonly SkillTag[]
+  sourceLabel?: string
   targetId: EntityId
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats

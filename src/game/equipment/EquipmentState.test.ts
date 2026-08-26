@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { applyUpgrade } from '../systems/upgrades/UpgradeSystem'
 import { createGame } from '../Game'
-import { equipItem, refreshMeleeLeech } from './EquipmentState'
+import {
+  equipItem,
+  refreshMeleeLeech,
+} from './EquipmentState'
 
 describe('equipment melee leech', () => {
   it('adds Iron Cleaver leech and preserves upgrade leech across replacements', () => {

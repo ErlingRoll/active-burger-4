@@ -5,6 +5,7 @@ import {
   type SkillId,
 } from '../skills/Skills'
 import type { StatValues } from '../stats/Stats'
+import type { ItemId } from '../gear/Items'
 
 export const PLAYSTYLE_IDS = ['knight', 'ranger', 'necromancer'] as const
 export type PlaystyleId = (typeof PLAYSTYLE_IDS)[number]
@@ -14,6 +15,7 @@ export interface PlaystyleDefinition {
   readonly name: string
   readonly description: string
   readonly baseStats: StatValues
+  readonly startingWeaponItemId: ItemId
   readonly startingSkillIds: readonly SkillId[]
   readonly visual: {
     readonly fillColor: number
@@ -27,6 +29,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     name: 'Knight',
     description: 'A durable close-range fighter who begins with Whirlwind.',
     baseStats: { maxHp: 150, movementSpeed: 90, attackDamage: 14, attackSpeed: 1, attackRange: 45 },
+    startingWeaponItemId: 'knight-training-sword',
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
     visual: { fillColor: 0x60a5fa, outlineColor: 0xdbeafe },
   },
@@ -35,6 +38,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     name: 'Ranger',
     description: 'A swift long-range attacker who begins with Chain Lightning.',
     baseStats: { maxHp: 85, movementSpeed: 125, attackDamage: 11, attackSpeed: 1.1, attackRange: 160 },
+    startingWeaponItemId: 'ranger-training-bow',
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, CHAIN_LIGHTNING_SKILL_ID],
     visual: { fillColor: 0x4ade80, outlineColor: 0xdcfce7 },
   },
@@ -43,6 +47,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     name: 'Necromancer',
     description: 'A resilient ranged controller prepared for future summon upgrades.',
     baseStats: { maxHp: 115, movementSpeed: 95, attackDamage: 9, attackSpeed: 1, attackRange: 110 },
+    startingWeaponItemId: 'necromancer-training-wand',
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, CHAIN_LIGHTNING_SKILL_ID],
     visual: { fillColor: 0xc084fc, outlineColor: 0xf3e8ff },
   },

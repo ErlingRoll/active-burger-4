@@ -455,6 +455,15 @@ export class PixiGame {
           ]))
           .fill({ color: visual.primaryColor, alpha: 0.22 })
           .stroke({ color: visual.secondaryColor, width: 4, alpha: 0.95 })
+        const outerMidpoint = points[Math.floor(points.length / 2)]
+        if (outerMidpoint) {
+          const offsetX = outerMidpoint.x - effect.x
+          const offsetY = outerMidpoint.y - effect.y
+          view
+            .moveTo(offsetX * 0.25, offsetY * 0.25)
+            .lineTo(offsetX * 0.88, offsetY * 0.88)
+            .stroke({ color: visual.outlineColor, width: 5, alpha: 0.9 })
+        }
       }
     } else if (visual.kind === 'area') {
       view

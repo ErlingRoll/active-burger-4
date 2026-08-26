@@ -310,6 +310,77 @@
   border-radius: 0.75rem;
 }
 
+.death-combat-log {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #0f172a;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.75rem;
+}
+
+.death-combat-log-heading {
+  margin-bottom: 0.75rem;
+}
+
+.death-combat-log-heading h3 {
+  margin: 0.25rem 0 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.death-combat-log ol {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.death-combat-log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: baseline;
+  padding: 0.5rem 0.6rem;
+  color: #fecaca;
+  background: rgb(127 29 29 / 25%);
+  border-left: 3px solid #ef4444;
+}
+
+.death-combat-log-entry.healing {
+  color: #bbf7d0;
+  background: rgb(20 83 45 / 25%);
+  border-left-color: #22c55e;
+}
+
+.death-combat-log-time {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.death-combat-log-entry strong {
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.death-combat-log-empty {
+  margin: 0;
+  color: #94a3b8;
+}
+
+@media (max-width: 700px) {
+  .death-combat-log-entry {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .death-combat-log-entry > span:nth-child(3) {
+    grid-column: 2 / -1;
+  }
+}
+
 .essence-receipt-heading {
   margin-bottom: 0.75rem;
 }
@@ -423,6 +494,7 @@
   pointer-events: none;
 }
 
+.gameplay-hud-tooltip-active,
 .gameplay-hud:has(.skill-tooltip, .loadout-tooltip, .character-stat-tooltip) {
   z-index: 4;
 }
@@ -666,9 +738,14 @@
 }
 
 .skill-hud {
-  flex: 0 1 min(22rem, 100%);
-  min-width: min(22rem, 100%);
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 2;
+  width: min(22rem, calc(100vw - 2rem));
+  min-width: 0;
   pointer-events: auto;
+  transform: translateX(-50%);
 }
 
 .behavior-hud {
@@ -686,11 +763,11 @@
 
 .run-guide {
   position: absolute;
-  right: 1rem;
-  bottom: 1rem;
+  bottom: 20%;
+  left: 50%;
   z-index: 2;
   display: flex;
-  width: min(28rem, calc(100% - 18rem));
+  width: min(28rem, calc(100% - 2rem));
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.8rem;
@@ -699,6 +776,7 @@
   border: 1px solid #475569;
   border-radius: 0.6rem;
   box-shadow: 0 0.75rem 1.5rem rgb(2 6 23 / 35%);
+  transform: translateX(-50%);
 }
 
 .run-guide div {
@@ -1024,7 +1102,7 @@
 
 .skill-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   justify-content: flex-end;
   gap: 0.55rem;
   margin: 0;
@@ -1077,18 +1155,34 @@
   font-weight: 700;
 }
 
+.skill-card-dps {
+  display: flex;
+  grid-column: 2;
+  align-items: baseline;
+  gap: 0.3rem;
+  color: #fef08a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.skill-card-dps b {
+  color: #f8fafc;
+}
+
 .skill-tooltip {
   position: absolute;
-  z-index: 3;
-  top: calc(100% + 0.6rem);
+  z-index: 5;
+  bottom: calc(100% + 0.6rem);
   right: 0;
   width: min(23rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 12rem);
   padding: 0.8rem;
   color: #dbeafe;
   background: #0f172a;
   border: 1px solid #fef08a;
   border-radius: 0.6rem;
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
+  overflow-y: auto;
   pointer-events: none;
 }
 
@@ -1130,21 +1224,31 @@
   border-radius: 999px;
 }
 
+.skill-cadence,
 .skill-dps {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.skill-cadence {
+  margin-top: 0.55rem;
+}
+
+.skill-dps {
   padding-top: 0.45rem;
   border-top: 1px solid #334155;
 }
 
+.skill-cadence span,
 .skill-dps span {
   color: #fef08a;
   font-size: 0.73rem;
   font-weight: 700;
 }
 
+.skill-cadence b,
 .skill-dps b {
   color: #f8fafc;
   white-space: nowrap;
@@ -1217,8 +1321,8 @@
 
 .development-controls {
   position: absolute;
+  top: 1rem;
   right: 1rem;
-  bottom: 1rem;
   z-index: 2;
   pointer-events: auto;
 }
@@ -1264,8 +1368,9 @@
 
 .development-menu {
   width: min(20rem, calc(100vw - 2rem));
-  max-height: calc(100svh - 4rem);
+  max-height: calc(100svh - 6rem);
   overflow-y: auto;
+  margin-left: auto;
   margin-top: 0.6rem;
   padding: 1rem;
   color: #dbeafe;
@@ -1658,6 +1763,30 @@
   gap: 1rem;
 }
 
+.skip-choice-button {
+  display: block;
+  min-width: 8rem;
+  min-height: 2.75rem;
+  margin: 1.25rem auto 0;
+  padding: 0.55rem 1.25rem;
+  color: #cbd5e1;
+  font: inherit;
+  font-weight: 700;
+  background: #1e293b;
+  border: 1px solid #64748b;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.skip-choice-button:hover,
+.skip-choice-button:focus-visible {
+  color: #f8fafc;
+  background: #334155;
+  border-color: #94a3b8;
+  outline: 3px solid rgb(148 163 184 / 35%);
+  outline-offset: 2px;
+}
+
 .upgrade-choice {
   display: flex;
   min-height: 9rem;
@@ -1976,10 +2105,7 @@
   }
 
   .skill-hud {
-    grid-area: skills;
-    width: 100%;
-    min-width: 0;
-    justify-self: stretch;
+    bottom: 1.25rem;
   }
 
   .loadout-list {
@@ -2029,12 +2155,12 @@
   }
 
   .development-controls {
+    top: 0.75rem;
     right: 0.75rem;
-    bottom: 0.75rem;
   }
 
   .skill-list {
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .skill-tooltip {
@@ -2064,8 +2190,6 @@
     }
 
     .run-guide {
-      right: 0.75rem;
-      bottom: 0.75rem;
       width: min(24rem, calc(100% - 1.5rem));
     }
   }

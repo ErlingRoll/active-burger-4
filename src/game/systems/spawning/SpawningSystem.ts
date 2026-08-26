@@ -8,6 +8,7 @@ import {
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
+import { getItemDefinition } from '../../../content/gear/Items'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
   getBossDefinition,
@@ -15,7 +16,6 @@ import {
 } from '../../../content/bosses/Bosses'
 import {
   getDungeonDefinition,
-  getDungeonFloor,
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
 import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
@@ -30,6 +30,7 @@ import type {
   EntityIdAllocator,
 } from '../../ids'
 import type { SpawnDirector } from '../../spawning/SpawnDirector'
+import { createEquippedItem } from '../../equipment/EquipmentState'
 import type {
   EnemyState,
   BossState,
@@ -80,7 +81,9 @@ export function createInitialPlayerState(
       attackRange: playstyle.baseStats.attackRange,
     },
     statModifiers: [],
-    equipment: {},
+    equipment: {
+      weapon: createEquippedItem(getItemDefinition(playstyle.startingWeaponItemId)),
+    },
     targetId: undefined,
     dodge: {
       mode: 'autonomous',
@@ -124,7 +127,7 @@ export function spawnEnemy(
       ? Math.round(baseXpReward * (modifier?.xpRewardMultiplier ?? 1))
       : baseXpReward
   const dungeon = getDungeonDefinition(state.run.dungeonId)
-  const floor = state.run.floor ?? getDungeonFloor(state.time, dungeon)
+  const floor = state.run.floor ?? 1
   const scaledStats = scaleOrdinaryEnemyStats(
     {
       maxHp: definition.maxHp,

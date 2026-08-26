@@ -83,6 +83,7 @@ import {
   updateSkillCooldowns,
   updateSkillEffects,
 } from './systems/skills/SkillSystem'
+import { healPlayer } from './combat/PlayerCombatLog'
 import {
   createRunResultSnapshot,
   createUiSnapshot,
@@ -114,8 +115,7 @@ import {
   DEFAULT_DUNGEON_ID,
   createDungeonEncounterTimeline,
   getDungeonDefinition,
-  getDungeonFloor,
-  resolveDungeonLengthSeconds,
+  resolveDungeonMaxFloor,
   type DungeonDefinition,
 } from '../content/dungeons/Dungeons'
 import {
@@ -168,20 +168,20 @@ export {
   BOSS_FLOOR_EVENT_DURATION_SECONDS,
   DEFAULT_DUNGEON_CONFIG,
   DEFAULT_DUNGEON_ID,
-  DEFAULT_DUNGEON_LENGTH_SECONDS,
+  DEFAULT_DUNGEON_MAX_FLOOR,
   DUNGEON_FLOOR_DURATION_SECONDS,
   DUNGEON_DEFINITIONS,
   ORDINARY_ENEMY_FLOOR_STAT_SCALING,
   getDungeonDefinition,
-  getDungeonFloor,
   getFloorStatMultiplier,
-  isDungeonLengthUnlocked,
+  isDungeonMaxFloorUnlocked,
+  resolveDungeonMaxFloor,
   scaleOrdinaryEnemyStats,
 } from '../content/dungeons/Dungeons'
 export type {
   DungeonDefinition,
   DungeonDefinitionId,
-  DungeonLengthContract,
+  DungeonMaxFloorContract,
 } from '../content/dungeons/Dungeons'
 export {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -243,18 +243,17 @@ export class Game {
       this.worldModifierEffects.fastStartDurationSeconds,
     )
     const dungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
-    const dungeonLengthSeconds = resolveDungeonLengthSeconds(
+    const dungeonMaxFloor = resolveDungeonMaxFloor(
       dungeon,
-      config.dungeonLengthContractId,
-      new Set(config.unlockedDungeonLengthIds ?? []),
+      config.dungeonMaxFloorContractId,
+      new Set(config.unlockedDungeonMaxFloorIds ?? []),
     )
-    this.dungeon = dungeonLengthSeconds === dungeon.defaultLengthSeconds
+    this.dungeon = dungeonMaxFloor === dungeon.defaultMaxFloor
       ? dungeon
       : {
         ...dungeon,
         encounterTimeline: createDungeonEncounterTimeline(
-          dungeonLengthSeconds,
-          dungeon.floorDurationSeconds,
+          dungeonMaxFloor,
         ),
       }
 
@@ -263,14 +262,16 @@ export class Game {
         phase: 'loading',
         seed: config.seed,
         dungeonId: this.dungeon.id,
-        ...(config.dungeonLengthContractId
-          ? { dungeonLengthContractId: config.dungeonLengthContractId }
+        ...(config.dungeonMaxFloorContractId
+          ? { dungeonMaxFloorContractId: config.dungeonMaxFloorContractId }
           : {}),
-        dungeonLengthSeconds,
+        dungeonMaxFloor,
         floor: 1,
+        floorStartedAt: 0,
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
+        playerCombatLog: [],
         gearDropGenerated: false,
         ...(this.worldModifierEffects.ids.length > 0
           ? { worldModifierIds: this.worldModifierEffects.ids }
@@ -531,6 +532,18 @@ export class Game {
       : this.selectGearChoice(choice)
   }
 
+  skipChoice(): boolean {
+    if (
+      this.gameState.run.phase !== 'level-up' ||
+      this.choiceFlows.length === 0
+    ) {
+      return false
+    }
+
+    this.completeActiveChoiceFlow()
+    return true
+  }
+
   /**
    * Advances the simulation with a fixed-timestep accumulator. Choice and
    * paused phases do not advance; floor transitions run only their timer.
@@ -697,13 +710,8 @@ export class Game {
       this.advanceFloorTransition()
       return
     }
-    this.gameState.run.floor = Math.max(
-      this.gameState.run.floor ?? 1,
-      getDungeonFloor(this.gameState.time, this.dungeon),
-    )
-
-    // Start due boss events before normal spawning so the final timer never
-    // produces an ordinary enemy alongside the final boss.
+    // Start due boss events before normal spawning so a completed normal floor
+    // never produces an ordinary enemy alongside its boss.
     updateEncounter(this.gameState, this.idAllocator)
 
     // Keep this order explicit: decisions happen before projectile movement,
@@ -800,9 +808,10 @@ export class Game {
       this.collectedGearPickups.push({ ...pickup })
       this.enqueueGearPickupFlow(pickup)
     }, () => {
-      this.gameState.player.hp = Math.min(
-        this.gameState.player.maxHp,
-        this.gameState.player.hp + this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+      healPlayer(
+        this.gameState,
+        this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+        'Healing potion',
       )
     })
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
@@ -823,9 +832,10 @@ export class Game {
         this.collectedGearPickups.push({ ...pickup })
         this.enqueueGearPickupFlow(pickup)
       } else {
-        this.gameState.player.hp = Math.min(
-          this.gameState.player.maxHp,
-          this.gameState.player.hp + this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+        healPlayer(
+          this.gameState,
+          this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+          'Healing potion',
         )
       }
     }
@@ -864,6 +874,7 @@ export class Game {
       return
     }
     this.gameState.run.floor = transition.toFloor
+    this.gameState.run.floorStartedAt = this.gameState.time
     this.transitionTo('playing')
   }
 

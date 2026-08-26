@@ -8,7 +8,7 @@ import {
   isPlaystyleId,
 } from '../content/playstyles/Playstyles'
 import {
-  DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
+  DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   PERSISTENCE_SCHEMA_VERSION,
   type BasicProfileDto,
   type SettingsDto,
@@ -17,14 +17,14 @@ import {
 export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
   selectedBehaviorProfileId: DEFAULT_BEHAVIOR_PROFILE_ID,
-  selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
+  selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   selectedWorldModifierIds: [],
   selectedPlaystyleId: DEFAULT_PLAYSTYLE_ID,
 })
 
 export const DEFAULT_BASIC_PROFILE: Readonly<BasicProfileDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
-  unlockedDungeonLengthIds: [DEFAULT_DUNGEON_LENGTH_CONTRACT_ID],
+  unlockedDungeonMaxFloorIds: [DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID],
 })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -43,20 +43,23 @@ export function migrateSettings(value: unknown): SettingsDto {
         candidate.selectedBehaviorProfile ??
         candidate.behaviorProfileId) as SettingsDto['selectedBehaviorProfileId']
     : DEFAULT_SETTINGS.selectedBehaviorProfileId
-  const selectedDungeonLengthCandidate =
+  const selectedDungeonMaxFloorCandidate =
+    candidate.selectedDungeonMaxFloorContractId ??
+    candidate.selectedDungeonMaxFloorId ??
+    candidate.dungeonMaxFloorContractId ??
     candidate.selectedDungeonLengthContractId ??
     candidate.selectedDungeonLengthId ??
     candidate.dungeonLengthContractId
-  const selectedDungeonLengthContractId =
-    typeof selectedDungeonLengthCandidate === 'string' &&
-    selectedDungeonLengthCandidate.length > 0
-      ? selectedDungeonLengthCandidate
-      : DEFAULT_SETTINGS.selectedDungeonLengthContractId
+  const selectedDungeonMaxFloorContractId =
+    typeof selectedDungeonMaxFloorCandidate === 'string' &&
+    selectedDungeonMaxFloorCandidate.length > 0
+      ? migrateLegacyDungeonContractId(selectedDungeonMaxFloorCandidate)
+      : DEFAULT_SETTINGS.selectedDungeonMaxFloorContractId
 
   return {
     schemaVersion: PERSISTENCE_SCHEMA_VERSION,
     selectedBehaviorProfileId,
-    selectedDungeonLengthContractId,
+    selectedDungeonMaxFloorContractId,
     selectedWorldModifierIds: normalizeWorldModifierIds(
       Array.isArray(candidate.selectedWorldModifierIds)
         ? candidate.selectedWorldModifierIds
@@ -71,16 +74,33 @@ export function migrateSettings(value: unknown): SettingsDto {
 /** Converts old or partially-written profile data into the current DTO shape. */
 export function migrateBasicProfile(value: unknown): BasicProfileDto {
   const candidate = isRecord(value) ? value : {}
-  const source = candidate.unlockedDungeonLengthIds ?? candidate.unlockedDungeonLengths
-  const unlockedDungeonLengthIds = Array.isArray(source)
-    ? source.filter((id): id is string => typeof id === 'string' && id.length > 0)
+  const source = candidate.unlockedDungeonMaxFloorIds ??
+    candidate.unlockedDungeonLengthIds ??
+    candidate.unlockedDungeonLengths
+  const unlockedDungeonMaxFloorIds = Array.isArray(source)
+    ? source
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      .map(migrateLegacyDungeonContractId)
     : []
-  const uniqueIds = [...new Set(unlockedDungeonLengthIds)]
-  if (!uniqueIds.includes(DEFAULT_DUNGEON_LENGTH_CONTRACT_ID)) {
-    uniqueIds.unshift(DEFAULT_DUNGEON_LENGTH_CONTRACT_ID)
+  const uniqueIds = [...new Set(unlockedDungeonMaxFloorIds)]
+  if (!uniqueIds.includes(DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID)) {
+    uniqueIds.unshift(DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID)
   }
   return {
     schemaVersion: PERSISTENCE_SCHEMA_VERSION,
-    unlockedDungeonLengthIds: uniqueIds,
+    unlockedDungeonMaxFloorIds: uniqueIds,
+  }
+}
+
+function migrateLegacyDungeonContractId(contractId: string): string {
+  switch (contractId) {
+    case 'default-dungeon-10-minute':
+      return DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
+    case 'default-dungeon-15-minute':
+      return 'default-dungeon-20-floor'
+    case 'default-dungeon-20-minute':
+      return 'default-dungeon-50-floor'
+    default:
+      return contractId
   }
 }

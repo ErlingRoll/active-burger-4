@@ -11,13 +11,17 @@ import {
   type SkillTag,
 } from '../../../content/skills/Skills'
 import {
+  DAMAGE_TYPES,
   isCriticalStrike,
   mitigateDamageValues,
   normalizeCriticalStrikeStats,
   scaleDamageValues,
   sumDamageValues,
   type DamageResistanceValues,
+  type DamageValues,
 } from '../../../content/stats/Damage'
+import { getEnemyDefinition } from '../../../content/enemies/Enemies'
+import { getBossDefinition } from '../../../content/bosses/Bosses'
 import type { EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
@@ -27,6 +31,10 @@ import {
   createMonsterDamageEvent,
   createPlayerDamageProfileFromStats,
 } from '../../combat/DamageSources'
+import {
+  healPlayer,
+  recordPlayerDamage,
+} from '../../combat/PlayerCombatLog'
 import { getEquippedWeaponArchetype } from '../../equipment/EquipmentState'
 import {
   getSplitChildren,
@@ -333,7 +341,7 @@ function collectSwordBasicAttackDamage(
   const facing = normalizeVector(target.x - player.x, target.y - player.y)
   const facingAngle = Math.atan2(facing.y, facing.x)
   const arcRadians = scaleSwordArcDegrees(
-    variant.swingArcDegrees ?? 110,
+    variant.swingArcDegrees ?? 100,
     stats.areaOfEffect,
   ) * DEGREES_TO_RADIANS
   const baseDamage = getSkillDamage(getSkillDefinition(BASIC_ATTACK_SKILL_ID), skill.level)
@@ -664,7 +672,7 @@ function resolveEventDamage(
   event: Readonly<DamageEvent>,
   resistances: Readonly<Partial<DamageResistanceValues>> | undefined,
   rng?: Pick<RandomSource, 'next'>,
-): number {
+): DamageValues {
   const criticalStrike = event.criticalStrike
   const isCritical = criticalStrike
     ? isCriticalStrike(criticalStrike, rng?.next() ?? 1)
@@ -675,8 +683,25 @@ function resolveEventDamage(
         normalizeCriticalStrikeStats(criticalStrike).multiplier / 100,
       )
     : event.damage
-  const mitigated = mitigateDamageValues(damageAfterCrit, resistances)
-  return Math.max(0, sumDamageValues(mitigated))
+  return mitigateDamageValues(damageAfterCrit, resistances)
+}
+
+function getPlayerDamageSource(
+  state: Readonly<GameState>,
+  event: Readonly<DamageEvent>,
+): string {
+  if (event.sourceLabel) {
+    return event.sourceLabel
+  }
+  const boss = state.bosses?.find((candidate) => candidate.id === event.sourceId)
+  if (boss) {
+    return getBossDefinition(boss.bossDefinitionId).name
+  }
+  const enemy = state.enemies.find((candidate) => candidate.id === event.sourceId)
+  if (enemy) {
+    return getEnemyDefinition(enemy.definitionId).name
+  }
+  return 'Unknown source'
 }
 
 export function applyDamageEvents(
@@ -686,15 +711,20 @@ export function applyDamageEvents(
 ): void {
   for (const event of events) {
     if (event.targetId === state.player.id) {
-      const actualDamage = Math.min(
-        state.player.hp,
-        resolveEventDamage(
-          event,
-          getDerivedPlayerStats(state.player).resistances,
-          rng,
-        ),
+      const resolvedDamage = resolveEventDamage(
+        event,
+        getDerivedPlayerStats(state.player).resistances,
+        rng,
       )
-      state.player.hp = Math.max(0, state.player.hp - actualDamage)
+      const source = getPlayerDamageSource(state, event)
+      for (const damageType of DAMAGE_TYPES) {
+        const actualDamage = Math.min(state.player.hp, resolvedDamage[damageType])
+        if (actualDamage <= 0) {
+          continue
+        }
+        state.player.hp -= actualDamage
+        recordPlayerDamage(state, actualDamage, damageType, source)
+      }
       continue
     }
     const enemy = state.enemies.find(
@@ -703,7 +733,7 @@ export function applyDamageEvents(
     if (enemy) {
       const actualDamage = Math.min(
         enemy.hp,
-        resolveEventDamage(event, enemy.resistances, rng),
+        sumDamageValues(resolveEventDamage(event, enemy.resistances, rng)),
       )
       enemy.hp -= actualDamage
       applyMeleeLeech(state, event, actualDamage)
@@ -715,7 +745,7 @@ export function applyDamageEvents(
     if (boss) {
       const actualDamage = Math.min(
         boss.hp,
-        resolveEventDamage(event, boss.resistances, rng),
+        sumDamageValues(resolveEventDamage(event, boss.resistances, rng)),
       )
       boss.hp -= actualDamage
       applyMeleeLeech(state, event, actualDamage)
@@ -738,9 +768,13 @@ function applyMeleeLeech(
   if (!sourceTags.includes('melee')) {
     return
   }
-  state.player.hp = Math.min(
-    state.player.maxHp,
-    state.player.hp + actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
+  const source = isSkillId(event.sourceSkillId)
+    ? `${getSkillDefinition(event.sourceSkillId).name} leech`
+    : 'Melee leech'
+  healPlayer(
+    state,
+    actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
+    source,
   )
 }
 

@@ -80,7 +80,7 @@ export const BASIC_ATTACK_VARIANTS = {
     description: 'Sweeps a wide melee arc through enemies in front of you.',
     kind: 'area',
     tags: ['physical', 'melee', 'area'],
-    swingArcDegrees: 110,
+    swingArcDegrees: 100,
     effectLifetime: 0.14,
     visual: {
       kind: 'area',

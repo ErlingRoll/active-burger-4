@@ -15,7 +15,7 @@ const PROFILE_ID = 'profile' as const
 
 export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
-  selectedDungeonLengthContractId?: string
+  selectedDungeonMaxFloorContractId?: string
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
   selectedPlaystyleId?: SettingsDto['selectedPlaystyleId']
 }
@@ -26,10 +26,10 @@ export interface PersistenceRepository {
   selectBehaviorProfile(
     profileId: SettingsDto['selectedBehaviorProfileId'],
   ): Promise<SettingsDto>
-  selectDungeonLengthContract(contractId: string): Promise<SettingsDto>
+  selectDungeonMaxFloorContract(contractId: string): Promise<SettingsDto>
   getBasicProfile(): Promise<BasicProfileDto>
   saveBasicProfile(profile: BasicProfileDto): Promise<BasicProfileDto>
-  unlockDungeonLength(contractId: string): Promise<BasicProfileDto>
+  unlockDungeonMaxFloor(contractId: string): Promise<BasicProfileDto>
 }
 
 export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
@@ -56,12 +56,12 @@ export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
     return this.saveSettings({ selectedBehaviorProfileId: profileId })
   }
 
-  async selectDungeonLengthContract(contractId: string): Promise<SettingsDto> {
+  async selectDungeonMaxFloorContract(contractId: string): Promise<SettingsDto> {
     const profile = await this.getBasicProfile()
-    if (!profile.unlockedDungeonLengthIds.includes(contractId)) {
-      throw new Error(`Dungeon length contract "${contractId}" is not unlocked.`)
+    if (!profile.unlockedDungeonMaxFloorIds.includes(contractId)) {
+      throw new Error(`Dungeon maximum-floor contract "${contractId}" is not unlocked.`)
     }
-    return this.saveSettings({ selectedDungeonLengthContractId: contractId })
+    return this.saveSettings({ selectedDungeonMaxFloorContractId: contractId })
   }
 
   async getBasicProfile(): Promise<BasicProfileDto> {
@@ -74,13 +74,13 @@ export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
     return next
   }
 
-  async unlockDungeonLength(contractId: string): Promise<BasicProfileDto> {
+  async unlockDungeonMaxFloor(contractId: string): Promise<BasicProfileDto> {
     if (contractId.length === 0) {
-      throw new Error('A dungeon length contract ID is required.')
+      throw new Error('A dungeon maximum-floor contract ID is required.')
     }
     const profile = await this.getBasicProfile()
-    if (!profile.unlockedDungeonLengthIds.includes(contractId)) {
-      profile.unlockedDungeonLengthIds.push(contractId)
+    if (!profile.unlockedDungeonMaxFloorIds.includes(contractId)) {
+      profile.unlockedDungeonMaxFloorIds.push(contractId)
     }
     return this.saveBasicProfile(profile)
   }

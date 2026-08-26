@@ -4,7 +4,10 @@ import type {
   ItemId,
   WeaponArchetype,
 } from '../../content/gear/Items'
-import { getItemDefinition, INITIAL_ITEMS } from '../../content/gear/Items'
+import {
+  ALL_ITEM_DEFINITIONS,
+  getItemDefinition,
+} from '../../content/gear/Items'
 import {
   cloneGearModifiers,
   rerollGearModifierAtTier,
@@ -49,7 +52,7 @@ export function createEquippedItem(
 export function equipItem(
   player: PlayerState,
   itemId: ItemId,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): EquipmentSlot {
   const definition = getItemDefinition(itemId, itemDefinitions)
   player.equipment ??= {}
@@ -63,7 +66,7 @@ export function equipRolledItem(
   itemId: ItemId,
   rarity: Rarity,
   modifiers: readonly GearModifier[],
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): EquipmentSlot {
   const definition = getItemDefinition(itemId, itemDefinitions)
   player.equipment ??= {}
@@ -78,7 +81,7 @@ export function equipRolledItem(
 
 export function getEquippedWeaponArchetype(
   player: Readonly<PlayerState>,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): WeaponArchetype | undefined {
   const equipped = player.equipment?.weapon
   if (!equipped) {
@@ -130,7 +133,7 @@ export function upgradeEquippedItem(
   player: PlayerState,
   slot: EquipmentSlot,
   upgradedModifiers: readonly GearModifier[],
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): boolean {
   const equipped = player.equipment?.[slot]
   if (!equipped) {

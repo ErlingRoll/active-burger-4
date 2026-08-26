@@ -2,75 +2,73 @@ import { describe, expect, it } from 'vitest'
 import {
   BOSS_FLOOR_EVENT_DURATION_SECONDS,
   DEFAULT_DUNGEON_CONFIG,
-  DEFAULT_DUNGEON_LENGTH_SECONDS,
+  DEFAULT_DUNGEON_MAX_FLOOR,
   createDungeonEncounterTimeline,
-  getDungeonFloor,
   getFloorStatMultiplier,
-  isDungeonLengthUnlocked,
-  resolveDungeonLengthSeconds,
+  isDungeonMaxFloorUnlocked,
+  resolveDungeonMaxFloor,
   scaleOrdinaryEnemyStats,
 } from './Dungeons'
 
 describe('default dungeon timeline foundation', () => {
-  it('authors a ten-minute default and unlock-gated longer contracts', () => {
-    expect(DEFAULT_DUNGEON_CONFIG.defaultLengthSeconds).toBe(
-      DEFAULT_DUNGEON_LENGTH_SECONDS,
+  it('authors a ten-floor default and unlock-gated deeper contracts', () => {
+    expect(DEFAULT_DUNGEON_CONFIG.defaultMaxFloor).toBe(
+      DEFAULT_DUNGEON_MAX_FLOOR,
     )
     expect(DEFAULT_DUNGEON_CONFIG.floorDurationSeconds).toBe(120)
     expect(DEFAULT_DUNGEON_CONFIG.bossFloorDurationSeconds).toBe(
       BOSS_FLOOR_EVENT_DURATION_SECONDS,
     )
-    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(5)
+    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(10)
     expect(
-      DEFAULT_DUNGEON_CONFIG.encounterTimeline.map((event) => event.timeSeconds),
-    ).toEqual([120, 240, 360, 480, 600])
+      DEFAULT_DUNGEON_CONFIG.encounterTimeline.map((event) => event.floorNumber),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           bossDefinitionId: 'stone-golem',
           durationSeconds: 120,
-          floorNumber: 2,
+          floorNumber: 1,
         }),
       ]),
     )
     expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline.at(-1)).toMatchObject({
-      timeSeconds: DEFAULT_DUNGEON_LENGTH_SECONDS,
+      floorNumber: DEFAULT_DUNGEON_MAX_FLOOR,
       bossDefinitionId: 'inferno-warden',
       isFinal: true,
       durationSeconds: 120,
     })
 
-    const contract = DEFAULT_DUNGEON_CONFIG.longerLengthContracts[0]!
-    expect(contract.lengthSeconds).toBeGreaterThan(
-      DEFAULT_DUNGEON_CONFIG.defaultLengthSeconds,
-    )
-    expect(isDungeonLengthUnlocked(contract)).toBe(false)
-    expect(isDungeonLengthUnlocked(contract, new Set([contract.requiredUnlockId]))).toBe(true)
-    expect(resolveDungeonLengthSeconds(DEFAULT_DUNGEON_CONFIG)).toBe(600)
+    expect(
+      DEFAULT_DUNGEON_CONFIG.maximumFloorContracts.map(
+        (contract) => contract.maxFloor,
+      ),
+    ).toEqual([20, 50, 100])
+    const contract = DEFAULT_DUNGEON_CONFIG.maximumFloorContracts[0]!
+    expect(isDungeonMaxFloorUnlocked(contract)).toBe(false)
+    expect(
+      isDungeonMaxFloorUnlocked(contract, new Set([contract.requiredUnlockId])),
+    ).toBe(true)
+    expect(resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG)).toBe(10)
     expect(() =>
-      resolveDungeonLengthSeconds(DEFAULT_DUNGEON_CONFIG, contract.id),
+      resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG, contract.id),
     ).toThrow(/requires unlock/)
     expect(
-      resolveDungeonLengthSeconds(
+      resolveDungeonMaxFloor(
         DEFAULT_DUNGEON_CONFIG,
         contract.id,
         new Set([contract.requiredUnlockId]),
       ),
-    ).toBe(contract.lengthSeconds)
-    expect(createDungeonEncounterTimeline(contract.lengthSeconds)).toHaveLength(8)
-    expect(
-      createDungeonEncounterTimeline(contract.lengthSeconds).at(-1)?.timeSeconds,
-    ).toBe(contract.lengthSeconds)
-    expect(createDungeonEncounterTimeline(contract.lengthSeconds).at(-1)).toMatchObject({
+    ).toBe(contract.maxFloor)
+    expect(createDungeonEncounterTimeline(contract.maxFloor)).toHaveLength(20)
+    expect(createDungeonEncounterTimeline(contract.maxFloor).at(-1)).toMatchObject({
+      floorNumber: contract.maxFloor,
       bossDefinitionId: 'inferno-warden',
       isFinal: true,
     })
   })
 
   it('uses one-based floors and authored-base, linear stat scaling', () => {
-    expect(getDungeonFloor(0)).toBe(1)
-    expect(getDungeonFloor(119.999)).toBe(1)
-    expect(getDungeonFloor(120)).toBe(2)
     expect(getFloorStatMultiplier(1)).toBe(1)
     expect(getFloorStatMultiplier(3)).toBe(1.02)
 

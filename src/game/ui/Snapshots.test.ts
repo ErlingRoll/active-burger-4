@@ -8,7 +8,7 @@ import {
 import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { equipRolledItem } from '../equipment/EquipmentState'
-import { createUiSnapshot } from './Snapshots'
+import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
 
 describe('UI snapshots', () => {
   it('projects only acquired skills with actual single-target DPS assumptions', () => {
@@ -36,7 +36,12 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
     expect(snapshot.skills[1]?.estimatedSingleTargetDps).toBeCloseTo(3.36)
     expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(2.7)
-    expect(snapshot.skills[0]?.dpsAssumption).toContain('Basic Attack cadence')
+    expect(snapshot.skills[0]?.attacksPerSecond).toBeCloseTo(1)
+    expect(snapshot.skills[0]?.cooldownSeconds).toBeNull()
+    expect(snapshot.skills[1]?.cooldownSeconds).toBeCloseTo(2.5)
+    expect(snapshot.skills[1]?.attacksPerSecond).toBeNull()
+    expect(snapshot.skills[2]?.cooldownSeconds).toBeCloseTo(3.5)
+    expect(snapshot.skills[0]?.dpsAssumption).toContain('attack cadence')
     expect(snapshot.skills[1]?.dpsAssumption).toContain('Whirlwind range')
     expect(snapshot.skills[2]?.dpsAssumption).toContain('Primary target')
 
@@ -47,6 +52,30 @@ describe('UI snapshots', () => {
       .toMatchObject({ relevant: true, status: 'available' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('retains recent player combat events in a defeat result', () => {
+    const game = createGame({ seed: 93 })
+    game.state.run.phase = 'defeat'
+    game.state.run.playerCombatLog = [{
+      time: 12,
+      kind: 'damage',
+      amount: 24,
+      damageType: 'fire',
+      source: 'Inferno Warden: Fire Nova',
+      resultingHp: 0,
+    }]
+
+    expect(createRunResultSnapshot(game.state).playerCombatLog).toEqual([
+      {
+        time: 12,
+        kind: 'damage',
+        amount: 24,
+        damageType: 'fire',
+        source: 'Inferno Warden: Fire Nova',
+        resultingHp: 0,
+      },
+    ])
   })
 
   it('projects the active boss, telegraph, and autonomous Dodge state immutably', () => {

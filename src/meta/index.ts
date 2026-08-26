@@ -1,4 +1,4 @@
-export { createMetaProgressionService, getDungeonLengthContractId } from './MetaProgressionService'
+export { createMetaProgressionService, getDungeonMaxFloorContractId } from './MetaProgressionService'
 export type {
   MetaProgressionService,
   MetaProgressionSnapshot,

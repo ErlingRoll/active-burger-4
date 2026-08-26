@@ -11,13 +11,19 @@ function nextEncounter(
   state: GameState,
 ): EncounterDefinition | undefined {
   const completedIds = new Set(state.run.completedEncounterIds ?? [])
-  const timeline = getEncounterTimeline(state)
-  return timeline
-    .filter((event) => event.timeSeconds <= state.time + 1e-9)
+  const dungeon = getDungeonDefinition(state.run.dungeonId)
+  const floor = state.run.floor ?? 1
+  const floorStartedAt = state.run.floorStartedAt ?? 0
+  const floorComplete =
+    state.time - floorStartedAt >= dungeon.floorDurationSeconds - 1e-9
+  return getEncounterTimeline(state)
+    .filter((event) =>
+      floorComplete &&
+      event.floorNumber === floor,
+    )
     .sort((left, right) => {
-      const timeOrder = left.timeSeconds - right.timeSeconds
-      if (timeOrder !== 0) {
-        return timeOrder
+      if (left.floorNumber !== right.floorNumber) {
+        return left.floorNumber - right.floorNumber
       }
       return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
     })
@@ -26,12 +32,11 @@ function nextEncounter(
 
 function getEncounterTimeline(state: GameState): readonly EncounterDefinition[] {
   const dungeon = getDungeonDefinition(state.run.dungeonId)
-  return state.run.dungeonLengthSeconds === undefined ||
-    state.run.dungeonLengthSeconds === dungeon.defaultLengthSeconds
+  return state.run.dungeonMaxFloor === undefined ||
+    state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
     ? dungeon.encounterTimeline
     : createDungeonEncounterTimeline(
-      state.run.dungeonLengthSeconds,
-      dungeon.floorDurationSeconds,
+      state.run.dungeonMaxFloor,
     )
 }
 
@@ -79,9 +84,6 @@ export function startBossEncounter(
     ...(encounterDefinition.isFinal ? { isFinal: true } : {}),
     normalSpawnsSuspended: true,
     ...(manual ? { outcome: undefined } : {}),
-  }
-  if (encounterDefinition.floorNumber !== undefined) {
-    state.run.floor = encounterDefinition.floorNumber
   }
   return true
 }

@@ -54,6 +54,14 @@ function formatHudModifier(
   return formatGearModifier(modifier)
 }
 
+function formatCadence(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, '')
+}
+
+function formatEstimatedDps(value: number | null): string {
+  return value === null ? 'N/A' : Math.ceil(value).toString()
+}
+
 function getChoiceFlowKey(
   flow: Readonly<PendingChoiceFlow> | null,
 ): string | null {
@@ -239,6 +247,10 @@ export function GameCanvas({
     gameRef.current?.selectChoice(choice)
   }
 
+  const skipChoice = (): void => {
+    gameRef.current?.skipChoice()
+  }
+
   const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
     if (gameRef.current?.setBehaviorProfile(profileId)) {
       onBehaviorProfileChange?.(profileId)
@@ -301,6 +313,7 @@ export function GameCanvas({
           flow={choiceFlow}
           equipment={snapshot?.equipment ?? {}}
           onSelect={selectChoice}
+          onSkip={skipChoice}
         />
       ) : null}
       {behaviorScreenOpen && snapshot ? (
@@ -355,7 +368,10 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   )
 
   return (
-    <section className="gameplay-hud" aria-labelledby="run-status-title">
+    <section
+      className={activeSkillId ? 'gameplay-hud gameplay-hud-tooltip-active' : 'gameplay-hud'}
+      aria-labelledby="run-status-title"
+    >
       <h2 id="run-status-title" className="visually-hidden">
         Run status
       </h2>
@@ -462,7 +478,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                 <button
                   className="skill-card"
                   type="button"
-                  aria-label={`${skill.name}, level ${skill.level}`}
+                  aria-label={`${skill.name}, level ${skill.level}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => setActiveSkillId(skill.skillId)}
                   onBlur={() => setActiveSkillId(null)}
@@ -474,6 +490,10 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   </span>
                   <span className="skill-card-name">{skill.name}</span>
                   <span className="skill-card-level">Lv. {skill.level}</span>
+                  <span className="skill-card-dps">
+                    <span>DPS</span>
+                    <b>{formatEstimatedDps(skill.estimatedSingleTargetDps)}</b>
+                  </span>
                 </button>
                 {isActive ? (
                   <div
@@ -504,12 +524,20 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         ))}
                       </ul>
                     </section>
+                    <p className="skill-cadence">
+                      <span>
+                        {skill.attacksPerSecond === null ? 'Cooldown' : 'Attacks per second'}
+                      </span>
+                      <b>
+                        {skill.attacksPerSecond === null
+                          ? `${formatCadence(skill.cooldownSeconds ?? 0)}s`
+                          : formatCadence(skill.attacksPerSecond)}
+                      </b>
+                    </p>
                     <p className="skill-dps">
                       <span>Estimated combined single-target sustained DPS</span>
                       <b>
-                        {skill.estimatedSingleTargetDps === null
-                          ? 'N/A'
-                          : Math.ceil(skill.estimatedSingleTargetDps)}
+                        {formatEstimatedDps(skill.estimatedSingleTargetDps)}
                       </b>
                     </p>
                     <p className="skill-assumption">{skill.dpsAssumption}</p>
@@ -685,7 +713,7 @@ function FloorHud({ snapshot }: { snapshot: GameUiSnapshot }) {
         aria-label={`Floor ${snapshot.floor} progress`}
       />
       <span>
-        {Math.floor(snapshot.elapsedTime % snapshot.floorDurationSeconds)}s /{' '}
+        {Math.floor(snapshot.floorElapsedTime)}s /{' '}
         {snapshot.floorDurationSeconds}s
       </span>
     </section>

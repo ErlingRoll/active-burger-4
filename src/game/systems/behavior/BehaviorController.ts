@@ -46,12 +46,13 @@ export function selectMovementCandidate(
   candidates: readonly PlayerMovementCandidate[],
 ): PlayerMovementCandidate | undefined {
   const sourceOrder: Record<PlayerMovementCandidate['source'], number> = {
-    dodge: 0,
-    gear: 1,
-    xp: 2,
-    kite: 3,
-    'combat-range': 4,
-    hold: 5,
+    stairs: 0,
+    dodge: 1,
+    gear: 2,
+    xp: 3,
+    kite: 4,
+    'combat-range': 5,
+    hold: 6,
   }
   return candidates
     .map((candidate, index) => ({ candidate, index }))

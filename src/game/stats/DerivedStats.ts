@@ -1,8 +1,9 @@
 import {
   EQUIPMENT_SLOTS,
-  INITIAL_ITEMS,
+  ALL_ITEM_DEFINITIONS,
   type ItemDefinition,
 } from '../../content/gear/Items'
+import { getLevelMaxHpBonus } from '../../content/progression/LevelScaling'
 import {
   getGearModifierDefinition,
   type GearModifier,
@@ -184,7 +185,7 @@ function aggregateGearEffects(
 
 export function getDerivedPlayerStats(
   player: Readonly<PlayerState>,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): PlayerStats {
   const base = player.baseStats ?? directPlayerStats(player)
   const gearEffects = aggregateGearEffects(player, itemDefinitions)
@@ -192,7 +193,13 @@ export function getDerivedPlayerStats(
     ...(player.statModifiers ?? []),
     ...gearEffects.statModifiers,
   ]
-  const scalarStats = evaluateDerivedStats(base, modifiers)
+  const scalarStats = evaluateDerivedStats(
+    {
+      ...base,
+      maxHp: base.maxHp + getLevelMaxHpBonus(player.level),
+    },
+    modifiers,
+  )
   return {
     ...scalarStats,
     flatDamage: gearEffects.flatDamage,
@@ -214,7 +221,7 @@ export function getDerivedPlayerStats(
  */
 export function refreshPlayerDerivedStats(
   player: PlayerState,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): void {
   if (!player.baseStats) {
     player.baseStats = directPlayerStats(player)
@@ -230,7 +237,7 @@ export function refreshPlayerDerivedStats(
 
 export function refreshMeleeLeech(
   player: PlayerState,
-  itemDefinitions: readonly ItemDefinition[] = INITIAL_ITEMS,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): void {
   player.meleeLeech = getDerivedPlayerStats(player, itemDefinitions).meleeLeech
 }

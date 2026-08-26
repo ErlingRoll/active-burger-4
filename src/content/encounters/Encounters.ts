@@ -8,15 +8,14 @@ export type EncounterEventType = 'boss'
 
 export interface EncounterDefinition {
   id: string
-  timeSeconds: number
   type: EncounterEventType
   bossDefinitionId: BossDefinitionId
   /** Optional multi-boss composition; bossDefinitionId remains the primary boss. */
   bossDefinitionIds?: readonly BossDefinitionId[]
-  /** The amount of the floor timeline reserved for this boss event. */
+  /** The amount of time reserved for this boss event. */
   durationSeconds: number
-  /** One-based floor on which the event begins. */
-  floorNumber?: number
+  /** One-based normal floor that must reach full progress before this starts. */
+  floorNumber: number
   /** Final encounters end the run when their stairs are touched. */
   isFinal?: boolean
 }
@@ -27,42 +26,29 @@ export const STONE_GOLEM_ENCOUNTER_DURATION_SECONDS = 120
 export const INFERNO_WARDEN_ENCOUNTER_ID = 'inferno-warden-final'
 
 export function createInfernoWardenEncounter(
-  finalLengthSeconds: number,
-  floorDurationSeconds = STONE_GOLEM_ENCOUNTER_DURATION_SECONDS,
+  maximumFloor: number,
 ): EncounterDefinition {
   return {
     id: INFERNO_WARDEN_ENCOUNTER_ID,
-    timeSeconds: finalLengthSeconds,
     type: 'boss',
     bossDefinitionId: INFERNO_WARDEN_BOSS_ID,
     durationSeconds: STONE_GOLEM_ENCOUNTER_DURATION_SECONDS,
-    floorNumber: Math.floor(finalLengthSeconds / floorDurationSeconds) + 1,
+    floorNumber: maximumFloor,
     isFinal: true,
   }
 }
 
-/**
- * Creates the intermediate Stone Golem events for a dungeon length.
- * The final timer is reserved for the distinct final boss, so no event is
- * created at that boundary.
- */
+/** Creates an intermediate Stone Golem event for each normal floor. */
 export function createStoneGolemEncounterTimeline(
-  finalLengthSeconds: number,
-  floorDurationSeconds = STONE_GOLEM_ENCOUNTER_DURATION_SECONDS,
+  maximumFloor: number,
 ): readonly EncounterDefinition[] {
   const timeline: EncounterDefinition[] = []
-  for (
-    let timeSeconds = floorDurationSeconds;
-    timeSeconds < finalLengthSeconds;
-    timeSeconds += floorDurationSeconds
-  ) {
-    const floorNumber = Math.floor(timeSeconds / floorDurationSeconds) + 1
+  for (let floorNumber = 1; floorNumber < maximumFloor; floorNumber += 1) {
     timeline.push({
       id:
-        floorNumber === 2
+        floorNumber === 1
           ? STONE_GOLEM_ENCOUNTER_ID
           : `${STONE_GOLEM_ENCOUNTER_ID}-floor-${floorNumber}`,
-      timeSeconds,
       type: 'boss',
       bossDefinitionId: STONE_GOLEM_BOSS_ID,
       durationSeconds: STONE_GOLEM_ENCOUNTER_DURATION_SECONDS,
@@ -73,8 +59,8 @@ export function createStoneGolemEncounterTimeline(
 }
 
 export const ENCOUNTER_DEFINITIONS: readonly EncounterDefinition[] = [
-  ...createStoneGolemEncounterTimeline(10 * 60),
-  createInfernoWardenEncounter(10 * 60),
+  ...createStoneGolemEncounterTimeline(10),
+  createInfernoWardenEncounter(10),
 ]
 
 export function getEncounterDefinition(id: string): EncounterDefinition {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createGame,
+  DEFAULT_DUNGEON_CONFIG,
   DEFAULT_TIME_SCALE,
   FIXED_STEP_SECONDS,
   MAX_FRAME_SECONDS,
@@ -10,7 +11,7 @@ import {
 import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
-import { equipItem } from './equipment/EquipmentState'
+import { equipItem, equipRolledItem } from './equipment/EquipmentState'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -21,6 +22,37 @@ describe('Game', () => {
     expect(game.state.tick).toBe(0)
     expect(game.state.time).toBe(0)
     expect(game.state.run.seed).toBe(1)
+  })
+
+  it('equips each playstyle with its authored starter weapon', () => {
+    expect(createGame({ seed: 101, playstyleId: 'knight' }).state.player.equipment?.weapon)
+      .toMatchObject({ itemId: 'knight-training-sword' })
+    expect(createGame({ seed: 102, playstyleId: 'ranger' }).state.player.equipment?.weapon)
+      .toMatchObject({ itemId: 'ranger-training-bow' })
+    expect(createGame({ seed: 103, playstyleId: 'necromancer' }).state.player.equipment?.weapon)
+      .toMatchObject({ itemId: 'necromancer-training-wand' })
+  })
+
+  it('keeps the current floor when starting a boss manually', () => {
+    const game = createGame({ seed: 104 })
+
+    expect(game.startEncounter('stone-golem')).toBe(true)
+    expect(game.state.run.floor).toBe(1)
+  })
+
+  it('uses an unlocked maximum-floor contract to build the encounter timeline', () => {
+    const contract = DEFAULT_DUNGEON_CONFIG.maximumFloorContracts[0]!
+    const game = createGame({
+      seed: 105,
+      dungeonMaxFloorContractId: contract.id,
+      unlockedDungeonMaxFloorIds: [contract.requiredUnlockId],
+    })
+
+    expect(game.state.run.dungeonMaxFloor).toBe(20)
+    expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
+      floorNumber: 20,
+      isFinal: true,
+    })
   })
 
   it('runs headlessly: no renderer is required to advance the simulation', () => {
@@ -203,6 +235,7 @@ describe('Game', () => {
       xp: game.state.player.xp,
       killCount: game.state.run.killCount,
       worldModifierIds: [],
+      playerCombatLog: [],
     })
     expect(Object.isFrozen(result)).toBe(true)
   })
@@ -337,7 +370,12 @@ describe('Game', () => {
         game.update(FIXED_STEP_SECONDS)
       }
       expect(game.phase).toBe('playing')
-      expect(game.state.run.floor).toBe(3)
+      expect(game.state.run.floor).toBe(2)
+      expect(game.state.run.floorStartedAt).toBeCloseTo(game.state.time)
+      expect(game.getUiSnapshot().boss).toBeNull()
+      expect(game.getUiSnapshot().floorProgress).toBe(0)
+      game.update(FIXED_STEP_SECONDS)
+      expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
   })
 
   it('waits for every boss in an event before creating stairs', () => {
@@ -404,6 +442,41 @@ describe('Game', () => {
       expect(game.getRunResultSnapshot().phase).toBe('results')
   })
 
+  it('keeps the final floor through final-boss stairs before ending the run', () => {
+      const game = createGame({ seed: 20260829 })
+      game.state.run.floor = game.dungeon.defaultMaxFloor
+      game.state.run.floorStartedAt =
+        game.state.time - game.dungeon.floorDurationSeconds
+      game.update(FIXED_STEP_SECONDS)
+      const boss = game.state.bosses?.[0]
+      expect(boss).toBeDefined()
+      if (!boss) {
+        throw new Error('Expected the final normal floor to trigger its final boss')
+      }
+      game.state.player.x = boss.x
+      game.state.player.y = boss.y
+      boss.hp = 0
+
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.stairs).toMatchObject({ floorNumber: 10, isFinal: true })
+      expect(game.state.run.floor).toBe(10)
+      while (game.phase === 'level-up') {
+        const flow = game.getPendingChoiceFlow()
+        if (flow?.type === 'level-up') {
+          expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
+        } else if (flow?.type === 'gear-pickup') {
+          expect(game.selectGearChoice(flow.choices[0]!)).toBe(true)
+        }
+      }
+      expect(game.phase).toBe('floor-transition')
+      for (let index = 0; index < 60; index += 1) {
+        game.update(FIXED_STEP_SECONDS)
+      }
+      expect(game.phase).toBe('results')
+      expect(game.state.run.floor).toBe(10)
+  })
+
   it('moves a Slime deterministically toward the player each fixed tick', () => {
     const gameA = createGame({ seed: 9 })
     const gameB = createGame({ seed: 9 })
@@ -426,6 +499,7 @@ describe('Game', () => {
 
   it('stops at contact range without overshooting the player', () => {
     const game = createGame({ seed: 10 })
+    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
     game.spawnSlime({ x: 34.5, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
@@ -436,7 +510,7 @@ describe('Game', () => {
     expect(game.state.enemies[0].x).toBeGreaterThanOrEqual(0)
   })
 
-  it('automatically creates a wand-like Basic Attack when no weapon is equipped', () => {
+  it('uses the equipped Knight sword Basic Attack', () => {
     const game = createGame({ seed: 11 })
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
@@ -445,24 +519,14 @@ describe('Game', () => {
 
     game.update(FIXED_STEP_SECONDS)
 
-    expect(game.state.projectiles).toHaveLength(1)
+    expect(game.state.player.equipment?.weapon).toMatchObject({ itemId: 'knight-training-sword' })
+    expect(game.state.projectiles).toHaveLength(0)
     expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
-    expect(game.state.projectiles[0]).toMatchObject({
-      ownerId: game.state.player.id,
-      definitionId: 'basic-attack-orb',
-      basicAttackWeaponArchetype: 'wand',
-      y: 0,
-      velocityX: 320,
-      velocityY: 0,
-      damage: {
-        physical: game.state.player.attackDamage,
-        lightning: 0,
-        fire: 0,
-        cold: 0,
-        chaos: 0,
-      },
+    expect(game.state.enemies[0]?.hp).toBeLessThan(20)
+    expect(game.state.effects[0]).toMatchObject({
+      shape: 'arc',
+      basicAttackWeaponArchetype: 'sword',
     })
-    expect(game.state.projectiles[0]?.x).toBeCloseTo(320 / 60)
     expect(game.state.player.skills).toEqual([
       expect.objectContaining({ skillId: 'basic-attack', level: 1 }),
     ])
@@ -495,6 +559,7 @@ describe('Game', () => {
 
   it('keeps a lone slime inside the engagement envelope targeted and firing', () => {
     const game = createGame({ seed: 111 })
+    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]
@@ -508,6 +573,7 @@ describe('Game', () => {
 
   it('keeps pursuing and firing at the current target when another enemy moves closer', () => {
     const game = createGame({ seed: 112 })
+    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]
@@ -744,6 +810,28 @@ describe('Game', () => {
 
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.tick).toBe(tickAtLevelUp + 1)
+  })
+
+  it('skips upgrade and gear choice flows without changing player equipment or stats', () => {
+    const game = createGame({ seed: 200 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.update(FIXED_STEP_SECONDS)
+
+    const playerBeforeUpgrade = structuredClone(game.state.player)
+    expect(game.getPendingChoiceFlow()?.type).toBe('level-up')
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.state.player).toEqual(playerBeforeUpgrade)
+    expect(game.skipChoice()).toBe(false)
+
+    game.spawnGearPickup({ x: 0, y: 0 })
+    game.update(FIXED_STEP_SECONDS)
+
+    const playerBeforeGear = structuredClone(game.state.player)
+    expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.state.player).toEqual(playerBeforeGear)
   })
 
   it('offers and notifies once for every level in a multi-level XP award', () => {

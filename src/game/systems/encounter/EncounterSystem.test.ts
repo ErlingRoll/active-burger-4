@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createGame, FIXED_STEP_SECONDS } from '../../Game'
 
 describe('boss encounter timeline', () => {
-  it('starts at the first completed-floor boundary and suspends normal spawns', () => {
+  it('starts on the current floor after its normal progress completes', () => {
     const game = createGame({ seed: 123 })
     for (let index = 0; index < 120 * 60; index += 1) {
       game.update(FIXED_STEP_SECONDS)
@@ -20,23 +20,38 @@ describe('boss encounter timeline', () => {
       normalSpawnsSuspended: true,
     })
     expect(game.state.bosses).toHaveLength(1)
+    expect(game.state.run.floor).toBe(1)
     const enemyCount = game.state.enemies.length
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.enemies.length).toBe(enemyCount)
   })
 
-  it('schedules Inferno Warden at the final timer, not another Stone Golem', () => {
+  it('schedules Inferno Warden on the configured maximum floor', () => {
     const game = createGame({ seed: 124 })
-    expect(game.dungeon.encounterTimeline.map((event) => event.timeSeconds)).toEqual([
-      120,
-      240,
-      360,
-      480,
-      600,
+    expect(game.dungeon.encounterTimeline.map((event) => event.floorNumber)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     ])
     expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
-      timeSeconds: 600,
+      floorNumber: 10,
       bossDefinitionId: 'inferno-warden',
+      isFinal: true,
+    })
+  })
+
+  it('triggers the final boss after the final normal floor completes', () => {
+    const game = createGame({ seed: 125 })
+    game.state.run.floor = game.dungeon.defaultMaxFloor
+    game.state.run.floorStartedAt =
+      game.state.time - game.dungeon.floorDurationSeconds
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.run.floor).toBe(10)
+    expect(game.getUiSnapshot().floorProgress).toBe(1)
+    expect(game.state.encounter).toMatchObject({
+      status: 'active',
+      bossDefinitionId: 'inferno-warden',
+      floorNumber: 10,
       isFinal: true,
     })
   })

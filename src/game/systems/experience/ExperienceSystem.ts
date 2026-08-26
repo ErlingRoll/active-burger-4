@@ -6,6 +6,7 @@ import type {
   HealingPotionPickupState,
   PickupState,
 } from '../../state/GameState'
+import { refreshPlayerDerivedStats } from '../../stats/DerivedStats'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
 export function updatePickups(
@@ -104,6 +105,9 @@ export function grantExperience(state: GameState, amount: number): number {
   ) {
     state.player.level += 1
     levelsGained += 1
+  }
+  if (levelsGained > 0) {
+    refreshPlayerDerivedStats(state.player)
   }
 
   return levelsGained

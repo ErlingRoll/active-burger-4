@@ -148,7 +148,9 @@ function eligibleUpgradeTargets(
     if (!equipped) {
       continue
     }
-    const definition = getItemDefinition(equipped.itemId, itemDefinitions)
+    const definition = itemDefinitions.find(
+      (candidate) => candidate.id === equipped.itemId,
+    ) ?? getItemDefinition(equipped.itemId)
     const modifiers = cloneGearModifiers(equipped.modifiers ?? definition.modifiers)
     if (!modifiers.some((modifier) => modifier.tier > 1)) {
       continue

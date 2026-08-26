@@ -13,7 +13,7 @@ import {
   type SettingsDto,
   type SettingsPatch,
 } from './persistence'
-import { DEFAULT_DUNGEON_LENGTH_CONTRACT_ID } from './persistence'
+import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   AuthPanel,
   createAuthenticationService,
@@ -23,7 +23,7 @@ import {
 } from './auth'
 import {
   createMetaProgressionService,
-  getDungeonLengthContractId,
+  getDungeonMaxFloorContractId,
   type MetaRunResultInput,
   type MetaProgressionService,
   type MetaProgressionSnapshot,
@@ -69,16 +69,16 @@ interface RunRewardState {
 }
 
 const DEFAULT_CONTRACT = {
-  id: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
-  lengthSeconds: DEFAULT_DUNGEON_CONFIG.defaultLengthSeconds,
-  label: '10 minutes · Default',
+  id: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
+  maxFloor: DEFAULT_DUNGEON_CONFIG.defaultMaxFloor,
+  label: '10 floors · Default',
 } as const
 
-const DUNGEON_CONTRACTS = [
+const DUNGEON_MAX_FLOOR_CONTRACTS = [
   DEFAULT_CONTRACT,
-  ...DEFAULT_DUNGEON_CONFIG.longerLengthContracts.map((contract) => ({
+  ...DEFAULT_DUNGEON_CONFIG.maximumFloorContracts.map((contract) => ({
     ...contract,
-    label: `${contract.lengthSeconds / 60} minutes`,
+    label: `${contract.maxFloor} floors`,
   })),
 ]
 
@@ -153,8 +153,8 @@ function createInitialMetaProgressionState(
       }
 }
 
-function getContractIdFromMetaDefinition(definition: MetaProgressionSnapshot['definitions'][number]): string | null {
-  const contractId = getDungeonLengthContractId(definition)
+function getMaxFloorContractIdFromMetaDefinition(definition: MetaProgressionSnapshot['definitions'][number]): string | null {
+  const contractId = getDungeonMaxFloorContractId(definition)
   return contractId
 }
 
@@ -171,15 +171,15 @@ function createInitialAuthenticationState(
       }
 }
 
-function isContractUnlocked(
+function isMaxFloorContractUnlocked(
   profile: BasicProfileDto,
   contractId: string,
   requiredUnlockId?: string,
 ): boolean {
-  return contractId === DEFAULT_DUNGEON_LENGTH_CONTRACT_ID ||
-    profile.unlockedDungeonLengthIds.includes(contractId) ||
+  return contractId === DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID ||
+    profile.unlockedDungeonMaxFloorIds.includes(contractId) ||
     (requiredUnlockId !== undefined &&
-      profile.unlockedDungeonLengthIds.includes(requiredUnlockId))
+      profile.unlockedDungeonMaxFloorIds.includes(requiredUnlockId))
 }
 
 function App() {
@@ -287,18 +287,18 @@ function App() {
     let cancelled = false
     void Promise.all([repository.getSettings(), repository.getBasicProfile()])
       .then(async ([loadedSettings, profile]) => {
-        const selectedContract = DUNGEON_CONTRACTS.find(
-          (contract) => contract.id === loadedSettings.selectedDungeonLengthContractId,
+        const selectedContract = DUNGEON_MAX_FLOOR_CONTRACTS.find(
+          (contract) => contract.id === loadedSettings.selectedDungeonMaxFloorContractId,
         )
         const validContract = selectedContract !== undefined &&
-          isContractUnlocked(profile, selectedContract.id, 'requiredUnlockId' in selectedContract
+          isMaxFloorContractUnlocked(profile, selectedContract.id, 'requiredUnlockId' in selectedContract
             ? selectedContract.requiredUnlockId
             : undefined)
         const settings = validContract
           ? loadedSettings
           : await repository.saveSettings({
               ...loadedSettings,
-              selectedDungeonLengthContractId: DEFAULT_DUNGEON_LENGTH_CONTRACT_ID,
+              selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
             })
             if (!cancelled) {
               setPersistence({
@@ -330,13 +330,13 @@ function App() {
     if (!settings || !profile) {
       return null
     }
-    const unlockedDungeonLengthIds = DEFAULT_DUNGEON_CONFIG.longerLengthContracts
+    const unlockedDungeonMaxFloorIds = DEFAULT_DUNGEON_CONFIG.maximumFloorContracts
       .filter((contract) =>
-        isContractUnlocked(profile, contract.id, contract.requiredUnlockId),
+        isMaxFloorContractUnlocked(profile, contract.id, contract.requiredUnlockId),
       )
       .map((contract) => contract.requiredUnlockId)
     const selectedContractIsDefault =
-      settings.selectedDungeonLengthContractId === DEFAULT_DUNGEON_LENGTH_CONTRACT_ID
+      settings.selectedDungeonMaxFloorContractId === DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
     return {
       seed: runSeed,
       behaviorProfileId: settings.selectedBehaviorProfileId,
@@ -345,8 +345,8 @@ function App() {
       ...(selectedContractIsDefault
         ? {}
         : {
-            dungeonLengthContractId: settings.selectedDungeonLengthContractId,
-            unlockedDungeonLengthIds,
+            dungeonMaxFloorContractId: settings.selectedDungeonMaxFloorContractId,
+            unlockedDungeonMaxFloorIds,
           }),
     }
   }, [profile, runSeed, settings])
@@ -457,20 +457,20 @@ function App() {
     metaProgressionService.service,
   ])
 
-  const selectDungeonContract = useCallback(
+  const selectDungeonMaxFloorContract = useCallback(
     (contractId: string): void => {
-      if (!profile || !DUNGEON_CONTRACTS.some((contract) => contract.id === contractId)) {
+      if (!profile || !DUNGEON_MAX_FLOOR_CONTRACTS.some((contract) => contract.id === contractId)) {
         return
       }
-      const contract = DUNGEON_CONTRACTS.find((candidate) => candidate.id === contractId)!
-      if (!isContractUnlocked(
+      const contract = DUNGEON_MAX_FLOOR_CONTRACTS.find((candidate) => candidate.id === contractId)!
+      if (!isMaxFloorContractUnlocked(
         profile,
         contract.id,
         'requiredUnlockId' in contract ? contract.requiredUnlockId : undefined,
       )) {
         return
       }
-      void persistSettings({ selectedDungeonLengthContractId: contractId }).catch(() => {
+      void persistSettings({ selectedDungeonMaxFloorContractId: contractId }).catch(() => {
         // persistSettings already exposes this error in the UI.
       })
     },
@@ -597,12 +597,12 @@ function App() {
       }))
       return
     }
-    const contractId = getContractIdFromMetaDefinition(definition)
+    const contractId = getMaxFloorContractIdFromMetaDefinition(definition)
     if (!contractId) {
       setMetaProgression((current) => ({
         ...current,
         purchaseState: 'error',
-        purchaseError: `Unlock ${unlockId} does not map to a dungeon contract.`,
+        purchaseError: `Unlock ${unlockId} does not map to a dungeon maximum-floor contract.`,
       }))
       return
     }
@@ -614,7 +614,7 @@ function App() {
     }))
     try {
       const nextSnapshot = await metaProgressionService.service.purchaseUnlock(unlockId)
-      const nextProfile = await repository.unlockDungeonLength(contractId)
+      const nextProfile = await repository.unlockDungeonMaxFloor(contractId)
       setPersistence((current) => ({
         ...current,
         profile: nextProfile,
@@ -748,7 +748,7 @@ function App() {
             writeError={writeError}
             onStart={startRun}
             onSelectBehaviorProfile={selectBehaviorProfile}
-            onSelectDungeonContract={selectDungeonContract}
+            onSelectDungeonMaxFloorContract={selectDungeonMaxFloorContract}
             onSelectPlaystyle={selectPlaystyle}
             onToggleWorldModifier={toggleWorldModifier}
             onOpenMetaProgression={openMetaProgression}
@@ -839,7 +839,7 @@ interface DashboardProps {
   writeError: string | null
   onStart: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
-  onSelectDungeonContract: (contractId: string) => void
+  onSelectDungeonMaxFloorContract: (contractId: string) => void
   onSelectPlaystyle: (playstyleId: PlaystyleId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onOpenMetaProgression: () => void
@@ -852,7 +852,7 @@ function Dashboard({
   writeError,
   onStart,
   onSelectBehaviorProfile,
-  onSelectDungeonContract,
+  onSelectDungeonMaxFloorContract,
   onSelectPlaystyle,
   onToggleWorldModifier,
   onOpenMetaProgression,
@@ -884,7 +884,7 @@ function Dashboard({
           <div>
             <span className="run-dashboard-command-label">Run briefing</span>
             <strong>Arena run</strong>
-            <span>Configure your fighter, contract, and risk level.</span>
+            <span>Configure your fighter, maximum floor, and risk level.</span>
           </div>
           <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
             <span>Start Run</span>
@@ -976,15 +976,15 @@ function Dashboard({
           </div>
         </fieldset>
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
-          <legend>Dungeon contract</legend>
+          <legend>Maximum floor</legend>
           <div className="dashboard-choice-list">
-            {DUNGEON_CONTRACTS.map((contract) => {
-              const unlocked = isContractUnlocked(
+            {DUNGEON_MAX_FLOOR_CONTRACTS.map((contract) => {
+              const unlocked = isMaxFloorContractUnlocked(
                 profile,
                 contract.id,
                 'requiredUnlockId' in contract ? contract.requiredUnlockId : undefined,
               )
-              const selected = settings.selectedDungeonLengthContractId === contract.id
+              const selected = settings.selectedDungeonMaxFloorContractId === contract.id
               return (
                 <button
                   className={`dashboard-choice${selected ? ' selected' : ''}`}
@@ -992,7 +992,7 @@ function Dashboard({
                   aria-pressed={selected}
                   disabled={!unlocked}
                   key={contract.id}
-                  onClick={() => onSelectDungeonContract(contract.id)}
+                  onClick={() => onSelectDungeonMaxFloorContract(contract.id)}
                 >
                   <strong>{contract.label}</strong>
                   <span>{unlocked ? (selected ? 'Selected' : 'Select') : 'Locked'}</span>
@@ -1087,6 +1087,34 @@ function ResultsScreen({
           <div><dt>XP</dt><dd>{result.xp}</dd></div>
           <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
         </dl>
+        {!victory ? (
+          <section className="death-combat-log" aria-labelledby="death-combat-log-title">
+            <div className="death-combat-log-heading">
+              <p className="screen-kicker">Final 10 seconds</p>
+              <h3 id="death-combat-log-title">Damage and healing log</h3>
+            </div>
+            {result.playerCombatLog.length > 0 ? (
+              <ol>
+                {result.playerCombatLog.map((entry, index) => (
+                  <li className={`death-combat-log-entry ${entry.kind}`} key={`${entry.time}-${index}`}>
+                    <span className="death-combat-log-time">
+                      {Math.max(0, result.elapsedTime - entry.time).toFixed(1)}s ago
+                    </span>
+                    <span>
+                      {entry.kind === 'damage'
+                        ? `${Math.ceil(entry.amount)} ${entry.damageType ?? 'unknown'} damage`
+                        : `Healed ${Math.ceil(entry.amount)}`}
+                    </span>
+                    <span>{entry.source}</span>
+                    <strong>{Math.ceil(entry.resultingHp)} HP</strong>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="death-combat-log-empty">No damage or healing was recorded before defeat.</p>
+            )}
+          </section>
+        ) : null}
         <section className="essence-receipt" aria-labelledby="essence-receipt-title">
           <div className="essence-receipt-heading">
             <p className="screen-kicker">Run reward</p>

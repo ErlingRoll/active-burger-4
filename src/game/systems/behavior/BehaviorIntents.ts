@@ -143,6 +143,42 @@ function createPickupCandidate(
   }
 }
 
+function createStairsCandidate(
+  state: GameState,
+  speed: number,
+): PlayerMovementCandidate | undefined {
+  const stairs = state.stairs
+  if (!stairs) {
+    return undefined
+  }
+  const distance = Math.sqrt(
+    distanceSquared(state.player.x, state.player.y, stairs.x, stairs.y),
+  )
+  if (distance <= state.player.radius + stairs.radius) {
+    return {
+      source: 'stairs',
+      directionX: 0,
+      directionY: 0,
+      speed: 0,
+      priority: Number.MAX_SAFE_INTEGER,
+      targetId: stairs.id,
+    }
+  }
+  return {
+    source: 'stairs',
+    ...direction(
+      state.player.x,
+      state.player.y,
+      stairs.x,
+      stairs.y,
+      stairs.id,
+    ),
+    speed,
+    priority: Number.MAX_SAFE_INTEGER,
+    targetId: stairs.id,
+  }
+}
+
 function createKiteCandidate(
   state: GameState,
   threats: readonly ThreatEntity[],
@@ -271,6 +307,11 @@ export function getPlayerBehaviorCandidates(
       total + threatScore(entity, threats, policy.thresholds.packRadius),
     0,
   )
+
+  const stairs = createStairsCandidate(state, playerStats.movementSpeed)
+  if (stairs) {
+    return [stairs]
+  }
 
   const candidates: PlayerMovementCandidate[] = []
   const dodge = getPlayerDodgeCandidate(state)

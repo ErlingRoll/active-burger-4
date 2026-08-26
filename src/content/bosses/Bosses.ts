@@ -23,6 +23,9 @@ export interface BossEnrageDefinition {
   movementSpeedPerSecond: number
   damagePerSecond: number
   cooldownReductionPerSecond: number
+  maxMovementSpeedMultiplier: number
+  maxDamageMultiplier: number
+  minCooldownMultiplier: number
 }
 
 export interface BossDefinition {
@@ -48,9 +51,12 @@ export const TARGETED_METEOR_ZONES_SKILL_ID = METEOR_ZONE_SKILL_ID
 export const STONE_GOLEM_BOSS_ID: BossDefinitionId = 'stone-golem'
 export const INFERNO_WARDEN_BOSS_ID: BossDefinitionId = 'inferno-warden'
 export const INFERNO_WARDEN_ENRAGE_DEFINITION: BossEnrageDefinition = {
-  movementSpeedPerSecond: 0.01,
-  damagePerSecond: 0.01,
-  cooldownReductionPerSecond: 0.01,
+  movementSpeedPerSecond: 0.002,
+  damagePerSecond: 0.003,
+  cooldownReductionPerSecond: 0.002,
+  maxMovementSpeedMultiplier: 1.25,
+  maxDamageMultiplier: 1.5,
+  minCooldownMultiplier: 0.75,
 }
 
 export const BOSS_SKILL_DEFINITIONS = {
@@ -60,7 +66,7 @@ export const BOSS_SKILL_DEFINITIONS = {
     description: 'Telegraphs a shockwave around the player before striking.',
     cooldown: 4,
     telegraphDuration: 0.75,
-    damage: 24,
+    damage: 16,
     radius: 100,
   },
   [CHARGE_SKILL_ID]: {
@@ -69,7 +75,7 @@ export const BOSS_SKILL_DEFINITIONS = {
     description: 'Telegraphs a straight-line charge toward the player.',
     cooldown: 5,
     telegraphDuration: 0.5,
-    damage: 30,
+    damage: 20,
     radius: 28,
     range: 360,
   },
@@ -79,7 +85,7 @@ export const BOSS_SKILL_DEFINITIONS = {
     description: 'Telegraphs a radial burst of fire around the Warden.',
     cooldown: 4.5,
     telegraphDuration: 0.8,
-    damage: 42,
+    damage: 20,
     radius: 150,
   },
   [FLAME_LINE_SKILL_ID]: {
@@ -88,7 +94,7 @@ export const BOSS_SKILL_DEFINITIONS = {
     description: 'Telegraphs a searing line of flame toward the player.',
     cooldown: 5.5,
     telegraphDuration: 0.9,
-    damage: 55,
+    damage: 25,
     radius: 34,
     range: 480,
   },
@@ -98,7 +104,7 @@ export const BOSS_SKILL_DEFINITIONS = {
     description: 'Marks the player location for a delayed meteor impact.',
     cooldown: 6,
     telegraphDuration: 0.75,
-    damage: 65,
+    damage: 30,
     radius: 85,
   },
 } as const satisfies Record<BossSkillId, BossSkillDefinition>
@@ -110,7 +116,7 @@ export const BOSS_DEFINITIONS = {
     radius: 42,
     maxHp: 900,
     speed: 26,
-    contactDamage: 18,
+    contactDamage: 12,
     xpReward: 100,
     skills: [GROUND_SLAM_SKILL_ID, CHARGE_SKILL_ID],
   },
@@ -120,7 +126,7 @@ export const BOSS_DEFINITIONS = {
     radius: 48,
     maxHp: 3000,
     speed: 32,
-    contactDamage: 30,
+    contactDamage: 12,
     xpReward: 250,
     skills: [FIRE_NOVA_SKILL_ID, FLAME_LINE_SKILL_ID, METEOR_ZONE_SKILL_ID],
     enrage: INFERNO_WARDEN_ENRAGE_DEFINITION,

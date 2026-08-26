@@ -28,6 +28,7 @@ interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
   onSelect: (choice: UpgradeChoice | GearChoice) => void
+  onSkip: () => void
 }
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
@@ -337,6 +338,7 @@ export function LevelUpOverlay({
   flow,
   equipment,
   onSelect,
+  onSkip,
 }: LevelUpOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
@@ -406,6 +408,13 @@ export function LevelUpOverlay({
                 />
               ))}
         </div>
+        <button
+          className="skip-choice-button"
+          type="button"
+          onClick={onSkip}
+        >
+          Skip
+        </button>
       </div>
     </section>
     </>

@@ -119,6 +119,11 @@ describe('initial gear content', () => {
       ),
     ).toBe(false)
     expect(
+      getAvailableGearModifiersForItem(sword).some(
+        (modifier) => modifier.id === 'melee-leech',
+      ),
+    ).toBe(true)
+    expect(
       getAvailableGearModifiersForItem(bow).some(
         (modifier) => modifier.id === 'increased-projectile-damage',
       ),
@@ -139,6 +144,11 @@ describe('initial gear content', () => {
       ),
     ).toBe(true)
     expect(
+      getAvailableGearModifiersForItem(wand).some(
+        (modifier) => modifier.id === 'melee-leech',
+      ),
+    ).toBe(false)
+    expect(
       getAvailableGearModifiersForItem(helmet).some(
         (modifier) => modifier.id === 'area-of-effect',
       ),
@@ -148,6 +158,45 @@ describe('initial gear content', () => {
         (modifier) => modifier.id === 'projectile-chains',
       ),
     ).toBe(false)
+
+    const swordModifiers = getAvailableGearModifiersForItem(sword)
+    const areaOfEffectIndex = swordModifiers.findIndex(
+      (modifier) => modifier.id === 'area-of-effect',
+    )
+    if (areaOfEffectIndex < 0) {
+      throw new Error('Expected sword modifier pool to include area of effect')
+    }
+    const areaOfEffectWeight = getGearModifierDefinition(
+      'area-of-effect',
+    ).weaponArchetypeRollWeights?.sword
+    expect(areaOfEffectWeight).toBe(4)
+    const weightedAreaOfEffectStart = swordModifiers
+      .slice(0, areaOfEffectIndex)
+      .reduce(
+        (total, modifier) =>
+          total + (modifier.weaponArchetypeRollWeights?.sword ?? 1),
+        0,
+      )
+    const scriptedAreaOfEffectRng = {
+      next: () => 0,
+      chance: () => false,
+      int: (min: number, max: number) => {
+        const totalWeight = swordModifiers.reduce(
+          (total, modifier) =>
+            total + (modifier.weaponArchetypeRollWeights?.sword ?? 1),
+          0,
+        )
+        return min === 0 && max === totalWeight - 1
+          ? weightedAreaOfEffectStart
+          : min
+      },
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    expect(
+      rollGearModifiersForItem(sword, 'common', scriptedAreaOfEffectRng),
+    ).toEqual([
+      expect.objectContaining({ id: 'area-of-effect' }),
+    ])
 
     const bowModifiers = getAvailableGearModifiersForItem(bow)
     const forcedProjectileChainsIndex = bowModifiers.findIndex(
@@ -248,11 +297,11 @@ describe('initial gear content', () => {
 
   it('defines the exact enemy gear-drop tiers', () => {
     expect(GEAR_DROP_CHANCES).toEqual({
-      slime: 0.02,
-      runner: 0.02,
-      archer: 0.04,
-      splitter: 0.04,
-      brute: 0.06,
+      slime: 0.1,
+      runner: 0.1,
+      archer: 0.1,
+      splitter: 0.1,
+      brute: 0.1,
     })
     expect(validateGearDropChances(GEAR_DROP_CHANCES)).toEqual([])
     expect(validateGearPickupBalance(GEAR_PICKUP_BALANCE)).toEqual([])

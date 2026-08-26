@@ -94,6 +94,7 @@ export interface RunHudSnapshot {
   readonly worldModifierRewardMultiplier?: number
   readonly floor: number
   readonly floorProgress: number
+  readonly floorElapsedTime: number
   readonly floorDurationSeconds: number
 }
 
@@ -118,6 +119,10 @@ export interface SkillHudSnapshot {
   /** Damage after flat and increased gear modifiers, before critical strikes and resistance. */
   readonly damage: DamageValues
   readonly damageTypes: readonly DamageType[]
+  /** Cooldown for non-Basic-Attack skills after cooldown reduction. */
+  readonly cooldownSeconds: number | null
+  /** Basic Attack cadence after attack-speed modifiers. */
+  readonly attacksPerSecond: number | null
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
   /** Gear modifiers that affect this skill in the current combat systems. */
@@ -168,7 +173,6 @@ export type EncounterTimelineStatus = 'completed' | 'active' | 'upcoming'
 export interface EncounterTimelineHudSnapshot {
   readonly id: string
   readonly floorNumber: number
-  readonly timeSeconds: number
   readonly name: string
   readonly status: EncounterTimelineStatus
   readonly isFinal: boolean
@@ -522,6 +526,15 @@ function createCharacterStatsSnapshot(
 }
 
 /** Immutable data retained by the results screen after a run ends. */
+export interface PlayerCombatLogSnapshot {
+  readonly time: number
+  readonly kind: 'damage' | 'healing'
+  readonly amount: number
+  readonly source: string
+  readonly resultingHp: number
+  readonly damageType?: DamageType
+}
+
 export interface RunResultSnapshot {
   readonly phase: RunPhase
   readonly elapsedTime: number
@@ -529,6 +542,8 @@ export interface RunResultSnapshot {
   readonly xp: number
   readonly killCount: number
   readonly worldModifierIds: readonly string[]
+  /** Damage and healing applied to the player during the final ten seconds. */
+  readonly playerCombatLog: readonly PlayerCombatLogSnapshot[]
   /** Present only when the completed run ended in a final-boss victory. */
   readonly outcome?: 'victory'
 }
@@ -647,6 +662,8 @@ export function createUiSnapshot(
       tags: Object.freeze([...skillTags]),
       damage: outgoingDamage.damage,
       damageTypes: Object.freeze(damageTypes),
+      cooldownSeconds: isBasicAttack ? null : cooldown,
+      attacksPerSecond: isBasicAttack ? 1 / cooldown : null,
       estimatedSingleTargetDps,
       dpsAssumption: isBasicAttack
         ? basicAttackVariant.kind === 'area'
@@ -689,7 +706,7 @@ export function createUiSnapshot(
       .filter((boss) => boss.hp > 0)
       .sort((left, right) => left.id - right.id)[0]
   const bossDefinitionId = bossState?.bossDefinitionId ?? state.encounter?.bossDefinitionId
-  const boss = bossDefinitionId
+  const boss = bossDefinitionId && encounterStatus !== 'complete'
     ? createBossHudSnapshot(
       bossState,
       bossDefinitionId,
@@ -699,28 +716,33 @@ export function createUiSnapshot(
     : null
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   const floor = state.run.floor ?? 1
+  const floorElapsedTime = Math.min(
+    dungeon.floorDurationSeconds,
+    Math.max(
+      0,
+      state.time - (state.run.floorStartedAt ?? 0),
+    ),
+  )
   const floorProgress = Math.min(
     1,
     Math.max(
       0,
-      (state.time - (floor - 1) * dungeon.floorDurationSeconds) /
+      (state.time - (state.run.floorStartedAt ?? (floor - 1) * dungeon.floorDurationSeconds)) /
         dungeon.floorDurationSeconds,
     ),
   )
   const completedEncounterIds = new Set(state.run.completedEncounterIds ?? [])
-  const encounterTimeline = state.run.dungeonLengthSeconds === undefined ||
-    state.run.dungeonLengthSeconds === dungeon.defaultLengthSeconds
+  const encounterTimeline = state.run.dungeonMaxFloor === undefined ||
+    state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
     ? dungeon.encounterTimeline
     : createDungeonEncounterTimeline(
-      state.run.dungeonLengthSeconds,
-      dungeon.floorDurationSeconds,
+      state.run.dungeonMaxFloor,
     )
   const timeline = encounterTimeline.map((event) =>
     createEncounterTimelineSnapshot(
       event,
       state.encounter?.encounterId,
       completedEncounterIds,
-      dungeon.floorDurationSeconds,
     ),
   )
   const stairs = state.stairs
@@ -809,6 +831,7 @@ export function createUiSnapshot(
   const profile = getBehaviorProfileDefinition(profileId)
   const activeIntent = state.player.behaviorController?.lastCandidate
   const intentLabels: Record<PlayerMovementCandidate['source'], string> = {
+    stairs: 'Take stairs',
     dodge: 'Dodge',
     gear: 'Collect gear',
     xp: 'Collect XP',
@@ -865,6 +888,7 @@ export function createUiSnapshot(
       : {}),
     floor,
     floorProgress,
+    floorElapsedTime,
     floorDurationSeconds: dungeon.floorDurationSeconds,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
@@ -935,6 +959,9 @@ export function createRunResultSnapshot(
     xp: state.player.xp,
     killCount: state.run.killCount,
     worldModifierIds: state.run.worldModifierIds ?? [],
+    playerCombatLog: Object.freeze(
+      (state.run.playerCombatLog ?? []).map((entry) => Object.freeze({ ...entry })),
+    ),
     ...(state.run.phase === 'results' &&
     state.player.hp > 0
       ? { outcome: 'victory' as const }
@@ -947,7 +974,6 @@ function createEncounterTimelineSnapshot(
   event: EncounterDefinition,
   activeEncounterId: string | undefined,
   completedEncounterIds: ReadonlySet<string>,
-  floorDurationSeconds: number,
 ): EncounterTimelineHudSnapshot {
   const status: EncounterTimelineStatus = completedEncounterIds.has(event.id)
     ? 'completed'
@@ -956,10 +982,7 @@ function createEncounterTimelineSnapshot(
       : 'upcoming'
   return Object.freeze({
     id: event.id,
-    floorNumber:
-      event.floorNumber ??
-      Math.floor(event.timeSeconds / floorDurationSeconds) + 1,
-    timeSeconds: event.timeSeconds,
+    floorNumber: event.floorNumber,
     name: getBossDefinition(event.bossDefinitionId).name,
     status,
     isFinal: event.isFinal === true,
