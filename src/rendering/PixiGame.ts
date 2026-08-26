@@ -48,7 +48,7 @@ export class PixiGame {
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
-  private playerView: Graphics | undefined
+  private playerView: PlayerView | undefined
   private host: HTMLElement | undefined
   private cameraScale = PixiGame.MAX_CAMERA_SCALE
   private cameraFocusX = 0
@@ -128,7 +128,7 @@ export class PixiGame {
 
     ground.addChild(this.createGround())
     this.playerView = this.createPlayerPlaceholder()
-    player.addChild(this.playerView)
+    player.addChild(this.playerView.root)
   }
 
   private createGround(): Graphics {
@@ -152,11 +152,15 @@ export class PixiGame {
     return ground
   }
 
-  private createPlayerPlaceholder(): Graphics {
-    return new Graphics()
+  private createPlayerPlaceholder(): PlayerView {
+    const body = new Graphics()
       .circle(0, 0, 24)
       .fill('#3b82f6')
       .stroke({ color: '#bfdbfe', width: 3 })
+    const hpBar = new Graphics()
+    const root = new Container()
+    root.addChild(body, hpBar)
+    return { root, hpBar }
   }
 
   private createEnemyPlaceholder(enemy: {
@@ -207,8 +211,9 @@ export class PixiGame {
       },
     })
     label.anchor.set(0.5, 1)
-    root.addChild(label)
-    return { root, label }
+    const hpBar = new Graphics()
+    root.addChild(hpBar, label)
+    return { root, label, hpBar }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -399,7 +404,17 @@ export class PixiGame {
 
   private renderState(): void {
     const state = this.game.state
-    this.playerView?.position.set(state.player.x, state.player.y)
+    this.playerView?.root.position.set(state.player.x, state.player.y)
+    if (this.playerView) {
+      this.drawHealthBar(
+        this.playerView.hpBar,
+        40,
+        4,
+        -34,
+        state.player.hp,
+        state.player.maxHp,
+      )
+    }
 
     const activeEnemyIds = new Set<EntityId>()
     for (const enemy of state.enemies) {
@@ -418,7 +433,16 @@ export class PixiGame {
         enemy.eliteModifier,
       )
       const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
-      enemyView.label.position.set(0, -(enemy.radius * renderScale + 8))
+      const labelY = -(enemy.radius * renderScale + 16)
+      enemyView.label.position.set(0, labelY)
+      this.drawHealthBar(
+        enemyView.hpBar,
+        Math.max(28, enemy.radius * renderScale * 1.8),
+        4,
+        labelY + 4,
+        enemy.hp,
+        enemy.maxHp,
+      )
     }
 
     for (const [enemyId, enemyView] of this.enemyViews) {
@@ -447,21 +471,16 @@ export class PixiGame {
       const renderScale = 1
       bossView.label.text = getBossDisplayLabel(boss.bossDefinitionId)
       bossView.label.position.set(0, -(boss.radius * renderScale + 30))
-      bossView.hpBar.clear()
       const barWidth = boss.radius * 2.5
-      const barHeight = 7
       const barY = -(boss.radius * renderScale + 22)
-      bossView.hpBar
-        .rect(-barWidth / 2, barY, barWidth, barHeight)
-        .fill({ color: '#450a0a', alpha: 0.9 })
-        .rect(
-          -barWidth / 2,
-          barY,
-          barWidth * Math.max(0, Math.min(1, boss.hp / boss.maxHp)),
-          barHeight,
-        )
-        .fill('#ef4444')
-        .stroke({ color: '#fee2e2', width: 1 })
+      this.drawHealthBar(
+        bossView.hpBar,
+        barWidth,
+        6,
+        barY,
+        boss.hp,
+        boss.maxHp,
+      )
     }
 
     for (const [bossId, bossView] of this.bossViews) {
@@ -619,6 +638,29 @@ export class PixiGame {
     )
   }
 
+  private drawHealthBar(
+    view: Graphics,
+    width: number,
+    height: number,
+    y: number,
+    hp: number,
+    maxHp: number,
+  ): void {
+    const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0
+    view.visible = ratio < 1
+    if (!view.visible) {
+      return
+    }
+
+    view
+      .clear()
+      .rect(-width / 2, y, width, height)
+      .fill({ color: '#450a0a', alpha: 0.9 })
+      .rect(-width / 2, y, width * ratio, height)
+      .fill('#ef4444')
+      .stroke({ color: '#fee2e2', width: 1 })
+  }
+
   private readonly handleWheel = (event: WheelEvent): void => {
     event.preventDefault()
     const scaleChange = Math.exp(
@@ -691,6 +733,12 @@ function applyEnemyRenderScale(
 interface EnemyView {
   root: Container
   label: Text
+  hpBar: Graphics
+}
+
+interface PlayerView {
+  root: Container
+  hpBar: Graphics
 }
 
 interface BossView {
