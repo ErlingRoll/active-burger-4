@@ -55,6 +55,23 @@ test('loads and persists dashboard settings while locking future contracts', asy
   )
 })
 
+test('loads account progression outside the active run', async ({ page }) => {
+  await page.goto('/')
+  await signIn(page)
+  await page.getByRole('button', { name: 'Open Meta Progression' }).click()
+
+  await expect(
+    page.getByRole('heading', { name: 'Essence and unlocks' }),
+  ).toBeVisible()
+  await expect(page.getByText('Dungeon-length unlocks')).toBeVisible()
+  await expect(
+    page.locator('.dashboard-choice strong').filter({
+      hasText: /^default-dungeon-15-minute$/,
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sync pending results' })).toBeVisible()
+})
+
 test('signs in and out with the configured Supabase test account', async ({ page }) => {
   await page.goto('/')
   await signIn(page)

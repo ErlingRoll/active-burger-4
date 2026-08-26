@@ -65,8 +65,8 @@ milestones in order unless an ADR documents an exception.
   dungeon-customization profile, pending results, and migrations.
 - [x] **16. Authentication:** Supabase sign-in/out, durable account state,
   RLS-protected profiles, and no simulation calls.
-- [ ] **17. Meta Progression:** currency, unlocks, result queue, idempotent
-  submission.
+- [x] **17. Meta Progression:** Essence wallet, dungeon-length unlocks, result
+  queue sync, and idempotent submission.
 - [ ] **18. World Modifiers:** selection, difficulty score, reward multiplier.
 - [ ] **19. Characters:** content-driven Knight, Ranger, Necromancer.
 - [ ] **20. Polish:** art, VFX, audio, UX, accessibility, responsive layout.

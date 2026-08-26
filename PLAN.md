@@ -4414,17 +4414,15 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–16 and the deterministic Player Behavior Controller are complete. The
-next planned feature is **Milestone 17 — Meta Progression**:
+Milestones 0–17 and the deterministic Player Behavior Controller are complete. The
+next planned feature is **Milestone 18 — World Modifiers**:
 
 ```text
-meta currency
-unlock definitions
-idempotent pending-result submission
-progression persistence
+modifier selection
+difficulty score
+reward multiplier
 ```
 
-The completed local layer owns versioned settings, a basic profile, future
-dungeon-customization unlocks, and pending results. The authentication layer owns
-session state and an RLS-protected profile. Consume queued results only outside active
-gameplay, preserving the no-network simulation boundary.
+The completed progression layer owns Essence, unlock definitions, idempotent
+queued-result submission, and local dashboard unlock mirroring. World modifiers must
+remain pre-run configuration and preserve the no-network active-simulation boundary.

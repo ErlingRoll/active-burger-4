@@ -44,6 +44,10 @@ export function resolveAuthEnvironment(
 export function createAuthenticationService(
   environment: AuthEnvironment,
 ): AuthenticationService {
+  return createAuthenticationServiceFromClient(getSupabaseClient(environment))
+}
+
+export function getSupabaseClient(environment: AuthEnvironment): SupabaseClient {
   const { supabaseUrl, supabasePublishableKey } = resolveAuthEnvironment(environment)
   const configuration = `${supabaseUrl}\u0000${supabasePublishableKey}`
   const client = browserClientConfiguration === configuration && browserClient
@@ -51,7 +55,7 @@ export function createAuthenticationService(
     : createClient(supabaseUrl, supabasePublishableKey)
   browserClient = client
   browserClientConfiguration = configuration
-  return createAuthenticationServiceFromClient(client)
+  return client
 }
 
 export function createAuthenticationServiceFromClient(

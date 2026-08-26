@@ -9,6 +9,7 @@ import {
   createDexiePersistenceStore,
   createPersistenceRepository,
   type BasicProfileDto,
+  type PendingCompletedRunResultDto,
   type PersistenceRepository,
   type SettingsDto,
   type SettingsPatch,
@@ -20,10 +21,17 @@ import {
   type AuthenticationState,
   type AuthenticationService,
 } from './auth'
+import {
+  createMetaProgressionService,
+  getDungeonLengthContractId,
+  type MetaProgressionService,
+  type MetaProgressionSnapshot,
+} from './meta'
+import { MetaProgressionScreen } from './meta/MetaProgressionScreen'
 import { GameCanvas } from './rendering/GameCanvas'
 import './App.css'
 
-type AppScreen = 'dashboard' | 'gameplay' | 'results'
+type AppScreen = 'dashboard' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 type PendingResultState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -31,8 +39,19 @@ interface PersistenceState {
   loadState: PersistenceLoadState
   settings: SettingsDto | null
   profile: BasicProfileDto | null
-  pendingCount: number
+  pendingResults: PendingCompletedRunResultDto[]
   error: string | null
+}
+
+interface MetaProgressionState {
+  loadState: 'idle' | 'loading' | 'ready' | 'error' | 'unavailable'
+  snapshot: MetaProgressionSnapshot | null
+  error: string | null
+  syncState: 'idle' | 'syncing' | 'saved' | 'error'
+  syncError: string | null
+  purchaseState: 'idle' | 'purchasing' | 'saved' | 'error'
+  purchaseError: string | null
+  activePurchaseUnlockId: string | null
 }
 
 const DEFAULT_CONTRACT = {
@@ -58,6 +77,38 @@ function formatElapsedTime(seconds: number): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unable to access local persistence.'
+}
+
+function createInitialMetaProgressionState(
+  service: MetaProgressionService | null,
+  configurationError: string | null,
+): MetaProgressionState {
+  return service
+    ? {
+        loadState: 'idle',
+        snapshot: null,
+        error: null,
+        syncState: 'idle',
+        syncError: null,
+        purchaseState: 'idle',
+        purchaseError: null,
+        activePurchaseUnlockId: null,
+      }
+    : {
+        loadState: 'unavailable',
+        snapshot: null,
+        error: configurationError ?? 'Meta progression is unavailable.',
+        syncState: 'idle',
+        syncError: null,
+        purchaseState: 'idle',
+        purchaseError: null,
+        activePurchaseUnlockId: null,
+      }
+}
+
+function getContractIdFromMetaDefinition(definition: MetaProgressionSnapshot['definitions'][number]): string | null {
+  const contractId = getDungeonLengthContractId(definition)
+  return contractId
 }
 
 function createInitialAuthenticationState(
@@ -106,10 +157,32 @@ function App() {
       }
     }
   }, [])
+  const metaProgressionService = useMemo(() => {
+    try {
+      return {
+        service: createMetaProgressionService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [])
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
       authenticationService.service,
       authenticationService.configurationError,
+    ),
+  )
+  const [metaProgression, setMetaProgression] = useState<MetaProgressionState>(() =>
+    createInitialMetaProgressionState(
+      metaProgressionService.service,
+      metaProgressionService.configurationError,
     ),
   )
   const [runId, setRunId] = useState(0)
@@ -121,10 +194,12 @@ function App() {
     loadState: 'loading',
     settings: null,
     profile: null,
-    pendingCount: 0,
+    pendingResults: [],
     error: null,
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
+  const [metaLoadAttempt, setMetaLoadAttempt] = useState(0)
+  const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -184,7 +259,7 @@ function App() {
             loadState: 'ready',
             settings,
             profile,
-            pendingCount: pendingResults.length,
+            pendingResults,
             error: null,
           })
         }
@@ -206,6 +281,8 @@ function App() {
 
   const settings = persistence.settings
   const profile = persistence.profile
+  const pendingResults = persistence.pendingResults
+  const pendingCount = pendingResults.length
   const runConfig = useMemo<RunConfig | null>(() => {
     if (!settings || !profile) {
       return null
@@ -253,6 +330,25 @@ function App() {
     [persistSettings],
   )
 
+  const refreshMetaProgression = useCallback((): void => {
+    setMetaProgression((current) => ({
+      ...current,
+      loadState: 'loading',
+      error: null,
+    }))
+    setMetaLoadAttempt((attempt) => attempt + 1)
+  }, [])
+
+  const openMetaProgression = useCallback((): void => {
+    if (authentication.account) {
+      setScreen('meta-progression')
+    }
+  }, [authentication.account])
+
+  const closeMetaProgression = useCallback((): void => {
+    setScreen('dashboard')
+  }, [])
+
   const signIn = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       const service = authenticationService.service
@@ -267,6 +363,7 @@ function App() {
       try {
         const account = await service.signInWithPassword(email, password)
         setAuthentication({ status: 'ready', account, error: null })
+        setMetaLoadAttempt((attempt) => attempt + 1)
         return true
       } catch (error: unknown) {
         setAuthentication({ status: 'error', account: null, error: errorMessage(error) })
@@ -289,6 +386,13 @@ function App() {
     try {
       await service.signOut()
       setAuthentication({ status: 'ready', account: null, error: null })
+      setMetaProgression(createInitialMetaProgressionState(
+        metaProgressionService.service,
+        metaProgressionService.configurationError,
+      ))
+      setMetaLoadAttempt(0)
+      setMetaLoadedAttempt(0)
+      setScreen('dashboard')
       return true
     } catch (error: unknown) {
       setAuthentication((current) => ({
@@ -298,7 +402,11 @@ function App() {
       }))
       return false
     }
-  }, [authenticationService])
+  }, [
+    authenticationService,
+    metaProgressionService.configurationError,
+    metaProgressionService.service,
+  ])
 
   const selectDungeonContract = useCallback(
     (contractId: string): void => {
@@ -345,10 +453,10 @@ function App() {
             phase: runResult.phase === 'defeat' ? 'defeat' : 'results',
           },
         })
-        .then(() => {
+        .then((queuedResult) => {
           setPersistence((current) => ({
             ...current,
-            pendingCount: current.pendingCount + 1,
+            pendingResults: [...current.pendingResults, queuedResult],
           }))
           setPendingResultState('saved')
         })
@@ -360,10 +468,162 @@ function App() {
     [activeRunId, repository, runId],
   )
 
+  const syncPendingResults = useCallback(async (): Promise<void> => {
+    if (!metaProgressionService.service || !authentication.account || screen === 'gameplay') {
+      return
+    }
+    if (pendingResults.length === 0) {
+      setMetaProgression((current) => ({
+        ...current,
+        syncState: 'saved',
+        syncError: null,
+      }))
+      return
+    }
+    setMetaProgression((current) => ({
+      ...current,
+      syncState: 'syncing',
+      syncError: null,
+    }))
+    try {
+      const result = await metaProgressionService.service.syncPendingResults(pendingResults)
+      for (const pendingResult of pendingResults) {
+        await repository.removePendingRunResult(pendingResult.id)
+      }
+      setPersistence((current) => ({
+        ...current,
+        pendingResults: current.pendingResults.filter(
+          (pendingResult) => !pendingResults.some((result) => result.id === pendingResult.id),
+        ),
+      }))
+      setMetaProgression((current) => ({
+        ...current,
+        snapshot: result.snapshot,
+        syncState: 'saved',
+        syncError: null,
+      }))
+    } catch (error: unknown) {
+      setMetaProgression((current) => ({
+        ...current,
+        syncState: 'error',
+        syncError: errorMessage(error),
+      }))
+    }
+  }, [authentication.account, metaProgressionService.service, pendingResults, repository, screen])
+
+  const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
+    if (!metaProgressionService.service || !authentication.account) {
+      return
+    }
+    const snapshot = metaProgression.snapshot
+    if (!snapshot) {
+      return
+    }
+    const definition = snapshot.definitions.find((candidate) => candidate.id === unlockId)
+    if (!definition) {
+      setMetaProgression((current) => ({
+        ...current,
+        purchaseState: 'error',
+        purchaseError: `Unknown unlock definition: ${unlockId}`,
+      }))
+      return
+    }
+    const contractId = getContractIdFromMetaDefinition(definition)
+    if (!contractId) {
+      setMetaProgression((current) => ({
+        ...current,
+        purchaseState: 'error',
+        purchaseError: `Unlock ${unlockId} does not map to a dungeon contract.`,
+      }))
+      return
+    }
+    setMetaProgression((current) => ({
+      ...current,
+      purchaseState: 'purchasing',
+      purchaseError: null,
+      activePurchaseUnlockId: unlockId,
+    }))
+    try {
+      const nextSnapshot = await metaProgressionService.service.purchaseUnlock(unlockId)
+      const nextProfile = await repository.unlockDungeonLength(contractId)
+      setPersistence((current) => ({
+        ...current,
+        profile: nextProfile,
+      }))
+      setMetaProgression((current) => ({
+        ...current,
+        snapshot: nextSnapshot,
+        purchaseState: 'saved',
+        purchaseError: null,
+        activePurchaseUnlockId: null,
+      }))
+    } catch (error: unknown) {
+      setMetaProgression((current) => ({
+        ...current,
+        purchaseState: 'error',
+        purchaseError: errorMessage(error),
+        activePurchaseUnlockId: null,
+      }))
+    }
+  }, [authentication.account, metaProgression.snapshot, metaProgressionService.service, repository])
+
   const returnToDashboard = useCallback((): void => {
     setResult(null)
     setScreen('dashboard')
   }, [])
+
+
+  useEffect(() => {
+    const service = metaProgressionService.service
+    if (!authentication.account) {
+      return
+    }
+    if (!service || screen === 'gameplay') {
+      return
+    }
+    if (metaProgression.loadState === 'ready' && metaProgression.snapshot !== null && metaLoadAttempt === metaLoadedAttempt) {
+      return
+    }
+    let cancelled = false
+    const requestedAttempt = metaLoadAttempt
+    void service.load()
+      .then((snapshot) => {
+        if (!cancelled) {
+          setMetaProgression((current) => ({
+            ...current,
+            loadState: 'ready',
+            snapshot,
+            error: null,
+            syncState: 'idle',
+            syncError: null,
+            purchaseState: 'idle',
+            purchaseError: null,
+            activePurchaseUnlockId: null,
+          }))
+          setMetaLoadedAttempt(requestedAttempt)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMetaProgression((current) => ({
+            ...current,
+            loadState: 'error',
+            error: errorMessage(error),
+          }))
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    authentication.account,
+    metaLoadAttempt,
+    metaLoadedAttempt,
+    metaProgression.loadState,
+    metaProgression.snapshot,
+    metaProgressionService.service,
+    screen,
+  ])
 
   if (persistence.loadState === 'loading') {
     return (
@@ -417,11 +677,12 @@ function App() {
           <Dashboard
             settings={settings}
             profile={profile}
-            pendingCount={persistence.pendingCount}
+            pendingCount={pendingCount}
             writeError={writeError}
             onStart={startRun}
             onSelectBehaviorProfile={selectBehaviorProfile}
             onSelectDungeonContract={selectDungeonContract}
+            onOpenMetaProgression={openMetaProgression}
           />
         ) : (
           <AuthGateway
@@ -430,6 +691,24 @@ function App() {
             onSignOut={signOut}
           />
         )
+      ) : null}
+      {screen === 'meta-progression' && authentication.account ? (
+        <MetaProgressionScreen
+          snapshot={metaProgression.snapshot}
+          profile={profile}
+          pendingCount={pendingCount}
+          loadState={metaProgression.loadState}
+          loadError={metaProgression.error}
+          syncState={metaProgression.syncState}
+          syncError={metaProgression.syncError}
+          purchaseState={metaProgression.purchaseState}
+          purchaseError={metaProgression.purchaseError}
+          activePurchaseUnlockId={metaProgression.activePurchaseUnlockId}
+          onBack={closeMetaProgression}
+          onRefresh={refreshMetaProgression}
+          onSyncPendingResults={() => { void syncPendingResults() }}
+          onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
+        />
       ) : null}
       {screen === 'gameplay' ? (
         <GameCanvas
@@ -492,6 +771,7 @@ interface DashboardProps {
   onStart: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectDungeonContract: (contractId: string) => void
+  onOpenMetaProgression: () => void
 }
 
 function Dashboard({
@@ -502,6 +782,7 @@ function Dashboard({
   onStart,
   onSelectBehaviorProfile,
   onSelectDungeonContract,
+  onOpenMetaProgression,
 }: DashboardProps) {
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
@@ -520,6 +801,9 @@ function Dashboard({
             </span>
           </p>
         ) : null}
+        <button className="secondary-action" type="button" onClick={onOpenMetaProgression}>
+          Open Meta Progression
+        </button>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <fieldset className="dashboard-choice-group">
           <legend>Behavior profile</legend>

@@ -1,6 +1,7 @@
 export {
   createAuthenticationService,
   createAuthenticationServiceFromClient,
+  getSupabaseClient,
   resolveAuthEnvironment,
 } from './AuthService'
 export type {
