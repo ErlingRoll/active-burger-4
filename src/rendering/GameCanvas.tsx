@@ -190,10 +190,6 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
-  const equippedItems = EQUIPMENT_SLOTS.flatMap((slot) => {
-    const item = snapshot.equipment[slot]
-    return item ? [{ item, slot }] : []
-  })
 
   return (
     <section className="gameplay-hud" aria-labelledby="run-status-title">
@@ -307,28 +303,33 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
       </section>
       <section className="equipped-loadout" aria-labelledby="equipped-loadout-title">
         <h3 id="equipped-loadout-title">Loadout</h3>
-        {equippedItems.length === 0 ? (
-          <p className="loadout-empty-state">No gear equipped</p>
-        ) : (
-          <ul className="loadout-list">
-            {equippedItems.map(({ item, slot }) => (
+        <ul className="loadout-list">
+          {EQUIPMENT_SLOTS.map((slot) => {
+            const item = snapshot.equipment[slot]
+            return (
               <li
-                className={`loadout-item rarity-${item.rarity}`}
+                className={`loadout-item${item ? ` rarity-${item.rarity}` : ''}`}
                 data-slot={slot}
                 key={slot}
               >
                 <span className="loadout-slot">{HUD_SLOT_LABELS[slot]}</span>
-                <strong>{item.name}</strong>
-                <span
-                  className="loadout-rarity"
-                  data-rarity={item.rarity}
-                >
-                  {RARITY_VISUALS[item.rarity].icon} {RARITY_VISUALS[item.rarity].label}
-                </span>
+                {item ? (
+                  <>
+                    <strong>{item.name}</strong>
+                    <span
+                      className="loadout-rarity"
+                      data-rarity={item.rarity}
+                    >
+                      {RARITY_VISUALS[item.rarity].icon} {RARITY_VISUALS[item.rarity].label}
+                    </span>
+                  </>
+                ) : (
+                  <span className="loadout-empty">Empty</span>
+                )}
               </li>
-            ))}
-          </ul>
-        )}
+            )
+          })}
+        </ul>
       </section>
     </section>
   )

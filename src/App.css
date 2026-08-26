@@ -183,8 +183,10 @@
 }
 
 .equipped-loadout {
-  flex: 0 1 100%;
-  min-width: 0;
+  position: absolute;
+  top: 5.75rem;
+  left: 1rem;
+  width: min(12rem, calc(100% - 2rem));
   pointer-events: auto;
 }
 
@@ -197,8 +199,8 @@
 }
 
 .loadout-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   margin: 0;
   padding: 0;
@@ -218,10 +220,10 @@
   border-radius: 0.45rem;
 }
 
-.loadout-empty-state {
-  margin: 0;
+.loadout-empty {
   color: #94a3b8;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  font-style: italic;
 }
 
 .loadout-item.rarity-common { border-top-color: #d1d5db; }
@@ -930,9 +932,13 @@
   }
 
   .hud-stats,
-  .skill-hud,
-  .equipped-loadout {
+  .skill-hud {
     flex-basis: 100%;
+  }
+
+  .equipped-loadout {
+    top: 5.25rem;
+    left: 0.75rem;
   }
 
   .development-controls {
