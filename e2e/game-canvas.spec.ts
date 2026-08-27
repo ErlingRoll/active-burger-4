@@ -97,17 +97,13 @@ test('selects and persists a character before starting a run', async ({ page }) 
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-playstyle', 'ranger')
 })
 
-test('shows and dismisses the in-run character guide', async ({ page }) => {
+test('starts a run without showing the in-run character guide', async ({ page }) => {
   await page.goto('/')
   await signIn(page)
   await page.getByRole('button', { name: 'Necromancer' }).click()
   await startRunButton(page).click()
 
-  const guide = page.getByRole('complementary', { name: 'Run guide' })
-  await expect(guide).toContainText('Necromancer')
-  await expect(guide).toContainText('skeleton follows you')
-  await guide.getByRole('button', { name: 'Dismiss run guide' }).click()
-  await expect(guide).toBeHidden()
+  await expect(page.getByRole('complementary', { name: 'Run guide' })).toHaveCount(0)
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-game-phase', 'playing')
 })
 
@@ -230,8 +226,29 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   if (!behaviorBox) {
     throw new Error('Expected behavior HUD to be visible')
   }
-  expect(behaviorBox.x).toBeLessThan(120)
+  const viewport = page.viewportSize()
+  expect(behaviorBox.x).toBeGreaterThan((viewport?.width ?? 1280) / 2)
   expect(behaviorBox.y).toBeGreaterThan(520)
+
+  const characterStats = page.locator('.character-stats')
+  const characterStatsBox = await characterStats.boundingBox()
+  if (!characterStatsBox) {
+    throw new Error('Expected character stats HUD to be visible')
+  }
+  expect(characterStatsBox.x).toBeLessThan(120)
+  expect(characterStatsBox.y + characterStatsBox.height).toBeGreaterThan(
+    (viewport?.height ?? 720) - 40,
+  )
+
+  const statGroups = page.locator('.character-stat-group')
+  await expect(statGroups).toHaveCount(2)
+  const offenceBox = await statGroups.nth(0).boundingBox()
+  const defenceBox = await statGroups.nth(1).boundingBox()
+  if (!offenceBox || !defenceBox) {
+    throw new Error('Expected offence and defence stat columns to be visible')
+  }
+  expect(defenceBox.x).toBeGreaterThan(offenceBox.x)
+
   // The director's first budgeted spawn occurs after roughly one second.
   await page.waitForTimeout(1_200)
   await expect(page.locator('.game-canvas')).toHaveAttribute(

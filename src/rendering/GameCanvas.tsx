@@ -25,10 +25,6 @@ import type { UpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
-import {
-  DEFAULT_PLAYSTYLE_ID,
-  getPlaystyleDefinition,
-} from '../content/playstyles/Playstyles'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
@@ -112,8 +108,6 @@ export function GameCanvas({
     () => import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
   )
-  const [guideDismissed, setGuideDismissed] = useState(false)
-
   useEffect(() => {
     onRunEndRef.current = onRunEnd
   }, [onRunEnd])
@@ -294,13 +288,7 @@ export function GameCanvas({
       {snapshot ? (
         <BehaviorHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
       ) : null}
-      {snapshot && !guideDismissed ? (
-        <RunGuide
-          playstyleId={runConfig?.playstyleId ?? DEFAULT_PLAYSTYLE_ID}
-          onDismiss={() => setGuideDismissed(true)}
-        />
-      ) : null}
-      {import.meta.env.DEV && snapshot && game ? (
+      {snapshot && game ? (
         <DevelopmentMenu
           game={game}
           snapshot={snapshot}
@@ -329,31 +317,6 @@ export function GameCanvas({
         />
       ) : null}
     </div>
-  )
-}
-
-function RunGuide({
-  playstyleId,
-  onDismiss,
-}: {
-  playstyleId: Parameters<typeof getPlaystyleDefinition>[0]
-  onDismiss: () => void
-}) {
-  const playstyle = getPlaystyleDefinition(playstyleId)
-  const special =
-    playstyleId === 'necromancer'
-      ? 'Your skeleton follows you and attacks nearby enemies.'
-      : 'Your skills fire automatically when enemies are in range.'
-  return (
-    <aside className="run-guide" aria-label="Run guide">
-      <div>
-        <strong>{playstyle.name}</strong>
-        <span>{special} Behavior controls movement; choose upgrades when the run pauses.</span>
-      </div>
-      <button type="button" onClick={onDismiss} aria-label="Dismiss run guide">
-        Got it
-      </button>
-    </aside>
   )
 }
 
@@ -733,7 +696,7 @@ function BehaviorHud({
   onOpenBehavior: () => void
 }) {
   return (
-    <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title">
+    <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title" style={{ marginBottom: '5rem' }}>
       <h3 id="behavior-hud-title" className="visually-hidden">
         Behavior
       </h3>
@@ -883,7 +846,7 @@ function DevelopmentMenu({
           id="development-menu"
           aria-labelledby="development-menu-title"
         >
-          <p className="development-kicker">Development-only controls</p>
+          <p className="development-kicker">Developer controls</p>
           <h2 id="development-menu-title">Development Menu</h2>
           <button
             className="debug-spawn-button"

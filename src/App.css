@@ -750,7 +750,7 @@
 
 .behavior-hud {
   position: absolute;
-  left: 1rem;
+  right: 1rem;
   bottom: 1rem;
   z-index: 2;
   width: min(14rem, calc(100% - 2rem));
@@ -759,58 +759,6 @@
 
 .behavior-hud-bottom {
   bottom: 1rem;
-}
-
-.run-guide {
-  position: absolute;
-  bottom: 20%;
-  left: 50%;
-  z-index: 2;
-  display: flex;
-  width: min(28rem, calc(100% - 2rem));
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.8rem;
-  color: #dbeafe;
-  background: rgb(15 23 42 / 92%);
-  border: 1px solid #475569;
-  border-radius: 0.6rem;
-  box-shadow: 0 0.75rem 1.5rem rgb(2 6 23 / 35%);
-  transform: translateX(-50%);
-}
-
-.run-guide div {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.run-guide strong {
-  color: #fef08a;
-}
-
-.run-guide span {
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
-.run-guide button {
-  flex: 0 0 auto;
-  min-height: 2.25rem;
-  padding: 0.45rem 0.65rem;
-  color: #dbeafe;
-  font: inherit;
-  font-weight: 700;
-  background: #1e293b;
-  border: 1px solid #64748b;
-  border-radius: 0.45rem;
-  cursor: pointer;
-}
-
-.run-guide button:hover,
-.run-guide button:focus-visible {
-  border-color: #fef08a;
-  outline: 3px solid rgb(254 240 138 / 35%);
-  outline-offset: 2px;
 }
 
 .behavior-summary {
@@ -982,8 +930,13 @@
 }
 
 .character-stats {
-  width: min(22rem, 100%);
-  margin-top: 0.85rem;
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 2;
+  width: min(34rem, calc(100vw - 18rem));
+  margin-top: 0;
+  pointer-events: auto;
 }
 
 .character-stats h4 {
@@ -996,6 +949,8 @@
 
 .character-stat-groups {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
   gap: 0.65rem;
 }
 
@@ -2097,8 +2052,7 @@
 
   .behavior-hud {
     position: absolute;
-    left: 1rem;
-    right: auto;
+    right: 1rem;
     bottom: 1rem;
     top: auto;
     width: min(14rem, calc(100% - 2rem));
@@ -2136,6 +2090,12 @@
   .behavior-hud {
     top: 11.5rem;
     right: 0.75rem;
+  }
+
+  .character-stats {
+    bottom: 0.75rem;
+    left: 0.75rem;
+    width: min(34rem, calc(100vw - 1.5rem));
   }
 
   .loadout-tooltip {
@@ -2189,9 +2149,6 @@
       grid-template-columns: 1fr;
     }
 
-    .run-guide {
-      width: min(24rem, calc(100% - 1.5rem));
-    }
   }
   }
 
@@ -2410,7 +2367,6 @@
   .floor-hud,
   .choice-hud,
   .stairs-hud,
-  .run-guide,
   .behavior-summary,
   .character-stat-group,
   .loadout-item,
@@ -2465,7 +2421,6 @@
     border-color: rgb(251 146 60 / 55%);
   }
 
-  .run-guide strong,
   .skill-icon,
   .skill-dps span,
   .character-stat-tooltip-applies,
@@ -2473,7 +2428,6 @@
     color: #fbbf24;
   }
 
-  .run-guide button,
   .behavior-close,
   .debug-spawn-button,
   .development-menu-toggle {
@@ -2483,8 +2437,6 @@
     border-radius: 0.25rem;
   }
 
-  .run-guide button:hover,
-  .run-guide button:focus-visible,
   .behavior-summary:hover,
   .behavior-summary:focus-visible,
   .character-stat-button:hover,
