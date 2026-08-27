@@ -46,11 +46,11 @@ describe('elite enemy spawning and rewards', () => {
     expect(hasted?.speed).toBe(105)
     expect(hasted?.radius).toBe(18)
     expect(hasted?.maxHp).toBe(20)
-    expect(hasted?.xpReward).toBe(8)
+    expect(hasted?.xpReward).toBe(6)
     expect(giant?.speed).toBe(60)
     expect(giant?.radius).toBe(27)
     expect(giant?.maxHp).toBe(40)
-    expect(giant?.xpReward).toBe(10)
+    expect(giant?.xpReward).toBe(8)
     expect(normal?.eliteModifier).toBeUndefined()
   })
 
@@ -65,7 +65,7 @@ describe('elite enemy spawning and rewards', () => {
 
     game.update(FIXED_STEP_SECONDS)
 
-    expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toContain(24)
+    expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toContain(20)
     expect(game.state.enemies).toHaveLength(2)
     expect(game.state.enemies.every((enemy) => enemy.eliteModifier === undefined)).toBe(
       true,

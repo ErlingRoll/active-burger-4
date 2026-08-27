@@ -74,7 +74,7 @@ describe('boss encounter timeline', () => {
     expect(game.startBossEncounter()).toBe(false)
     game.resume()
 
-    game.spawnXpPickup({ x: 0, y: 0 }, 10)
+    game.spawnXpPickup({ x: 0, y: 0 }, 12)
     game.update(FIXED_STEP_SECONDS)
     expect(game.phase).toBe('level-up')
     expect(game.startBossEncounter()).toBe(false)

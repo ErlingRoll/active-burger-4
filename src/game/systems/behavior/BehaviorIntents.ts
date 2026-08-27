@@ -214,6 +214,20 @@ function createKiteCandidate(
       policy.thresholds.kiteThreatScore
   const engagementDistance = getDerivedPlayerStats(state.player).attackRange +
     state.player.radius
+  if (
+    nearby.length > 1 &&
+    strongest &&
+    Math.sqrt(
+      distanceSquared(
+        state.player.x,
+        state.player.y,
+        strongest.x,
+        strongest.y,
+      ),
+    ) > engagementDistance
+  ) {
+    return undefined
+  }
   if (isSingleManageableThreat && nearestThreatDistance >= engagementDistance) {
     return undefined
   }
@@ -258,8 +272,9 @@ function createCombatRangeCandidate(
     return undefined
   }
   const attackRange = Math.max(0, getDerivedPlayerStats(state.player).attackRange)
-  // Movement holds the same center-to-center engagement boundary as targeting.
-  const desiredDistance = attackRange + state.player.radius + target.radius
+  // Keep the target inside the center-to-center range used by target resolution
+  // so basic attacks do not lose their target while the player is repositioning.
+  const desiredDistance = attackRange + state.player.radius
   const currentDistance = Math.sqrt(
     distanceSquared(state.player.x, state.player.y, target.x, target.y),
   )

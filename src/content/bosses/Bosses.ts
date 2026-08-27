@@ -117,7 +117,7 @@ export const BOSS_DEFINITIONS = {
     maxHp: 900,
     speed: 26,
     contactDamage: 12,
-    xpReward: 100,
+    xpReward: 80,
     skills: [GROUND_SLAM_SKILL_ID, CHARGE_SKILL_ID],
   },
   [INFERNO_WARDEN_BOSS_ID]: {
@@ -127,7 +127,7 @@ export const BOSS_DEFINITIONS = {
     maxHp: 3000,
     speed: 32,
     contactDamage: 12,
-    xpReward: 250,
+    xpReward: 200,
     skills: [FIRE_NOVA_SKILL_ID, FLAME_LINE_SKILL_ID, METEOR_ZONE_SKILL_ID],
     enrage: INFERNO_WARDEN_ENRAGE_DEFINITION,
   },

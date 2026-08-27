@@ -15,7 +15,7 @@ export const ENEMY_DEFINITIONS = {
     maxHp: 20,
     speed: 60,
     contactDamage: 5,
-    xpReward: 5,
+    xpReward: 4,
     gearDropChance: GEAR_DROP_CHANCES.slime,
     behavior: { kind: 'chase' },
     render: {
@@ -32,7 +32,7 @@ export const ENEMY_DEFINITIONS = {
     maxHp: 10,
     speed: 125,
     contactDamage: 4,
-    xpReward: 6,
+    xpReward: 5,
     gearDropChance: GEAR_DROP_CHANCES.runner,
     behavior: { kind: 'chase' },
     render: {
@@ -49,7 +49,7 @@ export const ENEMY_DEFINITIONS = {
     maxHp: 85,
     speed: 32,
     contactDamage: 10,
-    xpReward: 14,
+    xpReward: 11,
     gearDropChance: GEAR_DROP_CHANCES.brute,
     behavior: { kind: 'chase' },
     render: {
@@ -66,7 +66,7 @@ export const ENEMY_DEFINITIONS = {
     maxHp: 24,
     speed: 48,
     contactDamage: 7,
-    xpReward: 10,
+    xpReward: 8,
     gearDropChance: GEAR_DROP_CHANCES.archer,
     behavior: {
       kind: 'standoff',
@@ -87,7 +87,7 @@ export const ENEMY_DEFINITIONS = {
     maxHp: 42,
     speed: 42,
     contactDamage: 6,
-    xpReward: 12,
+    xpReward: 10,
     gearDropChance: GEAR_DROP_CHANCES.splitter,
     behavior: {
       kind: 'split',

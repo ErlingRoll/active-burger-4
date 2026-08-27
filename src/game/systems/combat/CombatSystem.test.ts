@@ -312,6 +312,21 @@ describe('performBasicAttackIfReady', () => {
     }))).toEqual(initialVelocities)
   })
 
+  it('fires extra wand projectiles from the equipped modifier', () => {
+    const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
+    equipRolledItem(
+      gameState.player,
+      'starcall-wand',
+      'rare',
+      [createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 3, 2)],
+    )
+    gameState.player.targetId = 2
+
+    expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
+    expect(gameState.projectiles).toHaveLength(3)
+    expect(gameState.projectiles.every((value) => value.definitionId === 'basic-attack-orb')).toBe(true)
+  })
+
   it('increases projectile chain range with area of effect', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
     equipRolledItem(

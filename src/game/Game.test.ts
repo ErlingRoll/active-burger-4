@@ -326,7 +326,7 @@ describe('Game', () => {
       maxHp: 20,
       speed: 60,
       contactDamage: 5,
-      xpReward: 5,
+      xpReward: 4,
       targetId: game.state.player.id,
     })
 
@@ -676,7 +676,7 @@ describe('Game', () => {
 
     expect(game.state.enemies).toHaveLength(0)
     expect(game.state.pickups).toHaveLength(2)
-    expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toEqual([5, 5])
+    expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toEqual([4, 4])
     expect(game.state.pickups.map((pickup) => pickup.x)).toEqual([95, 199])
     expect(firstId).not.toBe(secondId)
 

@@ -3,7 +3,7 @@
  *
  * Thresholds are cumulative XP required to reach each level (the first entry
  * is level 1). The deliberately gentle opening curve gives a player a first
- * level after two Slimes, then leaves room for later enemy types to award more
+ * level after three Slimes, then leaves room for later enemy types to award more
  * meaningful amounts.
  */
 export interface XpBalance {
@@ -14,7 +14,7 @@ export interface XpBalance {
 }
 
 const XP_LEVEL_ONE_THRESHOLD = 0
-const XP_LEVEL_TWO_REQUIREMENT = 10
+const XP_LEVEL_TWO_REQUIREMENT = 12
 const XP_LEVEL_REQUIREMENT_GROWTH = 1.22
 const XP_LEVEL_THRESHOLD_TABLE_SIZE = 100
 
@@ -33,7 +33,8 @@ function buildLevelThresholds(maxLevel: number): readonly number[] {
 }
 
 export const XP_BALANCE = {
-  // Level 1 starts at zero XP; later levels grow by roughly 22% each step.
+  // Level 1 starts at zero XP; later levels require roughly 20% more XP than
+  // before while retaining the existing 22% growth between levels.
   levelThresholds: buildLevelThresholds(XP_LEVEL_THRESHOLD_TABLE_SIZE),
   pickupRadius: 8,
   pickupAttractionRadius: 140,

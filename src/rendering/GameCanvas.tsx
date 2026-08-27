@@ -100,6 +100,7 @@ export function GameCanvas({
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
+  const onRunEndRef = useRef(onRunEnd)
   const initialRunConfigRef = useRef<RunConfig>(runConfig ?? { seed: 3 })
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
@@ -112,6 +113,10 @@ export function GameCanvas({
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
   )
   const [guideDismissed, setGuideDismissed] = useState(false)
+
+  useEffect(() => {
+    onRunEndRef.current = onRunEnd
+  }, [onRunEnd])
 
   useEffect(() => {
     const container = containerRef.current
@@ -191,7 +196,7 @@ export function GameCanvas({
         !runEndNotified
       ) {
         runEndNotified = true
-        onRunEnd(game.getRunResultSnapshot())
+        onRunEndRef.current(game.getRunResultSnapshot())
       }
     })
 
@@ -241,7 +246,7 @@ export function GameCanvas({
       choiceFlowKeyRef.current = null
       pixiGame.destroy()
     }
-  }, [onRunEnd])
+  }, [])
 
   const selectChoice = (choice: UpgradeChoice | GearChoice): void => {
     gameRef.current?.selectChoice(choice)

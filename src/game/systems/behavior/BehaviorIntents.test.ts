@@ -210,7 +210,7 @@ describe('data-driven player behavior intents', () => {
   })
 
   it('holds a lone Runner at engagement range instead of kiting out of attack range', () => {
-    const runner = enemy(4, 'runner', 66)
+    const runner = enemy(4, 'runner', 61)
     const state = createState([runner])
     state.player.behaviorController = {
       profileId: 'cautious',
@@ -219,6 +219,20 @@ describe('data-driven player behavior intents', () => {
     const candidates = getPlayerBehaviorCandidates(state)
     expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
     expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('hold')
+  })
+
+  it('closes to a threatening pack before kiting so basic attacks remain available', () => {
+    const state = createState([
+      enemy(7, 'brute', 120),
+      enemy(2, 'brute', 150),
+    ])
+    state.player.behaviorController = {
+      profileId: 'cautious',
+    }
+
+    const candidates = getPlayerBehaviorCandidates(state)
+    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('combat-range')
   })
 
   it('selects distinct profile intents from the same deterministic state', () => {
@@ -247,7 +261,7 @@ describe('data-driven player behavior intents', () => {
     expect(selectedByProfile('cautious')).toBe('kite')
   })
 
-  it('prioritizes safe XP pickups over ordinary combat movement for balanced and cautious profiles', () => {
+  it('prioritizes safe XP pickups over ordinary combat movement for every profile', () => {
     const state = createState(
       [enemy(9, 'slime', 320)],
       [{
@@ -262,7 +276,7 @@ describe('data-driven player behavior intents', () => {
       }],
     )
 
-    for (const profileId of ['balanced', 'cautious'] as const) {
+    for (const profileId of ['balanced', 'aggressive', 'cautious'] as const) {
       state.player.behaviorController = {
         profileId,
         lastCandidate: undefined,

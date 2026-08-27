@@ -83,7 +83,7 @@ describe('headless deterministic scenario regression', () => {
         hp: 140,
         maxHp: 160,
         level: 2,
-        xp: 20,
+        xp: 18,
         attackDamage: 14,
         attackSpeed: 1.2,
         movementSpeed: 90,

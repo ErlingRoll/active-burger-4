@@ -81,7 +81,7 @@ describe('enemy variety behaviors', () => {
     const first = run()
     expect(first).toEqual(run())
     expect(first.kills).toBe(1)
-    expect(first.pickups).toEqual([12])
+    expect(first.pickups).toEqual([10])
     expect(first.enemies).toHaveLength(2)
     expect(first.enemies.map((enemy) => enemy.id)).toEqual([4, 5])
     expect(first.enemies.every((enemy) => enemy.definitionId === 'slime')).toBe(true)

@@ -81,7 +81,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     intentPriorities: {
       dodge: DODGE_PRIORITY,
       gear: 250,
-      xp: 400,
+      xp: 850,
       kite: 100,
       'combat-range': 800,
       hold: 0,
@@ -99,7 +99,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
   cautious: {
     id: 'cautious',
     name: 'Cautious',
-    description: 'Kites earlier around packs and high-threat enemies, even outside skill range.',
+    description: 'Kites earlier around packs and high-threat enemies, closing to attack range when needed.',
     intentPriorities: {
       dodge: DODGE_PRIORITY,
       gear: 700,
