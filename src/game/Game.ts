@@ -75,7 +75,7 @@ import {
   spawnXpPickup,
   updateEnemySpawns,
 } from './systems/spawning/SpawningSystem'
-import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
+import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import type { EliteModifierId } from '../content/enemies/EliteModifiers'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import {

@@ -1,13 +1,13 @@
 import {
-  getEnemyDefinition,
   SLIME_DEFINITION_ID,
-} from '../../../content/enemies/Enemies'
+} from '../../../content/enemies/EnemyConfig'
+import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import {
   getEliteModifierDefinition,
   type EliteModifierId,
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
-import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDrops'
+import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDropConfig'
 import { getItemDefinition } from '../../../content/gear/Items'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {

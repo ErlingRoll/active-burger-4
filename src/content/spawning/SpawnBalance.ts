@@ -4,8 +4,8 @@ import {
   RUNNER_DEFINITION_ID,
   SLIME_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,
-  type EnemyDefinitionId,
-} from '../enemies/Enemies'
+} from '../enemies/EnemyConfig'
+import type { EnemyDefinitionId } from '../enemies/Enemies'
 import type { EliteModifierId } from '../enemies/EliteModifiers'
 
 export interface SpawnEntry {

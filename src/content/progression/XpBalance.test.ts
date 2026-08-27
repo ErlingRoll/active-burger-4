@@ -1,17 +1,36 @@
 import { describe, expect, it } from 'vitest'
 import {
   XP_BALANCE,
+  type XpBalance,
   levelForXp,
   xpRequiredForLevel,
   xpRequiredForNextLevel,
 } from './XpBalance'
 
 describe('XP balance', () => {
-  it('uses cumulative, data-driven early level thresholds', () => {
-    expect(XP_BALANCE.levelThresholds.slice(0, 4)).toEqual([0, 10, 25, 45])
+  it('uses a gently accelerating XP curve', () => {
+    expect(XP_BALANCE.levelThresholds.slice(0, 6)).toEqual([
+      0,
+      10,
+      22,
+      37,
+      55,
+      77,
+    ])
     expect(xpRequiredForLevel(1)).toBe(0)
     expect(xpRequiredForLevel(2)).toBe(10)
-    expect(xpRequiredForNextLevel(2)).toBe(25)
+    expect(xpRequiredForNextLevel(2)).toBe(22)
+    expect(xpRequiredForLevel(10)).toBe(226)
+  })
+
+  it('continues the same growth after a short authored threshold table', () => {
+    const shortBalance: XpBalance = {
+      ...XP_BALANCE,
+      levelThresholds: [0, 10, 22],
+    }
+
+    expect(xpRequiredForLevel(4, shortBalance)).toBe(37)
+    expect(xpRequiredForNextLevel(3, shortBalance)).toBe(37)
   })
 
   it('finds the highest reached level without dropping overflow XP', () => {

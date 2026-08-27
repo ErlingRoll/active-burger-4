@@ -1,7 +1,7 @@
 import {
   ENEMY_DEFINITIONS,
-  type EnemyDefinition,
-} from './enemies/Enemies'
+} from './enemies/EnemyConfig'
+import type { EnemyDefinition } from './enemies/Enemies'
 import {
   ELITE_MODIFIER_DEFINITIONS,
   type EliteModifierDefinition,
@@ -56,9 +56,8 @@ import {
   isStatKey,
   type StatModifier,
 } from './stats/Stats'
+import { GEAR_DROP_CHANCES, GEAR_PICKUP_BALANCE } from './gear/GearDropConfig'
 import {
-  GEAR_DROP_CHANCES,
-  GEAR_PICKUP_BALANCE,
   validateGearDropChances,
   validateGearPickupBalance,
 } from './gear/GearDrops'

@@ -4,7 +4,7 @@ import {
   BRUTE_DEFINITION_ID,
   RUNNER_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,
-} from '../../../content/enemies/Enemies'
+} from '../../../content/enemies/EnemyConfig'
 import { FIXED_STEP_SECONDS, createGame } from '../../Game'
 
 describe('enemy variety behaviors', () => {

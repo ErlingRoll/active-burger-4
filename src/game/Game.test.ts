@@ -8,7 +8,7 @@ import {
   MAX_TIME_SCALE,
   MIN_TIME_SCALE,
 } from './Game'
-import { SLIME_DEFINITION_ID } from '../content/enemies/Enemies'
+import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'

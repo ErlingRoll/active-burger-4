@@ -13,9 +13,28 @@ export interface XpBalance {
   pickupAttractionSpeed: number
 }
 
+const XP_LEVEL_ONE_THRESHOLD = 0
+const XP_LEVEL_TWO_REQUIREMENT = 10
+const XP_LEVEL_REQUIREMENT_GROWTH = 1.22
+const XP_LEVEL_THRESHOLD_TABLE_SIZE = 100
+
+function buildLevelThresholds(maxLevel: number): readonly number[] {
+  const thresholds: number[] = [XP_LEVEL_ONE_THRESHOLD]
+  let cumulativeThreshold = XP_LEVEL_ONE_THRESHOLD
+  let nextRequirement = XP_LEVEL_TWO_REQUIREMENT
+
+  for (let level = 2; level <= maxLevel; level += 1) {
+    cumulativeThreshold += Math.round(nextRequirement)
+    thresholds.push(cumulativeThreshold)
+    nextRequirement *= XP_LEVEL_REQUIREMENT_GROWTH
+  }
+
+  return thresholds
+}
+
 export const XP_BALANCE = {
-  // Level 1 starts at zero XP; level 2 requires 10 total XP.
-  levelThresholds: [0, 10, 25, 45, 70, 100, 135, 175, 220, 270],
+  // Level 1 starts at zero XP; later levels grow by roughly 22% each step.
+  levelThresholds: buildLevelThresholds(XP_LEVEL_THRESHOLD_TABLE_SIZE),
   pickupRadius: 8,
   pickupAttractionRadius: 140,
   pickupAttractionSpeed: 240,
@@ -26,9 +45,8 @@ export const XP_LEVEL_THRESHOLDS = XP_BALANCE.levelThresholds
 /**
  * Returns the cumulative XP needed to reach `level`.
  *
- * The table covers the conservative early-game curve. The linear extension
- * keeps the function total and deterministic until later content adds a more
- * detailed balance table.
+ * The table covers the conservative early-game curve. If later content pushes
+ * past it, the same gentle exponential growth continues deterministically.
  */
 export function xpRequiredForLevel(
   level: number,
@@ -43,9 +61,18 @@ export function xpRequiredForLevel(
   const lastIndex = balance.levelThresholds.length - 1
   const lastThreshold = balance.levelThresholds[lastIndex] ?? 0
   const previousThreshold = balance.levelThresholds[lastIndex - 1] ?? 0
-  const finalStep = Math.max(1, lastThreshold - previousThreshold)
-  const levelsBeyondTable = normalizedLevel - (lastIndex + 1)
-  return lastThreshold + finalStep * (levelsBeyondTable + 1)
+  let threshold = lastThreshold
+  let nextRequirement = Math.max(1, lastThreshold - previousThreshold)
+
+  for (let nextLevel = lastIndex + 2; nextLevel <= normalizedLevel; nextLevel += 1) {
+    nextRequirement = Math.max(
+      1,
+      Math.round(nextRequirement * XP_LEVEL_REQUIREMENT_GROWTH),
+    )
+    threshold += nextRequirement
+  }
+
+  return threshold
 }
 
 export function xpRequiredForNextLevel(

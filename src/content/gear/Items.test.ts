@@ -15,12 +15,14 @@ import {
   rollGearModifiersForItem,
   validateGearModifierDefinitions,
 } from './ModifierPools'
-import { ENEMY_DEFINITIONS } from '../enemies/Enemies'
+import { ENEMY_DEFINITIONS } from '../enemies/EnemyConfig'
 import {
   GEAR_DROP_CHANCES,
+  GEAR_PICKUP_BALANCE,
+} from './GearDropConfig'
+import {
   validateGearDropChances,
   validateGearPickupBalance,
-  GEAR_PICKUP_BALANCE,
 } from './GearDrops'
 
 describe('initial gear content', () => {

@@ -1,5 +1,6 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP } from '../game-config/meta-progression'
 
 export interface MetaWallet {
   essenceBalance: number
@@ -114,14 +115,13 @@ export function getDungeonMaxFloorContractId(
   if (typeof contractId === 'string' && contractId.length > 0) {
     return contractId
   }
-  switch (definition.payload.contractId) {
-    case 'default-dungeon-15-minute':
-      return 'default-dungeon-20-floor'
-    case 'default-dungeon-20-minute':
-      return 'default-dungeon-50-floor'
-    default:
-      return null
-  }
+  const legacyContractId = definition.payload.contractId
+  return typeof legacyContractId === 'string' &&
+    legacyContractId in LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
+    ? LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP[
+        legacyContractId as keyof typeof LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
+      ]
+    : null
 }
 
 function toSnapshot(

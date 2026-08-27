@@ -13,6 +13,7 @@ import {
   type BasicProfileDto,
   type SettingsDto,
 } from './types'
+import { LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP } from '../game-config/meta-progression'
 
 export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
@@ -93,14 +94,9 @@ export function migrateBasicProfile(value: unknown): BasicProfileDto {
 }
 
 function migrateLegacyDungeonContractId(contractId: string): string {
-  switch (contractId) {
-    case 'default-dungeon-10-minute':
-      return DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
-    case 'default-dungeon-15-minute':
-      return 'default-dungeon-20-floor'
-    case 'default-dungeon-20-minute':
-      return 'default-dungeon-50-floor'
-    default:
-      return contractId
-  }
+  return contractId in LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
+    ? LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP[
+        contractId as keyof typeof LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
+      ]
+    : contractId
 }
