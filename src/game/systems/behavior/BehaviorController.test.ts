@@ -75,4 +75,42 @@ describe('behavior controller foundation', () => {
     expect(state.player.x).toBe(0)
     expect(state.player.y).toBe(0)
   })
+
+  it('accelerates quickly from rest instead of snapping to full speed', () => {
+    const state = { player: createInitialPlayerState(1) } as unknown as GameState
+    const step = 1 / 60
+    applyMovementCandidate(state, {
+      source: 'combat-range',
+      directionX: 1,
+      directionY: 0,
+      speed: 90,
+      priority: 1,
+    }, step)
+
+    expect(state.player.movementVelocityX).toBeGreaterThan(0)
+    expect(state.player.movementVelocityX).toBeLessThan(90)
+    expect(state.player.x).toBe(state.player.movementVelocityX! * step)
+  })
+
+  it('smooths a direction reversal while reaching the new direction quickly', () => {
+    const state = { player: createInitialPlayerState(1) } as unknown as GameState
+    const step = 1 / 60
+    const candidate = {
+      source: 'combat-range' as const,
+      directionX: 1,
+      directionY: 0,
+      speed: 90,
+      priority: 1,
+    }
+    for (let index = 0; index < 10; index += 1) {
+      applyMovementCandidate(state, candidate, step)
+    }
+    applyMovementCandidate(state, { ...candidate, directionX: -1 }, step)
+
+    expect(state.player.movementVelocityX).toBeGreaterThan(-90)
+    for (let index = 0; index < 10; index += 1) {
+      applyMovementCandidate(state, { ...candidate, directionX: -1 }, step)
+    }
+    expect(state.player.movementVelocityX).toBeLessThan(0)
+  })
 })

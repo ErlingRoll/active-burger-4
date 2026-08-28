@@ -166,6 +166,10 @@ export interface PlayerState {
 
   radius: number
 
+  /** Current smoothed autonomous movement velocity. */
+  movementVelocityX?: number
+  movementVelocityY?: number
+
   hp: number
   maxHp: number
 

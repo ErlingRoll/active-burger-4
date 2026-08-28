@@ -62,6 +62,8 @@ export function createInitialPlayerState(
     x: 0,
     y: 0,
     radius: 16,
+    movementVelocityX: 0,
+    movementVelocityY: 0,
     hp: maxHp,
     maxHp,
     level: 1,
