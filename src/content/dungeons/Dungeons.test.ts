@@ -15,7 +15,7 @@ describe('default dungeon timeline foundation', () => {
     expect(DEFAULT_DUNGEON_CONFIG.defaultMaxFloor).toBe(
       DEFAULT_DUNGEON_MAX_FLOOR,
     )
-    expect(DEFAULT_DUNGEON_CONFIG.floorDurationSeconds).toBe(120)
+    expect(DEFAULT_DUNGEON_CONFIG.floorDurationSeconds).toBe(60)
     expect(DEFAULT_DUNGEON_CONFIG.bossFloorDurationSeconds).toBe(
       BOSS_FLOOR_EVENT_DURATION_SECONDS,
     )
@@ -70,17 +70,19 @@ describe('default dungeon timeline foundation', () => {
 
   it('uses aggressive early stat scaling with a softer late-floor curve', () => {
     expect(getFloorStatMultiplier(1)).toBe(1)
-    expect(getFloorStatMultiplier(3)).toBe(2)
-    expect(getFloorStatMultiplier(5)).toBe(3)
-    expect(getFloorStatMultiplier(10)).toBeCloseTo(4)
+    expect(getFloorStatMultiplier(3)).toBeCloseTo(1.9)
+    expect(getFloorStatMultiplier(5)).toBeCloseTo(2.8)
+    expect(getFloorStatMultiplier(10)).toBeCloseTo(3.7)
 
     expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 1)).toEqual({
       maxHp: 100,
       contactDamage: 8,
     })
-    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5)).toEqual({
-      maxHp: 300,
-      contactDamage: 16,
+    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5)).toMatchObject({
+      maxHp: 280,
     })
+    expect(
+      scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).contactDamage,
+    ).toBeCloseTo(15.2)
   })
 })
