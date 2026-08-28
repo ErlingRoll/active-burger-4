@@ -640,6 +640,7 @@ export function collectEnemyContactDamage(
       { physical: enemy.contactDamage },
     ))
     enemy.contactCooldownRemaining = ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS
+    enemy.lastMeleeAttackTime = state.time
   }
 
   return events

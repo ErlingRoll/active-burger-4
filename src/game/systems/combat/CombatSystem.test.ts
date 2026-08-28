@@ -799,6 +799,7 @@ describe('collectEnemyContactDamage', () => {
         }),
       }),
     ])
+    expect(gameState.enemies[0]?.lastMeleeAttackTime).toBe(0)
     expect(collectEnemyContactDamage(gameState, 1 / 60)).toEqual([])
 
     expect(collectEnemyContactDamage(gameState, 1)).toEqual([

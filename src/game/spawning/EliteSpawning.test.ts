@@ -4,7 +4,10 @@ import { getGearDropChance } from '../../content/gear/GearDrops'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { Random } from '../random/Random'
 import { SpawnDirector, type SpawnDirectorState } from './SpawnDirector'
-import { getEnemyDisplayLabel } from '../../rendering/PixiGame'
+import {
+  getEnemyDisplayLabel,
+  getEnemyMeleeAttackAnimationProgress,
+} from '../../rendering/PixiGame'
 
 function directorState(time = 0): SpawnDirectorState {
   return {
@@ -101,5 +104,12 @@ describe('elite enemy spawning and rewards', () => {
     expect(getEnemyDisplayLabel('slime')).toBe('Slime')
     expect(getEnemyDisplayLabel('slime', 'hasted')).toBe('Slime · Hasted')
     expect(getEnemyDisplayLabel('brute', 'giant')).toBe('Brute · Giant')
+  })
+
+  it('projects a short melee attack animation window from the attack timestamp', () => {
+    expect(getEnemyMeleeAttackAnimationProgress(10)).toBe(0)
+    expect(getEnemyMeleeAttackAnimationProgress(10.14, 10)).toBeCloseTo(0.5)
+    expect(getEnemyMeleeAttackAnimationProgress(10.3, 10)).toBe(0)
+    expect(getEnemyMeleeAttackAnimationProgress(9.9, 10)).toBe(0)
   })
 })

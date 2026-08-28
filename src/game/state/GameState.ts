@@ -246,6 +246,8 @@ export interface EnemyState {
   contactDamage: number
   /** Seconds until this enemy can deal contact damage again. */
   contactCooldownRemaining?: number
+  /** Simulation time of the most recent contact attack, for rendering feedback. */
+  lastMeleeAttackTime?: number
 
   xpReward: number
 

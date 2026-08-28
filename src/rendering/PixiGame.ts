@@ -32,6 +32,8 @@ import {
 } from '../content/playstyles/Playstyles'
 import { ARENA_BOUNDS } from '../game-config/arena'
 
+const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
+
 export class PixiGame {
   private static readonly MIN_CAMERA_SCALE = 1 / 3
   private static readonly MAX_CAMERA_SCALE = 1
@@ -286,7 +288,7 @@ export class PixiGame {
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
     root.addChild(hpBar, label)
-    return { root, label, hpBar, poisonAura }
+    return { root, body, label, hpBar, poisonAura }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -661,6 +663,24 @@ export class PixiGame {
         enemy.eliteModifier,
       )
       const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
+      const attackProgress = getEnemyMeleeAttackAnimationProgress(
+        state.time,
+        enemy.lastMeleeAttackTime,
+      )
+      const attackIntensity = Math.sin(attackProgress * Math.PI)
+      const target = enemy.targetId === state.player.id
+        ? state.player
+        : state.summons.find((summon) => summon.id === enemy.targetId) ?? state.player
+      const directionX = target.x - enemy.x
+      const directionY = target.y - enemy.y
+      const directionLength = Math.hypot(directionX, directionY)
+      const normalizedDirectionX = directionLength > 0.0001 ? directionX / directionLength : 1
+      const normalizedDirectionY = directionLength > 0.0001 ? directionY / directionLength : 0
+      enemyView.body.position.set(
+        normalizedDirectionX * enemy.radius * 0.38 * attackIntensity,
+        normalizedDirectionY * enemy.radius * 0.38 * attackIntensity,
+      )
+      enemyView.body.scale.set(renderScale * (1 + attackIntensity * 0.14))
       const labelY = -(enemy.radius * renderScale + 16)
       enemyView.label.position.set(0, labelY)
       this.drawHealthBar(
@@ -1103,6 +1123,7 @@ function drawDashedBoundaryEdge(
 
 interface EnemyView {
   root: Container
+  body: Graphics
   label: Text
   hpBar: Graphics
   poisonAura: Graphics
@@ -1145,6 +1166,20 @@ export function getEnemyDisplayLabel(
     return definition.name
   }
   return `${definition.name} · ${getEliteModifierDefinition(eliteModifier).name}`
+}
+
+export function getEnemyMeleeAttackAnimationProgress(
+  currentTime: number,
+  lastMeleeAttackTime?: number,
+): number {
+  if (lastMeleeAttackTime === undefined) {
+    return 0
+  }
+  const elapsed = currentTime - lastMeleeAttackTime
+  if (elapsed < 0 || elapsed >= ENEMY_MELEE_ATTACK_ANIMATION_SECONDS) {
+    return 0
+  }
+  return elapsed / ENEMY_MELEE_ATTACK_ANIMATION_SECONDS
 }
 
 export function getBossDisplayLabel(definitionId: BossState['bossDefinitionId']): string {
