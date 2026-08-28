@@ -586,4 +586,25 @@ describe('collectEnemyContactDamage', () => {
       }),
     ])
   })
+
+  it.each([
+    ['fiery', 'fire'],
+    ['electrocuting', 'lightning'],
+    ['frigid', 'cold'],
+  ] as const)('adds 50%% physical damage as %s damage for %s elites', (
+    eliteModifier,
+    elementalDamageType,
+  ) => {
+    const gameState = state([{
+      ...enemy(2, 34),
+      eliteModifier,
+    }])
+
+    const [event] = collectEnemyContactDamage(gameState, 1 / 60)
+
+    expect(event?.damage).toMatchObject({
+      physical: 5,
+      [elementalDamageType]: 2.5,
+    })
+  })
 })

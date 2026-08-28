@@ -20,7 +20,13 @@ describe('elite enemy spawning and rewards', () => {
       ...SPAWN_BALANCE,
       eliteChance: 1,
       eliteStartTimeSeconds: 0,
-      eliteModifierWeights: { hasted: 0, giant: 1 },
+      eliteModifierWeights: {
+        hasted: 0,
+        giant: 1,
+        fiery: 0,
+        electrocuting: 0,
+        frigid: 0,
+      },
     }
     const first = new SpawnDirector(new Random(11), balance).update(
       directorState(),
@@ -51,6 +57,19 @@ describe('elite enemy spawning and rewards', () => {
     expect(giant?.maxHp).toBe(40)
     expect(giant?.xpReward).toBe(8)
     expect(normal?.eliteModifier).toBeUndefined()
+  })
+
+  it('spawns elemental elite modifiers with their authored identities', () => {
+    const game = createGame({ seed: 14 })
+    game.spawnEnemy('slime', { x: 500, y: 0 }, undefined, 'fiery')
+    game.spawnEnemy('slime', { x: 600, y: 0 }, undefined, 'electrocuting')
+    game.spawnEnemy('slime', { x: 700, y: 0 }, undefined, 'frigid')
+
+    expect(game.state.enemies.map((enemy) => enemy.eliteModifier)).toEqual([
+      'fiery',
+      'electrocuting',
+      'frigid',
+    ])
   })
 
   it('keeps Splitter children ordinary and preserves the authored child XP rule', () => {

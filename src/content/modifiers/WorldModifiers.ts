@@ -129,7 +129,13 @@ export function resolveWorldModifierEffects(
         fastStart ? 30 : Number.POSITIVE_INFINITY,
       ),
       eliteModifierWeights: eliteInvasion
-        ? { hasted: 45, giant: 55 }
+        ? {
+            hasted: 18,
+            giant: 22,
+            fiery: 20,
+            electrocuting: 20,
+            frigid: 20,
+          }
         : baseBalance.eliteModifierWeights,
     },
     fastStartThreatMultiplier: fastStart ? 1.4 : 1,

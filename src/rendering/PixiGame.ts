@@ -257,15 +257,13 @@ export class PixiGame {
     applyEnemyRenderScale(body, definition.render)
 
     const root = new Container()
-    root.addChild(body)
     if (enemy.eliteModifier) {
       const modifier = getEliteModifierDefinition(enemy.eliteModifier)
-      const marker = new Graphics()
-        .circle(0, 0, radius * 1.2)
-        .stroke({ color: modifier.markerColor, width: 4 })
-      applyEnemyRenderScale(marker, definition.render)
-      root.addChild(marker)
+      const aura = createEliteAura(modifier, radius)
+      applyEnemyRenderScale(aura, definition.render)
+      root.addChild(aura)
     }
+    root.addChild(body)
 
     const label = new Text({
       text: getEnemyDisplayLabel(enemy.definitionId, enemy.eliteModifier),
@@ -929,6 +927,75 @@ function applyEnemyRenderScale(
   render: EnemyRenderDefinition,
 ): void {
   view.scale.set(render.scale)
+}
+
+function createEliteAura(
+  modifier: ReturnType<typeof getEliteModifierDefinition>,
+  radius: number,
+): Graphics {
+  const auraRadius = radius * 1.35
+  const aura = new Graphics()
+  aura.circle(0, 0, auraRadius).stroke({
+    color: modifier.markerColor,
+    width: 3,
+    alpha: 0.9,
+  })
+
+  if (modifier.auraStyle === 'flames') {
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (Math.PI * 2 * index) / 8
+      const innerRadius = auraRadius * 0.85
+      const tipRadius = auraRadius * (index % 2 === 0 ? 1.45 : 1.25)
+      const sideAngle = 0.18
+      aura.poly([
+        Math.cos(angle - sideAngle) * innerRadius,
+        Math.sin(angle - sideAngle) * innerRadius,
+        Math.cos(angle) * tipRadius,
+        Math.sin(angle) * tipRadius,
+        Math.cos(angle + sideAngle) * innerRadius,
+        Math.sin(angle + sideAngle) * innerRadius,
+      ]).fill(modifier.markerColor)
+    }
+  } else if (modifier.auraStyle === 'electric') {
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (Math.PI * 2 * index) / 8
+      const directionX = Math.cos(angle)
+      const directionY = Math.sin(angle)
+      const perpendicularX = -directionY
+      const perpendicularY = directionX
+      const innerRadius = auraRadius * 0.8
+      const outerRadius = auraRadius * 1.4
+      const midpointRadius = (innerRadius + outerRadius) / 2
+      aura
+        .moveTo(directionX * innerRadius, directionY * innerRadius)
+        .lineTo(
+          directionX * midpointRadius + perpendicularX * radius * 0.22,
+          directionY * midpointRadius + perpendicularY * radius * 0.22,
+        )
+        .lineTo(directionX * outerRadius, directionY * outerRadius)
+        .stroke({ color: modifier.markerColor, width: 3 })
+    }
+  } else if (modifier.auraStyle === 'frost') {
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6
+      const crystalRadius = auraRadius * 1.35
+      const crystalWidth = radius * 0.28
+      const directionX = Math.cos(angle)
+      const directionY = Math.sin(angle)
+      const perpendicularX = -directionY
+      const perpendicularY = directionX
+      aura.poly([
+        directionX * auraRadius + perpendicularX * crystalWidth,
+        directionY * auraRadius + perpendicularY * crystalWidth,
+        directionX * crystalRadius,
+        directionY * crystalRadius,
+        directionX * auraRadius - perpendicularX * crystalWidth,
+        directionY * auraRadius - perpendicularY * crystalWidth,
+      ]).fill(modifier.markerColor)
+    }
+  }
+
+  return aura
 }
 
 function drawDashedBoundaryEdge(

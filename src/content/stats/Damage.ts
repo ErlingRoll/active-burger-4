@@ -19,6 +19,8 @@ export const ELEMENTAL_DAMAGE_TYPES = [
   'cold',
 ] as const satisfies readonly Extract<DamageType, 'lightning' | 'fire' | 'cold'>[]
 
+export type ElementalDamageType = (typeof ELEMENTAL_DAMAGE_TYPES)[number]
+
 export type DamageValues = { [K in DamageType]: number }
 export type PartialDamageValues = Partial<Record<DamageType, number>>
 

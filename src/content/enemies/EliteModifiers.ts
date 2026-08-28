@@ -1,4 +1,13 @@
-export type EliteModifierId = 'hasted' | 'giant'
+import type { ElementalDamageType } from '../stats/Damage'
+
+export type EliteModifierId =
+  | 'hasted'
+  | 'giant'
+  | 'fiery'
+  | 'electrocuting'
+  | 'frigid'
+
+export type EliteAuraStyle = 'ring' | 'flames' | 'electric' | 'frost'
 
 export interface EliteModifierDefinition {
   id: EliteModifierId
@@ -9,6 +18,9 @@ export interface EliteModifierDefinition {
   xpRewardMultiplier: number
   gearDropChanceMultiplier: number
   markerColor: string
+  auraStyle: EliteAuraStyle
+  extraDamageType?: ElementalDamageType
+  extraPhysicalDamageRatio?: number
 }
 
 /**
@@ -26,6 +38,7 @@ export const ELITE_MODIFIER_DEFINITIONS = {
     xpRewardMultiplier: 1.5,
     gearDropChanceMultiplier: 1.5,
     markerColor: '#facc15',
+    auraStyle: 'ring',
   },
   giant: {
     id: 'giant',
@@ -36,6 +49,46 @@ export const ELITE_MODIFIER_DEFINITIONS = {
     xpRewardMultiplier: 2,
     gearDropChanceMultiplier: 2,
     markerColor: '#fb7185',
+    auraStyle: 'ring',
+  },
+  fiery: {
+    id: 'fiery',
+    name: 'Fiery',
+    speedMultiplier: 1,
+    radiusMultiplier: 1,
+    maxHpMultiplier: 1,
+    xpRewardMultiplier: 1.5,
+    gearDropChanceMultiplier: 1.5,
+    markerColor: '#f97316',
+    auraStyle: 'flames',
+    extraDamageType: 'fire',
+    extraPhysicalDamageRatio: 0.5,
+  },
+  electrocuting: {
+    id: 'electrocuting',
+    name: 'Electrocuting',
+    speedMultiplier: 1,
+    radiusMultiplier: 1,
+    maxHpMultiplier: 1,
+    xpRewardMultiplier: 1.5,
+    gearDropChanceMultiplier: 1.5,
+    markerColor: '#22d3ee',
+    auraStyle: 'electric',
+    extraDamageType: 'lightning',
+    extraPhysicalDamageRatio: 0.5,
+  },
+  frigid: {
+    id: 'frigid',
+    name: 'Frigid',
+    speedMultiplier: 1,
+    radiusMultiplier: 1,
+    maxHpMultiplier: 1,
+    xpRewardMultiplier: 1.5,
+    gearDropChanceMultiplier: 1.5,
+    markerColor: '#93c5fd',
+    auraStyle: 'frost',
+    extraDamageType: 'cold',
+    extraPhysicalDamageRatio: 0.5,
   },
 } as const satisfies Record<EliteModifierId, EliteModifierDefinition>
 

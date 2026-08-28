@@ -83,6 +83,9 @@ export const SPAWN_BALANCE = {
   eliteModifierWeights: {
     hasted: 2,
     giant: 1,
+    fiery: 1,
+    electrocuting: 1,
+    frigid: 1,
   },
 } as const satisfies SpawnBalance
 

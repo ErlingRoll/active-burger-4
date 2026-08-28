@@ -397,10 +397,39 @@ function validateEliteModifiers(
       )
     }
     if (
+      modifier.extraDamageType !== undefined &&
+      !['lightning', 'fire', 'cold'].includes(modifier.extraDamageType)
+    ) {
+      errors.push(
+        `eliteModifiers[${index}].extraDamageType is not supported; received "${String(modifier.extraDamageType)}".`,
+      )
+    }
+    if (modifier.extraPhysicalDamageRatio !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `eliteModifiers[${index}].extraPhysicalDamageRatio`,
+        modifier.extraPhysicalDamageRatio,
+        'non-negative',
+      )
+    }
+    if (
       typeof modifier.markerColor !== 'string' ||
       modifier.markerColor.trim() === ''
     ) {
       errors.push(`eliteModifiers[${index}].markerColor must be a non-empty string.`)
+    }
+    if (!['ring', 'flames', 'electric', 'frost'].includes(modifier.auraStyle)) {
+      errors.push(
+        `eliteModifiers[${index}].auraStyle is not supported; received "${String(modifier.auraStyle)}".`,
+      )
+    }
+    if (
+      (modifier.extraDamageType === undefined) !==
+      (modifier.extraPhysicalDamageRatio === undefined)
+    ) {
+      errors.push(
+        `eliteModifiers[${index}] must define both extraDamageType and extraPhysicalDamageRatio together.`,
+      )
     }
   })
   return modifierIds
