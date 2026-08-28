@@ -19,10 +19,10 @@ describe('default dungeon timeline foundation', () => {
     expect(DEFAULT_DUNGEON_CONFIG.bossFloorDurationSeconds).toBe(
       BOSS_FLOOR_EVENT_DURATION_SECONDS,
     )
-    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(10)
+    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(100)
     expect(
       DEFAULT_DUNGEON_CONFIG.encounterTimeline.map((event) => event.floorNumber),
-    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    ).toEqual(Array.from({ length: 100 }, (_, index) => index + 1))
     expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -43,13 +43,13 @@ describe('default dungeon timeline foundation', () => {
       DEFAULT_DUNGEON_CONFIG.maximumFloorContracts.map(
         (contract) => contract.maxFloor,
       ),
-    ).toEqual([20, 50, 100])
+    ).toEqual([200, 500, 1000])
     const contract = DEFAULT_DUNGEON_CONFIG.maximumFloorContracts[0]!
     expect(isDungeonMaxFloorUnlocked(contract)).toBe(false)
     expect(
       isDungeonMaxFloorUnlocked(contract, new Set([contract.requiredUnlockId])),
     ).toBe(true)
-    expect(resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG)).toBe(10)
+    expect(resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG)).toBe(100)
     expect(() =>
       resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG, contract.id),
     ).toThrow(/requires unlock/)
@@ -60,7 +60,7 @@ describe('default dungeon timeline foundation', () => {
         new Set([contract.requiredUnlockId]),
       ),
     ).toBe(contract.maxFloor)
-    expect(createDungeonEncounterTimeline(contract.maxFloor)).toHaveLength(20)
+    expect(createDungeonEncounterTimeline(contract.maxFloor)).toHaveLength(200)
     expect(createDungeonEncounterTimeline(contract.maxFloor).at(-1)).toMatchObject({
       floorNumber: contract.maxFloor,
       bossDefinitionId: 'inferno-warden',

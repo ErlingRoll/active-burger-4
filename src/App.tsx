@@ -71,7 +71,7 @@ interface RunRewardState {
 const DEFAULT_CONTRACT = {
   id: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   maxFloor: DEFAULT_DUNGEON_CONFIG.defaultMaxFloor,
-  label: '10 floors · Default',
+  label: `${DEFAULT_DUNGEON_CONFIG.defaultMaxFloor} floors · Default`,
 } as const
 
 const DUNGEON_MAX_FLOOR_CONTRACTS = [

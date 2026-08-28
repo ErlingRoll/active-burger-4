@@ -33,7 +33,7 @@ export interface DungeonDefinition {
 }
 
 export const DEFAULT_DUNGEON_ID: DungeonDefinitionId = 'default-dungeon'
-export const DEFAULT_DUNGEON_MAX_FLOOR = 10
+export const DEFAULT_DUNGEON_MAX_FLOOR = 100
 export const DUNGEON_FLOOR_DURATION_SECONDS = 120
 export const BOSS_FLOOR_EVENT_DURATION_SECONDS = 120
 export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.5
@@ -69,17 +69,17 @@ export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
   maximumFloorContracts: [
     {
       id: 'default-dungeon-20-floor',
-      maxFloor: 20,
+      maxFloor: 200,
       requiredUnlockId: 'default-dungeon-20-floor',
     },
     {
       id: 'default-dungeon-50-floor',
-      maxFloor: 50,
+      maxFloor: 500,
       requiredUnlockId: 'default-dungeon-50-floor',
     },
     {
       id: 'default-dungeon-100-floor',
-      maxFloor: 100,
+      maxFloor: 1000,
       requiredUnlockId: 'default-dungeon-100-floor',
     },
   ],

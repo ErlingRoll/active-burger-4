@@ -59,8 +59,8 @@ export function createStoneGolemEncounterTimeline(
 }
 
 export const ENCOUNTER_DEFINITIONS: readonly EncounterDefinition[] = [
-  ...createStoneGolemEncounterTimeline(10),
-  createInfernoWardenEncounter(10),
+  ...createStoneGolemEncounterTimeline(100),
+  createInfernoWardenEncounter(100),
 ]
 
 export function getEncounterDefinition(id: string): EncounterDefinition {

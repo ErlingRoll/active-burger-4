@@ -52,9 +52,9 @@ describe('Game', () => {
       unlockedDungeonMaxFloorIds: [contract.requiredUnlockId],
     })
 
-    expect(game.state.run.dungeonMaxFloor).toBe(20)
+    expect(game.state.run.dungeonMaxFloor).toBe(200)
     expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
-      floorNumber: 20,
+      floorNumber: 200,
       isFinal: true,
     })
   })
@@ -463,8 +463,8 @@ describe('Game', () => {
 
       game.update(FIXED_STEP_SECONDS)
 
-      expect(game.state.stairs).toMatchObject({ floorNumber: 10, isFinal: true })
-      expect(game.state.run.floor).toBe(10)
+      expect(game.state.stairs).toMatchObject({ floorNumber: 100, isFinal: true })
+      expect(game.state.run.floor).toBe(100)
       while (game.phase === 'level-up') {
         const flow = game.getPendingChoiceFlow()
         if (flow?.type === 'level-up') {
@@ -478,7 +478,7 @@ describe('Game', () => {
         game.update(FIXED_STEP_SECONDS)
       }
       expect(game.phase).toBe('results')
-      expect(game.state.run.floor).toBe(10)
+      expect(game.state.run.floor).toBe(100)
   })
 
   it('moves a Slime deterministically toward the player each fixed tick', () => {
