@@ -178,10 +178,12 @@ export interface PlayerState {
   attackSpeed: number
   attackRange: number
   attackCooldownRemaining: number
-  /** Additive fraction of actual melee damage restored as health. */
+  /** Additive fraction of actual gear-based melee damage restored as health. */
   meleeLeech?: number
-  /** Leech earned from level-up upgrades, separate from equipped-item effects. */
-  upgradeMeleeLeech?: number
+  /** Additive fraction of actual Whirlwind damage restored as health. */
+  whirlwindLeech?: number
+  /** Whirlwind leech earned from level-up upgrades. */
+  upgradeWhirlwindLeech?: number
   resistances?: Partial<DamageResistanceValues>
   critChance?: number
   critMultiplier?: number

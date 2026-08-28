@@ -375,13 +375,23 @@ describe('performBasicAttackIfReady', () => {
     expect(gameState.projectiles[0]?.velocityY).toBeGreaterThan(0)
     expect(gameState.projectiles[0]?.targetId).toBe(2)
   })
+
+  it('increases total Basic Attack damage by its percentage skill level bonus', () => {
+    const gameState = state([enemy(2, 120)], { projectiles: [] })
+    gameState.player.skills[0]!.level = 2
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+
+    expect(gameState.projectiles[0]?.damage.physical).toBe(13)
+  })
 })
 
 describe('applyDamageEvents', () => {
   it('restores 2% of actual Whirlwind damage and never exceeds maximum HP', () => {
     const gameState = state([enemy(2, 20)])
     gameState.player.hp = 99
-    gameState.player.meleeLeech = 0.02
+    gameState.player.whirlwindLeech = 0.02
 
     applyDamageEvents(gameState, [{
       sourceId: gameState.player.id,
@@ -398,6 +408,28 @@ describe('applyDamageEvents', () => {
 
     expect(gameState.enemies[0]?.hp).toBe(0)
     expect(gameState.player.hp).toBe(99.4)
+  })
+
+  it('does not apply Whirlwind leech to sword Basic Attack damage', () => {
+    const gameState = state([enemy(2, 20)])
+    gameState.player.hp = 50
+    gameState.player.whirlwindLeech = 0.02
+
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 10,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+      sourceTags: ['physical', 'melee'],
+    }], neverCrit)
+
+    expect(gameState.player.hp).toBe(50)
   })
 
   it('does not restore health for ranged damage', () => {

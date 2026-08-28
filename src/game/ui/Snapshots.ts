@@ -18,6 +18,7 @@ import {
   getBasicAttackVariant,
   getSkillDefinition,
   getSkillDamage,
+  getSkillDamageMultiplier,
   isSkillId,
   type SkillId,
   type SkillTag,
@@ -437,8 +438,17 @@ function createCharacterStatsSnapshot(
       'Melee leech',
       formatUnsignedPercent(playerStats.meleeLeech * 100),
       'Restores life based on actual damage dealt after mitigation.',
-      'Melee-tagged hits only, including Whirlwind and sword Basic Attack.',
+      'Melee-tagged hits other than Whirlwind, including sword Basic Attack.',
     ),
+    ...(playerStats.whirlwindLeech > 0
+      ? [createCharacterStatSnapshot(
+          'whirlwind-leech',
+          'Whirlwind leech',
+          formatUnsignedPercent(playerStats.whirlwindLeech * 100),
+          'Restores life based on actual Whirlwind damage dealt after mitigation.',
+          'Whirlwind hits only.',
+        )]
+      : []),
     createCharacterStatSnapshot(
       'basic-attack-extra-projectiles',
       'Basic Attack extra projectiles',
@@ -603,7 +613,12 @@ export function createUiSnapshot(
     const outgoingDamage = createPlayerDamageProfileFromStats(
       playerStats,
       baseDamage,
-      { isProjectile: skillTags.includes('projectile') },
+      {
+        isProjectile: skillTags.includes('projectile'),
+        damageMultiplier: isBasicAttack
+          ? getSkillDamageMultiplier(definition, skill.level)
+          : undefined,
+      },
     )
     const damage = sumDamageValues(outgoingDamage.damage) *
       getAverageCriticalStrikeFactor(outgoingDamage.criticalStrike)

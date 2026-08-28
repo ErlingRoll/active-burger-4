@@ -13,9 +13,9 @@ export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
   player.statModifiers ??= []
   player.statModifiers.push(...getUpgradeModifiers(definition))
   refreshPlayerDerivedStats(player)
-  if (definition.meleeLeechAmount) {
-    player.upgradeMeleeLeech =
-      (player.upgradeMeleeLeech ?? 0) + definition.meleeLeechAmount
+  if (definition.whirlwindLeechAmount) {
+    player.upgradeWhirlwindLeech =
+      (player.upgradeWhirlwindLeech ?? 0) + definition.whirlwindLeechAmount
     refreshMeleeLeech(player)
   }
 

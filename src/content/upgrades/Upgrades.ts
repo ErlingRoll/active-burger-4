@@ -4,7 +4,6 @@ import type { SkillId } from '../skills/Skills'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 
 export type UpgradeId =
-  | 'damage-boost'
   | 'attack-speed-boost'
   | 'whirlwind-unlock'
   | 'chain-lightning-unlock'
@@ -46,7 +45,7 @@ export interface UpgradeDefinition {
   skillId?: SkillId
   skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
-  meleeLeechAmount?: number
+  whirlwindLeechAmount?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'

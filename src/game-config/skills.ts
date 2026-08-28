@@ -80,7 +80,8 @@ export const SKILL_DEFINITIONS = {
     tags: ['physical', 'projectile'],
     cooldown: 1,
     baseDamage: { physical: 0 },
-    damagePerLevel: { physical: 2 },
+    damagePerLevel: {},
+    damageIncreasePerLevel: 30,
     projectileDefinitionId: BASIC_ATTACK_ORB_DEFINITION_ID,
     effectLifetime: 0.12,
     visual: {

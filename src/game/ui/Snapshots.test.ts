@@ -19,7 +19,7 @@ describe('UI snapshots', () => {
       { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 2, cooldownRemaining: 0 },
     ]
     game.state.run.selectedUpgradeIds.push(
-      'damage-boost',
+      'basic-attack-level',
       'whirlwind-unlock',
     )
 
@@ -46,10 +46,8 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[2]?.dpsAssumption).toContain('Primary target')
 
     const basicUpgrades = snapshot.skills[0]?.upgrades ?? []
-    expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'damage-boost'))
-      .toMatchObject({ relevant: true, status: 'acquired' })
     expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-attack-level'))
-      .toMatchObject({ relevant: true, status: 'available' })
+      .toMatchObject({ relevant: true, status: 'acquired' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
   })

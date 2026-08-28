@@ -7,19 +7,22 @@ import {
 } from './EquipmentState'
 
 describe('equipment melee leech', () => {
-  it('adds Iron Cleaver leech and preserves upgrade leech across replacements', () => {
+  it('tracks gear melee leech separately from Whirlwind upgrade leech', () => {
     const game = createGame({ seed: 71 })
     applyUpgrade(game.state, 'whirlwind-unlock')
     applyUpgrade(game.state, 'whirlwind-leech')
 
     equipItem(game.state.player, 'iron-cleaver')
-    expect(game.state.player.meleeLeech).toBe(0.04)
+    expect(game.state.player.meleeLeech).toBe(0.02)
+    expect(game.state.player.whirlwindLeech).toBe(0.04)
 
     game.state.player.equipment = {}
     refreshMeleeLeech(game.state.player, [])
-    expect(game.state.player.meleeLeech).toBe(0.02)
+    expect(game.state.player.meleeLeech).toBe(0)
+    expect(game.state.player.whirlwindLeech).toBe(0.02)
 
     equipItem(game.state.player, 'iron-cleaver')
-    expect(game.state.player.meleeLeech).toBe(0.04)
+    expect(game.state.player.meleeLeech).toBe(0.02)
+    expect(game.state.player.whirlwindLeech).toBe(0.04)
   })
 })

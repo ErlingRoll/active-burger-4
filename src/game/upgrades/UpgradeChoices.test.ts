@@ -32,7 +32,7 @@ describe('upgrade choice generation', () => {
   it('enables a skill rank choice after its unlock and never offers the unlock twice', () => {
     const game = createGame({ seed: 457 })
     applyUpgrade(game.state, 'whirlwind-unlock')
-    const choices = generateUpgradeChoices(game.state, 6, new Random(1))
+    const choices = generateUpgradeChoices(game.state, 5, new Random(1))
     const ids = choices.map((choice) => choice.upgradeId)
 
     expect(ids).toContain('whirlwind-level')

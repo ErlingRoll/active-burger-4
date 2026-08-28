@@ -45,6 +45,7 @@ export interface SkillDefinition {
   cooldown: number
   baseDamage: PartialDamageValues
   damagePerLevel: PartialDamageValues
+  damageIncreasePerLevel?: number
   radius?: number
   maxRange?: number
   maxTargets?: number

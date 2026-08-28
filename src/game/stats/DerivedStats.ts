@@ -37,6 +37,7 @@ export interface PlayerStats extends StatValues {
   basicAttackExtraProjectiles: number
   projectileChains: number
   meleeLeech: number
+  whirlwindLeech: number
 }
 
 function directPlayerStats(player: Readonly<PlayerState>): StatValues {
@@ -86,6 +87,7 @@ interface AggregatedGearEffects {
   basicAttackExtraProjectiles: number
   projectileChains: number
   meleeLeech: number
+  whirlwindLeech: number
 }
 
 function aggregateGearEffects(
@@ -106,7 +108,11 @@ function aggregateGearEffects(
     areaOfEffect: 0,
     basicAttackExtraProjectiles: 0,
     projectileChains: 0,
-    meleeLeech: Math.max(0, player.upgradeMeleeLeech ?? 0),
+    meleeLeech: 0,
+    whirlwindLeech: Math.max(
+      0,
+      player.upgradeWhirlwindLeech ?? 0,
+    ),
   }
 
   for (const modifier of getItemModifiers(player, itemDefinitions)) {
@@ -167,6 +173,7 @@ function aggregateGearEffects(
 
     if (definition.kind === 'melee-leech') {
       effects.meleeLeech += modifier.value / 100
+      effects.whirlwindLeech += modifier.value / 100
       continue
     }
 
@@ -212,6 +219,7 @@ export function getDerivedPlayerStats(
     basicAttackExtraProjectiles: gearEffects.basicAttackExtraProjectiles,
     projectileChains: gearEffects.projectileChains,
     meleeLeech: gearEffects.meleeLeech,
+    whirlwindLeech: gearEffects.whirlwindLeech,
   }
 }
 
@@ -233,11 +241,14 @@ export function refreshPlayerDerivedStats(
   player.attackSpeed = derived.attackSpeed
   player.attackRange = derived.attackRange
   player.meleeLeech = derived.meleeLeech
+  player.whirlwindLeech = derived.whirlwindLeech
 }
 
 export function refreshMeleeLeech(
   player: PlayerState,
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): void {
-  player.meleeLeech = getDerivedPlayerStats(player, itemDefinitions).meleeLeech
+  const derived = getDerivedPlayerStats(player, itemDefinitions)
+  player.meleeLeech = derived.meleeLeech
+  player.whirlwindLeech = derived.whirlwindLeech
 }

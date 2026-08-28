@@ -9,4 +9,3 @@ gear is very uninteresting if you have a lot of upgrades
 wand extra projectiles still bugged
 add regen as defensive stat. Default 0. Can actually become negative.
 higher spread on multiple projectiles.
-fix scaling. Remove basic attack damage upgrade.

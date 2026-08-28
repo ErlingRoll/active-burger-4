@@ -8,6 +8,7 @@ import {
   applyFlatDamage,
   applyIncreasedDamage,
   createDamageValues,
+  scaleDamageValues,
   type CriticalStrikeStats,
   type DamageValues,
   type PartialDamageValues,
@@ -31,6 +32,7 @@ export interface ResolvedOutgoingDamage {
 export interface PlayerDamageProfileContext {
   isProjectile?: boolean
   sourceTags?: readonly SkillTag[]
+  damageMultiplier?: number
 }
 
 export function createPlayerDamageProfileFromStats(
@@ -42,10 +44,13 @@ export function createPlayerDamageProfileFromStats(
   context: PlayerDamageProfileContext = {},
 ): ResolvedOutgoingDamage {
   return {
-    damage: applyIncreasedDamage(
-      applyFlatDamage(baseDamage, stats.flatDamage),
-      stats.increasedDamage,
-      { isProjectile: context.isProjectile },
+    damage: scaleDamageValues(
+      applyIncreasedDamage(
+        applyFlatDamage(baseDamage, stats.flatDamage),
+        stats.increasedDamage,
+        { isProjectile: context.isProjectile },
+      ),
+      context.damageMultiplier ?? 1,
     ),
     criticalStrike: {
       chance: stats.critChance,

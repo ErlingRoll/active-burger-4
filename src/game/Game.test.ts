@@ -799,14 +799,13 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
 
     const tickAtLevelUp = game.state.tick
-    const damageBefore = game.state.player.attackDamage
+    const offeredUpgradeId = game.getPendingUpgradeChoices()[0]?.upgradeId
+    expect(offeredUpgradeId).toBeDefined()
 
-    expect(game.selectUpgrade('damage-boost')).toBe(true)
+    expect(game.selectUpgrade(offeredUpgradeId!)).toBe(true)
     expect(game.phase).toBe('playing')
     expect(game.getPendingUpgradeChoices()).toEqual([])
-    expect(game.state.player.attackDamage).toBe(damageBefore + 2)
-    expect(game.selectUpgrade('damage-boost')).toBe(false)
-    expect(game.state.player.attackDamage).toBe(damageBefore + 2)
+    expect(game.selectUpgrade(offeredUpgradeId!)).toBe(false)
 
     game.update(FIXED_STEP_SECONDS)
     expect(game.state.tick).toBe(tickAtLevelUp + 1)

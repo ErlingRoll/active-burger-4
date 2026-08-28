@@ -7,7 +7,9 @@ import {
   getBasicAttackVariant,
   getSkillDefinition,
   getSkillDamage,
+  getSkillDamageMultiplier,
   isSkillId,
+  WHIRLWIND_SKILL_ID,
   type SkillTag,
 } from '../../../content/skills/Skills'
 import {
@@ -245,9 +247,10 @@ function createBasicAttackProjectileState(
     variant.projectileDefinitionId ?? skillDefinition.projectileDefinitionId!,
   )
   const toTarget = normalizeVector(target.x - player.x, target.y - player.y)
-  const baseDamage = getSkillDamage(skillDefinition, player.skills.find(
+  const skillLevel = player.skills.find(
     (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
-  )?.level ?? 1)
+  )?.level ?? 1
+  const baseDamage = getSkillDamage(skillDefinition, skillLevel)
   baseDamage.physical += stats.attackDamage
   const outgoingDamage = createPlayerDamageProfileFromStats(
     stats,
@@ -255,6 +258,7 @@ function createBasicAttackProjectileState(
     {
       isProjectile: true,
       sourceTags: [...variant.tags],
+      damageMultiplier: getSkillDamageMultiplier(skillDefinition, skillLevel),
     },
   )
   const extraProjectiles = Math.min(
@@ -344,12 +348,16 @@ function collectSwordBasicAttackDamage(
     variant.swingArcDegrees ?? 100,
     stats.areaOfEffect,
   ) * DEGREES_TO_RADIANS
-  const baseDamage = getSkillDamage(getSkillDefinition(BASIC_ATTACK_SKILL_ID), skill.level)
+  const skillDefinition = getSkillDefinition(BASIC_ATTACK_SKILL_ID)
+  const baseDamage = getSkillDamage(skillDefinition, skill.level)
   baseDamage.physical += stats.attackDamage
   const outgoingDamage = createPlayerDamageProfileFromStats(
     stats,
     baseDamage,
-    { sourceTags: [...variant.tags] },
+    {
+      sourceTags: [...variant.tags],
+      damageMultiplier: getSkillDamageMultiplier(skillDefinition, skill.level),
+    },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]
     .sort((left, right) => left.id - right.id)
@@ -765,7 +773,25 @@ function applyMeleeLeech(
     (isSkillId(event.sourceSkillId)
       ? getSkillDefinition(event.sourceSkillId).tags
       : ([] as readonly SkillTag[]))
-  if (!sourceTags.includes('melee')) {
+  const playerStats = getDerivedPlayerStats(state.player)
+  const meleeLeech = Math.max(
+    playerStats.meleeLeech,
+    state.player.meleeLeech ?? 0,
+  )
+  const whirlwindLeech = Math.max(
+    playerStats.whirlwindLeech,
+    state.player.whirlwindLeech ?? 0,
+    state.player.whirlwindLeech === undefined &&
+      state.player.upgradeWhirlwindLeech === undefined
+      ? state.player.meleeLeech ?? 0
+      : 0,
+  )
+  const leechAmount = event.sourceSkillId === WHIRLWIND_SKILL_ID
+    ? whirlwindLeech
+    : sourceTags.includes('melee')
+      ? meleeLeech
+      : 0
+  if (leechAmount <= 0) {
     return
   }
   const source = isSkillId(event.sourceSkillId)
@@ -773,7 +799,7 @@ function applyMeleeLeech(
     : 'Melee leech'
   healPlayer(
     state,
-    actualDamage * Math.max(0, state.player.meleeLeech ?? 0),
+    actualDamage * leechAmount,
     source,
   )
 }
