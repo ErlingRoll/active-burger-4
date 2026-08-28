@@ -3,6 +3,7 @@ import type {
   GameState,
   PlayerMovementCandidate,
 } from '../../state/GameState'
+import { SpatialHash } from '../../spatial/SpatialHash'
 import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   getBehaviorProfilePolicy,
@@ -147,11 +148,12 @@ function rememberCommitment(
 export function updatePlayerBehavior(
   state: GameState,
   fixedStepSeconds: number,
+  spatialHash?: SpatialHash<GameState['enemies'][number] | NonNullable<GameState['bosses']>[number]>,
 ): PlayerMovementCandidate | undefined {
   const controller = getControllerState(state)
   const candidate = chooseCommittedCandidate(
     controller,
-    getPlayerBehaviorCandidates(state),
+    getPlayerBehaviorCandidates(state, spatialHash),
     fixedStepSeconds,
   )
   controller.lastCandidate = candidate

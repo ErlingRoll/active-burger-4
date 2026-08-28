@@ -82,6 +82,23 @@ export class SpatialHash<T> {
    * consumers, but are not exact collision results.
    */
   queryRadius(x: number, y: number, radius: number): T[] {
+    return this.queryRadiusInternal(x, y, radius, true)
+  }
+
+  /**
+   * Returns the same broad-phase candidates as queryRadius without sorting.
+   * This is useful when callers only need to aggregate or filter results.
+   */
+  queryRadiusUnsorted(x: number, y: number, radius: number): T[] {
+    return this.queryRadiusInternal(x, y, radius, false)
+  }
+
+  private queryRadiusInternal(
+    x: number,
+    y: number,
+    radius: number,
+    sortResults: boolean,
+  ): T[] {
     if (
       !Number.isFinite(x) ||
       !Number.isFinite(y) ||
@@ -92,8 +109,11 @@ export class SpatialHash<T> {
     }
 
     if (radius === Number.POSITIVE_INFINITY) {
-      return [...this.entries.values()]
-        .sort((left, right) => left.id - right.id)
+      const entries = [...this.entries.values()]
+      if (sortResults) {
+        entries.sort((left, right) => left.id - right.id)
+      }
+      return entries
         .map((entry) => entry.value)
     }
 
@@ -115,8 +135,11 @@ export class SpatialHash<T> {
       }
     }
 
-    return [...candidateIds]
-      .sort((left, right) => left - right)
+    const ids = [...candidateIds]
+    if (sortResults) {
+      ids.sort((left, right) => left - right)
+    }
+    return ids
       .map((id) => this.entries.get(id))
       .filter((entry): entry is SpatialEntry<T> => entry !== undefined)
       .map((entry) => entry.value)

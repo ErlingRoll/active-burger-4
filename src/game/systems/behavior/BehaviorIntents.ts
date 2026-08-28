@@ -16,6 +16,8 @@ import {
   type BehaviorProfilePolicy,
   type BehaviorProfileThresholds,
 } from '../../../content/behaviors/BehaviorProfiles'
+import { getEntityThreatScore } from '../../../content/behaviors/ThreatScoring'
+import { SpatialHash } from '../../spatial/SpatialHash'
 
 const BALANCED_POLICY = getBehaviorProfilePolicy(DEFAULT_BEHAVIOR_PROFILE_ID)
 
@@ -49,6 +51,16 @@ function distanceSquared(
   return x * x + y * y
 }
 
+function createThreatSpatialIndex(
+  threats: readonly ThreatEntity[],
+): SpatialHash<ThreatEntity> {
+  const hash = new SpatialHash<ThreatEntity>()
+  for (const threat of threats) {
+    hash.insert(threat.id, threat.x, threat.y, threat.radius, threat)
+  }
+  return hash
+}
+
 function direction(
   fromX: number,
   fromY: number,
@@ -70,12 +82,24 @@ function threatScore(
   entity: ThreatEntity,
   threats: readonly ThreatEntity[],
   packRadius: number,
+  spatialHash?: SpatialHash<ThreatEntity>,
 ): number {
-  return getEntityPackThreatScore(
-    entity,
-    threats,
-    packRadius,
-  )
+  if (spatialHash) {
+    const radiusSquared = Math.max(0, packRadius) ** 2
+    const nearbyPackSize = spatialHash.queryRadiusUnsorted(
+      entity.x,
+      entity.y,
+      Math.max(0, packRadius),
+    ).filter((candidate) => {
+      if (candidate.id === entity.id || candidate.hp <= 0) {
+        return false
+      }
+      return distanceSquared(entity.x, entity.y, candidate.x, candidate.y) <=
+        radiusSquared
+    }).length
+    return getEntityThreatScore(entity, nearbyPackSize)
+  }
+  return getEntityPackThreatScore(entity, threats, packRadius)
 }
 
 function nearestPickup(
@@ -95,24 +119,51 @@ function chooseCombatTarget(
   state: GameState,
   threats: readonly ThreatEntity[],
   thresholds: BehaviorProfileThresholds,
+  threatScores: ReadonlyMap<ThreatEntity, number>,
 ): ThreatEntity | undefined {
   const currentTarget = threats.find((entity) => entity.id === state.player.targetId)
   if (currentTarget) {
     return currentTarget
   }
-  return [...threats]
-    .sort((left, right) => {
-      const scoreOrder =
-        threatScore(right, threats, thresholds.packRadius) -
-        threatScore(left, threats, thresholds.packRadius)
-      if (scoreOrder !== 0) {
-        return scoreOrder
-      }
-      const distanceOrder =
-        distanceSquared(state.player.x, state.player.y, left.x, left.y) -
-        distanceSquared(state.player.x, state.player.y, right.x, right.y)
-      return distanceOrder || left.id - right.id
-    })[0]
+  let selected: ThreatEntity | undefined
+  let selectedScore = Number.NEGATIVE_INFINITY
+  for (const candidate of threats) {
+    const candidateScore = threatScores.get(candidate) ??
+      threatScore(candidate, threats, thresholds.packRadius)
+    if (!selected) {
+      selected = candidate
+      selectedScore = candidateScore
+      continue
+    }
+    if (candidateScore > selectedScore) {
+      selected = candidate
+      selectedScore = candidateScore
+      continue
+    }
+    if (candidateScore !== selectedScore) {
+      continue
+    }
+    const candidateDistance = distanceSquared(
+      state.player.x,
+      state.player.y,
+      candidate.x,
+      candidate.y,
+    )
+    const selectedDistance = distanceSquared(
+      state.player.x,
+      state.player.y,
+      selected.x,
+      selected.y,
+    )
+    if (
+      candidateDistance < selectedDistance ||
+      (candidateDistance === selectedDistance && candidate.id < selected.id)
+    ) {
+      selected = candidate
+      selectedScore = candidateScore
+    }
+  }
+  return selected
 }
 
 function createPickupCandidate(
@@ -185,6 +236,7 @@ function createKiteCandidate(
   speed: number,
   totalThreatScore: number,
   policy: BehaviorProfilePolicy,
+  threatScores: ReadonlyMap<ThreatEntity, number>,
 ): PlayerMovementCandidate | undefined {
   const nearby = threats.filter((entity) => {
     const range = policy.thresholds.threatRadius + entity.radius
@@ -195,7 +247,12 @@ function createKiteCandidate(
     return undefined
   }
 
-  const strongest = chooseCombatTarget(state, nearby, policy.thresholds)
+  const strongest = chooseCombatTarget(
+    state,
+    nearby,
+    policy.thresholds,
+    threatScores,
+  )
   if (totalThreatScore < policy.thresholds.kiteThreatScore) {
     return undefined
   }
@@ -210,7 +267,7 @@ function createKiteCandidate(
   const isSingleManageableThreat = nearby.length === 1 &&
     !nearby[0].eliteModifier &&
     !('bossDefinitionId' in nearby[0]) &&
-    threatScore(nearby[0], threats, policy.thresholds.packRadius) <=
+    (threatScores.get(nearby[0]) ?? 0) <=
       policy.thresholds.kiteThreatScore
   const engagementDistance = getDerivedPlayerStats(state.player).attackRange +
     state.player.radius
@@ -239,7 +296,7 @@ function createKiteCandidate(
     const dy = state.player.y - entity.y
     const length = Math.hypot(dx, dy)
     const weight =
-      threatScore(entity, threats, policy.thresholds.packRadius) /
+      (threatScores.get(entity) ?? 0) /
       Math.max(1, length * length)
     if (length > 0) {
       awayX += dx / length * weight
@@ -306,12 +363,26 @@ function createHoldCandidate(): PlayerMovementCandidate {
  */
 export function getPlayerBehaviorCandidates(
   state: GameState,
+  spatialHash?: SpatialHash<ThreatEntity>,
 ): PlayerMovementCandidate[] {
   const profileId: BehaviorProfileId =
     state.player.behaviorController?.profileId ?? DEFAULT_BEHAVIOR_PROFILE_ID
   const policy = getBehaviorProfilePolicy(profileId)
   const playerStats = getDerivedPlayerStats(state.player)
   const threats = livingThreats(state)
+  const threatSpatialIndex = spatialHash ?? createThreatSpatialIndex(threats)
+  const threatScores = new Map<ThreatEntity, number>()
+  for (const threat of threats) {
+    threatScores.set(
+      threat,
+      threatScore(
+        threat,
+        threats,
+        policy.thresholds.packRadius,
+        threatSpatialIndex,
+      ),
+    )
+  }
   const playerThreats = threats.filter((entity) => {
     const range = policy.thresholds.threatRadius + entity.radius
     return distanceSquared(state.player.x, state.player.y, entity.x, entity.y) <=
@@ -319,7 +390,7 @@ export function getPlayerBehaviorCandidates(
   })
   const totalThreatScore = playerThreats.reduce(
     (total, entity) =>
-      total + threatScore(entity, threats, policy.thresholds.packRadius),
+      total + (threatScores.get(entity) ?? 0),
     0,
   )
 
@@ -389,6 +460,7 @@ export function getPlayerBehaviorCandidates(
     playerStats.movementSpeed,
     totalThreatScore,
     policy,
+    threatScores,
   )
   if (kite) {
     candidates.push({
@@ -397,7 +469,12 @@ export function getPlayerBehaviorCandidates(
     })
   }
 
-  const combatTarget = chooseCombatTarget(state, threats, policy.thresholds)
+  const combatTarget = chooseCombatTarget(
+    state,
+    threats,
+    policy.thresholds,
+    threatScores,
+  )
   const combatRange = createCombatRangeCandidate(
     state,
     combatTarget,

@@ -31,11 +31,11 @@ export const BASIC_ATTACK_VARIANTS = {
   },
   bow: {
     id: 'bow',
-    description: 'Fires arrows in a tight spread toward the current target.',
+    description: 'Fires arrows in a wide spread toward the current target.',
     kind: 'projectile',
     tags: ['physical', 'projectile'],
     projectileDefinitionId: BASIC_ATTACK_ARROW_DEFINITION_ID,
-    spreadDegrees: 8,
+    spreadDegrees: 15,
     maxExtraProjectiles: 4,
     effectLifetime: 0.12,
     visual: {
@@ -51,11 +51,11 @@ export const BASIC_ATTACK_VARIANTS = {
   },
   wand: {
     id: 'wand',
-    description: 'Launches a seeking bolt that curves toward a living target.',
+    description: 'Launches seeking bolts in a wide spread toward a living target.',
     kind: 'projectile',
     tags: ['physical', 'projectile'],
     projectileDefinitionId: BASIC_ATTACK_ORB_DEFINITION_ID,
-    spreadDegrees: 6,
+    spreadDegrees: 30,
     maxExtraProjectiles: 4,
     effectLifetime: 0.12,
     visual: {

@@ -303,6 +303,10 @@ describe('performBasicAttackIfReady', () => {
       y: value.velocityY,
     }))
     expect(initialVelocities.map((value) => Math.sign(value.y))).toEqual([-1, 0, 1])
+    expect(
+      Math.atan2(initialVelocities[2]!.y, initialVelocities[2]!.x) -
+        Math.atan2(initialVelocities[0]!.y, initialVelocities[0]!.x),
+    ).toBeCloseTo((15 * 2 * Math.PI) / 180)
 
     gameState.enemies[0]!.y = 90
     updateProjectiles(gameState, 1 / 60)
@@ -326,6 +330,39 @@ describe('performBasicAttackIfReady', () => {
     expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
     expect(gameState.projectiles).toHaveLength(3)
     expect(gameState.projectiles.every((value) => value.definitionId === 'basic-attack-orb')).toBe(true)
+  })
+
+  it('uses the default Starcall Wand extra-projectile modifier', () => {
+    const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
+    equipItem(gameState.player, 'starcall-wand')
+    gameState.player.targetId = 2
+
+    expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
+    expect(gameState.projectiles).toHaveLength(2)
+    expect(gameState.projectiles.every((value) => value.definitionId === 'basic-attack-orb')).toBe(true)
+  })
+
+  it('keeps multiple wand projectiles visibly separated while homing', () => {
+    const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
+    equipRolledItem(
+      gameState.player,
+      'starcall-wand',
+      'rare',
+      [createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 3, 2)],
+    )
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+    updateProjectiles(gameState, 1 / 60)
+
+    const first = gameState.projectiles[0]
+    const last = gameState.projectiles[2]
+    if (!first || !last) {
+      throw new Error('Expected multiple wand projectiles to be created')
+    }
+    const firstAngle = Math.atan2(first.velocityY, first.velocityX)
+    const lastAngle = Math.atan2(last.velocityY, last.velocityX)
+    expect(lastAngle - firstAngle).toBeGreaterThan((40 * Math.PI) / 180)
   })
 
   it('increases projectile chain range with area of effect', () => {
