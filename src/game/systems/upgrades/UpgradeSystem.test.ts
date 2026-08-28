@@ -4,9 +4,9 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   getSkillDamage,
-  getSkillDamageIncrease,
   getSkillDefinition,
 } from '../../../content/skills/Skills'
+import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
 import { createGame } from '../../Game'
 import { applyUpgrade } from './UpgradeSystem'
 
@@ -28,7 +28,7 @@ describe('skill upgrades', () => {
     expect(game.state.player.attackDamage).toBe(damageBefore)
     const basicAttack = getSkillDefinition(BASIC_ATTACK_SKILL_ID)
     expect(getSkillDamage(basicAttack, 2).physical).toBe(0)
-    expect(getSkillDamageIncrease(basicAttack, 2)).toBe(10)
+    expect(getSkillDamageIncreasePercent(BASIC_ATTACK_SKILL_ID, 2)).toBe(10)
   })
 
   it('adds leech without unlocking or ranking the already-owned Whirlwind skill', () => {

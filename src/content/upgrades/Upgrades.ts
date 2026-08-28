@@ -46,6 +46,8 @@ export interface UpgradeDefinition {
   skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
   whirlwindLeechAmount?: number
+  /** Percentage added to the skill's damage increase pool per rank. */
+  skillDamageIncreasePercent?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
@@ -76,4 +78,16 @@ export function getUpgradeModifiers(
     value: definition.amount,
     sourceId: `upgrade:${definition.id}`,
   }]
+}
+
+export function getSkillDamageIncreasePercent(
+  skillId: SkillId,
+  level: number,
+): number {
+  const levelUpgrade = INITIAL_UPGRADES.find(
+    (upgrade) =>
+      upgrade.skillId === skillId && upgrade.skillAction === 'level',
+  )
+  return Math.max(0, level - 1) *
+    Math.max(0, levelUpgrade?.skillDamageIncreasePercent ?? 0)
 }

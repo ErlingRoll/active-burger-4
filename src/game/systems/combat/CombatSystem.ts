@@ -6,12 +6,12 @@ import {
   BASIC_ATTACK_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
-  getSkillDamageIncrease,
   getSkillDamage,
   isSkillId,
   WHIRLWIND_SKILL_ID,
   type SkillTag,
 } from '../../../content/skills/Skills'
+import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
   isCriticalStrike,
@@ -259,7 +259,10 @@ function createBasicAttackProjectileState(
       isProjectile: true,
       sourceTags: [...variant.tags],
       additionalIncreasedDamage: {
-        global: getSkillDamageIncrease(skillDefinition, skillLevel),
+        global: getSkillDamageIncreasePercent(
+          BASIC_ATTACK_SKILL_ID,
+          skillLevel,
+        ),
       },
     },
   )
@@ -359,7 +362,10 @@ function collectSwordBasicAttackDamage(
     {
       sourceTags: [...variant.tags],
       additionalIncreasedDamage: {
-        global: getSkillDamageIncrease(skillDefinition, skill.level),
+        global: getSkillDamageIncreasePercent(
+          BASIC_ATTACK_SKILL_ID,
+          skill.level,
+        ),
       },
     },
   )

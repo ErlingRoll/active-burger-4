@@ -66,6 +66,22 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
 
+  it('applies skill-specific percentage damage growth without compounding rank bonuses', () => {
+    const game = createGame({ seed: 55 })
+    game.state.player.skills = [
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 2, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 2, cooldownRemaining: 0 },
+    ]
+    game.spawnSlime({ x: 80, y: 0 })
+
+    const events = collectSkillDamage(game.state, allocator)
+
+    expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)?.damage.physical)
+      .toBeCloseTo(8.64)
+    expect(events.find((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)?.damage.lightning)
+      .toBeCloseTo(7.63)
+  })
+
   it('applies flat and increased player damage modifiers to every player skill', () => {
     const game = createGame({ seed: 52 })
     game.state.player.skills = [

@@ -5,6 +5,10 @@ import {
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 
+const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
+const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'whirlwind-leech',
@@ -65,37 +69,40 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'basic-attack-level',
     name: 'Empowered Attack',
-    description: 'Increase Basic Attack damage by 10%.',
+    description: `Increase Basic Attack damage by ${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: '+10% Basic Attack damage',
+    valueLabel: `+${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}% Basic Attack damage`,
     skillId: BASIC_ATTACK_SKILL_ID,
     skillAction: 'level',
+    skillDamageIncreasePercent: BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[BASIC_ATTACK_SKILL_ID] ?? 0) >= 1,
   },
   {
     id: 'whirlwind-level',
     name: 'Sharpened Whirlwind',
-    description: 'Increase Whirlwind damage with a skill rank.',
+    description: `Increase Whirlwind damage by ${WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: '+1 Whirlwind rank',
+    valueLabel: `+${WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT}% Whirlwind damage`,
     skillId: WHIRLWIND_SKILL_ID,
     skillAction: 'level',
+    skillDamageIncreasePercent: WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[WHIRLWIND_SKILL_ID] ?? 0) >= 1,
   },
   {
     id: 'chain-lightning-level',
     name: 'Conductive Lightning',
-    description: 'Increase Chain Lightning damage with a skill rank.',
+    description: `Increase Chain Lightning damage by ${CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: '+1 Chain Lightning rank',
+    valueLabel: `+${CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT}% Chain Lightning damage`,
     skillId: CHAIN_LIGHTNING_SKILL_ID,
     skillAction: 'level',
+    skillDamageIncreasePercent: CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[CHAIN_LIGHTNING_SKILL_ID] ?? 0) >= 1,
   },
 ]

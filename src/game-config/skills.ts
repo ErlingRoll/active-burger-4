@@ -81,7 +81,6 @@ export const SKILL_DEFINITIONS = {
     cooldown: 1,
     baseDamage: { physical: 0 },
     damagePerLevel: {},
-    damageIncreasePerLevel: 10,
     projectileDefinitionId: BASIC_ATTACK_ORB_DEFINITION_ID,
     effectLifetime: 0.12,
     visual: {
@@ -103,7 +102,7 @@ export const SKILL_DEFINITIONS = {
     tags: ['physical', 'melee', 'area'],
     cooldown: 2.5,
     baseDamage: { physical: 8 },
-    damagePerLevel: { physical: 3 },
+    damagePerLevel: {},
     radius: 90,
     effectLifetime: 0.2,
     visual: {
@@ -122,7 +121,7 @@ export const SKILL_DEFINITIONS = {
     tags: ['lightning', 'area'],
     cooldown: 3.5,
     baseDamage: { lightning: 7 },
-    damagePerLevel: { lightning: 2 },
+    damagePerLevel: {},
     maxRange: 260,
     jumpRange: 150,
     maxTargets: 3,

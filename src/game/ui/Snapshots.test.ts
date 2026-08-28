@@ -35,7 +35,7 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
     expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
     expect(snapshot.skills[1]?.estimatedSingleTargetDps).toBeCloseTo(3.36)
-    expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(2.7)
+    expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(2.289)
     expect(snapshot.skills[0]?.attacksPerSecond).toBeCloseTo(1)
     expect(snapshot.skills[0]?.cooldownSeconds).toBeNull()
     expect(snapshot.skills[1]?.cooldownSeconds).toBeCloseTo(2.5)

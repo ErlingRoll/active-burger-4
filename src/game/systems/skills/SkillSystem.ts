@@ -6,6 +6,7 @@ import {
   type SkillId,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
+import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
 import type { EntityIdAllocator } from '../../ids'
 import {
   createPlayerDamageEventFromStats,
@@ -111,7 +112,15 @@ function collectWhirlwindDamage(
       enemy.id,
       skill.skillId,
       damage,
-      { sourceTags: definition.tags },
+      {
+        sourceTags: definition.tags,
+        additionalIncreasedDamage: {
+          global: getSkillDamageIncreasePercent(
+            skill.skillId,
+            skill.level,
+          ),
+        },
+      },
     ))
   }
 
@@ -185,7 +194,15 @@ function collectChainLightningDamage(
       target.id,
       skill.skillId,
       damage,
-      { sourceTags: definition.tags },
+      {
+        sourceTags: definition.tags,
+        additionalIncreasedDamage: {
+          global: getSkillDamageIncreasePercent(
+            skill.skillId,
+            skill.level,
+          ),
+        },
+      },
     ))
     path.push({ x: target.x, y: target.y })
     originX = target.x

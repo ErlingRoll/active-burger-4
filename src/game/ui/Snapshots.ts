@@ -17,12 +17,12 @@ import {
   BASIC_ATTACK_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
-  getSkillDamageIncrease,
   getSkillDamage,
   isSkillId,
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
+import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
   type UpgradeId,
@@ -615,9 +615,9 @@ export function createUiSnapshot(
       baseDamage,
       {
         isProjectile: skillTags.includes('projectile'),
-        additionalIncreasedDamage: isBasicAttack
-          ? { global: getSkillDamageIncrease(definition, skill.level) }
-          : undefined,
+        additionalIncreasedDamage: {
+          global: getSkillDamageIncreasePercent(skill.skillId, skill.level),
+        },
       },
     )
     const damage = sumDamageValues(outgoingDamage.damage) *
