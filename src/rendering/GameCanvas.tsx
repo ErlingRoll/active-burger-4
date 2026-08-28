@@ -53,7 +53,7 @@ const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
 function formatHudModifier(
   modifier: GameUiSnapshot['skills'][number]['gearModifiers'][number],
 ): string {
-  return formatGearModifier(modifier)
+  return formatGearModifier(modifier, { includeTier: false })
 }
 
 function formatCadence(value: number): string {
@@ -530,12 +530,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       </b>
                     </p>
                     <p className="skill-assumption">{skill.dpsAssumption}</p>
-                    {skill.gearModifiers.length > 0 ? (
-                      <section className="skill-gear-modifiers" aria-label="Derived gear modifiers">
-                        <p className="skill-upgrade-heading">Derived gear modifiers</p>
+                    {skill.skillModifiers.length > 0 || skill.gearModifiers.length > 0 ? (
+                      <section className="skill-gear-modifiers" aria-label="Modifiers">
+                        <p className="skill-upgrade-heading">Modifiers</p>
                         <ul className="skill-upgrade-list">
-                          {skill.gearModifiers.map((modifier, index) => (
-                            <li key={`${modifier.sourceId}-${modifier.id}-${index}`}>
+                          {skill.skillModifiers.map((modifier) => (
+                            <li key={`skill-${modifier.id}`}>
+                              <span>{modifier.label}</span>
+                              <b>{modifier.value}</b>
+                            </li>
+                          ))}
+                          {skill.gearModifiers.map((modifier) => (
+                            <li key={`gear-${modifier.id}`}>
                               {formatHudModifier(modifier)}
                             </li>
                           ))}

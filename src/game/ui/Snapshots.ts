@@ -13,6 +13,7 @@ import {
 import type { Rarity } from '../../content/rarity/Rarity'
 import {
   doesGearModifierAffectSkill,
+  sortGearModifiers,
   type GearModifier,
 } from '../../content/gear/ModifierPools'
 import {
@@ -21,6 +22,7 @@ import {
   getSkillDefinition,
   getSkillDamage,
   isSkillId,
+  WHIRLWIND_SKILL_ID,
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
@@ -137,8 +139,10 @@ export interface SkillHudSnapshot {
   readonly attacksPerSecond: number | null
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
-  /** Gear modifiers that affect this skill in the current combat systems. */
-  readonly gearModifiers: readonly GearModifierSnapshot[]
+  /** Effective skill-specific stats, including their global gear contributions. */
+  readonly skillModifiers: readonly SkillModifierSummarySnapshot[]
+  /** Summed gear modifiers that affect this skill in the current combat systems. */
+  readonly gearModifiers: readonly GearModifierSummarySnapshot[]
   readonly upgrades: readonly SkillUpgradeSnapshot[]
 }
 
@@ -317,6 +321,148 @@ export interface GearModifierSnapshot {
   readonly sourceId: string
 }
 
+export interface GearModifierSummarySnapshot {
+  readonly id: GearModifier['id']
+  readonly value: number
+}
+
+export type SkillModifierSummaryId =
+  | 'attack-damage'
+  | 'attack-speed'
+  | 'attack-range'
+  | 'cooldown-reduction'
+  | 'area-of-effect'
+  | 'melee-leech'
+  | 'whirlwind-leech'
+  | 'basic-attack-extra-projectiles'
+
+export interface SkillModifierSummarySnapshot {
+  readonly id: SkillModifierSummaryId
+  readonly label: string
+  readonly value: string
+}
+
+function summarizeGearModifiers(
+  modifiers: readonly GearModifier[],
+): readonly GearModifierSummarySnapshot[] {
+  const summaries = new Map<GearModifier['id'], GearModifierSummarySnapshot>()
+  for (const modifier of modifiers) {
+    const existing = summaries.get(modifier.id)
+    summaries.set(modifier.id, {
+      id: modifier.id,
+      value: (existing?.value ?? 0) + modifier.value,
+    })
+  }
+  return Object.freeze(
+    sortGearModifiers([...summaries.values()]).map(({ id, value }) =>
+      Object.freeze({ id, value }),
+    ),
+  )
+}
+
+function createSkillModifierSummary(
+  id: SkillModifierSummaryId,
+  label: string,
+  value: string,
+): SkillModifierSummarySnapshot {
+  return Object.freeze({ id, label, value })
+}
+
+function getSkillModifierSummaries(
+  playerStats: ReturnType<typeof getDerivedPlayerStats>,
+  skillId: SkillId,
+  skillTags: readonly SkillTag[],
+  supportsAreaOfEffect: boolean,
+): readonly SkillModifierSummarySnapshot[] {
+  const summaries: SkillModifierSummarySnapshot[] = []
+  const addSummary = (
+    id: SkillModifierSummaryId,
+    label: string,
+    value: number,
+    formattedValue: string,
+  ): void => {
+    if (Number.isFinite(value)) {
+      summaries.push(createSkillModifierSummary(id, label, formattedValue))
+    }
+  }
+
+  if (skillId === BASIC_ATTACK_SKILL_ID) {
+    addSummary(
+      'attack-damage',
+      'Attack damage',
+      playerStats.attackDamage,
+      formatStatNumber(playerStats.attackDamage),
+    )
+    addSummary(
+      'attack-speed',
+      'Attack speed',
+      playerStats.attackSpeed,
+      `${formatStatNumber(playerStats.attackSpeed)} atk/s`,
+    )
+    addSummary(
+      'attack-range',
+      'Attack range',
+      playerStats.attackRange,
+      formatStatNumber(playerStats.attackRange),
+    )
+    if (
+      skillTags.includes('projectile') &&
+      playerStats.basicAttackExtraProjectiles > 0
+    ) {
+      addSummary(
+        'basic-attack-extra-projectiles',
+        'Extra projectiles',
+        playerStats.basicAttackExtraProjectiles,
+        formatStatNumber(playerStats.basicAttackExtraProjectiles),
+      )
+    }
+    if (skillTags.includes('melee') && playerStats.meleeLeech > 0) {
+      addSummary(
+        'melee-leech',
+        'Melee leech',
+        playerStats.meleeLeech,
+        formatUnsignedPercent(playerStats.meleeLeech * 100),
+      )
+    }
+  } else {
+    if (playerStats.cooldownReduction > 0) {
+      addSummary(
+        'cooldown-reduction',
+        'Cooldown reduction',
+        playerStats.cooldownReduction,
+        formatUnsignedPercent(playerStats.cooldownReduction),
+      )
+    }
+    if (supportsAreaOfEffect && playerStats.areaOfEffect > 0) {
+      addSummary(
+        'area-of-effect',
+        'Area of effect',
+        playerStats.areaOfEffect,
+        formatUnsignedPercent(playerStats.areaOfEffect),
+      )
+    }
+    if (skillId === WHIRLWIND_SKILL_ID && playerStats.whirlwindLeech > 0) {
+      addSummary(
+        'whirlwind-leech',
+        'Whirlwind leech',
+        playerStats.whirlwindLeech,
+        formatUnsignedPercent(playerStats.whirlwindLeech * 100),
+      )
+    }
+  }
+
+  return Object.freeze(summaries)
+}
+
+const SKILL_SUMMARIZED_GEAR_MODIFIER_IDS = new Set<GearModifier['id']>([
+  'attack-speed',
+  'attack-range',
+  'cooldown-reduction',
+  'area-of-effect',
+  'melee-leech',
+  'basic-attack-extra-projectiles',
+])
+
 const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
   physical: 'Physical damage',
   lightning: 'Lightning damage',
@@ -451,27 +597,6 @@ function createCharacterStatsSnapshot(
     : 'Whirlwind, sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
   const offenceStats = [
     createCharacterStatSnapshot(
-      'attack-damage',
-      'Attack damage',
-      formatStatNumber(playerStats.attackDamage),
-      'Adds flat physical damage to Basic Attack before increased damage and critical strikes.',
-      'Basic Attack only.',
-    ),
-    createCharacterStatSnapshot(
-      'attack-speed',
-      'Attack speed',
-      `${formatStatNumber(playerStats.attackSpeed)} atk/s`,
-      'Controls Basic Attack cadence. Higher values reduce the time between Basic Attacks.',
-      'Basic Attack only.',
-    ),
-    createCharacterStatSnapshot(
-      'attack-range',
-      'Attack range',
-      formatStatNumber(playerStats.attackRange),
-      'Extends how far Basic Attack can engage targets. Sword Basic Attack also uses it as swing reach.',
-      'Basic Attack targeting and reach.',
-    ),
-    createCharacterStatSnapshot(
       'cooldown-reduction',
       'Cooldown reduction',
       formatUnsignedPercent(playerStats.cooldownReduction),
@@ -498,29 +623,6 @@ function createCharacterStatsSnapshot(
       formatUnsignedPercent(playerStats.critMultiplier),
       'Determines how much damage a critical strike deals.',
       'All player critical strikes.',
-    ),
-    createCharacterStatSnapshot(
-      'melee-leech',
-      'Melee leech',
-      formatUnsignedPercent(playerStats.meleeLeech * 100),
-      'Restores life based on actual damage dealt after mitigation.',
-      'Melee-tagged hits other than Whirlwind, including sword Basic Attack.',
-    ),
-    ...(playerStats.whirlwindLeech > 0
-      ? [createCharacterStatSnapshot(
-          'whirlwind-leech',
-          'Whirlwind leech',
-          formatUnsignedPercent(playerStats.whirlwindLeech * 100),
-          'Restores life based on actual Whirlwind damage dealt after mitigation.',
-          'Whirlwind hits only.',
-        )]
-      : []),
-    createCharacterStatSnapshot(
-      'basic-attack-extra-projectiles',
-      'Basic Attack extra projectiles',
-      formatStatNumber(playerStats.basicAttackExtraProjectiles),
-      'Adds extra arrows or bolts to projectile Basic Attack variants, up to that weapon variant’s cap.',
-      `Projectile-tagged Basic Attack variants only. ${projectileVariantNote}`,
     ),
     createCharacterStatSnapshot(
       'projectile-chains',
@@ -699,7 +801,13 @@ export function createUiSnapshot(
       Number.isFinite(cooldown) && cooldown > 0
         ? damage / cooldown
         : null
-    const gearModifiers = EQUIPMENT_SLOTS.flatMap((slot) => {
+    const skillModifiers = getSkillModifierSummaries(
+      playerStats,
+      skill.skillId,
+      skillTags,
+      supportsAreaOfEffect,
+    )
+    const gearModifiers = summarizeGearModifiers(EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]
       if (!equipped) {
         return []
@@ -714,8 +822,9 @@ export function createUiSnapshot(
             supportsAreaOfEffect,
           },
         ))
+        .filter((modifier) => !SKILL_SUMMARIZED_GEAR_MODIFIER_IDS.has(modifier.id))
         .map((modifier) => Object.freeze({ ...modifier }))
-    })
+    }))
     const upgrades = INITIAL_UPGRADES
       .filter(
         (upgrade) =>
@@ -761,6 +870,7 @@ export function createUiSnapshot(
         : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',
+      skillModifiers,
       gearModifiers: Object.freeze(gearModifiers),
       upgrades: Object.freeze(upgrades),
     })]

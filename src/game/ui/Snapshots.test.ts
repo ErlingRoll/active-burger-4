@@ -228,6 +228,7 @@ describe('UI snapshots', () => {
       [
         createGearModifier('hunters-bow', 'increased-projectile-damage', 4, 14),
         createGearModifier('hunters-bow', 'basic-attack-extra-projectiles', 4, 1),
+        createGearModifier('hunters-bow', 'projectile-chains', 4, 2),
       ],
     )
 
@@ -243,7 +244,19 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[0]?.gearModifiers.map((modifier) => modifier.id)).toEqual(
       expect.arrayContaining([
         'increased-projectile-damage',
-        'basic-attack-extra-projectiles',
+        'projectile-chains',
+      ]),
+    )
+    expect(snapshot.skills[0]?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'attack-range',
+          value: '93',
+        }),
+        expect.objectContaining({
+          id: 'basic-attack-extra-projectiles',
+          value: '1',
+        }),
       ]),
     )
     expect(snapshot.characterStats.groups.map((group) => group.id)).toEqual(
@@ -259,17 +272,23 @@ describe('UI snapshots', () => {
           value: '0%',
           appliesTo: 'Whirlwind and Chain Lightning; never Basic Attack.',
         }),
-        expect.objectContaining({
-          id: 'basic-attack-extra-projectiles',
-          value: '1',
-          appliesTo: expect.stringContaining('Projectile-tagged Basic Attack variants only.'),
-        }),
       ]))
+    const offenceStatIds = snapshot.characterStats.groups
+      .find((group) => group.id === 'offence')?.stats
+      .map((stat) => stat.id) ?? []
+    expect(offenceStatIds).not.toEqual(expect.arrayContaining([
+      'attack-damage',
+      'attack-speed',
+      'attack-range',
+      'whirlwind-leech',
+      'basic-attack-extra-projectiles',
+    ]))
     expect(snapshot.characterStats.groups.find((group) => group.id === 'offence')?.stats)
       .toEqual(expect.arrayContaining([
         expect.objectContaining({ id: 'flat-damage-lightning', value: '+7' }),
         expect.objectContaining({ id: 'increased-damage-elemental', value: '+24%' }),
         expect.objectContaining({ id: 'increased-damage-projectile', value: '+14%' }),
+        expect.objectContaining({ id: 'projectile-chains', value: '2' }),
       ]))
     expect(snapshot.characterStats.groups.find((group) => group.id === 'defence')?.stats)
       .toEqual(expect.arrayContaining([
@@ -290,6 +309,75 @@ describe('UI snapshots', () => {
     expect(
       Object.isFrozen(snapshot.characterStats.groups[0]?.stats),
     ).toBe(true)
+  })
+
+  it('combines global and skill-specific modifiers for every acquired skill', () => {
+    const game = createGame({ seed: 80 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    equipRolledItem(
+      game.state.player,
+      'iron-cleaver',
+      'legendary',
+      [
+        createGearModifier('iron-cleaver', 'attack-speed', 5, 4),
+        createGearModifier('iron-cleaver', 'cooldown-reduction', 5, 4),
+        createGearModifier('iron-cleaver', 'melee-leech', 5, 1),
+        createGearModifier('iron-cleaver', 'increased-global-damage', 5, 5),
+        createGearModifier('iron-cleaver', 'increased-physical-damage', 5, 8),
+      ],
+    )
+    equipRolledItem(
+      game.state.player,
+      'swiftstride-boots',
+      'legendary',
+      [
+        createGearModifier('swiftstride-boots', 'attack-range', 5, 10),
+        createGearModifier('swiftstride-boots', 'area-of-effect', 5, 5),
+      ],
+    )
+
+    const snapshot = createUiSnapshot(game.state)
+    const basicAttack = snapshot.skills.find(
+      (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
+    )
+    const whirlwind = snapshot.skills.find(
+      (skill) => skill.skillId === WHIRLWIND_SKILL_ID,
+    )
+    const chainLightning = snapshot.skills.find(
+      (skill) => skill.skillId === CHAIN_LIGHTNING_SKILL_ID,
+    )
+
+    expect(basicAttack?.skillModifiers.map((modifier) => modifier.id)).toEqual(
+      expect.arrayContaining([
+        'attack-damage',
+        'attack-speed',
+        'attack-range',
+        'melee-leech',
+      ]),
+    )
+    expect(whirlwind?.skillModifiers.map((modifier) => modifier.id)).toEqual(
+      expect.arrayContaining([
+        'cooldown-reduction',
+        'area-of-effect',
+        'whirlwind-leech',
+      ]),
+    )
+    expect(chainLightning?.skillModifiers.map((modifier) => modifier.id)).toEqual(
+      expect.arrayContaining(['cooldown-reduction']),
+    )
+    expect(chainLightning?.skillModifiers.map((modifier) => modifier.id)).not.toContain(
+      'area-of-effect',
+    )
+
+    for (const skill of snapshot.skills) {
+      expect(skill.gearModifiers.map((modifier) => modifier.id)).toContain(
+        'increased-global-damage',
+      )
+    }
   })
 
   it('uses equipped weapon variant tags for Basic Attack snapshots', () => {

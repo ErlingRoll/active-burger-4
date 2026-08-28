@@ -737,8 +737,10 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <AppHeader authentication={authentication} onSignOut={signOut} />
+    <main className={`app-shell${screen === 'gameplay' ? ' app-shell-gameplay' : ''}`}>
+      {screen !== 'gameplay' ? (
+        <AppHeader authentication={authentication} onSignOut={signOut} />
+      ) : null}
       {screen === 'dashboard' ? (
         authentication.account ? (
           <Dashboard

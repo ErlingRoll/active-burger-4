@@ -627,7 +627,9 @@ export function cloneGearModifiers(
   return modifiers.map((modifier) => ({ ...modifier }))
 }
 
-export function sortGearModifiers<T extends Pick<GearModifier, 'id' | 'tier'>>(
+export function sortGearModifiers<
+  T extends Pick<GearModifier, 'id'> & Partial<Pick<GearModifier, 'tier'>>
+>(
   modifiers: readonly T[],
 ): T[] {
   return [...modifiers].sort((left, right) => {
@@ -636,7 +638,11 @@ export function sortGearModifiers<T extends Pick<GearModifier, 'id' | 'tier'>>(
     if (leftDefinition.sortOrder !== rightDefinition.sortOrder) {
       return leftDefinition.sortOrder - rightDefinition.sortOrder
     }
-    if (left.tier !== right.tier) {
+    if (
+      left.tier !== undefined &&
+      right.tier !== undefined &&
+      left.tier !== right.tier
+    ) {
       return left.tier - right.tier
     }
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
@@ -815,7 +821,8 @@ function formatGearModifierMagnitude(
 }
 
 export function formatGearModifier(
-  modifier: Pick<GearModifier, 'id' | 'tier' | 'value'>,
+  modifier: Pick<GearModifier, 'id' | 'value'> &
+    Partial<Pick<GearModifier, 'tier'>>,
   options: {
     includeTier?: boolean
     includePlusSign?: boolean
@@ -828,7 +835,7 @@ export function formatGearModifier(
       ? '+'
       : '-'
   const magnitude = Math.abs(modifier.value)
-  const tierLabel = options.includeTier === false
+  const tierLabel = options.includeTier === false || modifier.tier === undefined
     ? ''
     : `T${modifier.tier} `
   return `${tierLabel}${prefix}${formatGearModifierMagnitude(definition, magnitude)}`

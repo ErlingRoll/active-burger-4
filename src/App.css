@@ -4,6 +4,10 @@
   min-height: 100svh;
 }
 
+.app-shell-gameplay {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .app-header {
   display: flex;
   align-items: flex-start;
@@ -2054,37 +2058,35 @@
 
 .upgrade-choice:hover,
 .upgrade-choice:focus-visible {
-  background: #263a5a;
-  border-color: #93c5fd;
-  outline: 3px solid rgb(147 197 253 / 35%);
+  outline: 3px solid rgb(147 197 253 / 65%);
   outline-offset: 2px;
+  box-shadow:
+    0 0 0 1px rgb(147 197 253 / 45%),
+    0 0 0.5rem rgb(147 197 253 / 25%);
 }
 
 .upgrade-choice.gear-upgrade-card:hover,
 .upgrade-choice.gear-upgrade-card:focus-visible {
-  background:
-    linear-gradient(145deg, rgb(22 101 52 / 48%), transparent 58%),
-    #1f3a29;
-  border-color: #4ade80;
-  outline-color: rgb(74 222 128 / 35%);
+  outline-color: rgb(74 222 128 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(74 222 128 / 45%),
+    0 0 0.5rem rgb(74 222 128 / 25%);
 }
 
 .upgrade-choice.skill-removal-card:hover,
 .upgrade-choice.skill-removal-card:focus-visible {
-  background:
-    linear-gradient(145deg, rgb(153 27 27 / 48%), transparent 58%),
-    #3a1f1f;
-  border-color: #f87171;
-  outline-color: rgb(248 113 113 / 35%);
+  outline-color: rgb(248 113 113 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(248 113 113 / 45%),
+    0 0 0.5rem rgb(248 113 113 / 25%);
 }
 
 .upgrade-choice.gear-rarity-floor-card:hover,
 .upgrade-choice.gear-rarity-floor-card:focus-visible {
-  background:
-    linear-gradient(145deg, rgb(180 83 9 / 55%), transparent 58%),
-    #49331a;
-  border-color: #fcd34d;
-  outline-color: rgb(252 211 77 / 35%);
+  outline-color: rgb(252 211 77 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(252 211 77 / 45%),
+    0 0 0.5rem rgb(252 211 77 / 25%);
 }
 
 .upgrade-choice-name {
@@ -2629,12 +2631,17 @@
     border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
   }
 
-  .behavior-profile.selected,
-  .upgrade-choice:hover,
-  .upgrade-choice:focus-visible {
+  .behavior-profile.selected {
     background: linear-gradient(145deg, #3f3531, #292524);
     border-color: #fb923c;
-    outline-color: rgb(251 146 60 / 22%);
+  }
+
+  .upgrade-choice:hover,
+  .upgrade-choice:focus-visible {
+    outline-color: rgb(251 146 60 / 58%);
+    box-shadow:
+      0 0 0 1px rgb(251 146 60 / 42%),
+      0 0 0.5rem rgb(251 146 60 / 22%);
   }
 
   .behavior-profile-heading strong,
