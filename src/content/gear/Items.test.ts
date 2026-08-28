@@ -336,11 +336,11 @@ describe('initial gear content', () => {
 
   it('defines the exact enemy gear-drop tiers', () => {
     expect(GEAR_DROP_CHANCES).toEqual({
-      slime: 0.05,
-      runner: 0.05,
-      archer: 0.05,
-      splitter: 0.05,
-      brute: 0.05,
+      slime: 0.07,
+      runner: 0.07,
+      archer: 0.07,
+      splitter: 0.07,
+      brute: 0.07,
     })
     expect(validateGearDropChances(GEAR_DROP_CHANCES)).toEqual([])
     expect(validateGearPickupBalance(GEAR_PICKUP_BALANCE)).toEqual([])
@@ -369,10 +369,10 @@ describe('initial gear content', () => {
 
   it('normalizes per-enemy drop chances against increasing spawn pressure', () => {
     expect(getGearDropChance('slime', undefined, { timeSeconds: 600 }))
-      .toBeCloseTo(0.05 / 6)
+      .toBeCloseTo(0.07 / 6)
     expect(getGearDropChance('slime', undefined, {
       timeSeconds: 600,
       chanceMultiplier: 6,
-    })).toBeCloseTo(0.05)
+    })).toBeCloseTo(0.07)
   })
 })

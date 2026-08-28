@@ -1,4 +1,5 @@
 # TODO Pile
+align lvl and dps of skill to bottom of skill box.
 
 # Maybe Pile
 spear character -> pick up for charge

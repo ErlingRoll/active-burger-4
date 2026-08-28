@@ -1,12 +1,12 @@
 import type { EnemyDefinitionId } from '../content/enemies/Enemies'
 
-/** Per-enemy probability of generating a gear orb on death. */
+/** Per-enemy probability of generating a gear orb on death before normalization. */
 export const GEAR_DROP_CHANCES = {
-  slime: 0.05,
-  runner: 0.05,
-  archer: 0.05,
-  splitter: 0.05,
-  brute: 0.05,
+  slime: 0.07,
+  runner: 0.07,
+  archer: 0.07,
+  splitter: 0.07,
+  brute: 0.07,
 } as const satisfies Record<EnemyDefinitionId, number>
 
 /**

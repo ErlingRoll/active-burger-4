@@ -119,9 +119,9 @@ describe('elite enemy spawning and rewards', () => {
   })
 
   it('multiplies elite gear chances without changing the force-drop guarantee', () => {
-    expect(getGearDropChance('slime')).toBe(0.05)
-    expect(getGearDropChance('slime', 'hasted')).toBeCloseTo(0.075)
-    expect(getGearDropChance('slime', 'giant')).toBeCloseTo(0.1)
+    expect(getGearDropChance('slime')).toBe(0.07)
+    expect(getGearDropChance('slime', 'hasted')).toBeCloseTo(0.105)
+    expect(getGearDropChance('slime', 'giant')).toBeCloseTo(0.14)
   })
 
   it('projects deterministic readable labels for normal and elite enemies', () => {
