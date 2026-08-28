@@ -4,8 +4,14 @@ import {
   type EliteModifierId,
 } from '../enemies/EliteModifiers'
 import {
+  GEAR_DROP_CHANCE_BALANCE,
   GEAR_DROP_CHANCES,
 } from './GearDropConfig'
+import {
+  calculateThreatPerSecond,
+  SPAWN_BALANCE,
+  type SpawnBalance,
+} from '../spawning/SpawnBalance'
 
 export interface GearPickupBalance {
   radius: number
@@ -13,18 +19,43 @@ export interface GearPickupBalance {
   attractionSpeed: number
 }
 
+export interface GearDropChanceOptions {
+  timeSeconds?: number
+  chanceMultiplier?: number
+  spawnBalance?: SpawnBalance
+}
+
 export function getGearDropChance(
   enemyDefinitionId: EnemyDefinitionId,
   eliteModifier?: EliteModifierId,
+  options: GearDropChanceOptions = {},
 ): number {
   const baseChance =
     GEAR_DROP_CHANCES[enemyDefinitionId as keyof typeof GEAR_DROP_CHANCES] ?? 0
+  const spawnBalance = options.spawnBalance ?? SPAWN_BALANCE
+  const currentThreatPerSecond = calculateThreatPerSecond(
+    options.timeSeconds ?? 0,
+    spawnBalance,
+  )
+  const threatRatio = currentThreatPerSecond > 0
+    ? Math.min(
+        1,
+        Math.max(0, spawnBalance.baseThreatPerSecond) /
+          currentThreatPerSecond,
+      )
+    : 1
+  const threatNormalization = Math.pow(
+    threatRatio,
+    Math.max(0, GEAR_DROP_CHANCE_BALANCE.threatNormalizationExponent),
+  )
   const multiplier = eliteModifier
     ? getEliteModifierDefinition(eliteModifier).gearDropChanceMultiplier
     : 1
-  // Elite rewards improve authored chances but never turn ordinary drops into
-  // an unconditional drop; the kill-50 guarantee remains the only guarantee.
-  return Math.min(1, baseChance * multiplier)
+  const chanceMultiplier = Math.max(0, options.chanceMultiplier ?? 1)
+  return Math.min(
+    1,
+    baseChance * threatNormalization * multiplier * chanceMultiplier,
+  )
 }
 
 export function validateGearDropChances(

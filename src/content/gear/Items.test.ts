@@ -21,6 +21,7 @@ import {
   GEAR_PICKUP_BALANCE,
 } from './GearDropConfig'
 import {
+  getGearDropChance,
   validateGearDropChances,
   validateGearPickupBalance,
 } from './GearDrops'
@@ -328,5 +329,14 @@ describe('initial gear content', () => {
     })).toContain(
       'gearPickupBalance.radius must be a positive finite number.',
     )
+  })
+
+  it('normalizes per-enemy drop chances against increasing spawn pressure', () => {
+    expect(getGearDropChance('slime', undefined, { timeSeconds: 600 }))
+      .toBeCloseTo(0.1 / 6)
+    expect(getGearDropChance('slime', undefined, {
+      timeSeconds: 600,
+      chanceMultiplier: 6,
+    })).toBeCloseTo(0.1)
   })
 })

@@ -87,3 +87,14 @@ export const SPAWN_BALANCE = {
     giant: 1,
   },
 } as const satisfies SpawnBalance
+
+export function calculateThreatPerSecond(
+  timeSeconds: number,
+  balance: SpawnBalance = SPAWN_BALANCE,
+): number {
+  const elapsedMinutes = Math.max(0, timeSeconds) / 60
+  return (
+    balance.baseThreatPerSecond +
+    balance.threatGrowthPerMinute * elapsedMinutes
+  )
+}

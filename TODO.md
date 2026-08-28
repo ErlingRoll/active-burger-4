@@ -1,7 +1,6 @@
 # Maybe Pile
 hotkey to change behavior
 spear character -> pick up for charge
-gear drop drate is too high
 magnet upgrade
 greedy behavior profile that prioretizes xp
 implement damage type

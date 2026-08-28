@@ -184,6 +184,8 @@ export interface PlayerState {
   whirlwindLeech?: number
   /** Whirlwind leech earned from level-up upgrades. */
   upgradeWhirlwindLeech?: number
+  /** Multiplicative per-enemy gear drop chance from future progression. */
+  gearDropChanceMultiplier?: number
   resistances?: Partial<DamageResistanceValues>
   critChance?: number
   critMultiplier?: number

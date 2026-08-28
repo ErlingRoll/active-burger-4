@@ -54,6 +54,8 @@ import type {
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
+import { resolveWorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
+import { SPAWN_BALANCE } from '../../../content/spawning/SpawnBalance'
 import type { RandomSource } from '../../random/Random'
 import {
   HEALING_POTION_ELITE_DROP_CHANCE,
@@ -831,6 +833,10 @@ export function removeDeadEntities(
 ): void {
   const livingEnemies: EnemyState[] = []
   const childSpawns: ChildSpawnRequest[] = []
+  const spawnBalance = resolveWorldModifierEffects(
+    state.run.worldModifierIds,
+    SPAWN_BALANCE,
+  ).spawnBalance
   let killCount = 0
   for (const enemy of state.enemies) {
     if (enemy.hp > 0) {
@@ -843,7 +849,11 @@ export function removeDeadEntities(
         spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
       }
       const randomGearDrop = random?.chance(
-        getGearDropChance(enemy.definitionId, enemy.eliteModifier),
+        getGearDropChance(enemy.definitionId, enemy.eliteModifier, {
+          timeSeconds: state.time,
+          chanceMultiplier: state.player.gearDropChanceMultiplier,
+          spawnBalance,
+        }),
       ) ?? false
       if (randomGearDrop) {
         state.run.gearDropGenerated = true

@@ -1,5 +1,8 @@
-import type { SpawnBalance } from '../../content/spawning/SpawnBalance'
-import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
+import {
+  calculateThreatPerSecond,
+  SPAWN_BALANCE,
+  type SpawnBalance,
+} from '../../content/spawning/SpawnBalance'
 import type { EnemyDefinitionId } from '../ids'
 import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
 import type { RandomSource } from '../random/Random'
@@ -18,21 +21,7 @@ export type SpawnDirectorState = Pick<GameState, 'time'> & {
   encounter?: Pick<NonNullable<GameState['encounter']>, 'normalSpawnsSuspended'>
 }
 
-/**
- * Converts elapsed time into threat per second using the documented linear
- * balance curve. This is exported so balance tests and future tools can use
- * the same curve as the live director.
- */
-export function calculateThreatPerSecond(
-  timeSeconds: number,
-  balance: SpawnBalance = SPAWN_BALANCE,
-): number {
-  const elapsedMinutes = Math.max(0, timeSeconds) / 60
-  return (
-    balance.baseThreatPerSecond +
-    balance.threatGrowthPerMinute * elapsedMinutes
-  )
-}
+export { calculateThreatPerSecond } from '../../content/spawning/SpawnBalance'
 
 /**
  * Schedules normal enemy spawns from run time and a threat budget. It owns no
