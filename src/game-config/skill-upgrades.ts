@@ -65,11 +65,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'basic-attack-level',
     name: 'Empowered Attack',
-    description: 'Increase Basic Attack damage by 30%.',
+    description: 'Increase Basic Attack damage by 10%.',
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: '+30% Basic Attack damage',
+    valueLabel: '+10% Basic Attack damage',
     skillId: BASIC_ATTACK_SKILL_ID,
     skillAction: 'level',
     isEligible: (state) => (state.skillLevels[BASIC_ATTACK_SKILL_ID] ?? 0) >= 1,

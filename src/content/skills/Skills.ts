@@ -52,10 +52,10 @@ export function getSkillDamage(
   )
 }
 
-export function getSkillDamageMultiplier(
+export function getSkillDamageIncrease(
   definition: SkillDefinition,
   level: number,
 ): number {
   const increasePerLevel = Math.max(0, definition.damageIncreasePerLevel ?? 0)
-  return 1 + Math.max(0, level - 1) * increasePerLevel / 100
+  return Math.max(0, level - 1) * increasePerLevel
 }

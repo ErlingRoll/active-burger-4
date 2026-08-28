@@ -21,6 +21,7 @@ import {
   equipItem,
   equipRolledItem,
 } from '../../equipment/EquipmentState'
+import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
 
 const neverCrit = { next: () => 1 }
 const alwaysCrit = { next: () => 0 }
@@ -383,7 +384,34 @@ describe('performBasicAttackIfReady', () => {
 
     performBasicAttackIfReady(gameState, allocator)
 
-    expect(gameState.projectiles[0]?.damage.physical).toBe(13)
+    expect(gameState.projectiles[0]?.damage.physical).toBe(11)
+  })
+
+  it('adds Basic Attack and global increases before applying them to flat damage', () => {
+    const profile = createPlayerDamageProfileFromStats(
+      {
+        flatDamage: {
+          physical: 10,
+          lightning: 0,
+          fire: 0,
+          cold: 0,
+          chaos: 0,
+        },
+        increasedDamage: {
+          global: 20,
+          physical: 0,
+          elemental: 0,
+          chaos: 0,
+          projectile: 0,
+        },
+        critChance: 0,
+        critMultiplier: 200,
+      },
+      { physical: 100 },
+      { additionalIncreasedDamage: { global: 10 } },
+    )
+
+    expect(profile.damage.physical).toBe(143)
   })
 })
 

@@ -5,11 +5,13 @@ import type {
 import {
   DEFAULT_MONSTER_CRITICAL_STRIKE,
   DEFAULT_PLAYER_CRITICAL_STRIKE,
+  DAMAGE_INCREASE_TYPES,
   applyFlatDamage,
   applyIncreasedDamage,
+  createDamageIncreaseValues,
   createDamageValues,
-  scaleDamageValues,
   type CriticalStrikeStats,
+  type DamageIncreaseType,
   type DamageValues,
   type PartialDamageValues,
 } from '../../content/stats/Damage'
@@ -32,7 +34,7 @@ export interface ResolvedOutgoingDamage {
 export interface PlayerDamageProfileContext {
   isProjectile?: boolean
   sourceTags?: readonly SkillTag[]
-  damageMultiplier?: number
+  additionalIncreasedDamage?: Partial<Record<DamageIncreaseType, number>>
 }
 
 export function createPlayerDamageProfileFromStats(
@@ -43,14 +45,16 @@ export function createPlayerDamageProfileFromStats(
   baseDamage: Readonly<PartialDamageValues>,
   context: PlayerDamageProfileContext = {},
 ): ResolvedOutgoingDamage {
+  const increasedDamage = createDamageIncreaseValues(stats.increasedDamage)
+  for (const increaseType of DAMAGE_INCREASE_TYPES) {
+    increasedDamage[increaseType] +=
+      context.additionalIncreasedDamage?.[increaseType] ?? 0
+  }
   return {
-    damage: scaleDamageValues(
-      applyIncreasedDamage(
-        applyFlatDamage(baseDamage, stats.flatDamage),
-        stats.increasedDamage,
-        { isProjectile: context.isProjectile },
-      ),
-      context.damageMultiplier ?? 1,
+    damage: applyIncreasedDamage(
+      applyFlatDamage(baseDamage, stats.flatDamage),
+      increasedDamage,
+      { isProjectile: context.isProjectile },
     ),
     criticalStrike: {
       chance: stats.critChance,

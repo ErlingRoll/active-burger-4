@@ -6,8 +6,8 @@ import {
   BASIC_ATTACK_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
+  getSkillDamageIncrease,
   getSkillDamage,
-  getSkillDamageMultiplier,
   isSkillId,
   WHIRLWIND_SKILL_ID,
   type SkillTag,
@@ -258,7 +258,9 @@ function createBasicAttackProjectileState(
     {
       isProjectile: true,
       sourceTags: [...variant.tags],
-      damageMultiplier: getSkillDamageMultiplier(skillDefinition, skillLevel),
+      additionalIncreasedDamage: {
+        global: getSkillDamageIncrease(skillDefinition, skillLevel),
+      },
     },
   )
   const extraProjectiles = Math.min(
@@ -356,7 +358,9 @@ function collectSwordBasicAttackDamage(
     baseDamage,
     {
       sourceTags: [...variant.tags],
-      damageMultiplier: getSkillDamageMultiplier(skillDefinition, skill.level),
+      additionalIncreasedDamage: {
+        global: getSkillDamageIncrease(skillDefinition, skill.level),
+      },
     },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]

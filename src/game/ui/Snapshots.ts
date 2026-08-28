@@ -17,8 +17,8 @@ import {
   BASIC_ATTACK_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
+  getSkillDamageIncrease,
   getSkillDamage,
-  getSkillDamageMultiplier,
   isSkillId,
   type SkillId,
   type SkillTag,
@@ -615,8 +615,8 @@ export function createUiSnapshot(
       baseDamage,
       {
         isProjectile: skillTags.includes('projectile'),
-        damageMultiplier: isBasicAttack
-          ? getSkillDamageMultiplier(definition, skill.level)
+        additionalIncreasedDamage: isBasicAttack
+          ? { global: getSkillDamageIncrease(definition, skill.level) }
           : undefined,
       },
     )
