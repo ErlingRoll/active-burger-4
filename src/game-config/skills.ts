@@ -88,7 +88,7 @@ export const BASIC_ATTACK_VARIANTS = {
     effectLifetime: 0.16,
     visual: {
       kind: 'area',
-      icon: '☠',
+      icon: '✦',
       primaryColor: '#a855f7',
       secondaryColor: '#d8b4fe',
       outlineColor: '#f3e8ff',

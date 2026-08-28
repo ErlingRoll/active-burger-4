@@ -1179,13 +1179,15 @@
   animation: skill-cast-pulse 320ms ease-out forwards;
 }
 
-.skill-card > :not(.skill-cooldown-overlay):not(.skill-cast-pulse) {
+.skill-card > :not(.skill-cooldown-overlay):not(.skill-cast-pulse):not(.skill-icon) {
   position: relative;
   z-index: 2;
 }
 
 .skill-card > .skill-icon {
   position: absolute;
+  right: 0.45rem;
+  bottom: 0.4rem;
 }
 
 .skill-card > .skill-cast-pulse {
@@ -1287,6 +1289,7 @@
   width: min(23rem, calc(100vw - 2rem));
   max-height: calc(100vh - 12rem);
   padding: 0.8rem;
+  padding-bottom: 2.8rem;
   color: #dbeafe;
   background: #0f172a;
   border: 1px solid #fef08a;
@@ -1294,6 +1297,15 @@
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
   overflow-y: auto;
   pointer-events: none;
+}
+
+.skill-tooltip-icon {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.65rem;
+  color: #fef08a;
+  font-size: 1.55rem;
+  line-height: 1;
 }
 
 .skill-tooltip strong {

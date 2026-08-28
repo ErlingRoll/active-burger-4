@@ -632,6 +632,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </>
                     ) : null}
+                    <span className="skill-tooltip-icon" aria-hidden="true">
+                      {skill.icon}
+                    </span>
                   </div>
                 ) : null}
               </li>
