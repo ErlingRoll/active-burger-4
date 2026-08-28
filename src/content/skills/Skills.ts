@@ -14,6 +14,7 @@ export {
   BASIC_ATTACK_SKILL_ID,
   BASIC_ATTACK_VARIANTS,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   SKILL_DEFINITIONS,
   VITALITY_SKILL_ID,
@@ -28,6 +29,16 @@ export type {
   SkillTag,
   SkillVisualPresentation,
 } from './SkillConfigs'
+
+export function getEffectiveSkillCooldown(
+  baseCooldown: number,
+  cooldownReduction: number,
+): number {
+  return Math.max(
+    0.1,
+    baseCooldown * (1 - Math.max(0, cooldownReduction) / 100),
+  )
+}
 
 export function getSkillDefinition(skillId: SkillId): SkillDefinition {
   const definition = SKILL_DEFINITIONS[skillId]

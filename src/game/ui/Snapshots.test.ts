@@ -3,6 +3,7 @@ import { createGearModifier } from '../../content/gear/ModifierPools'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
@@ -113,6 +114,46 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[1]?.cooldownProgress).toBeCloseTo(0.5)
     expect(snapshot.skills[0]?.castCount).toBe(3)
     expect(snapshot.skills[1]?.castCount).toBe(7)
+  })
+
+  it('projects Fiery Touch trigger stats and skill-specific cooldown ranks', () => {
+    const game = createGame({ seed: 73 })
+    game.state.player.skills.push({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 2,
+      cooldownRemaining: 0.9,
+    })
+    game.state.run.selectedUpgradeIds.push(
+      'fiery-touch-cooldown-reduction',
+      'fiery-touch-cooldown-reduction',
+    )
+
+    const fieryTouch = createUiSnapshot(game.state).skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )
+
+    expect(fieryTouch).toMatchObject({
+      name: 'Fiery Touch',
+      tags: ['fire', 'area', 'trigger'],
+      damage: expect.objectContaining({ fire: 15 }),
+      cooldownSeconds: 1.8,
+      cooldownProgress: 0.5,
+      dpsAssumption: 'Triggers on direct player or summon hits, subject to its cooldown.',
+    })
+    expect(fieryTouch?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'skill-cooldown-reduction',
+          value: '10%',
+        }),
+      ]),
+    )
+    expect(fieryTouch?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'fiery-touch-cooldown-reduction',
+    )).toMatchObject({
+      status: 'available',
+      valueLabel: '+10% Fiery Touch cooldown reduction',
+    })
   })
 
   it('shows the accumulated value for repeated skill upgrades', () => {

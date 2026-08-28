@@ -1,6 +1,7 @@
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
@@ -10,6 +11,8 @@ import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const FIERY_TOUCH_LEVEL_DAMAGE_INCREASE = 5
+const FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT = 5
 const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
 const RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT = 8
@@ -177,6 +180,45 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillAction: 'level',
     skillDamageIncreasePercent: CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[CHAIN_LIGHTNING_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'fiery-touch-unlock',
+    name: 'Fiery Touch',
+    description: 'Unlocks a fire burst that triggers when you directly hit an enemy.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: FIERY_TOUCH_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('fiery-touch-unlock'),
+  },
+  {
+    id: 'fiery-touch-level',
+    name: 'Kindled Touch',
+    description: `Increase Fiery Touch damage by ${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE}.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE} Fiery Touch fire damage per level`,
+    skillId: FIERY_TOUCH_SKILL_ID,
+    skillAction: 'level',
+    isEligible: (state) => (state.skillLevels[FIERY_TOUCH_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'fiery-touch-cooldown-reduction',
+    name: 'Rapid Ignition',
+    description: `Reduce Fiery Touch cooldown by ${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}%. This upgrade is repeatable.`,
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
+    valueLabel: `+${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}% Fiery Touch cooldown reduction`,
+    skillId: FIERY_TOUCH_SKILL_ID,
+    skillCooldownReductionPercent: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
+    isEligible: (state) => state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID),
   },
   {
     id: 'vitality-level',

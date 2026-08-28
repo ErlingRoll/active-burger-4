@@ -2,16 +2,51 @@ import { describe, expect, it } from 'vitest'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   getSkillDamage,
   getSkillDefinition,
 } from '../../../content/skills/Skills'
-import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
+import {
+  getSkillCooldownReductionPercent,
+  getSkillDamageIncreasePercent,
+} from '../../../content/upgrades/Upgrades'
 import { createGame } from '../../Game'
 import { applyUpgrade } from './UpgradeSystem'
 
 describe('skill upgrades', () => {
+  it('unlocks and levels Fiery Touch with flat fire damage growth', () => {
+    const game = createGame({ seed: 68 })
+
+    applyUpgrade(game.state, 'fiery-touch-unlock')
+    applyUpgrade(game.state, 'fiery-touch-level')
+
+    const fieryTouch = game.state.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )
+    expect(fieryTouch).toEqual(expect.objectContaining({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 2,
+    }))
+    expect(getSkillDamage(getSkillDefinition(FIERY_TOUCH_SKILL_ID), fieryTouch!.level))
+      .toMatchObject({ fire: 15 })
+  })
+
+  it('adds Fiery Touch cooldown reduction ranks additively', () => {
+    const game = createGame({ seed: 69 })
+    game.state.run.selectedUpgradeIds.push(
+      'fiery-touch-cooldown-reduction',
+      'fiery-touch-cooldown-reduction',
+      'fiery-touch-cooldown-reduction',
+    )
+
+    expect(getSkillCooldownReductionPercent(
+      FIERY_TOUCH_SKILL_ID,
+      game.state.run.selectedUpgradeIds,
+    )).toBe(15)
+  })
+
   it('unlocks skills and increases their rank without changing stat upgrades', () => {
     const game = createGame({ seed: 61 })
     const damageBefore = game.state.player.attackDamage

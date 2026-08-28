@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BASIC_ATTACK_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import { PLAYER_PROJECTILE_CHAIN_RANGE } from '../../../content/projectiles/Projectiles'
@@ -510,6 +511,169 @@ describe('performBasicAttackIfReady', () => {
 })
 
 describe('applyDamageEvents', () => {
+  it('triggers Fiery Touch once per direct player hit and scales its area', () => {
+    const gameState = state([enemy(2, 20), enemy(3, 90)])
+    gameState.player.skills.push({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit, allocator)
+
+    expect(gameState.enemies.map((candidate) => candidate.hp)).toEqual([9, 10])
+    expect(gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )?.cooldownRemaining).toBe(2)
+    expect(gameState.effects).toEqual([
+      expect.objectContaining({
+        skillId: FIERY_TOUCH_SKILL_ID,
+        radius: 80,
+        x: 20,
+        y: 0,
+      }),
+    ])
+  })
+
+  it('allows summon hits but excludes DoT and Fiery Touch self-triggering', () => {
+    const gameState = state([enemy(2, 20)])
+    gameState.enemies[0]!.hp = 200
+    gameState.enemies[0]!.maxHp = 200
+    gameState.player.skills.push({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+    gameState.summons.push({
+      id: 50,
+      ownerId: gameState.player.id,
+      x: 0,
+      y: 0,
+      hp: 10,
+      maxHp: 10,
+      contactCooldownRemaining: 0,
+      attackCooldownRemaining: 0,
+    })
+
+    applyDamageEvents(gameState, [{
+      sourceId: 50,
+      sourceSkillId: 'raise-skeleton',
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit, allocator)
+    expect(gameState.effects).toHaveLength(1)
+
+    gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )!.cooldownRemaining = 0
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+      damageOverTime: true,
+    }, {
+      sourceId: gameState.player.id,
+      sourceSkillId: FIERY_TOUCH_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 0,
+        lightning: 0,
+        fire: 1,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit, allocator)
+
+    expect(gameState.effects).toHaveLength(1)
+    expect(gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )?.cooldownRemaining).toBe(0)
+  })
+
+  it('combines global and Fiery Touch cooldown reduction with a 0.1-second floor', () => {
+    const gameState = state([enemy(2, 20)])
+    gameState.enemies[0]!.hp = 200
+    gameState.enemies[0]!.maxHp = 200
+    gameState.player.skills.push({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+    equipRolledItem(
+      gameState.player,
+      'iron-cleaver',
+      'common',
+      [createGearModifier('iron-cleaver', 'cooldown-reduction', 3, 12)],
+    )
+    gameState.run.selectedUpgradeIds = [
+      'fiery-touch-cooldown-reduction',
+      'fiery-touch-cooldown-reduction',
+    ]
+
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit)
+    expect(gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )?.cooldownRemaining).toBeCloseTo(1.56)
+
+    gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )!.cooldownRemaining = 0
+    gameState.run.selectedUpgradeIds = Array.from(
+      { length: 20 },
+      () => 'fiery-touch-cooldown-reduction' as const,
+    )
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit)
+    expect(gameState.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )?.cooldownRemaining).toBe(0.1)
+  })
+
   it('restores 2% of actual Whirlwind damage and never exceeds maximum HP', () => {
     const gameState = state([enemy(2, 20)])
     gameState.player.hp = 99

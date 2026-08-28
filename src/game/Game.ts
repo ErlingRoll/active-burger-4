@@ -754,7 +754,7 @@ export class Game {
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
     ]
-    applyDamageEvents(this.gameState, damageEvents, this.random)
+    applyDamageEvents(this.gameState, damageEvents, this.random, this.idAllocator)
     removeDeadSummons(this.gameState)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
       this.transitionTo('defeat')

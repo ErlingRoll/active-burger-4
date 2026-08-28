@@ -9,6 +9,7 @@ export type SkillId =
   | 'chain-lightning'
   | 'vitality'
   | 'raise-skeleton'
+  | 'fiery-touch'
 
 export type SkillTag =
   | 'physical'
@@ -22,6 +23,7 @@ export type SkillTag =
   | 'defensive'
   | 'summon'
   | 'dot'
+  | 'trigger'
 
 export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
 
@@ -91,6 +93,7 @@ export {
   BASIC_ATTACK_SKILL_ID,
   BASIC_ATTACK_VARIANTS,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   SKILL_DEFINITIONS,
   VITALITY_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,

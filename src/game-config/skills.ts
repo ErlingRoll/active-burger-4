@@ -14,6 +14,7 @@ export const WHIRLWIND_SKILL_ID: SkillId = 'whirlwind'
 export const CHAIN_LIGHTNING_SKILL_ID: SkillId = 'chain-lightning'
 export const VITALITY_SKILL_ID: SkillId = 'vitality'
 export const RAISE_SKELETON_SKILL_ID: SkillId = 'raise-skeleton'
+export const FIERY_TOUCH_SKILL_ID: SkillId = 'fiery-touch'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
 
@@ -202,6 +203,25 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#c084fc',
       secondaryColor: '#e9d5ff',
       outlineColor: '#f5f3ff',
+    },
+  },
+  [FIERY_TOUCH_SKILL_ID]: {
+    id: FIERY_TOUCH_SKILL_ID,
+    name: 'Fiery Touch',
+    description: 'Direct hits ignite the struck enemy, damaging nearby enemies.',
+    kind: 'area',
+    tags: ['fire', 'area', 'trigger'],
+    cooldown: 2,
+    baseDamage: { fire: 10 },
+    damagePerLevel: { fire: 5 },
+    radius: 80,
+    effectLifetime: 0.24,
+    visual: {
+      kind: 'area',
+      icon: '🔥',
+      primaryColor: '#f97316',
+      secondaryColor: '#facc15',
+      outlineColor: '#fff7ed',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

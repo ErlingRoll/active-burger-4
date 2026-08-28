@@ -143,6 +143,7 @@ const VALID_SKILL_TAGS = new Set([
   'defensive',
   'summon',
   'dot',
+  'trigger',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
@@ -714,10 +715,19 @@ function validateDefinitions(
         ) &&
           upgrade.whirlwindLeechAmount === undefined &&
           upgrade.increasedHealingPercent === undefined &&
-          upgrade.summonMaxCountIncrease === undefined))
+          upgrade.summonMaxCountIncrease === undefined &&
+          upgrade.skillCooldownReductionPercent === undefined))
     ) {
       errors.push(
         `upgrades[${index}] must define a known skillId and skill action or effect.`,
+      )
+    }
+    if (upgrade.skillCooldownReductionPercent !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].skillCooldownReductionPercent`,
+        upgrade.skillCooldownReductionPercent,
+        'positive',
       )
     }
   })

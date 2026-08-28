@@ -22,7 +22,9 @@ import {
   getSkillDefinition,
   getSkillDamage,
   getSkillHealing,
+  getEffectiveSkillCooldown,
   isSkillId,
+  FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
@@ -33,6 +35,7 @@ import { DEFAULT_SKILL_SLOT_COUNT } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
+  getSkillCooldownReductionPercent,
   type UpgradeId,
 } from '../../content/upgrades/Upgrades'
 import type {
@@ -349,6 +352,7 @@ export type SkillModifierSummaryId =
   | 'summon-max-hp'
   | 'summon-attack-speed'
   | 'summon-max-count'
+  | 'skill-cooldown-reduction'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -389,6 +393,7 @@ function getSkillModifierSummaries(
   skillTags: readonly SkillTag[],
   supportsAreaOfEffect: boolean,
   skeletonMaxCountBonus = 0,
+  selectedUpgradeIds: readonly UpgradeId[] = [],
 ): readonly SkillModifierSummarySnapshot[] {
   const summaries: SkillModifierSummarySnapshot[] = []
   const addSummary = (
@@ -457,6 +462,20 @@ function getSkillModifierSummaries(
         playerStats.cooldownReduction,
         formatUnsignedPercent(playerStats.cooldownReduction),
       )
+    }
+    if (skillId === FIERY_TOUCH_SKILL_ID) {
+      const skillCooldownReduction = getSkillCooldownReductionPercent(
+        skillId,
+        selectedUpgradeIds,
+      )
+      if (skillCooldownReduction > 0) {
+        addSummary(
+          'skill-cooldown-reduction',
+          'Fiery Touch cooldown reduction',
+          skillCooldownReduction,
+          formatUnsignedPercent(skillCooldownReduction),
+        )
+      }
     }
     if (supportsAreaOfEffect && playerStats.areaOfEffect > 0) {
       addSummary(
@@ -636,14 +655,16 @@ function getAcquiredSkillUpgradeValueLabel(
   if (
     upgrade.skillAction !== 'level' ||
     (upgrade.skillDamageIncreasePercent === undefined &&
-      upgrade.skillHealingIncreaseAmount === undefined)
+      upgrade.skillHealingIncreaseAmount === undefined &&
+      upgrade.skillCooldownReductionPercent === undefined)
   ) {
     const acquiredRanks = selectedUpgradeIds.filter(
       (upgradeId) => upgradeId === upgrade.id,
     ).length
     return upgrade.stat !== undefined ||
       upgrade.whirlwindLeechAmount !== undefined ||
-      upgrade.increasedHealingPercent !== undefined
+    upgrade.increasedHealingPercent !== undefined ||
+    upgrade.skillCooldownReductionPercent !== undefined
       ? scaleUpgradeValueLabel(upgrade.valueLabel, acquiredRanks)
       : upgrade.valueLabel
   }
@@ -877,8 +898,15 @@ export function createUiSnapshot(
         ? 1 / playerStats.attackSpeed
         : Number.POSITIVE_INFINITY
       : Math.max(
-          0.1,
-          definition.cooldown * (1 - Math.max(0, playerStats.cooldownReduction) / 100),
+          0,
+          getEffectiveSkillCooldown(
+            definition.cooldown,
+            playerStats.cooldownReduction +
+              getSkillCooldownReductionPercent(
+                skill.skillId,
+                state.run.selectedUpgradeIds,
+              ),
+          ),
         )
     const cooldownProgress = Number.isFinite(cooldown) && cooldown > 0
       ? Math.min(1, Math.max(0, skill.cooldownRemaining / cooldown))
@@ -915,6 +943,7 @@ export function createUiSnapshot(
       skillTags,
       supportsAreaOfEffect,
       state.player.skeletonMaxCountBonus,
+      state.run.selectedUpgradeIds,
     )
     const gearModifiers = summarizeGearModifiers(EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]
@@ -940,7 +969,10 @@ export function createUiSnapshot(
           upgrade.skillId === skill.skillId && upgrade.skillAction !== 'unlock',
       )
       .map((upgrade) => {
-        const acquired = state.run.selectedUpgradeIds.includes(upgrade.id)
+        const repeatable = upgrade.skillCooldownReductionPercent !== undefined ||
+          upgrade.summonMaxCountIncrease !== undefined
+        const acquired = !repeatable &&
+          state.run.selectedUpgradeIds.includes(upgrade.id)
         const available = !acquired && upgrade.isEligible(eligibilityState)
         return Object.freeze({
           upgradeId: upgrade.id,
@@ -986,6 +1018,8 @@ export function createUiSnapshot(
           ? 'Restores health automatically every cooldown.'
           : skill.skillId === RAISE_SKELETON_SKILL_ID
             ? 'One persistent skeleton attacks the nearest target in range once per second.'
+          : skill.skillId === FIERY_TOUCH_SKILL_ID
+            ? 'Triggers on direct player or summon hits, subject to its cooldown.'
           : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',

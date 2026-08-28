@@ -11,6 +11,9 @@ export type UpgradeId =
   | 'basic-attack-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
+  | 'fiery-touch-unlock'
+  | 'fiery-touch-level'
+  | 'fiery-touch-cooldown-reduction'
   | 'vitality-unlock'
   | 'vitality-level'
   | 'vitality-increased-healing'
@@ -74,6 +77,8 @@ export interface UpgradeDefinition {
   increasedHealingPercent?: number
   /** Number of additional persistent summons allowed per rank. */
   summonMaxCountIncrease?: number
+  /** Percentage-point cooldown reduction added for one skill per rank. */
+  skillCooldownReductionPercent?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
@@ -128,4 +133,20 @@ export function getSkillDamageIncreasePercent(
   )
   return Math.max(0, level - 1) *
     Math.max(0, levelUpgrade?.skillDamageIncreasePercent ?? 0)
+}
+
+export function getSkillCooldownReductionPercent(
+  skillId: SkillId,
+  selectedUpgradeIds: readonly UpgradeId[],
+): number {
+  const upgrade = INITIAL_UPGRADES.find(
+    (candidate) =>
+      candidate.skillId === skillId &&
+      candidate.skillCooldownReductionPercent !== undefined,
+  )
+  if (!upgrade?.skillCooldownReductionPercent) {
+    return 0
+  }
+  return selectedUpgradeIds.filter((upgradeId) => upgradeId === upgrade.id).length *
+    upgrade.skillCooldownReductionPercent
 }

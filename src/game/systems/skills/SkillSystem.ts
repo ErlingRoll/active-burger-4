@@ -4,12 +4,16 @@ import {
   getSkillDefinition,
   getSkillDamage,
   getSkillHealing,
+  getEffectiveSkillCooldown,
   type SkillId,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
-import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
+import {
+  getSkillCooldownReductionPercent,
+  getSkillDamageIncreasePercent,
+} from '../../../content/upgrades/Upgrades'
 import type { EntityIdAllocator } from '../../ids'
 import {
   createPlayerDamageEventFromStats,
@@ -79,11 +83,20 @@ export function updateSkillEffects(
   state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
 }
 
-function applyPlayerCooldownReduction(
+function getSkillCooldown(
+  state: Readonly<GameState>,
+  skill: Readonly<SkillState>,
   baseCooldown: number,
-  cooldownReduction: number,
 ): number {
-  return Math.max(0.1, baseCooldown * (1 - Math.max(0, cooldownReduction) / 100))
+  const playerStats = getDerivedPlayerStats(state.player)
+  const skillCooldownReduction = getSkillCooldownReductionPercent(
+    skill.skillId,
+    state.run.selectedUpgradeIds,
+  )
+  return getEffectiveSkillCooldown(
+    baseCooldown,
+    playerStats.cooldownReduction + skillCooldownReduction,
+  )
 }
 
 function markSkillUsed(skill: SkillState): void {
@@ -142,10 +155,7 @@ function collectWhirlwindDamage(
       radius,
       definition.effectLifetime,
     )
-    skill.cooldownRemaining = applyPlayerCooldownReduction(
-      definition.cooldown,
-      playerStats.cooldownReduction,
-    )
+    skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
     markSkillUsed(skill)
   }
   return events
@@ -228,10 +238,7 @@ function collectChainLightningDamage(
       16,
       definition.effectLifetime,
     )
-    skill.cooldownRemaining = applyPlayerCooldownReduction(
-      definition.cooldown,
-      playerStats.cooldownReduction,
-    )
+    skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
     markSkillUsed(skill)
   }
   return events
@@ -243,7 +250,6 @@ function collectVitalityHealing(
   allocator: EntityIdAllocator,
 ): DamageEvent[] {
   const definition = getSkillDefinition(VITALITY_SKILL_ID)
-  const playerStats = getDerivedPlayerStats(state.player)
   healPlayer(
     state,
     getSkillHealing(definition, skill.level),
@@ -257,10 +263,7 @@ function collectVitalityHealing(
     28,
     definition.effectLifetime,
   )
-  skill.cooldownRemaining = applyPlayerCooldownReduction(
-    definition.cooldown,
-    playerStats.cooldownReduction,
-  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
   return []
 }

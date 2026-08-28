@@ -4,6 +4,8 @@ import {
 } from '../../../content/projectiles/Projectiles'
 import {
   BASIC_ATTACK_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
+  getEffectiveSkillCooldown,
   getBasicAttackVariant,
   getSkillDefinition,
   getSkillDamage,
@@ -11,7 +13,10 @@ import {
   WHIRLWIND_SKILL_ID,
   type SkillTag,
 } from '../../../content/skills/Skills'
-import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
+import {
+  getSkillCooldownReductionPercent,
+  getSkillDamageIncreasePercent,
+} from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
   createDamageValues,
@@ -128,6 +133,85 @@ function scaleAreaValue(
   areaOfEffect: number,
 ): number {
   return value * (1 + Math.max(0, areaOfEffect) / 100)
+}
+
+function isPlayerOwnedDirectHit(
+  state: Readonly<GameState>,
+  event: Readonly<DamageEvent>,
+): boolean {
+  if (
+    event.damageOverTime ||
+    event.sourceSkillId === FIERY_TOUCH_SKILL_ID ||
+    event.sourceId === undefined
+  ) {
+    return false
+  }
+  return event.sourceId === state.player.id ||
+    state.summons.some(
+      (summon) => summon.id === event.sourceId && summon.ownerId === state.player.id,
+    )
+}
+
+function collectFieryTouchTriggerEvents(
+  state: GameState,
+  hitX: number,
+  hitY: number,
+  idAllocator?: EntityIdAllocator,
+): DamageEvent[] {
+  const skill = state.player.skills.find(
+    (candidate) => candidate.skillId === FIERY_TOUCH_SKILL_ID,
+  )
+  if (!skill || skill.cooldownRemaining > 0) {
+    return []
+  }
+
+  const definition = getSkillDefinition(FIERY_TOUCH_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const cooldownReduction = playerStats.cooldownReduction +
+    getSkillCooldownReductionPercent(
+      FIERY_TOUCH_SKILL_ID,
+      state.run.selectedUpgradeIds,
+    )
+  const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect)
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    getSkillDamage(definition, skill.level),
+    { sourceTags: definition.tags },
+  )
+  const events = [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0)
+    .sort((left, right) => left.id - right.id)
+    .flatMap((enemy) => {
+      const distance = Math.hypot(enemy.x - hitX, enemy.y - hitY)
+      return distance <= radius + enemy.radius
+        ? [{
+            sourceId: state.player.id,
+            sourceSkillId: FIERY_TOUCH_SKILL_ID,
+            sourceTags: definition.tags,
+            targetId: enemy.id,
+            damage: outgoingDamage.damage,
+            criticalStrike: outgoingDamage.criticalStrike,
+          }]
+        : []
+    })
+
+  skill.cooldownRemaining = getEffectiveSkillCooldown(
+    definition.cooldown,
+    cooldownReduction,
+  )
+  if (idAllocator) {
+    state.effects.push({
+      id: idAllocator.createEntityId(),
+      skillId: FIERY_TOUCH_SKILL_ID,
+      x: hitX,
+      y: hitY,
+      radius,
+      lifetime: definition.effectLifetime,
+      remainingLifetime: definition.effectLifetime,
+      points: [{ x: hitX, y: hitY }],
+    })
+  }
+  return events
 }
 
 function scaleSwordArcDegrees(
@@ -813,8 +897,11 @@ export function applyDamageEvents(
   state: GameState,
   events: readonly DamageEvent[],
   rng?: Pick<RandomSource, 'next'>,
+  idAllocator?: EntityIdAllocator,
 ): void {
-  for (const event of events) {
+  const pendingEvents = [...events]
+  for (let eventIndex = 0; eventIndex < pendingEvents.length; eventIndex += 1) {
+    const event = pendingEvents[eventIndex]!
     if (event.targetId === state.player.id) {
       const resolvedDamage = resolveEventDamage(
         event,
@@ -847,6 +934,8 @@ export function applyDamageEvents(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (enemy) {
+      const hitX = enemy.x
+      const hitY = enemy.y
       const resolvedDamage = resolveEventDamage(event, enemy.resistances, rng)
       const actualDamage = Math.min(
         enemy.hp,
@@ -860,12 +949,22 @@ export function applyDamageEvents(
         resolvedDamage.preMitigation,
       )
       applyMeleeLeech(state, event, actualDamage)
+      if (isPlayerOwnedDirectHit(state, event)) {
+        pendingEvents.push(...collectFieryTouchTriggerEvents(
+          state,
+          hitX,
+          hitY,
+          idAllocator,
+        ))
+      }
       continue
     }
     const boss = state.bosses?.find(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (boss) {
+      const hitX = boss.x
+      const hitY = boss.y
       const resolvedDamage = resolveEventDamage(event, boss.resistances, rng)
       const actualDamage = Math.min(
         boss.hp,
@@ -879,6 +978,14 @@ export function applyDamageEvents(
         resolvedDamage.preMitigation,
       )
       applyMeleeLeech(state, event, actualDamage)
+      if (isPlayerOwnedDirectHit(state, event)) {
+        pendingEvents.push(...collectFieryTouchTriggerEvents(
+          state,
+          hitX,
+          hitY,
+          idAllocator,
+        ))
+      }
     }
   }
 }
