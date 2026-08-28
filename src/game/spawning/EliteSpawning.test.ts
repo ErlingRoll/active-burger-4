@@ -29,6 +29,7 @@ describe('elite enemy spawning and rewards', () => {
         fiery: 0,
         electrocuting: 0,
         frigid: 0,
+        poisoner: 0,
       },
     }
     const first = new SpawnDirector(new Random(11), balance).update(
@@ -42,6 +43,29 @@ describe('elite enemy spawning and rewards', () => {
 
     expect(first).toEqual(second)
     expect(first[0]?.eliteModifier).toBe('giant')
+  })
+
+  it('selects Poisoner through the weighted elite modifier path', () => {
+    const balance = {
+      ...SPAWN_BALANCE,
+      eliteChance: 1,
+      eliteStartTimeSeconds: 0,
+      eliteModifierWeights: {
+        hasted: 0,
+        giant: 0,
+        fiery: 0,
+        electrocuting: 0,
+        frigid: 0,
+        poisoner: 1,
+      },
+    }
+
+    const [spawn] = new SpawnDirector(new Random(11), balance).update(
+      directorState(),
+      1,
+    )
+
+    expect(spawn?.eliteModifier).toBe('poisoner')
   })
 
   it('applies exact Hasted and Giant stat and XP multipliers', () => {

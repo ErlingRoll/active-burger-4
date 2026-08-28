@@ -829,4 +829,29 @@ describe('collectEnemyContactDamage', () => {
       [elementalDamageType]: 2.5,
     })
   })
+
+  it('makes Poisoner contact hits apply independent poison stacks to the player', () => {
+    const gameState = state([{
+      ...enemy(2, 34),
+      eliteModifier: 'poisoner',
+    }])
+    gameState.player.resistances = { chaos: 50 }
+
+    const [hit] = collectEnemyContactDamage(gameState, 1 / 60)
+    expect(hit?.poisonApplication).toEqual({
+      durationSeconds: 4,
+      physicalChaosRatio: 0.5,
+    })
+
+    applyDamageEvents(gameState, [hit!], neverCrit)
+    expect(gameState.player.poisonStacks).toEqual([{
+      remainingDuration: 4,
+      damagePerSecond: 2.5,
+    }])
+
+    const [poisonTick] = updatePoison(gameState, 1)
+    expect(poisonTick?.damage).toMatchObject({ chaos: 2.5 })
+    applyDamageEvents(gameState, [poisonTick!], neverCrit)
+    expect(gameState.player.hp).toBeCloseTo(93.75)
+  })
 })

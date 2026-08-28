@@ -86,6 +86,7 @@ export const SPAWN_BALANCE = {
     fiery: 1,
     electrocuting: 1,
     frigid: 1,
+    poisoner: 1,
   },
 } as const satisfies SpawnBalance
 

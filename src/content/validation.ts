@@ -421,9 +421,23 @@ function validateEliteModifiers(
     ) {
       errors.push(`eliteModifiers[${index}].markerColor must be a non-empty string.`)
     }
-    if (!['ring', 'flames', 'electric', 'frost'].includes(modifier.auraStyle)) {
+    if (!['ring', 'flames', 'electric', 'frost', 'poison'].includes(modifier.auraStyle)) {
       errors.push(
         `eliteModifiers[${index}].auraStyle is not supported; received "${String(modifier.auraStyle)}".`,
+      )
+    }
+    if (modifier.poisonApplication !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `eliteModifiers[${index}].poisonApplication.durationSeconds`,
+        modifier.poisonApplication.durationSeconds,
+        'positive',
+      )
+      validateFiniteNumber(
+        errors,
+        `eliteModifiers[${index}].poisonApplication.physicalChaosRatio`,
+        modifier.poisonApplication.physicalChaosRatio,
+        'non-negative',
       )
     }
     if (

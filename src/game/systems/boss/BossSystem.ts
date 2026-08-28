@@ -196,6 +196,9 @@ function castNextSkill(
       return {
         damage: damage.damage,
         criticalStrike: damage.criticalStrike,
+        ...(damage.poisonApplication
+          ? { poisonApplication: damage.poisonApplication }
+          : {}),
       }
     })(),
   }
@@ -253,6 +256,9 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
         targetId: state.player.id,
         damage: telegraph.damage,
         criticalStrike: telegraph.criticalStrike,
+        ...(telegraph.poisonApplication
+          ? { poisonApplication: telegraph.poisonApplication }
+          : {}),
         sourceLabel: `${getBossDefinition(sourceBoss.bossDefinitionId).name}: ${getBossSkillDefinition(telegraph.skillId).name}`,
       })
     }

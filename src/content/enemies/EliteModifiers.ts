@@ -6,8 +6,19 @@ export type EliteModifierId =
   | 'fiery'
   | 'electrocuting'
   | 'frigid'
+  | 'poisoner'
 
-export type EliteAuraStyle = 'ring' | 'flames' | 'electric' | 'frost'
+export type EliteAuraStyle =
+  | 'ring'
+  | 'flames'
+  | 'electric'
+  | 'frost'
+  | 'poison'
+
+export interface ElitePoisonApplication {
+  durationSeconds: number
+  physicalChaosRatio: number
+}
 
 export interface EliteModifierDefinition {
   id: EliteModifierId
@@ -21,6 +32,7 @@ export interface EliteModifierDefinition {
   auraStyle: EliteAuraStyle
   extraDamageType?: ElementalDamageType
   extraPhysicalDamageRatio?: number
+  poisonApplication?: ElitePoisonApplication
 }
 
 /**
@@ -89,6 +101,21 @@ export const ELITE_MODIFIER_DEFINITIONS = {
     auraStyle: 'frost',
     extraDamageType: 'cold',
     extraPhysicalDamageRatio: 0.5,
+  },
+  poisoner: {
+    id: 'poisoner',
+    name: 'Poisoner',
+    speedMultiplier: 1,
+    radiusMultiplier: 1,
+    maxHpMultiplier: 1,
+    xpRewardMultiplier: 1.5,
+    gearDropChanceMultiplier: 1.5,
+    markerColor: '#a3e635',
+    auraStyle: 'poison',
+    poisonApplication: {
+      durationSeconds: 4,
+      physicalChaosRatio: 0.5,
+    },
   },
 } as const satisfies Record<EliteModifierId, EliteModifierDefinition>
 

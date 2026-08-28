@@ -1091,6 +1091,17 @@ function createEliteAura(
         directionY * auraRadius - perpendicularY * crystalWidth,
       ]).fill(modifier.markerColor)
     }
+  } else if (modifier.auraStyle === 'poison') {
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6
+      const bubbleRadius = radius * (0.16 + (index % 2) * 0.05)
+      const distance = auraRadius * (0.95 + (index % 3) * 0.08)
+      aura.circle(
+        Math.cos(angle) * distance,
+        Math.sin(angle) * distance,
+        bubbleRadius,
+      ).fill({ color: modifier.markerColor, alpha: 0.8 })
+    }
   }
 
   return aura

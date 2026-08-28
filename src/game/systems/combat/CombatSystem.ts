@@ -55,6 +55,7 @@ import type {
   BossState,
   EnemyState,
   GameState,
+  PlayerState,
   ProjectileState,
   SkillEffectPoint,
   SkillEffectState,
@@ -918,6 +919,12 @@ export function applyDamageEvents(
         state.player.hp -= actualDamage
         recordPlayerDamage(state, actualDamage, damageType, source)
       }
+      applyPoisonApplication(
+        state,
+        state.player,
+        event,
+        resolvedDamage.preMitigation,
+      )
       continue
     }
     const summon = state.summons.find(
@@ -993,7 +1000,7 @@ export function applyDamageEvents(
 
 function applyPoisonApplication(
   state: GameState,
-  target: EnemyState,
+  target: EnemyState | PlayerState,
   event: Readonly<DamageEvent>,
   preMitigationDamage: Readonly<DamageValues>,
 ): void {
@@ -1002,7 +1009,9 @@ function applyPoisonApplication(
     return
   }
   const sourceDamage = preMitigationDamage.physical + preMitigationDamage.chaos
-  const dotMultiplier = getDerivedPlayerStats(state.player).dotMultiplier
+  const dotMultiplier = event.sourceId === state.player.id
+    ? getDerivedPlayerStats(state.player).dotMultiplier
+    : 0
   const damagePerSecond = sourceDamage *
     application.physicalChaosRatio *
     (1 + dotMultiplier / 100)
@@ -1022,7 +1031,11 @@ export function updatePoison(
 ): DamageEvent[] {
   const events: DamageEvent[] = []
   const elapsed = Math.max(0, fixedStepSeconds)
-  for (const target of [...state.enemies, ...(state.bosses ?? [])]) {
+  for (const target of [
+    state.player,
+    ...state.enemies,
+    ...(state.bosses ?? []),
+  ]) {
     if (!target.poisonStacks || target.poisonStacks.length === 0) {
       continue
     }

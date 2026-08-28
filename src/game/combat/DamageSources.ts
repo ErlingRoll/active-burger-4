@@ -30,6 +30,7 @@ import {
 export interface ResolvedOutgoingDamage {
   damage: DamageValues
   criticalStrike: CriticalStrikeStats
+  poisonApplication?: DamageEvent['poisonApplication']
 }
 
 export interface PlayerDamageProfileContext {
@@ -148,6 +149,9 @@ export function createMonsterDamageProfile(
   return {
     damage,
     criticalStrike: createMonsterCriticalStrikeStats(source),
+    ...(eliteModifier?.poisonApplication
+      ? { poisonApplication: eliteModifier.poisonApplication }
+      : {}),
   }
 }
 
@@ -162,6 +166,9 @@ export function createMonsterDamageEvent(
     targetId,
     damage: profile.damage,
     criticalStrike: profile.criticalStrike,
+    ...(profile.poisonApplication
+      ? { poisonApplication: profile.poisonApplication }
+      : {}),
   }
 }
 

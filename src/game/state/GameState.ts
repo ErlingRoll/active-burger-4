@@ -61,6 +61,7 @@ export interface TelegraphState {
   points: readonly SkillEffectPoint[]
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
+  poisonApplication?: PoisonApplication
 }
 export type Telegraph = TelegraphState
 
@@ -205,6 +206,7 @@ export interface PlayerState {
   /** Additive multiplier for the range that attracts all collectible pickups. */
   pickupCollectionRangeMultiplier?: number
   resistances?: Partial<DamageResistanceValues>
+  poisonStacks?: PoisonStackState[]
   critChance?: number
   critMultiplier?: number
 
@@ -288,10 +290,7 @@ export interface DamageEvent {
   /** Marks periodic damage so it cannot trigger hit-only effects such as leech. */
   damageOverTime?: boolean
   /** Creates one independent poison stack after this hit is resolved. */
-  poisonApplication?: {
-    durationSeconds: number
-    physicalChaosRatio: number
-  }
+  poisonApplication?: PoisonApplication
 }
 
 export interface ProjectileState {
@@ -397,6 +396,11 @@ export interface SummonState {
 export interface PoisonStackState {
   remainingDuration: number
   damagePerSecond: number
+}
+
+export interface PoisonApplication {
+  durationSeconds: number
+  physicalChaosRatio: number
 }
 
 export interface SkillEffectState {
