@@ -613,6 +613,7 @@ export class Game {
     position: WorldPosition,
     xpRewardOverride?: number,
     eliteModifier?: EliteModifierId,
+    canDropLoot?: boolean,
   ): EntityId {
     return spawnEnemy(
       this.gameState,
@@ -622,6 +623,7 @@ export class Game {
       xpRewardOverride,
       eliteModifier,
       this.worldModifierEffects,
+      canDropLoot,
     )
   }
 
@@ -795,10 +797,17 @@ export class Game {
     }
     removeDeadEntities(this.gameState, (position, xpAmount) => {
       this.spawnXpPickup(position, xpAmount)
-    }, (definitionId, position, xpRewardOverride) => {
+    }, (definitionId, position, xpRewardOverride, canDropLoot) => {
       // Splitter children intentionally use the ordinary spawn path without
-      // an elite modifier; only director requests assign elites.
-      this.spawnEnemy(definitionId, position, xpRewardOverride)
+      // an elite modifier; only director requests assign elites. They also do
+      // not generate additional gear or potion loot.
+      this.spawnEnemy(
+        definitionId,
+        position,
+        xpRewardOverride,
+        undefined,
+        canDropLoot,
+      )
     }, (position, sourceEnemyDefinitionId) => {
       this.spawnGearPickup(position, sourceEnemyDefinitionId)
     }, this.gearRandom, (position) => {

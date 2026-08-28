@@ -249,6 +249,9 @@ export interface EnemyState {
 
   xpReward: number
 
+  /** False for spawned children that should not generate gear or potion loot. */
+  canDropLoot?: boolean
+
   /** Assigned once at spawn and never inferred by the renderer. */
   eliteModifier?: EliteModifierId
   resistances?: Partial<DamageResistanceValues>

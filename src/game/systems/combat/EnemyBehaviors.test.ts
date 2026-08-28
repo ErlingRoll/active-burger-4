@@ -99,6 +99,7 @@ describe('enemy variety behaviors', () => {
           x: enemy.x,
           y: enemy.y,
           xpReward: enemy.xpReward,
+          canDropLoot: enemy.canDropLoot,
         })),
         pickups: game.state.pickups.map((pickup) => pickup.xpAmount),
         kills: game.state.run.killCount,
@@ -113,5 +114,6 @@ describe('enemy variety behaviors', () => {
     expect(first.enemies.map((enemy) => enemy.id)).toEqual([4, 5])
     expect(first.enemies.every((enemy) => enemy.definitionId === 'slime')).toBe(true)
     expect(first.enemies.every((enemy) => enemy.xpReward === 0)).toBe(true)
+    expect(first.enemies.every((enemy) => enemy.canDropLoot === false)).toBe(true)
   })
 })

@@ -1102,6 +1102,7 @@ export function removeDeadEntities(
     definitionId: string,
     position: { x: number; y: number },
     xpRewardOverride?: number,
+    canDropLoot?: boolean,
   ) => void,
   spawnGearPickup?: (
     position: { x: number; y: number },
@@ -1127,13 +1128,13 @@ export function removeDeadEntities(
       if (enemy.xpReward > 0) {
         spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
       }
-      const randomGearDrop = random?.chance(
+      const randomGearDrop = enemy.canDropLoot !== false && (random?.chance(
         getGearDropChance(enemy.definitionId, enemy.eliteModifier, {
           timeSeconds: state.time,
           chanceMultiplier: state.player.gearDropChanceMultiplier,
           spawnBalance,
         }),
-      ) ?? false
+      ) ?? false)
       if (randomGearDrop) {
         state.run.gearDropGenerated = true
         spawnGearPickup?.(
@@ -1141,11 +1142,13 @@ export function removeDeadEntities(
           enemy.definitionId,
         )
       }
-      const potionChance = enemy.eliteModifier
-        ? HEALING_POTION_ELITE_DROP_CHANCE
-        : HEALING_POTION_ORDINARY_DROP_CHANCE
-      if (random?.chance(potionChance) ?? false) {
-        spawnHealingPotion?.({ x: enemy.x, y: enemy.y })
+      if (enemy.canDropLoot !== false) {
+        const potionChance = enemy.eliteModifier
+          ? HEALING_POTION_ELITE_DROP_CHANCE
+          : HEALING_POTION_ORDINARY_DROP_CHANCE
+        if (random?.chance(potionChance) ?? false) {
+          spawnHealingPotion?.({ x: enemy.x, y: enemy.y })
+        }
       }
       childSpawns.push(...getSplitChildren(enemy))
     }
@@ -1158,6 +1161,7 @@ export function removeDeadEntities(
         child.definitionId,
         { x: child.x, y: child.y },
         child.xpRewardOverride,
+        child.canDropLoot,
       )
     }
   }

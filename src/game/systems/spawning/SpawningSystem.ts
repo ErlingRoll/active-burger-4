@@ -154,6 +154,7 @@ export function spawnEnemy(
     | 'ordinaryEnemyContactDamageMultiplier'
     | 'ordinaryEnemySpeedMultiplier'
   >,
+  canDropLoot = true,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
   const modifier = eliteModifier
@@ -194,6 +195,7 @@ export function spawnEnemy(
       (effects?.ordinaryEnemyContactDamageMultiplier ?? 1),
     contactCooldownRemaining: 0,
     xpReward,
+    canDropLoot,
     ...(modifier ? { eliteModifier: modifier.id } : {}),
     targetId: state.player.id,
   }

@@ -10,6 +10,7 @@ export interface ChildSpawnRequest {
   x: number
   y: number
   xpRewardOverride?: number
+  canDropLoot?: boolean
 }
 
 export interface EnemyCombatTarget {
@@ -198,6 +199,7 @@ function createSplitChildren(
       x: enemy.x + Math.cos(angle) * split.spreadRadius,
       y: enemy.y + Math.sin(angle) * split.spreadRadius,
       xpRewardOverride: split.childrenAwardXp ? undefined : 0,
+      canDropLoot: false,
     })
   }
   return children

@@ -80,6 +80,79 @@ describe('enemy gear drops', () => {
     expect(rolls).toContain(HEALING_POTION_ELITE_DROP_CHANCE)
   })
 
+  it('allows a Splitter to drop once but suppresses child gear and potions', () => {
+    const game = createGame({ seed: 7 })
+    game.spawnEnemy('splitter', { x: 100, y: 200 })
+    const splitter = game.state.enemies[0]
+    if (!splitter) {
+      throw new Error('Expected a spawned splitter')
+    }
+    splitter.hp = 0
+    const gearPickups: string[] = []
+    const potions: { x: number; y: number }[] = []
+    const rolls: number[] = []
+    const random = {
+      chance: (chance: number) => {
+        rolls.push(chance)
+        return true
+      },
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    const spawnChildren = (
+      definitionId: string,
+      position: { x: number; y: number },
+      xpRewardOverride?: number,
+      canDropLoot?: boolean,
+    ) => {
+      game.spawnEnemy(
+        definitionId,
+        position,
+        xpRewardOverride,
+        undefined,
+        canDropLoot,
+      )
+    }
+
+    removeDeadEntities(
+      game.state,
+      () => {},
+      spawnChildren,
+      (position, sourceEnemyDefinitionId) => {
+        gearPickups.push(`${position.x}:${sourceEnemyDefinitionId}`)
+      },
+      random,
+      (position) => potions.push(position),
+    )
+
+    expect(gearPickups).toEqual(['100:splitter'])
+    expect(potions).toEqual([{ x: 100, y: 200 }])
+    expect(rolls).toHaveLength(2)
+    expect(game.state.enemies).toHaveLength(2)
+    expect(game.state.enemies.every((enemy) => enemy.canDropLoot === false)).toBe(
+      true,
+    )
+
+    for (const child of game.state.enemies) {
+      child.hp = 0
+    }
+    removeDeadEntities(
+      game.state,
+      () => {},
+      spawnChildren,
+      (position, sourceEnemyDefinitionId) => {
+        gearPickups.push(`${position.x}:${sourceEnemyDefinitionId}`)
+      },
+      random,
+      (position) => potions.push(position),
+    )
+
+    expect(gearPickups).toEqual(['100:splitter'])
+    expect(potions).toEqual([{ x: 100, y: 200 }])
+    expect(rolls).toHaveLength(2)
+  })
+
   it('keeps seeded drop outcomes deterministic', () => {
     const run = () => {
       const game = createGame({ seed: 47 })
