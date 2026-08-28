@@ -9,6 +9,8 @@ import type {
 import { refreshPlayerDerivedStats } from '../../stats/DerivedStats'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
+const PICKUP_CONTACT_EPSILON = 1e-6
+
 export function updatePickups(
   state: GameState,
   fixedStepSeconds: number,
@@ -30,7 +32,7 @@ export function updatePickups(
     broadphaseRadius = Math.max(
       broadphaseRadius,
       pickup.attractionRadius * pickupCollectionRangeMultiplier,
-      player.radius + pickup.radius,
+      player.radius + pickup.radius + PICKUP_CONTACT_EPSILON,
     )
   }
   const collectedIds = new Set<EntityId>()
@@ -47,7 +49,10 @@ export function updatePickups(
     const attractionRadius =
       pickup.attractionRadius * pickupCollectionRangeMultiplier
 
-    if (distance <= contactRange || distance === 0) {
+    if (
+      distance <= contactRange + PICKUP_CONTACT_EPSILON ||
+      distance === 0
+    ) {
       collectPickup(pickup, grantExperience, collectGearPickup, collectHealingPotion)
       collectedIds.add(pickup.id)
       if (state.run.phase !== 'playing') {
@@ -60,16 +65,24 @@ export function updatePickups(
       continue
     }
 
+    const distanceToContact = distance - contactRange
     const movementDistance = Math.min(
       pickup.attractionSpeed * fixedStepSeconds,
-      distance - contactRange,
+      distanceToContact,
     )
     const movementRatio = movementDistance / distance
     pickup.x += offsetX * movementRatio
     pickup.y += offsetY * movementRatio
 
+    const reachedContact = movementDistance >=
+      distanceToContact - PICKUP_CONTACT_EPSILON
+    const distanceAfterMovement = Math.hypot(
+      player.x - pickup.x,
+      player.y - pickup.y,
+    )
     if (
-      Math.hypot(player.x - pickup.x, player.y - pickup.y) <= contactRange
+      reachedContact ||
+      distanceAfterMovement <= contactRange + PICKUP_CONTACT_EPSILON
     ) {
       collectPickup(pickup, grantExperience, collectGearPickup, collectHealingPotion)
       collectedIds.add(pickup.id)

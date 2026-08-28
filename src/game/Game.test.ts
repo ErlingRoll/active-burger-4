@@ -711,6 +711,18 @@ describe('Game', () => {
     expect(first.player.xp).toBe(3)
   })
 
+  it('collects XP when attraction movement reaches the player contact boundary', () => {
+    const game = createGame({ seed: 164 })
+    game.spawnXpPickup({ x: XP_BALANCE.pickupAttractionRadius, y: 0 }, 3)
+
+    for (let tick = 0; tick < 60; tick += 1) {
+      game.update(FIXED_STEP_SECONDS)
+    }
+
+    expect(game.state.pickups).toHaveLength(0)
+    expect(game.state.player.xp).toBe(3)
+  })
+
   it('keeps all enemy death drops reachable when the enemy dies outside the arena', () => {
     const game = createGame({ seed: 163 })
     const bounds = getPlayerArenaBounds(game.state.player.radius)
