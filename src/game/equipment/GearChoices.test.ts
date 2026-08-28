@@ -61,6 +61,31 @@ describe('gear choices', () => {
     expect(choice?.type === 'gear' ? choice.rarity : undefined).toBe('legendary')
   })
 
+  it('weights empty equipment slots more heavily when choosing gear templates', () => {
+    const game = createGame({ seed: 408 })
+    for (const itemId of [
+      'iron-cleaver',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.modifiers = []
+    })
+
+    const choice = generateGearChoices(game.state, 1, {
+      next: () => 0,
+      int: () => 4,
+      chance: () => false,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    })[0]
+
+    expect(choice?.type === 'gear' ? choice.slot : undefined).toBe('helmet')
+  })
+
   it('can offer one-time minimum-rarity blessings as gear improves', () => {
     const game = createGame({ seed: 406 })
     for (const itemId of [
@@ -142,6 +167,33 @@ describe('gear choices', () => {
     ).toBe(false)
   })
 
+  it('places a blessing before an item upgrade when both are offered', () => {
+    const game = createGame({ seed: 407 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.rarity = 'common'
+    })
+
+    const specialChoices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    })
+
+    expect(specialChoices[0]?.type).toBe('gear-rarity-floor')
+    expect(specialChoices[1]?.type).toBe('upgrade-equipped-item')
+  })
+
   it('rolls a set assignment independently for each generated item', () => {
     const game = createGame({ seed: 405 })
     const giantsRoll = {
@@ -214,6 +266,7 @@ describe('gear choices', () => {
     const upgrade = choices.find(
       (choice) => choice.type === 'upgrade-equipped-item',
     )
+    expect(choices[0]).toBe(upgrade)
     expect(upgrade).toMatchObject({
       itemId: 'iron-cleaver',
       rarity: 'common',

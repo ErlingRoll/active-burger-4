@@ -7,10 +7,51 @@ import {
 } from '../../content/skills/Skills'
 import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
-import { equipRolledItem } from '../equipment/EquipmentState'
+import { equipItem, equipRolledItem } from '../equipment/EquipmentState'
+import {
+  GEAR_CHOICES_PER_PICKUP,
+  generateGearChoices,
+} from '../equipment/GearChoices'
 import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
 
 describe('UI snapshots', () => {
+  it('normalizes special gear choice order when projecting pending flows', () => {
+    const game = createGame({ seed: 407 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.rarity = 'common'
+    })
+    const choices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    })
+    const snapshot = createUiSnapshot(game.state, [{
+      type: 'gear-pickup',
+      pickupId: 1,
+      choices: [choices[2]!, choices[1]!, choices[0]!],
+    }])
+
+    const projectedChoiceTypes = snapshot.pendingChoiceFlow?.type === 'gear-pickup'
+      ? snapshot.pendingChoiceFlow.choices.map((choice) => choice.type)
+      : []
+    expect(projectedChoiceTypes).toEqual([
+      'gear-rarity-floor',
+      'upgrade-equipped-item',
+      'gear',
+    ])
+  })
+
   it('projects only acquired skills with actual single-target DPS assumptions', () => {
     const game = createGame({ seed: 71 })
     game.state.player.skills = [

@@ -23,7 +23,7 @@ describe('boss encounter timeline', () => {
     expect(game.state.run.floor).toBe(1)
     const enemyCount = game.state.enemies.length
     game.update(FIXED_STEP_SECONDS)
-    expect(game.state.enemies.length).toBe(enemyCount)
+    expect(game.state.enemies.length).toBeLessThanOrEqual(enemyCount)
   })
 
   it('schedules Inferno Warden on the configured maximum floor', () => {

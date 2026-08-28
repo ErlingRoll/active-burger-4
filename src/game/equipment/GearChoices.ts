@@ -27,6 +27,7 @@ import { rollItemUpgradeModifiers } from './EquipmentState'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.1
+export const EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER = 2
 
 export interface GearItemChoice {
   type: 'gear'
@@ -106,6 +107,34 @@ function rollChoiceFromTemplate(
     modifiers,
     setId,
   }
+}
+
+function getGearTemplateWeight(
+  state: Readonly<GameState>,
+  definition: Readonly<ItemDefinition>,
+): number {
+  return state.player.equipment?.[definition.slot]
+    ? 1
+    : EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER
+}
+
+function chooseGearTemplateIndex(
+  state: Readonly<GameState>,
+  definitions: readonly ItemDefinition[],
+  rng: RandomSource,
+): number {
+  const totalWeight = definitions.reduce(
+    (total, definition) => total + getGearTemplateWeight(state, definition),
+    0,
+  )
+  let roll = rng.int(0, totalWeight - 1)
+  for (const [index, definition] of definitions.entries()) {
+    roll -= getGearTemplateWeight(state, definition)
+    if (roll < 0) {
+      return index
+    }
+  }
+  return definitions.length - 1
 }
 
 function isRangerPreferredWeapon(
@@ -252,6 +281,18 @@ function getEligibleGearRarityFloor(
   return next
 }
 
+export function prioritizeSpecialGearChoices(
+  choices: readonly GearChoice[],
+): GearChoice[] {
+  const blessing = choices.filter((choice) => choice.type === 'gear-rarity-floor')
+  const upgrade = choices.filter((choice) => choice.type === 'upgrade-equipped-item')
+  const ordinary = choices.filter((choice) =>
+    choice.type !== 'gear-rarity-floor' &&
+    choice.type !== 'upgrade-equipped-item'
+  )
+  return [...blessing, ...upgrade, ...ordinary]
+}
+
 /**
  * Generates a deterministic, rarity-weighted set of distinct gear templates.
  * When an eligible equipped item exists, one normal offer is replaced by the
@@ -276,7 +317,10 @@ export function generateGearChoices(
   const remaining = [...itemDefinitions]
   const choices: GearChoice[] = []
   while (choices.length < normalCount) {
-    const definition = remaining.splice(rng.int(0, remaining.length - 1), 1)[0]
+    const definition = remaining.splice(
+      chooseGearTemplateIndex(state, remaining, rng),
+      1,
+    )[0]
     if (!definition) {
       break
     }
@@ -333,7 +377,7 @@ export function generateGearChoices(
       }
     }
   }
-  return choices
+  return prioritizeSpecialGearChoices(choices)
 }
 
 export const generateGearPickupChoices = generateGearChoices

@@ -1,5 +1,8 @@
 import type { EntityId } from '../ids'
-import type { GearChoice } from '../equipment/GearChoices'
+import {
+  prioritizeSpecialGearChoices,
+  type GearChoice,
+} from '../equipment/GearChoices'
 import type { LevelUpUpgradeChoice } from '../../content/upgrades/Upgrades'
 
 export interface LevelUpChoiceFlow {
@@ -26,9 +29,10 @@ export function cloneChoiceFlow(
     }
   }
 
+  const orderedChoices = prioritizeSpecialGearChoices(flow.choices)
   return {
     ...flow,
-    choices: flow.choices.map((choice) =>
+    choices: orderedChoices.map((choice) =>
       choice.type === 'upgrade-equipped-item'
         ? {
             ...choice,
