@@ -8,6 +8,7 @@ import {
   updatePlayerBehavior,
 } from './BehaviorController'
 import { getPlayerDodgeCandidate } from '../movement/DodgeSystem'
+import { getPlayerArenaBounds } from '../../../game-config/arena'
 
 describe('behavior controller foundation', () => {
   it('switches profiles without consuming seeded randomness', () => {
@@ -112,5 +113,42 @@ describe('behavior controller foundation', () => {
       applyMovementCandidate(state, { ...candidate, directionX: -1 }, step)
     }
     expect(state.player.movementVelocityX).toBeLessThan(0)
+  })
+
+  it('clamps the player to the arena and clears velocity blocked by a wall', () => {
+    const state = { player: createInitialPlayerState(1) } as unknown as GameState
+    const bounds = getPlayerArenaBounds(state.player.radius)
+    state.player.x = bounds.maxX - 1
+
+    applyMovementCandidate(state, {
+      source: 'combat-range',
+      directionX: 1,
+      directionY: 0,
+      speed: 90,
+      priority: 1,
+    }, 1)
+
+    expect(state.player.x).toBe(bounds.maxX)
+    expect(state.player.movementVelocityX).toBe(0)
+  })
+
+  it('keeps diagonal movement inside the player-safe corner bounds', () => {
+    const state = { player: createInitialPlayerState(1) } as unknown as GameState
+    const bounds = getPlayerArenaBounds(state.player.radius)
+    state.player.x = bounds.maxX
+    state.player.y = bounds.maxY
+
+    applyMovementCandidate(state, {
+      source: 'kite',
+      directionX: 1,
+      directionY: 1,
+      speed: 90,
+      priority: 1,
+    }, 1 / 60)
+
+    expect(state.player.x).toBeLessThanOrEqual(bounds.maxX)
+    expect(state.player.y).toBeLessThanOrEqual(bounds.maxY)
+    expect(state.player.movementVelocityX).toBeLessThan(0)
+    expect(state.player.movementVelocityY).toBeLessThan(0)
   })
 })

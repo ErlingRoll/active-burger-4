@@ -8,6 +8,7 @@ import {
 import { updatePlayerBehavior } from './BehaviorController'
 import { createInitialPlayerState } from '../spawning/SpawningSystem'
 import type { EnemyState, GameState } from '../../state/GameState'
+import { getPlayerArenaBounds } from '../../../game-config/arena'
 
 function createState(
   enemies: EnemyState[] = [],
@@ -317,5 +318,63 @@ describe('data-driven player behavior intents', () => {
       },
     }]
     expect(updatePlayerBehavior(state, 0.05)?.source).toBe('dodge')
+  })
+
+  it('stops pursuing a pickup that is unreachable beyond the wall', () => {
+    const state = createState([], [{
+      id: 3,
+      kind: 'gear',
+      x: 2_000,
+      y: 0,
+      radius: 12,
+      attractionRadius: 180,
+      attractionSpeed: 360,
+    }])
+    const bounds = getPlayerArenaBounds(state.player.radius)
+    state.player.x = bounds.maxX
+
+    expect(getPlayerBehaviorCandidates(state).map((candidate) => candidate.source))
+      .toEqual(['hold'])
+  })
+
+  it('projects reachable movement toward the wall instead of beyond it', () => {
+    const state = createState([], [{
+      id: 3,
+      kind: 'xp',
+      x: 2_000,
+      y: 200,
+      radius: 8,
+      attractionRadius: 180,
+      attractionSpeed: 360,
+      xpAmount: 5,
+    }])
+    state.player.x = 900
+
+    const candidate = getPlayerBehaviorCandidates(state).find(
+      (entry) => entry.source === 'xp',
+    )
+    expect(candidate).toMatchObject({
+      directionX: expect.any(Number),
+      directionY: expect.any(Number),
+    })
+    expect(candidate?.directionX).toBeGreaterThan(0)
+  })
+
+  it('turns a wall-facing kite route inward when enemies occupy the escape side', () => {
+    const state = createState([
+      enemy(2, 'brute', 1_450, -10),
+      enemy(3, 'brute', 1_450, 10),
+    ])
+    const bounds = getPlayerArenaBounds(state.player.radius)
+    state.player.x = bounds.maxX - 20
+
+    const kite = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'kite',
+    )
+    expect(kite).toMatchObject({
+      directionX: expect.any(Number),
+      directionY: expect.any(Number),
+    })
+    expect(kite?.directionX).toBeLessThan(0)
   })
 })

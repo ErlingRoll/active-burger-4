@@ -30,6 +30,7 @@ import {
   DEFAULT_PLAYSTYLE_ID,
   getPlaystyleDefinition,
 } from '../content/playstyles/Playstyles'
+import { ARENA_BOUNDS } from '../game-config/arena'
 
 export class PixiGame {
   private static readonly MIN_CAMERA_SCALE = 1 / 3
@@ -142,7 +143,7 @@ export class PixiGame {
     )
     this.app.stage.addChild(this.camera)
 
-    ground.addChild(this.createGround())
+    ground.addChild(this.createGround(), this.createArenaBoundary())
     this.playerView = this.createPlayerPlaceholder()
     player.addChild(this.playerView.root)
   }
@@ -166,6 +167,44 @@ export class PixiGame {
     }
 
     return ground
+  }
+
+  private createArenaBoundary(): Graphics {
+    const width = ARENA_BOUNDS.maxX - ARENA_BOUNDS.minX
+    const height = ARENA_BOUNDS.maxY - ARENA_BOUNDS.minY
+    const boundary = new Graphics()
+      .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
+      .stroke({ color: '#22d3ee', width: 42, alpha: 0.1 })
+      .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
+      .stroke({ color: '#0891b2', width: 18, alpha: 0.5 })
+      .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
+      .stroke({ color: '#a5f3fc', width: 4, alpha: 0.95 })
+
+    const edges: readonly [number, number, number, number][] = [
+      [ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, ARENA_BOUNDS.maxX, ARENA_BOUNDS.minY],
+      [ARENA_BOUNDS.maxX, ARENA_BOUNDS.minY, ARENA_BOUNDS.maxX, ARENA_BOUNDS.maxY],
+      [ARENA_BOUNDS.maxX, ARENA_BOUNDS.maxY, ARENA_BOUNDS.minX, ARENA_BOUNDS.maxY],
+      [ARENA_BOUNDS.minX, ARENA_BOUNDS.maxY, ARENA_BOUNDS.minX, ARENA_BOUNDS.minY],
+    ]
+    for (const [startX, startY, endX, endY] of edges) {
+      drawDashedBoundaryEdge(boundary, startX, startY, endX, endY)
+    }
+
+    for (const [x, y] of [
+      [ARENA_BOUNDS.minX, ARENA_BOUNDS.minY],
+      [ARENA_BOUNDS.maxX, ARENA_BOUNDS.minY],
+      [ARENA_BOUNDS.maxX, ARENA_BOUNDS.maxY],
+      [ARENA_BOUNDS.minX, ARENA_BOUNDS.maxY],
+    ]) {
+      boundary
+        .circle(x, y, 24)
+        .fill({ color: '#082f49', alpha: 0.95 })
+        .stroke({ color: '#cffafe', width: 3, alpha: 0.95 })
+        .circle(x, y, 8)
+        .fill('#67e8f9')
+    }
+
+    return boundary
   }
 
   private createPlayerPlaceholder(): PlayerView {
@@ -890,6 +929,31 @@ function applyEnemyRenderScale(
   render: EnemyRenderDefinition,
 ): void {
   view.scale.set(render.scale)
+}
+
+function drawDashedBoundaryEdge(
+  graphics: Graphics,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+): void {
+  const length = Math.hypot(endX - startX, endY - startY)
+  if (length <= 0) {
+    return
+  }
+  const directionX = (endX - startX) / length
+  const directionY = (endY - startY) / length
+  const dashLength = 72
+  const gapLength = 48
+
+  for (let offset = 0; offset < length; offset += dashLength + gapLength) {
+    const dashEnd = Math.min(offset + dashLength, length)
+    graphics
+      .moveTo(startX + directionX * offset, startY + directionY * offset)
+      .lineTo(startX + directionX * dashEnd, startY + directionY * dashEnd)
+      .stroke({ color: '#ecfeff', width: 3, alpha: 0.9 })
+  }
 }
 
 interface EnemyView {

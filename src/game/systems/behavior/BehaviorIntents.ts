@@ -18,8 +18,14 @@ import {
 } from '../../../content/behaviors/BehaviorProfiles'
 import { getEntityThreatScore } from '../../../content/behaviors/ThreatScoring'
 import { SpatialHash } from '../../spatial/SpatialHash'
+import {
+  constrainPlayerMovementDirection,
+  getPlayerArenaBounds,
+  projectPointToPlayerArena,
+} from '../../../game-config/arena'
 
 const BALANCED_POLICY = getBehaviorProfilePolicy(DEFAULT_BEHAVIOR_PROFILE_ID)
+const KITE_WALL_MARGIN = 180
 
 /** Backwards-compatible exports for callers that use the balanced policy. */
 export const BEHAVIOR_INTENT_PRIORITIES = BALANCED_POLICY.intentPriorities
@@ -172,16 +178,27 @@ function createPickupCandidate(
   speed: number,
   source: 'gear' | 'xp',
 ): PlayerMovementCandidate | undefined {
+  const target = projectPointToPlayerArena(
+    pickup.x,
+    pickup.y,
+    state.player.radius,
+  )
   const vector = direction(
     state.player.x,
     state.player.y,
-    pickup.x,
-    pickup.y,
+    target.x,
+    target.y,
     pickup.id,
   )
   if (
     distanceSquared(state.player.x, state.player.y, pickup.x, pickup.y) <=
     (state.player.radius + pickup.radius) ** 2
+  ) {
+    return undefined
+  }
+  if (
+    target.x === state.player.x &&
+    target.y === state.player.y
   ) {
     return undefined
   }
@@ -215,13 +232,21 @@ function createStairsCandidate(
       targetId: stairs.id,
     }
   }
+  const target = projectPointToPlayerArena(
+    stairs.x,
+    stairs.y,
+    state.player.radius,
+  )
+  if (target.x === state.player.x && target.y === state.player.y) {
+    return undefined
+  }
   return {
     source: 'stairs',
     ...direction(
       state.player.x,
       state.player.y,
-      stairs.x,
-      stairs.y,
+      target.x,
+      target.y,
       stairs.id,
     ),
     speed,
@@ -311,9 +336,44 @@ function createKiteCandidate(
     awayY,
     fallbackId,
   )
+  const bounds = getPlayerArenaBounds(state.player.radius)
+  let kiteDirectionX = vector.directionX
+  let kiteDirectionY = vector.directionY
+  const nearLeftWall = state.player.x <= bounds.minX + KITE_WALL_MARGIN
+  const nearRightWall = state.player.x >= bounds.maxX - KITE_WALL_MARGIN
+  const nearTopWall = state.player.y <= bounds.minY + KITE_WALL_MARGIN
+  const nearBottomWall = state.player.y >= bounds.maxY - KITE_WALL_MARGIN
+
+  if (nearLeftWall && kiteDirectionX < 0) {
+    kiteDirectionX = 0
+  } else if (nearRightWall && kiteDirectionX > 0) {
+    kiteDirectionX = 0
+  }
+  if (nearTopWall && kiteDirectionY < 0) {
+    kiteDirectionY = 0
+  } else if (nearBottomWall && kiteDirectionY > 0) {
+    kiteDirectionY = 0
+  }
+
+  const kiteDirectionLength = Math.hypot(kiteDirectionX, kiteDirectionY)
+  if (kiteDirectionLength === 0) {
+    const inward = direction(
+      state.player.x,
+      state.player.y,
+      0,
+      0,
+      fallbackId,
+    )
+    kiteDirectionX = inward.directionX
+    kiteDirectionY = inward.directionY
+  } else {
+    kiteDirectionX /= kiteDirectionLength
+    kiteDirectionY /= kiteDirectionLength
+  }
   return {
     source: 'kite',
-    ...vector,
+    directionX: kiteDirectionX,
+    directionY: kiteDirectionY,
     speed,
     priority: BEHAVIOR_INTENT_PRIORITIES.kite,
     targetId: strongest?.id,
@@ -338,9 +398,26 @@ function createCombatRangeCandidate(
   if (currentDistance <= desiredDistance) {
     return undefined
   }
+  const targetPoint = projectPointToPlayerArena(
+    target.x,
+    target.y,
+    state.player.radius,
+  )
+  if (
+    targetPoint.x === state.player.x &&
+    targetPoint.y === state.player.y
+  ) {
+    return undefined
+  }
   return {
     source: 'combat-range',
-    ...direction(state.player.x, state.player.y, target.x, target.y, target.id),
+    ...direction(
+      state.player.x,
+      state.player.y,
+      targetPoint.x,
+      targetPoint.y,
+      target.id,
+    ),
     speed,
     priority: BEHAVIOR_INTENT_PRIORITIES['combat-range'],
     targetId: target.id,
@@ -354,6 +431,22 @@ function createHoldCandidate(): PlayerMovementCandidate {
     directionY: 0,
     speed: 0,
     priority: BEHAVIOR_INTENT_PRIORITIES.hold,
+  }
+}
+
+function constrainCandidateToArena(
+  state: GameState,
+  candidate: PlayerMovementCandidate,
+): PlayerMovementCandidate {
+  return {
+    ...candidate,
+    ...constrainPlayerMovementDirection(
+      state.player.x,
+      state.player.y,
+      state.player.radius,
+      candidate.directionX,
+      candidate.directionY,
+    ),
   }
 }
 
@@ -396,7 +489,7 @@ export function getPlayerBehaviorCandidates(
 
   const stairs = createStairsCandidate(state, playerStats.movementSpeed)
   if (stairs) {
-    return [stairs]
+    return [constrainCandidateToArena(state, stairs)]
   }
 
   const candidates: PlayerMovementCandidate[] = []
@@ -491,7 +584,9 @@ export function getPlayerBehaviorCandidates(
     ...createHoldCandidate(),
     priority: policy.intentPriorities.hold,
   })
-  return candidates
+  return candidates.map((candidate) =>
+    constrainCandidateToArena(state, candidate)
+  )
 }
 
 export const evaluateBehaviorIntents = getPlayerBehaviorCandidates

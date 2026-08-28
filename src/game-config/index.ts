@@ -1,4 +1,5 @@
 export * from './classes'
+export * from './arena'
 export * from './enemies'
 export * from './gear'
 export * from './meta-progression'

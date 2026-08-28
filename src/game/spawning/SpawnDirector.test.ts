@@ -6,6 +6,7 @@ import {
   SpawnDirector,
   type SpawnDirectorState,
 } from './SpawnDirector'
+import { ARENA_BOUNDS } from '../../game-config/arena'
 
 function createState(
   time = 0,
@@ -72,6 +73,21 @@ describe('SpawnDirector', () => {
     const director = new SpawnDirector(new Random(2))
 
     expect(director.update(createState(0, 30), 10).length).toBeGreaterThan(0)
+  })
+
+  it('leaves enemy spawning unconstrained by the player arena wall', () => {
+    const state = createState()
+    state.player = { x: ARENA_BOUNDS.maxX - 16, y: 0 }
+    const alwaysZeroRandom = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => false,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const requests = new SpawnDirector(alwaysZeroRandom).update(state, 1)
+
+    expect(requests.some((request) => request.x > ARENA_BOUNDS.maxX)).toBe(true)
   })
 
   it('introduces every composition entry during a fixed-timestep run', () => {

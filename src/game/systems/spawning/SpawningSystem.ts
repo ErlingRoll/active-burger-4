@@ -44,10 +44,22 @@ import type {
   XpPickupState,
   PlayerState,
 } from '../../state/GameState'
+import { projectPointToPlayerArena } from '../../../game-config/arena'
 
 export interface WorldPosition {
   x: number
   y: number
+}
+
+function reachablePickupPosition(
+  state: GameState,
+  position: WorldPosition,
+): WorldPosition {
+  return projectPointToPlayerArena(
+    position.x,
+    position.y,
+    state.player.radius,
+  )
 }
 
 export function createInitialPlayerState(
@@ -227,11 +239,12 @@ export function spawnXpPickup(
   position: WorldPosition,
   xpAmount: number,
 ): EntityId {
+  const reachablePosition = reachablePickupPosition(state, position)
   const pickup: XpPickupState = {
     id: idAllocator.createEntityId(),
     kind: 'xp',
-    x: position.x,
-    y: position.y,
+    x: reachablePosition.x,
+    y: reachablePosition.y,
     xpAmount,
     radius: XP_BALANCE.pickupRadius,
     attractionRadius: XP_BALANCE.pickupAttractionRadius,
@@ -248,11 +261,12 @@ export function spawnGearPickup(
   position: WorldPosition,
   sourceEnemyDefinitionId?: EnemyDefinitionId,
 ): EntityId {
+  const reachablePosition = reachablePickupPosition(state, position)
   const pickup: GearPickupState = {
     id: idAllocator.createEntityId(),
     kind: 'gear',
-    x: position.x,
-    y: position.y,
+    x: reachablePosition.x,
+    y: reachablePosition.y,
     radius: GEAR_PICKUP_BALANCE.radius,
     attractionRadius: GEAR_PICKUP_BALANCE.attractionRadius,
     attractionSpeed: GEAR_PICKUP_BALANCE.attractionSpeed,
@@ -269,11 +283,12 @@ export function spawnHealingPotion(
   idAllocator: EntityIdAllocator,
   position: WorldPosition,
 ): EntityId {
+  const reachablePosition = reachablePickupPosition(state, position)
   const pickup: HealingPotionPickupState = {
     id: idAllocator.createEntityId(),
     kind: 'healing-potion',
-    x: position.x,
-    y: position.y,
+    x: reachablePosition.x,
+    y: reachablePosition.y,
     radius: 12,
     attractionRadius: 180,
     attractionSpeed: 360,

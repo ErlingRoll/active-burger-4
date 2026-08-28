@@ -14,6 +14,8 @@ import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'
 import { updatePickups } from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
+import { removeDeadEntities } from './systems/combat/CombatSystem'
+import { getPlayerArenaBounds } from '../game-config/arena'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -707,6 +709,40 @@ describe('Game', () => {
     expect(first).toEqual(second)
     expect(first.pickups).toHaveLength(0)
     expect(first.player.xp).toBe(3)
+  })
+
+  it('keeps all enemy death drops reachable when the enemy dies outside the arena', () => {
+    const game = createGame({ seed: 163 })
+    const bounds = getPlayerArenaBounds(game.state.player.radius)
+    game.spawnSlime({
+      x: bounds.maxX + 500,
+      y: bounds.maxY + 500,
+    })
+    const enemy = game.state.enemies[0]
+    if (!enemy) {
+      throw new Error('Expected an enemy outside the arena')
+    }
+    enemy.hp = 0
+
+    const alwaysDrop = {
+      chance: () => true,
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    removeDeadEntities(
+      game.state,
+      (position, xpAmount) => game.spawnXpPickup(position, xpAmount),
+      undefined,
+      (position) => game.spawnGearPickup(position),
+      alwaysDrop,
+      (position) => game.spawnHealingPotion(position),
+    )
+
+    expect(game.state.pickups).toHaveLength(3)
+    expect(game.state.pickups.every((pickup) =>
+      pickup.x === bounds.maxX && pickup.y === bounds.maxY
+    )).toBe(true)
   })
 
   it('collects healing potions for 10% of maximum health without exceeding it', () => {
