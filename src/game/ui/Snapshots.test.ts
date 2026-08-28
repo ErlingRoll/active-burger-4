@@ -79,13 +79,14 @@ describe('UI snapshots', () => {
     game.state.run.selectedUpgradeIds.push(
       'attack-speed-boost',
       'attack-speed-boost',
+      'attack-speed-boost',
     )
 
     const upgrade = createUiSnapshot(game.state).skills
       .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
       ?.upgrades.find((candidate) => candidate.upgradeId === 'attack-speed-boost')
 
-    expect(upgrade?.valueLabel).toBe('+0.4 attacks/sec')
+    expect(upgrade?.valueLabel).toBe('+0.6 attacks/sec')
   })
 
   it('does not show skill unlocks or unearned Whirlwind leech', () => {

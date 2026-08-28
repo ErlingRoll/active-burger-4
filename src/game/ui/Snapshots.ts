@@ -434,7 +434,7 @@ function scaleUpgradeValueLabel(valueLabel: string, rank: number): string {
   }
 
   const value = Number(match[2]) * rank
-  return `${match[1]}${value}${match[3]}`
+  return `${match[1]}${formatStatNumber(value)}${match[3]}`
 }
 
 function createCharacterStatsSnapshot(
