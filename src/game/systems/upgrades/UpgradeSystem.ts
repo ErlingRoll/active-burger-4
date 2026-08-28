@@ -7,6 +7,7 @@ import {
 import type { SkillId } from '../../../content/skills/Skills'
 import {
   BASIC_ATTACK_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
@@ -52,6 +53,10 @@ export function applyUpgrade(
   if (definition.increasedHealingPercent) {
     player.increasedHealing =
       (player.increasedHealing ?? 0) + definition.increasedHealingPercent
+  }
+  if (definition.summonMaxCountIncrease) {
+    player.skeletonMaxCountBonus =
+      (player.skeletonMaxCountBonus ?? 0) + definition.summonMaxCountIncrease
   }
   if (definition.pickupCollectionRangeIncreasePercent) {
     const currentMultiplier = player.pickupCollectionRangeMultiplier
@@ -113,6 +118,10 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   }
   if (skillId === VITALITY_SKILL_ID) {
     state.player.increasedHealing = 0
+  }
+  if (skillId === RAISE_SKELETON_SKILL_ID) {
+    state.player.skeletonMaxCountBonus = 0
+    state.summons = []
   }
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)

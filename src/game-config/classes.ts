@@ -2,6 +2,7 @@ import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
 } from './skills'
 import type { ItemId } from '../content/gear/Items'
 import type { PlaystyleDefinition } from '../content/playstyles/Playstyles'
@@ -33,10 +34,10 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
   necromancer: {
     id: 'necromancer',
     name: 'Necromancer',
-    description: 'A resilient ranged controller prepared for future summon upgrades.',
+    description: 'A resilient summoner who commands skeletons from a cursed staff.',
     baseStats: { maxHp: 115, movementSpeed: 142.5, attackDamage: 9, attackSpeed: 1, attackRange: 110 } as StatValues,
-    startingWeaponItemId: 'necromancer-training-wand' as ItemId,
-    startingSkillIds: [BASIC_ATTACK_SKILL_ID, CHAIN_LIGHTNING_SKILL_ID],
+    startingWeaponItemId: 'necromancer-bone-staff' as ItemId,
+    startingSkillIds: [BASIC_ATTACK_SKILL_ID, RAISE_SKELETON_SKILL_ID],
     visual: { fillColor: 0xc084fc, outlineColor: 0xf3e8ff },
   },
 }

@@ -6,6 +6,9 @@ import {
   SPLITTER_DEFINITION_ID,
 } from '../../../content/enemies/EnemyConfig'
 import { FIXED_STEP_SECONDS, createGame } from '../../Game'
+import { collectEnemyContactDamage, updateEnemyChase } from './CombatSystem'
+import { collectSkillDamage } from '../skills/SkillSystem'
+import { createEntityIdAllocator } from '../../ids'
 
 describe('enemy variety behaviors', () => {
   it('makes Runner faster and less durable than Brute', () => {
@@ -53,6 +56,30 @@ describe('enemy variety behaviors', () => {
       game.state.player.attackRange,
     )
     expect(game.state.player.targetId).toBe(currentArcher.id)
+  })
+
+  it('prioritizes a closer living skeleton over the player', () => {
+    const game = createGame({ seed: 104, playstyleId: 'necromancer' })
+    const allocator = createEntityIdAllocator()
+    collectSkillDamage(game.state, allocator)
+    const summon = game.state.summons[0]
+    if (!summon) {
+      throw new Error('Expected a skeleton to exist')
+    }
+    const enemyId = game.spawnSlime({ x: 100, y: 0 })
+    summon.x = 90
+    summon.y = 0
+
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+    const enemy = game.state.enemies.find((candidate) => candidate.id === enemyId)
+    expect(enemy?.targetId).toBe(summon.id)
+    expect(collectEnemyContactDamage(game.state, FIXED_STEP_SECONDS)).toEqual([
+      expect.objectContaining({
+        sourceId: enemyId,
+        targetId: summon.id,
+      }),
+    ])
   })
 
   it('splits once into stable, non-XP-awarding children', () => {

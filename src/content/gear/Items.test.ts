@@ -43,7 +43,7 @@ describe('initial gear content', () => {
     ).toEqual(WEAPON_ARCHETYPES)
     expect(
       INITIAL_ITEMS.filter((item) => item.slot === 'weapon').map((item) => item.name),
-    ).toEqual(['Cleaver', 'Bow', 'Wand'])
+    ).toEqual(['Cleaver', 'Bow', 'Wand', 'Staff'])
     expect(
       INITIAL_ITEMS.filter((item) => item.slot !== 'weapon').map((item) => item.name),
     ).toEqual(['Helmet', 'Armor', 'Boots', 'Ring', 'Amulet'])
@@ -70,9 +70,9 @@ describe('initial gear content', () => {
   })
 
   it('provides one generic droppable item for every equipment slot', () => {
-    expect(INITIAL_ITEMS).toHaveLength(EQUIPMENT_SLOTS.length + 2)
+    expect(INITIAL_ITEMS).toHaveLength(EQUIPMENT_SLOTS.length + 3)
     expect(INITIAL_ITEMS.filter((item) => !item.starterOnly)).toHaveLength(
-      EQUIPMENT_SLOTS.length + 2,
+      EQUIPMENT_SLOTS.length + 3,
     )
     expect(
       new Set(INITIAL_ITEMS.filter((item) => !item.starterOnly).map((item) => item.slot)),

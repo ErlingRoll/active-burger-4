@@ -192,6 +192,10 @@ export interface PlayerState {
   whirlwindLeech?: number
   /** Additive percentage applied to all healing received. */
   increasedHealing?: number
+  /** Global percentage multiplier applied to damage-over-time effects. */
+  dotMultiplier?: number
+  /** Repeatable Raise Skeleton upgrade count. */
+  skeletonMaxCountBonus?: number
   /** Whirlwind leech earned from level-up upgrades. */
   upgradeWhirlwindLeech?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
@@ -246,6 +250,7 @@ export interface EnemyState {
   /** Assigned once at spawn and never inferred by the renderer. */
   eliteModifier?: EliteModifierId
   resistances?: Partial<DamageResistanceValues>
+  poisonStacks?: PoisonStackState[]
   critChance?: number
   critMultiplier?: number
 
@@ -273,6 +278,13 @@ export interface DamageEvent {
   targetId: EntityId
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
+  /** Marks periodic damage so it cannot trigger hit-only effects such as leech. */
+  damageOverTime?: boolean
+  /** Creates one independent poison stack after this hit is resolved. */
+  poisonApplication?: {
+    durationSeconds: number
+    physicalChaosRatio: number
+  }
 }
 
 export interface ProjectileState {
@@ -356,13 +368,34 @@ export interface SummonState {
   ownerId: EntityId
   x: number
   y: number
+  /** Persistent deterministic movement state for the summon swarm. */
+  swarmAngle?: number
+  swarmRadius?: number
+  swarmAngularSpeed?: number
+  swarmPhase?: number
+  /** Elapsed idle-swarm time used to schedule deterministic pauses. */
+  swarmMotionTime?: number
+  /** Remaining time in the current intentional standstill. */
+  swarmPauseRemaining?: number
+  /** Next elapsed swarm time at which this summon pauses. */
+  swarmNextPauseTime?: number
+  /** Duration used for each deterministic standstill. */
+  swarmPauseDuration?: number
+  hp: number
+  maxHp: number
+  contactCooldownRemaining: number
   attackCooldownRemaining: number
+}
+
+export interface PoisonStackState {
+  remainingDuration: number
+  damagePerSecond: number
 }
 
 export interface SkillEffectState {
   id: EntityId
   skillId: SkillId
-  shape?: 'arc'
+  shape?: 'arc' | 'line'
   basicAttackWeaponArchetype?: WeaponArchetype
   x: number
   y: number

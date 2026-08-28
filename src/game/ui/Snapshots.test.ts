@@ -3,6 +3,7 @@ import { createGearModifier } from '../../content/gear/ModifierPools'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
@@ -162,6 +163,46 @@ describe('UI snapshots', () => {
           id: 'increased-healing',
           value: '+4%',
         }),
+      ]),
+    )
+  })
+
+  it('shows staff DoT and Raise Skeleton modifiers in skill snapshots', () => {
+    const game = createGame({ seed: 98, playstyleId: 'necromancer' })
+    equipRolledItem(
+      game.state.player,
+      'swiftstride-boots',
+      'common',
+      [createGearModifier('swiftstride-boots', 'dot-multiplier', 1, 20)],
+    )
+
+    const snapshot = createUiSnapshot(game.state)
+    const basicAttack = snapshot.skills.find(
+      (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
+    )
+    const raiseSkeleton = snapshot.skills.find(
+      (skill) => skill.skillId === RAISE_SKELETON_SKILL_ID,
+    )
+    const offence = snapshot.characterStats.groups.find(
+      (group) => group.id === 'offence',
+    )
+
+    expect(basicAttack?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'dot-multiplier', value: '20%' }),
+      ]),
+    )
+    expect(raiseSkeleton?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'summon-damage', value: '6' }),
+        expect.objectContaining({ id: 'summon-max-hp', value: '10' }),
+        expect.objectContaining({ id: 'summon-attack-speed', value: '1 atk/s' }),
+        expect.objectContaining({ id: 'summon-max-count', value: '1' }),
+      ]),
+    )
+    expect(offence?.stats).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'dot-multiplier', value: '20%' }),
       ]),
     )
   })

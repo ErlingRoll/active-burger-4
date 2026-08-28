@@ -19,7 +19,10 @@ import {
   DEFAULT_PLAYSTYLE_ID,
   isPlaystyleId,
 } from '../content/playstyles/Playstyles'
-import { spawnStarterSkeleton, updateSummons } from './systems/summons/SummonSystem'
+import {
+  removeDeadSummons,
+  updateSummons,
+} from './systems/summons/SummonSystem'
 import type { WorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   generateUpgradeChoices,
@@ -59,6 +62,7 @@ import {
   updateAttackCooldown,
   updateEnemyChase,
   updateProjectiles,
+  updatePoison,
 } from './systems/combat/CombatSystem'
 import { createEnemySpatialHash } from './combat/Targeting'
 import {
@@ -300,10 +304,6 @@ export class Game {
     if (isBehaviorProfileId(config.behaviorProfileId)) {
       this.gameState.player.behaviorController!.profileId = config.behaviorProfileId
     }
-    if (this.gameState.player.playstyleId === 'necromancer') {
-      spawnStarterSkeleton(this.gameState, this.idAllocator)
-    }
-
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.
     this.transitionTo('playing')
@@ -750,10 +750,12 @@ export class Game {
       ...basicAttackEvents,
       ...collectProjectileDamage(this.gameState, enemySpatialHash),
       ...collectSkillDamage(this.gameState, this.idAllocator),
-      ...updateSummons(this.gameState, FIXED_STEP_SECONDS),
+      ...updateSummons(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
     ]
     applyDamageEvents(this.gameState, damageEvents, this.random)
+    removeDeadSummons(this.gameState)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
       this.transitionTo('defeat')
       return

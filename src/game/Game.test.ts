@@ -34,7 +34,7 @@ describe('Game', () => {
     expect(createGame({ seed: 102, playstyleId: 'ranger' }).state.player.equipment?.weapon)
       .toMatchObject({ itemId: 'ranger-training-bow' })
     expect(createGame({ seed: 103, playstyleId: 'necromancer' }).state.player.equipment?.weapon)
-      .toMatchObject({ itemId: 'necromancer-training-wand' })
+      .toMatchObject({ itemId: 'necromancer-bone-staff' })
   })
 
   it('keeps the current floor when starting a boss manually', () => {

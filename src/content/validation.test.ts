@@ -124,6 +124,7 @@ describe('content validation', () => {
   it('validates skill tuning and skill upgrade references', () => {
     const errors = validateContent(
       catalogWith({
+        upgradeChoicesPerLevel: 1,
         skills: [
           {
             ...CURRENT_CONTENT.skills[0],
@@ -133,7 +134,9 @@ describe('content validation', () => {
         ],
         upgrades: [
           {
-            ...CURRENT_CONTENT.upgrades[4],
+            ...CURRENT_CONTENT.upgrades.find(
+              (upgrade) => upgrade.skillAction === 'level',
+            )!,
             skillId: 'missing-skill' as never,
           },
         ],

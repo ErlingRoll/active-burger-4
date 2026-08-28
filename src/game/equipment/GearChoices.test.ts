@@ -243,7 +243,12 @@ describe('gear choices', () => {
           )
           .map((choice) => choice.itemId),
       ),
-    ).toEqual(new Set(['iron-cleaver', 'hunters-bow', 'starcall-wand']))
+    ).toEqual(new Set([
+      'iron-cleaver',
+      'hunters-bow',
+      'starcall-wand',
+      'ritual-staff',
+    ]))
   })
 
   it('always offers Rangers at least one bow or wand gear template', () => {

@@ -11,12 +11,13 @@ import { EquipmentSlot } from './EquipmentSlots'
 export { EquipmentSlot, EQUIPMENT_SLOTS } from './EquipmentSlots'
 
 export type ItemId = string
-export type WeaponArchetype = 'sword' | 'bow' | 'wand'
+export type WeaponArchetype = 'sword' | 'bow' | 'wand' | 'staff'
 
 export const WEAPON_ARCHETYPES = [
   'sword',
   'bow',
   'wand',
+  'staff',
 ] as const satisfies readonly WeaponArchetype[]
 
 interface ItemDefinitionBase {
@@ -90,6 +91,15 @@ export const ITEM_DEFINITIONS = {
     modifiers: [],
     starterOnly: true,
   },
+  'necromancer-bone-staff': {
+    id: 'necromancer-bone-staff',
+    name: 'Necromancer Bone Staff',
+    rarity: 'common',
+    slot: EquipmentSlot.Weapon,
+    weaponArchetype: 'staff',
+    modifiers: [],
+    starterOnly: true,
+  },
   'iron-cleaver': {
     id: 'iron-cleaver',
     name: 'Cleaver',
@@ -118,6 +128,16 @@ export const ITEM_DEFINITIONS = {
     weaponArchetype: 'wand',
     modifiers: [
       createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 5, 1),
+    ],
+  },
+  'ritual-staff': {
+    id: 'ritual-staff',
+    name: 'Staff',
+    rarity: 'common',
+    slot: EquipmentSlot.Weapon,
+    weaponArchetype: 'staff',
+    modifiers: [
+      createGearModifier('ritual-staff', 'dot-multiplier', 5, 5),
     ],
   },
   helmet: {

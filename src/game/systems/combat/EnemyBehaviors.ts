@@ -12,20 +12,57 @@ export interface ChildSpawnRequest {
   xpRewardOverride?: number
 }
 
+export interface EnemyCombatTarget {
+  id: number
+  x: number
+  y: number
+  radius: number
+}
+
 type EnemyBehaviorComponent = (
   state: GameState,
   enemy: EnemyState,
   fixedStepSeconds: number,
 ) => void
 
-function moveTowardPlayer(
-  state: GameState,
+export function getEnemyCombatTarget(
+  state: Readonly<GameState>,
+  enemy: Readonly<EnemyState>,
+): EnemyCombatTarget {
+  const target: EnemyCombatTarget = {
+    id: state.player.id,
+    x: state.player.x,
+    y: state.player.y,
+    radius: state.player.radius,
+  }
+  let targetDistanceSquared =
+    (target.x - enemy.x) ** 2 + (target.y - enemy.y) ** 2
+  for (const summon of state.summons) {
+    if (summon.hp <= 0) {
+      continue
+    }
+    const distanceSquared =
+      (summon.x - enemy.x) ** 2 + (summon.y - enemy.y) ** 2
+    if (distanceSquared >= targetDistanceSquared) {
+      continue
+    }
+    target.id = summon.id
+    target.x = summon.x
+    target.y = summon.y
+    target.radius = 13
+    targetDistanceSquared = distanceSquared
+  }
+  return target
+}
+
+function moveTowardTarget(
+  target: Readonly<EnemyCombatTarget>,
   enemy: EnemyState,
   distanceToMaintain: number,
   fixedStepSeconds: number,
 ): void {
-  const offsetX = state.player.x - enemy.x
-  const offsetY = state.player.y - enemy.y
+  const offsetX = target.x - enemy.x
+  const offsetY = target.y - enemy.y
   const distance = Math.hypot(offsetX, offsetY)
   if (distance <= distanceToMaintain || distance === 0) {
     return
@@ -40,14 +77,14 @@ function moveTowardPlayer(
   enemy.y += offsetY * movementRatio
 }
 
-function moveAwayFromPlayer(
-  state: GameState,
+function moveAwayFromTarget(
+  target: Readonly<EnemyCombatTarget>,
   enemy: EnemyState,
   distanceToMaintain: number,
   fixedStepSeconds: number,
 ): void {
-  const offsetX = enemy.x - state.player.x
-  const offsetY = enemy.y - state.player.y
+  const offsetX = enemy.x - target.x
+  const offsetY = enemy.y - target.y
   const distance = Math.hypot(offsetX, offsetY)
   const angle =
     distance === 0
@@ -74,10 +111,12 @@ function updateChaseBehavior(
   enemy: EnemyState,
   fixedStepSeconds: number,
 ): void {
-  moveTowardPlayer(
-    state,
+  const target = getEnemyCombatTarget(state, enemy)
+  enemy.targetId = target.id
+  moveTowardTarget(
+    target,
     enemy,
-    state.player.radius + enemy.radius,
+    target.radius + enemy.radius,
     fixedStepSeconds,
   )
 }
@@ -88,14 +127,13 @@ function updateStandoffBehavior(
   fixedStepSeconds: number,
   behavior: Extract<EnemyBehaviorDefinition, { kind: 'standoff' }>,
 ): void {
-  const distance = Math.hypot(
-    state.player.x - enemy.x,
-    state.player.y - enemy.y,
-  )
+  const target = getEnemyCombatTarget(state, enemy)
+  enemy.targetId = target.id
+  const distance = Math.hypot(target.x - enemy.x, target.y - enemy.y)
   if (distance < behavior.retreatDistance) {
-    moveAwayFromPlayer(state, enemy, behavior.retreatDistance, fixedStepSeconds)
+    moveAwayFromTarget(target, enemy, behavior.retreatDistance, fixedStepSeconds)
   } else {
-    moveTowardPlayer(state, enemy, behavior.desiredDistance, fixedStepSeconds)
+    moveTowardTarget(target, enemy, behavior.desiredDistance, fixedStepSeconds)
   }
 }
 

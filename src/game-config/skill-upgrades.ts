@@ -1,6 +1,7 @@
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from './skills'
@@ -11,9 +12,50 @@ const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
 const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
+const RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 10
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
+  {
+    id: 'raise-skeleton-unlock',
+    name: 'Raise Skeleton',
+    description: 'Unlock an automatic skeleton summoning skill.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: RAISE_SKELETON_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-unlock'),
+  },
+  {
+    id: 'raise-skeleton-level',
+    name: 'Hardened Bones',
+    description: `Increase each skeleton's damage by ${RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT}% and max HP by 5.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT}% skeleton damage, +5 skeleton max HP`,
+    skillId: RAISE_SKELETON_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[RAISE_SKELETON_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'raise-skeleton-max-count',
+    name: 'Expanded Crypt',
+    description: 'Increase the maximum number of active skeletons by 1.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: '+1 maximum skeleton',
+    skillId: RAISE_SKELETON_SKILL_ID,
+    summonMaxCountIncrease: 1,
+    isEligible: (state) => state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID),
+  },
   {
     id: 'whirlwind-leech',
     name: 'Sanguine Whirlwind',

@@ -8,6 +8,7 @@ export type SkillId =
   | 'whirlwind'
   | 'chain-lightning'
   | 'vitality'
+  | 'raise-skeleton'
 
 export type SkillTag =
   | 'physical'
@@ -19,6 +20,8 @@ export type SkillTag =
   | 'cold'
   | 'chaos'
   | 'defensive'
+  | 'summon'
+  | 'dot'
 
 export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
 
@@ -49,6 +52,13 @@ export interface SkillDefinition {
   damagePerLevel: PartialDamageValues
   baseHealing?: number
   healingPerLevel?: number
+  summonBaseDamage?: number
+  summonDamageIncreasePercentPerLevel?: number
+  summonBaseMaxHp?: number
+  summonMaxHpPerLevel?: number
+  summonAttackCooldown?: number
+  summonAttackRange?: number
+  summonBaseMaxCount?: number
   radius?: number
   maxRange?: number
   maxTargets?: number
@@ -67,6 +77,12 @@ export interface BasicAttackVariantDefinition {
   swingArcDegrees?: number
   spreadDegrees?: number
   maxExtraProjectiles?: number
+  areaShape?: 'arc' | 'circle'
+  areaRadius?: number
+  poisonApplication?: {
+    durationSeconds: number
+    physicalChaosRatio: number
+  }
   effectLifetime: number
   visual: SkillVisualPresentation
 }
@@ -77,6 +93,7 @@ export {
   CHAIN_LIGHTNING_SKILL_ID,
   SKILL_DEFINITIONS,
   VITALITY_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../game-config/skills'
 

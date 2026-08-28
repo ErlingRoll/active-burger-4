@@ -49,7 +49,7 @@ export class PixiGame {
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
-  private readonly summonViews = new Map<EntityId, Graphics>()
+  private readonly summonViews = new Map<EntityId, SummonView>()
   private readonly stairsViews = new Map<EntityId, StairsView>()
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
@@ -221,13 +221,17 @@ export class PixiGame {
     return { root, hpBar }
   }
 
-  private createSummonPlaceholder(): Graphics {
-    return new Graphics()
+  private createSummonPlaceholder(): SummonView {
+    const body = new Graphics()
       .circle(0, 0, 13)
       .fill('#d8b4fe')
       .stroke({ color: '#faf5ff', width: 2 })
       .circle(0, 0, 7)
       .fill('#7e22ce')
+    const hpBar = new Graphics()
+    const root = new Container()
+    root.addChild(body, hpBar)
+    return { root, body, hpBar }
   }
 
   private createEnemyPlaceholder(enemy: {
@@ -257,6 +261,10 @@ export class PixiGame {
     applyEnemyRenderScale(body, definition.render)
 
     const root = new Container()
+    const poisonAura = new Graphics()
+    poisonAura.visible = false
+    applyEnemyRenderScale(poisonAura, definition.render)
+    root.addChild(poisonAura)
     if (enemy.eliteModifier) {
       const modifier = getEliteModifierDefinition(enemy.eliteModifier)
       const aura = createEliteAura(modifier, radius)
@@ -278,7 +286,7 @@ export class PixiGame {
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
     root.addChild(hpBar, label)
-    return { root, label, hpBar }
+    return { root, label, hpBar, poisonAura }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -360,9 +368,13 @@ export class PixiGame {
     })
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
+    const poisonAura = new Graphics()
+      .circle(0, 0, boss.radius + 8)
+      .stroke({ color: '#c084fc', width: 4, alpha: 0.65 })
+    poisonAura.visible = false
     const root = new Container()
-    root.addChild(body, marker, hpBar, label)
-    return { root, label, hpBar }
+    root.addChild(poisonAura, body, marker, hpBar, label)
+    return { root, label, hpBar, poisonAura }
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
@@ -480,7 +492,30 @@ export class PixiGame {
           ).visual
     const view = new Graphics()
 
-    if (effect.shape === 'arc') {
+    if (effect.shape === 'line') {
+      const points = effect.points.length > 0
+        ? effect.points
+        : [{ x: effect.x, y: effect.y }]
+      const start = points[0]
+      const end = points[points.length - 1]
+      if (start && end) {
+        const startX = start.x - effect.x
+        const startY = start.y - effect.y
+        const endX = end.x - effect.x
+        const endY = end.y - effect.y
+        view
+          .moveTo(startX, startY)
+          .lineTo(endX, endY)
+          .stroke({ color: visual.primaryColor, width: 12, alpha: 0.3 })
+        view
+          .moveTo(startX, startY)
+          .lineTo(endX, endY)
+          .stroke({ color: visual.secondaryColor, width: 4, alpha: 0.95 })
+        view
+          .circle(endX, endY, 7)
+          .fill(visual.outlineColor)
+      }
+    } else if (effect.shape === 'arc') {
       const points = effect.points.length > 0
         ? effect.points
         : [{ x: effect.x, y: effect.y }]
@@ -569,15 +604,23 @@ export class PixiGame {
       if (!summonView) {
         summonView = this.createSummonPlaceholder()
         this.summonViews.set(summon.id, summonView)
-        this.summonLayer?.addChild(summonView)
+        this.summonLayer?.addChild(summonView.root)
       }
-      summonView.position.set(summon.x, summon.y)
-      summonView.rotation = state.time * 1.5
+      summonView.root.position.set(summon.x, summon.y)
+      summonView.body.rotation = state.time * 1.5
+      this.drawHealthBar(
+        summonView.hpBar,
+        26,
+        3,
+        -22,
+        summon.hp,
+        summon.maxHp,
+      )
     }
     for (const [summonId, summonView] of this.summonViews) {
       if (!activeSummonIds.has(summonId)) {
-        summonView.removeFromParent()
-        summonView.destroy()
+        summonView.root.removeFromParent()
+        summonView.root.destroy({ children: true })
         this.summonViews.delete(summonId)
       }
     }
@@ -594,6 +637,25 @@ export class PixiGame {
       }
 
       enemyView.root.position.set(enemy.x, enemy.y)
+      const poisonStackCount = enemy.poisonStacks?.length ?? 0
+      enemyView.poisonAura.visible = poisonStackCount > 0
+      if (poisonStackCount > 0) {
+        const auraRadius = enemy.radius + 5 + Math.min(poisonStackCount, 8) * 1.5
+        enemyView.poisonAura
+          .clear()
+          .circle(0, 0, auraRadius)
+          .stroke({
+            color: '#c084fc',
+            width: 3,
+            alpha: 0.55,
+          })
+          .circle(0, 0, auraRadius * 0.82)
+          .stroke({
+            color: '#a855f7',
+            width: 2,
+            alpha: 0.8,
+          })
+      }
       enemyView.label.text = getEnemyDisplayLabel(
         enemy.definitionId,
         enemy.eliteModifier,
@@ -634,6 +696,16 @@ export class PixiGame {
         this.bossLayer?.addChild(bossView.root)
       }
       bossView.root.position.set(boss.x, boss.y)
+      const poisonStackCount = boss.poisonStacks?.length ?? 0
+      bossView.poisonAura.visible = poisonStackCount > 0
+      if (poisonStackCount > 0) {
+        bossView.poisonAura
+          .clear()
+          .circle(0, 0, boss.radius + 8 + Math.min(poisonStackCount, 8) * 2)
+          .stroke({ color: '#c084fc', width: 4, alpha: 0.65 })
+          .circle(0, 0, boss.radius * 0.82)
+          .stroke({ color: '#a855f7', width: 3, alpha: 0.85 })
+      }
       const bossPulse = 1 + Math.sin(state.time * 3 + boss.id) * 0.025
       bossView.root.scale.set(bossPulse)
       const renderScale = 1
@@ -896,6 +968,10 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const { root } of this.summonViews.values()) {
+      root.removeFromParent()
+      root.destroy({ children: true })
+    }
     for (const { root } of this.stairsViews.values()) {
       root.removeFromParent()
       root.destroy({ children: true })
@@ -906,6 +982,7 @@ export class PixiGame {
     this.projectileViews.clear()
     this.pickupViews.clear()
     this.effectViews.clear()
+    this.summonViews.clear()
     this.stairsViews.clear()
     this.enemyLayer = undefined
     this.bossLayer = undefined
@@ -913,6 +990,7 @@ export class PixiGame {
     this.projectileLayer = undefined
     this.pickupLayer = undefined
     this.effectLayer = undefined
+    this.summonLayer = undefined
     this.stairsLayer = undefined
     this.playerView = undefined
     this.host = undefined
@@ -1027,6 +1105,7 @@ interface EnemyView {
   root: Container
   label: Text
   hpBar: Graphics
+  poisonAura: Graphics
 }
 
 interface PlayerView {
@@ -1034,10 +1113,17 @@ interface PlayerView {
   hpBar: Graphics
 }
 
+interface SummonView {
+  root: Container
+  body: Graphics
+  hpBar: Graphics
+}
+
 interface BossView {
   root: Container
   label: Text
   hpBar: Graphics
+  poisonAura: Graphics
 }
 
 interface TelegraphView {

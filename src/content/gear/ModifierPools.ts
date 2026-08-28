@@ -44,6 +44,7 @@ export type GearModifierId =
   | 'increased-physical-damage'
   | 'increased-elemental-damage'
   | 'increased-chaos-damage'
+  | 'dot-multiplier'
   | 'increased-projectile-damage'
   | 'crit-chance'
   | 'crit-multiplier'
@@ -121,6 +122,11 @@ interface GearProjectileChainsModifierDefinition
   kind: 'projectile-chains'
 }
 
+interface GearDotMultiplierModifierDefinition
+  extends GearModifierDefinitionBase {
+  kind: 'dot-multiplier'
+}
+
 export type GearModifierDefinition =
   | GearStatModifierDefinition
   | GearFlatDamageModifierDefinition
@@ -132,6 +138,7 @@ export type GearModifierDefinition =
   | GearMeleeLeechModifierDefinition
   | GearBasicAttackExtraProjectilesModifierDefinition
   | GearProjectileChainsModifierDefinition
+  | GearDotMultiplierModifierDefinition
 
 export interface GearModifierTargetItem {
   id: string
@@ -525,6 +532,21 @@ export const GEAR_MODIFIER_DEFINITIONS = {
       { min: 8, max: 12 },
     ),
   },
+  'dot-multiplier': {
+    id: 'dot-multiplier',
+    kind: 'dot-multiplier',
+    label: 'DoT multiplier',
+    valueType: 'percent',
+    availableSlots: ALL_SLOTS,
+    sortOrder: 155,
+    tiers: defineTiers(
+      { min: 16, max: 20 },
+      { min: 13, max: 15 },
+      { min: 10, max: 12 },
+      { min: 7, max: 9 },
+      { min: 4, max: 6 },
+    ),
+  },
   'crit-chance': {
     id: 'crit-chance',
     kind: 'critical-strike',
@@ -877,6 +899,9 @@ export function doesGearModifierAffectSkill(
   if (definition.kind === 'projectile-chains') {
     return tags.has('projectile')
   }
+  if (definition.kind === 'dot-multiplier') {
+    return tags.has('dot')
+  }
   if (definition.kind === 'stat') {
     if (definition.stat === 'attackSpeed') {
       return skillId === BASIC_ATTACK_SKILL_ID
@@ -917,6 +942,7 @@ export function validateGearModifierDefinitions(): string[] {
     { id: 'validation-sword', slot: EquipmentSlot.Weapon, weaponArchetype: 'sword' },
     { id: 'validation-bow', slot: EquipmentSlot.Weapon, weaponArchetype: 'bow' },
     { id: 'validation-wand', slot: EquipmentSlot.Weapon, weaponArchetype: 'wand' },
+    { id: 'validation-staff', slot: EquipmentSlot.Weapon, weaponArchetype: 'staff' },
     { id: 'validation-helmet', slot: EquipmentSlot.Helmet },
     { id: 'validation-armor', slot: EquipmentSlot.Armor },
     { id: 'validation-boots', slot: EquipmentSlot.Boots },

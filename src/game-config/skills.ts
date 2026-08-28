@@ -13,6 +13,7 @@ export const BASIC_ATTACK_SKILL_ID: SkillId = 'basic-attack'
 export const WHIRLWIND_SKILL_ID: SkillId = 'whirlwind'
 export const CHAIN_LIGHTNING_SKILL_ID: SkillId = 'chain-lightning'
 export const VITALITY_SKILL_ID: SkillId = 'vitality'
+export const RAISE_SKELETON_SKILL_ID: SkillId = 'raise-skeleton'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
 
@@ -70,6 +71,26 @@ export const BASIC_ATTACK_VARIANTS = {
       trailLength: 16,
       trailWidth: 5,
       projectileShape: 'orb',
+    },
+  },
+  staff: {
+    id: 'staff',
+    description: 'Creates a 40-unit area hit that poisons every enemy it strikes for 4 seconds. Each poison stack deals 50% of the applying hit physical and chaos damage per second.',
+    kind: 'area',
+    tags: ['physical', 'area', 'dot'],
+    areaShape: 'circle',
+    areaRadius: 40,
+    poisonApplication: {
+      durationSeconds: 4,
+      physicalChaosRatio: 0.5,
+    },
+    effectLifetime: 0.16,
+    visual: {
+      kind: 'area',
+      icon: '☠',
+      primaryColor: '#a855f7',
+      secondaryColor: '#d8b4fe',
+      outlineColor: '#f3e8ff',
     },
   },
 } as const satisfies Record<WeaponArchetype, BasicAttackVariantDefinition>
@@ -156,6 +177,31 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#22c55e',
       secondaryColor: '#86efac',
       outlineColor: '#dcfce7',
+    },
+  },
+  [RAISE_SKELETON_SKILL_ID]: {
+    id: RAISE_SKELETON_SKILL_ID,
+    name: 'Raise Skeleton',
+    description: 'Summons a persistent skeleton that attacks nearby enemies.',
+    kind: 'utility',
+    tags: ['physical', 'summon'],
+    cooldown: 5,
+    baseDamage: {},
+    damagePerLevel: {},
+    summonBaseDamage: 6,
+    summonDamageIncreasePercentPerLevel: 8,
+    summonBaseMaxHp: 10,
+    summonMaxHpPerLevel: 5,
+    summonAttackCooldown: 1,
+    summonAttackRange: 70,
+    summonBaseMaxCount: 1,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '☠',
+      primaryColor: '#c084fc',
+      secondaryColor: '#e9d5ff',
+      outlineColor: '#f5f3ff',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

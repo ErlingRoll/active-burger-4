@@ -14,6 +14,9 @@ export type UpgradeId =
   | 'vitality-unlock'
   | 'vitality-level'
   | 'vitality-increased-healing'
+  | 'raise-skeleton-unlock'
+  | 'raise-skeleton-level'
+  | 'raise-skeleton-max-count'
   | 'whirlwind-leech'
   | 'magnet'
   | typeof REMOVE_SKILL_UPGRADE_ID
@@ -69,6 +72,8 @@ export interface UpgradeDefinition {
   skillHealingIncreaseAmount?: number
   /** Percentage added to all healing received per rank. */
   increasedHealingPercent?: number
+  /** Number of additional persistent summons allowed per rank. */
+  summonMaxCountIncrease?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'

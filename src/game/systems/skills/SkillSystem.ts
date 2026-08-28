@@ -5,6 +5,7 @@ import {
   getSkillDamage,
   getSkillHealing,
   type SkillId,
+  RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
@@ -22,6 +23,7 @@ import type {
 } from '../../state/GameState'
 import { healPlayer } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import { summonSkeletonIfReady } from '../summons/SummonSystem'
 
 function scaleAreaValue(value: number, areaOfEffect: number): number {
   return value * (1 + Math.max(0, areaOfEffect) / 100)
@@ -279,6 +281,18 @@ export function collectSkillDamage(
       events.push(...collectChainLightningDamage(state, skill, allocator))
     } else if (skill.skillId === VITALITY_SKILL_ID) {
       events.push(...collectVitalityHealing(state, skill, allocator))
+    } else if (skill.skillId === RAISE_SKELETON_SKILL_ID) {
+      if (summonSkeletonIfReady(state, allocator)) {
+        const definition = getSkillDefinition(RAISE_SKELETON_SKILL_ID)
+        addEffect(
+          state,
+          allocator,
+          skill.skillId,
+          [{ x: state.player.x, y: state.player.y }],
+          24,
+          definition.effectLifetime,
+        )
+      }
     }
   }
 

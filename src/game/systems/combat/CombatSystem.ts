@@ -14,6 +14,7 @@ import {
 import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
+  createDamageValues,
   isCriticalStrike,
   mitigateDamageValues,
   normalizeCriticalStrikeStats,
@@ -40,6 +41,7 @@ import {
 import { getEquippedWeaponArchetype } from '../../equipment/EquipmentState'
 import {
   getSplitChildren,
+  getEnemyCombatTarget,
   updateEnemyBehavior,
 } from './EnemyBehaviors'
 import type { ChildSpawnRequest } from './EnemyBehaviors'
@@ -68,6 +70,11 @@ const DEGREES_TO_RADIANS = Math.PI / 180
 interface Vector2 {
   x: number
   y: number
+}
+
+interface ResolvedDamage {
+  mitigated: DamageValues
+  preMitigation: DamageValues
 }
 
 function normalizeVector(x: number, y: number): Vector2 {
@@ -134,7 +141,7 @@ function getBasicAttackEngagementRange(
 ): number {
   const stats = getDerivedPlayerStats(state.player)
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(state.player))
-  const attackRange = variant.kind === 'area'
+  const attackRange = variant.kind === 'area' && variant.areaShape !== 'circle'
     ? scaleAreaValue(stats.attackRange, stats.areaOfEffect)
     : stats.attackRange
   return attackRange + state.player.radius
@@ -416,6 +423,76 @@ function collectSwordBasicAttackDamage(
   return events
 }
 
+function collectStaffBasicAttackDamage(
+  state: GameState,
+  target: Readonly<EnemyState | BossState>,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const player = state.player
+  const stats = getDerivedPlayerStats(player)
+  const skill = player.skills.find((candidate) => candidate.skillId === BASIC_ATTACK_SKILL_ID)
+  if (!skill) {
+    return []
+  }
+  const variant = getBasicAttackVariant(getEquippedWeaponArchetype(player))
+  const range = stats.attackRange
+  if (Math.hypot(target.x - player.x, target.y - player.y) > range + target.radius) {
+    return []
+  }
+  const radius = scaleAreaValue(variant.areaRadius ?? 40, stats.areaOfEffect)
+  const skillDefinition = getSkillDefinition(BASIC_ATTACK_SKILL_ID)
+  const baseDamage = getSkillDamage(skillDefinition, skill.level)
+  baseDamage.physical += stats.attackDamage
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    stats,
+    baseDamage,
+    {
+      sourceTags: [...variant.tags],
+      additionalIncreasedDamage: {
+        global: getSkillDamageIncreasePercent(
+          BASIC_ATTACK_SKILL_ID,
+          skill.level,
+        ),
+      },
+    },
+  )
+  const events = [...state.enemies, ...(state.bosses ?? [])]
+    .sort((left, right) => left.id - right.id)
+    .flatMap((enemy) => {
+      if (enemy.hp <= 0) {
+        return []
+      }
+      const distance = Math.hypot(enemy.x - target.x, enemy.y - target.y)
+      if (distance > radius + enemy.radius) {
+        return []
+      }
+      return [{
+        sourceId: player.id,
+        sourceSkillId: BASIC_ATTACK_SKILL_ID,
+        sourceTags: [...variant.tags],
+        targetId: enemy.id,
+        damage: outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+        ...(variant.poisonApplication
+          ? { poisonApplication: variant.poisonApplication }
+          : {}),
+      }]
+    })
+  if (events.length > 0) {
+    createBasicAttackEffect(state, allocator, {
+      skillId: BASIC_ATTACK_SKILL_ID,
+      basicAttackWeaponArchetype: variant.id,
+      x: target.x,
+      y: target.y,
+      radius,
+      lifetime: variant.effectLifetime,
+      remainingLifetime: variant.effectLifetime,
+      points: [{ x: target.x, y: target.y }],
+    })
+  }
+  return events
+}
+
 function findLivingTarget(
   state: Readonly<GameState>,
   targetId: number | undefined,
@@ -459,9 +536,11 @@ export function collectEnemyContactDamage(
       (enemy.contactCooldownRemaining ?? 0) - elapsed,
     )
     enemy.contactCooldownRemaining = cooldown
-    const contactDistance = state.player.radius + enemy.radius
+    const target = getEnemyCombatTarget(state, enemy)
+    enemy.targetId = target.id
+    const contactDistance = target.radius + enemy.radius
     const distanceSquared =
-      (enemy.x - state.player.x) ** 2 + (enemy.y - state.player.y) ** 2
+      (enemy.x - target.x) ** 2 + (enemy.y - target.y) ** 2
     if (
       cooldown > 0 ||
       distanceSquared > contactDistance * contactDistance ||
@@ -472,7 +551,7 @@ export function collectEnemyContactDamage(
 
     events.push(createMonsterDamageEvent(
       enemy,
-      state.player.id,
+      target.id,
       { physical: enemy.contactDamage },
     ))
     enemy.contactCooldownRemaining = ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS
@@ -545,7 +624,9 @@ export function performBasicAttackIfReady(
   const cooldown = createBasicAttackCooldown(getDerivedPlayerStats(player).attackSpeed)
 
   if (variant.kind === 'area') {
-    const events = collectSwordBasicAttackDamage(state, target, idAllocator)
+    const events = variant.areaShape === 'circle'
+      ? collectStaffBasicAttackDamage(state, target, idAllocator)
+      : collectSwordBasicAttackDamage(state, target, idAllocator)
     if (events.length > 0) {
       setBasicAttackCooldown(state, cooldown)
     }
@@ -692,7 +773,7 @@ function resolveEventDamage(
   event: Readonly<DamageEvent>,
   resistances: Readonly<Partial<DamageResistanceValues>> | undefined,
   rng?: Pick<RandomSource, 'next'>,
-): DamageValues {
+): ResolvedDamage {
   const criticalStrike = event.criticalStrike
   const isCritical = criticalStrike
     ? isCriticalStrike(criticalStrike, rng?.next() ?? 1)
@@ -703,7 +784,10 @@ function resolveEventDamage(
         normalizeCriticalStrikeStats(criticalStrike).multiplier / 100,
       )
     : event.damage
-  return mitigateDamageValues(damageAfterCrit, resistances)
+  return {
+    preMitigation: damageAfterCrit,
+    mitigated: mitigateDamageValues(damageAfterCrit, resistances),
+  }
 }
 
 function getPlayerDamageSource(
@@ -738,7 +822,7 @@ export function applyDamageEvents(
       )
       const source = getPlayerDamageSource(state, event)
       for (const damageType of DAMAGE_TYPES) {
-        const actualDamage = Math.min(state.player.hp, resolvedDamage[damageType])
+        const actualDamage = Math.min(state.player.hp, resolvedDamage.mitigated[damageType])
         if (actualDamage <= 0) {
           continue
         }
@@ -747,15 +831,33 @@ export function applyDamageEvents(
       }
       continue
     }
+    const summon = state.summons.find(
+      (candidate) => candidate.id === event.targetId && candidate.hp > 0,
+    )
+    if (summon) {
+      const resolvedDamage = resolveEventDamage(event, undefined, rng)
+      summon.hp = Math.max(
+        0,
+        summon.hp - sumDamageValues(resolvedDamage.mitigated),
+      )
+      continue
+    }
     const enemy = state.enemies.find(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (enemy) {
+      const resolvedDamage = resolveEventDamage(event, enemy.resistances, rng)
       const actualDamage = Math.min(
         enemy.hp,
-        sumDamageValues(resolveEventDamage(event, enemy.resistances, rng)),
+        sumDamageValues(resolvedDamage.mitigated),
       )
       enemy.hp -= actualDamage
+      applyPoisonApplication(
+        state,
+        enemy,
+        event,
+        resolvedDamage.preMitigation,
+      )
       applyMeleeLeech(state, event, actualDamage)
       continue
     }
@@ -763,14 +865,78 @@ export function applyDamageEvents(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (boss) {
+      const resolvedDamage = resolveEventDamage(event, boss.resistances, rng)
       const actualDamage = Math.min(
         boss.hp,
-        sumDamageValues(resolveEventDamage(event, boss.resistances, rng)),
+        sumDamageValues(resolvedDamage.mitigated),
       )
       boss.hp -= actualDamage
+      applyPoisonApplication(
+        state,
+        boss,
+        event,
+        resolvedDamage.preMitigation,
+      )
       applyMeleeLeech(state, event, actualDamage)
     }
   }
+}
+
+function applyPoisonApplication(
+  state: GameState,
+  target: EnemyState,
+  event: Readonly<DamageEvent>,
+  preMitigationDamage: Readonly<DamageValues>,
+): void {
+  const application = event.poisonApplication
+  if (!application || target.hp <= 0) {
+    return
+  }
+  const sourceDamage = preMitigationDamage.physical + preMitigationDamage.chaos
+  const dotMultiplier = getDerivedPlayerStats(state.player).dotMultiplier
+  const damagePerSecond = sourceDamage *
+    application.physicalChaosRatio *
+    (1 + dotMultiplier / 100)
+  if (damagePerSecond <= 0) {
+    return
+  }
+  target.poisonStacks ??= []
+  target.poisonStacks.push({
+    remainingDuration: application.durationSeconds,
+    damagePerSecond,
+  })
+}
+
+export function updatePoison(
+  state: GameState,
+  fixedStepSeconds: number,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const elapsed = Math.max(0, fixedStepSeconds)
+  for (const target of [...state.enemies, ...(state.bosses ?? [])]) {
+    if (!target.poisonStacks || target.poisonStacks.length === 0) {
+      continue
+    }
+    for (const stack of target.poisonStacks) {
+      if (stack.remainingDuration <= 0 || stack.damagePerSecond <= 0) {
+        continue
+      }
+      const damage = stack.damagePerSecond * Math.min(elapsed, stack.remainingDuration)
+      if (damage > 0) {
+        events.push({
+          sourceLabel: 'Poison',
+          targetId: target.id,
+          damage: createDamageValues({ chaos: damage }),
+          damageOverTime: true,
+        })
+      }
+      stack.remainingDuration -= elapsed
+    }
+    target.poisonStacks = target.poisonStacks.filter(
+      (stack) => stack.remainingDuration > 0 && stack.damagePerSecond > 0,
+    )
+  }
+  return events
 }
 
 function applyMeleeLeech(
@@ -778,7 +944,12 @@ function applyMeleeLeech(
   event: DamageEvent,
   actualDamage: number,
 ): void {
-  if (!event.sourceSkillId || event.sourceId !== state.player.id || actualDamage <= 0) {
+  if (
+    event.damageOverTime ||
+    !event.sourceSkillId ||
+    event.sourceId !== state.player.id ||
+    actualDamage <= 0
+  ) {
     return
   }
   const sourceTags = event.sourceTags ??

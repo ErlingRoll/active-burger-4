@@ -9,7 +9,9 @@ import {
   collectEnemyContactDamage,
   collectProjectileDamage,
   performBasicAttackIfReady,
+  resolvePlayerTarget,
   updateProjectiles,
+  updatePoison,
 } from './CombatSystem'
 import type {
   BossState,
@@ -22,6 +24,7 @@ import {
   equipRolledItem,
 } from '../../equipment/EquipmentState'
 import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
+import { createGame } from '../../Game'
 
 const neverCrit = { next: () => 1 }
 const alwaysCrit = { next: () => 0 }
@@ -152,6 +155,60 @@ describe('collectProjectileDamage', () => {
         }),
       }),
     ])
+  })
+
+  describe('Necromancer staff poison', () => {
+    it('hits every enemy in the target-centered area and scales its radius with area of effect', () => {
+      const game = createGame({ seed: 90, playstyleId: 'necromancer' })
+      const targetId = game.spawnSlime({ x: 120, y: 0 })
+      const outerId = game.spawnSlime({ x: 185, y: 0 })
+
+      resolvePlayerTarget(game.state)
+      const baseEvents = performBasicAttackIfReady(game.state, allocator)
+      expect(baseEvents.map((event) => event.targetId)).toEqual([targetId])
+
+      game.state.player.attackCooldownRemaining = 0
+      game.state.player.skills.find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)!.cooldownRemaining = 0
+      equipRolledItem(
+        game.state.player,
+        'swiftstride-boots',
+        'common',
+        [createGearModifier('swiftstride-boots', 'area-of-effect', 1, 25)],
+      )
+      const scaledEvents = performBasicAttackIfReady(game.state, allocator)
+      expect(scaledEvents.map((event) => event.targetId)).toEqual([targetId, outerId])
+      expect(game.state.effects.at(-1)?.radius).toBe(50)
+    })
+
+    it('applies independent poison stacks with critical scaling and chaos resistance', () => {
+      const game = createGame({ seed: 91, playstyleId: 'necromancer' })
+      const targetId = game.spawnSlime({ x: 80, y: 0 })
+      const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+      target.hp = 1_000
+      target.maxHp = 1_000
+      target.resistances = { chaos: 50 }
+
+      resolvePlayerTarget(game.state)
+      const firstHit = performBasicAttackIfReady(game.state, allocator)
+      applyDamageEvents(game.state, firstHit, neverCrit)
+      expect(target.poisonStacks).toHaveLength(1)
+      expect(target.poisonStacks?.[0]?.damagePerSecond).toBeCloseTo(4.5)
+
+      game.state.player.attackCooldownRemaining = 0
+      game.state.player.skills.find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)!.cooldownRemaining = 0
+      const criticalHit = performBasicAttackIfReady(game.state, allocator)
+      applyDamageEvents(game.state, criticalHit, alwaysCrit)
+      expect(target.poisonStacks).toHaveLength(2)
+      expect(target.poisonStacks?.[1]?.damagePerSecond).toBeCloseTo(9)
+
+      const poisonEvents = updatePoison(game.state, 1)
+      expect(poisonEvents).toHaveLength(2)
+      applyDamageEvents(game.state, poisonEvents, neverCrit)
+      expect(target.hp).toBeCloseTo(1_000 - 9 - 18 - 4.5 * 0.5 - 9 * 0.5)
+
+      updatePoison(game.state, 3)
+      expect(target.poisonStacks).toHaveLength(0)
+    })
   })
 
   it('relaunches player projectiles across distinct nearby enemies and allows A -> B -> A', () => {

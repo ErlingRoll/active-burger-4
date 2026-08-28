@@ -46,6 +46,7 @@ export interface PlayerStats extends StatValues {
   meleeLeech: number
   whirlwindLeech: number
   increasedHealing: number
+  dotMultiplier: number
 }
 
 function directPlayerStats(player: Readonly<PlayerState>): StatValues {
@@ -96,6 +97,7 @@ interface AggregatedGearEffects {
   projectileChains: number
   meleeLeech: number
   whirlwindLeech: number
+  dotMultiplier: number
 }
 
 export function getEquippedGearSetPieceCounts(
@@ -146,6 +148,7 @@ function aggregateGearEffects(
       0,
       player.upgradeWhirlwindLeech ?? 0,
     ),
+    dotMultiplier: Math.max(0, player.dotMultiplier ?? 0),
   }
 
   for (const modifier of getItemModifiers(player, itemDefinitions)) {
@@ -217,6 +220,11 @@ function aggregateGearEffects(
 
     if (definition.kind === 'projectile-chains') {
       effects.projectileChains += modifier.value
+      continue
+    }
+
+    if (definition.kind === 'dot-multiplier') {
+      effects.dotMultiplier += modifier.value
     }
   }
 
@@ -280,6 +288,8 @@ export function getDerivedPlayerStats(
     meleeLeech: gearEffects.meleeLeech,
     whirlwindLeech: gearEffects.whirlwindLeech,
     increasedHealing: Math.max(0, player.increasedHealing ?? 0),
+    dotMultiplier: Math.max(0, player.dotMultiplier ?? 0) +
+      gearEffects.dotMultiplier,
   }
 }
 

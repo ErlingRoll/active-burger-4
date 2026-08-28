@@ -23,6 +23,7 @@ import {
   getSkillDamage,
   getSkillHealing,
   isSkillId,
+  RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   type SkillId,
@@ -340,6 +341,11 @@ export type SkillModifierSummaryId =
   | 'basic-attack-extra-projectiles'
   | 'healing-per-cast'
   | 'increased-healing'
+  | 'dot-multiplier'
+  | 'summon-damage'
+  | 'summon-max-hp'
+  | 'summon-attack-speed'
+  | 'summon-max-count'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -379,6 +385,7 @@ function getSkillModifierSummaries(
   skillLevel: number,
   skillTags: readonly SkillTag[],
   supportsAreaOfEffect: boolean,
+  skeletonMaxCountBonus = 0,
 ): readonly SkillModifierSummarySnapshot[] {
   const summaries: SkillModifierSummarySnapshot[] = []
   const addSummary = (
@@ -390,6 +397,15 @@ function getSkillModifierSummaries(
     if (Number.isFinite(value)) {
       summaries.push(createSkillModifierSummary(id, label, formattedValue))
     }
+  }
+
+  if (skillTags.includes('dot') && playerStats.dotMultiplier > 0) {
+    addSummary(
+      'dot-multiplier',
+      'DoT multiplier',
+      playerStats.dotMultiplier,
+      formatUnsignedPercent(playerStats.dotMultiplier),
+    )
   }
 
   if (skillId === BASIC_ATTACK_SKILL_ID) {
@@ -474,6 +490,45 @@ function getSkillModifierSummaries(
         )
       }
     }
+    if (skillId === RAISE_SKELETON_SKILL_ID) {
+      const definition = getSkillDefinition(skillId)
+      const levelIncrease = getSkillDamageIncreasePercent(skillId, skillLevel)
+      const skeletonDamage = createPlayerDamageProfileFromStats(
+        playerStats,
+        { physical: definition.summonBaseDamage ?? 0 },
+        { additionalIncreasedDamage: { global: levelIncrease } },
+      ).damage.physical
+      addSummary(
+        'summon-damage',
+        'Skeleton damage',
+        skeletonDamage,
+        formatStatNumber(skeletonDamage),
+      )
+      addSummary(
+        'summon-max-hp',
+        'Skeleton max HP',
+        (definition.summonBaseMaxHp ?? 0) +
+          (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skillLevel - 1),
+        formatStatNumber(
+          (definition.summonBaseMaxHp ?? 0) +
+            (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skillLevel - 1),
+        ),
+      )
+      addSummary(
+        'summon-attack-speed',
+        'Skeleton attack speed',
+        1 / (definition.summonAttackCooldown ?? 1),
+        `${formatStatNumber(1 / (definition.summonAttackCooldown ?? 1))} atk/s`,
+      )
+      addSummary(
+        'summon-max-count',
+        'Maximum skeletons',
+        (definition.summonBaseMaxCount ?? 1) + Math.max(0, skeletonMaxCountBonus),
+        formatStatNumber(
+          (definition.summonBaseMaxCount ?? 1) + Math.max(0, skeletonMaxCountBonus),
+        ),
+      )
+    }
   }
 
   return Object.freeze(summaries)
@@ -486,6 +541,7 @@ const SKILL_SUMMARIZED_GEAR_MODIFIER_IDS = new Set<GearModifier['id']>([
   'area-of-effect',
   'melee-leech',
   'basic-attack-extra-projectiles',
+  'dot-multiplier',
 ])
 
 const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
@@ -654,6 +710,13 @@ function createCharacterStatsSnapshot(
       formatUnsignedPercent(playerStats.critMultiplier),
       'Determines how much damage a critical strike deals.',
       'All player critical strikes.',
+    ),
+    createCharacterStatSnapshot(
+      'dot-multiplier',
+      'DoT multiplier',
+      formatUnsignedPercent(playerStats.dotMultiplier),
+      'Increases the damage of damage-over-time effects when they are applied.',
+      'All player damage-over-time effects, including poison.',
     ),
     createCharacterStatSnapshot(
       'projectile-chains',
@@ -845,6 +908,7 @@ export function createUiSnapshot(
       skill.level,
       skillTags,
       supportsAreaOfEffect,
+      state.player.skeletonMaxCountBonus,
     )
     const gearModifiers = summarizeGearModifiers(EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]
@@ -904,10 +968,14 @@ export function createUiSnapshot(
       estimatedSingleTargetDps,
       dpsAssumption: isBasicAttack
         ? basicAttackVariant.kind === 'area'
-          ? 'One target in the current front-facing Basic Attack arc, sustained over attack cadence.'
+          ? basicAttackVariant.areaShape === 'circle'
+            ? 'One target in the staff area, sustained over Basic Attack cadence.'
+            : 'One target in the current front-facing Basic Attack arc, sustained over attack cadence.'
           : 'One target sustained at the current Basic Attack cadence.'
         : skill.skillId === VITALITY_SKILL_ID
           ? 'Restores health automatically every cooldown.'
+          : skill.skillId === RAISE_SKELETON_SKILL_ID
+            ? 'One persistent skeleton attacks the nearest target in range once per second.'
           : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',

@@ -141,6 +141,8 @@ const VALID_SKILL_TAGS = new Set([
   'cold',
   'chaos',
   'defensive',
+  'summon',
+  'dot',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
@@ -711,7 +713,8 @@ function validateDefinitions(
           VALID_SKILL_ACTIONS.has(upgrade.skillAction)
         ) &&
           upgrade.whirlwindLeechAmount === undefined &&
-          upgrade.increasedHealingPercent === undefined))
+          upgrade.increasedHealingPercent === undefined &&
+          upgrade.summonMaxCountIncrease === undefined))
     ) {
       errors.push(
         `upgrades[${index}] must define a known skillId and skill action or effect.`,
