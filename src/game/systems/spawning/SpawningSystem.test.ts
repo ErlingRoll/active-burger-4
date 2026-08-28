@@ -12,9 +12,21 @@ describe('ordinary enemy floor scaling', () => {
     const second = game.state.enemies.find((enemy) => enemy.id === secondId)
     expect(first).toMatchObject({ maxHp: 20, hp: 20, contactDamage: 5 })
     expect(second).toMatchObject({
-      maxHp: 20.2,
-      hp: 20.2,
-      contactDamage: 5.05,
+      maxHp: 30,
+      hp: 30,
+      contactDamage: 6.25,
     })
+  })
+
+  it('varies movement speed deterministically between instances', () => {
+    const game = createGame({ seed: 20260827 })
+    const firstId = game.spawnEnemy('slime', { x: 0, y: 0 })
+    const secondId = game.spawnEnemy('slime', { x: 0, y: 0 })
+    const first = game.state.enemies.find((enemy) => enemy.id === firstId)
+    const second = game.state.enemies.find((enemy) => enemy.id === secondId)
+
+    expect(first?.speed).toBeCloseTo(84.6)
+    expect(second?.speed).toBeCloseTo(85.5)
+    expect(first?.speed).not.toBe(second?.speed)
   })
 })

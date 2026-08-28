@@ -890,6 +890,12 @@ function validateDungeons(
     )
     validateFiniteNumber(
       errors,
+      `${path}.ordinaryEnemyContactDamageScalingPerFloor`,
+      dungeon.ordinaryEnemyContactDamageScalingPerFloor,
+      'non-negative',
+    )
+    validateFiniteNumber(
+      errors,
       `${path}.bossFloorDurationSeconds`,
       dungeon.bossFloorDurationSeconds,
       'positive',

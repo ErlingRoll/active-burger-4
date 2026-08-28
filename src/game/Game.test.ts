@@ -328,11 +328,11 @@ describe('Game', () => {
       radius: 18,
       hp: 20,
       maxHp: 20,
-      speed: 90,
       contactDamage: 5,
       xpReward: 4,
       targetId: game.state.player.id,
     })
+    expect(slime.speed).toBeCloseTo(84.6)
 
   })
 
@@ -491,7 +491,7 @@ describe('Game', () => {
     gameB.update(FIXED_STEP_SECONDS)
 
     const initialDistance = Math.hypot(100, 50)
-    const movementDistance = 90 * FIXED_STEP_SECONDS
+    const movementDistance = 84.6 * FIXED_STEP_SECONDS
     expect(gameA.state.enemies[0]).toEqual(gameB.state.enemies[0])
     expect(gameA.state.enemies[0].x).toBeCloseTo(
       100 - (movementDistance * 100) / initialDistance,
@@ -681,7 +681,7 @@ describe('Game', () => {
     expect(game.state.enemies).toHaveLength(0)
     expect(game.state.pickups).toHaveLength(2)
     expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toEqual([4, 4])
-    expect(game.state.pickups.map((pickup) => pickup.x)).toEqual([94.5, 198.5])
+    expect(game.state.pickups.map((pickup) => pickup.x)).toEqual([94.59, 198.575])
     expect(firstId).not.toBe(secondId)
 
     game.update(FIXED_STEP_SECONDS)

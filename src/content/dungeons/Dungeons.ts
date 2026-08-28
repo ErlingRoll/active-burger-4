@@ -22,8 +22,10 @@ export interface DungeonDefinition {
   defaultMaxFloor: number
   /** Every normal floor occupies this much deterministic simulation time. */
   floorDurationSeconds: number
-  /** Applied to authored ordinary enemy HP and contact damage per floor. */
+  /** Early per-floor HP scaling for ordinary enemies. */
   ordinaryEnemyStatScalingPerFloor: number
+  /** Early per-floor contact damage scaling for ordinary enemies. */
+  ordinaryEnemyContactDamageScalingPerFloor: number
   /** Boss events reserve one complete floor and suspend normal spawning. */
   bossFloorDurationSeconds: number
   encounterTimeline: readonly EncounterDefinition[]
@@ -34,7 +36,15 @@ export const DEFAULT_DUNGEON_ID: DungeonDefinitionId = 'default-dungeon'
 export const DEFAULT_DUNGEON_MAX_FLOOR = 10
 export const DUNGEON_FLOOR_DURATION_SECONDS = 120
 export const BOSS_FLOOR_EVENT_DURATION_SECONDS = 120
-export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.01
+export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.5
+export const ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING = 0.2
+export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.25
+export const ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.08
+export const FLOOR_SCALING_BREAKPOINT = 5
+export const BOSS_HP_FLOOR_SCALING = 0.125
+export const BOSS_LATE_HP_FLOOR_SCALING = 0.04
+export const BOSS_CONTACT_DAMAGE_FLOOR_SCALING = 0.08
+export const BOSS_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.03
 
 /** Builds boss encounters for every normal floor, ending with Inferno Warden. */
 export function createDungeonEncounterTimeline(
@@ -52,6 +62,8 @@ export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
   defaultMaxFloor: DEFAULT_DUNGEON_MAX_FLOOR,
   floorDurationSeconds: DUNGEON_FLOOR_DURATION_SECONDS,
   ordinaryEnemyStatScalingPerFloor: ORDINARY_ENEMY_FLOOR_STAT_SCALING,
+  ordinaryEnemyContactDamageScalingPerFloor:
+    ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING,
   bossFloorDurationSeconds: BOSS_FLOOR_EVENT_DURATION_SECONDS,
   encounterTimeline: ENCOUNTER_DEFINITIONS,
   maximumFloorContracts: [
@@ -95,8 +107,57 @@ export function getFloorStatMultiplier(
   floorNumber: number,
   dungeon: DungeonDefinition = DEFAULT_DUNGEON_CONFIG,
 ): number {
+  return getProgressiveFloorMultiplier(
+    floorNumber,
+    dungeon.ordinaryEnemyStatScalingPerFloor,
+    ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING,
+    FLOOR_SCALING_BREAKPOINT,
+  )
+}
+
+export function getFloorContactDamageMultiplier(
+  floorNumber: number,
+  dungeon: DungeonDefinition = DEFAULT_DUNGEON_CONFIG,
+): number {
+  return getProgressiveFloorMultiplier(
+    floorNumber,
+    dungeon.ordinaryEnemyContactDamageScalingPerFloor,
+    ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING,
+    FLOOR_SCALING_BREAKPOINT,
+  )
+}
+
+function getProgressiveFloorMultiplier(
+  floorNumber: number,
+  earlyPerFloor: number,
+  latePerFloor: number,
+  breakpointFloor: number,
+): number {
   const floor = Math.max(1, Math.floor(floorNumber))
-  return 1 + (floor - 1) * dungeon.ordinaryEnemyStatScalingPerFloor
+  const floorsAfterFirst = floor - 1
+  const earlyFloorCount = Math.max(0, Math.floor(breakpointFloor) - 1)
+  return 1 +
+    Math.min(floorsAfterFirst, earlyFloorCount) * earlyPerFloor +
+    Math.max(floorsAfterFirst - earlyFloorCount, 0) *
+      latePerFloor
+}
+
+export function getBossHpMultiplier(floorNumber: number): number {
+  return getProgressiveFloorMultiplier(
+    floorNumber,
+    BOSS_HP_FLOOR_SCALING,
+    BOSS_LATE_HP_FLOOR_SCALING,
+    10,
+  )
+}
+
+export function getBossContactDamageMultiplier(floorNumber: number): number {
+  return getProgressiveFloorMultiplier(
+    floorNumber,
+    BOSS_CONTACT_DAMAGE_FLOOR_SCALING,
+    BOSS_LATE_CONTACT_DAMAGE_FLOOR_SCALING,
+    10,
+  )
 }
 
 export interface OrdinaryEnemyStats {
@@ -110,9 +171,13 @@ export function scaleOrdinaryEnemyStats(
   dungeon: DungeonDefinition = DEFAULT_DUNGEON_CONFIG,
 ): OrdinaryEnemyStats {
   const multiplier = getFloorStatMultiplier(floorNumber, dungeon)
+  const contactDamageMultiplier = getFloorContactDamageMultiplier(
+    floorNumber,
+    dungeon,
+  )
   return {
     maxHp: authoredStats.maxHp * multiplier,
-    contactDamage: authoredStats.contactDamage * multiplier,
+    contactDamage: authoredStats.contactDamage * contactDamageMultiplier,
   }
 }
 

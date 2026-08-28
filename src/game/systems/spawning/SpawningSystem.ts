@@ -20,6 +20,8 @@ import {
 } from '../../../content/bosses/Bosses'
 import {
   getDungeonDefinition,
+  getBossContactDamageMultiplier,
+  getBossHpMultiplier,
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
 import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
@@ -60,6 +62,10 @@ function reachablePickupPosition(
     position.y,
     state.player.radius,
   )
+}
+
+function getEnemyMovementSpeedMultiplier(entityId: EntityId): number {
+  return 0.92 + (entityId % 17) * 0.01
 }
 
 export function createInitialPlayerState(
@@ -171,8 +177,9 @@ export function spawnEnemy(
   const maxHp = scaledStats.maxHp *
     (modifier?.maxHpMultiplier ?? 1) *
     (effects?.ordinaryEnemyMaxHpMultiplier ?? 1)
+  const enemyId = idAllocator.createEntityId()
   const enemy: EnemyState = {
-    id: idAllocator.createEntityId(),
+    id: enemyId,
     definitionId: definition.id,
     x: position.x,
     y: position.y,
@@ -180,6 +187,7 @@ export function spawnEnemy(
     hp: maxHp,
     maxHp,
     speed: definition.speed *
+      getEnemyMovementSpeedMultiplier(enemyId) *
       (modifier?.speedMultiplier ?? 1) *
       (effects?.ordinaryEnemySpeedMultiplier ?? 1),
     contactDamage: scaledStats.contactDamage *
@@ -210,6 +218,9 @@ export function spawnBoss(
   position: WorldPosition,
 ): EntityId {
   const definition = getBossDefinition(definitionId)
+  const floor = state.run.floor ?? 1
+  const hpMultiplier = getBossHpMultiplier(floor)
+  const contactDamageMultiplier = getBossContactDamageMultiplier(floor)
   const boss: BossState = {
     id: idAllocator.createEntityId(),
     definitionId: definition.id,
@@ -217,10 +228,10 @@ export function spawnBoss(
     x: position.x,
     y: position.y,
     radius: definition.radius,
-    hp: definition.maxHp,
-    maxHp: definition.maxHp,
+    hp: definition.maxHp * hpMultiplier,
+    maxHp: definition.maxHp * hpMultiplier,
     speed: definition.speed,
-    contactDamage: definition.contactDamage,
+    contactDamage: definition.contactDamage * contactDamageMultiplier,
     spawnTime: state.time,
     xpReward: definition.xpReward,
     targetId: state.player.id,

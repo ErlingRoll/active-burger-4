@@ -68,13 +68,15 @@ describe('default dungeon timeline foundation', () => {
     })
   })
 
-  it('uses one-based floors and authored-base, linear stat scaling', () => {
+  it('uses aggressive early stat scaling with a softer late-floor curve', () => {
     expect(getFloorStatMultiplier(1)).toBe(1)
-    expect(getFloorStatMultiplier(3)).toBe(1.02)
+    expect(getFloorStatMultiplier(3)).toBe(2)
+    expect(getFloorStatMultiplier(5)).toBe(3)
+    expect(getFloorStatMultiplier(10)).toBeCloseTo(4)
 
-    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 3)).toEqual({
-      maxHp: 102,
-      contactDamage: 10.2,
+    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5)).toEqual({
+      maxHp: 300,
+      contactDamage: 20,
     })
   })
 })
