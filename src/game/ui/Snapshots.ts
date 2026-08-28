@@ -68,6 +68,7 @@ import {
   addDamageValues,
   DAMAGE_INCREASE_TYPES,
   DAMAGE_TYPES,
+  createDamageValues,
   getAverageCriticalStrikeFactor,
   getResistanceForDamageType,
   sumDamageValues,
@@ -726,15 +727,15 @@ function createCharacterStatsSnapshot(
       'crit-chance',
       'Crit chance',
       formatUnsignedPercent(playerStats.critChance),
-      'Determines how often player hits critically strike.',
-      'All player damage sources.',
+      'Determines how often player hits and Vitality healing critically strike.',
+      'All player damage sources and Vitality healing.',
     ),
     createCharacterStatSnapshot(
       'crit-multiplier',
       'Crit multiplier',
       formatUnsignedPercent(playerStats.critMultiplier),
-      'Determines how much damage a critical strike deals.',
-      'All player critical strikes.',
+      'Determines how much damage a critical strike deals or how much healing it restores.',
+      'All player critical strikes and Vitality healing.',
     ),
     createCharacterStatSnapshot(
       'dot-multiplier',
@@ -923,16 +924,24 @@ export function createUiSnapshot(
             { physical: playerStats.attackDamage },
           )
         : getSkillDamage(definition, skill.level)
-    const outgoingDamage = createPlayerDamageProfileFromStats(
-      playerStats,
-      baseDamage,
-      {
-        isProjectile: skillTags.includes('projectile'),
-        additionalIncreasedDamage: {
-          global: getSkillDamageIncreasePercent(skill.skillId, skill.level),
-        },
-      },
-    )
+    const outgoingDamage = skill.skillId === VITALITY_SKILL_ID
+      ? {
+          damage: createDamageValues(),
+          criticalStrike: {
+            chance: playerStats.critChance,
+            multiplier: playerStats.critMultiplier,
+          },
+        }
+      : createPlayerDamageProfileFromStats(
+          playerStats,
+          baseDamage,
+          {
+            isProjectile: skillTags.includes('projectile'),
+            additionalIncreasedDamage: {
+              global: getSkillDamageIncreasePercent(skill.skillId, skill.level),
+            },
+          },
+        )
     const damage = sumDamageValues(outgoingDamage.damage) *
       getAverageCriticalStrikeFactor(outgoingDamage.criticalStrike)
     const damageTypes = (Object.keys(outgoingDamage.damage) as DamageType[]).filter(

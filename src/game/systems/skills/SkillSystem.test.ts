@@ -168,6 +168,22 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
 
+  it('allows Vitality healing to critically strike and caps it at missing HP', () => {
+    const game = createGame({ seed: 57 })
+    game.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 2,
+      cooldownRemaining: 0,
+    }]
+    game.state.player.hp = game.state.player.maxHp - 6
+    game.state.player.critChance = 100
+    game.state.player.critMultiplier = 200
+
+    collectSkillDamage(game.state, allocator, { next: () => 0 })
+
+    expect(game.state.player.hp).toBe(game.state.player.maxHp)
+  })
+
   it('extends Whirlwind reach with area-of-effect gear', () => {
     const game = createGame({ seed: 54 })
     game.state.player.skills = [{

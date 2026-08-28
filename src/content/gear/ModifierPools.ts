@@ -7,6 +7,7 @@ import type {
 import type { StatKey } from '../stats/Stats'
 import {
   BASIC_ATTACK_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   type SkillId,
   type SkillTag,
@@ -878,11 +879,15 @@ export function doesGearModifierAffectSkill(
 ): boolean {
   const definition = getGearModifierDefinition(modifier.id)
   const tags = new Set(context.tags ?? [])
-  if (definition.kind === 'flat-damage' || definition.kind === 'critical-strike') {
+  if (definition.kind === 'flat-damage') {
+    return skillId !== VITALITY_SKILL_ID
+  }
+  if (definition.kind === 'critical-strike') {
     return true
   }
   if (definition.kind === 'increased-damage') {
-    return definition.increaseType !== 'projectile' || tags.has('projectile')
+    return skillId !== VITALITY_SKILL_ID &&
+      (definition.increaseType !== 'projectile' || tags.has('projectile'))
   }
   if (definition.kind === 'cooldown-reduction') {
     return skillId !== BASIC_ATTACK_SKILL_ID

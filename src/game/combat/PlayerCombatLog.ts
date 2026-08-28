@@ -3,6 +3,11 @@ import type {
   GameState,
   PlayerCombatLogEntry,
 } from '../state/GameState'
+import {
+  isCriticalStrike,
+  normalizeCriticalStrikeStats,
+} from '../../content/stats/Damage'
+import type { RandomSource } from '../random/Random'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
 export const PLAYER_COMBAT_LOG_WINDOW_SECONDS = 10
@@ -40,14 +45,31 @@ export function healPlayer(
   state: GameState,
   requestedAmount: number,
   source: string,
+  random?: Pick<RandomSource, 'next'>,
 ): number {
+  const playerStats = getDerivedPlayerStats(state.player)
   const healingMultiplier = 1 +
-    Math.max(0, getDerivedPlayerStats(state.player).increasedHealing) / 100
+    Math.max(0, playerStats.increasedHealing) / 100
+  const baseAmount = Math.max(0, requestedAmount) * healingMultiplier
+  const missingHp = Math.max(0, state.player.maxHp - state.player.hp)
+  if (baseAmount <= 0 || missingHp <= 0) {
+    return 0
+  }
+  const criticalStrike = {
+    chance: playerStats.critChance,
+    multiplier: playerStats.critMultiplier,
+  }
+  const isCritical = random
+    ? isCriticalStrike(criticalStrike, random.next())
+    : false
+  const criticalMultiplier = isCritical
+    ? normalizeCriticalStrikeStats(criticalStrike).multiplier / 100
+    : 1
   const amount = Math.max(
     0,
     Math.min(
-      state.player.maxHp - state.player.hp,
-      Math.max(0, requestedAmount) * healingMultiplier,
+      missingHp,
+      baseAmount * criticalMultiplier,
     ),
   )
   if (amount <= 0) {

@@ -83,4 +83,17 @@ describe('player combat log', () => {
     expect(healPlayer(state, 100, 'Healing potion')).toBe(state.player.maxHp - 75)
     expect(state.player.hp).toBe(state.player.maxHp)
   })
+
+  it('allows critical Vitality healing and applies the max HP cap afterward', () => {
+    const game = createGame({ seed: 94 })
+    const state = mutableState(game)
+    state.player.hp = 100
+    state.player.critChance = 100
+    state.player.critMultiplier = 200
+
+    expect(healPlayer(state, 20, 'Vitality', { next: () => 0 })).toBe(40)
+    expect(state.player.hp).toBe(140)
+    expect(healPlayer(state, 20, 'Vitality', { next: () => 0 })).toBe(10)
+    expect(state.player.hp).toBe(state.player.maxHp)
+  })
 })

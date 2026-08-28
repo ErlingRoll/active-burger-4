@@ -163,7 +163,7 @@ export const SKILL_DEFINITIONS = {
   [VITALITY_SKILL_ID]: {
     id: VITALITY_SKILL_ID,
     name: 'Vitality',
-    description: 'Automatically restores 2 HP every 5 seconds. Each level adds 2 HP per cast.',
+    description: 'Automatically restores 2 HP every 5 seconds. Each level adds 2 HP per cast. Vitality healing can critically strike.',
     kind: 'utility',
     tags: ['defensive'],
     cooldown: 5,

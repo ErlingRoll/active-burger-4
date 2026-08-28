@@ -15,6 +15,7 @@ import {
   getSkillDamageIncreasePercent,
 } from '../../../content/upgrades/Upgrades'
 import type { EntityIdAllocator } from '../../ids'
+import type { RandomSource } from '../../random/Random'
 import {
   createPlayerDamageEventFromStats,
 } from '../../combat/DamageSources'
@@ -248,12 +249,14 @@ function collectVitalityHealing(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const definition = getSkillDefinition(VITALITY_SKILL_ID)
   healPlayer(
     state,
     getSkillHealing(definition, skill.level),
     definition.name,
+    random,
   )
   addEffect(
     state,
@@ -275,6 +278,7 @@ function collectVitalityHealing(
 export function collectSkillDamage(
   state: GameState,
   allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
   const skills = [...state.player.skills].sort((left, right) =>
@@ -290,7 +294,7 @@ export function collectSkillDamage(
     } else if (skill.skillId === CHAIN_LIGHTNING_SKILL_ID) {
       events.push(...collectChainLightningDamage(state, skill, allocator))
     } else if (skill.skillId === VITALITY_SKILL_ID) {
-      events.push(...collectVitalityHealing(state, skill, allocator))
+      events.push(...collectVitalityHealing(state, skill, allocator, random))
     } else if (skill.skillId === RAISE_SKELETON_SKILL_ID) {
       if (summonSkeletonIfReady(state, allocator)) {
         const definition = getSkillDefinition(RAISE_SKELETON_SKILL_ID)

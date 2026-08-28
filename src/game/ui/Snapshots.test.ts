@@ -227,6 +227,45 @@ describe('UI snapshots', () => {
     )
   })
 
+  it('only shows Vitality modifiers that affect healing or its cooldown', () => {
+    const game = createGame({ seed: 99 })
+    game.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    equipRolledItem(
+      game.state.player,
+      'starcaller-amulet',
+      'legendary',
+      [
+        createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
+        createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
+        createGearModifier('starcaller-amulet', 'crit-chance', 4, 7),
+        createGearModifier('starcaller-amulet', 'crit-multiplier', 4, 28),
+        createGearModifier('starcaller-amulet', 'cooldown-reduction', 4, 10),
+      ],
+    )
+
+    const vitality = createUiSnapshot(game.state).skills.find(
+      (skill) => skill.skillId === VITALITY_SKILL_ID,
+    )
+    const modifierIds = vitality?.gearModifiers.map((modifier) => modifier.id) ?? []
+    const skillModifierIds = vitality?.skillModifiers.map((modifier) => modifier.id) ?? []
+
+    expect(modifierIds).toEqual(expect.arrayContaining([
+      'crit-chance',
+      'crit-multiplier',
+    ]))
+    expect(modifierIds).not.toEqual(expect.arrayContaining([
+      'flat-lightning-damage',
+      'increased-elemental-damage',
+    ]))
+    expect(skillModifierIds).toContain('cooldown-reduction')
+    expect(vitality?.damageTypes).toEqual([])
+    expect(vitality?.estimatedSingleTargetDps).toBeNull()
+  })
+
   it('shows staff DoT and Raise Skeleton modifiers in skill snapshots', () => {
     const game = createGame({ seed: 98, playstyleId: 'necromancer' })
     equipRolledItem(

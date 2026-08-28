@@ -751,7 +751,7 @@ export class Game {
       ...collectEnemyContactDamage(this.gameState, FIXED_STEP_SECONDS),
       ...basicAttackEvents,
       ...collectProjectileDamage(this.gameState, enemySpatialHash),
-      ...collectSkillDamage(this.gameState, this.idAllocator),
+      ...collectSkillDamage(this.gameState, this.idAllocator, this.random),
       ...updateSummons(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),

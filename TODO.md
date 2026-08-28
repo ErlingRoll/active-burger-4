@@ -2,9 +2,5 @@
 spear character -> pick up for charge
 greedy behavior profile that prioretizes xp
 implement damage type
-gear is very uninteresting if you have a lot of upgrades
-add regen as defensive stat. Default 0. Can actually become negative.
 add melee leech to meele weapons????
-remove offensive stats from vitality tooltip. healing can crit however.
-check skill tags.
 hovering over physical res should show where it comes from. Same for elemental and chaos res.
