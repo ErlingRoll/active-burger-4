@@ -4,6 +4,7 @@ import { createGame } from '../Game'
 import { Random } from '../random/Random'
 import {
   getGearModifierCountForRarity,
+  createGearModifier,
 } from '../../content/gear/ModifierPools'
 import {
   generateGearChoices,
@@ -12,6 +13,7 @@ import {
 } from './GearChoices'
 import {
   equipItem,
+  equipRolledItem,
   upgradeEquippedItem,
 } from './EquipmentState'
 import { createUiSnapshot } from '../ui/Snapshots'
@@ -209,14 +211,20 @@ describe('gear choices', () => {
       pick: <T>(items: readonly T[]) => items[items.length - 1] as T,
     }
 
-    expect(generateGearChoices(game.state, 1, giantsRoll)[0]).toMatchObject({
+    const giantsChoice = generateGearChoices(game.state, 1, giantsRoll)[0]
+    const splinteringChoice = generateGearChoices(game.state, 1, splinteringRoll)[0]
+
+    expect(giantsChoice).toMatchObject({
       type: 'gear',
       setId: 'giants',
     })
-    expect(generateGearChoices(game.state, 1, splinteringRoll)[0]).toMatchObject({
+    expect(splinteringChoice).toMatchObject({
       type: 'gear',
       setId: 'splintering',
     })
+    expect(giantsChoice?.type === 'gear' ? giantsChoice.itemId : undefined).toBe(
+      splinteringChoice?.type === 'gear' ? splinteringChoice.itemId : undefined,
+    )
   })
 
   it('can surface every weapon archetype as a distinct gear template', () => {
@@ -302,7 +310,12 @@ describe('gear choices', () => {
 
   it('offers upgrades only for equipped items with at least one modifier below Tier 1', () => {
     const game = createGame({ seed: 402 })
-    equipItem(game.state.player, 'bastion-plate')
+    equipRolledItem(
+      game.state.player,
+      'armor',
+      'common',
+      [createGearModifier('armor', 'max-hp', 4, 21)],
+    )
     expect(
       generateGearChoices(game.state, 3, new Random(402)).some(
         (choice) => choice.type === 'upgrade-equipped-item',

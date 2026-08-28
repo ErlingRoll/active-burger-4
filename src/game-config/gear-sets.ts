@@ -1,4 +1,4 @@
-import type { EquipmentSlot } from '../content/gear/Items'
+import { EquipmentSlot } from '../content/gear/EquipmentSlots'
 
 export type GearSetId = 'giants' | 'astral' | 'splintering'
 
@@ -25,7 +25,14 @@ export const GEAR_SET_DEFINITIONS = {
   giants: {
     id: 'giants',
     name: "Giant's",
-    slots: ['weapon', 'helmet', 'armor', 'boots', 'ring', 'amulet'],
+    slots: [
+      EquipmentSlot.Weapon,
+      EquipmentSlot.Helmet,
+      EquipmentSlot.Armor,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
     bonuses: [
       { requiredPieces: 2, kind: 'max-hp-percent', value: 10, label: '+10% Max HP' },
       { requiredPieces: 4, kind: 'max-hp-percent', value: 25, label: '+25% Max HP' },
@@ -35,7 +42,14 @@ export const GEAR_SET_DEFINITIONS = {
   astral: {
     id: 'astral',
     name: 'Astral',
-    slots: ['weapon', 'helmet', 'armor', 'boots', 'ring', 'amulet'],
+    slots: [
+      EquipmentSlot.Weapon,
+      EquipmentSlot.Helmet,
+      EquipmentSlot.Armor,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
     bonuses: [
       { requiredPieces: 2, kind: 'cooldown-reduction', value: 5, label: '+5% Cooldown reduction' },
       { requiredPieces: 4, kind: 'cooldown-reduction', value: 12, label: '+12% Cooldown reduction' },
@@ -45,7 +59,14 @@ export const GEAR_SET_DEFINITIONS = {
   splintering: {
     id: 'splintering',
     name: 'Splintering',
-    slots: ['weapon', 'helmet', 'armor', 'boots', 'ring', 'amulet'],
+    slots: [
+      EquipmentSlot.Weapon,
+      EquipmentSlot.Helmet,
+      EquipmentSlot.Armor,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
     bonuses: [
       { requiredPieces: 2, kind: 'extra-projectiles', value: 1, label: '+1 extra projectile' },
       { requiredPieces: 4, kind: 'extra-projectiles', value: 2, label: '+2 extra projectiles' },

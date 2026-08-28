@@ -14,7 +14,11 @@ import {
   type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
-import { EQUIPMENT_SLOTS, type EquipmentSlot } from '../content/gear/Items'
+import {
+  EQUIPMENT_SLOTS,
+  EquipmentSlot,
+  type EquipmentSlot as EquipmentSlotType,
+} from '../content/gear/Items'
 import {
   formatGearModifier,
   serializeGearModifiers,
@@ -37,13 +41,13 @@ interface GameCanvasProps {
 const UI_UPDATE_INTERVAL_MS = 100
 const DEVELOPMENT_TIME_SCALE_STORAGE_KEY = 'active-burger:development-time-scale'
 
-const HUD_SLOT_LABELS: Record<EquipmentSlot, string> = {
-  weapon: 'Weapon',
-  helmet: 'Helmet',
-  armor: 'Armor',
-  boots: 'Boots',
-  ring: 'Ring',
-  amulet: 'Amulet',
+const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
+  [EquipmentSlot.Weapon]: 'Weapon',
+  [EquipmentSlot.Helmet]: 'Helmet',
+  [EquipmentSlot.Armor]: 'Armor',
+  [EquipmentSlot.Boots]: 'Boots',
+  [EquipmentSlot.Ring]: 'Ring',
+  [EquipmentSlot.Amulet]: 'Amulet',
 }
 
 function formatHudModifier(
@@ -344,7 +348,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
     snapshot.skillSlotCount - orderedSkills.length,
   )
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
-  const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlot | null>(
+  const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlotType | null>(
     null,
   )
   const [activeCharacterStatId, setActiveCharacterStatId] = useState<string | null>(

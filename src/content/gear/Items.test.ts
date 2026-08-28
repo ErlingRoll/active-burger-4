@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   EQUIPMENT_SLOTS,
   getItemDefinition,
+  getItemDisplayName,
   INITIAL_ITEMS,
   isItemId,
   WEAPON_ARCHETYPES,
@@ -42,9 +43,12 @@ describe('initial gear content', () => {
     ).toEqual(WEAPON_ARCHETYPES)
     expect(
       INITIAL_ITEMS.filter((item) => item.slot === 'weapon').map((item) => item.name),
-    ).toEqual(["Giant's Cleaver", 'Splintering Bow', 'Astral Wand'])
+    ).toEqual(['Cleaver', 'Bow', 'Wand'])
+    expect(
+      INITIAL_ITEMS.filter((item) => item.slot !== 'weapon').map((item) => item.name),
+    ).toEqual(['Helmet', 'Armor', 'Boots', 'Ring', 'Amulet'])
     expect(new Set(INITIAL_ITEMS.map((item) => item.rarity))).toEqual(
-      new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']),
+      new Set(['common']),
     )
     expect(INITIAL_ITEMS.every((item) => isItemId(item.id))).toBe(true)
     expect(validateGearModifierDefinitions()).toEqual([])
@@ -65,17 +69,28 @@ describe('initial gear content', () => {
     ).toBe(true)
   })
 
-  it('provides one droppable item for every slot in each gear set', () => {
+  it('provides one generic droppable item for every equipment slot', () => {
+    expect(INITIAL_ITEMS).toHaveLength(EQUIPMENT_SLOTS.length + 2)
+    expect(INITIAL_ITEMS.filter((item) => !item.starterOnly)).toHaveLength(
+      EQUIPMENT_SLOTS.length + 2,
+    )
+    expect(
+      new Set(INITIAL_ITEMS.filter((item) => !item.starterOnly).map((item) => item.slot)),
+    ).toEqual(new Set(EQUIPMENT_SLOTS))
+    expect(
+      INITIAL_ITEMS.filter((item) => !item.starterOnly).every((item) => item.setId === undefined),
+    ).toBe(true)
     for (const set of ALL_GEAR_SET_DEFINITIONS) {
-      const setItems = INITIAL_ITEMS.filter((item) => item.setId === set.id)
-      expect(setItems).toHaveLength(EQUIPMENT_SLOTS.length)
-      expect(new Set(setItems.map((item) => item.slot))).toEqual(
-        new Set(EQUIPMENT_SLOTS),
-      )
+      expect(set.slots).toEqual(EQUIPMENT_SLOTS)
       expect(getActiveGearSetBonuses(set, 1)).toEqual([])
       expect(getActiveGearSetBonuses(set, 6)).toHaveLength(3)
     }
-    expect(INITIAL_ITEMS.every((item) => item.setId !== undefined)).toBe(true)
+  })
+
+  it('combines a rolled set name with the generic gear type name', () => {
+    expect(getItemDisplayName(getItemDefinition('boots'), 'splintering')).toBe(
+      'Splintering Boots',
+    )
   })
 
   it('defines the required five resistance tiers and slot-restricted offensive pools', () => {
@@ -310,9 +325,10 @@ describe('initial gear content', () => {
   })
 
   it('resolves definitions at the content-to-game boundary', () => {
-    const definition = getItemDefinition('swiftstride-boots')
+    const definition = getItemDefinition('boots')
 
     expect(definition.slot).toBe('boots')
+    expect(definition.name).toBe('Boots')
     expect(() => getItemDefinition('missing-item')).toThrow(
       'Unknown item definition: missing-item',
     )

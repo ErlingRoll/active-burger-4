@@ -1,8 +1,9 @@
-import type {
+import {
   EquipmentSlot,
-  ItemDefinition,
-  ItemId,
-  WeaponArchetype,
+  getLegacyItemSetId,
+  type ItemDefinition,
+  type ItemId,
+  type WeaponArchetype,
 } from '../../content/gear/Items'
 import {
   ALL_ITEM_DEFINITIONS,
@@ -61,7 +62,12 @@ export function equipItem(
 ): EquipmentSlot {
   const definition = getItemDefinition(itemId, itemDefinitions)
   player.equipment ??= {}
-  player.equipment[definition.slot] = createEquippedItem(definition)
+  player.equipment[definition.slot] = createEquippedItem(
+    definition,
+    undefined,
+    undefined,
+    getLegacyItemSetId(itemId),
+  )
   refreshPlayerDerivedStats(player, itemDefinitions)
   return definition.slot
 }
@@ -80,7 +86,7 @@ export function equipRolledItem(
     definition,
     rarity,
     modifiers,
-    setId,
+    setId ?? getLegacyItemSetId(itemId),
   )
   refreshPlayerDerivedStats(player, itemDefinitions)
   return definition.slot
@@ -95,7 +101,7 @@ export function getEquippedWeaponArchetype(
     return undefined
   }
   const definition = getItemDefinition(equipped.itemId, itemDefinitions)
-  return definition.slot === 'weapon'
+  return definition.slot === EquipmentSlot.Weapon
     ? definition.weaponArchetype
     : undefined
 }

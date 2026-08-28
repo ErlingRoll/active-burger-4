@@ -6,6 +6,7 @@ import {
   EQUIPMENT_SLOTS,
   getItemDisplayName,
   getItemDefinition,
+  getLegacyItemSetId,
   type EquipmentSlot,
   type WeaponArchetype,
 } from '../../content/gear/Items'
@@ -772,7 +773,7 @@ export function createUiSnapshot(
         return []
       }
       const definition = getItemDefinition(equipped.itemId)
-      const setId = equipped.setId ?? definition.setId
+      const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
       const modifiers = Object.freeze(
         (equipped.modifiers ?? definition.modifiers).map((modifier) =>
           Object.freeze({ ...modifier }),

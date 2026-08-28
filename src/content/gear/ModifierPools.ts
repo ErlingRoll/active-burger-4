@@ -12,10 +12,8 @@ import {
   type SkillTag,
 } from '../skills/Skills'
 import type { RandomSource } from '../../game/random/Random'
-import type {
-  EquipmentSlot,
-  WeaponArchetype,
-} from './Items'
+import { EquipmentSlot } from './EquipmentSlots'
+import type { WeaponArchetype } from './Items'
 
 export type GearModifierTier = 1 | 2 | 3 | 4 | 5
 
@@ -162,21 +160,25 @@ export const GEAR_RARITY_MODIFIER_COUNTS = {
   legendary: 5,
 } as const satisfies Record<Rarity, number>
 
-const DAMAGE_SLOTS = ['weapon', 'ring', 'amulet'] as const satisfies readonly EquipmentSlot[]
+const DAMAGE_SLOTS = [
+  EquipmentSlot.Weapon,
+  EquipmentSlot.Ring,
+  EquipmentSlot.Amulet,
+] as const satisfies readonly EquipmentSlot[]
 const NON_WEAPON_SLOTS = [
-  'helmet',
-  'armor',
-  'boots',
-  'ring',
-  'amulet',
+  EquipmentSlot.Helmet,
+  EquipmentSlot.Armor,
+  EquipmentSlot.Boots,
+  EquipmentSlot.Ring,
+  EquipmentSlot.Amulet,
 ] as const satisfies readonly EquipmentSlot[]
 const ALL_SLOTS = [
-  'weapon',
-  'helmet',
-  'armor',
-  'boots',
-  'ring',
-  'amulet',
+  EquipmentSlot.Weapon,
+  EquipmentSlot.Helmet,
+  EquipmentSlot.Armor,
+  EquipmentSlot.Boots,
+  EquipmentSlot.Ring,
+  EquipmentSlot.Amulet,
 ] as const satisfies readonly EquipmentSlot[]
 const PROJECTILE_WEAPON_ARCHETYPES = [
   'bow',
@@ -230,7 +232,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     stat: 'movementSpeed',
     label: 'Movement speed',
     valueType: 'percent',
-    availableSlots: ['boots'],
+    availableSlots: [EquipmentSlot.Boots],
     sortOrder: 20,
     tiers: defineTiers(
       { min: 16, max: 20 },
@@ -246,7 +248,13 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     stat: 'attackSpeed',
     label: 'Attack speed',
     valueType: 'percent',
-    availableSlots: ['weapon', 'armor', 'boots', 'ring', 'amulet'],
+    availableSlots: [
+      EquipmentSlot.Weapon,
+      EquipmentSlot.Armor,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
     sortOrder: 30,
     tiers: defineTiers(
       { min: 20, max: 24 },
@@ -262,7 +270,12 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     stat: 'attackRange',
     label: 'Attack range',
     valueType: 'flat',
-    availableSlots: ['helmet', 'boots', 'ring', 'amulet'],
+    availableSlots: [
+      EquipmentSlot.Helmet,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
     sortOrder: 40,
     tiers: defineTiers(
       { min: 41, max: 50 },
@@ -277,7 +290,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     kind: 'cooldown-reduction',
     label: 'Cooldown reduction',
     valueType: 'percent',
-    availableSlots: ['weapon'],
+    availableSlots: [EquipmentSlot.Weapon],
     sortOrder: 50,
     tiers: defineTiers(
       { min: 19, max: 22 },
@@ -308,7 +321,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     kind: 'melee-leech',
     label: 'Melee leech',
     valueType: 'percent',
-    availableSlots: ['weapon'],
+    availableSlots: [EquipmentSlot.Weapon],
     availableWeaponArchetypes: ['sword'],
     sortOrder: 60,
     tiers: defineTiers(
@@ -324,7 +337,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     kind: 'basic-attack-extra-projectiles',
     label: 'extra Basic Attack projectiles',
     valueType: 'flat',
-    availableSlots: ['weapon'],
+    availableSlots: [EquipmentSlot.Weapon],
     availableWeaponArchetypes: PROJECTILE_WEAPON_ARCHETYPES,
     sortOrder: 65,
     tiers: defineTiers(
@@ -340,7 +353,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     kind: 'projectile-chains',
     label: 'Projectile chains',
     valueType: 'flat',
-    availableSlots: ['weapon'],
+    availableSlots: [EquipmentSlot.Weapon],
     availableWeaponArchetypes: PROJECTILE_WEAPON_ARCHETYPES,
     sortOrder: 67,
     tiers: defineTiers(
@@ -485,7 +498,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     increaseType: 'projectile',
     label: 'Increased projectile damage',
     valueType: 'percent',
-    availableSlots: ['weapon'],
+    availableSlots: [EquipmentSlot.Weapon],
     availableWeaponArchetypes: PROJECTILE_WEAPON_ARCHETYPES,
     sortOrder: 145,
     tiers: defineTiers(
@@ -721,7 +734,7 @@ export function isGearModifierAvailableForItem(
   if (!definition.availableWeaponArchetypes) {
     return true
   }
-  return item.slot === 'weapon' &&
+  return item.slot === EquipmentSlot.Weapon &&
     item.weaponArchetype !== undefined &&
     definition.availableWeaponArchetypes.includes(item.weaponArchetype)
 }
@@ -737,7 +750,7 @@ function getGearModifierRollWeight(
   modifier: GearModifierDefinition,
   item: Readonly<GearModifierTargetItem>,
 ): number {
-  if (item.slot !== 'weapon' || item.weaponArchetype === undefined) {
+  if (item.slot !== EquipmentSlot.Weapon || item.weaponArchetype === undefined) {
     return 1
   }
   return modifier.weaponArchetypeRollWeights?.[item.weaponArchetype] ?? 1
@@ -894,14 +907,14 @@ export function validateGearModifierDefinitions(): string[] {
     }
   }
   const representativeItems: readonly GearModifierTargetItem[] = [
-    { id: 'validation-sword', slot: 'weapon', weaponArchetype: 'sword' },
-    { id: 'validation-bow', slot: 'weapon', weaponArchetype: 'bow' },
-    { id: 'validation-wand', slot: 'weapon', weaponArchetype: 'wand' },
-    { id: 'validation-helmet', slot: 'helmet' },
-    { id: 'validation-armor', slot: 'armor' },
-    { id: 'validation-boots', slot: 'boots' },
-    { id: 'validation-ring', slot: 'ring' },
-    { id: 'validation-amulet', slot: 'amulet' },
+    { id: 'validation-sword', slot: EquipmentSlot.Weapon, weaponArchetype: 'sword' },
+    { id: 'validation-bow', slot: EquipmentSlot.Weapon, weaponArchetype: 'bow' },
+    { id: 'validation-wand', slot: EquipmentSlot.Weapon, weaponArchetype: 'wand' },
+    { id: 'validation-helmet', slot: EquipmentSlot.Helmet },
+    { id: 'validation-armor', slot: EquipmentSlot.Armor },
+    { id: 'validation-boots', slot: EquipmentSlot.Boots },
+    { id: 'validation-ring', slot: EquipmentSlot.Ring },
+    { id: 'validation-amulet', slot: EquipmentSlot.Amulet },
   ]
   for (const item of representativeItems) {
     if (getAvailableGearModifiersForItem(item).length < GEAR_RARITY_MODIFIER_COUNTS.legendary) {

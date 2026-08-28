@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  EquipmentSlot,
   getItemDisplayName,
   getItemDefinition,
-  type EquipmentSlot,
 } from '../content/gear/Items'
 import {
   formatGearModifier,
@@ -39,12 +39,12 @@ interface LevelUpOverlayProps {
 }
 
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
-  weapon: 'Weapon',
-  helmet: 'Helmet',
-  armor: 'Armor',
-  boots: 'Boots',
-  ring: 'Ring',
-  amulet: 'Amulet',
+  [EquipmentSlot.Weapon]: 'Weapon',
+  [EquipmentSlot.Helmet]: 'Helmet',
+  [EquipmentSlot.Armor]: 'Armor',
+  [EquipmentSlot.Boots]: 'Boots',
+  [EquipmentSlot.Ring]: 'Ring',
+  [EquipmentSlot.Amulet]: 'Amulet',
 }
 
 function formatModifier(modifier: GearModifierSnapshot): string {

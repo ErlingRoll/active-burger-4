@@ -7,26 +7,11 @@ import {
   getGearSetDefinition,
   type GearSetId,
 } from '../../game-config/gear-sets'
+import { EquipmentSlot } from './EquipmentSlots'
+export { EquipmentSlot, EQUIPMENT_SLOTS } from './EquipmentSlots'
 
 export type ItemId = string
-export type EquipmentSlot =
-  | 'weapon'
-  | 'helmet'
-  | 'armor'
-  | 'boots'
-  | 'ring'
-  | 'amulet'
-
 export type WeaponArchetype = 'sword' | 'bow' | 'wand'
-
-export const EQUIPMENT_SLOTS = [
-  'weapon',
-  'helmet',
-  'armor',
-  'boots',
-  'ring',
-  'amulet',
-] as const satisfies readonly EquipmentSlot[]
 
 export const WEAPON_ARCHETYPES = [
   'sword',
@@ -37,7 +22,6 @@ export const WEAPON_ARCHETYPES = [
 interface ItemDefinitionBase {
   id: ItemId
   name: string
-  baseName?: string
   rarity: Rarity
   modifiers: readonly GearModifier[]
   starterOnly?: boolean
@@ -45,12 +29,12 @@ interface ItemDefinitionBase {
 }
 
 interface WeaponItemDefinition extends ItemDefinitionBase {
-  slot: 'weapon'
+  slot: typeof EquipmentSlot.Weapon
   weaponArchetype: WeaponArchetype
 }
 
 interface NonWeaponItemDefinition extends ItemDefinitionBase {
-  slot: Exclude<EquipmentSlot, 'weapon'>
+  slot: Exclude<EquipmentSlot, typeof EquipmentSlot.Weapon>
   weaponArchetype?: never
 }
 
@@ -60,10 +44,10 @@ export function getItemDisplayName(
   item: Readonly<ItemDefinition>,
   setId?: GearSetId,
 ): string {
-  if (!setId || !item.baseName) {
+  if (!setId) {
     return item.name
   }
-  return `${getGearSetDefinition(setId).name} ${item.baseName}`
+  return `${getGearSetDefinition(setId).name} ${item.name}`
 }
 
 /** Item IDs are content keys, not display names or runtime entity IDs. */
@@ -83,7 +67,7 @@ export const ITEM_DEFINITIONS = {
     id: 'knight-training-sword',
     name: 'Knight Training Sword',
     rarity: 'common',
-    slot: 'weapon',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
     modifiers: [],
     starterOnly: true,
@@ -92,7 +76,7 @@ export const ITEM_DEFINITIONS = {
     id: 'ranger-training-bow',
     name: 'Ranger Training Bow',
     rarity: 'common',
-    slot: 'weapon',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
     modifiers: [],
     starterOnly: true,
@@ -101,250 +85,75 @@ export const ITEM_DEFINITIONS = {
     id: 'necromancer-training-wand',
     name: 'Necromancer Training Wand',
     rarity: 'common',
-    slot: 'weapon',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
     modifiers: [],
     starterOnly: true,
   },
   'iron-cleaver': {
     id: 'iron-cleaver',
-    name: "Giant's Cleaver",
-    baseName: 'Cleaver',
+    name: 'Cleaver',
     rarity: 'common',
-    slot: 'weapon',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
     modifiers: [
       createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
     ],
-    setId: 'giants',
   },
   'hunters-bow': {
     id: 'hunters-bow',
-    name: 'Splintering Bow',
-    baseName: 'Bow',
-    rarity: 'uncommon',
-    slot: 'weapon',
+    name: 'Bow',
+    rarity: 'common',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
     modifiers: [
-      createGearModifier('hunters-bow', 'attack-speed', 5, 6),
-      createGearModifier('hunters-bow', 'increased-projectile-damage', 5, 8),
+      createGearModifier('hunters-bow', 'attack-speed', 5, 4),
     ],
-    setId: 'splintering',
   },
   'starcall-wand': {
     id: 'starcall-wand',
-    name: 'Astral Wand',
-    baseName: 'Wand',
-    rarity: 'rare',
-    slot: 'weapon',
+    name: 'Wand',
+    rarity: 'common',
+    slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
     modifiers: [
-      createGearModifier('starcall-wand', 'flat-lightning-damage', 5, 2),
-      createGearModifier('starcall-wand', 'increased-projectile-damage', 4, 14),
-      createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 4, 1),
+      createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 5, 1),
     ],
-    setId: 'astral',
   },
-  'watchers-helm': {
-    id: 'watchers-helm',
-    name: "Giant's Crown",
-    baseName: 'Crown',
-    rarity: 'uncommon',
-    slot: 'helmet',
-    modifiers: [
-      createGearModifier('watchers-helm', 'max-hp', 4, 24),
-      createGearModifier('watchers-helm', 'elemental-resistance', 5, 8),
-    ],
-    setId: 'giants',
+  helmet: {
+    id: 'helmet',
+    name: 'Helmet',
+    rarity: 'common',
+    slot: EquipmentSlot.Helmet,
+    modifiers: [createGearModifier('helmet', 'max-hp', 1, 56)],
   },
-  'bastion-plate': {
-    id: 'bastion-plate',
-    name: "Giant's Bulwark",
-    baseName: 'Bulwark',
-    rarity: 'rare',
-    slot: 'armor',
-    modifiers: [
-      createGearModifier('bastion-plate', 'max-hp', 3, 38),
-      createGearModifier('bastion-plate', 'physical-resistance', 4, 16),
-      createGearModifier('bastion-plate', 'chaos-resistance', 5, 9),
-    ],
-    setId: 'giants',
+  armor: {
+    id: 'armor',
+    name: 'Armor',
+    rarity: 'common',
+    slot: EquipmentSlot.Armor,
+    modifiers: [createGearModifier('armor', 'max-hp', 1, 56)],
   },
-  'swiftstride-boots': {
-    id: 'swiftstride-boots',
-    name: "Giant's Greaves",
-    baseName: 'Greaves',
-    rarity: 'epic',
-    slot: 'boots',
-    modifiers: [
-      createGearModifier('swiftstride-boots', 'movement-speed', 3, 11),
-      createGearModifier('swiftstride-boots', 'attack-speed', 5, 6),
-      createGearModifier('swiftstride-boots', 'attack-range', 4, 20),
-      createGearModifier('swiftstride-boots', 'elemental-resistance', 5, 7),
-    ],
-    setId: 'giants',
+  boots: {
+    id: 'boots',
+    name: 'Boots',
+    rarity: 'common',
+    slot: EquipmentSlot.Boots,
+    modifiers: [createGearModifier('boots', 'movement-speed', 1, 16)],
   },
-  'duelists-band': {
-    id: 'duelists-band',
-    name: "Giant's Signet",
-    baseName: 'Signet',
-    rarity: 'rare',
-    slot: 'ring',
-    modifiers: [
-      createGearModifier('duelists-band', 'flat-lightning-damage', 3, 5),
-      createGearModifier('duelists-band', 'crit-chance', 4, 6),
-      createGearModifier('duelists-band', 'attack-speed', 4, 9),
-    ],
-    setId: 'giants',
+  ring: {
+    id: 'ring',
+    name: 'Ring',
+    rarity: 'common',
+    slot: EquipmentSlot.Ring,
+    modifiers: [createGearModifier('ring', 'flat-lightning-damage', 1, 9)],
   },
-  'starcaller-amulet': {
-    id: 'starcaller-amulet',
-    name: 'Astral Talisman',
-    baseName: 'Talisman',
-    rarity: 'legendary',
-    slot: 'amulet',
-    modifiers: [
-      createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
-      createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
-      createGearModifier('starcaller-amulet', 'crit-multiplier', 4, 28),
-      createGearModifier('starcaller-amulet', 'attack-range', 3, 28),
-      createGearModifier('starcaller-amulet', 'elemental-resistance', 4, 18),
-    ],
-    setId: 'astral',
-  },
-  'giants-amulet': {
-    id: 'giants-amulet',
-    name: "Giant's Heart",
-    baseName: 'Heart',
-    rarity: 'legendary',
-    slot: 'amulet',
-    modifiers: [
-      createGearModifier('giants-amulet', 'max-hp', 1, 70),
-      createGearModifier('giants-amulet', 'attack-speed', 1, 24),
-      createGearModifier('giants-amulet', 'attack-range', 3, 28),
-      createGearModifier('giants-amulet', 'crit-chance', 4, 6),
-      createGearModifier('giants-amulet', 'elemental-resistance', 4, 18),
-    ],
-    setId: 'giants',
-  },
-  'astral-helm': {
-    id: 'astral-helm',
-    name: 'Astral Circlet',
-    baseName: 'Circlet',
-    rarity: 'uncommon',
-    slot: 'helmet',
-    modifiers: [
-      createGearModifier('astral-helm', 'max-hp', 4, 24),
-      createGearModifier('astral-helm', 'attack-range', 4, 20),
-    ],
-    setId: 'astral',
-  },
-  'astral-raiment': {
-    id: 'astral-raiment',
-    name: 'Astral Raiment',
-    baseName: 'Raiment',
-    rarity: 'rare',
-    slot: 'armor',
-    modifiers: [
-      createGearModifier('astral-raiment', 'max-hp', 3, 38),
-      createGearModifier('astral-raiment', 'physical-resistance', 4, 16),
-      createGearModifier('astral-raiment', 'chaos-resistance', 5, 9),
-    ],
-    setId: 'astral',
-  },
-  'astral-sabatons': {
-    id: 'astral-sabatons',
-    name: 'Astral Sabatons',
-    baseName: 'Sabatons',
-    rarity: 'epic',
-    slot: 'boots',
-    modifiers: [
-      createGearModifier('astral-sabatons', 'movement-speed', 3, 11),
-      createGearModifier('astral-sabatons', 'attack-speed', 5, 6),
-      createGearModifier('astral-sabatons', 'attack-range', 4, 20),
-      createGearModifier('astral-sabatons', 'elemental-resistance', 5, 7),
-    ],
-    setId: 'astral',
-  },
-  'astral-ring': {
-    id: 'astral-ring',
-    name: 'Astral Signet',
-    baseName: 'Signet',
-    rarity: 'rare',
-    slot: 'ring',
-    modifiers: [
-      createGearModifier('astral-ring', 'flat-lightning-damage', 3, 5),
-      createGearModifier('astral-ring', 'crit-chance', 4, 6),
-      createGearModifier('astral-ring', 'attack-speed', 4, 9),
-    ],
-    setId: 'astral',
-  },
-  'splintering-helm': {
-    id: 'splintering-helm',
-    name: 'Splintering Hood',
-    baseName: 'Hood',
-    rarity: 'uncommon',
-    slot: 'helmet',
-    modifiers: [
-      createGearModifier('splintering-helm', 'max-hp', 4, 24),
-      createGearModifier('splintering-helm', 'attack-range', 4, 20),
-    ],
-    setId: 'splintering',
-  },
-  'splintering-armor': {
-    id: 'splintering-armor',
-    name: 'Splintering Shell',
-    baseName: 'Shell',
-    rarity: 'rare',
-    slot: 'armor',
-    modifiers: [
-      createGearModifier('splintering-armor', 'max-hp', 3, 38),
-      createGearModifier('splintering-armor', 'physical-resistance', 4, 16),
-      createGearModifier('splintering-armor', 'chaos-resistance', 5, 9),
-    ],
-    setId: 'splintering',
-  },
-  'splintering-boots': {
-    id: 'splintering-boots',
-    name: 'Splintering Striders',
-    baseName: 'Striders',
-    rarity: 'epic',
-    slot: 'boots',
-    modifiers: [
-      createGearModifier('splintering-boots', 'movement-speed', 3, 11),
-      createGearModifier('splintering-boots', 'attack-speed', 5, 6),
-      createGearModifier('splintering-boots', 'attack-range', 4, 20),
-      createGearModifier('splintering-boots', 'elemental-resistance', 5, 7),
-    ],
-    setId: 'splintering',
-  },
-  'splintering-ring': {
-    id: 'splintering-ring',
-    name: 'Splintering Band',
-    baseName: 'Band',
-    rarity: 'rare',
-    slot: 'ring',
-    modifiers: [
-      createGearModifier('splintering-ring', 'flat-lightning-damage', 3, 5),
-      createGearModifier('splintering-ring', 'crit-chance', 4, 6),
-      createGearModifier('splintering-ring', 'attack-speed', 4, 9),
-    ],
-    setId: 'splintering',
-  },
-  'splintering-amulet': {
-    id: 'splintering-amulet',
-    name: 'Splintering Pendant',
-    baseName: 'Pendant',
-    rarity: 'legendary',
-    slot: 'amulet',
-    modifiers: [
-      createGearModifier('splintering-amulet', 'max-hp', 1, 70),
-      createGearModifier('splintering-amulet', 'attack-speed', 1, 24),
-      createGearModifier('splintering-amulet', 'attack-range', 3, 28),
-      createGearModifier('splintering-amulet', 'crit-chance', 4, 6),
-      createGearModifier('splintering-amulet', 'elemental-resistance', 4, 18),
-    ],
-    setId: 'splintering',
+  amulet: {
+    id: 'amulet',
+    name: 'Amulet',
+    rarity: 'common',
+    slot: EquipmentSlot.Amulet,
+    modifiers: [createGearModifier('amulet', 'max-hp', 1, 56)],
   },
 } as const satisfies Record<string, ItemDefinition>
 
@@ -354,12 +163,44 @@ export const INITIAL_ITEMS: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS.fil
   (item) => !item.starterOnly,
 )
 
+interface LegacyItemAlias {
+  itemId: ItemId
+  setId: GearSetId
+}
+
+const LEGACY_ITEM_ID_ALIASES: Readonly<Record<string, LegacyItemAlias>> = {
+  'iron-cleaver': { itemId: 'iron-cleaver', setId: 'giants' },
+  'hunters-bow': { itemId: 'hunters-bow', setId: 'splintering' },
+  'starcall-wand': { itemId: 'starcall-wand', setId: 'astral' },
+  'watchers-helm': { itemId: 'helmet', setId: 'giants' },
+  'bastion-plate': { itemId: 'armor', setId: 'giants' },
+  'swiftstride-boots': { itemId: 'boots', setId: 'giants' },
+  'duelists-band': { itemId: 'ring', setId: 'giants' },
+  'starcaller-amulet': { itemId: 'amulet', setId: 'astral' },
+  'giants-amulet': { itemId: 'amulet', setId: 'giants' },
+  'astral-helm': { itemId: 'helmet', setId: 'astral' },
+  'astral-raiment': { itemId: 'armor', setId: 'astral' },
+  'astral-sabatons': { itemId: 'boots', setId: 'astral' },
+  'astral-ring': { itemId: 'ring', setId: 'astral' },
+  'splintering-helm': { itemId: 'helmet', setId: 'splintering' },
+  'splintering-armor': { itemId: 'armor', setId: 'splintering' },
+  'splintering-boots': { itemId: 'boots', setId: 'splintering' },
+  'splintering-ring': { itemId: 'ring', setId: 'splintering' },
+  'splintering-amulet': { itemId: 'amulet', setId: 'splintering' },
+}
+
+export function getLegacyItemSetId(itemId: ItemId): GearSetId | undefined {
+  return LEGACY_ITEM_ID_ALIASES[itemId]?.setId
+}
+
 /** Resolves content data at the content-to-game boundary. */
 export function getItemDefinition(
   itemId: ItemId,
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): ItemDefinition {
-  const definition = itemDefinitions.find((candidate) => candidate.id === itemId)
+  const alias = LEGACY_ITEM_ID_ALIASES[itemId]
+  const definition = itemDefinitions.find((candidate) => candidate.id === itemId) ??
+    itemDefinitions.find((candidate) => candidate.id === (alias?.itemId ?? itemId))
   if (!definition) {
     throw new Error(`Unknown item definition: ${itemId}`)
   }

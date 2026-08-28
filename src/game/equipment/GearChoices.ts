@@ -2,7 +2,8 @@ import {
   getItemDefinition,
   EQUIPMENT_SLOTS,
   INITIAL_ITEMS,
-  type EquipmentSlot,
+  EquipmentSlot,
+  getLegacyItemSetId,
   type ItemDefinition,
   type ItemId,
 } from '../../content/gear/Items'
@@ -140,7 +141,7 @@ function chooseGearTemplateIndex(
 function isRangerPreferredWeapon(
   definition: Readonly<ItemDefinition>,
 ): boolean {
-  return definition.slot === 'weapon' &&
+  return definition.slot === EquipmentSlot.Weapon &&
     (
       definition.weaponArchetype === 'bow' ||
       definition.weaponArchetype === 'wand'
@@ -226,7 +227,7 @@ function eligibleUpgradeTargets(
       slot: slot as EquipmentSlot,
       rarity: equipped.rarity ?? definition.rarity,
       modifiers,
-      setId: equipped.setId ?? definition.setId,
+      setId: equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId),
     })
   }
   return choices

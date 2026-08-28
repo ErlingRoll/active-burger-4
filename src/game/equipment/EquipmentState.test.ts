@@ -35,15 +35,15 @@ describe('equipment gear sets', () => {
 
     equipItem(game.state.player, 'iron-cleaver')
     equipItem(game.state.player, 'watchers-helm')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 24) * 1.1)
+    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 56) * 1.1)
 
     equipItem(game.state.player, 'bastion-plate')
     equipItem(game.state.player, 'swiftstride-boots')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 62) * 1.35)
+    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 112) * 1.35)
 
     equipItem(game.state.player, 'duelists-band')
     equipItem(game.state.player, 'giants-amulet')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 132) * 1.8)
+    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 168) * 1.8)
   })
 
   it('applies Astral cooldown and Splintering projectile set bonuses', () => {

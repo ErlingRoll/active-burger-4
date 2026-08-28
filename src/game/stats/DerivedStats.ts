@@ -1,6 +1,8 @@
 import {
   EQUIPMENT_SLOTS,
   ALL_ITEM_DEFINITIONS,
+  getItemDefinition,
+  getLegacyItemSetId,
   type ItemDefinition,
 } from '../../content/gear/Items'
 import { getLevelMaxHpBonus } from '../../content/progression/LevelScaling'
@@ -72,7 +74,7 @@ function getItemModifiers(
     }
     const definition = itemDefinitions.find(
       (candidate) => candidate.id === equipped.itemId,
-    )
+    ) ?? getItemDefinition(equipped.itemId)
     if (definition) {
       modifiers.push(...(equipped.modifiers ?? definition.modifiers))
     }
@@ -111,8 +113,8 @@ export function getEquippedGearSetPieceCounts(
     }
     const definition = itemDefinitions.find(
       (candidate) => candidate.id === equipped.itemId,
-    )
-    const setId = equipped.setId ?? definition?.setId
+    ) ?? getItemDefinition(equipped.itemId)
+    const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
     if (setId) {
       counts[setId] += 1
     }

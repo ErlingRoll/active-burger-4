@@ -29,6 +29,7 @@ import {
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 import {
   EQUIPMENT_SLOTS,
+  EquipmentSlot,
   INITIAL_ITEMS,
   isItemId,
   isWeaponArchetype,
@@ -354,7 +355,7 @@ function validateGearModifiers(
     }
     if (hasValidId) {
       if (!isGearModifierAvailableForItem(modifier, item)) {
-        const suffix = item.slot === 'weapon' && item.weaponArchetype
+        const suffix = item.slot === EquipmentSlot.Weapon && item.weaponArchetype
           ? ` (${item.weaponArchetype})`
           : ''
         errors.push(`${path}[${index}].id is not available for slot ${item.slot}${suffix}.`)
@@ -601,7 +602,7 @@ function validateDefinitions(
     if (!EQUIPMENT_SLOTS.includes(item.slot)) {
       errors.push(`items[${index}].slot is not supported; received "${String(item.slot)}".`)
     }
-    if (item.slot === 'weapon') {
+    if (item.slot === EquipmentSlot.Weapon) {
       if (!isWeaponArchetype(item.weaponArchetype)) {
         errors.push(
           `items[${index}].weaponArchetype is required for weapons and must be supported; received "${String(item.weaponArchetype)}".`,
@@ -897,6 +898,9 @@ function validateGearSets(
 ): void {
   validateIds(errors, 'gearSets', gearSets)
   const setIds = new Set(gearSets.map((set) => set.id))
+  const droppableSlots = new Set(
+    items.filter((item) => !item.starterOnly).map((item) => item.slot),
+  )
   for (const [index, set] of gearSets.entries()) {
     const path = `gearSets[${index}]`
     if (!isGearSetId(set.id)) {
@@ -934,16 +938,12 @@ function validateGearSets(
         errors.push(`${bonusPath}.label must be a non-empty string.`)
       }
     }
-    const setItems = items.filter((item) => item.setId === set.id)
-    const slots = new Set(setItems.map((item) => item.slot))
-    if (setItems.length !== EQUIPMENT_SLOTS.length || slots.size !== setItems.length) {
-      errors.push(`${path} must have exactly one item for each equipment slot.`)
+    if (set.slots.some((slot) => !droppableSlots.has(slot))) {
+      errors.push(`${path} references a slot without a droppable base item.`)
     }
   }
   for (const [index, item] of items.entries()) {
-    if (!item.starterOnly && !item.setId) {
-      errors.push(`items[${index}].setId is required for droppable gear.`)
-    } else if (item.setId && !setIds.has(item.setId)) {
+    if (item.setId && !setIds.has(item.setId)) {
       errors.push(`items[${index}].setId references unknown gear set "${item.setId}".`)
     }
   }
