@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   getSkillDamage,
   getSkillDefinition,
@@ -84,6 +85,39 @@ describe('skill upgrades', () => {
       expect.objectContaining({ skillId: BASIC_ATTACK_SKILL_ID, level: 1 }),
       expect.objectContaining({ skillId: WHIRLWIND_SKILL_ID, level: 1 }),
     ])
+  })
+
+  it('applies and removes Vitality global healing upgrades', () => {
+    const game = createGame({ seed: 67 })
+    applyUpgrade(game.state, 'vitality-unlock')
+    applyUpgrade(game.state, 'vitality-level')
+    applyUpgrade(game.state, 'vitality-increased-healing')
+    applyUpgrade(game.state, 'vitality-increased-healing')
+    game.state.run.selectedUpgradeIds.push(
+      'vitality-unlock',
+      'vitality-level',
+      'vitality-increased-healing',
+      'vitality-increased-healing',
+    )
+
+    expect(game.state.player.skills).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ skillId: BASIC_ATTACK_SKILL_ID, level: 1 }),
+        expect.objectContaining({ skillId: VITALITY_SKILL_ID, level: 2 }),
+      ]),
+    )
+    expect(game.state.player.increasedHealing).toBe(4)
+
+    applyUpgrade(game.state, 'remove-skill', VITALITY_SKILL_ID)
+
+    expect(game.state.player.increasedHealing).toBe(0)
+    expect(game.state.run.selectedUpgradeIds).not.toEqual(
+      expect.arrayContaining([
+        'vitality-unlock',
+        'vitality-level',
+        'vitality-increased-healing',
+      ]),
+    )
   })
 
   it('does not allow Basic Attack to be removed', () => {

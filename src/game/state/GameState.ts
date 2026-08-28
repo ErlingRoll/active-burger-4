@@ -190,6 +190,8 @@ export interface PlayerState {
   meleeLeech?: number
   /** Additive fraction of actual Whirlwind damage restored as health. */
   whirlwindLeech?: number
+  /** Additive percentage applied to all healing received. */
+  increasedHealing?: number
   /** Whirlwind leech earned from level-up upgrades. */
   upgradeWhirlwindLeech?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */

@@ -7,6 +7,7 @@ import {
 import type { SkillId } from '../../../content/skills/Skills'
 import {
   BASIC_ATTACK_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../../../game-config/skills'
@@ -47,6 +48,10 @@ export function applyUpgrade(
     player.upgradeWhirlwindLeech =
       (player.upgradeWhirlwindLeech ?? 0) + definition.whirlwindLeechAmount
     refreshMeleeLeech(player)
+  }
+  if (definition.increasedHealingPercent) {
+    player.increasedHealing =
+      (player.increasedHealing ?? 0) + definition.increasedHealingPercent
   }
   if (definition.pickupCollectionRangeIncreasePercent) {
     const currentMultiplier = player.pickupCollectionRangeMultiplier
@@ -105,6 +110,9 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   state.player.skills.splice(skillIndex, 1)
   if (skillId === WHIRLWIND_SKILL_ID) {
     state.player.upgradeWhirlwindLeech = 0
+  }
+  if (skillId === VITALITY_SKILL_ID) {
+    state.player.increasedHealing = 0
   }
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)

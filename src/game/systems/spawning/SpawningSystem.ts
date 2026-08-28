@@ -98,6 +98,7 @@ export function createInitialPlayerState(
     attackCooldownRemaining: 0,
     meleeLeech: 0,
     whirlwindLeech: 0,
+    increasedHealing: 0,
     upgradeWhirlwindLeech: 0,
     gearDropChanceMultiplier: 1,
     gearRarityFloor: 'common',

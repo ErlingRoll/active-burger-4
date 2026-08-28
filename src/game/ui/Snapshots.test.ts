@@ -3,6 +3,7 @@ import { createGearModifier } from '../../content/gear/ModifierPools'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
 import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
@@ -128,6 +129,41 @@ describe('UI snapshots', () => {
       ?.upgrades.find((candidate) => candidate.upgradeId === 'attack-speed-boost')
 
     expect(upgrade?.valueLabel).toBe('+0.6 attacks/sec')
+  })
+
+  it('shows Vitality healing and increased healing in the skill and Defence panels', () => {
+    const game = createGame({ seed: 97 })
+    game.state.player.skills.push({
+      skillId: VITALITY_SKILL_ID,
+      level: 2,
+      cooldownRemaining: 0,
+    })
+    game.state.player.increasedHealing = 4
+
+    const snapshot = createUiSnapshot(game.state)
+    const vitality = snapshot.skills.find(
+      (skill) => skill.skillId === VITALITY_SKILL_ID,
+    )
+    const defence = snapshot.characterStats.groups.find(
+      (group) => group.id === 'defence',
+    )
+
+    expect(vitality?.healingPerCast).toBeCloseTo(4.16)
+    expect(vitality?.estimatedSingleTargetDps).toBeNull()
+    expect(vitality?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'healing-per-cast', value: '4.16' }),
+        expect.objectContaining({ id: 'increased-healing', value: '4%' }),
+      ]),
+    )
+    expect(defence?.stats).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'increased-healing',
+          value: '+4%',
+        }),
+      ]),
+    )
   })
 
   it('does not show skill unlocks or unearned Whirlwind leech', () => {
@@ -270,7 +306,7 @@ describe('UI snapshots', () => {
         expect.objectContaining({
           id: 'cooldown-reduction',
           value: '0%',
-          appliesTo: 'Whirlwind and Chain Lightning; never Basic Attack.',
+          appliesTo: 'Whirlwind, Chain Lightning, and Vitality; never Basic Attack.',
         }),
       ]))
     const offenceStatIds = snapshot.characterStats.groups

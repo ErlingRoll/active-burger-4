@@ -3,7 +3,9 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   getSkillDefinition,
   getSkillDamage,
+  getSkillHealing,
   type SkillId,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
@@ -18,6 +20,7 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
 } from '../../state/GameState'
+import { healPlayer } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 
 function scaleAreaValue(value: number, areaOfEffect: number): number {
@@ -226,6 +229,33 @@ function collectChainLightningDamage(
   return events
 }
 
+function collectVitalityHealing(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(VITALITY_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  healPlayer(
+    state,
+    getSkillHealing(definition, skill.level),
+    definition.name,
+  )
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    28,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = applyPlayerCooldownReduction(
+    definition.cooldown,
+    playerStats.cooldownReduction,
+  )
+  return []
+}
+
 /**
  * Resolves ready non-projectile skills in stable skill order. Damage is queued
  * for the same deterministic damage pass as projectiles.
@@ -247,6 +277,8 @@ export function collectSkillDamage(
       events.push(...collectWhirlwindDamage(state, skill, allocator))
     } else if (skill.skillId === CHAIN_LIGHTNING_SKILL_ID) {
       events.push(...collectChainLightningDamage(state, skill, allocator))
+    } else if (skill.skillId === VITALITY_SKILL_ID) {
+      events.push(...collectVitalityHealing(state, skill, allocator))
     }
   }
 

@@ -71,4 +71,16 @@ describe('player combat log', () => {
       expect.objectContaining({ time: 11, kind: 'healing' }),
     ])
   })
+
+  it('applies increased healing to every healing source before capping at max HP', () => {
+    const game = createGame({ seed: 93 })
+    const state = mutableState(game)
+    state.player.hp = 50
+    state.player.increasedHealing = 25
+
+    expect(healPlayer(state, 20, 'Vitality')).toBe(25)
+    expect(state.player.hp).toBe(75)
+    expect(healPlayer(state, 100, 'Healing potion')).toBe(state.player.maxHp - 75)
+    expect(state.player.hp).toBe(state.player.maxHp)
+  })
 })

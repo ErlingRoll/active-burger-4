@@ -45,6 +45,7 @@ export interface PlayerStats extends StatValues {
   projectileChains: number
   meleeLeech: number
   whirlwindLeech: number
+  increasedHealing: number
 }
 
 function directPlayerStats(player: Readonly<PlayerState>): StatValues {
@@ -278,6 +279,7 @@ export function getDerivedPlayerStats(
     projectileChains: gearEffects.projectileChains,
     meleeLeech: gearEffects.meleeLeech,
     whirlwindLeech: gearEffects.whirlwindLeech,
+    increasedHealing: Math.max(0, player.increasedHealing ?? 0),
   }
 }
 

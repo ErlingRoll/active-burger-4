@@ -1,6 +1,7 @@
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
@@ -8,6 +9,8 @@ import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
+const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
 const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 10
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
@@ -80,6 +83,21 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('chain-lightning-unlock'),
   },
   {
+    id: 'vitality-unlock',
+    name: 'Vitality',
+    description: 'Unlock an automatic healing skill.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: VITALITY_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(VITALITY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('vitality-unlock'),
+  },
+  {
     id: 'basic-attack-level',
     name: 'Empowered Attack',
     description: `Increase Basic Attack damage by ${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
@@ -117,5 +135,30 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillAction: 'level',
     skillDamageIncreasePercent: CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[CHAIN_LIGHTNING_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'vitality-level',
+    name: 'Greater Vitality',
+    description: `Increase Vitality healing by ${VITALITY_HEALING_INCREASE_PER_LEVEL} HP per cast.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${VITALITY_HEALING_INCREASE_PER_LEVEL} HP per Vitality cast`,
+    skillId: VITALITY_SKILL_ID,
+    skillAction: 'level',
+    skillHealingIncreaseAmount: VITALITY_HEALING_INCREASE_PER_LEVEL,
+    isEligible: (state) => (state.skillLevels[VITALITY_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'vitality-increased-healing',
+    name: 'Restorative Vitality',
+    description: `Increase healing from all sources by ${VITALITY_GLOBAL_HEALING_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: VITALITY_GLOBAL_HEALING_INCREASE_PERCENT,
+    valueLabel: `+${VITALITY_GLOBAL_HEALING_INCREASE_PERCENT}% increased healing`,
+    skillId: VITALITY_SKILL_ID,
+    increasedHealingPercent: VITALITY_GLOBAL_HEALING_INCREASE_PERCENT,
+    isEligible: (state) => state.ownedSkillIds.includes(VITALITY_SKILL_ID),
   },
 ]

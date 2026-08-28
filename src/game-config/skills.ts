@@ -12,6 +12,7 @@ import type {
 export const BASIC_ATTACK_SKILL_ID: SkillId = 'basic-attack'
 export const WHIRLWIND_SKILL_ID: SkillId = 'whirlwind'
 export const CHAIN_LIGHTNING_SKILL_ID: SkillId = 'chain-lightning'
+export const VITALITY_SKILL_ID: SkillId = 'vitality'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
 
@@ -135,6 +136,26 @@ export const SKILL_DEFINITIONS = {
       secondaryColor: '#fef08a',
       outlineColor: '#cffafe',
       nodeRadius: 10,
+    },
+  },
+  [VITALITY_SKILL_ID]: {
+    id: VITALITY_SKILL_ID,
+    name: 'Vitality',
+    description: 'Automatically restores 2 HP every 5 seconds. Each level adds 2 HP per cast.',
+    kind: 'utility',
+    tags: ['defensive'],
+    cooldown: 5,
+    baseDamage: {},
+    damagePerLevel: {},
+    baseHealing: 2,
+    healingPerLevel: 2,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '♥',
+      primaryColor: '#22c55e',
+      secondaryColor: '#86efac',
+      outlineColor: '#dcfce7',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

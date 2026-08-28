@@ -7,6 +7,7 @@ export type SkillId =
   | 'basic-attack'
   | 'whirlwind'
   | 'chain-lightning'
+  | 'vitality'
 
 export type SkillTag =
   | 'physical'
@@ -17,15 +18,16 @@ export type SkillTag =
   | 'fire'
   | 'cold'
   | 'chaos'
+  | 'defensive'
 
-export type SkillKind = 'projectile' | 'area' | 'chain'
+export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
 
 /**
  * Rendering metadata owned by skill content. The renderer uses this contract
  * to project effects without knowing individual skill IDs.
  */
 export interface SkillVisualPresentation {
-  kind: 'projectile' | 'area' | 'chain'
+  kind: 'projectile' | 'area' | 'chain' | 'utility'
   icon: string
   primaryColor: string
   secondaryColor: string
@@ -45,6 +47,8 @@ export interface SkillDefinition {
   cooldown: number
   baseDamage: PartialDamageValues
   damagePerLevel: PartialDamageValues
+  baseHealing?: number
+  healingPerLevel?: number
   radius?: number
   maxRange?: number
   maxTargets?: number
@@ -72,6 +76,7 @@ export {
   BASIC_ATTACK_VARIANTS,
   CHAIN_LIGHTNING_SKILL_ID,
   SKILL_DEFINITIONS,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../game-config/skills'
 

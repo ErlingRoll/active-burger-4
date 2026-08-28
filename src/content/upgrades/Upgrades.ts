@@ -11,6 +11,9 @@ export type UpgradeId =
   | 'basic-attack-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
+  | 'vitality-unlock'
+  | 'vitality-level'
+  | 'vitality-increased-healing'
   | 'whirlwind-leech'
   | 'magnet'
   | typeof REMOVE_SKILL_UPGRADE_ID
@@ -62,6 +65,10 @@ export interface UpgradeDefinition {
   pickupCollectionRangeIncreasePercent?: number
   /** Percentage added to the skill's damage increase pool per rank. */
   skillDamageIncreasePercent?: number
+  /** Flat healing added to the skill's cast amount per rank. */
+  skillHealingIncreaseAmount?: number
+  /** Percentage added to all healing received per rank. */
+  increasedHealingPercent?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'

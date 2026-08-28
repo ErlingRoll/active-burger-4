@@ -3,6 +3,7 @@ import type {
   GameState,
   PlayerCombatLogEntry,
 } from '../state/GameState'
+import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
 export const PLAYER_COMBAT_LOG_WINDOW_SECONDS = 10
 
@@ -40,9 +41,14 @@ export function healPlayer(
   requestedAmount: number,
   source: string,
 ): number {
+  const healingMultiplier = 1 +
+    Math.max(0, getDerivedPlayerStats(state.player).increasedHealing) / 100
   const amount = Math.max(
     0,
-    Math.min(state.player.maxHp - state.player.hp, requestedAmount),
+    Math.min(
+      state.player.maxHp - state.player.hp,
+      Math.max(0, requestedAmount) * healingMultiplier,
+    ),
   )
   if (amount <= 0) {
     return 0

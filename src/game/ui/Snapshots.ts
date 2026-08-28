@@ -21,7 +21,9 @@ import {
   getBasicAttackVariant,
   getSkillDefinition,
   getSkillDamage,
+  getSkillHealing,
   isSkillId,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   type SkillId,
   type SkillTag,
@@ -139,6 +141,7 @@ export interface SkillHudSnapshot {
   readonly attacksPerSecond: number | null
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
+  readonly healingPerCast: number | null
   /** Effective skill-specific stats, including their global gear contributions. */
   readonly skillModifiers: readonly SkillModifierSummarySnapshot[]
   /** Summed gear modifiers that affect this skill in the current combat systems. */
@@ -335,6 +338,8 @@ export type SkillModifierSummaryId =
   | 'melee-leech'
   | 'whirlwind-leech'
   | 'basic-attack-extra-projectiles'
+  | 'healing-per-cast'
+  | 'increased-healing'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -371,6 +376,7 @@ function createSkillModifierSummary(
 function getSkillModifierSummaries(
   playerStats: ReturnType<typeof getDerivedPlayerStats>,
   skillId: SkillId,
+  skillLevel: number,
   skillTags: readonly SkillTag[],
   supportsAreaOfEffect: boolean,
 ): readonly SkillModifierSummarySnapshot[] {
@@ -448,6 +454,25 @@ function getSkillModifierSummaries(
         playerStats.whirlwindLeech,
         formatUnsignedPercent(playerStats.whirlwindLeech * 100),
       )
+    }
+    if (skillId === VITALITY_SKILL_ID) {
+      const healingMultiplier = 1 + playerStats.increasedHealing / 100
+      addSummary(
+        'healing-per-cast',
+        'Healing per cast',
+        getSkillHealing(getSkillDefinition(skillId), skillLevel) * healingMultiplier,
+        formatStatNumber(
+          getSkillHealing(getSkillDefinition(skillId), skillLevel) * healingMultiplier,
+        ),
+      )
+      if (playerStats.increasedHealing > 0) {
+        addSummary(
+          'increased-healing',
+          'Increased healing',
+          playerStats.increasedHealing,
+          formatUnsignedPercent(playerStats.increasedHealing),
+        )
+      }
     }
   }
 
@@ -551,13 +576,15 @@ function getAcquiredSkillUpgradeValueLabel(
 ): string {
   if (
     upgrade.skillAction !== 'level' ||
-    upgrade.skillDamageIncreasePercent === undefined
+    (upgrade.skillDamageIncreasePercent === undefined &&
+      upgrade.skillHealingIncreaseAmount === undefined)
   ) {
     const acquiredRanks = selectedUpgradeIds.filter(
       (upgradeId) => upgradeId === upgrade.id,
     ).length
     return upgrade.stat !== undefined ||
-      upgrade.whirlwindLeechAmount !== undefined
+      upgrade.whirlwindLeechAmount !== undefined ||
+      upgrade.increasedHealingPercent !== undefined
       ? scaleUpgradeValueLabel(upgrade.valueLabel, acquiredRanks)
       : upgrade.valueLabel
   }
@@ -566,8 +593,12 @@ function getAcquiredSkillUpgradeValueLabel(
     Math.max(0, skillLevel - 1),
     selectedUpgradeIds.filter((upgradeId) => upgradeId === upgrade.id).length,
   )
-  const label = upgrade.valueLabel.replace(/^\+\d+%\s+/, '')
-  return `+${acquiredRanks * upgrade.skillDamageIncreasePercent}% ${label}`
+  if (upgrade.skillDamageIncreasePercent !== undefined) {
+    const label = upgrade.valueLabel.replace(/^\+\d+%\s+/, '')
+    return `+${acquiredRanks * upgrade.skillDamageIncreasePercent}% ${label}`
+  }
+  const label = upgrade.valueLabel.replace(/^\+\d+\s+/, '')
+  return `+${acquiredRanks * (upgrade.skillHealingIncreaseAmount ?? 0)} ${label}`
 }
 
 function scaleUpgradeValueLabel(valueLabel: string, rank: number): string {
@@ -601,7 +632,7 @@ function createCharacterStatsSnapshot(
       'Cooldown reduction',
       formatUnsignedPercent(playerStats.cooldownReduction),
       'Shortens non-Basic-Attack cooldowns multiplicatively, down to a 0.1 second minimum.',
-      'Whirlwind and Chain Lightning; never Basic Attack.',
+      'Whirlwind, Chain Lightning, and Vitality; never Basic Attack.',
     ),
     createCharacterStatSnapshot(
       'area-of-effect',
@@ -681,6 +712,13 @@ function createCharacterStatsSnapshot(
     )
   })
   const defenceStats = [
+    createCharacterStatSnapshot(
+      'increased-healing',
+      'Increased healing',
+      formatSignedPercent(playerStats.increasedHealing),
+      'Increases the amount restored by every healing source.',
+      'Vitality, healing potions, melee leech, and Whirlwind leech.',
+    ),
     createCharacterStatSnapshot(
       'movement-speed',
       'Movement speed',
@@ -798,12 +836,13 @@ export function createUiSnapshot(
       (damageType) => outgoingDamage.damage[damageType] > 0,
     )
     const estimatedSingleTargetDps =
-      Number.isFinite(cooldown) && cooldown > 0
+      damageTypes.length > 0 && Number.isFinite(cooldown) && cooldown > 0
         ? damage / cooldown
         : null
     const skillModifiers = getSkillModifierSummaries(
       playerStats,
       skill.skillId,
+      skill.level,
       skillTags,
       supportsAreaOfEffect,
     )
@@ -867,9 +906,15 @@ export function createUiSnapshot(
         ? basicAttackVariant.kind === 'area'
           ? 'One target in the current front-facing Basic Attack arc, sustained over attack cadence.'
           : 'One target sustained at the current Basic Attack cadence.'
-        : skill.skillId === 'whirlwind'
+        : skill.skillId === VITALITY_SKILL_ID
+          ? 'Restores health automatically every cooldown.'
+          : skill.skillId === 'whirlwind'
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : 'Primary target sustained over Chain Lightning cooldown.',
+      healingPerCast: skill.skillId === VITALITY_SKILL_ID
+        ? getSkillHealing(definition, skill.level) *
+          (1 + playerStats.increasedHealing / 100)
+        : null,
       skillModifiers,
       gearModifiers: Object.freeze(gearModifiers),
       upgrades: Object.freeze(upgrades),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHAIN_LIGHTNING_SKILL_ID,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
@@ -142,6 +143,29 @@ describe('skill system', () => {
     collectSkillDamage(game.state, allocator)
 
     expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(2.2)
+  })
+
+  it('automatically heals from Vitality, scales by level, and respects cooldown reduction', () => {
+    const game = createGame({ seed: 56 })
+    game.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 2,
+      cooldownRemaining: 0,
+    }]
+    game.state.player.hp = game.state.player.maxHp - 20
+    equipRolledItem(
+      game.state.player,
+      'iron-cleaver',
+      'common',
+      [createGearModifier('iron-cleaver', 'cooldown-reduction', 3, 14)],
+    )
+
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
+
+    expect(game.state.player.hp).toBe(game.state.player.maxHp - 16)
+    expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(4.3)
+    expect(game.state.effects[0]?.skillId).toBe(VITALITY_SKILL_ID)
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
 
   it('extends Whirlwind reach with area-of-effect gear', () => {

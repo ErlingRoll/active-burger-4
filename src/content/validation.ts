@@ -129,8 +129,8 @@ const VALID_UPGRADE_STATS = new Set([
   'attackSpeed',
 ])
 
-const VALID_SKILL_KINDS = new Set(['projectile', 'area', 'chain'])
-const VALID_SKILL_VISUAL_KINDS = new Set(['projectile', 'area', 'chain'])
+const VALID_SKILL_KINDS = new Set(['projectile', 'area', 'chain', 'utility'])
+const VALID_SKILL_VISUAL_KINDS = new Set(['projectile', 'area', 'chain', 'utility'])
 const VALID_SKILL_TAGS = new Set([
   'physical',
   'projectile',
@@ -140,6 +140,7 @@ const VALID_SKILL_TAGS = new Set([
   'fire',
   'cold',
   'chaos',
+  'defensive',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
@@ -441,6 +442,12 @@ function validateDefinitions(
     }
     validateFiniteNumber(errors, `skills[${index}].cooldown`, skill.cooldown, 'positive')
     validateDamageValues(errors, `skills[${index}].baseDamage`, skill.baseDamage)
+    if (skill.baseHealing !== undefined) {
+      validateFiniteNumber(errors, `skills[${index}].baseHealing`, skill.baseHealing, 'non-negative')
+    }
+    if (skill.healingPerLevel !== undefined) {
+      validateFiniteNumber(errors, `skills[${index}].healingPerLevel`, skill.healingPerLevel, 'non-negative')
+    }
     if (
       !Array.isArray(skill.tags) ||
       skill.tags.length === 0 ||
@@ -674,7 +681,8 @@ function validateDefinitions(
           upgrade.skillAction &&
           VALID_SKILL_ACTIONS.has(upgrade.skillAction)
         ) &&
-          upgrade.whirlwindLeechAmount === undefined))
+          upgrade.whirlwindLeechAmount === undefined &&
+          upgrade.increasedHealingPercent === undefined))
     ) {
       errors.push(
         `upgrades[${index}] must define a known skillId and skill action or effect.`,

@@ -15,6 +15,7 @@ export {
   BASIC_ATTACK_VARIANTS,
   CHAIN_LIGHTNING_SKILL_ID,
   SKILL_DEFINITIONS,
+  VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   getBasicAttackVariant,
 } from './SkillConfigs'
@@ -49,5 +50,16 @@ export function getSkillDamage(
       createDamageValues(definition.damagePerLevel),
       Math.max(0, level - 1),
     ),
+  )
+}
+
+export function getSkillHealing(
+  definition: SkillDefinition,
+  level: number,
+): number {
+  return Math.max(
+    0,
+    (definition.baseHealing ?? 0) +
+      (definition.healingPerLevel ?? 0) * Math.max(0, level - 1),
   )
 }

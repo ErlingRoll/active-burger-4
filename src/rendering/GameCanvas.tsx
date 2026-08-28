@@ -502,17 +502,25 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         ))}
                       </ul>
                     </section>
-                    <section className="skill-damage-breakdown" aria-label="Calculated damage">
-                      <p className="skill-upgrade-heading">Calculated damage</p>
-                      <ul className="skill-upgrade-list">
-                        {skill.damageTypes.map((damageType) => (
-                          <li key={damageType}>
-                            <span>{damageType}</span>
-                            <span>{Math.round(skill.damage[damageType])}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
+                    {skill.damageTypes.length > 0 ? (
+                      <section className="skill-damage-breakdown" aria-label="Calculated damage">
+                        <p className="skill-upgrade-heading">Calculated damage</p>
+                        <ul className="skill-upgrade-list">
+                          {skill.damageTypes.map((damageType) => (
+                            <li key={damageType}>
+                              <span>{damageType}</span>
+                              <span>{Math.round(skill.damage[damageType])}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
+                    {skill.healingPerCast !== null ? (
+                      <p className="skill-cadence">
+                        <span>Healing per cast</span>
+                        <b>{formatCadence(skill.healingPerCast)} HP</b>
+                      </p>
+                    ) : null}
                     <p className="skill-cadence">
                       <span>
                         {skill.attacksPerSecond === null ? 'Cooldown' : 'Attacks per second'}
