@@ -504,7 +504,7 @@ export class Game {
         undefined,
         offered.setId,
       )
-    } else {
+    } else if (offered.type === 'upgrade-equipped-item') {
       const upgraded = upgradeEquippedItem(
         this.gameState.player,
         offered.slot,
@@ -513,6 +513,8 @@ export class Game {
       if (!upgraded) {
         return false
       }
+    } else {
+      this.gameState.player.gearRarityFloor = offered.minimumRarity
     }
     this.completeActiveChoiceFlow()
     return true

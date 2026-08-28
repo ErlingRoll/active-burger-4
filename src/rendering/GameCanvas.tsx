@@ -71,7 +71,9 @@ function getChoiceFlowKey(
       ? choice.upgradeId
       : choice.type === 'gear'
         ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
-        : `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`,
+        : choice.type === 'upgrade-equipped-item'
+          ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+          : `${choice.type}:${choice.minimumRarity}`,
   )
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
 }

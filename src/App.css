@@ -1868,12 +1868,27 @@
   border-top-color: #22c55e;
 }
 
+.choice-card.gear-rarity-floor-card {
+  background:
+    linear-gradient(145deg, rgb(161 98 7 / 48%), transparent 58%),
+    #332515;
+  border-color: #d97706;
+  border-top-color: #fbbf24;
+}
+
 .choice-card.skill-removal-card {
   background:
     linear-gradient(145deg, rgb(127 29 29 / 42%), transparent 58%),
     #2a1717;
   border-color: #b91c1c;
   border-top-color: #ef4444;
+}
+
+.gear-rarity-floor-badge {
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 .choice-card-header {
@@ -2060,6 +2075,15 @@
     #3a1f1f;
   border-color: #f87171;
   outline-color: rgb(248 113 113 / 35%);
+}
+
+.upgrade-choice.gear-rarity-floor-card:hover,
+.upgrade-choice.gear-rarity-floor-card:focus-visible {
+  background:
+    linear-gradient(145deg, rgb(180 83 9 / 55%), transparent 58%),
+    #49331a;
+  border-color: #fcd34d;
+  outline-color: rgb(252 211 77 / 35%);
 }
 
 .upgrade-choice-name {
@@ -2637,6 +2661,13 @@
       linear-gradient(145deg, rgb(127 29 29 / 42%), transparent 58%),
       #301b1b;
     border-color: #b91c1c;
+  }
+
+  .choice-card.gear-rarity-floor-card {
+    background:
+      linear-gradient(145deg, rgb(161 98 7 / 48%), transparent 58%),
+      #3a2918;
+    border-color: #d97706;
   }
 
   .gear-comparison,

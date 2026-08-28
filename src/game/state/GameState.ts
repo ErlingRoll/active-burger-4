@@ -27,6 +27,7 @@ import type {
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
 import type { PlaystyleId } from '../../content/playstyles/Playstyles'
+import type { Rarity } from '../../content/rarity/Rarity'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -193,6 +194,8 @@ export interface PlayerState {
   upgradeWhirlwindLeech?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
+  /** Minimum rarity for future gear drops, raised by one-time gear blessings. */
+  gearRarityFloor?: Rarity
   /** Additive multiplier for the range that attracts all collectible pickups. */
   pickupCollectionRangeMultiplier?: number
   resistances?: Partial<DamageResistanceValues>

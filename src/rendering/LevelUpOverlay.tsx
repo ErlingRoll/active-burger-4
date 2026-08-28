@@ -229,6 +229,32 @@ function GearCard({
   firstButtonRef: (element: HTMLButtonElement | null) => void
   gearSets: GameUiSnapshot['gearSets']
 }) {
+  if (choice.type === 'gear-rarity-floor') {
+    const minimumRarity = RARITY_VISUALS[choice.minimumRarity]
+    return (
+      <div className="choice-card-wrap">
+        <button
+          ref={index === 0 ? firstButtonRef : undefined}
+          className="upgrade-choice choice-card gear-rarity-floor-card"
+          data-choice-type="gear-rarity-floor"
+          type="button"
+          onClick={() => onSelect(choice)}
+        >
+          <span className="choice-card-header">
+            <span className="upgrade-choice-name">Gear Fortune</span>
+            <span className="gear-rarity-floor-badge">GOLDEN</span>
+          </span>
+          <span className="upgrade-choice-value">
+            All gear dropped is at least {minimumRarity.label}
+          </span>
+          <span className="upgrade-choice-description">
+            Raise the minimum rarity of all future gear drops.
+          </span>
+        </button>
+      </div>
+    )
+  }
+
   const item = getItemDefinition(choice.itemId)
   const comparisonId = `gear-comparison-${choice.itemId}-${index}`
   const itemSetId = choice.setId ?? item.setId
@@ -461,12 +487,17 @@ export function LevelUpOverlay({
               ))
             : flow.choices.map((choice, index) => (
                 <GearCard
-                  key={`${choice.type}-${choice.itemId}-${choice.slot}-${index}`}
+                  key={choice.type === 'gear-rarity-floor'
+                    ? `${choice.type}-${choice.minimumRarity}-${index}`
+                    : `${choice.type}-${choice.itemId}-${choice.slot}-${index}`}
                   choice={choice}
                   index={index}
-                  equipped={equipment[choice.slot]}
+                  equipped={choice.type === 'gear-rarity-floor'
+                    ? undefined
+                    : equipment[choice.slot]}
                   onSelect={(selected) => onSelect(selected)}
-                  active={activeComparison === `gear-comparison-${choice.itemId}-${index}`}
+                  active={choice.type !== 'gear-rarity-floor' &&
+                    activeComparison === `gear-comparison-${choice.itemId}-${index}`}
                   setActive={setActiveComparison}
                   gearSets={gearSets}
                   firstButtonRef={(element) => {

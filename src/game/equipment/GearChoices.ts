@@ -1,5 +1,6 @@
 import {
   getItemDefinition,
+  EQUIPMENT_SLOTS,
   INITIAL_ITEMS,
   type EquipmentSlot,
   type ItemDefinition,
@@ -15,6 +16,7 @@ import {
   type GearModifierTier,
 } from '../../content/gear/ModifierPools'
 import type { Rarity } from '../../content/rarity/Rarity'
+import { nextRarity, RARITY_ORDER } from '../../content/rarity/Rarity'
 import {
   ALL_GEAR_SET_DEFINITIONS,
   type GearSetId,
@@ -24,6 +26,7 @@ import type { GameState } from '../state/GameState'
 import { rollItemUpgradeModifiers } from './EquipmentState'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
+export const GEAR_RARITY_FLOOR_CHANCE = 0.1
 
 export interface GearItemChoice {
   type: 'gear'
@@ -46,9 +49,20 @@ export interface UpgradeEquippedItemChoice {
   setId?: GearSetId
 }
 
-export type GearChoice = GearItemChoice | UpgradeEquippedItemChoice
+export interface GearRarityFloorChoice {
+  type: 'gear-rarity-floor'
+  minimumRarity: Rarity
+}
 
-function rollRarity(rng: RandomSource): Rarity {
+export type GearChoice =
+  | GearItemChoice
+  | UpgradeEquippedItemChoice
+  | GearRarityFloorChoice
+
+function rollRarity(
+  rng: RandomSource,
+  minimumRarity: Rarity = 'common',
+): Rarity {
   const totalWeight = Object.values(GEAR_RARITY_WEIGHTS).reduce(
     (total, weight) => total + weight,
     0,
@@ -58,17 +72,23 @@ function rollRarity(rng: RandomSource): Rarity {
   for (const rarity of rarities) {
     roll -= GEAR_RARITY_WEIGHTS[rarity]
     if (roll < 0) {
-      return rarity
+      return RARITY_ORDER[rarity] >= RARITY_ORDER[minimumRarity]
+        ? rarity
+        : minimumRarity
     }
   }
-  return rarities[rarities.length - 1] as Rarity
+  const selected = rarities[rarities.length - 1] as Rarity
+  return RARITY_ORDER[selected] >= RARITY_ORDER[minimumRarity]
+    ? selected
+    : minimumRarity
 }
 
 function rollChoiceFromTemplate(
   definition: ItemDefinition,
   rng: RandomSource,
+  minimumRarity: Rarity,
 ): GearItemChoice {
-  const rarity = rollRarity(rng)
+  const rarity = rollRarity(rng, minimumRarity)
   const setId = rng.pick(ALL_GEAR_SET_DEFINITIONS).id
   const modifiers = rollGearModifiersForItem(
     definition,
@@ -120,7 +140,11 @@ function ensureRangerPreferredWeaponChoice(
   if (replacementIndices.length === 0) {
     return
   }
-  const existingItemIds = new Set(choices.map((choice) => choice.itemId))
+  const existingItemIds = new Set(
+    choices
+      .filter((choice): choice is GearItemChoice => choice.type === 'gear')
+      .map((choice) => choice.itemId),
+  )
   const preferredTemplates = itemDefinitions.filter((definition) =>
     isRangerPreferredWeapon(definition) && !existingItemIds.has(definition.id)
   )
@@ -137,7 +161,11 @@ function ensureRangerPreferredWeaponChoice(
   if (replacementIndex === undefined || !replacementDefinition) {
     return
   }
-  choices[replacementIndex] = rollChoiceFromTemplate(replacementDefinition, rng)
+  choices[replacementIndex] = rollChoiceFromTemplate(
+    replacementDefinition,
+    rng,
+    state.player.gearRarityFloor ?? 'common',
+  )
 }
 
 interface EligibleUpgradeTarget {
@@ -178,7 +206,50 @@ function eligibleUpgradeTargets(
 export function gearChoiceSignature(choice: Readonly<GearChoice>): string {
   return choice.type === 'gear'
     ? `gear:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
-    : `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+    : choice.type === 'upgrade-equipped-item'
+      ? `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+      : `gear-rarity-floor:${choice.minimumRarity}`
+}
+
+function getLowestEquippedRarity(
+  state: Readonly<GameState>,
+): Rarity | undefined {
+  const equippedItems = EQUIPMENT_SLOTS.map(
+    (slot) => state.player.equipment?.[slot],
+  )
+  let lowestRarity: Rarity | undefined
+  for (const item of equippedItems) {
+    if (!item) {
+      return undefined
+    }
+    if (!item.rarity) {
+      return undefined
+    }
+    const previousLowest = lowestRarity
+    if (previousLowest === undefined ||
+        RARITY_ORDER[item.rarity] < RARITY_ORDER[previousLowest]) {
+      lowestRarity = item.rarity
+    }
+  }
+  return lowestRarity
+}
+
+function getEligibleGearRarityFloor(
+  state: Readonly<GameState>,
+): Rarity | undefined {
+  const currentRarity = getLowestEquippedRarity(state)
+  if (currentRarity !== 'common' && currentRarity !== 'uncommon') {
+    return undefined
+  }
+  const minimumRarity = state.player.gearRarityFloor ?? 'common'
+  const next = nextRarity(currentRarity)
+  if (
+    !next ||
+    RARITY_ORDER[next] <= RARITY_ORDER[minimumRarity]
+  ) {
+    return undefined
+  }
+  return next
 }
 
 /**
@@ -209,7 +280,11 @@ export function generateGearChoices(
     if (!definition) {
       break
     }
-    choices.push(rollChoiceFromTemplate(definition, rng))
+    choices.push(rollChoiceFromTemplate(
+      definition,
+      rng,
+      state.player.gearRarityFloor ?? 'common',
+    ))
   }
 
   const upgradeTargets = eligibleUpgradeTargets(state, itemDefinitions)
@@ -238,6 +313,26 @@ export function generateGearChoices(
     }
   }
   ensureRangerPreferredWeaponChoice(state, choices, rng, itemDefinitions)
+  const minimumRarity = getEligibleGearRarityFloor(state)
+  if (
+    minimumRarity &&
+    count > 0 &&
+    rng.chance(GEAR_RARITY_FLOOR_CHANCE)
+  ) {
+    const nonPreferredReplacementIndex = choices.findIndex((choice) =>
+      choice.type === 'gear' &&
+      !isRangerPreferredWeapon(getItemDefinition(choice.itemId, itemDefinitions))
+    )
+    const replacementIndex = nonPreferredReplacementIndex >= 0
+      ? nonPreferredReplacementIndex
+      : choices.findIndex((choice) => choice.type === 'gear')
+    if (replacementIndex >= 0) {
+      choices[replacementIndex] = {
+        type: 'gear-rarity-floor',
+        minimumRarity,
+      }
+    }
+  }
   return choices
 }
 

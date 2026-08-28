@@ -88,6 +88,7 @@ export function createInitialPlayerState(
     whirlwindLeech: 0,
     upgradeWhirlwindLeech: 0,
     gearDropChanceMultiplier: 1,
+    gearRarityFloor: 'common',
     pickupCollectionRangeMultiplier: 1,
     baseStats: {
       maxHp,

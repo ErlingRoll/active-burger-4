@@ -8,6 +8,7 @@ import {
 import {
   generateGearChoices,
   GEAR_CHOICES_PER_PICKUP,
+  type GearItemChoice,
 } from './GearChoices'
 import {
   equipItem,
@@ -31,14 +32,19 @@ describe('gear choices', () => {
     )
 
     expect(firstChoices).toEqual(secondChoices)
-    expect(new Set(firstChoices.map((choice) => choice.itemId)).size).toBe(3)
-    expect(firstChoices.every((choice) => choice.rarity)).toBe(true)
+    const gearChoices = firstChoices.filter((choice) => choice.type === 'gear')
+    expect(new Set(gearChoices.map((choice) => choice.itemId)).size).toBe(gearChoices.length)
+    expect(firstChoices.every((choice) =>
+      choice.type === 'gear-rarity-floor' || 'rarity' in choice
+    )).toBe(true)
     expect(
       firstChoices.every((choice) =>
         choice.type === 'gear'
           ? choice.modifiers.length === getGearModifierCountForRarity(choice.rarity) &&
             new Set(choice.modifiers.map((modifier) => modifier.id)).size === choice.modifiers.length
-          : choice.upgradedModifiers.length > 0,
+          : choice.type === 'upgrade-equipped-item'
+            ? choice.upgradedModifiers.length > 0
+            : true,
       ),
     ).toBe(true)
   })
@@ -52,7 +58,88 @@ describe('gear choices', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     const choice = generateGearChoices(game.state, 1, highRoll)[0]
-    expect(choice?.rarity).toBe('legendary')
+    expect(choice?.type === 'gear' ? choice.rarity : undefined).toBe('legendary')
+  })
+
+  it('can offer one-time minimum-rarity blessings as gear improves', () => {
+    const game = createGame({ seed: 406 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.rarity = 'common'
+    })
+    const guaranteedBlessing = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const commonBlessing = generateGearChoices(
+      game.state,
+      GEAR_CHOICES_PER_PICKUP,
+      guaranteedBlessing,
+    ).find((choice) => choice.type === 'gear-rarity-floor')
+    expect(commonBlessing).toEqual({
+      type: 'gear-rarity-floor',
+      minimumRarity: 'uncommon',
+    })
+
+    const equippedItems = Object.values(game.state.player.equipment ?? {})
+    const firstEquippedItem = equippedItems[0]
+    if (!firstEquippedItem) {
+      throw new Error('Expected equipped gear')
+    }
+    firstEquippedItem.rarity = 'uncommon'
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
+        .find((choice) => choice.type === 'gear-rarity-floor'),
+    ).toEqual({
+      type: 'gear-rarity-floor',
+      minimumRarity: 'uncommon',
+    })
+
+    game.state.player.gearRarityFloor = 'uncommon'
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
+        .some((choice) => choice.type === 'gear-rarity-floor'),
+    ).toBe(false)
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
+        .filter((choice) => choice.type === 'gear')
+        .every((choice) => choice.rarity !== 'common'),
+    ).toBe(true)
+
+    equippedItems.forEach((item) => {
+      item.rarity = 'uncommon'
+    })
+    firstEquippedItem.rarity = 'rare'
+    const rareBlessing = generateGearChoices(
+      game.state,
+      GEAR_CHOICES_PER_PICKUP,
+      guaranteedBlessing,
+    ).find((choice) => choice.type === 'gear-rarity-floor')
+    expect(rareBlessing).toEqual({
+      type: 'gear-rarity-floor',
+      minimumRarity: 'rare',
+    })
+
+    equippedItems.forEach((item) => {
+      item.rarity = 'rare'
+    })
+    game.state.player.gearRarityFloor = 'rare'
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
+        .some((choice) => choice.type === 'gear-rarity-floor'),
+    ).toBe(false)
   })
 
   it('rolls a set assignment independently for each generated item', () => {
@@ -91,7 +178,9 @@ describe('gear choices', () => {
     expect(
       new Set(
         choices
-          .filter((choice) => choice.type === 'gear' && choice.slot === 'weapon')
+          .filter((choice): choice is GearItemChoice =>
+            choice.type === 'gear' && choice.slot === 'weapon'
+          )
           .map((choice) => choice.itemId),
       ),
     ).toEqual(new Set(['iron-cleaver', 'hunters-bow', 'starcall-wand']))
