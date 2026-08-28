@@ -8,3 +8,4 @@ add melee leech to meele weapons????
 remove offensive stats from vitality tooltip. healing can crit however.
 check skill tags.
 hovering over physical res should show where it comes from. Same for elemental and chaos res.
+regression error. Skill icon should be on the bottom right side of the skill tooltip. Not top left.

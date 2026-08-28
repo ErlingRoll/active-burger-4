@@ -40,6 +40,7 @@ export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.5
 export const ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING = 0.2
 export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.25
 export const ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.08
+export const ORDINARY_ENEMY_CONTACT_DAMAGE_MULTIPLIER = 0.8
 export const FLOOR_SCALING_BREAKPOINT = 5
 export const BOSS_HP_FLOOR_SCALING = 0.125
 export const BOSS_LATE_HP_FLOOR_SCALING = 0.04
@@ -177,7 +178,9 @@ export function scaleOrdinaryEnemyStats(
   )
   return {
     maxHp: authoredStats.maxHp * multiplier,
-    contactDamage: authoredStats.contactDamage * contactDamageMultiplier,
+    contactDamage: authoredStats.contactDamage *
+      contactDamageMultiplier *
+      ORDINARY_ENEMY_CONTACT_DAMAGE_MULTIPLIER,
   }
 }
 

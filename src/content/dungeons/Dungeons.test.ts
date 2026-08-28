@@ -74,9 +74,13 @@ describe('default dungeon timeline foundation', () => {
     expect(getFloorStatMultiplier(5)).toBe(3)
     expect(getFloorStatMultiplier(10)).toBeCloseTo(4)
 
+    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 1)).toEqual({
+      maxHp: 100,
+      contactDamage: 8,
+    })
     expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5)).toEqual({
       maxHp: 300,
-      contactDamage: 20,
+      contactDamage: 16,
     })
   })
 })

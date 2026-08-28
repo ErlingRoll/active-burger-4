@@ -63,6 +63,7 @@ import {
   type GearSetId,
 } from '../../game-config/gear-sets'
 import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
+import { getSkeletonStats } from '../systems/summons/SummonSystem'
 import {
   addDamageValues,
   DAMAGE_INCREASE_TYPES,
@@ -911,12 +912,17 @@ export function createUiSnapshot(
     const cooldownProgress = Number.isFinite(cooldown) && cooldown > 0
       ? Math.min(1, Math.max(0, skill.cooldownRemaining / cooldown))
       : 0
-    const baseDamage = isBasicAttack
-      ? addDamageValues(
-          getSkillDamage(definition, skill.level),
-          { physical: playerStats.attackDamage },
-        )
-      : getSkillDamage(definition, skill.level)
+    const skeletonStats = skill.skillId === RAISE_SKELETON_SKILL_ID
+      ? getSkeletonStats(state)
+      : undefined
+    const baseDamage = skeletonStats
+      ? { physical: skeletonStats.damage }
+      : isBasicAttack
+        ? addDamageValues(
+            getSkillDamage(definition, skill.level),
+            { physical: playerStats.attackDamage },
+          )
+        : getSkillDamage(definition, skill.level)
     const outgoingDamage = createPlayerDamageProfileFromStats(
       playerStats,
       baseDamage,
@@ -932,9 +938,12 @@ export function createUiSnapshot(
     const damageTypes = (Object.keys(outgoingDamage.damage) as DamageType[]).filter(
       (damageType) => outgoingDamage.damage[damageType] > 0,
     )
+    const damagePerAttackCooldown = skeletonStats?.attackCooldown ?? cooldown
     const estimatedSingleTargetDps =
-      damageTypes.length > 0 && Number.isFinite(cooldown) && cooldown > 0
-        ? damage / cooldown
+      damageTypes.length > 0 &&
+      Number.isFinite(damagePerAttackCooldown) &&
+      damagePerAttackCooldown > 0
+        ? damage / damagePerAttackCooldown
         : null
     const skillModifiers = getSkillModifierSummaries(
       playerStats,

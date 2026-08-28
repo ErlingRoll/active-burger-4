@@ -260,6 +260,13 @@ describe('UI snapshots', () => {
         expect.objectContaining({ id: 'summon-max-count', value: '1' }),
       ]),
     )
+    expect(raiseSkeleton?.damage).toMatchObject({
+      physical: 6,
+    })
+    expect(raiseSkeleton?.estimatedSingleTargetDps).toBeCloseTo(6.3)
+    expect(raiseSkeleton?.dpsAssumption).toBe(
+      'One persistent skeleton attacks the nearest target in range once per second.',
+    )
     expect(offence?.stats).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'dot-multiplier', value: '20%' }),

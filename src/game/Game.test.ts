@@ -328,7 +328,7 @@ describe('Game', () => {
       radius: 18,
       hp: 20,
       maxHp: 20,
-      contactDamage: 5,
+      contactDamage: 4,
       xpReward: 4,
       targetId: game.state.player.id,
     })

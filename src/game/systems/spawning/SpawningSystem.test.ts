@@ -10,11 +10,11 @@ describe('ordinary enemy floor scaling', () => {
 
     const first = game.state.enemies.find((enemy) => enemy.id === firstId)
     const second = game.state.enemies.find((enemy) => enemy.id === secondId)
-    expect(first).toMatchObject({ maxHp: 20, hp: 20, contactDamage: 5 })
+    expect(first).toMatchObject({ maxHp: 20, hp: 20, contactDamage: 4 })
     expect(second).toMatchObject({
       maxHp: 30,
       hp: 30,
-      contactDamage: 6.25,
+      contactDamage: 5,
     })
   })
 
