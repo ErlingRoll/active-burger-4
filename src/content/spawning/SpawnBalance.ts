@@ -21,10 +21,9 @@ export interface SpawnBalance {
    * Threat starts at the base rate and grows linearly with elapsed minutes:
    * `baseThreatPerSecond + threatGrowthPerMinute * minutes`.
    */
-  baseThreatPerSecond: number
-  threatGrowthPerMinute: number
-  maxActiveEnemies: number
-  spawnEntries: readonly SpawnEntry[]
+   baseThreatPerSecond: number
+   threatGrowthPerMinute: number
+   spawnEntries: readonly SpawnEntry[]
   spawnRingInnerRadius: number
   spawnRingOuterRadius: number
   /**
@@ -44,7 +43,6 @@ export interface SpawnBalance {
 export const SPAWN_BALANCE = {
   baseThreatPerSecond: 1,
   threatGrowthPerMinute: 0.5,
-  maxActiveEnemies: 30,
   spawnEntries: [
     {
       definitionId: SLIME_DEFINITION_ID,

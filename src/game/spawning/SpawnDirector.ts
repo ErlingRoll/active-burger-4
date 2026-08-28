@@ -52,14 +52,10 @@ export class SpawnDirector {
     this.fastStartDurationSeconds = fastStartDurationSeconds
   }
 
-  get maxActiveEnemies(): number {
-    return this.balance.maxActiveEnemies
-  }
-
   /**
-   * Adds this tick's threat budget and spends it on requests until the active
-   * enemy cap or available budget is reached. A budget of less than one enemy
-   * is retained, so spawn timing remains deterministic across frame deltas.
+   * Adds this tick's threat budget and spends it on requests until the budget
+   * is exhausted. A budget of less than one enemy is retained, so spawn timing
+   * remains deterministic across frame deltas.
    */
   update(
     state: SpawnDirectorState,
@@ -76,18 +72,7 @@ export class SpawnDirector {
       delta
 
     const requests: SpawnRequest[] = []
-    let activeEnemyCount = 0
-    for (const enemy of state.enemies) {
-      if (enemy.hp > 0) {
-        activeEnemyCount += 1
-      }
-    }
-    const availableSlots = Math.max(
-      0,
-      this.balance.maxActiveEnemies - activeEnemyCount,
-    )
-
-    while (requests.length < availableSlots) {
+    while (true) {
       if (this.threatBudget < this.minimumThreatCost(state.time)) {
         break
       }
@@ -117,15 +102,6 @@ export class SpawnDirector {
         y: state.player.y + Math.sin(angle) * radius,
         ...(eliteModifier ? { eliteModifier } : {}),
       })
-    }
-
-    // Do not bank an unbounded backlog while the cap is full. Once an enemy
-    // dies, at most one normal spawn's worth of pressure is waiting.
-    if (availableSlots === 0) {
-      this.threatBudget = Math.min(
-        this.threatBudget,
-        this.minimumThreatCost(state.time),
-      )
     }
 
     return requests

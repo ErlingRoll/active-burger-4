@@ -31,7 +31,6 @@ describe('WorldModifiers', () => {
     expect(effects.spawnBalance).toMatchObject({
       baseThreatPerSecond: 1.35,
       threatGrowthPerMinute: 0.6,
-      maxActiveEnemies: 38,
       eliteStartTimeSeconds: 20,
       eliteChance: 0.25,
     })

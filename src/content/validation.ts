@@ -758,12 +758,6 @@ function validateSpawnBalance(
   }
   validateFiniteNumber(
     errors,
-    'spawnBalance.maxActiveEnemies',
-    balance.maxActiveEnemies,
-    'integer-positive',
-  )
-  validateFiniteNumber(
-    errors,
     'spawnBalance.spawnRingInnerRadius',
     balance.spawnRingInnerRadius,
     'non-negative',

@@ -50,7 +50,6 @@ describe('content validation', () => {
         spawnBalance: {
           ...CURRENT_CONTENT.spawnBalance,
           baseThreatPerSecond: Number.POSITIVE_INFINITY,
-          maxActiveEnemies: 1.5,
         },
       }),
     )
@@ -63,7 +62,6 @@ describe('content validation', () => {
         'xpBalance.levelThresholds[2] must be non-negative; received -5.',
         'xpBalance.pickupRadius must be positive; received -1.',
         'spawnBalance.baseThreatPerSecond must be a finite number; received Infinity.',
-        'spawnBalance.maxActiveEnemies must be integer-positive; received 1.5.',
       ]),
     )
   })
@@ -108,7 +106,6 @@ describe('content validation', () => {
           spawnEntries: [],
           spawnRingInnerRadius: -1,
           spawnRingOuterRadius: 0,
-          maxActiveEnemies: 0,
         },
       }),
     )
@@ -118,7 +115,6 @@ describe('content validation', () => {
         'spawnBalance.spawnEntries must contain at least one entry.',
         'spawnBalance.spawnRingInnerRadius must be non-negative; received -1.',
         'spawnBalance.spawnRingOuterRadius must be positive; received 0.',
-        'spawnBalance.maxActiveEnemies must be integer-positive; received 0.',
         'upgradeChoicesPerLevel (2) cannot exceed the 1 unique upgrade definitions.',
         'upgradeChoicesPerLevel (2) exceeds the 0 upgrades eligible at player level 1.',
       ]),

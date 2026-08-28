@@ -945,8 +945,7 @@ function DevelopmentMenu({
               ))}
             </div>
             <p className="input-help">
-              Development-only stress spawns intentionally bypass the normal
-              active-enemy cap.
+              Development-only stress spawns add enemies immediately.
             </p>
           </div>
           <div className="time-scale-control">

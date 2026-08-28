@@ -18,7 +18,6 @@ describe('elite enemy spawning and rewards', () => {
   it('assigns weighted elites through the seeded normal spawn path', () => {
     const balance = {
       ...SPAWN_BALANCE,
-      maxActiveEnemies: 1,
       eliteChance: 1,
       eliteStartTimeSeconds: 0,
       eliteModifierWeights: { hasted: 0, giant: 1 },

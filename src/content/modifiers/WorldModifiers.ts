@@ -25,7 +25,7 @@ export const WORLD_MODIFIER_DEFINITIONS: Readonly<
   swarming: {
     id: 'swarming',
     name: 'Swarming',
-    description: 'Enemy pressure and the active enemy cap are increased.',
+    description: 'Enemy pressure is increased.',
     difficulty: 2,
     essenceRewardMultiplier: 1.1,
   },
@@ -122,7 +122,6 @@ export function resolveWorldModifierEffects(
       ...baseBalance,
       baseThreatPerSecond: baseBalance.baseThreatPerSecond * (swarming ? 1.35 : 1),
       threatGrowthPerMinute: baseBalance.threatGrowthPerMinute * (swarming ? 1.2 : 1),
-      maxActiveEnemies: baseBalance.maxActiveEnemies + (swarming ? 8 : 0),
       eliteChance: eliteInvasion ? 0.25 : baseBalance.eliteChance,
       eliteStartTimeSeconds: Math.min(
         baseBalance.eliteStartTimeSeconds,

@@ -57,24 +57,21 @@ describe('SpawnDirector', () => {
       calculateThreatPerSecond(0),
     )
 
-    const balance = { ...SPAWN_BALANCE, maxActiveEnemies: 100 }
-    const early = new SpawnDirector(new Random(1), balance).update(
+    const early = new SpawnDirector(new Random(1)).update(
       createState(0),
       10,
     )
-    const late = new SpawnDirector(new Random(1), balance).update(
+    const late = new SpawnDirector(new Random(1)).update(
       createState(600),
       10,
     )
     expect(late.length).toBeGreaterThan(early.length)
   })
 
-  it('does not issue requests once the active enemy cap is full', () => {
+  it('continues issuing requests when many enemies are already active', () => {
     const director = new SpawnDirector(new Random(2))
 
-    expect(
-      director.update(createState(0, SPAWN_BALANCE.maxActiveEnemies), 10),
-    ).toHaveLength(0)
+    expect(director.update(createState(0, 30), 10).length).toBeGreaterThan(0)
   })
 
   it('introduces every composition entry during a fixed-timestep run', () => {
