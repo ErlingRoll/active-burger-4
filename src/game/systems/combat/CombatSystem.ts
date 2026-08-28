@@ -119,6 +119,7 @@ function setBasicAttackCooldown(
   )
   if (basicAttack) {
     basicAttack.cooldownRemaining = cooldown
+    basicAttack.castCount = (basicAttack.castCount ?? 0) + 1
   }
 }
 

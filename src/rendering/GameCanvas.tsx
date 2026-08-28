@@ -39,6 +39,7 @@ interface GameCanvasProps {
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
+const MIN_CAST_PULSE_INTERVAL_MS = 240
 const DEVELOPMENT_TIME_SCALE_STORAGE_KEY = 'active-burger:development-time-scale'
 
 const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
@@ -354,6 +355,51 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const [activeCharacterStatId, setActiveCharacterStatId] = useState<string | null>(
     null,
   )
+  const [castPulseIds, setCastPulseIds] = useState<Record<string, number>>({})
+  const previousCastCountsRef = useRef(new Map<string, number>())
+  const lastCastPulseTimesRef = useRef(new Map<string, number>())
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const now = performance.now()
+    const pulseSkillIds: string[] = []
+
+    for (const skill of snapshot.skills) {
+      const previousCastCount = previousCastCountsRef.current.get(skill.skillId)
+      if (
+        previousCastCount !== undefined &&
+        skill.castCount > previousCastCount &&
+        now - (lastCastPulseTimesRef.current.get(skill.skillId) ?? -Infinity) >=
+          MIN_CAST_PULSE_INTERVAL_MS
+      ) {
+        lastCastPulseTimesRef.current.set(skill.skillId, now)
+        pulseSkillIds.push(skill.skillId)
+      }
+      previousCastCountsRef.current.set(skill.skillId, skill.castCount)
+    }
+
+    if (pulseSkillIds.length > 0) {
+      window.setTimeout(() => {
+        if (!mountedRef.current) {
+          return
+        }
+        setCastPulseIds((current) => {
+          const next = { ...current }
+          for (const skillId of pulseSkillIds) {
+            next[skillId] = (next[skillId] ?? 0) + 1
+          }
+          return next
+        })
+      }, 0)
+    }
+  }, [snapshot.skills])
 
   return (
     <section
@@ -465,7 +511,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className="skill-card"
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}`}
                   type="button"
                   aria-label={`${skill.name}, level ${skill.level}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
@@ -474,6 +520,22 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   onMouseEnter={() => setActiveSkillId(skill.skillId)}
                   onMouseLeave={() => setActiveSkillId(null)}
                 >
+                  {(castPulseIds[skill.skillId] ?? 0) > 0 ? (
+                    <span
+                      className="skill-cast-pulse"
+                      key={castPulseIds[skill.skillId]}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  {skill.cooldownProgress > 0 ? (
+                    <span
+                      className="skill-cooldown-overlay"
+                      style={{
+                        clipPath: `inset(0 0 0 ${(1 - skill.cooldownProgress) * 100}%)`,
+                      }}
+                      aria-hidden="true"
+                    />
+                  ) : null}
                   <span className="skill-icon" aria-hidden="true">
                     {skill.icon}
                   </span>

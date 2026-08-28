@@ -131,6 +131,7 @@ export interface SkillHudSnapshot {
   readonly name: string
   readonly icon: string
   readonly level: number
+  readonly castCount: number
   readonly description: string
   readonly tags: readonly SkillTag[]
   /** Damage after flat and increased gear modifiers, before critical strikes and resistance. */
@@ -138,6 +139,8 @@ export interface SkillHudSnapshot {
   readonly damageTypes: readonly DamageType[]
   /** Cooldown for non-Basic-Attack skills after cooldown reduction. */
   readonly cooldownSeconds: number | null
+  /** Fraction of the current cooldown that remains, from zero to one. */
+  readonly cooldownProgress: number
   /** Basic Attack cadence after attack-speed modifiers. */
   readonly attacksPerSecond: number | null
   readonly estimatedSingleTargetDps: number | null
@@ -877,6 +880,9 @@ export function createUiSnapshot(
           0.1,
           definition.cooldown * (1 - Math.max(0, playerStats.cooldownReduction) / 100),
         )
+    const cooldownProgress = Number.isFinite(cooldown) && cooldown > 0
+      ? Math.min(1, Math.max(0, skill.cooldownRemaining / cooldown))
+      : 0
     const baseDamage = isBasicAttack
       ? addDamageValues(
           getSkillDamage(definition, skill.level),
@@ -959,11 +965,15 @@ export function createUiSnapshot(
       name: definition.name,
       icon: isBasicAttack ? basicAttackVariant.visual.icon : definition.visual.icon,
       level: skill.level,
+      castCount: Number.isFinite(skill.castCount)
+        ? Math.max(0, Math.floor(skill.castCount ?? 0))
+        : 0,
       description: isBasicAttack ? basicAttackVariant.description : definition.description,
       tags: Object.freeze([...skillTags]),
       damage: outgoingDamage.damage,
       damageTypes: Object.freeze(damageTypes),
       cooldownSeconds: isBasicAttack ? null : cooldown,
+      cooldownProgress,
       attacksPerSecond: isBasicAttack ? 1 / cooldown : null,
       estimatedSingleTargetDps,
       dpsAssumption: isBasicAttack

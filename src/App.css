@@ -1152,6 +1152,62 @@
   border: 1px solid #64748b;
   border-radius: 0.6rem;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.skill-cooldown-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgb(2 6 23 / 34%);
+  pointer-events: none;
+  transition: clip-path 100ms linear;
+}
+
+.skill-cast-pulse {
+  position: absolute;
+  z-index: 3;
+  inset: -1px;
+  background:
+    radial-gradient(circle at center, rgb(254 240 138 / 22%), transparent 72%);
+  border: 2px solid rgb(254 240 138 / 95%);
+  border-radius: inherit;
+  box-shadow:
+    0 0 0.9rem rgb(254 240 138 / 85%),
+    inset 0 0 0.8rem rgb(254 240 138 / 28%);
+  pointer-events: none;
+  animation: skill-cast-pulse 320ms ease-out forwards;
+}
+
+.skill-card > :not(.skill-cooldown-overlay):not(.skill-cast-pulse) {
+  position: relative;
+  z-index: 2;
+}
+
+.skill-card > .skill-icon {
+  position: absolute;
+}
+
+.skill-card > .skill-cast-pulse {
+  position: absolute;
+  z-index: 3;
+}
+
+@keyframes skill-cast-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  22% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
 }
 
 .skill-card:hover,
@@ -1210,6 +1266,17 @@
 
 .skill-card-dps b {
   color: #f8fafc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-cast-pulse {
+    animation: none;
+    opacity: 1;
+  }
+
+  .skill-cooldown-overlay {
+    transition: none;
+  }
 }
 
 .skill-tooltip {

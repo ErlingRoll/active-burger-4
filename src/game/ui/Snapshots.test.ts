@@ -75,6 +75,7 @@ describe('UI snapshots', () => {
       CHAIN_LIGHTNING_SKILL_ID,
     ])
     expect(snapshot.skills[0]?.name).toBe('Basic Attack')
+    expect(snapshot.skills[0]?.castCount).toBe(0)
     expect(snapshot.skills[0]?.damage).toMatchObject({ physical: 14 })
     expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
     expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
@@ -82,7 +83,9 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(2.289)
     expect(snapshot.skills[0]?.attacksPerSecond).toBeCloseTo(1)
     expect(snapshot.skills[0]?.cooldownSeconds).toBeNull()
+    expect(snapshot.skills[0]?.cooldownProgress).toBe(0)
     expect(snapshot.skills[1]?.cooldownSeconds).toBeCloseTo(2.5)
+    expect(snapshot.skills[1]?.cooldownProgress).toBe(0)
     expect(snapshot.skills[1]?.attacksPerSecond).toBeNull()
     expect(snapshot.skills[2]?.cooldownSeconds).toBeCloseTo(3.5)
     expect(snapshot.skills[0]?.dpsAssumption).toContain('attack cadence')
@@ -94,6 +97,22 @@ describe('UI snapshots', () => {
       .toMatchObject({ relevant: true, status: 'acquired' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('projects active cooldown progress for skill feedback', () => {
+    const game = createGame({ seed: 72 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0.5, castCount: 3 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 1.25, castCount: 7 },
+    ]
+    game.state.run.selectedUpgradeIds.push('whirlwind-unlock')
+
+    const snapshot = createUiSnapshot(game.state)
+
+    expect(snapshot.skills[0]?.cooldownProgress).toBeCloseTo(0.5)
+    expect(snapshot.skills[1]?.cooldownProgress).toBeCloseTo(0.5)
+    expect(snapshot.skills[0]?.castCount).toBe(3)
+    expect(snapshot.skills[1]?.castCount).toBe(7)
   })
 
   it('shows the accumulated value for repeated skill upgrades', () => {

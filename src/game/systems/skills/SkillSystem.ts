@@ -86,6 +86,10 @@ function applyPlayerCooldownReduction(
   return Math.max(0.1, baseCooldown * (1 - Math.max(0, cooldownReduction) / 100))
 }
 
+function markSkillUsed(skill: SkillState): void {
+  skill.castCount = (skill.castCount ?? 0) + 1
+}
+
 function collectWhirlwindDamage(
   state: GameState,
   skill: SkillState,
@@ -142,6 +146,7 @@ function collectWhirlwindDamage(
       definition.cooldown,
       playerStats.cooldownReduction,
     )
+    markSkillUsed(skill)
   }
   return events
 }
@@ -227,6 +232,7 @@ function collectChainLightningDamage(
       definition.cooldown,
       playerStats.cooldownReduction,
     )
+    markSkillUsed(skill)
   }
   return events
 }
@@ -255,6 +261,7 @@ function collectVitalityHealing(
     definition.cooldown,
     playerStats.cooldownReduction,
   )
+  markSkillUsed(skill)
   return []
 }
 
@@ -292,6 +299,7 @@ export function collectSkillDamage(
           24,
           definition.effectLifetime,
         )
+        markSkillUsed(skill)
       }
     }
   }

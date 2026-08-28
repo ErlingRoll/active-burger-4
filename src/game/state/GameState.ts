@@ -224,6 +224,8 @@ export interface SkillState {
   skillId: SkillId
   level: number
   cooldownRemaining: number
+  /** Incremented after each successful cast so UI feedback does not rely on timing. */
+  castCount?: number
 }
 
 export interface EnemyState {
