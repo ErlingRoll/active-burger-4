@@ -18,6 +18,14 @@ export function applyUpgrade(state: GameState, upgradeId: UpgradeId): void {
       (player.upgradeWhirlwindLeech ?? 0) + definition.whirlwindLeechAmount
     refreshMeleeLeech(player)
   }
+  if (definition.pickupCollectionRangeIncreasePercent) {
+    const currentMultiplier = player.pickupCollectionRangeMultiplier
+    player.pickupCollectionRangeMultiplier =
+      (currentMultiplier !== undefined && Number.isFinite(currentMultiplier)
+        ? currentMultiplier
+        : 1) +
+      definition.pickupCollectionRangeIncreasePercent / 100
+  }
 
   if (definition.skillId && definition.skillAction) {
     const skill = player.skills.find(

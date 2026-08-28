@@ -12,6 +12,8 @@ import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'
+import { updatePickups } from './systems/experience/ExperienceSystem'
+import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -724,6 +726,19 @@ describe('Game', () => {
 
     expect(game.state.player.hp).toBe(maxHp)
     expect(game.state.pickups).toEqual([])
+  })
+
+  it('extends collection range for XP, gear, and healing pickups', () => {
+    const game = createGame({ seed: 162 })
+    applyUpgrade(game.state, 'magnet')
+    game.spawnXpPickup({ x: 145, y: 0 }, 3)
+    game.spawnGearPickup({ x: 185, y: 0 })
+    game.spawnHealingPotion({ x: 185, y: 0 })
+
+    updatePickups(game.state, FIXED_STEP_SECONDS, () => {})
+
+    expect(game.state.pickups).toHaveLength(3)
+    expect(game.state.pickups.every((pickup) => pickup.x < 185)).toBe(true)
   })
 
   it('retains XP and safely handles multiple level thresholds', () => {

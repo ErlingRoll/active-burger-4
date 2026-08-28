@@ -17,13 +17,19 @@ export function updatePickups(
   collectHealingPotion: (pickup: HealingPotionPickupState) => void = () => {},
 ): void {
   const player = state.player
+  const configuredRangeMultiplier = player.pickupCollectionRangeMultiplier
+  const pickupCollectionRangeMultiplier =
+    configuredRangeMultiplier !== undefined &&
+    Number.isFinite(configuredRangeMultiplier)
+      ? Math.max(0, configuredRangeMultiplier)
+      : 1
   const pickups = new SpatialHash<GameState['pickups'][number]>()
   let broadphaseRadius = 0
   for (const pickup of state.pickups) {
     pickups.insert(pickup.id, pickup.x, pickup.y, pickup.radius, pickup)
     broadphaseRadius = Math.max(
       broadphaseRadius,
-      pickup.attractionRadius,
+      pickup.attractionRadius * pickupCollectionRangeMultiplier,
       player.radius + pickup.radius,
     )
   }
@@ -38,6 +44,8 @@ export function updatePickups(
     const offsetY = player.y - pickup.y
     const distance = Math.hypot(offsetX, offsetY)
     const contactRange = player.radius + pickup.radius
+    const attractionRadius =
+      pickup.attractionRadius * pickupCollectionRangeMultiplier
 
     if (distance <= contactRange || distance === 0) {
       collectPickup(pickup, grantExperience, collectGearPickup, collectHealingPotion)
@@ -48,7 +56,7 @@ export function updatePickups(
       continue
     }
 
-    if (distance > pickup.attractionRadius) {
+    if (distance > attractionRadius) {
       continue
     }
 

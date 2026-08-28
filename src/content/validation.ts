@@ -634,9 +634,18 @@ function validateDefinitions(
     if (upgrade.modifiers) {
       validateModifiers(errors, `upgrades[${index}].modifiers`, upgrade.modifiers)
     }
+    if (upgrade.pickupCollectionRangeIncreasePercent !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].pickupCollectionRangeIncreasePercent`,
+        upgrade.pickupCollectionRangeIncreasePercent,
+        'positive',
+      )
+    }
     if (
       upgrade.category === 'passive' &&
-      (upgrade.stat === undefined || !VALID_UPGRADE_STATS.has(upgrade.stat))
+      (upgrade.stat === undefined || !VALID_UPGRADE_STATS.has(upgrade.stat)) &&
+      upgrade.pickupCollectionRangeIncreasePercent === undefined
     ) {
       errors.push(
         `upgrades[${index}].stat must reference a supported player stat; received "${String(upgrade.stat)}".`,

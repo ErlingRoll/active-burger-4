@@ -11,6 +11,7 @@ export type UpgradeId =
   | 'whirlwind-level'
   | 'chain-lightning-level'
   | 'whirlwind-leech'
+  | 'magnet'
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
 export type UpgradeStat = Extract<
@@ -46,6 +47,8 @@ export interface UpgradeDefinition {
   skillAction?: SkillUpgradeAction
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
   whirlwindLeechAmount?: number
+  /** Additive pickup collection range increase per rank, expressed as a percent. */
+  pickupCollectionRangeIncreasePercent?: number
   /** Percentage added to the skill's damage increase pool per rank. */
   skillDamageIncreasePercent?: number
 }

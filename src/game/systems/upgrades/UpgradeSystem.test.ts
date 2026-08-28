@@ -44,4 +44,13 @@ describe('skill upgrades', () => {
       expect.objectContaining({ skillId: WHIRLWIND_SKILL_ID, level: 1 }),
     ])
   })
+
+  it('adds Magnet collection range ranks without compounding them', () => {
+    const game = createGame({ seed: 64 })
+
+    applyUpgrade(game.state, 'magnet')
+    applyUpgrade(game.state, 'magnet')
+
+    expect(game.state.player.pickupCollectionRangeMultiplier).toBeCloseTo(1.2)
+  })
 })

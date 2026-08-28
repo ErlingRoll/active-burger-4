@@ -186,6 +186,8 @@ export interface PlayerState {
   upgradeWhirlwindLeech?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
+  /** Additive multiplier for the range that attracts all collectible pickups. */
+  pickupCollectionRangeMultiplier?: number
   resistances?: Partial<DamageResistanceValues>
   critChance?: number
   critMultiplier?: number

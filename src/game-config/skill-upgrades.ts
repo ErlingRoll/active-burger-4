@@ -8,6 +8,7 @@ import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 10
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -36,6 +37,17 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     ],
     valueLabel: '+0.2 attacks/sec',
     skillId: BASIC_ATTACK_SKILL_ID,
+    isEligible: () => true,
+  },
+  {
+    id: 'magnet',
+    name: 'Magnet',
+    description: `Increase XP, health potion, equipment, and item collection range by ${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}%.`,
+    category: 'passive',
+    rarity: 'common',
+    amount: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,
+    valueLabel: `+${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}% collection range`,
+    pickupCollectionRangeIncreasePercent: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,
     isEligible: () => true,
   },
   {
