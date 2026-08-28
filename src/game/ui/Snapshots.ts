@@ -22,6 +22,7 @@ import {
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
+import { DEFAULT_SKILL_SLOT_COUNT } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
@@ -258,6 +259,7 @@ interface PointSnapshot {
 }
 
 export interface GameUiSnapshot extends RunHudSnapshot {
+  readonly skillSlotCount: number
   readonly skills: readonly SkillHudSnapshot[]
   readonly equipment: Readonly<
     Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
@@ -370,6 +372,46 @@ function createCharacterStatGroupSnapshot(
     title,
     stats: Object.freeze([...stats]),
   })
+}
+
+function getAcquiredSkillUpgradeValueLabel(
+  upgrade: (typeof INITIAL_UPGRADES)[number],
+  skillLevel: number,
+  selectedUpgradeIds: readonly UpgradeId[],
+): string {
+  if (
+    upgrade.skillAction !== 'level' ||
+    upgrade.skillDamageIncreasePercent === undefined
+  ) {
+    const acquiredRanks = selectedUpgradeIds.filter(
+      (upgradeId) => upgradeId === upgrade.id,
+    ).length
+    return upgrade.stat !== undefined ||
+      upgrade.whirlwindLeechAmount !== undefined
+      ? scaleUpgradeValueLabel(upgrade.valueLabel, acquiredRanks)
+      : upgrade.valueLabel
+  }
+
+  const acquiredRanks = Math.max(
+    Math.max(0, skillLevel - 1),
+    selectedUpgradeIds.filter((upgradeId) => upgradeId === upgrade.id).length,
+  )
+  const label = upgrade.valueLabel.replace(/^\+\d+%\s+/, '')
+  return `+${acquiredRanks * upgrade.skillDamageIncreasePercent}% ${label}`
+}
+
+function scaleUpgradeValueLabel(valueLabel: string, rank: number): string {
+  if (rank <= 1) {
+    return valueLabel
+  }
+
+  const match = valueLabel.match(/^([+-])(\d*\.?\d+)(.*)$/)
+  if (!match) {
+    return valueLabel
+  }
+
+  const value = Number(match[2]) * rank
+  return `${match[1]}${value}${match[3]}`
 }
 
 function createCharacterStatsSnapshot(
@@ -585,6 +627,10 @@ export function createUiSnapshot(
     skillLevels: Object.fromEntries(
       state.player.skills.map((skill) => [skill.skillId, skill.level]),
     ),
+    skillSlotCount: typeof state.player.skillSlotCount === 'number' &&
+      Number.isFinite(state.player.skillSlotCount)
+      ? Math.max(1, Math.floor(state.player.skillSlotCount))
+      : DEFAULT_SKILL_SLOT_COUNT,
   }
   const skills = state.player.skills.flatMap((skill) => {
     if (!isSkillId(skill.skillId)) {
@@ -646,27 +692,31 @@ export function createUiSnapshot(
         ))
         .map((modifier) => Object.freeze({ ...modifier }))
     })
-    const upgrades = INITIAL_UPGRADES.filter(
-      (upgrade) => upgrade.skillId === skill.skillId,
-    ).map((upgrade) => {
-      const acquired =
-        state.run.selectedUpgradeIds.includes(upgrade.id) ||
-        (upgrade.skillAction === 'unlock' &&
-          state.player.skills.some((candidate) => candidate.skillId === skill.skillId))
-      const available = !acquired && upgrade.isEligible(eligibilityState)
-      return Object.freeze({
-        upgradeId: upgrade.id,
-        name: upgrade.name,
-        description: upgrade.description,
-        valueLabel: upgrade.valueLabel,
-        relevant: true as const,
-        status: acquired
-          ? ('acquired' as const)
-          : available
-            ? ('available' as const)
-            : ('unavailable' as const),
+    const upgrades = INITIAL_UPGRADES
+      .filter(
+        (upgrade) =>
+          upgrade.skillId === skill.skillId && upgrade.skillAction !== 'unlock',
+      )
+      .map((upgrade) => {
+        const acquired = state.run.selectedUpgradeIds.includes(upgrade.id)
+        const available = !acquired && upgrade.isEligible(eligibilityState)
+        return Object.freeze({
+          upgradeId: upgrade.id,
+          name: upgrade.name,
+          description: upgrade.description,
+          valueLabel: getAcquiredSkillUpgradeValueLabel(
+            upgrade,
+            skill.level,
+            state.run.selectedUpgradeIds,
+          ),
+          relevant: true as const,
+          status: acquired
+            ? ('acquired' as const)
+            : available
+              ? ('available' as const)
+              : ('unavailable' as const),
+        })
       })
-    })
 
     return [Object.freeze({
       skillId: skill.skillId,
@@ -905,6 +955,7 @@ export function createUiSnapshot(
     floorProgress,
     floorElapsedTime,
     floorDurationSeconds: dungeon.floorDurationSeconds,
+    skillSlotCount: eligibilityState.skillSlotCount,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
     encounterStatus,

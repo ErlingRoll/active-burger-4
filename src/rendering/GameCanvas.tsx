@@ -21,7 +21,8 @@ import {
 } from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
-import type { UpgradeChoice } from '../content/upgrades/Upgrades'
+import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
+import type { LevelUpUpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
@@ -242,7 +243,7 @@ export function GameCanvas({
     }
   }, [])
 
-  const selectChoice = (choice: UpgradeChoice | GearChoice): void => {
+  const selectChoice = (choice: LevelUpUpgradeChoice | GearChoice): void => {
     gameRef.current?.selectChoice(choice)
   }
 
@@ -327,6 +328,17 @@ interface GameplayHudProps {
 function GameplayHud({ snapshot }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
+  const orderedSkills = [...snapshot.skills].sort((left, right) =>
+    left.skillId === BASIC_ATTACK_SKILL_ID
+      ? -1
+      : right.skillId === BASIC_ATTACK_SKILL_ID
+        ? 1
+        : 0,
+  )
+  const emptySkillSlotCount = Math.max(
+    0,
+    snapshot.skillSlotCount - orderedSkills.length,
+  )
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
   const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlot | null>(
     null,
@@ -434,11 +446,12 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
         </section>
       ) : null}
       <section className="skill-hud" aria-labelledby="acquired-skills-title">
-        <h3 id="acquired-skills-title" className="visually-hidden">
-          Acquired skills
+        <h3 id="acquired-skills-title" className="skill-hud-heading">
+          <span>Skills</span>
+          <span>{orderedSkills.length}/{snapshot.skillSlotCount}</span>
         </h3>
         <ul className="skill-list">
-          {snapshot.skills.map((skill) => {
+          {orderedSkills.map((skill) => {
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
             return (
@@ -521,26 +534,37 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </section>
                     ) : null}
-                    <p className="skill-upgrade-heading">
-                      Relevant upgrades
-                    </p>
-                    <ul className="skill-upgrade-list">
-                      {skill.upgrades.map((upgrade) => (
-                        <li key={upgrade.upgradeId}>
-                          <span>
-                            {upgrade.name} ({upgrade.valueLabel})
-                          </span>
-                          <span className={`upgrade-status ${upgrade.status}`}>
-                            {upgrade.status}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    {skill.upgrades.some((upgrade) => upgrade.status === 'acquired') ? (
+                      <>
+                        <p className="skill-upgrade-heading">Upgrades</p>
+                        <ul className="skill-upgrade-list">
+                          {skill.upgrades
+                            .filter((upgrade) => upgrade.status === 'acquired')
+                            .map((upgrade) => (
+                              <li key={upgrade.upgradeId}>
+                                {upgrade.name} ({upgrade.valueLabel})
+                              </li>
+                            ))}
+                        </ul>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </li>
             )
           })}
+          {Array.from({ length: emptySkillSlotCount }, (_, index) => (
+            <li className="skill-entry" key={`empty-skill-slot-${index}`}>
+              <div
+                className="skill-card skill-card-empty"
+                aria-label="Empty skill slot"
+              >
+                <span className="skill-icon" aria-hidden="true">＋</span>
+                <span className="skill-card-name">Empty slot</span>
+                <span className="skill-card-level">Available</span>
+              </div>
+            </li>
+          ))}
         </ul>
       </section>
       <section className="equipped-loadout" aria-labelledby="equipped-loadout-title">

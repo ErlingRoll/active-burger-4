@@ -1,11 +1,11 @@
 import type { EntityId } from '../ids'
 import type { GearChoice } from '../equipment/GearChoices'
-import type { UpgradeChoice } from '../../content/upgrades/Upgrades'
+import type { LevelUpUpgradeChoice } from '../../content/upgrades/Upgrades'
 
 export interface LevelUpChoiceFlow {
   type: 'level-up'
   level: number
-  choices: UpgradeChoice[]
+  choices: LevelUpUpgradeChoice[]
 }
 
 export interface GearPickupChoiceFlow {

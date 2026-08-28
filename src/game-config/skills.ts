@@ -12,6 +12,8 @@ import type {
 export const BASIC_ATTACK_SKILL_ID: SkillId = 'basic-attack'
 export const WHIRLWIND_SKILL_ID: SkillId = 'whirlwind'
 export const CHAIN_LIGHTNING_SKILL_ID: SkillId = 'chain-lightning'
+export const DEFAULT_SKILL_SLOT_COUNT = 5
+export const SKILL_REMOVAL_CHANCE = 0.05
 
 export const BASIC_ATTACK_VARIANTS = {
   sword: {

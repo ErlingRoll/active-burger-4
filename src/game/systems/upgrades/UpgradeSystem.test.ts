@@ -53,4 +53,44 @@ describe('skill upgrades', () => {
 
     expect(game.state.player.pickupCollectionRangeMultiplier).toBeCloseTo(1.2)
   })
+
+  it('removes a skill and clears all upgrades acquired for that skill', () => {
+    const game = createGame({ seed: 65 })
+    applyUpgrade(game.state, 'whirlwind-level')
+    applyUpgrade(game.state, 'whirlwind-leech')
+    game.state.run.selectedUpgradeIds.push(
+      'whirlwind-unlock',
+      'whirlwind-level',
+      'whirlwind-leech',
+    )
+
+    applyUpgrade(game.state, 'remove-skill', WHIRLWIND_SKILL_ID)
+
+    expect(game.state.player.skills.map((skill) => skill.skillId)).toEqual([
+      BASIC_ATTACK_SKILL_ID,
+    ])
+    expect(game.state.player.upgradeWhirlwindLeech).toBe(0)
+    expect(game.state.run.selectedUpgradeIds).not.toEqual(
+      expect.arrayContaining([
+        'whirlwind-unlock',
+        'whirlwind-level',
+        'whirlwind-leech',
+      ]),
+    )
+    expect(game.state.player.meleeLeech).toBe(0)
+
+    applyUpgrade(game.state, 'whirlwind-unlock')
+    expect(game.state.player.skills).toEqual([
+      expect.objectContaining({ skillId: BASIC_ATTACK_SKILL_ID, level: 1 }),
+      expect.objectContaining({ skillId: WHIRLWIND_SKILL_ID, level: 1 }),
+    ])
+  })
+
+  it('does not allow Basic Attack to be removed', () => {
+    const game = createGame({ seed: 66 })
+
+    expect(() =>
+      applyUpgrade(game.state, 'remove-skill', BASIC_ATTACK_SKILL_ID),
+    ).toThrow('Skill removal requires a non-basic skill.')
+  })
 })

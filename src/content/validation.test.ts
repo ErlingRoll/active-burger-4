@@ -143,7 +143,7 @@ describe('content validation', () => {
     expect(errors).toEqual(
       expect.arrayContaining([
         'skills[0].radius must be positive; received 0.',
-        'upgrades[0] must define a known skillId and skillAction.',
+        'upgrades[0] must define a known skillId and skill action or effect.',
       ]),
     )
   })

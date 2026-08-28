@@ -170,6 +170,9 @@ export interface PlayerState {
   movementVelocityX?: number
   movementVelocityY?: number
 
+  /** Number of skill slots available; future meta progression can increase it. */
+  skillSlotCount?: number
+
   hp: number
   maxHp: number
 

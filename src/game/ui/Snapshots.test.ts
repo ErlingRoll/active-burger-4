@@ -25,6 +25,7 @@ describe('UI snapshots', () => {
 
     const snapshot = createUiSnapshot(game.state)
 
+    expect(snapshot.skillSlotCount).toBe(5)
     expect(snapshot.skills.map((skill) => skill.skillId)).toEqual([
       BASIC_ATTACK_SKILL_ID,
       WHIRLWIND_SKILL_ID,
@@ -50,6 +51,54 @@ describe('UI snapshots', () => {
       .toMatchObject({ relevant: true, status: 'acquired' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('shows the accumulated value for repeated skill upgrades', () => {
+    const game = createGame({ seed: 94 })
+    const basicAttack = game.state.player.skills.find(
+      (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
+    )
+    if (!basicAttack) {
+      throw new Error('Expected Basic Attack to be equipped')
+    }
+    basicAttack.level = 3
+    game.state.run.selectedUpgradeIds.push(
+      'basic-attack-level',
+      'basic-attack-level',
+    )
+
+    const upgrade = createUiSnapshot(game.state).skills
+      .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
+      ?.upgrades.find((candidate) => candidate.upgradeId === 'basic-attack-level')
+
+    expect(upgrade?.valueLabel).toBe('+20% Basic Attack damage')
+  })
+
+  it('shows the accumulated value for repeated Rapid Fire upgrades', () => {
+    const game = createGame({ seed: 95 })
+    game.state.run.selectedUpgradeIds.push(
+      'attack-speed-boost',
+      'attack-speed-boost',
+    )
+
+    const upgrade = createUiSnapshot(game.state).skills
+      .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
+      ?.upgrades.find((candidate) => candidate.upgradeId === 'attack-speed-boost')
+
+    expect(upgrade?.valueLabel).toBe('+0.4 attacks/sec')
+  })
+
+  it('does not show skill unlocks or unearned Whirlwind leech', () => {
+    const game = createGame({ seed: 96 })
+    const whirlwind = createUiSnapshot(game.state).skills
+      .find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)
+
+    expect(whirlwind?.upgrades.map((upgrade) => upgrade.upgradeId)).not.toContain(
+      'whirlwind-unlock',
+    )
+    expect(whirlwind?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'whirlwind-leech',
+    )).toMatchObject({ status: 'available', valueLabel: '+2% Whirlwind leech' })
   })
 
   it('retains recent player combat events in a defeat result', () => {

@@ -26,6 +26,7 @@ import {
   SKILL_DEFINITIONS,
   type SkillDefinition,
 } from './skills/Skills'
+import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 import {
   EQUIPMENT_SLOTS,
   INITIAL_ITEMS,
@@ -661,10 +662,15 @@ function validateDefinitions(
       upgrade.category === 'skill' &&
       (!upgrade.skillId ||
         !skillIds.has(upgrade.skillId) ||
-        !upgrade.skillAction ||
-        !VALID_SKILL_ACTIONS.has(upgrade.skillAction))
+        (!(
+          upgrade.skillAction &&
+          VALID_SKILL_ACTIONS.has(upgrade.skillAction)
+        ) &&
+          upgrade.whirlwindLeechAmount === undefined))
     ) {
-      errors.push(`upgrades[${index}] must define a known skillId and skillAction.`)
+      errors.push(
+        `upgrades[${index}] must define a known skillId and skill action or effect.`,
+      )
     }
   })
 }
@@ -1049,6 +1055,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
     selectedUpgradeIds: [] as const,
     ownedSkillIds: ['basic-attack'] as const,
     skillLevels: { 'basic-attack': 1 },
+    skillSlotCount: DEFAULT_SKILL_SLOT_COUNT,
   }
   let eligibleUpgradeCount = 0
   catalog.upgrades.forEach((upgrade, index) => {
@@ -1087,6 +1094,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
     selectedUpgradeIds: [] as const,
     ownedSkillIds: catalog.skills.map((skill) => skill.id),
     skillLevels: Object.fromEntries(catalog.skills.map((skill) => [skill.id, 1])),
+    skillSlotCount: DEFAULT_SKILL_SLOT_COUNT,
   }
   const fullyOwnedEligibleCount = catalog.upgrades.filter((upgrade) => {
     try {

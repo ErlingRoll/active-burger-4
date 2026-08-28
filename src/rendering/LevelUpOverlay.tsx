@@ -14,8 +14,10 @@ import {
 } from '../content/rarity/Rarity'
 import {
   getUpgradeDefinition,
-  type UpgradeChoice,
+  REMOVE_SKILL_UPGRADE_ID,
+  type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
+import { getSkillDefinition } from '../content/skills/Skills'
 import type { GearChoice } from '../game/equipment/GearChoices'
 import type {
   EquippedItemSnapshot,
@@ -27,7 +29,7 @@ import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
-  onSelect: (choice: UpgradeChoice | GearChoice) => void
+  onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
   onSkip: () => void
 }
 
@@ -308,12 +310,15 @@ function UpgradeCard({
   firstButtonRef,
   onSelect,
 }: {
-  choice: UpgradeChoice
+  choice: LevelUpUpgradeChoice
   index: number
   firstButtonRef: (element: HTMLButtonElement | null) => void
-  onSelect: (choice: UpgradeChoice) => void
+  onSelect: (choice: LevelUpUpgradeChoice) => void
 }) {
   const definition = getUpgradeDefinition(choice.upgradeId)
+  const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
+    ? getSkillDefinition(choice.skillId)
+    : undefined
   return (
     <div className="choice-card-wrap">
       <button
@@ -324,11 +329,19 @@ function UpgradeCard({
         onClick={() => onSelect(choice)}
       >
         <span className="choice-card-header">
-          <span className="upgrade-choice-name">{definition.name}</span>
+          <span className="upgrade-choice-name">
+            {removedSkill ? `Release ${removedSkill.name}` : definition.name}
+          </span>
           <RarityBadge rarity={choice.rarity} />
         </span>
-        <span className="upgrade-choice-value">{definition.valueLabel}</span>
-        <span className="upgrade-choice-description">{definition.description}</span>
+        <span className="upgrade-choice-value">
+          {removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+        </span>
+        <span className="upgrade-choice-description">
+          {removedSkill
+            ? `Remove ${removedSkill.name} from your skill slots. It can be unlocked again later.`
+            : definition.description}
+        </span>
       </button>
     </div>
   )

@@ -1,8 +1,9 @@
-import type { Rarity } from '../rarity/Rarity'
 import type { StatModifier, StatKey } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
+import type { Rarity } from '../rarity/Rarity'
 
+export const REMOVE_SKILL_UPGRADE_ID = 'remove-skill' as const
 export type UpgradeId =
   | 'attack-speed-boost'
   | 'whirlwind-unlock'
@@ -12,6 +13,7 @@ export type UpgradeId =
   | 'chain-lightning-level'
   | 'whirlwind-leech'
   | 'magnet'
+  | typeof REMOVE_SKILL_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
 export type UpgradeStat = Extract<
@@ -21,15 +23,24 @@ export type UpgradeStat = Extract<
 export type SkillUpgradeAction = 'unlock' | 'level'
 
 export interface UpgradeChoice {
-  upgradeId: UpgradeId
+  upgradeId: Exclude<UpgradeId, typeof REMOVE_SKILL_UPGRADE_ID>
   rarity: UpgradeRarity
 }
+
+export interface SkillRemovalChoice {
+  upgradeId: typeof REMOVE_SKILL_UPGRADE_ID
+  skillId: SkillId
+  rarity: UpgradeRarity
+}
+
+export type LevelUpUpgradeChoice = UpgradeChoice | SkillRemovalChoice
 
 export interface UpgradeEligibilityState {
   playerLevel: number
   selectedUpgradeIds: readonly UpgradeId[]
   ownedSkillIds: readonly SkillId[]
   skillLevels: Readonly<Record<string, number>>
+  skillSlotCount: number
 }
 
 export interface UpgradeDefinition {
@@ -56,6 +67,18 @@ export interface UpgradeDefinition {
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 
 export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
+  if (upgradeId === REMOVE_SKILL_UPGRADE_ID) {
+    return {
+      id: REMOVE_SKILL_UPGRADE_ID,
+      name: 'Release Skill',
+      description: 'Remove an acquired skill and lose all upgrades for it.',
+      category: 'skill',
+      rarity: 'rare',
+      amount: 1,
+      valueLabel: 'Remove skill',
+      isEligible: () => false,
+    }
+  }
   const definition = INITIAL_UPGRADES.find(
     (candidate) => candidate.id === upgradeId,
   )

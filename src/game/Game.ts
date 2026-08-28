@@ -26,7 +26,7 @@ import {
   UPGRADE_CHOICES_PER_LEVEL,
 } from './upgrades/UpgradeChoices'
 import type {
-  UpgradeChoice,
+  LevelUpUpgradeChoice,
   UpgradeId,
 } from '../content/upgrades/Upgrades'
 import {
@@ -395,7 +395,7 @@ export class Game {
    * Compatibility projection of the active level-up flow. Gear flows are
    * available through getPendingChoiceFlow().
    */
-  getPendingUpgradeChoices(): readonly UpgradeChoice[] {
+  getPendingUpgradeChoices(): readonly LevelUpUpgradeChoice[] {
     const flow = this.choiceFlows[0]
     if (!flow || flow.type !== 'level-up') {
       return []
@@ -403,7 +403,7 @@ export class Game {
     return flow.choices.map((choice) => ({ ...choice }))
   }
 
-  get upgradeChoices(): readonly UpgradeChoice[] {
+  get upgradeChoices(): readonly LevelUpUpgradeChoice[] {
     return this.getPendingUpgradeChoices()
   }
 
@@ -435,7 +435,7 @@ export class Game {
     return this.getPendingChoiceFlows()
   }
 
-  getPendingChoices(): readonly (UpgradeChoice | GearChoice)[] {
+  getPendingChoices(): readonly (LevelUpUpgradeChoice | GearChoice)[] {
     return this.pendingChoiceFlows[0]?.choices.map((choice) => ({ ...choice })) ?? []
   }
 
@@ -454,7 +454,7 @@ export class Game {
   }
 
   selectUpgrade(
-    choice: UpgradeChoice | { upgradeId: UpgradeId } | UpgradeId,
+    choice: LevelUpUpgradeChoice | { upgradeId: UpgradeId } | UpgradeId,
   ): boolean {
     const flow = this.choiceFlows[0]
     if (this.gameState.run.phase !== 'level-up' || !flow || flow.type !== 'level-up') {
@@ -462,16 +462,22 @@ export class Game {
     }
 
     const upgradeId = typeof choice === 'string' ? choice : choice.upgradeId
+    const skillId = typeof choice === 'object' && 'skillId' in choice
+      ? choice.skillId
+      : undefined
     if (
-      !flow.choices.some(
-        (candidate) => candidate.upgradeId === upgradeId,
+      !flow.choices.some((candidate) =>
+        candidate.upgradeId === upgradeId &&
+        ('skillId' in candidate ? candidate.skillId === skillId : skillId === undefined),
       )
     ) {
       return false
     }
 
-    applyUpgrade(this.gameState, upgradeId)
-    this.gameState.run.selectedUpgradeIds.push(upgradeId)
+    applyUpgrade(this.gameState, upgradeId, skillId)
+    if (upgradeId !== 'remove-skill') {
+      this.gameState.run.selectedUpgradeIds.push(upgradeId)
+    }
 
     this.completeActiveChoiceFlow()
     return true
@@ -523,7 +529,7 @@ export class Game {
     return this.selectGearChoice(choice)
   }
 
-  selectChoice(choice: UpgradeChoice | GearChoice | UpgradeId): boolean {
+  selectChoice(choice: LevelUpUpgradeChoice | GearChoice | UpgradeId): boolean {
     if (typeof choice === 'string') {
       return this.selectUpgrade(choice)
     }

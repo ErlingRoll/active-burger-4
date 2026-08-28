@@ -11,6 +11,10 @@ import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDropConfig'
 import { getItemDefinition } from '../../../content/gear/Items'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
+  BASIC_ATTACK_SKILL_ID,
+  DEFAULT_SKILL_SLOT_COUNT,
+} from '../../../game-config/skills'
+import {
   getBossDefinition,
   type BossDefinitionId,
 } from '../../../content/bosses/Bosses'
@@ -53,6 +57,12 @@ export function createInitialPlayerState(
 ): PlayerState {
   const playstyle = getPlaystyleDefinition(playstyleId)
   const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
+  const startingSkillIds = [
+    BASIC_ATTACK_SKILL_ID,
+    ...playstyle.startingSkillIds.filter(
+      (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
+    ),
+  ]
   const maxHp = playstyle.baseStats.maxHp * (playerStatMultipliers.maxHp ?? 1)
   const movementSpeed = playstyle.baseStats.movementSpeed * (playerStatMultipliers.movementSpeed ?? 1)
   const attackDamage = playstyle.baseStats.attackDamage * (playerStatMultipliers.attackDamage ?? 1)
@@ -64,6 +74,7 @@ export function createInitialPlayerState(
     radius: 16,
     movementVelocityX: 0,
     movementVelocityY: 0,
+    skillSlotCount: DEFAULT_SKILL_SLOT_COUNT,
     hp: maxHp,
     maxHp,
     level: 1,
@@ -100,7 +111,7 @@ export function createInitialPlayerState(
     behaviorController: {
       profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
     },
-    skills: playstyle.startingSkillIds.map((skillId) => ({
+    skills: startingSkillIds.map((skillId) => ({
       skillId,
       level: 1,
       cooldownRemaining: 0,

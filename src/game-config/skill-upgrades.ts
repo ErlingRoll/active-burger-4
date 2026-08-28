@@ -20,7 +20,6 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 0.02,
     valueLabel: '+2% Whirlwind leech',
     skillId: WHIRLWIND_SKILL_ID,
-    skillAction: 'unlock',
     whirlwindLeechAmount: 0.02,
     isEligible: (state) => state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID),
   },
@@ -61,6 +60,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillId: WHIRLWIND_SKILL_ID,
     skillAction: 'unlock',
     isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
       !state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('whirlwind-unlock'),
   },
@@ -75,6 +75,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillId: CHAIN_LIGHTNING_SKILL_ID,
     skillAction: 'unlock',
     isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
       !state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('chain-lightning-unlock'),
   },
