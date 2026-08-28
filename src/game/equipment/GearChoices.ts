@@ -15,6 +15,10 @@ import {
   type GearModifierTier,
 } from '../../content/gear/ModifierPools'
 import type { Rarity } from '../../content/rarity/Rarity'
+import {
+  ALL_GEAR_SET_DEFINITIONS,
+  type GearSetId,
+} from '../../game-config/gear-sets'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
 import { rollItemUpgradeModifiers } from './EquipmentState'
@@ -27,6 +31,7 @@ export interface GearItemChoice {
   slot: EquipmentSlot
   rarity: Rarity
   modifiers: readonly GearModifier[]
+  setId?: GearSetId
 }
 
 export interface UpgradeEquippedItemChoice {
@@ -38,6 +43,7 @@ export interface UpgradeEquippedItemChoice {
   fromTier: GearModifierTier
   toTier: GearModifierTier
   upgradedModifiers: readonly GearModifier[]
+  setId?: GearSetId
 }
 
 export type GearChoice = GearItemChoice | UpgradeEquippedItemChoice
@@ -63,6 +69,7 @@ function rollChoiceFromTemplate(
   rng: RandomSource,
 ): GearItemChoice {
   const rarity = rollRarity(rng)
+  const setId = rng.pick(ALL_GEAR_SET_DEFINITIONS).id
   const modifiers = rollGearModifiersForItem(
     definition,
     rarity,
@@ -77,6 +84,7 @@ function rollChoiceFromTemplate(
     slot: definition.slot,
     rarity,
     modifiers,
+    setId,
   }
 }
 
@@ -137,6 +145,7 @@ interface EligibleUpgradeTarget {
   slot: EquipmentSlot
   rarity: Rarity
   modifiers: readonly GearModifier[]
+  setId?: GearSetId
 }
 
 function eligibleUpgradeTargets(
@@ -160,6 +169,7 @@ function eligibleUpgradeTargets(
       slot: slot as EquipmentSlot,
       rarity: equipped.rarity ?? definition.rarity,
       modifiers,
+      setId: equipped.setId ?? definition.setId,
     })
   }
   return choices
@@ -167,8 +177,8 @@ function eligibleUpgradeTargets(
 
 export function gearChoiceSignature(choice: Readonly<GearChoice>): string {
   return choice.type === 'gear'
-    ? `gear:${choice.itemId}:${choice.slot}:${choice.rarity}:${serializeGearModifiers(choice.modifiers)}`
-    : `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+    ? `gear:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
+    : `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
 }
 
 /**
@@ -223,6 +233,7 @@ export function generateGearChoices(
         fromTier: upgrade.fromTier,
         toTier: upgrade.toTier,
         upgradedModifiers: upgrade.upgradedModifiers,
+        setId: target.setId,
       }
     }
   }

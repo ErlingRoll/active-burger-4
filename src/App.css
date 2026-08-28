@@ -898,6 +898,40 @@
   font-weight: 700;
 }
 
+.gear-set-formation {
+  margin: 0.55rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid #334155;
+}
+
+.gear-set-formation-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #c4b5fd;
+  font-size: 0.78rem;
+}
+
+.gear-set-formation-header span {
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.gear-set-formation ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  color: #64748b;
+  font-size: 0.74rem;
+  list-style: none;
+}
+
+.gear-set-formation li.active {
+  color: #86efac;
+  font-weight: 700;
+}
+
 .loadout-item.rarity-common .loadout-rarity { color: #d1d5db; }
 .loadout-item.rarity-uncommon .loadout-rarity { color: #4ade80; }
 .loadout-item.rarity-rare .loadout-rarity { color: #60a5fa; }
@@ -949,6 +983,14 @@
   color: #86efac;
   font-size: 0.78rem;
   list-style: none;
+}
+
+.loadout-tooltip .gear-set-formation ul {
+  color: #64748b;
+}
+
+.loadout-tooltip .gear-set-formation li.active {
+  color: #86efac;
 }
 
 .character-stats {
@@ -1810,10 +1852,10 @@
 
 .gear-upgrade-card {
   background:
-    linear-gradient(145deg, rgb(120 53 15 / 35%), transparent 58%),
-    #2a2117;
-  border-color: #b45309;
-  border-top-color: #f59e0b;
+    linear-gradient(145deg, rgb(20 83 45 / 42%), transparent 58%),
+    #172a20;
+  border-color: #15803d;
+  border-top-color: #22c55e;
 }
 
 .choice-card.rarity-common { border-top-color: #d1d5db; }
@@ -1823,7 +1865,15 @@
 .choice-card.rarity-legendary { border-top-color: #fbbf24; }
 
 .choice-card.gear-upgrade-card {
-  border-top-color: #f59e0b;
+  border-top-color: #22c55e;
+}
+
+.choice-card.skill-removal-card {
+  background:
+    linear-gradient(145deg, rgb(127 29 29 / 42%), transparent 58%),
+    #2a1717;
+  border-color: #b91c1c;
+  border-top-color: #ef4444;
 }
 
 .choice-card-header {
@@ -1839,7 +1889,7 @@
   align-items: center;
   gap: 0.4rem;
   width: 100%;
-  color: #fbbf24;
+  color: #86efac;
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -1850,10 +1900,10 @@
   width: 1.35rem;
   height: 1.35rem;
   place-items: center;
-  color: #451a03;
+  color: #052e16;
   font-size: 1rem;
   line-height: 1;
-  background: #f59e0b;
+  background: #22c55e;
   border-radius: 0.3rem;
 }
 
@@ -1997,10 +2047,19 @@
 .upgrade-choice.gear-upgrade-card:hover,
 .upgrade-choice.gear-upgrade-card:focus-visible {
   background:
-    linear-gradient(145deg, rgb(146 64 14 / 42%), transparent 58%),
-    #3a2a18;
-  border-color: #fbbf24;
-  outline-color: rgb(251 191 36 / 35%);
+    linear-gradient(145deg, rgb(22 101 52 / 48%), transparent 58%),
+    #1f3a29;
+  border-color: #4ade80;
+  outline-color: rgb(74 222 128 / 35%);
+}
+
+.upgrade-choice.skill-removal-card:hover,
+.upgrade-choice.skill-removal-card:focus-visible {
+  background:
+    linear-gradient(145deg, rgb(153 27 27 / 48%), transparent 58%),
+    #3a1f1f;
+  border-color: #f87171;
+  outline-color: rgb(248 113 113 / 35%);
 }
 
 .upgrade-choice-name {
@@ -2568,9 +2627,16 @@
 
   .gear-upgrade-card {
     background:
-      linear-gradient(145deg, rgb(120 53 15 / 34%), transparent 58%),
-      #292117;
-    border-color: #b45309;
+      linear-gradient(145deg, rgb(20 83 45 / 42%), transparent 58%),
+      #1c2f24;
+    border-color: #15803d;
+  }
+
+  .choice-card.skill-removal-card {
+    background:
+      linear-gradient(145deg, rgb(127 29 29 / 42%), transparent 58%),
+      #301b1b;
+    border-color: #b91c1c;
   }
 
   .gear-comparison,

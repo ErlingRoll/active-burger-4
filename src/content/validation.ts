@@ -35,6 +35,11 @@ import {
   type ItemDefinition,
 } from './gear/Items'
 import {
+  ALL_GEAR_SET_DEFINITIONS,
+  isGearSetId,
+  type GearSetDefinition,
+} from '../game-config/gear-sets'
+import {
   getGearModifierCountForRarity,
   getGearModifierDefinition,
   isGearModifierAvailableForItem,
@@ -88,6 +93,7 @@ export interface ContentCatalog {
   projectiles: readonly ProjectileDefinition[]
   upgrades: readonly UpgradeDefinition[]
   items: readonly ItemDefinition[]
+  gearSets?: readonly GearSetDefinition[]
   skills: readonly SkillDefinition[]
   bosses: readonly BossDefinition[]
   bossSkills: readonly BossSkillDefinition[]
@@ -105,6 +111,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   projectiles: Object.values(PROJECTILE_DEFINITIONS),
   upgrades: INITIAL_UPGRADES,
   items: INITIAL_ITEMS,
+  gearSets: ALL_GEAR_SET_DEFINITIONS,
   skills: Object.values(SKILL_DEFINITIONS),
   bosses: Object.values(BOSS_DEFINITIONS),
   bossSkills: Object.values(BOSS_SKILL_DEFINITIONS),
@@ -883,6 +890,65 @@ function validateDungeons(
   })
 }
 
+function validateGearSets(
+  errors: string[],
+  gearSets: readonly GearSetDefinition[],
+  items: readonly ItemDefinition[],
+): void {
+  validateIds(errors, 'gearSets', gearSets)
+  const setIds = new Set(gearSets.map((set) => set.id))
+  for (const [index, set] of gearSets.entries()) {
+    const path = `gearSets[${index}]`
+    if (!isGearSetId(set.id)) {
+      errors.push(`${path}.id is not supported; received "${String(set.id)}".`)
+    }
+    if (typeof set.name !== 'string' || set.name.trim() === '') {
+      errors.push(`${path}.name must be a non-empty string.`)
+    }
+    if (set.slots.length !== EQUIPMENT_SLOTS.length) {
+      errors.push(`${path}.slots must contain all six equipment slots.`)
+    }
+    if (
+      new Set(set.slots).size !== set.slots.length ||
+      set.slots.some((slot) => !EQUIPMENT_SLOTS.includes(slot))
+    ) {
+      errors.push(`${path}.slots must contain unique supported equipment slots.`)
+    }
+    let previousPieces = 0
+    for (const [bonusIndex, bonus] of set.bonuses.entries()) {
+      const bonusPath = `${path}.bonuses[${bonusIndex}]`
+      if (![2, 4, 6].includes(bonus.requiredPieces)) {
+        errors.push(`${bonusPath}.requiredPieces must be 2, 4, or 6.`)
+      }
+      if (bonus.requiredPieces <= previousPieces) {
+        errors.push(`${bonusPath}.requiredPieces must be strictly increasing.`)
+      }
+      previousPieces = bonus.requiredPieces
+      if (!['max-hp-percent', 'cooldown-reduction', 'extra-projectiles'].includes(bonus.kind)) {
+        errors.push(`${bonusPath}.kind is not supported; received "${String(bonus.kind)}".`)
+      }
+      if (!Number.isFinite(bonus.value) || bonus.value <= 0) {
+        errors.push(`${bonusPath}.value must be a positive finite number.`)
+      }
+      if (typeof bonus.label !== 'string' || bonus.label.trim() === '') {
+        errors.push(`${bonusPath}.label must be a non-empty string.`)
+      }
+    }
+    const setItems = items.filter((item) => item.setId === set.id)
+    const slots = new Set(setItems.map((item) => item.slot))
+    if (setItems.length !== EQUIPMENT_SLOTS.length || slots.size !== setItems.length) {
+      errors.push(`${path} must have exactly one item for each equipment slot.`)
+    }
+  }
+  for (const [index, item] of items.entries()) {
+    if (!item.starterOnly && !item.setId) {
+      errors.push(`items[${index}].setId is required for droppable gear.`)
+    } else if (item.setId && !setIds.has(item.setId)) {
+      errors.push(`items[${index}].setId references unknown gear set "${item.setId}".`)
+    }
+  }
+}
+
 export function validateContent(catalog: ContentCatalog): string[] {
   const errors: string[] = [
     ...validateRarityWeights(RARITY_WEIGHTS),
@@ -903,6 +969,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
   validateBehaviorProfiles(errors, catalog.behaviorProfiles ?? [])
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
   validateIds(errors, 'items', catalog.items)
+  validateGearSets(errors, catalog.gearSets ?? ALL_GEAR_SET_DEFINITIONS, catalog.items)
 
   catalog.items.forEach((item, index) => {
     if (typeof item.id === 'string' && !isItemId(item.id)) {

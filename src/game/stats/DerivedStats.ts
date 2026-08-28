@@ -24,6 +24,11 @@ import {
   type StatModifier,
   type StatValues,
 } from '../../content/stats/Stats'
+import {
+  ALL_GEAR_SET_DEFINITIONS,
+  getActiveGearSetBonuses,
+  type GearSetId,
+} from '../../game-config/gear-sets'
 import type { PlayerState } from '../state/GameState'
 
 export interface PlayerStats extends StatValues {
@@ -88,6 +93,31 @@ interface AggregatedGearEffects {
   projectileChains: number
   meleeLeech: number
   whirlwindLeech: number
+}
+
+export function getEquippedGearSetPieceCounts(
+  player: Readonly<PlayerState>,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
+): Readonly<Record<GearSetId, number>> {
+  const counts: Record<GearSetId, number> = {
+    giants: 0,
+    astral: 0,
+    splintering: 0,
+  }
+  for (const slot of EQUIPMENT_SLOTS) {
+    const equipped = player.equipment?.[slot]
+    if (!equipped) {
+      continue
+    }
+    const definition = itemDefinitions.find(
+      (candidate) => candidate.id === equipped.itemId,
+    )
+    const setId = equipped.setId ?? definition?.setId
+    if (setId) {
+      counts[setId] += 1
+    }
+  }
+  return counts
 }
 
 function aggregateGearEffects(
@@ -185,6 +215,32 @@ function aggregateGearEffects(
     if (definition.kind === 'projectile-chains') {
       effects.projectileChains += modifier.value
     }
+  }
+
+  const setPieceCounts = getEquippedGearSetPieceCounts(player, itemDefinitions)
+  let maxHpSetPercent = 0
+  for (const set of ALL_GEAR_SET_DEFINITIONS) {
+    const activeBonuses = getActiveGearSetBonuses(
+      set,
+      setPieceCounts[set.id],
+    )
+    for (const bonus of activeBonuses) {
+      if (bonus.kind === 'max-hp-percent') {
+        maxHpSetPercent += bonus.value
+      } else if (bonus.kind === 'cooldown-reduction') {
+        effects.cooldownReduction += bonus.value
+      } else if (bonus.kind === 'extra-projectiles') {
+        effects.basicAttackExtraProjectiles += bonus.value
+      }
+    }
+  }
+  if (maxHpSetPercent > 0) {
+    effects.statModifiers.push({
+      stat: 'maxHp',
+      operation: 'multiply',
+      value: 1 + maxHpSetPercent / 100,
+      sourceId: 'gear-set:max-hp',
+    })
   }
 
   return effects

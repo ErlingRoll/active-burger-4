@@ -501,6 +501,8 @@ export class Game {
         offered.itemId,
         offered.rarity,
         offered.modifiers,
+        undefined,
+        offered.setId,
       )
     } else {
       const upgraded = upgradeEquippedItem(

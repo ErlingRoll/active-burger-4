@@ -26,6 +26,7 @@ import type { LevelUpUpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
+import { GearSetFormation } from './GearSetFormation'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
@@ -69,8 +70,8 @@ function getChoiceFlowKey(
     'upgradeId' in choice
       ? choice.upgradeId
       : choice.type === 'gear'
-        ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${serializeGearModifiers(choice.modifiers)}`
-        : `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`,
+        ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
+        : `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`,
   )
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
 }
@@ -306,6 +307,7 @@ export function GameCanvas({
         <LevelUpOverlay
           flow={choiceFlow}
           equipment={snapshot?.equipment ?? {}}
+          gearSets={snapshot?.gearSets ?? []}
           onSelect={selectChoice}
           onSkip={skipChoice}
         />
@@ -572,6 +574,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
         <ul className="loadout-list">
           {EQUIPMENT_SLOTS.map((slot) => {
             const item = snapshot.equipment[slot]
+            const itemSet = item?.setId
+              ? snapshot.gearSets.find((set) => set.setId === item.setId)
+              : undefined
             const tooltipId = `loadout-tooltip-${slot}`
             const isActive = activeLoadoutSlot === slot
             return (
@@ -621,6 +626,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             </li>
                           ))}
                         </ul>
+                        {itemSet ? <GearSetFormation set={itemSet} /> : null}
                       </>
                     ) : (
                       <p>Empty slot</p>

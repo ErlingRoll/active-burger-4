@@ -15,6 +15,7 @@ import {
   type GearModifierTier,
 } from '../../content/gear/ModifierPools'
 import type { Rarity } from '../../content/rarity/Rarity'
+import type { GearSetId } from '../../game-config/gear-sets'
 import type { RandomSource } from '../random/Random'
 import type { PlayerState } from '../state/GameState'
 import {
@@ -31,6 +32,8 @@ export interface EquippedItem {
   rarity?: Rarity
   /** Rolled modifiers are persisted here so snapshots never reroll them. */
   modifiers?: GearModifier[]
+  /** Set assignment is rolled per generated item and persisted with it. */
+  setId?: GearSetId
 }
 
 export type EquipmentLoadout = Partial<
@@ -41,11 +44,13 @@ export function createEquippedItem(
   definition: ItemDefinition,
   rarity: Rarity = definition.rarity,
   modifiers: readonly GearModifier[] = definition.modifiers,
+  setId: GearSetId | undefined = definition.setId,
 ): EquippedItem {
   return {
     itemId: definition.id,
     rarity,
     modifiers: cloneGearModifiers(modifiers),
+    ...(setId ? { setId } : {}),
   }
 }
 
@@ -67,6 +72,7 @@ export function equipRolledItem(
   rarity: Rarity,
   modifiers: readonly GearModifier[],
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
+  setId?: GearSetId,
 ): EquipmentSlot {
   const definition = getItemDefinition(itemId, itemDefinitions)
   player.equipment ??= {}
@@ -74,6 +80,7 @@ export function equipRolledItem(
     definition,
     rarity,
     modifiers,
+    setId,
   )
   refreshPlayerDerivedStats(player, itemDefinitions)
   return definition.slot

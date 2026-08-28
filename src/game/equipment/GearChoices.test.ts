@@ -55,6 +55,31 @@ describe('gear choices', () => {
     expect(choice?.rarity).toBe('legendary')
   })
 
+  it('rolls a set assignment independently for each generated item', () => {
+    const game = createGame({ seed: 405 })
+    const giantsRoll = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => false,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    const splinteringRoll = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => false,
+      pick: <T>(items: readonly T[]) => items[items.length - 1] as T,
+    }
+
+    expect(generateGearChoices(game.state, 1, giantsRoll)[0]).toMatchObject({
+      type: 'gear',
+      setId: 'giants',
+    })
+    expect(generateGearChoices(game.state, 1, splinteringRoll)[0]).toMatchObject({
+      type: 'gear',
+      setId: 'splintering',
+    })
+  })
+
   it('can surface every weapon archetype as a distinct gear template', () => {
     const game = createGame({ seed: 404 })
     const choices = generateGearChoices(

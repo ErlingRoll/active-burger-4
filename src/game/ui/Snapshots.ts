@@ -4,6 +4,7 @@ import {
 } from '../../content/progression/XpBalance'
 import {
   EQUIPMENT_SLOTS,
+  getItemDisplayName,
   getItemDefinition,
   type EquipmentSlot,
   type WeaponArchetype,
@@ -43,7 +44,15 @@ import {
   type BossDefinitionId,
 } from '../../content/bosses/Bosses'
 import type { EntityId } from '../ids'
-import { getDerivedPlayerStats } from '../stats/DerivedStats'
+import {
+  getDerivedPlayerStats,
+  getEquippedGearSetPieceCounts,
+} from '../stats/DerivedStats'
+import {
+  ALL_GEAR_SET_DEFINITIONS,
+  getActiveGearSetBonuses,
+  type GearSetId,
+} from '../../game-config/gear-sets'
 import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
 import {
   addDamageValues,
@@ -264,6 +273,7 @@ export interface GameUiSnapshot extends RunHudSnapshot {
   readonly equipment: Readonly<
     Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
   >
+  readonly gearSets: readonly GearSetHudSnapshot[]
   readonly characterStats: CharacterStatsHudSnapshot
   readonly encounterStatus: EncounterStatus
   readonly boss: BossHudSnapshot | null
@@ -283,7 +293,20 @@ export interface EquippedItemSnapshot {
   readonly name: string
   readonly slot: EquipmentSlot
   readonly rarity: Rarity
+  readonly setId?: GearSetId
   readonly modifiers: readonly GearModifierSnapshot[]
+}
+
+export interface GearSetHudSnapshot {
+  readonly setId: GearSetId
+  readonly name: string
+  readonly equippedPieces: number
+  readonly pieceCount: number
+  readonly bonuses: readonly {
+    requiredPieces: number
+    label: string
+    active: boolean
+  }[]
 }
 
 export interface GearModifierSnapshot {
@@ -749,6 +772,7 @@ export function createUiSnapshot(
         return []
       }
       const definition = getItemDefinition(equipped.itemId)
+      const setId = equipped.setId ?? definition.setId
       const modifiers = Object.freeze(
         (equipped.modifiers ?? definition.modifiers).map((modifier) =>
           Object.freeze({ ...modifier }),
@@ -756,12 +780,36 @@ export function createUiSnapshot(
       )
       return [[slot, Object.freeze({
         itemId: equipped.itemId,
-        name: definition.name,
+        name: getItemDisplayName(definition, setId),
         slot: definition.slot,
         rarity: equipped.rarity ?? definition.rarity,
+        ...(setId
+          ? {
+              setId,
+            }
+          : {}),
         modifiers,
       })]]
     }),
+  )
+  const gearSetPieceCounts = getEquippedGearSetPieceCounts(state.player)
+  const gearSets = Object.freeze(
+    ALL_GEAR_SET_DEFINITIONS.map((set) => Object.freeze({
+      setId: set.id,
+      name: set.name,
+      equippedPieces: gearSetPieceCounts[set.id],
+      pieceCount: set.slots.length,
+      bonuses: Object.freeze(
+        set.bonuses.map((bonus) => Object.freeze({
+          requiredPieces: bonus.requiredPieces,
+          label: bonus.label,
+          active: getActiveGearSetBonuses(
+            set,
+            gearSetPieceCounts[set.id],
+          ).includes(bonus),
+        })),
+      ),
+    })),
   )
 
   const encounterStatus = state.encounter?.status ?? 'inactive'
@@ -958,6 +1006,7 @@ export function createUiSnapshot(
     skillSlotCount: eligibilityState.skillSlotCount,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
+    gearSets,
     encounterStatus,
     boss,
     telegraphs: Object.freeze(telegraphs),

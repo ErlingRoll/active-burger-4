@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  getItemDisplayName,
   getItemDefinition,
   type EquipmentSlot,
 } from '../content/gear/Items'
@@ -18,17 +19,21 @@ import {
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
 import { getSkillDefinition } from '../content/skills/Skills'
+import type { GearSetId } from '../game-config/gear-sets'
 import type { GearChoice } from '../game/equipment/GearChoices'
 import type {
   EquippedItemSnapshot,
+  GearSetHudSnapshot,
   GearModifierSnapshot,
   GameUiSnapshot,
 } from '../game/ui/Snapshots'
 import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
+import { GearSetFormation } from './GearSetFormation'
 
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
+  gearSets: GameUiSnapshot['gearSets']
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
   onSkip: () => void
 }
@@ -50,6 +55,24 @@ function formatDeltaModifier(modifier: GearModifierSnapshot): string {
   return formatGearModifier(modifier, {
     includeTier: false,
   })
+}
+
+function getProjectedGearSet(
+  gearSets: GameUiSnapshot['gearSets'],
+  itemSetId: GearSetId | undefined,
+  equipped: EquippedItemSnapshot | undefined,
+): { set: GearSetHudSnapshot; equippedPieces: number } | undefined {
+  if (!itemSetId) {
+    return undefined
+  }
+  const set = gearSets.find((candidate) => candidate.setId === itemSetId)
+  if (!set) {
+    return undefined
+  }
+  const equippedPieces = set.equippedPieces +
+    (equipped?.setId === itemSetId ? 0 : 1) -
+    (equipped?.setId && equipped.setId !== itemSetId ? 1 : 0)
+  return { set, equippedPieces }
 }
 
 function getModifierDeltas(
@@ -137,12 +160,14 @@ function GearComparison({
   offeredSlot,
   offeredModifiers,
   equipped,
+  setFormation,
 }: {
   id: string
   offeredName: string
   offeredSlot: EquipmentSlot
   offeredModifiers: readonly GearModifierSnapshot[]
   equipped: EquippedItemSnapshot | undefined
+  setFormation: { set: GearSetHudSnapshot; equippedPieces: number } | undefined
 }) {
   const deltas = getModifierDeltas(
     offeredModifiers,
@@ -175,6 +200,12 @@ function GearComparison({
           delta
         />
       </section>
+      {setFormation ? (
+        <GearSetFormation
+          set={setFormation.set}
+          equippedPieces={setFormation.equippedPieces}
+        />
+      ) : null}
     </div>
   )
 }
@@ -187,6 +218,7 @@ function GearCard({
   active,
   setActive,
   firstButtonRef,
+  gearSets,
 }: {
   choice: GearChoice
   index: number
@@ -195,9 +227,13 @@ function GearCard({
   active: boolean
   setActive: (id: string | null) => void
   firstButtonRef: (element: HTMLButtonElement | null) => void
+  gearSets: GameUiSnapshot['gearSets']
 }) {
   const item = getItemDefinition(choice.itemId)
   const comparisonId = `gear-comparison-${choice.itemId}-${index}`
+  const itemSetId = choice.setId ?? item.setId
+  const itemName = getItemDisplayName(item, itemSetId)
+  const setFormation = getProjectedGearSet(gearSets, itemSetId, equipped)
 
   if (choice.type === 'upgrade-equipped-item') {
     const currentModifiers = equipped?.modifiers ?? item.modifiers
@@ -218,17 +254,22 @@ function GearCard({
           className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-upgrade"
           type="button"
+          aria-describedby={active ? comparisonId : undefined}
           onClick={() => onSelect(choice)}
+          onFocus={() => setActive(comparisonId)}
+          onBlur={() => setActive(null)}
+          onMouseEnter={() => setActive(comparisonId)}
+          onMouseLeave={() => setActive(null)}
         >
           <span className="gear-upgrade-type">
             <span className="gear-upgrade-icon" aria-hidden="true">↗</span>
             UPGRADE EQUIPPED ITEM
           </span>
           <span className="choice-card-header">
-            <span className="upgrade-choice-name">Upgrade: {item.name}</span>
+            <span className="upgrade-choice-name">Upgrade: {itemName}</span>
             <RarityBadge rarity={choice.rarity} label="Item rarity" />
           </span>
-          <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {item.name}</span>
+          <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {itemName}</span>
           <span className="gear-rarity-transition">
             {currentModifier && upgradedModifier
               ? `${formatGearModifier(currentModifier)} → ${formatGearModifier(upgradedModifier)}`
@@ -240,6 +281,16 @@ function GearCard({
             Select to upgrade equipped item.
           </span>
         </button>
+        {active ? (
+          <GearComparison
+            id={comparisonId}
+            offeredName={itemName}
+            offeredSlot={choice.slot}
+            offeredModifiers={choice.upgradedModifiers}
+            equipped={equipped}
+            setFormation={setFormation}
+          />
+        ) : null}
       </div>
     )
   }
@@ -259,7 +310,7 @@ function GearCard({
         onMouseLeave={() => setActive(null)}
       >
         <span className="choice-card-header">
-          <span className="upgrade-choice-name">{item.name}</span>
+          <span className="upgrade-choice-name">{itemName}</span>
           <RarityBadge rarity={choice.rarity} />
         </span>
         <span className="gear-slot">{SLOT_LABELS[choice.slot]}</span>
@@ -294,10 +345,11 @@ function GearCard({
       {active ? (
         <GearComparison
           id={comparisonId}
-          offeredName={item.name}
+          offeredName={itemName}
           offeredSlot={choice.slot}
           offeredModifiers={choice.modifiers}
           equipped={equipped}
+          setFormation={setFormation}
         />
       ) : null}
     </div>
@@ -323,7 +375,9 @@ function UpgradeCard({
     <div className="choice-card-wrap">
       <button
         ref={index === 0 ? firstButtonRef : undefined}
-        className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
+        className={`upgrade-choice choice-card ${rarityClass(choice.rarity)} ${
+          choice.upgradeId === REMOVE_SKILL_UPGRADE_ID ? 'skill-removal-card' : ''
+        }`}
         data-choice-type="upgrade"
         type="button"
         onClick={() => onSelect(choice)}
@@ -350,6 +404,7 @@ function UpgradeCard({
 export function LevelUpOverlay({
   flow,
   equipment,
+  gearSets,
   onSelect,
   onSkip,
 }: LevelUpOverlayProps) {
@@ -413,6 +468,7 @@ export function LevelUpOverlay({
                   onSelect={(selected) => onSelect(selected)}
                   active={activeComparison === `gear-comparison-${choice.itemId}-${index}`}
                   setActive={setActiveComparison}
+                  gearSets={gearSets}
                   firstButtonRef={(element) => {
                     if (index === 0) {
                       firstButtonRef.current = element

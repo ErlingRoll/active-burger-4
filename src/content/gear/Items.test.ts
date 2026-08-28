@@ -25,6 +25,10 @@ import {
   validateGearDropChances,
   validateGearPickupBalance,
 } from './GearDrops'
+import {
+  ALL_GEAR_SET_DEFINITIONS,
+  getActiveGearSetBonuses,
+} from '../../game-config/gear-sets'
 
 describe('initial gear content', () => {
   it('covers each equipment slot with stable IDs, default rarities, and valid authored rolls', () => {
@@ -36,6 +40,9 @@ describe('initial gear content', () => {
         (item) => item.weaponArchetype,
       ),
     ).toEqual(WEAPON_ARCHETYPES)
+    expect(
+      INITIAL_ITEMS.filter((item) => item.slot === 'weapon').map((item) => item.name),
+    ).toEqual(["Giant's Cleaver", 'Splintering Bow', 'Astral Wand'])
     expect(new Set(INITIAL_ITEMS.map((item) => item.rarity))).toEqual(
       new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']),
     )
@@ -56,6 +63,19 @@ describe('initial gear content', () => {
         ),
       ),
     ).toBe(true)
+  })
+
+  it('provides one droppable item for every slot in each gear set', () => {
+    for (const set of ALL_GEAR_SET_DEFINITIONS) {
+      const setItems = INITIAL_ITEMS.filter((item) => item.setId === set.id)
+      expect(setItems).toHaveLength(EQUIPMENT_SLOTS.length)
+      expect(new Set(setItems.map((item) => item.slot))).toEqual(
+        new Set(EQUIPMENT_SLOTS),
+      )
+      expect(getActiveGearSetBonuses(set, 1)).toEqual([])
+      expect(getActiveGearSetBonuses(set, 6)).toHaveLength(3)
+    }
+    expect(INITIAL_ITEMS.every((item) => item.setId !== undefined)).toBe(true)
   })
 
   it('defines the required five resistance tiers and slot-restricted offensive pools', () => {
