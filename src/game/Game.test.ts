@@ -463,8 +463,8 @@ describe('Game', () => {
 
       game.update(FIXED_STEP_SECONDS)
 
-      expect(game.state.stairs).toMatchObject({ floorNumber: 100, isFinal: true })
-      expect(game.state.run.floor).toBe(100)
+      expect(game.state.stairs).toMatchObject({ floorNumber: 30, isFinal: true })
+      expect(game.state.run.floor).toBe(30)
       while (game.phase === 'level-up') {
         const flow = game.getPendingChoiceFlow()
         if (flow?.type === 'level-up') {
@@ -478,7 +478,7 @@ describe('Game', () => {
         game.update(FIXED_STEP_SECONDS)
       }
       expect(game.phase).toBe('results')
-      expect(game.state.run.floor).toBe(100)
+      expect(game.state.run.floor).toBe(30)
   })
 
   it('moves a Slime deterministically toward the player each fixed tick', () => {

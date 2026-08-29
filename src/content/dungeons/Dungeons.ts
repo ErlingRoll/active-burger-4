@@ -1,5 +1,4 @@
 import {
-  ENCOUNTER_DEFINITIONS,
   createInfernoWardenEncounter,
   createStoneGolemEncounterTimeline,
   type EncounterDefinition,
@@ -33,7 +32,7 @@ export interface DungeonDefinition {
 }
 
 export const DEFAULT_DUNGEON_ID: DungeonDefinitionId = 'default-dungeon'
-export const DEFAULT_DUNGEON_MAX_FLOOR = 100
+export const DEFAULT_DUNGEON_MAX_FLOOR = 30
 export const DUNGEON_FLOOR_DURATION_SECONDS = 60
 export const BOSS_FLOOR_EVENT_DURATION_SECONDS = 120
 export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.45
@@ -66,7 +65,7 @@ export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
   ordinaryEnemyContactDamageScalingPerFloor:
     ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING,
   bossFloorDurationSeconds: BOSS_FLOOR_EVENT_DURATION_SECONDS,
-  encounterTimeline: ENCOUNTER_DEFINITIONS,
+  encounterTimeline: createDungeonEncounterTimeline(DEFAULT_DUNGEON_MAX_FLOOR),
   maximumFloorContracts: [
     {
       id: 'default-dungeon-20-floor',

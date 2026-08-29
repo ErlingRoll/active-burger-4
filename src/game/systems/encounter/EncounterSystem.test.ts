@@ -29,10 +29,10 @@ describe('boss encounter timeline', () => {
   it('schedules Inferno Warden on the configured maximum floor', () => {
     const game = createGame({ seed: 124 })
     expect(game.dungeon.encounterTimeline.map((event) => event.floorNumber)).toEqual([
-      ...Array.from({ length: 100 }, (_, index) => index + 1),
+      ...Array.from({ length: 30 }, (_, index) => index + 1),
     ])
     expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
-      floorNumber: 100,
+      floorNumber: 30,
       bossDefinitionId: 'inferno-warden',
       isFinal: true,
     })
@@ -46,12 +46,12 @@ describe('boss encounter timeline', () => {
 
     game.update(FIXED_STEP_SECONDS)
 
-    expect(game.state.run.floor).toBe(100)
+    expect(game.state.run.floor).toBe(30)
     expect(game.getUiSnapshot().floorProgress).toBe(1)
     expect(game.state.encounter).toMatchObject({
       status: 'active',
       bossDefinitionId: 'inferno-warden',
-      floorNumber: 100,
+      floorNumber: 30,
       isFinal: true,
     })
   })

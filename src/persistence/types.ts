@@ -4,7 +4,7 @@ import type { PlaystyleId } from '../content/playstyles/Playstyles'
 
 export const PERSISTENCE_SCHEMA_VERSION = 2
 
-/** The implicit contract represented by the default ten-floor dungeon run. */
+/** The implicit contract represented by the default dungeon run. */
 export const DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID = 'default-dungeon-10-floor'
 
 export type DungeonMaxFloorContractId = string

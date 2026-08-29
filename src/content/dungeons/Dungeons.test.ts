@@ -11,7 +11,7 @@ import {
 } from './Dungeons'
 
 describe('default dungeon timeline foundation', () => {
-  it('authors a ten-floor default and unlock-gated deeper contracts', () => {
+  it('authors a thirty-floor default and unlock-gated deeper contracts', () => {
     expect(DEFAULT_DUNGEON_CONFIG.defaultMaxFloor).toBe(
       DEFAULT_DUNGEON_MAX_FLOOR,
     )
@@ -19,10 +19,10 @@ describe('default dungeon timeline foundation', () => {
     expect(DEFAULT_DUNGEON_CONFIG.bossFloorDurationSeconds).toBe(
       BOSS_FLOOR_EVENT_DURATION_SECONDS,
     )
-    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(100)
+    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toHaveLength(30)
     expect(
       DEFAULT_DUNGEON_CONFIG.encounterTimeline.map((event) => event.floorNumber),
-    ).toEqual(Array.from({ length: 100 }, (_, index) => index + 1))
+    ).toEqual(Array.from({ length: 30 }, (_, index) => index + 1))
     expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -49,7 +49,7 @@ describe('default dungeon timeline foundation', () => {
     expect(
       isDungeonMaxFloorUnlocked(contract, new Set([contract.requiredUnlockId])),
     ).toBe(true)
-    expect(resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG)).toBe(100)
+    expect(resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG)).toBe(30)
     expect(() =>
       resolveDungeonMaxFloor(DEFAULT_DUNGEON_CONFIG, contract.id),
     ).toThrow(/requires unlock/)
