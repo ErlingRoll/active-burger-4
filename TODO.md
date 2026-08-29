@@ -5,6 +5,10 @@
 - minions target enemies outside of the play area and run outside of it
 - jpg image as avatar
 - enemies speed up over time when they are alive.
+- Rare blessing cannot appear before selecting
+- scale ralying banner healing
+- rallying banner does show damage reduction???
+- fix wand shotgunning a little bit
 
 # Maybe Pile
 
