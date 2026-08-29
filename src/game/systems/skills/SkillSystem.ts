@@ -708,9 +708,12 @@ function collectAegisPulseDamage(
 
   const shieldAmount = getSkillShieldAmount(definition, skill.level) +
     (bulwark ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS : 0)
-  state.player.aegisPulseShieldAmount = shieldAmount
-  state.player.aegisPulseShieldRemaining = AEGIS_PULSE_BASE_DURATION_SECONDS +
+  const shieldDuration = AEGIS_PULSE_BASE_DURATION_SECONDS +
     (bulwark ? AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS : 0)
+  state.player.aegisPulseShieldAmount = shieldAmount
+  state.player.aegisPulseShieldMaxAmount = shieldAmount
+  state.player.aegisPulseShieldRemaining = shieldDuration
+  state.player.aegisPulseShieldDuration = shieldDuration
 
   addEffect(
     state,

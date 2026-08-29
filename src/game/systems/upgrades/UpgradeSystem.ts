@@ -185,7 +185,9 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   }
   if (skillId === AEGIS_PULSE_SKILL_ID) {
     state.player.aegisPulseShieldAmount = 0
+    state.player.aegisPulseShieldMaxAmount = 0
     state.player.aegisPulseShieldRemaining = 0
+    state.player.aegisPulseShieldDuration = 0
   }
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)

@@ -595,6 +595,59 @@
   accent-color: #22c55e;
 }
 
+.hud-stat dd.hud-health-bars {
+  display: grid;
+  width: 100%;
+  gap: 0.3rem;
+  margin: 0.05rem 0 0;
+}
+
+.hud-health-row {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(4rem, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.hud-health-label {
+  color: #86efac;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hud-health-value {
+  min-width: 4.4rem;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hud-health-row progress {
+  width: 100%;
+  height: 0.55rem;
+  accent-color: #22c55e;
+}
+
+.hud-shield-row {
+  color: #a5f3fc;
+}
+
+.hud-shield-row .hud-health-label {
+  color: #67e8f9;
+}
+
+.hud-shield-row .hud-health-value {
+  color: #a5f3fc;
+}
+
+.hud-shield-row progress {
+  accent-color: #22d3ee;
+}
+
 .hud-xp progress {
   accent-color: #60a5fa;
 }
@@ -1239,14 +1292,27 @@
   cursor: help;
 }
 
-.character-stat-button span {
+.character-stat-label {
   font-size: 0.74rem;
 }
 
-.character-stat-button strong {
+.character-stat-value {
+  display: flex;
   flex: 0 0 auto;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.character-stat-value strong {
   color: #f8fafc;
   font-size: 0.78rem;
+}
+
+.character-stat-uncapped {
+  color: #64748b;
+  font-size: 0.64rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .character-stat-button:hover,
@@ -1288,12 +1354,49 @@
   font-weight: 700;
 }
 
+.character-stat-tooltip-uncapped {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
 .character-stat-tooltip-applies {
   color: #fef08a;
 }
 
 .character-stat-tooltip-applies span {
   font-weight: 700;
+}
+
+.character-stat-tooltip-sources {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid #334155;
+}
+
+.character-stat-tooltip-sources > p {
+  margin: 0;
+  color: #fef08a;
+  font-weight: 700;
+}
+
+.character-stat-tooltip-sources ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.character-stat-tooltip-sources li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #cbd5e1;
+}
+
+.character-stat-tooltip-sources li strong {
+  color: #f8fafc;
+  white-space: nowrap;
 }
 
 .skill-list {

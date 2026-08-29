@@ -943,6 +943,12 @@ describe('collectEnemyContactDamage', () => {
       gameState.run.selectedUpgradeIds = ['aegis-pulse-reprisal']
       gameState.player.aegisPulseShieldAmount = 6
       gameState.player.aegisPulseShieldRemaining = 4
+      equipRolledItem(
+        gameState.player,
+        'iron-cleaver',
+        'legendary',
+        [createGearModifier('iron-cleaver', 'increased-global-damage', 5, 8)],
+      )
 
       applyDamageEvents(gameState, [{
         sourceId: 2,

@@ -253,9 +253,10 @@ export class PixiGame {
       .fill(playstyle.visual.fillColor)
       .stroke({ color: playstyle.visual.outlineColor, width: 3 })
     const hpBar = new Graphics()
+    const shieldBar = new Graphics()
     const root = new Container()
-    root.addChild(body, hpBar)
-    return { root, hpBar }
+    root.addChild(body, shieldBar, hpBar)
+    return { root, hpBar, shieldBar }
   }
 
   private createSummonPlaceholder(): SummonView {
@@ -663,6 +664,14 @@ export class PixiGame {
         state.player.hp,
         state.player.maxHp,
       )
+      this.drawShieldBar(
+        this.playerView.shieldBar,
+        40,
+        4,
+        -40,
+        state.player.aegisPulseShieldAmount ?? 0,
+        state.player.aegisPulseShieldMaxAmount ?? 0,
+      )
     }
     const activeSummonIds = new Set<EntityId>()
     for (const summon of state.summons) {
@@ -1060,6 +1069,31 @@ export class PixiGame {
       .stroke({ color: '#fee2e2', width: 1 })
   }
 
+  private drawShieldBar(
+    view: Graphics,
+    width: number,
+    height: number,
+    y: number,
+    amount: number,
+    maxAmount: number,
+  ): void {
+    const ratio = maxAmount > 0
+      ? Math.max(0, Math.min(1, amount / maxAmount))
+      : 0
+    view.visible = ratio > 0
+    if (!view.visible) {
+      return
+    }
+
+    view
+      .clear()
+      .rect(-width / 2, y, width, height)
+      .fill({ color: '#164e63', alpha: 0.95 })
+      .rect(-width / 2, y, width * ratio, height)
+      .fill('#22d3ee')
+      .stroke({ color: '#cffafe', width: 1 })
+  }
+
   private drawStatusEffects(
     view: Container,
     barWidth: number,
@@ -1320,6 +1354,7 @@ interface EnemyView {
 interface PlayerView {
   root: Container
   hpBar: Graphics
+  shieldBar: Graphics
 }
 
 interface SummonView {

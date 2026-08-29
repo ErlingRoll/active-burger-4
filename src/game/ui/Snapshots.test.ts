@@ -499,6 +499,16 @@ describe('UI snapshots', () => {
     expect(snapshot.characterStats.groups.find((group) => group.id === 'defence')?.stats)
       .toEqual(expect.arrayContaining([
         expect.objectContaining({
+          id: 'resistance-elemental',
+          value: '25%',
+          uncappedValue: '25%',
+          sources: expect.arrayContaining([
+            expect.objectContaining({ label: 'Base', value: '0%' }),
+            expect.objectContaining({ value: '+7%' }),
+            expect.objectContaining({ value: '+18%' }),
+          ]),
+        }),
+        expect.objectContaining({
           id: 'resistance-lightning',
           value: '25%',
         }),

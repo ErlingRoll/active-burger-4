@@ -488,10 +488,29 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
       </h2>
       <dl className="hud-stats">
         <div className="hud-stat hud-health">
-          <dt>HP</dt>
-          <dd>
-            <progress value={hp} max={snapshot.maxHp} aria-label="Player health" />
-            <span>{Math.ceil(hp)} / {Math.ceil(snapshot.maxHp)}</span>
+          <dt className="visually-hidden">Player survivability</dt>
+          <dd className="hud-health-bars">
+            <div className="hud-health-row">
+              <span className="hud-health-label">HP</span>
+              <progress value={hp} max={snapshot.maxHp} aria-label="Player health" />
+              <span className="hud-health-value">
+                {Math.ceil(hp)} / {Math.ceil(snapshot.maxHp)}
+              </span>
+            </div>
+            {snapshot.shield ? (
+              <div className="hud-health-row hud-shield-row">
+                <span className="hud-health-label">Shield</span>
+                <progress
+                  value={snapshot.shield.amount}
+                  max={snapshot.shield.maxAmount}
+                  aria-label="Absorb shield"
+                />
+                <span className="hud-health-value">
+                  {Math.ceil(snapshot.shield.amount)} HP ·{' '}
+                  {snapshot.shield.remainingSeconds.toFixed(1)}s
+                </span>
+              </div>
+            ) : null}
           </dd>
         </div>
         <div className="hud-stat">
@@ -837,8 +856,15 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                           onMouseEnter={() => setActiveCharacterStatId(stat.id)}
                           onMouseLeave={() => setActiveCharacterStatId(null)}
                         >
-                          <span>{stat.label}</span>
-                          <strong>{stat.value}</strong>
+                          <span className="character-stat-label">{stat.label}</span>
+                          <span className="character-stat-value">
+                            <strong>{stat.value}</strong>
+                            {stat.uncappedValue !== undefined ? (
+                              <span className="character-stat-uncapped">
+                                ({stat.uncappedValue} uncapped)
+                              </span>
+                            ) : null}
+                          </span>
                         </button>
                         {isActive ? (
                           <div
@@ -850,10 +876,28 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             <p className="character-stat-tooltip-value">
                               Current value: {stat.value}
                             </p>
+                            {stat.uncappedValue !== undefined ? (
+                              <p className="character-stat-tooltip-uncapped">
+                                Uncapped total: {stat.uncappedValue}
+                              </p>
+                            ) : null}
                             <p><KeywordText text={stat.description} /></p>
                             <p className="character-stat-tooltip-applies">
                               <span>Applies to:</span> <KeywordText text={stat.appliesTo} />
                             </p>
+                            {stat.sources !== undefined ? (
+                              <div className="character-stat-tooltip-sources">
+                                <p>Sources</p>
+                                <ul>
+                                  {stat.sources.map((source, index) => (
+                                    <li key={`${source.label}-${index}`}>
+                                      <span>{source.label}</span>
+                                      <strong>{source.value}</strong>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
                       </li>

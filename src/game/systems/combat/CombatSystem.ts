@@ -1233,6 +1233,8 @@ export function updateFrost(
   )
   if (state.player.aegisPulseShieldRemaining <= 0) {
     state.player.aegisPulseShieldAmount = 0
+    state.player.aegisPulseShieldMaxAmount = 0
+    state.player.aegisPulseShieldDuration = 0
   }
 }
 

@@ -13,6 +13,7 @@ import {
 import type { Rarity } from '../../content/rarity/Rarity'
 import {
   doesGearModifierAffectSkill,
+  getGearModifierDefinition,
   sortGearModifiers,
   type GearModifier,
 } from '../../content/gear/ModifierPools'
@@ -79,9 +80,11 @@ import {
   addDamageValues,
   DAMAGE_INCREASE_TYPES,
   DAMAGE_TYPES,
+  ELEMENTAL_DAMAGE_TYPES,
   createDamageValues,
   getAverageCriticalStrikeFactor,
   getResistanceForDamageType,
+  RESISTANCE_CAP,
   sumDamageValues,
   type DamageIncreaseType,
   type DamageResistanceType,
@@ -182,6 +185,13 @@ export interface CharacterStatSnapshot {
   readonly value: string
   readonly description: string
   readonly appliesTo: string
+  readonly uncappedValue?: string
+  readonly sources?: readonly CharacterStatSourceSnapshot[]
+}
+
+export interface CharacterStatSourceSnapshot {
+  readonly label: string
+  readonly value: string
 }
 
 export interface CharacterStatGroupSnapshot {
@@ -192,6 +202,14 @@ export interface CharacterStatGroupSnapshot {
 
 export interface CharacterStatsHudSnapshot {
   readonly groups: readonly CharacterStatGroupSnapshot[]
+}
+
+export interface ShieldHudSnapshot {
+  readonly amount: number
+  readonly maxAmount: number
+  readonly remainingSeconds: number
+  readonly durationSeconds: number
+  readonly progress: number
 }
 
 export interface BossHudSnapshot {
@@ -317,6 +335,7 @@ export interface GameUiSnapshot extends RunHudSnapshot {
   readonly pickups: readonly PickupHudSnapshot[]
   readonly pendingChoiceFlow: Readonly<PendingChoiceFlow> | null
   readonly pendingChoiceCount: number
+  readonly shield: ShieldHudSnapshot | null
 }
 
 export interface EquippedItemSnapshot {
@@ -630,6 +649,15 @@ const RESISTANCE_LABELS: Record<DamageResistanceType, string> = {
   chaos: 'Chaos resistance',
 }
 
+const RESISTANCE_DISPLAY_TYPES = [
+  'physical',
+  'elemental',
+  'lightning',
+  'fire',
+  'cold',
+  'chaos',
+] as const satisfies readonly DamageResistanceType[]
+
 function formatStatNumber(value: number, maximumFractionDigits = 2): string {
   const rounded = Number(value.toFixed(maximumFractionDigits))
   if (Number.isInteger(rounded)) {
@@ -664,6 +692,10 @@ function createCharacterStatSnapshot(
   value: string,
   description: string,
   appliesTo: string,
+  options: {
+    uncappedValue?: string
+    sources?: readonly CharacterStatSourceSnapshot[]
+  } = {},
 ): CharacterStatSnapshot {
   return Object.freeze({
     id,
@@ -671,7 +703,73 @@ function createCharacterStatSnapshot(
     value,
     description,
     appliesTo,
+    ...(options.uncappedValue === undefined
+      ? {}
+      : { uncappedValue: options.uncappedValue }),
+    ...(options.sources === undefined
+      ? {}
+      : { sources: Object.freeze([...options.sources]) }),
   })
+}
+
+function getResistanceContributingTypes(
+  resistanceType: DamageResistanceType,
+): readonly DamageResistanceType[] {
+  if (resistanceType === 'elemental') {
+    return ['elemental']
+  }
+  if (ELEMENTAL_DAMAGE_TYPES.some((damageType) => damageType === resistanceType)) {
+    return ['elemental', resistanceType]
+  }
+  return [resistanceType]
+}
+
+function getUncappedResistance(
+  resistances: Readonly<ReturnType<typeof getDerivedPlayerStats>['resistances']>,
+  resistanceType: DamageResistanceType,
+): number {
+  return getResistanceContributingTypes(resistanceType)
+    .reduce((total, contributingType) => total + resistances[contributingType], 0)
+}
+
+function getResistanceSources(
+  player: Readonly<GameState['player']>,
+  resistanceType: DamageResistanceType,
+): readonly CharacterStatSourceSnapshot[] {
+  const contributingTypes = getResistanceContributingTypes(resistanceType)
+  const baseValue = contributingTypes.reduce(
+    (total, contributingType) => total + (player.resistances?.[contributingType] ?? 0),
+    0,
+  )
+  const sources: CharacterStatSourceSnapshot[] = [{
+    label: 'Base',
+    value: formatSignedPercent(baseValue),
+  }]
+
+  for (const slot of EQUIPMENT_SLOTS) {
+    const equipped = player.equipment?.[slot]
+    if (!equipped) {
+      continue
+    }
+    const definition = getItemDefinition(equipped.itemId)
+    const contribution = (equipped.modifiers ?? definition.modifiers)
+      .filter((modifier) => {
+        const modifierDefinition = getGearModifierDefinition(modifier.id)
+        return modifierDefinition.kind === 'resistance' &&
+          contributingTypes.includes(modifierDefinition.resistanceType)
+      })
+      .reduce((total, modifier) => total + modifier.value, 0)
+    if (contribution === 0) {
+      continue
+    }
+    const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
+    sources.push({
+      label: getItemDisplayName(definition, setId),
+      value: formatSignedPercent(contribution),
+    })
+  }
+
+  return sources
 }
 
 function createCharacterStatGroupSnapshot(
@@ -683,6 +781,31 @@ function createCharacterStatGroupSnapshot(
     id,
     title,
     stats: Object.freeze([...stats]),
+  })
+}
+
+function createShieldSnapshot(
+  player: Readonly<GameState['player']>,
+): ShieldHudSnapshot | null {
+  const amount = Math.max(0, player.aegisPulseShieldAmount ?? 0)
+  const maxAmount = Math.max(
+    amount,
+    player.aegisPulseShieldMaxAmount ?? 0,
+  )
+  const remainingSeconds = Math.max(0, player.aegisPulseShieldRemaining ?? 0)
+  const durationSeconds = Math.max(
+    remainingSeconds,
+    player.aegisPulseShieldDuration ?? 0,
+  )
+  if (amount <= 0 || remainingSeconds <= 0 || maxAmount <= 0) {
+    return null
+  }
+  return Object.freeze({
+    amount,
+    maxAmount,
+    remainingSeconds,
+    durationSeconds,
+    progress: amount / maxAmount,
   })
 }
 
@@ -736,6 +859,7 @@ function scaleUpgradeValueLabel(valueLabel: string, rank: number): string {
 
 function createCharacterStatsSnapshot(
   playerStats: ReturnType<typeof getDerivedPlayerStats>,
+  player: Readonly<GameState['player']>,
   weaponArchetype: WeaponArchetype | undefined,
 ): CharacterStatsHudSnapshot {
   const basicAttackVariant = getBasicAttackVariant(weaponArchetype)
@@ -822,19 +946,28 @@ function createCharacterStatsSnapshot(
       appliesTo,
     )]
   })
-  const resistanceStats = DAMAGE_TYPES.map((damageType) => {
-    const value = getResistanceForDamageType(playerStats.resistances, damageType)
-    const description = damageType === 'lightning' ||
-      damageType === 'fire' ||
-      damageType === 'cold'
-      ? `Reduces ${damageType} damage taken. Elemental resistance contributes to this value; the total is capped at 75%.`
-      : `Reduces ${damageType} damage taken, capped at 75%.`
+  const resistanceStats = RESISTANCE_DISPLAY_TYPES.map((resistanceType) => {
+    const uncappedValue = getUncappedResistance(playerStats.resistances, resistanceType)
+    const value = resistanceType === 'elemental'
+      ? Math.min(RESISTANCE_CAP, uncappedValue)
+      : getResistanceForDamageType(playerStats.resistances, resistanceType)
+    const description = resistanceType === 'elemental'
+      ? 'Reduces fire, cold, and lightning damage taken. The total is capped at 75%.'
+      : resistanceType === 'lightning' ||
+        resistanceType === 'fire' ||
+        resistanceType === 'cold'
+        ? `Reduces ${resistanceType} damage taken. Elemental resistance contributes to this value; the total is capped at 75%.`
+        : `Reduces ${resistanceType} damage taken, capped at 75%.`
     return createCharacterStatSnapshot(
-      `resistance-${damageType}`,
-      RESISTANCE_LABELS[damageType],
+      `resistance-${resistanceType}`,
+      RESISTANCE_LABELS[resistanceType],
       formatUnsignedPercent(value),
       description,
       'Incoming damage taken by the player.',
+      {
+        uncappedValue: formatUnsignedPercent(uncappedValue),
+        sources: getResistanceSources(player, resistanceType),
+      },
     )
   })
   const defenceStats = [
@@ -1368,8 +1501,10 @@ export function createUiSnapshot(
     pickups,
     pendingChoiceFlow,
     pendingChoiceCount: pendingChoiceFlows.length,
+    shield: createShieldSnapshot(state.player),
     characterStats: createCharacterStatsSnapshot(
       playerStats,
+      state.player,
       equippedWeaponArchetype,
     ),
   })

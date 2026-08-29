@@ -137,7 +137,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Resistance',
     summary: 'Reduces incoming damage of a matching type.',
     details:
-      'Physical, elemental, and chaos resistance are separate defenses. A resistance only reduces damage in its matching category.',
+      'Reduces incoming damage of a matching type by a percentage. Resistances are capped at 75%.',
   },
   'physical-damage': {
     id: 'physical-damage',

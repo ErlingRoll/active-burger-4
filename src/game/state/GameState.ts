@@ -224,8 +224,12 @@ export interface PlayerState {
   rallyingStandardCooldownReductionPercent?: number
   /** Remaining absorb-shield amount granted by Aegis Pulse. */
   aegisPulseShieldAmount?: number
+  /** Maximum absorb-shield amount for the current Aegis Pulse. */
+  aegisPulseShieldMaxAmount?: number
   /** Seconds remaining before the Aegis Pulse shield expires. */
   aegisPulseShieldRemaining?: number
+  /** Total duration for the current Aegis Pulse shield. */
+  aegisPulseShieldDuration?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
   /** Minimum rarity for future gear drops, raised by one-time gear blessings. */

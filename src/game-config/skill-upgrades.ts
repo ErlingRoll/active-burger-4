@@ -713,11 +713,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'aegis-pulse-reprisal',
     name: 'Reprisal',
-    description: 'When the Aegis Pulse shield absorbs damage, it reflects a portion back at the attacker.',
+    description: 'When the Aegis Pulse shield absorbs damage, it reflects a portion back at the attacker. Reflected damage is based only on damage absorbed and is not increased by global damage bonuses.',
     category: 'skill',
     rarity: 'uncommon',
     amount: 1,
-    valueLabel: `Reflects ${Math.round(AEGIS_PULSE_REPRISAL_RATIO * 100)}% of absorbed damage`,
+    valueLabel: `Reflects ${Math.round(AEGIS_PULSE_REPRISAL_RATIO * 100)}% of absorbed damage (not global damage)`,
     skillId: AEGIS_PULSE_SKILL_ID,
     branch: 'aegis-pulse-reprisal',
     aegisPulseReprisal: true,
