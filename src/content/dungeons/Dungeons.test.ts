@@ -5,6 +5,7 @@ import {
   DEFAULT_DUNGEON_MAX_FLOOR,
   createDungeonEncounterTimeline,
   getFloorStatMultiplier,
+  getBossDamageMultiplier,
   isDungeonMaxFloorUnlocked,
   resolveDungeonMaxFloor,
   scaleOrdinaryEnemyStats,
@@ -90,5 +91,11 @@ describe('default dungeon timeline foundation', () => {
     expect(
       scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).contactDamage,
     ).toBeCloseTo(11.2)
+  })
+
+  it('reduces damage from the first three floor bosses only', () => {
+    expect(getBossDamageMultiplier(1)).toBe(0.7)
+    expect(getBossDamageMultiplier(3)).toBe(0.7)
+    expect(getBossDamageMultiplier(4)).toBe(1)
   })
 })

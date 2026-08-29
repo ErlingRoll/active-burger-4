@@ -45,6 +45,8 @@ export const BOSS_HP_FLOOR_SCALING = 0.1125
 export const BOSS_LATE_HP_FLOOR_SCALING = 0.036
 export const BOSS_CONTACT_DAMAGE_FLOOR_SCALING = 0.072
 export const BOSS_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.027
+export const EARLY_BOSS_DAMAGE_MULTIPLIER = 0.7
+export const EARLY_BOSS_DAMAGE_FLOOR_COUNT = 3
 
 /** Builds boss encounters for every normal floor, ending with Inferno Warden. */
 export function createDungeonEncounterTimeline(
@@ -158,6 +160,12 @@ export function getBossContactDamageMultiplier(floorNumber: number): number {
     BOSS_LATE_CONTACT_DAMAGE_FLOOR_SCALING,
     10,
   )
+}
+
+export function getBossDamageMultiplier(floorNumber: number): number {
+  return Math.max(1, Math.floor(floorNumber)) <= EARLY_BOSS_DAMAGE_FLOOR_COUNT
+    ? EARLY_BOSS_DAMAGE_MULTIPLIER
+    : 1
 }
 
 export interface OrdinaryEnemyStats {

@@ -10,6 +10,7 @@ import {
   type BossEnrageDefinition,
 } from '../../../content/bosses/Bosses'
 import { createDamageValues } from '../../../content/stats/Damage'
+import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
 import type { EntityIdAllocator } from '../../ids'
 import { createBossDamageProfile } from '../../combat/DamageSources'
 import type {
@@ -190,7 +191,9 @@ function castNextSkill(
       const damage = createBossDamageProfile(
         boss,
         createDamageValues({
-          [telegraphDamageType(skillState.skillId)]: definition.damage * enrage.damageMultiplier,
+          [telegraphDamageType(skillState.skillId)]: definition.damage *
+            enrage.damageMultiplier *
+            getBossDamageMultiplier(state.run.floor ?? state.encounter?.floorNumber ?? 1),
         }),
       )
       return {

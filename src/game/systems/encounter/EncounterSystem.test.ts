@@ -4,7 +4,10 @@ import { createGame, FIXED_STEP_SECONDS } from '../../Game'
 describe('boss encounter timeline', () => {
   it('starts on the current floor after its normal progress completes', () => {
     const game = createGame({ seed: 123 })
-    for (let index = 0; index < 120 * 60; index += 1) {
+    const updatesThroughFirstFloor = Math.ceil(
+      game.dungeon.floorDurationSeconds / FIXED_STEP_SECONDS,
+    ) + 1
+    for (let index = 0; index < updatesThroughFirstFloor; index += 1) {
       game.update(FIXED_STEP_SECONDS)
       if (game.phase === 'level-up') {
         const choice = game.getPendingChoices()[0]

@@ -26,6 +26,7 @@ import {
 import {
   getDungeonDefinition,
   getBossContactDamageMultiplier,
+  getBossDamageMultiplier,
   getBossHpMultiplier,
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
@@ -233,6 +234,7 @@ export function spawnBoss(
   const floor = state.run.floor ?? 1
   const hpMultiplier = getBossHpMultiplier(floor)
   const contactDamageMultiplier = getBossContactDamageMultiplier(floor)
+  const damageMultiplier = getBossDamageMultiplier(floor)
   const boss: BossState = {
     id: idAllocator.createEntityId(),
     definitionId: definition.id,
@@ -243,7 +245,9 @@ export function spawnBoss(
     hp: definition.maxHp * hpMultiplier,
     maxHp: definition.maxHp * hpMultiplier,
     speed: definition.speed,
-    contactDamage: definition.contactDamage * contactDamageMultiplier,
+    contactDamage: definition.contactDamage *
+      contactDamageMultiplier *
+      damageMultiplier,
     spawnTime: state.time,
     xpReward: definition.xpReward,
     targetId: state.player.id,

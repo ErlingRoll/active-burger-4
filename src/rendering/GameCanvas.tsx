@@ -521,12 +521,15 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           {orderedSkills.map((skill) => {
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
+            const totalDamageLabel = skill.totalDamageDealt > 0
+              ? `, total damage ${formatCompactDamage(skill.totalDamageDealt)}`
+              : ''
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
                   className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}`}
                   type="button"
-                  aria-label={`${skill.name}, level ${skill.level}, total damage ${formatCompactDamage(skill.totalDamageDealt)}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
+                  aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => setActiveSkillId(skill.skillId)}
                   onBlur={() => setActiveSkillId(null)}
@@ -590,10 +593,12 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </section>
                     ) : null}
-                    <p className="skill-damage-total">
-                      <span>Total damage</span>
-                      <b>{formatCompactDamage(skill.totalDamageDealt)}</b>
-                    </p>
+                    {skill.totalDamageDealt > 0 ? (
+                      <p className="skill-damage-total">
+                        <span>Total damage</span>
+                        <b>{formatCompactDamage(skill.totalDamageDealt)}</b>
+                      </p>
+                    ) : null}
                     {skill.healingPerCast !== null ? (
                       <p className="skill-cadence">
                         <span>Healing per cast</span>

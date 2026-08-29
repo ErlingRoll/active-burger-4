@@ -16,6 +16,7 @@ import {
   getBossSkillDefinition,
   INFERNO_WARDEN_BOSS_ID,
 } from '../../../content/bosses/Bosses'
+import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
 import type { GameState } from '../../state/GameState'
 
 const neverCrit = { next: () => 1 }
@@ -25,6 +26,7 @@ function state(): GameState {
     run: {
       phase: 'playing',
       seed: 42,
+      floor: 4,
       killCount: 0,
       selectedUpgradeIds: [],
     },
@@ -79,6 +81,18 @@ describe('boss skills', () => {
     applyDamageEvents(gameState, damage, neverCrit)
     expect(gameState.player.hp).toBe(134)
     expect(gameState.telegraphs).toEqual([])
+  })
+
+  it('reduces early-floor boss skill damage by thirty percent', () => {
+    const gameState = state()
+    gameState.run.floor = 1
+
+    updateBosses(gameState, createEntityIdAllocator(), 0)
+
+    expect(gameState.telegraphs?.[0]?.damage).toMatchObject({
+      physical: getBossSkillDefinition('ground-slam').damage *
+        getBossDamageMultiplier(1),
+    })
   })
 
   it('resolves Charge along its telegraphed path with stable damage', () => {
