@@ -16,7 +16,7 @@ const FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT = 5
 const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
 const RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT = 8
-const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 10
+const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 20
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -91,7 +91,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     name: 'Magnet',
     description: `Increase XP, health potion, equipment, and item collection range by ${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}%.`,
     category: 'passive',
-    rarity: 'common',
+    rarity: 'uncommon',
     amount: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,
     valueLabel: `+${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}% collection range`,
     pickupCollectionRangeIncreasePercent: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,

@@ -87,7 +87,7 @@ describe('skill upgrades', () => {
     applyUpgrade(game.state, 'magnet')
     applyUpgrade(game.state, 'magnet')
 
-    expect(game.state.player.pickupCollectionRangeMultiplier).toBeCloseTo(1.2)
+    expect(game.state.player.pickupCollectionRangeMultiplier).toBeCloseTo(1.4)
   })
 
   it('removes a skill and clears all upgrades acquired for that skill', () => {
