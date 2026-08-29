@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
   createGame,
+  DEFAULT_TIME_SCALE,
   MAX_TIME_SCALE,
   MIN_TIME_SCALE,
   DEBUG_SPAWN_COUNTS,
@@ -99,6 +100,17 @@ function storeDevelopmentTimeScale(value: number): void {
   window.localStorage.setItem(DEVELOPMENT_TIME_SCALE_STORAGE_KEY, value.toString())
 }
 
+function applyInitialTimeScale(game: Game): void {
+  if (!import.meta.env.DEV) {
+    game.setTimeScale(DEFAULT_TIME_SCALE)
+    return
+  }
+  const storedTimeScale = getStoredDevelopmentTimeScale()
+  if (storedTimeScale !== null) {
+    game.setTimeScale(storedTimeScale)
+  }
+}
+
 export function GameCanvas({
   onRunEnd,
   runConfig,
@@ -130,10 +142,7 @@ export function GameCanvas({
     }
 
     const game = createGame(initialRunConfigRef.current)
-    const storedTimeScale = getStoredDevelopmentTimeScale()
-    if (storedTimeScale !== null) {
-      game.setTimeScale(storedTimeScale)
-    }
+    applyInitialTimeScale(game)
     const pixiGame = new PixiGame(game)
     let disposed = false
     let runEndNotified = false
@@ -298,7 +307,7 @@ export function GameCanvas({
       {snapshot ? (
         <BehaviorHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
       ) : null}
-      {snapshot && game ? (
+      {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu
           game={game}
           snapshot={snapshot}
