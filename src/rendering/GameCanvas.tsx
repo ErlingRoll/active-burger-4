@@ -15,6 +15,12 @@ import {
   type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
+import { BEHAVIOR_PROFILE_DEFINITIONS } from '../content/behaviors/BehaviorProfiles'
+import {
+  formatKeybind,
+  normalizeKey,
+  type GameKeybinds,
+} from '../input/Keybinds'
 import {
   EQUIPMENT_SLOTS,
   EquipmentSlot,
@@ -29,7 +35,7 @@ import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import type { LevelUpUpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
-import { BehaviorScreen } from './BehaviorScreen'
+import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
 import { formatExperience } from '../ui/formatNumbers'
@@ -39,11 +45,18 @@ interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
   runConfig?: RunConfig
   onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
+  keybinds: GameKeybinds
+  onKeybindsChange?: (keybinds: GameKeybinds) => Promise<void>
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
 const MIN_CAST_PULSE_INTERVAL_MS = 240
 const DEVELOPMENT_TIME_SCALE_STORAGE_KEY = 'active-burger:development-time-scale'
+const PROFILE_KEYBIND_IDS = {
+  aggressive: 'behaviorAggressive',
+  balanced: 'behaviorBalanced',
+  cautious: 'behaviorCautious',
+} as const
 
 const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
   [EquipmentSlot.Weapon]: 'Weapon',
@@ -116,17 +129,21 @@ export function GameCanvas({
   onRunEnd,
   runConfig,
   onBehaviorProfileChange,
+  keybinds,
+  onKeybindsChange,
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
   const onRunEndRef = useRef(onRunEnd)
+  const onBehaviorProfileChangeRef = useRef(onBehaviorProfileChange)
   const initialRunConfigRef = useRef<RunConfig>(runConfig ?? { seed: 3 })
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
   const [choiceFlow, setChoiceFlow] = useState<Readonly<PendingChoiceFlow> | null>(null)
   const choiceFlowKeyRef = useRef<string | null>(null)
-  const [behaviorScreenOpen, setBehaviorScreenOpen] = useState(false)
-  const behaviorScreenOpenRef = useRef(false)
+  const choiceFlowRef = useRef<Readonly<PendingChoiceFlow> | null>(null)
+  const [activeKeybinds, setActiveKeybinds] = useState(keybinds)
+  const activeKeybindsRef = useRef(keybinds)
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
     () => import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
@@ -134,6 +151,10 @@ export function GameCanvas({
   useEffect(() => {
     onRunEndRef.current = onRunEnd
   }, [onRunEnd])
+
+  useEffect(() => {
+    onBehaviorProfileChangeRef.current = onBehaviorProfileChange
+  }, [onBehaviorProfileChange])
 
   useEffect(() => {
     const container = containerRef.current
@@ -154,6 +175,7 @@ export function GameCanvas({
       if (!disposed) {
         const nextSnapshot = game.getUiSnapshot()
         setSnapshot(nextSnapshot)
+        choiceFlowRef.current = nextSnapshot.pendingChoiceFlow
         const nextChoiceFlowKey = getChoiceFlowKey(nextSnapshot.pendingChoiceFlow)
         if (choiceFlowKeyRef.current !== nextChoiceFlowKey) {
           choiceFlowKeyRef.current = nextChoiceFlowKey
@@ -163,6 +185,7 @@ export function GameCanvas({
     }
 
     publishSnapshot()
+    choiceFlowRef.current = null
     setChoiceFlow(null)
     choiceFlowKeyRef.current = null
     const demo = new URLSearchParams(window.location.search).get('demo')
@@ -215,14 +238,49 @@ export function GameCanvas({
     })
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') {
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest(
+          '[data-keybind-capture="true"][data-keybind-listening="true"]',
+        )
+      ) {
         return
       }
 
-      if (behaviorScreenOpenRef.current) {
+      const key = normalizeKey(event.key)
+      if (!key) {
+        return
+      }
+
+      const behaviorProfileByKey: Readonly<Record<string, BehaviorProfileId>> = {
+        [activeKeybindsRef.current.behaviorAggressive]: 'aggressive',
+        [activeKeybindsRef.current.behaviorBalanced]: 'balanced',
+        [activeKeybindsRef.current.behaviorCautious]: 'cautious',
+      }
+      const behaviorProfile = behaviorProfileByKey[key]
+      if (behaviorProfile) {
         event.preventDefault()
-        behaviorScreenOpenRef.current = false
-        setBehaviorScreenOpen(false)
+        if (game.setBehaviorProfile(behaviorProfile)) {
+          onBehaviorProfileChangeRef.current?.(behaviorProfile)
+        }
+        return
+      }
+
+      if (game.phase === 'level-up') {
+        const choiceIndex = [
+          activeKeybindsRef.current.choiceLeft,
+          activeKeybindsRef.current.choiceMiddle,
+          activeKeybindsRef.current.choiceRight,
+        ].indexOf(key)
+        const choice = choiceFlowRef.current?.choices[choiceIndex]
+        if (choice) {
+          event.preventDefault()
+          game.selectChoice(choice)
+          return
+        }
+      }
+
+      if (key !== 'escape') {
         return
       }
 
@@ -256,8 +314,8 @@ export function GameCanvas({
         gameRef.current = null
       }
       setGame(null)
-      behaviorScreenOpenRef.current = false
       choiceFlowKeyRef.current = null
+      choiceFlowRef.current = null
       pixiGame.destroy()
     }
   }, [])
@@ -276,14 +334,17 @@ export function GameCanvas({
     }
   }
 
-  const openBehaviorScreen = (): void => {
-    behaviorScreenOpenRef.current = true
-    setBehaviorScreenOpen(true)
-  }
-
-  const closeBehaviorScreen = (): void => {
-    behaviorScreenOpenRef.current = false
-    setBehaviorScreenOpen(false)
+  const updateKeybinds = async (nextKeybinds: GameKeybinds): Promise<void> => {
+    const previousKeybinds = activeKeybindsRef.current
+    activeKeybindsRef.current = nextKeybinds
+    setActiveKeybinds(nextKeybinds)
+    try {
+      await onKeybindsChange?.(nextKeybinds)
+    } catch (error: unknown) {
+      activeKeybindsRef.current = previousKeybinds
+      setActiveKeybinds(previousKeybinds)
+      throw error
+    }
   }
 
   const phase = snapshot?.phase ?? 'loading'
@@ -306,7 +367,11 @@ export function GameCanvas({
       ) : null}
       {snapshot ? <FloorHud snapshot={snapshot} /> : null}
       {snapshot ? (
-        <BehaviorHud snapshot={snapshot} onOpenBehavior={openBehaviorScreen} />
+        <BehaviorHud
+          snapshot={snapshot}
+          keybinds={activeKeybinds}
+          onSelectProfile={selectBehaviorProfile}
+        />
       ) : null}
       {import.meta.env.DEV && snapshot && game ? (
         <DevelopmentMenu
@@ -317,24 +382,20 @@ export function GameCanvas({
         />
       ) : null}
       {phase === 'paused' ? (
-        <p className="paused-indicator" role="status">
-          Paused
-        </p>
+        <PauseMenu
+          keybinds={activeKeybinds}
+          onKeybindsChange={updateKeybinds}
+          onResume={() => gameRef.current?.resume()}
+        />
       ) : null}
       {choiceFlow ? (
         <LevelUpOverlay
           flow={choiceFlow}
+          keybinds={activeKeybinds}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
           onSelect={selectChoice}
           onSkip={skipChoice}
-        />
-      ) : null}
-      {behaviorScreenOpen && snapshot ? (
-        <BehaviorScreen
-          behavior={snapshot.behavior}
-          onSelectProfile={selectBehaviorProfile}
-          onClose={closeBehaviorScreen}
         />
       ) : null}
     </div>
@@ -828,28 +889,42 @@ function FloorHud({ snapshot }: { snapshot: GameUiSnapshot }) {
 
 function BehaviorHud({
   snapshot,
-  onOpenBehavior,
+  keybinds,
+  onSelectProfile,
 }: {
   snapshot: GameUiSnapshot
-  onOpenBehavior: () => void
+  keybinds: GameKeybinds
+  onSelectProfile: (profileId: BehaviorProfileId) => void
 }) {
   return (
-    <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title" style={{ marginBottom: '5rem' }}>
+    <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title">
       <h3 id="behavior-hud-title" className="visually-hidden">
         Behavior
       </h3>
-      <button
-        className="behavior-summary"
-        type="button"
-        aria-label={`Behavior: ${snapshot.behavior.profileName}. Intent: ${
-          snapshot.behavior.activeIntent?.label ?? 'No active intent'
-        }`}
-        onClick={onOpenBehavior}
-      >
-        <span className="behavior-summary-label">Behavior</span>
-        <strong>{snapshot.behavior.profileName}</strong>
-        <span>Intent: {snapshot.behavior.activeIntent?.label ?? 'No active intent'}</span>
-      </button>
+      <p className="behavior-hud-heading">Behavior profiles</p>
+      <div className="behavior-hud-profile-list">
+        {Object.values(BEHAVIOR_PROFILE_DEFINITIONS).map((profile) => {
+          const selected = snapshot.behavior.profileId === profile.id
+          const keybind = keybinds[PROFILE_KEYBIND_IDS[profile.id]]
+          return (
+            <button
+              className={`behavior-hud-profile${selected ? ' selected' : ''}`}
+              type="button"
+              aria-pressed={selected}
+              aria-label={`${profile.name}: ${profile.description}. Shortcut ${formatKeybind(keybind)}`}
+              title={profile.description}
+              key={profile.id}
+              onClick={() => onSelectProfile(profile.id)}
+            >
+              <span className="behavior-hud-profile-name">{profile.name}</span>
+              <span className="keybind-hint">{formatKeybind(keybind)}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="behavior-hud-current-intent">
+        Intent: <strong>{snapshot.behavior.activeIntent?.label ?? 'No active intent'}</strong>
+      </p>
     </section>
   )
 }

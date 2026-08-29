@@ -14,6 +14,10 @@ import {
   type SettingsDto,
 } from './types'
 import { LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP } from '../game-config/meta-progression'
+import {
+  DEFAULT_GAME_KEYBINDS,
+  normalizeGameKeybinds,
+} from '../input/Keybinds'
 
 export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
@@ -21,6 +25,7 @@ export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   selectedWorldModifierIds: [],
   selectedPlaystyleId: DEFAULT_PLAYSTYLE_ID,
+  keybinds: { ...DEFAULT_GAME_KEYBINDS },
 })
 
 export const DEFAULT_BASIC_PROFILE: Readonly<BasicProfileDto> = Object.freeze({
@@ -69,6 +74,7 @@ export function migrateSettings(value: unknown): SettingsDto {
     selectedPlaystyleId: isPlaystyleId(candidate.selectedPlaystyleId)
       ? candidate.selectedPlaystyleId
       : DEFAULT_PLAYSTYLE_ID,
+    keybinds: normalizeGameKeybinds(candidate.keybinds),
   }
 }
 

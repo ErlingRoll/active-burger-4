@@ -29,11 +29,16 @@ import type {
 } from '../game/ui/Snapshots'
 import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
 import { GearSetFormation } from './GearSetFormation'
+import {
+  formatKeybind,
+  type GameKeybinds,
+} from '../input/Keybinds'
 
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
   gearSets: GameUiSnapshot['gearSets']
+  keybinds: GameKeybinds
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
   onSkip: () => void
 }
@@ -141,6 +146,14 @@ function rarityClass(rarity: Rarity): string {
   return `rarity-${rarity}`
 }
 
+function ChoiceKeyHint({ keybind }: { keybind: string | undefined }) {
+  return keybind ? (
+    <span className="choice-keybind-hint" aria-hidden="true">
+      {formatKeybind(keybind)}
+    </span>
+  ) : null
+}
+
 function RarityBadge({ rarity, label = 'Rarity' }: { rarity: Rarity; label?: string }) {
   const visual = RARITY_VISUALS[rarity]
   return (
@@ -219,6 +232,7 @@ function GearCard({
   setActive,
   firstButtonRef,
   gearSets,
+  keybind,
 }: {
   choice: GearChoice
   index: number
@@ -228,6 +242,7 @@ function GearCard({
   setActive: (id: string | null) => void
   firstButtonRef: (element: HTMLButtonElement | null) => void
   gearSets: GameUiSnapshot['gearSets']
+  keybind: string | undefined
 }) {
   if (choice.type === 'gear-rarity-floor') {
     const minimumRarity = RARITY_VISUALS[choice.minimumRarity]
@@ -238,8 +253,10 @@ function GearCard({
           className="upgrade-choice choice-card gear-rarity-floor-card"
           data-choice-type="gear-rarity-floor"
           type="button"
+          aria-keyshortcuts={keybind}
           onClick={() => onSelect(choice)}
         >
+          <ChoiceKeyHint keybind={keybind} />
           <span className="choice-card-header">
             <span className="upgrade-choice-name">Gear Fortune</span>
             <span className="gear-rarity-floor-badge">GOLDEN</span>
@@ -280,6 +297,7 @@ function GearCard({
           className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-upgrade"
           type="button"
+          aria-keyshortcuts={keybind}
           aria-describedby={active ? comparisonId : undefined}
           onClick={() => onSelect(choice)}
           onFocus={() => setActive(comparisonId)}
@@ -287,6 +305,7 @@ function GearCard({
           onMouseEnter={() => setActive(comparisonId)}
           onMouseLeave={() => setActive(null)}
         >
+          <ChoiceKeyHint keybind={keybind} />
           <span className="gear-upgrade-type">
             <span className="gear-upgrade-icon" aria-hidden="true">↗</span>
             UPGRADE EQUIPPED ITEM
@@ -328,6 +347,7 @@ function GearCard({
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
         data-choice-type="gear"
         type="button"
+        aria-keyshortcuts={keybind}
         aria-describedby={active ? comparisonId : undefined}
         onClick={() => onSelect(choice)}
         onFocus={() => setActive(comparisonId)}
@@ -335,6 +355,7 @@ function GearCard({
         onMouseEnter={() => setActive(comparisonId)}
         onMouseLeave={() => setActive(null)}
       >
+        <ChoiceKeyHint keybind={keybind} />
         <span className="choice-card-header">
           <span className="upgrade-choice-name">{itemName}</span>
           <RarityBadge rarity={choice.rarity} />
@@ -387,11 +408,13 @@ function UpgradeCard({
   index,
   firstButtonRef,
   onSelect,
+  keybind,
 }: {
   choice: LevelUpUpgradeChoice
   index: number
   firstButtonRef: (element: HTMLButtonElement | null) => void
   onSelect: (choice: LevelUpUpgradeChoice) => void
+  keybind: string | undefined
 }) {
   const definition = getUpgradeDefinition(choice.upgradeId)
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
@@ -406,8 +429,10 @@ function UpgradeCard({
         }`}
         data-choice-type="upgrade"
         type="button"
+        aria-keyshortcuts={keybind}
         onClick={() => onSelect(choice)}
       >
+        <ChoiceKeyHint keybind={keybind} />
         <span className="choice-card-header">
           <span className="upgrade-choice-name">
             {removedSkill ? `Release ${removedSkill.name}` : definition.name}
@@ -431,6 +456,7 @@ export function LevelUpOverlay({
   flow,
   equipment,
   gearSets,
+  keybinds,
   onSelect,
   onSkip,
 }: LevelUpOverlayProps) {
@@ -482,6 +508,11 @@ export function LevelUpOverlay({
                       firstButtonRef.current = element
                     }
                   }}
+                  keybind={[
+                    keybinds.choiceLeft,
+                    keybinds.choiceMiddle,
+                    keybinds.choiceRight,
+                  ][index]}
                   onSelect={(selected) => onSelect(selected)}
                 />
               ))
@@ -500,6 +531,11 @@ export function LevelUpOverlay({
                     activeComparison === `gear-comparison-${choice.itemId}-${index}`}
                   setActive={setActiveComparison}
                   gearSets={gearSets}
+                  keybind={[
+                    keybinds.choiceLeft,
+                    keybinds.choiceMiddle,
+                    keybinds.choiceRight,
+                  ][index]}
                   firstButtonRef={(element) => {
                     if (index === 0) {
                       firstButtonRef.current = element

@@ -42,14 +42,22 @@ function memoryStore(): PersistenceStore {
 describe('local persistence schema', () => {
   it('provides migration-safe defaults', () => {
     expect(DEFAULT_SETTINGS).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       selectedBehaviorProfileId: 'balanced',
       selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
       selectedWorldModifierIds: [],
       selectedPlaystyleId: 'knight',
+      keybinds: {
+        behaviorAggressive: 'a',
+        behaviorBalanced: 's',
+        behaviorCautious: 'd',
+        choiceLeft: 'q',
+        choiceMiddle: 'w',
+        choiceRight: 'e',
+      },
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       unlockedDungeonMaxFloorIds: [DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID],
     })
     expect(migrateSettings(undefined)).toEqual(DEFAULT_SETTINGS)
@@ -75,7 +83,7 @@ describe('local persistence schema', () => {
         ],
       }),
     ).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       unlockedDungeonMaxFloorIds: [
         DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
         'future-contract',

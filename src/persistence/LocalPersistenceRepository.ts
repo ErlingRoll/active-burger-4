@@ -18,6 +18,7 @@ export interface SettingsPatch {
   selectedDungeonMaxFloorContractId?: string
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
   selectedPlaystyleId?: SettingsDto['selectedPlaystyleId']
+  keybinds?: SettingsDto['keybinds']
 }
 
 export interface PersistenceRepository {

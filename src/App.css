@@ -829,6 +829,85 @@
   bottom: 1rem;
 }
 
+.behavior-hud-heading {
+  margin: 0 0 0.4rem;
+  color: #93c5fd;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.behavior-hud-profile-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.behavior-hud-profile {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  background: rgb(15 23 42 / 92%);
+  border: 1px solid #475569;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.behavior-hud-profile:hover,
+.behavior-hud-profile:focus-visible,
+.behavior-hud-profile.selected {
+  color: #f8fafc;
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 25%);
+  outline-offset: 1px;
+}
+
+.behavior-hud-profile.selected {
+  background: #263a5a;
+}
+
+.behavior-hud-profile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keybind-hint,
+.choice-keybind-hint {
+  display: inline-grid;
+  min-width: 1.45rem;
+  min-height: 1.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0.1rem 0.25rem;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgb(15 23 42 / 45%);
+  border: 1px solid rgb(100 116 139 / 60%);
+  border-radius: 0.25rem;
+}
+
+.behavior-hud-current-intent {
+  margin: 0.5rem 0 0;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.behavior-hud-current-intent strong {
+  color: #bfdbfe;
+}
+
 .behavior-summary {
   display: grid;
   width: 100%;
@@ -1521,6 +1600,142 @@
   transform: translate(-50%, -50%);
 }
 
+.pause-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(2 6 23 / 78%);
+}
+
+.pause-panel {
+  width: min(34rem, 100%);
+  max-height: min(42rem, 100%);
+  overflow: auto;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  color: #e2e8f0;
+  background: #111827;
+  border: 1px solid #93c5fd;
+  border-radius: 0.85rem;
+  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 65%);
+}
+
+.pause-panel h2 {
+  margin: 0.3rem 0 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+.pause-instructions {
+  margin: 0.6rem 0 1rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.pause-resume-button {
+  display: flex;
+  width: 100%;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  color: #f8fafc;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  background: #1e3a5f;
+  border: 1px solid #60a5fa;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.pause-resume-button:hover,
+.pause-resume-button:focus-visible {
+  background: #244a78;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 2px;
+}
+
+.pause-keybinds {
+  min-width: 0;
+  margin: 1.25rem 0 0;
+  padding: 0.8rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+}
+
+.pause-keybinds legend {
+  padding: 0 0.35rem;
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pause-keybind-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pause-keybind-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pause-keybind-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.pause-keybind-copy strong {
+  color: #f8fafc;
+  font-size: 0.82rem;
+}
+
+.pause-keybind-copy small {
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pause-keybind-button {
+  min-width: 4rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.5rem;
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: #1e293b;
+  border: 1px solid #64748b;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.pause-keybind-button:hover,
+.pause-keybind-button:focus-visible,
+.pause-keybind-button.listening {
+  color: #fef08a;
+  border-color: #fef08a;
+  outline: 3px solid rgb(254 240 138 / 25%);
+  outline-offset: 1px;
+}
+
+.pause-keybind-error {
+  margin: 0.7rem 0 0;
+  color: #fca5a5;
+  font-size: 0.78rem;
+}
+
 .development-menu-toggle {
   min-height: 2.5rem;
   padding: 0.55rem 0.9rem;
@@ -2016,6 +2231,11 @@
   border: 1px solid #475569;
   border-radius: 0.75rem;
   cursor: pointer;
+}
+
+.choice-keybind-hint {
+  align-self: flex-end;
+  margin: -0.35rem -0.35rem 0 0;
 }
 
 .choice-card-wrap {

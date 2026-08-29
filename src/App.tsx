@@ -43,6 +43,8 @@ import {
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
+import type { GameKeybinds } from './input/Keybinds'
+import { DEFAULT_GAME_KEYBINDS } from './input/Keybinds'
 import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
@@ -445,6 +447,13 @@ function App() {
       void persistSettings({ selectedBehaviorProfileId: profileId }).catch(() => {
         // persistSettings already exposes this error in the UI.
       })
+    },
+    [persistSettings],
+  )
+
+  const updateKeybinds = useCallback(
+    async (keybinds: GameKeybinds): Promise<void> => {
+      await persistSettings({ keybinds })
     },
     [persistSettings],
   )
@@ -854,6 +863,8 @@ function App() {
           runConfig={runConfig}
           onRunEnd={handleRunEnd}
           onBehaviorProfileChange={selectBehaviorProfile}
+          keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
+          onKeybindsChange={updateKeybinds}
         />
       ) : null}
       {screen === 'results' && result ? (
