@@ -4,6 +4,7 @@ export {
   getSupabaseClient,
   isMissingProfileDisplayNameError,
   resolveAuthEnvironment,
+  resolveAuthRedirectUrl,
 } from './AuthService'
 export type {
   AuthAccount,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isMissingProfileDisplayNameError,
   resolveAuthEnvironment,
+  resolveAuthRedirectUrl,
 } from './AuthService'
 
 describe('Supabase authentication configuration', () => {
@@ -33,5 +34,22 @@ describe('Supabase authentication configuration', () => {
       code: '42501',
       message: 'new row violates row-level security policy',
     })).toBe(false)
+  })
+
+  it('uses the configured OAuth redirect URL when provided', () => {
+    expect(resolveAuthRedirectUrl(
+      ' https://activeburger.com ',
+      'http://127.0.0.1:3000',
+    )).toBe('https://activeburger.com')
+  })
+
+  it('falls back to the current origin for local development', () => {
+    expect(resolveAuthRedirectUrl(undefined, 'http://127.0.0.1:3000'))
+      .toBe('http://127.0.0.1:3000')
+  })
+
+  it('rejects non-HTTP OAuth redirect URLs', () => {
+    expect(() => resolveAuthRedirectUrl('javascript:alert(1)'))
+      .toThrow('VITE_AUTH_REDIRECT_URL must be an absolute HTTP(S) URL.')
   })
 })

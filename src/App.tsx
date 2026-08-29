@@ -220,6 +220,7 @@ function App() {
         service: createAuthenticationService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          redirectUrl: import.meta.env.VITE_AUTH_REDIRECT_URL,
         }),
         configurationError: null,
       }

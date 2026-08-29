@@ -9,6 +9,7 @@ import {
 export interface AuthEnvironment {
   supabaseUrl?: string
   supabasePublishableKey?: string
+  redirectUrl?: string
 }
 
 export interface AuthAccount {
@@ -38,7 +39,7 @@ const browserClients = new Map<string, SupabaseClient>()
 
 export function resolveAuthEnvironment(
   environment: AuthEnvironment,
-): Required<AuthEnvironment> {
+): { supabaseUrl: string; supabasePublishableKey: string } {
   const supabaseUrl = environment.supabaseUrl?.trim()
   const supabasePublishableKey = environment.supabasePublishableKey?.trim()
 
@@ -49,6 +50,27 @@ export function resolveAuthEnvironment(
   }
 
   return { supabaseUrl, supabasePublishableKey }
+}
+
+export function resolveAuthRedirectUrl(
+  configuredRedirectUrl?: string,
+  currentOrigin?: string,
+): string | undefined {
+  const redirectUrl = configuredRedirectUrl?.trim()
+  if (redirectUrl) {
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(redirectUrl)
+    } catch {
+      throw new Error('VITE_AUTH_REDIRECT_URL must be an absolute HTTP(S) URL.')
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error('VITE_AUTH_REDIRECT_URL must be an absolute HTTP(S) URL.')
+    }
+    return redirectUrl
+  }
+  return currentOrigin ??
+    (typeof window !== 'undefined' ? window.location.origin : undefined)
 }
 
 export function isMissingProfileDisplayNameError(error: unknown): boolean {
@@ -64,11 +86,15 @@ export function isMissingProfileDisplayNameError(error: unknown): boolean {
 export function createAuthenticationService(
   environment: AuthEnvironment,
 ): AuthenticationService {
-  const persistentClient = getSupabaseClient(environment, { persistSession: true })
-  const sessionClient = getSupabaseClient(environment, { persistSession: false })
+  const { supabaseUrl, supabasePublishableKey } = resolveAuthEnvironment(environment)
+  const redirectTo = resolveAuthRedirectUrl(environment.redirectUrl)
+  const resolvedEnvironment = { supabaseUrl, supabasePublishableKey }
+  const persistentClient = getSupabaseClient(resolvedEnvironment, { persistSession: true })
+  const sessionClient = getSupabaseClient(resolvedEnvironment, { persistSession: false })
   return createAuthenticationServiceFromClient(
     persistentClient,
     (persistSession) => persistSession ? persistentClient : sessionClient,
+    redirectTo,
   )
 }
 
@@ -99,6 +125,7 @@ export function getSupabaseClient(
 export function createAuthenticationServiceFromClient(
   client: SupabaseClient,
   resolveClient: (persistSession: boolean) => SupabaseClient = () => client,
+  redirectTo: string | undefined = resolveAuthRedirectUrl(),
 ): AuthenticationService {
   let activeClient = client
   const listeners = new Set<(account: AuthAccount | null) => void>()
@@ -173,7 +200,7 @@ export function createAuthenticationServiceFromClient(
       const { error } = await activeClient.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+          redirectTo,
         },
       })
       if (error) {
