@@ -2,6 +2,8 @@ import {
   BASIC_ATTACK_SKILL_ID,
   isSkillId,
 } from '../../content/skills/Skills'
+import type { SkillTag } from '../../content/skills/Skills'
+import { getSkillDefinition } from '../../content/skills/Skills'
 import {
   DEFAULT_SKILL_SLOT_COUNT,
   SKILL_REMOVAL_CHANCE,
@@ -17,8 +19,17 @@ import type {
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
 import { RARITIES, RARITY_WEIGHTS } from '../../content/rarity/Rarity'
+import {
+  DEFAULT_PLAYSTYLE_ID,
+  getPlaystyleDefinition,
+  isPlaystyleId,
+} from '../../content/playstyles/Playstyles'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
+
+type SelectableUpgradeDefinition = UpgradeDefinition & {
+  id: UpgradeChoice['upgradeId']
+}
 
 /**
  * Generates unique choices from pure content definitions. The game supplies
@@ -56,7 +67,7 @@ export function generateUpgradeChoices(
     )
   }
 
-    function isSelectableUpgrade(
+  function isSelectableUpgrade(
     upgrade: UpgradeDefinition,
   ): upgrade is UpgradeDefinition & { id: UpgradeChoice['upgradeId'] } {
     return upgrade.id !== 'remove-skill'
@@ -64,21 +75,15 @@ export function generateUpgradeChoices(
 
   const choices: LevelUpUpgradeChoice[] = []
   if (new Set(eligible.map((upgrade) => upgrade.rarity)).size === 1) {
-    const shuffled = [...eligible]
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-      const swapIndex = rng.int(0, index)
-      const current = shuffled[index]
-      const replacement = shuffled[swapIndex]
-      if (current && replacement) {
-        shuffled[index] = replacement
-        shuffled[swapIndex] = current
+    const remaining = [...eligible]
+    while (choices.length < count) {
+      const selected = pickWeightedUpgrade(remaining, state, rng)
+      if (!selected) {
+        break
       }
+      choices.push({ upgradeId: selected.id, rarity: selected.rarity })
+      remaining.splice(remaining.indexOf(selected), 1)
     }
-    choices.push(
-      ...shuffled
-        .slice(0, count)
-        .map((upgrade) => ({ upgradeId: upgrade.id, rarity: upgrade.rarity })),
-    )
   } else {
     const remaining = [...eligible]
     while (choices.length < count) {
@@ -101,11 +106,12 @@ export function generateUpgradeChoices(
       const candidates = remaining.filter(
         (upgrade) => upgrade.rarity === selectedRarity,
       )
-      const selected = candidates[rng.int(0, candidates.length - 1)]
+      const selected = pickWeightedUpgrade(candidates, state, rng)
       if (selected) {
         choices.push({ upgradeId: selected.id, rarity: selected.rarity })
         remaining.splice(remaining.indexOf(selected), 1)
       }
+
     }
   }
 
@@ -127,6 +133,42 @@ export function generateUpgradeChoices(
     choices[choices.length - 1] = removalChoice
   }
   return choices
+}
+
+function pickWeightedUpgrade(
+  candidates: readonly SelectableUpgradeDefinition[],
+  state: Readonly<GameState>,
+  rng: RandomSource,
+): SelectableUpgradeDefinition | undefined {
+  const weights = candidates.map((upgrade) => ({
+    upgrade,
+    weight: getSkillUnlockWeight(upgrade, state),
+  }))
+  const totalWeight = weights.reduce((total, candidate) => total + candidate.weight, 0)
+  let roll = rng.next() * totalWeight
+  for (const candidate of weights) {
+    roll -= candidate.weight
+    if (roll < 0) {
+      return candidate.upgrade
+    }
+  }
+  return weights[weights.length - 1]?.upgrade
+}
+
+export function getSkillUnlockWeight(
+  upgrade: UpgradeDefinition,
+  state: Readonly<GameState>,
+): number {
+  if (upgrade.skillAction !== 'unlock' || !upgrade.skillId) {
+    return 1
+  }
+  const skill = getSkillDefinition(upgrade.skillId)
+  const playstyleId = isPlaystyleId(state.player.playstyleId)
+    ? state.player.playstyleId
+    : DEFAULT_PLAYSTYLE_ID
+  const affinityTags: readonly SkillTag[] =
+    getPlaystyleDefinition(playstyleId).skillAffinity.tags
+  return skill.tags.some((tag) => affinityTags.includes(tag)) ? 3 : 1
 }
 
 function isBranchCompatible(

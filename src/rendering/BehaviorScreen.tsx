@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
+  BEHAVIOR_PROFILE_ORDER,
   type BehaviorHudSnapshot,
   type BehaviorProfileId,
 } from '../game'
@@ -11,7 +12,8 @@ interface BehaviorScreenProps {
   onClose: () => void
 }
 
-const PROFILE_DEFINITIONS = Object.values(BEHAVIOR_PROFILE_DEFINITIONS)
+const PROFILE_DEFINITIONS = BEHAVIOR_PROFILE_ORDER
+  .map((profileId) => BEHAVIOR_PROFILE_DEFINITIONS[profileId])
 
 export function BehaviorScreen({
   behavior,

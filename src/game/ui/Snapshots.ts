@@ -37,7 +37,11 @@ import {
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
-import { DEFAULT_SKILL_SLOT_COUNT } from '../../game-config/skills'
+import {
+  DEFAULT_SKILL_SLOT_COUNT,
+  RALLYING_STANDARD_BASE_DURATION_SECONDS,
+  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+} from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
@@ -366,6 +370,7 @@ export type SkillModifierSummaryId =
   | 'summon-attack-speed'
   | 'summon-max-count'
   | 'skill-cooldown-reduction'
+  | 'duration'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -476,6 +481,18 @@ function getSkillModifierSummaries(
       )
     }
   } else {
+    if (skillId === RALLYING_STANDARD_SKILL_ID) {
+      const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
+        (selectedUpgradeIds.includes('rallying-standard-bulwark')
+          ? RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS
+          : 0)
+      addSummary(
+        'duration',
+        'Duration',
+        duration,
+        `${formatStatNumber(duration)} sec`,
+      )
+    }
     if (playerStats.cooldownReduction > 0) {
       addSummary(
         'cooldown-reduction',

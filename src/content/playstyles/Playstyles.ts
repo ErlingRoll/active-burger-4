@@ -1,6 +1,7 @@
 import type { ItemId } from '../gear/Items'
 import type { StatValues } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
+import type { SkillTag } from '../skills/Skills'
 import type { PlaystyleId } from '../../game-config/classes'
 import {
   PLAYSTYLE_DEFINITIONS,
@@ -14,6 +15,11 @@ export interface PlaystyleDefinition {
   readonly baseStats: StatValues
   readonly startingWeaponItemId: ItemId
   readonly startingSkillIds: readonly SkillId[]
+  readonly skillAffinity: {
+    readonly tags: readonly SkillTag[]
+    readonly label: string
+    readonly description: string
+  }
   readonly visual: {
     readonly fillColor: number
     readonly outlineColor: number

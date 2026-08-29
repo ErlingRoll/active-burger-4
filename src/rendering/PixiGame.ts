@@ -14,6 +14,7 @@ import {
   getBasicAttackVariant,
   getSkillDefinition,
   isSkillId,
+  RALLYING_STANDARD_SKILL_ID,
 } from '../content/skills/Skills'
 import type {
   BossState,
@@ -520,6 +521,9 @@ export class PixiGame {
   }
 
   private createEffectPlaceholder(effect: SkillEffectState): Graphics {
+    if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
+      return this.createRallyingFlagPlaceholder(effect)
+    }
     const visual =
       effect.skillId === BASIC_ATTACK_SKILL_ID
         ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
@@ -613,6 +617,31 @@ export class PixiGame {
     }
 
     return view
+  }
+
+  private createRallyingFlagPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(RALLYING_STANDARD_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const poleTop = -radius * 0.62
+    const poleBottom = radius * 0.38
+    return new Graphics()
+      .circle(0, 0, radius)
+      .fill({ color: visual.primaryColor, alpha: 0.06 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.38 })
+      .circle(0, 0, radius * 0.92)
+      .stroke({ color: visual.primaryColor, width: 1, alpha: 0.24 })
+      .moveTo(0, poleTop)
+      .lineTo(0, poleBottom)
+      .stroke({ color: visual.outlineColor, width: 4, alpha: 0.95 })
+      .poly([
+        0, poleTop,
+        radius * 0.5, poleTop + radius * 0.12,
+        0, poleTop + radius * 0.28,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.9 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.95 })
+      .ellipse(0, poleBottom, radius * 0.12, radius * 0.06)
+      .fill({ color: visual.secondaryColor, alpha: 0.85 })
   }
 
   private readonly update = (ticker: Ticker): void => {

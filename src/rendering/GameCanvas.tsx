@@ -15,7 +15,10 @@ import {
   type PendingChoiceFlow,
   type RunResultSnapshot,
 } from '../game'
-import { BEHAVIOR_PROFILE_DEFINITIONS } from '../content/behaviors/BehaviorProfiles'
+import {
+  BEHAVIOR_PROFILE_DEFINITIONS,
+  BEHAVIOR_PROFILE_ORDER,
+} from '../content/behaviors/BehaviorProfiles'
 import {
   formatKeybind,
   normalizeKey,
@@ -393,6 +396,7 @@ export function GameCanvas({
         <LevelUpOverlay
           flow={choiceFlow}
           keybinds={activeKeybinds}
+          playstyleId={runConfig?.playstyleId ?? 'knight'}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
           onSelect={selectChoice}
@@ -904,7 +908,8 @@ function BehaviorHud({
       </h3>
       <p className="behavior-hud-heading">Behavior profiles</p>
       <div className="behavior-hud-profile-list">
-        {Object.values(BEHAVIOR_PROFILE_DEFINITIONS).map((profile) => {
+        {BEHAVIOR_PROFILE_ORDER.map((profileId) => {
+          const profile = BEHAVIOR_PROFILE_DEFINITIONS[profileId]
           const selected = snapshot.behavior.profileId === profile.id
           const keybind = keybinds[PROFILE_KEYBIND_IDS[profile.id]]
           return (

@@ -10,6 +10,11 @@ import {
   AEGIS_PULSE_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
+import {
+  RALLYING_STANDARD_BASE_DURATION_SECONDS,
+  RALLYING_STANDARD_EFFECT_RADIUS,
+  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+} from '../../../game-config/skills'
 import { createGame } from '../../Game'
 import { equipRolledItem } from '../../equipment/EquipmentState'
 import { collectSkillDamage, updateSkillCooldowns } from './SkillSystem'
@@ -417,6 +422,11 @@ describe('skill system', () => {
       expect(game.state.player.rallyingStandardRemaining).toBe(6)
       expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(10)
       expect(game.state.player.rallyingStandardCooldownReductionPercent).toBe(0)
+      expect(game.state.effects[0]).toMatchObject({
+        radius: RALLYING_STANDARD_EFFECT_RADIUS,
+        lifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
+        remainingLifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
+      })
     })
 
     it('gives Bulwark a bigger reduction and longer duration', () => {
@@ -432,6 +442,10 @@ describe('skill system', () => {
 
       expect(game.state.player.rallyingStandardRemaining).toBe(10)
       expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(25)
+      expect(game.state.effects[0]?.lifetime).toBe(
+        RALLYING_STANDARD_BASE_DURATION_SECONDS +
+          RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+      )
     })
 
     it("lets Commander's active cooldown reduction apply to every equipped skill", () => {

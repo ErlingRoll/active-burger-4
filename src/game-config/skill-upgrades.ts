@@ -548,7 +548,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   },
   {
     id: 'rallying-standard-unlock',
-    name: 'Rallying Standard',
+    name: 'Rallying Banner',
     description: 'Unlock a support banner that heals you and reduces incoming damage.',
     category: 'skill',
     rarity: 'common',
@@ -564,11 +564,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'rallying-standard-level',
     name: 'Inspiring Banner',
-    description: `Increase Rallying Standard healing by ${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per cast.`,
+    description: `Increase Rallying Banner healing by ${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per cast.`,
     category: 'skill',
     rarity: 'common',
     amount: 1,
-    valueLabel: `+${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per Rallying Standard cast`,
+    valueLabel: `+${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per Rallying Banner cast`,
     skillId: RALLYING_STANDARD_SKILL_ID,
     skillAction: 'level',
     skillHealingIncreaseAmount: RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL,

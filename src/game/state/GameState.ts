@@ -216,11 +216,11 @@ export interface PlayerState {
   lancerMomentumStacks?: number
   /** Seconds remaining before Lancer's Charge Momentum stacks decay to zero. */
   lancerMomentumDecayRemaining?: number
-  /** Seconds remaining on the active Rallying Standard banner. */
+  /** Seconds remaining on the active Rallying Banner. */
   rallyingStandardRemaining?: number
-  /** Damage reduction percent granted while the Rallying Standard banner is active. */
+  /** Damage reduction percent granted while the Rallying Banner is active. */
   rallyingStandardDamageReductionPercent?: number
-  /** Skill cooldown reduction percent granted while the Rallying Standard banner is active. */
+  /** Skill cooldown reduction percent granted while the Rallying Banner is active. */
   rallyingStandardCooldownReductionPercent?: number
   /** Remaining absorb-shield amount granted by Aegis Pulse. */
   aegisPulseShieldAmount?: number

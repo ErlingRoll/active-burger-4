@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
+  BEHAVIOR_PROFILE_ORDER,
   DEFAULT_BEHAVIOR_PROFILE_ID,
   getBehaviorProfileDefinition,
   isBehaviorProfileId,
@@ -13,11 +14,13 @@ import {
 
 describe('behavior profile content', () => {
   it('has stable unique IDs and a balanced default', () => {
-    const profiles = Object.values(BEHAVIOR_PROFILE_DEFINITIONS)
+    const profiles = BEHAVIOR_PROFILE_ORDER.map((profileId) =>
+      BEHAVIOR_PROFILE_DEFINITIONS[profileId],
+    )
     expect(DEFAULT_BEHAVIOR_PROFILE_ID).toBe('balanced')
     expect(profiles.map((profile) => profile.id)).toEqual([
-      'balanced',
       'aggressive',
+      'balanced',
       'cautious',
     ])
     expect(new Set(profiles.map((profile) => profile.id)).size).toBe(profiles.length)
@@ -34,15 +37,17 @@ describe('behavior profile content', () => {
   })
 
   it('defines distinct deterministic priorities and safety thresholds', () => {
-    const profiles = Object.values(BEHAVIOR_PROFILE_DEFINITIONS)
+    const profiles = BEHAVIOR_PROFILE_ORDER.map((profileId) =>
+      BEHAVIOR_PROFILE_DEFINITIONS[profileId],
+    )
     expect(profiles.map((profile) => profile.intentPriorities['combat-range'])).toEqual([
-      400,
       800,
+      400,
       300,
     ])
     expect(profiles.map((profile) => profile.thresholds.kiteThreatScore)).toEqual([
-      4,
       1_000_000,
+      4,
       1.5,
     ])
     expect(profiles.every((profile) => profile.intentPriorities.dodge === 1000)).toBe(true)

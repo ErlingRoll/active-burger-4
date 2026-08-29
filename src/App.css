@@ -330,6 +330,12 @@
   font-size: 0.82rem;
 }
 
+.playstyle-affinity {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .persistence-status,
 .persistence-error {
   margin: 1rem 0;
@@ -2233,6 +2239,16 @@
   color: #cbd5e1;
 }
 
+.skill-affinity-note {
+  margin: -0.65rem 0 1.25rem;
+  color: #93c5fd;
+  font-size: 0.82rem;
+}
+
+.skill-affinity-note strong {
+  color: #f8fafc;
+}
+
 .upgrade-choice-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2266,10 +2282,11 @@
 .upgrade-choice {
   display: flex;
   min-height: 9rem;
+  position: relative;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 1rem;
+  padding: 1rem 1rem 2.35rem;
   color: #e2e8f0;
   text-align: left;
   background: #1e293b;
@@ -2279,8 +2296,9 @@
 }
 
 .choice-keybind-hint {
-  align-self: flex-end;
-  margin: -0.35rem -0.35rem 0 0;
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.65rem;
 }
 
 .choice-card-wrap {
@@ -2536,6 +2554,39 @@
 .upgrade-choice-value {
   color: #93c5fd;
   font-weight: 700;
+}
+
+.upgrade-skill-context {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.upgrade-skill-context strong {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upgrade-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.upgrade-skill-tags-label {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.upgrade-skill-tag-list {
+  margin: 0;
 }
 
 .upgrade-choice-description {

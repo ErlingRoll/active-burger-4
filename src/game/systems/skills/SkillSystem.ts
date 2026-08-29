@@ -33,6 +33,7 @@ import {
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
+  RALLYING_STANDARD_EFFECT_RADIUS,
   RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
   RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
@@ -577,8 +578,9 @@ function collectRallyingStandardEffect(
   const healing = getSkillHealing(definition, skill.level)
   healPlayer(state, healing, definition.name, random)
 
-  state.player.rallyingStandardRemaining = RALLYING_STANDARD_BASE_DURATION_SECONDS +
+  const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
     (bulwark ? RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS : 0)
+  state.player.rallyingStandardRemaining = duration
   state.player.rallyingStandardDamageReductionPercent =
     RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT +
     (bulwark ? RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT : 0)
@@ -591,8 +593,8 @@ function collectRallyingStandardEffect(
     allocator,
     skill.skillId,
     [{ x: state.player.x, y: state.player.y }],
-    32,
-    definition.effectLifetime,
+    RALLYING_STANDARD_EFFECT_RADIUS,
+    duration,
   )
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)

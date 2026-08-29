@@ -46,34 +46,18 @@ const DODGE_PRIORITY = 1000
 
 export const DEFAULT_BEHAVIOR_PROFILE_ID: BehaviorProfileId = 'balanced'
 
+export const BEHAVIOR_PROFILE_ORDER = [
+  'aggressive',
+  'balanced',
+  'cautious',
+] as const satisfies readonly BehaviorProfileId[]
+
 /**
  * The three initially unlocked profiles intentionally share the same
  * emergency Dodge priority. Their non-emergency priorities and thresholds
  * are content data, so the evaluator does not need profile-specific branches.
  */
 export const BEHAVIOR_PROFILE_DEFINITIONS = {
-  balanced: {
-    id: 'balanced',
-    name: 'Balanced',
-    description: 'Collects safe reachable gear before normal combat pressure.',
-    intentPriorities: {
-      dodge: DODGE_PRIORITY,
-      gear: 800,
-      xp: 700,
-      kite: 600,
-      'combat-range': 400,
-      hold: 0,
-    },
-    thresholds: {
-      threatRadius: 180,
-      packRadius: 120,
-      safeGearDistance: 150,
-      safeGearThreatScore: 3,
-      kiteThreatScore: 4,
-    },
-    commitmentSeconds: 0.2,
-    hysteresisPriority: 25,
-  },
   aggressive: {
     id: 'aggressive',
     name: 'Aggressive',
@@ -92,6 +76,28 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
       safeGearDistance: 150,
       safeGearThreatScore: 0,
       kiteThreatScore: 1_000_000,
+    },
+    commitmentSeconds: 0.2,
+    hysteresisPriority: 25,
+  },
+    balanced: {
+    id: 'balanced',
+    name: 'Balanced',
+    description: 'Collects safe reachable gear before normal combat pressure.',
+    intentPriorities: {
+      dodge: DODGE_PRIORITY,
+      gear: 800,
+      xp: 700,
+      kite: 600,
+      'combat-range': 400,
+      hold: 0,
+    },
+    thresholds: {
+      threatRadius: 180,
+      packRadius: 120,
+      safeGearDistance: 150,
+      safeGearThreatScore: 3,
+      kiteThreatScore: 4,
     },
     commitmentSeconds: 0.2,
     hysteresisPriority: 25,

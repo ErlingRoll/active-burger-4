@@ -161,9 +161,9 @@ export interface UpgradeDefinition {
   lancersChargeVanguard?: boolean
   /** Enables the wider, weaker Impaler corridor for Lancer's Charge. */
   lancersChargeImpaler?: boolean
-  /** Enables the Commander cooldown-reduction banner for Rallying Standard. */
+  /** Enables the Commander cooldown-reduction banner for Rallying Banner. */
   rallyingStandardCommander?: boolean
-  /** Enables the stronger, longer Bulwark banner for Rallying Standard. */
+  /** Enables the stronger, longer Bulwark banner for Rallying Banner. */
   rallyingStandardBulwark?: boolean
   /** Enables the bigger pull and Chill application for Gravity Well. */
   gravityWellSingularity?: boolean

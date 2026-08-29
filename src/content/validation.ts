@@ -144,6 +144,7 @@ const VALID_SKILL_TAGS = new Set([
   'summon',
   'dot',
   'trigger',
+  'duration',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])

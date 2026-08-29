@@ -39,6 +39,7 @@ export const LANCERS_CHARGE_IMPALER_RANGE_BONUS = 50
 export const LANCERS_CHARGE_IMPALER_WIDTH_BONUS = 25
 export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 4
 export const RALLYING_STANDARD_BASE_DURATION_SECONDS = 6
+export const RALLYING_STANDARD_EFFECT_RADIUS = 96
 export const RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT = 10
 export const RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT = 15
 export const RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS = 4
@@ -267,7 +268,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Glacial Orb',
     description: 'Launches a cold orb at the nearest enemy that explodes and chills everyone caught in the blast.',
     kind: 'area',
-    tags: ['cold', 'area'],
+    tags: ['cold', 'projectile', 'area'],
     cooldown: 3.2,
     baseDamage: { cold: 9 },
     damagePerLevel: {},
@@ -304,16 +305,16 @@ export const SKILL_DEFINITIONS = {
   },
   [RALLYING_STANDARD_SKILL_ID]: {
     id: RALLYING_STANDARD_SKILL_ID,
-    name: 'Rallying Standard',
-    description: 'Plants a banner that restores health and reduces incoming damage for a short time. Deals no direct damage.',
+    name: 'Rallying Banner',
+    description: 'Plants a banner that restores health and reduces incoming damage for its duration. Deals no direct damage.',
     kind: 'utility',
-    tags: ['defensive'],
+    tags: ['defensive', 'duration'],
     cooldown: 16,
     baseDamage: {},
     damagePerLevel: {},
     baseHealing: 4,
     healingPerLevel: 2,
-    effectLifetime: 0.3,
+    effectLifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
     visual: {
       kind: 'utility',
       icon: '🚩',

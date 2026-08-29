@@ -29,6 +29,7 @@ export type SkillTag =
   | 'summon'
   | 'dot'
   | 'trigger'
+  | 'duration'
 
 export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
 

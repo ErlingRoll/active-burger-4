@@ -7,6 +7,7 @@ export type KeywordId =
   | 'shock'
   | 'overload'
   | 'cooldown-reduction'
+  | 'duration'
   | 'damage-over-time'
   | 'stack'
   | 'leech'
@@ -81,6 +82,13 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     summary: 'Makes skills ready again sooner.',
     details:
       'This percentage reduces a skill\'s cooldown. For example, 20% turns a 5-second cooldown into 4 seconds. Skill cooldowns cannot go below 0.1 seconds.',
+  },
+  duration: {
+    id: 'duration',
+    label: 'Duration',
+    summary: 'How long an effect remains active.',
+    details:
+      'A duration is the time an active skill effect remains in the world before it expires.',
   },
   'damage-over-time': {
     id: 'damage-over-time',

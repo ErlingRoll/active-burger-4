@@ -1066,6 +1066,9 @@ function RunSetupScreen({
                 >
                   <strong>{playstyle.name}</strong>
                   <span>{playstyle.description}</span>
+                  <small className="playstyle-affinity">
+                    Skill affinity: {playstyle.skillAffinity.label}
+                  </small>
                 </button>
               )
             })}

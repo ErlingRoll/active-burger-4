@@ -34,12 +34,17 @@ import {
   type GameKeybinds,
 } from '../input/Keybinds'
 import { KeywordText } from './KeywordTooltip'
+import {
+  getPlaystyleDefinition,
+  type PlaystyleId,
+} from '../content/playstyles/Playstyles'
 
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
   gearSets: GameUiSnapshot['gearSets']
   keybinds: GameKeybinds
+  playstyleId: PlaystyleId
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
   onSkip: () => void
 }
@@ -425,6 +430,11 @@ function UpgradeCard({
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
     ? getSkillDefinition(choice.skillId)
     : undefined
+  const relatedSkill = removedSkill ??
+    (definition.skillId ? getSkillDefinition(definition.skillId) : undefined)
+  const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
+    ? getSkillDefinition(definition.skillId)
+    : undefined
   return (
     <div className="choice-card-wrap">
       <button
@@ -444,11 +454,30 @@ function UpgradeCard({
           </span>
           <RarityBadge rarity={choice.rarity} />
         </span>
+        {relatedSkill ? (
+          <span className="upgrade-skill-context">
+            <strong>Skill:</strong>{' '}
+            <span aria-hidden="true">{relatedSkill.visual.icon}</span>{' '}
+            {relatedSkill.name}
+          </span>
+        ) : null}
         <span className="upgrade-choice-value">
           <KeywordText
             text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
           />
         </span>
+        {unlockedSkill ? (
+          <span className="upgrade-skill-tags" aria-label="Skill tags">
+            <span className="upgrade-skill-tags-label">Tags</span>
+            <span className="skill-tag-list upgrade-skill-tag-list" role="list">
+              {unlockedSkill.tags.map((tag) => (
+                <span className="skill-tag" role="listitem" key={tag}>
+                  <KeywordText text={tag} />
+                </span>
+              ))}
+            </span>
+          </span>
+        ) : null}
         <span className="upgrade-choice-description">
           <KeywordText
             text={removedSkill
@@ -466,6 +495,7 @@ export function LevelUpOverlay({
   equipment,
   gearSets,
   keybinds,
+  playstyleId,
   onSelect,
   onSkip,
 }: LevelUpOverlayProps) {
@@ -473,6 +503,7 @@ export function LevelUpOverlay({
   const firstButtonRef = useRef<HTMLButtonElement>(null)
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
+  const playstyle = getPlaystyleDefinition(playstyleId)
 
   useEffect(() => {
     if (isGearFlow) {
@@ -485,7 +516,7 @@ export function LevelUpOverlay({
   return (
     <>
       <div className="level-up-overlay" aria-hidden="true" />
-    <section
+      <section
       ref={dialogRef}
       className={`level-up-dialog ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
       role="dialog"
@@ -505,6 +536,12 @@ export function LevelUpOverlay({
             ? 'Choose one item. It equips immediately and replaces gear in the same slot.'
             : 'Choose one upgrade to continue the run.'}
         </p>
+        {!isGearFlow ? (
+          <p className="skill-affinity-note">
+            <strong>{playstyle.name} skill affinity:</strong>{' '}
+            {playstyle.skillAffinity.description}
+          </p>
+        ) : null}
         <div className="upgrade-choice-list">
           {flow.type === 'level-up'
             ? flow.choices.map((choice, index) => (
