@@ -1,5 +1,6 @@
 # TODO Pile
 
+- implement new flat damage sources
 - I want a cast on critical strike skill
 - skip choice keybind
 - jpg image as avatar
