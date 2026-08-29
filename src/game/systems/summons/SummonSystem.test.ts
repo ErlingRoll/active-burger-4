@@ -4,6 +4,7 @@ import { collectSkillDamage } from '../skills/SkillSystem'
 import { getSkeletonStats, removeDeadSummons, updateSummons } from './SummonSystem'
 import { createEntityIdAllocator } from '../../ids'
 import { applyUpgrade } from '../upgrades/UpgradeSystem'
+import { getPlayerArenaBounds } from '../../../game-config/arena'
 
 describe('updateSummons', () => {
   it('has the Necromancer starter skeleton attack the nearest in-range enemy deterministically', () => {
@@ -195,5 +196,23 @@ describe('updateSummons', () => {
     expect(targetId).toBe(game.state.enemies[0]!.id)
     expect(events).toEqual([])
     expect(distanceAfterCharge).toBeLessThan(initialDistance)
+  })
+
+  it('ignores enemies outside the play area and keeps summons inside it', () => {
+    const game = createGame({ seed: 17, playstyleId: 'necromancer' })
+    const outsideEnemyId = game.spawnSlime({ x: 1_501, y: 0 })
+    const allocator = createEntityIdAllocator()
+    collectSkillDamage(game.state, allocator)
+    const summon = game.state.summons[0]!
+    summon.x = 1_600
+    summon.y = 0
+
+    const events = updateSummons(game.state, 1 / 60, allocator)
+    const bounds = getPlayerArenaBounds(16)
+
+    expect(outsideEnemyId).toBe(game.state.enemies[0]!.id)
+    expect(events).toEqual([])
+    expect(summon.x).toBeLessThanOrEqual(bounds.maxX)
+    expect(summon.x).toBeLessThan(1_600)
   })
 })

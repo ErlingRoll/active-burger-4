@@ -12,10 +12,15 @@ import {
 import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
 import { createPlayerDamageEventFromStats } from '../../combat/DamageSources'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import {
+  clampPlayerPosition,
+  getPlayerArenaBounds,
+} from '../../../game-config/arena'
 
 const SUMMON_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 const SUMMON_AGGRO_RANGE = 560
 const SUMMON_MOVEMENT_SPEED = 180
+const SUMMON_RADIUS = 16
 
 function getRaiseSkeletonSkill(
   state: Readonly<GameState>,
@@ -148,6 +153,22 @@ function moveTowardsTarget(
   )
 }
 
+function isInsidePlayArea(
+  entity: Readonly<{ x: number; y: number; radius: number }>,
+): boolean {
+  const bounds = getPlayerArenaBounds(entity.radius)
+  return entity.x >= bounds.minX &&
+    entity.x <= bounds.maxX &&
+    entity.y >= bounds.minY &&
+    entity.y <= bounds.maxY
+}
+
+function clampSummonPosition(summon: SummonState): void {
+  const position = clampPlayerPosition(summon.x, summon.y, SUMMON_RADIUS)
+  summon.x = position.x
+  summon.y = position.y
+}
+
 export function getSkeletonStats(
   state: Readonly<GameState>,
 ): {
@@ -229,12 +250,14 @@ export function updateSummons(
   const playerStats = getDerivedPlayerStats(state.player)
   const targets = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
+    .filter((enemy) => isInsidePlayArea(enemy))
     .sort((left, right) => left.id - right.id)
 
   state.summons.forEach((summon, index) => {
     if (summon.hp <= 0) {
       return
     }
+    clampSummonPosition(summon)
     initializeSwarmMovement(summon, index)
     summon.attackCooldownRemaining = Math.max(
       0,
@@ -262,6 +285,7 @@ export function updateSummons(
     } else {
       moveInSwarm(summon, state.player.x, state.player.y, fixedStepSeconds)
     }
+    clampSummonPosition(summon)
 
     const contactTarget = targets.find((enemy) => {
       const distance = Math.hypot(enemy.x - summon.x, enemy.y - summon.y)
