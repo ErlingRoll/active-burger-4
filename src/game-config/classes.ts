@@ -11,12 +11,14 @@ import type { StatValues } from '../content/stats/Stats'
 export type PlaystyleId = 'knight' | 'ranger' | 'necromancer'
 
 export const PLAYSTYLE_IDS = ['knight', 'ranger', 'necromancer'] as const satisfies readonly PlaystyleId[]
+export const KNIGHT_EARLY_FLOOR_COUNT = 2
+export const KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT = 20
 
 export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefinition>> = {
   knight: {
     id: 'knight',
     name: 'Knight',
-    description: 'A durable close-range fighter who begins with Whirlwind.',
+    description: 'A durable close-range fighter who begins with Whirlwind and has Vanguard Guard through floor 2.',
     baseStats: { maxHp: 150, movementSpeed: 135, attackDamage: 14, attackSpeed: 1, attackRange: 45 } as StatValues,
     startingWeaponItemId: 'knight-training-sword' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],

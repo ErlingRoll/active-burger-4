@@ -923,6 +923,32 @@ describe('collectEnemyContactDamage', () => {
       expect(gameState.player.hp).toBe(91)
     })
 
+    it('gives Knight Vanguard Guard through floor 2 only', () => {
+      const knight = createGame({ seed: 20260829 })
+      const damage = [{
+        sourceId: 2,
+        targetId: knight.state.player.id,
+        damage: createDamageValues({ physical: 40 }),
+      }]
+
+      applyDamageEvents(knight.state, damage, neverCrit)
+      expect(knight.state.player.hp).toBe(118)
+
+      knight.state.player.hp = knight.state.player.maxHp
+      knight.state.run.floor = 2
+      applyDamageEvents(knight.state, damage, neverCrit)
+      expect(knight.state.player.hp).toBe(118)
+
+      knight.state.player.hp = knight.state.player.maxHp
+      knight.state.run.floor = 3
+      applyDamageEvents(knight.state, damage, neverCrit)
+      expect(knight.state.player.hp).toBe(110)
+
+      const ranger = createGame({ seed: 20260830, playstyleId: 'ranger' })
+      applyDamageEvents(ranger.state, damage, neverCrit)
+      expect(ranger.state.player.hp).toBe(45)
+    })
+
     it('drains the Aegis Pulse shield before player HP is reduced', () => {
       const gameState = state([enemy(2, 34)])
       gameState.player.aegisPulseShieldAmount = 6

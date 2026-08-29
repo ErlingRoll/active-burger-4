@@ -31,6 +31,10 @@ import {
 } from '../../../content/stats/Damage'
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import { getBossDefinition } from '../../../content/bosses/Bosses'
+import {
+  KNIGHT_EARLY_FLOOR_COUNT,
+  KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT,
+} from '../../../game-config/classes'
 import type { EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
@@ -935,7 +939,7 @@ export function applyDamageEvents(
   for (let eventIndex = 0; eventIndex < pendingEvents.length; eventIndex += 1) {
     const event = pendingEvents[eventIndex]!
     if (event.targetId === state.player.id) {
-      const playerDamageFactor = getIncomingPlayerDamageFactor(state.player)
+      const playerDamageFactor = getIncomingPlayerDamageFactor(state)
       const playerEvent = playerDamageFactor === 1
         ? event
         : { ...event, damage: scaleDamageValues(event.damage, playerDamageFactor) }
@@ -1091,8 +1095,16 @@ export function applyDamageEvents(
   }
 }
 
-function getIncomingPlayerDamageFactor(player: PlayerState): number {
+function getIncomingPlayerDamageFactor(state: GameState): number {
+  const player = state.player
   let reduction = 0
+  if (
+    player.playstyleId === 'knight' &&
+    (state.run.floor ?? 1) >= 1 &&
+    (state.run.floor ?? 1) <= KNIGHT_EARLY_FLOOR_COUNT
+  ) {
+    reduction += KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT
+  }
   if (player.hp / Math.max(1, player.maxHp) <= 0.4) {
     reduction += player.vitalityLowHpDamageReductionPercent ?? 0
   }

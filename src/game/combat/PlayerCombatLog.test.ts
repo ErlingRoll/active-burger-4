@@ -19,6 +19,7 @@ describe('player combat log', () => {
     const slimeId = game.spawnSlime({ x: 40, y: 0 })
     const state = mutableState(game)
     state.time = 5
+    state.player.playstyleId = 'ranger'
     state.player.hp = 30
 
     applyDamageEvents(state, [{

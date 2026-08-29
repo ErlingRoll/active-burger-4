@@ -80,7 +80,7 @@ describe('headless deterministic scenario regression', () => {
         id: 1,
         x: 110.07134578515733,
         y: -219.4815462054514,
-        hp: 144,
+        hp: 145.60000000000002,
         maxHp: 160,
         level: 2,
         xp: 18,
