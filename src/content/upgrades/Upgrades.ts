@@ -32,6 +32,26 @@ export type UpgradeId =
   | 'basic-attack-barrage'
   | 'basic-attack-precision'
   | 'fiery-touch-ember'
+  | 'glacial-orb-unlock'
+  | 'glacial-orb-level'
+  | 'glacial-orb-permafrost'
+  | 'glacial-orb-ice-lance'
+  | 'lancers-charge-unlock'
+  | 'lancers-charge-level'
+  | 'lancers-charge-vanguard'
+  | 'lancers-charge-impaler'
+  | 'rallying-standard-unlock'
+  | 'rallying-standard-level'
+  | 'rallying-standard-commander'
+  | 'rallying-standard-bulwark'
+  | 'gravity-well-unlock'
+  | 'gravity-well-level'
+  | 'gravity-well-singularity'
+  | 'gravity-well-event-horizon'
+  | 'aegis-pulse-unlock'
+  | 'aegis-pulse-level'
+  | 'aegis-pulse-bulwark'
+  | 'aegis-pulse-reprisal'
   | typeof REMOVE_SKILL_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
@@ -53,6 +73,16 @@ export type UpgradeBranch =
   | 'fiery-touch-ember'
   | 'basic-attack-barrage'
   | 'basic-attack-precision'
+  | 'glacial-orb-permafrost'
+  | 'glacial-orb-ice-lance'
+  | 'lancers-charge-vanguard'
+  | 'lancers-charge-impaler'
+  | 'rallying-standard-commander'
+  | 'rallying-standard-bulwark'
+  | 'gravity-well-singularity'
+  | 'gravity-well-event-horizon'
+  | 'aegis-pulse-bulwark'
+  | 'aegis-pulse-reprisal'
 
 export interface UpgradeChoice {
   upgradeId: Exclude<UpgradeId, typeof REMOVE_SKILL_UPGRADE_ID>
@@ -121,6 +151,28 @@ export interface UpgradeDefinition {
   fieryTouchDamageIncreasePercent?: number
   /** Flat max HP bonus applied to each skeleton. */
   summonMaxHpIncrease?: number
+  /** Additional Chill stacks applied by a Glacial Orb explosion. */
+  glacialOrbFrostStacks?: number
+  /** Enables single-target Ice Lance mode for Glacial Orb. */
+  glacialOrbIceLance?: boolean
+  /** Damage bonus vs Chilled/Frozen targets after choosing Ice Lance. */
+  glacialOrbIceLanceDamageIncreasePercent?: number
+  /** Enables the Vanguard Momentum/single-target bonus for Lancer's Charge. */
+  lancersChargeVanguard?: boolean
+  /** Enables the wider, weaker Impaler corridor for Lancer's Charge. */
+  lancersChargeImpaler?: boolean
+  /** Enables the Commander cooldown-reduction banner for Rallying Standard. */
+  rallyingStandardCommander?: boolean
+  /** Enables the stronger, longer Bulwark banner for Rallying Standard. */
+  rallyingStandardBulwark?: boolean
+  /** Enables the bigger pull and Chill application for Gravity Well. */
+  gravityWellSingularity?: boolean
+  /** Enables the pull-free, higher-damage mode for Gravity Well. */
+  gravityWellEventHorizon?: boolean
+  /** Enables the bigger, longer-lasting shield for Aegis Pulse. */
+  aegisPulseBulwark?: boolean
+  /** Enables the retaliation burst when Aegis Pulse's shield absorbs damage. */
+  aegisPulseReprisal?: boolean
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'

@@ -5,6 +5,12 @@ import {
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  GLACIAL_ORB_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
+  AEGIS_PULSE_REPRISAL_RATIO,
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 
@@ -25,6 +31,13 @@ const WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT = 15
 const BASIC_ATTACK_RANGE_INCREASE = 15
 const FIERY_TOUCH_DAMAGE_INCREASE_PERCENT = 25
 const SKELETON_MAX_HP_INCREASE = 12
+const GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const GLACIAL_ORB_PERMAFROST_FROST_STACKS = 1
+const GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT = 40
+const LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL = 2
+const GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -411,5 +424,306 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     isEligible: (state) =>
       state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('chain-lightning-overload'),
+  },
+  {
+    id: 'glacial-orb-unlock',
+    name: 'Glacial Orb',
+    description: 'Unlock a cold projectile that explodes and chills enemies caught in the blast.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: GLACIAL_ORB_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(GLACIAL_ORB_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('glacial-orb-unlock'),
+  },
+  {
+    id: 'glacial-orb-level',
+    name: 'Glacial Focus',
+    description: `Increase Glacial Orb damage by ${GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT}% Glacial Orb damage`,
+    skillId: GLACIAL_ORB_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[GLACIAL_ORB_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'glacial-orb-permafrost',
+    name: 'Permafrost',
+    description: 'Glacial Orb applies an extra Chill stack and its explosion radius is larger.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: GLACIAL_ORB_PERMAFROST_FROST_STACKS,
+    valueLabel: '+1 Chill stack, larger explosion radius',
+    skillId: GLACIAL_ORB_SKILL_ID,
+    branch: 'glacial-orb-permafrost',
+    glacialOrbFrostStacks: GLACIAL_ORB_PERMAFROST_FROST_STACKS,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(GLACIAL_ORB_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('glacial-orb-permafrost') &&
+      !state.selectedUpgradeIds.includes('glacial-orb-ice-lance'),
+  },
+  {
+    id: 'glacial-orb-ice-lance',
+    name: 'Ice Lance',
+    description: `Glacial Orb no longer explodes, but deals ${GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT}% more damage to Chilled or Frozen enemies.`,
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
+    valueLabel: `Single-target, +${GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT}% vs Chilled/Frozen`,
+    skillId: GLACIAL_ORB_SKILL_ID,
+    branch: 'glacial-orb-ice-lance',
+    glacialOrbIceLance: true,
+    glacialOrbIceLanceDamageIncreasePercent: GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(GLACIAL_ORB_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('glacial-orb-ice-lance') &&
+      !state.selectedUpgradeIds.includes('glacial-orb-permafrost'),
+  },
+  {
+    id: 'lancers-charge-unlock',
+    name: "Lancer's Charge",
+    description: 'Unlock a directional melee dash that strikes everything in its path.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: LANCERS_CHARGE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(LANCERS_CHARGE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('lancers-charge-unlock'),
+  },
+  {
+    id: 'lancers-charge-level',
+    name: 'Honed Point',
+    description: `Increase Lancer's Charge damage by ${LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT}% Lancer's Charge damage`,
+    skillId: LANCERS_CHARGE_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[LANCERS_CHARGE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'lancers-charge-vanguard',
+    name: 'Vanguard',
+    description: 'Momentum stacks grant a bigger damage bonus, and the charge hits harder when it strikes only one enemy.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Bigger Momentum bonus, +15% single-target damage',
+    skillId: LANCERS_CHARGE_SKILL_ID,
+    branch: 'lancers-charge-vanguard',
+    lancersChargeVanguard: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(LANCERS_CHARGE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('lancers-charge-vanguard') &&
+      !state.selectedUpgradeIds.includes('lancers-charge-impaler'),
+  },
+  {
+    id: 'lancers-charge-impaler',
+    name: 'Impaler',
+    description: "Lancer's Charge reaches farther and wider, but deals less damage per target.",
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Longer, wider corridor, -15% damage',
+    skillId: LANCERS_CHARGE_SKILL_ID,
+    branch: 'lancers-charge-impaler',
+    lancersChargeImpaler: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(LANCERS_CHARGE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('lancers-charge-impaler') &&
+      !state.selectedUpgradeIds.includes('lancers-charge-vanguard'),
+  },
+  {
+    id: 'rallying-standard-unlock',
+    name: 'Rallying Standard',
+    description: 'Unlock a support banner that heals you and reduces incoming damage.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: RALLYING_STANDARD_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-standard-unlock'),
+  },
+  {
+    id: 'rallying-standard-level',
+    name: 'Inspiring Banner',
+    description: `Increase Rallying Standard healing by ${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per cast.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per Rallying Standard cast`,
+    skillId: RALLYING_STANDARD_SKILL_ID,
+    skillAction: 'level',
+    skillHealingIncreaseAmount: RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL,
+    isEligible: (state) => (state.skillLevels[RALLYING_STANDARD_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'rallying-standard-commander',
+    name: 'Commander',
+    description: 'While the banner is active, skill cooldowns and skeleton attacks recover faster.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Skill cooldown reduction while active',
+    skillId: RALLYING_STANDARD_SKILL_ID,
+    branch: 'rallying-standard-commander',
+    rallyingStandardCommander: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-standard-commander') &&
+      !state.selectedUpgradeIds.includes('rallying-standard-bulwark'),
+  },
+  {
+    id: 'rallying-standard-bulwark',
+    name: 'Bulwark',
+    description: 'The banner reduces more incoming damage and lasts longer.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Bigger damage reduction, longer duration',
+    skillId: RALLYING_STANDARD_SKILL_ID,
+    branch: 'rallying-standard-bulwark',
+    rallyingStandardBulwark: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-standard-bulwark') &&
+      !state.selectedUpgradeIds.includes('rallying-standard-commander'),
+  },
+  {
+    id: 'gravity-well-unlock',
+    name: 'Gravity Well',
+    description: 'Unlock a pull-and-control zone that drags enemies in and deals chaos damage.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: GRAVITY_WELL_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(GRAVITY_WELL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('gravity-well-unlock'),
+  },
+  {
+    id: 'gravity-well-level',
+    name: 'Dense Singularity',
+    description: `Increase Gravity Well damage by ${GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT}% Gravity Well damage`,
+    skillId: GRAVITY_WELL_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[GRAVITY_WELL_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'gravity-well-singularity',
+    name: 'Singularity',
+    description: 'Gravity Well pulls enemies in from farther away and chills everyone it pulls.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Bigger pull radius and distance, applies Chill',
+    skillId: GRAVITY_WELL_SKILL_ID,
+    branch: 'gravity-well-singularity',
+    gravityWellSingularity: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(GRAVITY_WELL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('gravity-well-singularity') &&
+      !state.selectedUpgradeIds.includes('gravity-well-event-horizon'),
+  },
+  {
+    id: 'gravity-well-event-horizon',
+    name: 'Event Horizon',
+    description: 'Gravity Well no longer pulls enemies, but deals significantly more damage.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'No pull, +50% damage',
+    skillId: GRAVITY_WELL_SKILL_ID,
+    branch: 'gravity-well-event-horizon',
+    gravityWellEventHorizon: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(GRAVITY_WELL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('gravity-well-event-horizon') &&
+      !state.selectedUpgradeIds.includes('gravity-well-singularity'),
+  },
+  {
+    id: 'aegis-pulse-unlock',
+    name: 'Aegis Pulse',
+    description: 'Unlock a defensive burst that damages nearby enemies and grants a temporary shield.',
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: AEGIS_PULSE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('aegis-pulse-unlock'),
+  },
+  {
+    id: 'aegis-pulse-level',
+    name: 'Reinforced Aegis',
+    description: `Increase Aegis Pulse damage and shield amount by ${AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: 'common',
+    amount: 1,
+    valueLabel: `+${AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT}% Aegis Pulse damage`,
+    skillId: AEGIS_PULSE_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[AEGIS_PULSE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'aegis-pulse-bulwark',
+    name: 'Bulwark',
+    description: 'Aegis Pulse grants a bigger shield that lasts longer.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Bigger shield, longer duration',
+    skillId: AEGIS_PULSE_SKILL_ID,
+    branch: 'aegis-pulse-bulwark',
+    aegisPulseBulwark: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('aegis-pulse-bulwark') &&
+      !state.selectedUpgradeIds.includes('aegis-pulse-reprisal'),
+  },
+  {
+    id: 'aegis-pulse-reprisal',
+    name: 'Reprisal',
+    description: 'When the Aegis Pulse shield absorbs damage, it reflects a portion back at the attacker.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: `Reflects ${Math.round(AEGIS_PULSE_REPRISAL_RATIO * 100)}% of absorbed damage`,
+    skillId: AEGIS_PULSE_SKILL_ID,
+    branch: 'aegis-pulse-reprisal',
+    aegisPulseReprisal: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('aegis-pulse-reprisal') &&
+      !state.selectedUpgradeIds.includes('aegis-pulse-bulwark'),
   },
 ]

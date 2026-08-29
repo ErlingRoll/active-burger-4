@@ -10,6 +10,11 @@ export type SkillId =
   | 'vitality'
   | 'raise-skeleton'
   | 'fiery-touch'
+  | 'glacial-orb'
+  | 'lancers-charge'
+  | 'rallying-standard'
+  | 'gravity-well'
+  | 'aegis-pulse'
 
 export type SkillTag =
   | 'physical'
@@ -54,6 +59,9 @@ export interface SkillDefinition {
   damagePerLevel: PartialDamageValues
   baseHealing?: number
   healingPerLevel?: number
+  /** Base absorb-shield amount granted on cast (e.g. Aegis Pulse). */
+  shieldBaseAmount?: number
+  shieldAmountPerLevel?: number
   summonBaseDamage?: number
   summonDamageIncreasePercentPerLevel?: number
   summonBaseMaxHp?: number
@@ -99,6 +107,11 @@ export {
   VITALITY_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  GLACIAL_ORB_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
 } from '../../game-config/skills'
 
 export function getBasicAttackVariant(

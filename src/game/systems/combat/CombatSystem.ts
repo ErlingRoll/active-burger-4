@@ -5,6 +5,7 @@ import {
 import {
   BASIC_ATTACK_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
   getEffectiveSkillCooldown,
   getBasicAttackVariant,
   getSkillDefinition,
@@ -75,6 +76,7 @@ import {
   FROST_MAX_CHILL_STACKS,
   SHOCK_DEFAULT_DURATION_SECONDS,
   SHOCK_MAX_STACKS,
+  AEGIS_PULSE_REPRISAL_RATIO,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -943,13 +945,43 @@ export function applyDamageEvents(
         rng,
       )
       const source = getPlayerDamageSource(state, event)
+      let totalAbsorbedByShield = 0
       for (const damageType of DAMAGE_TYPES) {
-        const actualDamage = Math.min(state.player.hp, resolvedDamage.mitigated[damageType])
+        let actualDamage = Math.min(state.player.hp, resolvedDamage.mitigated[damageType])
+        if (actualDamage <= 0) {
+          continue
+        }
+        if (
+          (state.player.aegisPulseShieldRemaining ?? 0) > 0 &&
+          (state.player.aegisPulseShieldAmount ?? 0) > 0
+        ) {
+          const absorbed = Math.min(actualDamage, state.player.aegisPulseShieldAmount ?? 0)
+          state.player.aegisPulseShieldAmount = (state.player.aegisPulseShieldAmount ?? 0) - absorbed
+          totalAbsorbedByShield += absorbed
+          actualDamage -= absorbed
+        }
         if (actualDamage <= 0) {
           continue
         }
         state.player.hp -= actualDamage
         recordPlayerDamage(state, actualDamage, damageType, source)
+      }
+      if (
+        totalAbsorbedByShield > 0 &&
+        event.sourceId !== undefined &&
+        !event.damageOverTime &&
+        state.run.selectedUpgradeIds.includes('aegis-pulse-reprisal')
+      ) {
+        pendingEvents.push({
+          sourceId: state.player.id,
+          sourceSkillId: AEGIS_PULSE_SKILL_ID,
+          sourceTags: ['physical'],
+          sourceLabel: 'Reprisal',
+          targetId: event.sourceId,
+          damage: createDamageValues({
+            physical: totalAbsorbedByShield * AEGIS_PULSE_REPRISAL_RATIO,
+          }),
+        })
       }
       applyPoisonApplication(
         state,
@@ -1066,6 +1098,9 @@ function getIncomingPlayerDamageFactor(player: PlayerState): number {
   }
   if ((player.whirlwindGuardRemaining ?? 0) > 0) {
     reduction += player.whirlwindGuardDamageReductionPercent ?? 0
+  }
+  if ((player.rallyingStandardRemaining ?? 0) > 0) {
+    reduction += player.rallyingStandardDamageReductionPercent ?? 0
   }
   return Math.max(0, 1 - Math.min(75, reduction) / 100)
 }
@@ -1184,6 +1219,21 @@ export function updateFrost(
     0,
     (state.player.whirlwindGuardRemaining ?? 0) - elapsed,
   )
+  state.player.rallyingStandardRemaining = Math.max(
+    0,
+    (state.player.rallyingStandardRemaining ?? 0) - elapsed,
+  )
+  if (state.player.rallyingStandardRemaining <= 0) {
+    state.player.rallyingStandardDamageReductionPercent = 0
+    state.player.rallyingStandardCooldownReductionPercent = 0
+  }
+  state.player.aegisPulseShieldRemaining = Math.max(
+    0,
+    (state.player.aegisPulseShieldRemaining ?? 0) - elapsed,
+  )
+  if (state.player.aegisPulseShieldRemaining <= 0) {
+    state.player.aegisPulseShieldAmount = 0
+  }
 }
 
 function applyPoisonApplication(

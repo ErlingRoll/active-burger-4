@@ -740,6 +740,17 @@ function validateDefinitions(
           upgrade.chainLightningFrost === undefined &&
           upgrade.chainLightningOverload === undefined &&
           upgrade.fieryTouchDamageIncreasePercent === undefined &&
+          upgrade.glacialOrbFrostStacks === undefined &&
+          upgrade.glacialOrbIceLance === undefined &&
+          upgrade.glacialOrbIceLanceDamageIncreasePercent === undefined &&
+          upgrade.lancersChargeVanguard === undefined &&
+          upgrade.lancersChargeImpaler === undefined &&
+          upgrade.rallyingStandardCommander === undefined &&
+          upgrade.rallyingStandardBulwark === undefined &&
+          upgrade.gravityWellSingularity === undefined &&
+          upgrade.gravityWellEventHorizon === undefined &&
+          upgrade.aegisPulseBulwark === undefined &&
+          upgrade.aegisPulseReprisal === undefined &&
           upgrade.modifiers === undefined))
     ) {
       errors.push(

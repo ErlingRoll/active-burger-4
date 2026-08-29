@@ -15,6 +15,11 @@ export const CHAIN_LIGHTNING_SKILL_ID: SkillId = 'chain-lightning'
 export const VITALITY_SKILL_ID: SkillId = 'vitality'
 export const RAISE_SKELETON_SKILL_ID: SkillId = 'raise-skeleton'
 export const FIERY_TOUCH_SKILL_ID: SkillId = 'fiery-touch'
+export const GLACIAL_ORB_SKILL_ID: SkillId = 'glacial-orb'
+export const LANCERS_CHARGE_SKILL_ID: SkillId = 'lancers-charge'
+export const RALLYING_STANDARD_SKILL_ID: SkillId = 'rallying-standard'
+export const GRAVITY_WELL_SKILL_ID: SkillId = 'gravity-well'
+export const AEGIS_PULSE_SKILL_ID: SkillId = 'aegis-pulse'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
 export const FROST_MAX_CHILL_STACKS = 3
@@ -22,6 +27,30 @@ export const FROST_DEFAULT_DURATION_SECONDS = 4
 export const FROST_DEFAULT_FREEZE_DURATION_SECONDS = 1
 export const SHOCK_MAX_STACKS = 3
 export const SHOCK_DEFAULT_DURATION_SECONDS = 4
+export const GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT = 40
+export const GLACIAL_ORB_PERMAFROST_RADIUS_BONUS = 25
+export const GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS = 1
+export const LANCERS_CHARGE_MAX_MOMENTUM_STACKS = 3
+export const LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK = 6
+export const LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK = 10
+export const LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT = 15
+export const LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT = 15
+export const LANCERS_CHARGE_IMPALER_RANGE_BONUS = 50
+export const LANCERS_CHARGE_IMPALER_WIDTH_BONUS = 25
+export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 4
+export const RALLYING_STANDARD_BASE_DURATION_SECONDS = 6
+export const RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT = 10
+export const RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT = 15
+export const RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS = 4
+export const RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT = 12
+export const GRAVITY_WELL_BASE_PULL_DISTANCE = 60
+export const GRAVITY_WELL_SINGULARITY_PULL_BONUS = 40
+export const GRAVITY_WELL_SINGULARITY_RADIUS_BONUS = 30
+export const GRAVITY_WELL_EVENT_HORIZON_DAMAGE_INCREASE_PERCENT = 50
+export const AEGIS_PULSE_BASE_DURATION_SECONDS = 4
+export const AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS = 12
+export const AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS = 2
+export const AEGIS_PULSE_REPRISAL_RATIO = 0.5
 
 export const BASIC_ATTACK_VARIANTS = {
   sword: {
@@ -231,6 +260,106 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#f97316',
       secondaryColor: '#facc15',
       outlineColor: '#fff7ed',
+    },
+  },
+  [GLACIAL_ORB_SKILL_ID]: {
+    id: GLACIAL_ORB_SKILL_ID,
+    name: 'Glacial Orb',
+    description: 'Launches a cold orb at the nearest enemy that explodes and chills everyone caught in the blast.',
+    kind: 'area',
+    tags: ['cold', 'area'],
+    cooldown: 3.2,
+    baseDamage: { cold: 9 },
+    damagePerLevel: {},
+    radius: 55,
+    maxRange: 240,
+    effectLifetime: 0.22,
+    visual: {
+      kind: 'area',
+      icon: '❄',
+      primaryColor: '#38bdf8',
+      secondaryColor: '#bae6fd',
+      outlineColor: '#e0f2fe',
+    },
+  },
+  [LANCERS_CHARGE_SKILL_ID]: {
+    id: LANCERS_CHARGE_SKILL_ID,
+    name: "Lancer's Charge",
+    description: 'Dashes toward the nearest enemy, striking everything in a narrow corridor and building Momentum with each hit.',
+    kind: 'area',
+    tags: ['physical', 'melee', 'area'],
+    cooldown: 2.6,
+    baseDamage: { physical: 11 },
+    damagePerLevel: {},
+    radius: 36,
+    maxRange: 170,
+    effectLifetime: 0.16,
+    visual: {
+      kind: 'area',
+      icon: '➳',
+      primaryColor: '#fb923c',
+      secondaryColor: '#fdba74',
+      outlineColor: '#ffedd5',
+    },
+  },
+  [RALLYING_STANDARD_SKILL_ID]: {
+    id: RALLYING_STANDARD_SKILL_ID,
+    name: 'Rallying Standard',
+    description: 'Plants a banner that restores health and reduces incoming damage for a short time. Deals no direct damage.',
+    kind: 'utility',
+    tags: ['defensive'],
+    cooldown: 16,
+    baseDamage: {},
+    damagePerLevel: {},
+    baseHealing: 4,
+    healingPerLevel: 2,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '🚩',
+      primaryColor: '#facc15',
+      secondaryColor: '#fde68a',
+      outlineColor: '#fef9c3',
+    },
+  },
+  [GRAVITY_WELL_SKILL_ID]: {
+    id: GRAVITY_WELL_SKILL_ID,
+    name: 'Gravity Well',
+    description: 'Crushes the space around you, pulling nearby enemies in and dealing chaos damage.',
+    kind: 'area',
+    tags: ['chaos', 'area'],
+    cooldown: 5,
+    baseDamage: { chaos: 7 },
+    damagePerLevel: {},
+    radius: 130,
+    effectLifetime: 0.35,
+    visual: {
+      kind: 'area',
+      icon: '🌀',
+      primaryColor: '#7c3aed',
+      secondaryColor: '#c4b5fd',
+      outlineColor: '#ede9fe',
+    },
+  },
+  [AEGIS_PULSE_SKILL_ID]: {
+    id: AEGIS_PULSE_SKILL_ID,
+    name: 'Aegis Pulse',
+    description: 'Releases a defensive burst that damages nearby enemies and grants a temporary absorb shield.',
+    kind: 'area',
+    tags: ['physical', 'area', 'defensive'],
+    cooldown: 11,
+    baseDamage: { physical: 6 },
+    damagePerLevel: {},
+    radius: 70,
+    shieldBaseAmount: 14,
+    shieldAmountPerLevel: 6,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'area',
+      icon: '🛡',
+      primaryColor: '#0ea5e9',
+      secondaryColor: '#bae6fd',
+      outlineColor: '#e0f2fe',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

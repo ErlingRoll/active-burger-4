@@ -11,6 +11,9 @@ import {
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../../../game-config/skills'
 import type { UpgradeId } from '../../../content/upgrades/Upgrades'
@@ -170,6 +173,19 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.skeletonMaxCountBonus = 0
     state.player.skeletonMaxHpBonus = 0
     state.summons = []
+  }
+  if (skillId === LANCERS_CHARGE_SKILL_ID) {
+    state.player.lancerMomentumStacks = 0
+    state.player.lancerMomentumDecayRemaining = 0
+  }
+  if (skillId === RALLYING_STANDARD_SKILL_ID) {
+    state.player.rallyingStandardRemaining = 0
+    state.player.rallyingStandardDamageReductionPercent = 0
+    state.player.rallyingStandardCooldownReductionPercent = 0
+  }
+  if (skillId === AEGIS_PULSE_SKILL_ID) {
+    state.player.aegisPulseShieldAmount = 0
+    state.player.aegisPulseShieldRemaining = 0
   }
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)

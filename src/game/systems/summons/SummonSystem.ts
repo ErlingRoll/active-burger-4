@@ -162,12 +162,20 @@ export function getSkeletonStats(
     return undefined
   }
   const definition = getSkillDefinition(skill.skillId)
+  const rallyingStandardCooldownReduction =
+    (state.player.rallyingStandardRemaining ?? 0) > 0
+      ? state.player.rallyingStandardCooldownReductionPercent ?? 0
+      : 0
   return {
     damage: getSkeletonDamage(skill),
     maxHp: (definition.summonBaseMaxHp ?? 10) +
       (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1) +
       (state.player.skeletonMaxHpBonus ?? 0),
-    attackCooldown: definition.summonAttackCooldown ?? 1,
+    attackCooldown: Math.max(
+      0.1,
+      (definition.summonAttackCooldown ?? 1) *
+        (1 - Math.max(0, rallyingStandardCooldownReduction) / 100),
+    ),
     attackRange: definition.summonAttackRange ?? 70,
     maximum: getMaximumSkeletons(state, skill),
   }

@@ -19,6 +19,11 @@ export {
   SKILL_DEFINITIONS,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  GLACIAL_ORB_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
   getBasicAttackVariant,
 } from './SkillConfigs'
 export type {
@@ -73,5 +78,16 @@ export function getSkillHealing(
     0,
     (definition.baseHealing ?? 0) +
       (definition.healingPerLevel ?? 0) * Math.max(0, level - 1),
+  )
+}
+
+export function getSkillShieldAmount(
+  definition: SkillDefinition,
+  level: number,
+): number {
+  return Math.max(
+    0,
+    (definition.shieldBaseAmount ?? 0) +
+      (definition.shieldAmountPerLevel ?? 0) * Math.max(0, level - 1),
   )
 }

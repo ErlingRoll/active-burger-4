@@ -212,6 +212,20 @@ export interface PlayerState {
   whirlwindGuardRemaining?: number
   whirlwindGuardDamageReductionPercent?: number
   fieryTouchDamageIncreasePercent?: number
+  /** Current Lancer's Charge Momentum stacks (capped, decays after inactivity). */
+  lancerMomentumStacks?: number
+  /** Seconds remaining before Lancer's Charge Momentum stacks decay to zero. */
+  lancerMomentumDecayRemaining?: number
+  /** Seconds remaining on the active Rallying Standard banner. */
+  rallyingStandardRemaining?: number
+  /** Damage reduction percent granted while the Rallying Standard banner is active. */
+  rallyingStandardDamageReductionPercent?: number
+  /** Skill cooldown reduction percent granted while the Rallying Standard banner is active. */
+  rallyingStandardCooldownReductionPercent?: number
+  /** Remaining absorb-shield amount granted by Aegis Pulse. */
+  aegisPulseShieldAmount?: number
+  /** Seconds remaining before the Aegis Pulse shield expires. */
+  aegisPulseShieldRemaining?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
   /** Minimum rarity for future gear drops, raised by one-time gear blessings. */

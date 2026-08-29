@@ -907,4 +907,84 @@ describe('collectEnemyContactDamage', () => {
     applyDamageEvents(gameState, [poisonTick!], neverCrit)
     expect(gameState.player.hp).toBeCloseTo(93.75)
   })
+
+  describe('Rallying Standard and Aegis Pulse player defenses', () => {
+    it('reduces incoming player damage while the Rallying Standard banner is active', () => {
+      const gameState = state([enemy(2, 34)])
+      gameState.player.rallyingStandardRemaining = 6
+      gameState.player.rallyingStandardDamageReductionPercent = 10
+
+      applyDamageEvents(gameState, [{
+        sourceId: 2,
+        targetId: gameState.player.id,
+        damage: createDamageValues({ physical: 10 }),
+      }], neverCrit)
+
+      expect(gameState.player.hp).toBe(91)
+    })
+
+    it('drains the Aegis Pulse shield before player HP is reduced', () => {
+      const gameState = state([enemy(2, 34)])
+      gameState.player.aegisPulseShieldAmount = 6
+      gameState.player.aegisPulseShieldRemaining = 4
+
+      applyDamageEvents(gameState, [{
+        sourceId: 2,
+        targetId: gameState.player.id,
+        damage: createDamageValues({ physical: 10 }),
+      }], neverCrit)
+
+      expect(gameState.player.aegisPulseShieldAmount).toBe(0)
+      expect(gameState.player.hp).toBe(96)
+    })
+
+    it('reflects half of the shield-absorbed damage back at the attacker when Reprisal is selected', () => {
+      const gameState = state([enemy(2, 34)])
+      gameState.run.selectedUpgradeIds = ['aegis-pulse-reprisal']
+      gameState.player.aegisPulseShieldAmount = 6
+      gameState.player.aegisPulseShieldRemaining = 4
+
+      applyDamageEvents(gameState, [{
+        sourceId: 2,
+        targetId: gameState.player.id,
+        damage: createDamageValues({ physical: 10 }),
+      }], neverCrit)
+
+      expect(gameState.player.hp).toBe(96)
+      expect(gameState.enemies[0]?.hp).toBe(17)
+    })
+
+    it('does not trigger Reprisal for damage-over-time ticks', () => {
+      const gameState = state([enemy(2, 34)])
+      gameState.run.selectedUpgradeIds = ['aegis-pulse-reprisal']
+      gameState.player.aegisPulseShieldAmount = 6
+      gameState.player.aegisPulseShieldRemaining = 4
+
+      applyDamageEvents(gameState, [{
+        sourceId: 2,
+        targetId: gameState.player.id,
+        damage: createDamageValues({ physical: 10 }),
+        damageOverTime: true,
+      }], neverCrit)
+
+      expect(gameState.enemies[0]?.hp).toBe(20)
+    })
+
+    it('decays Rallying Standard and Aegis Pulse timers and clears their bonuses on expiry', () => {
+      const gameState = state([])
+      gameState.player.rallyingStandardRemaining = 0.5
+      gameState.player.rallyingStandardDamageReductionPercent = 10
+      gameState.player.rallyingStandardCooldownReductionPercent = 12
+      gameState.player.aegisPulseShieldRemaining = 0.5
+      gameState.player.aegisPulseShieldAmount = 8
+
+      updateFrost(gameState, 1)
+
+      expect(gameState.player.rallyingStandardRemaining).toBe(0)
+      expect(gameState.player.rallyingStandardDamageReductionPercent).toBe(0)
+      expect(gameState.player.rallyingStandardCooldownReductionPercent).toBe(0)
+      expect(gameState.player.aegisPulseShieldRemaining).toBe(0)
+      expect(gameState.player.aegisPulseShieldAmount).toBe(0)
+    })
+  })
 })

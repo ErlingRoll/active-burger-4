@@ -28,6 +28,12 @@ import {
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
+  GLACIAL_ORB_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
@@ -946,7 +952,9 @@ export function createUiSnapshot(
             { physical: playerStats.attackDamage },
           )
         : getSkillDamage(definition, skill.level)
-    const outgoingDamage = skill.skillId === VITALITY_SKILL_ID
+    const dealsNoDirectDamage = skill.skillId === VITALITY_SKILL_ID ||
+      skill.skillId === RALLYING_STANDARD_SKILL_ID
+    const outgoingDamage = dealsNoDirectDamage
       ? {
           damage: createDamageValues(),
           criticalStrike: {
@@ -1062,13 +1070,28 @@ export function createUiSnapshot(
             ? 'One persistent skeleton attacks the nearest target in range once per second.'
           : skill.skillId === FIERY_TOUCH_SKILL_ID
             ? 'Triggers on direct player or summon hits, subject to its cooldown.'
-          : skill.skillId === 'whirlwind'
+          : skill.skillId === WHIRLWIND_SKILL_ID
           ? 'One target in Whirlwind range, sustained over its cooldown.'
-          : 'Primary target sustained over Chain Lightning cooldown.',
+          : skill.skillId === CHAIN_LIGHTNING_SKILL_ID
+          ? 'Primary target sustained over Chain Lightning cooldown.'
+          : skill.skillId === GLACIAL_ORB_SKILL_ID
+          ? 'Nearest target in range, sustained over Glacial Orb cooldown.'
+          : skill.skillId === LANCERS_CHARGE_SKILL_ID
+          ? 'One target struck by the charge corridor, sustained over its cooldown.'
+          : skill.skillId === RALLYING_STANDARD_SKILL_ID
+          ? 'Restores health and grants defensive bonuses automatically every cooldown.'
+          : skill.skillId === GRAVITY_WELL_SKILL_ID
+          ? 'One target caught in the well, sustained over Gravity Well cooldown.'
+          : skill.skillId === AEGIS_PULSE_SKILL_ID
+          ? 'One target caught in the pulse, sustained over Aegis Pulse cooldown.'
+          : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
         ? getSkillHealing(definition, skill.level) *
           (1 + playerStats.increasedHealing / 100)
-        : null,
+        : skill.skillId === RALLYING_STANDARD_SKILL_ID
+          ? getSkillHealing(definition, skill.level) *
+            (1 + playerStats.increasedHealing / 100)
+          : null,
       skillModifiers,
       gearModifiers: Object.freeze(gearModifiers),
       upgrades: Object.freeze(upgrades),
