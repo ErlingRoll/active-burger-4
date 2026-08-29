@@ -391,6 +391,7 @@ function App() {
       behaviorProfileId: settings.selectedBehaviorProfileId,
       playstyleId: settings.selectedPlaystyleId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
+      startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}

@@ -4,6 +4,10 @@ import {
   XP_MULTIPLIER_MAX_LEVEL,
   getXpMultiplierForLevel,
 } from '../content/progression/XpMultiplier'
+import {
+  STARTING_LEVEL_MAX_RANK,
+  getStartingLevelForRank,
+} from '../content/progression/StartingLevel'
 
 export interface MetaWallet {
   essenceBalance: number
@@ -26,6 +30,8 @@ export interface MetaProgressionSnapshot {
   unlockedIds: string[]
   xpMultiplierLevel: number
   xpMultiplier: number
+  startingLevelRank: number
+  startingLevel: number
 }
 
 export interface MetaProgressionService {
@@ -132,6 +138,25 @@ export function getXpMultiplierLevel(
   )
 }
 
+export function getStartingLevelRank(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  return Math.min(
+    STARTING_LEVEL_MAX_RANK,
+    definitions.reduce((highestRank, definition) => {
+      if (definition.category !== 'starting-level' || !unlocked.has(definition.id)) {
+        return highestRank
+      }
+      const rank = definition.payload.rank
+      return typeof rank === 'number' && Number.isInteger(rank)
+        ? Math.max(highestRank, rank)
+        : highestRank
+    }, 0),
+  )
+}
+
 function toSnapshot(
   walletRow: unknown,
   definitionRows: unknown,
@@ -160,12 +185,15 @@ function toSnapshot(
   }))
   const unlockedIds = unlockRows.map((unlock) => unlock.unlock_id).sort()
   const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
+  const startingLevelRank = getStartingLevelRank(definitions, unlockedIds)
   return {
     wallet,
     definitions,
     unlockedIds,
     xpMultiplierLevel,
     xpMultiplier: getXpMultiplierForLevel(xpMultiplierLevel),
+    startingLevelRank,
+    startingLevel: getStartingLevelForRank(startingLevelRank),
   }
 }
 

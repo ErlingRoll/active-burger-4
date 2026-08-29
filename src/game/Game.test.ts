@@ -37,6 +37,33 @@ describe('Game', () => {
     expect(game.state.player.xp).toBe(11)
   })
 
+  it('starts at the purchased level and queues skipped level-up choices', () => {
+    const game = createGame({ seed: 107, startingLevel: 4 })
+
+    expect(game.state.player.level).toBe(4)
+    expect(game.state.player.xp).toBe(0)
+    expect(game.state.player.maxHp).toBeGreaterThan(
+      createGame({ seed: 108 }).state.player.maxHp,
+    )
+    expect(game.phase).toBe('level-up')
+    expect(game.getPendingChoiceFlows().map((flow) =>
+      flow.type === 'level-up' ? flow.level : flow.type,
+    )).toEqual([2, 3, 4])
+    expect(game.getPendingChoiceFlows().every((flow) =>
+      flow.type === 'level-up' && flow.choices.length === 3,
+    )).toBe(true)
+
+    while (game.phase === 'level-up') {
+      const flow = game.getPendingChoiceFlow()
+      expect(flow?.type).toBe('level-up')
+      if (flow?.type === 'level-up') {
+        expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
+      }
+    }
+    expect(game.phase).toBe('playing')
+    expect(game.state.run.selectedUpgradeIds).toHaveLength(3)
+  })
+
   it('equips each playstyle with its authored starter weapon', () => {
     expect(createGame({ seed: 101, playstyleId: 'knight' }).state.player.equipment?.weapon)
       .toMatchObject({ itemId: 'knight-training-sword' })

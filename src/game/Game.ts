@@ -82,6 +82,7 @@ import {
 import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import type { EliteModifierId } from '../content/enemies/EliteModifiers'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
+import { refreshPlayerDerivedStats } from './stats/DerivedStats'
 import {
   collectSkillDamage,
   updateSkillCooldowns,
@@ -288,6 +289,7 @@ export class Game {
         this.idAllocator.createEntityId(),
         this.worldModifierEffects,
         isPlaystyleId(config.playstyleId) ? config.playstyleId : DEFAULT_PLAYSTYLE_ID,
+        config.startingLevel,
       ),
       enemies: [],
       bosses: [],
@@ -304,12 +306,18 @@ export class Game {
       tick: 0,
       paused: false,
     }
+    refreshPlayerDerivedStats(this.gameState.player)
+    this.gameState.player.hp = this.gameState.player.maxHp
     if (isBehaviorProfileId(config.behaviorProfileId)) {
       this.gameState.player.behaviorController!.profileId = config.behaviorProfileId
     }
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.
     this.transitionTo('playing')
+    const startingLevel = this.gameState.player.level
+    if (startingLevel > 1) {
+      this.enqueueLevelUpFlows(startingLevel - 1)
+    }
   }
 
   /** Read-only projection of the current simulation state. */
@@ -908,11 +916,14 @@ export class Game {
     })
   }
 
-  private enqueueLevelUpFlows(levelsGained: number): void {
+  private enqueueLevelUpFlows(
+    levelsGained: number,
+    firstLevel = this.gameState.player.level - levelsGained + 1,
+  ): void {
     for (let index = 0; index < levelsGained; index += 1) {
       this.choiceFlows.push({
         type: 'level-up',
-        level: this.gameState.player.level - levelsGained + index + 1,
+        level: firstLevel + index,
         choices: generateUpgradeChoices(
           this.gameState,
           UPGRADE_CHOICES_PER_LEVEL,

@@ -7,6 +7,11 @@ import {
   type EliteModifierId,
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
+import {
+  STARTING_LEVEL_BASE,
+  getStartingLevelForRank,
+} from '../../../content/progression/StartingLevel'
+import { getLevelMaxHpBonus } from '../../../content/progression/LevelScaling'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDropConfig'
 import { getItemDefinition } from '../../../content/gear/Items'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
@@ -72,6 +77,7 @@ export function createInitialPlayerState(
   id: EntityId,
   effects?: Pick<WorldModifierEffects, 'playerStatMultipliers'>,
   playstyleId: PlaystyleId = DEFAULT_PLAYSTYLE_ID,
+  startingLevel = 1,
 ): PlayerState {
   const playstyle = getPlaystyleDefinition(playstyleId)
   const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
@@ -81,9 +87,13 @@ export function createInitialPlayerState(
       (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
     ),
   ]
-  const maxHp = playstyle.baseStats.maxHp * (playerStatMultipliers.maxHp ?? 1)
-  const movementSpeed = playstyle.baseStats.movementSpeed * (playerStatMultipliers.movementSpeed ?? 1)
-  const attackDamage = playstyle.baseStats.attackDamage * (playerStatMultipliers.attackDamage ?? 1)
+    const initialLevel = Number.isFinite(startingLevel)
+      ? getStartingLevelForRank(startingLevel - STARTING_LEVEL_BASE)
+      : STARTING_LEVEL_BASE
+    const baseMaxHp = playstyle.baseStats.maxHp * (playerStatMultipliers.maxHp ?? 1)
+    const maxHp = baseMaxHp + getLevelMaxHpBonus(initialLevel)
+    const movementSpeed = playstyle.baseStats.movementSpeed * (playerStatMultipliers.movementSpeed ?? 1)
+    const attackDamage = playstyle.baseStats.attackDamage * (playerStatMultipliers.attackDamage ?? 1)
   return {
     id,
     playstyleId,
@@ -95,7 +105,7 @@ export function createInitialPlayerState(
     skillSlotCount: DEFAULT_SKILL_SLOT_COUNT,
     hp: maxHp,
     maxHp,
-    level: 1,
+    level: initialLevel,
     xp: 0,
     movementSpeed,
     attackDamage,
@@ -112,7 +122,7 @@ export function createInitialPlayerState(
     gearRarityFloor: 'common',
     pickupCollectionRangeMultiplier: 1,
     baseStats: {
-      maxHp,
+      maxHp: baseMaxHp,
       movementSpeed,
       attackDamage,
       attackSpeed: playstyle.baseStats.attackSpeed,

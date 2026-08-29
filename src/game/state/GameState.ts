@@ -123,6 +123,8 @@ export interface RunConfig {
   unlockedDungeonMaxFloorIds?: readonly string[]
   /** Purchased permanent XP multiplier level, from 0 through 10. */
   xpMultiplierLevel?: number
+  /** Purchased permanent starting-level result, from level 1 through 4. */
+  startingLevel?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId

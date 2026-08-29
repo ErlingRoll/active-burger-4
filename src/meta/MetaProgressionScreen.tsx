@@ -46,6 +46,36 @@ function getNextXpUpgrade(
   ) ?? null
 }
 
+function getStartingLevelUpgradeState(
+  definition: MetaUnlockDefinition,
+  snapshot: MetaProgressionSnapshot,
+): { label: string; disabled: boolean } {
+  const rank = typeof definition.payload.rank === 'number'
+    ? definition.payload.rank
+    : null
+  if (rank === null || rank <= snapshot.startingLevelRank) {
+    return { label: 'Owned', disabled: true }
+  }
+  if (rank !== snapshot.startingLevelRank + 1) {
+    return { label: `Locked - requires rank ${rank - 1}`, disabled: true }
+  }
+  if (snapshot.wallet.essenceBalance < definition.cost) {
+    return { label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`, disabled: true }
+  }
+  return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
+}
+
+function getNextStartingLevelUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+  currentRank: number,
+): MetaUnlockDefinition | null {
+  const nextRank = currentRank + 1
+  return definitions.find((definition) =>
+    definition.category === 'starting-level' &&
+    definition.payload.rank === nextRank,
+  ) ?? null
+}
+
 export function MetaProgressionScreen({
   snapshot,
   loadState,
@@ -62,7 +92,7 @@ export function MetaProgressionScreen({
         <div className="dashboard-panel" role="status">
           <p className="screen-kicker">Meta progression</p>
           <h2 id="meta-progression-loading-title">Loading account progression...</h2>
-          <p>Loading Essence balance and XP multiplier upgrades.</p>
+          <p>Loading Essence balance and permanent upgrades.</p>
           <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
         </div>
       </section>
@@ -93,6 +123,19 @@ export function MetaProgressionScreen({
   const nextUpgradeState = nextUpgrade === null
     ? null
     : getXpUpgradeState(nextUpgrade, snapshot)
+  const nextStartingLevelUpgrade = getNextStartingLevelUpgrade(
+    snapshot.definitions,
+    snapshot.startingLevelRank,
+  )
+  const nextStartingLevelRank = typeof nextStartingLevelUpgrade?.payload.rank === 'number'
+    ? nextStartingLevelUpgrade.payload.rank
+    : null
+  const nextStartingLevel = typeof nextStartingLevelUpgrade?.payload.startingLevel === 'number'
+    ? nextStartingLevelUpgrade.payload.startingLevel
+    : null
+  const nextStartingLevelUpgradeState = nextStartingLevelUpgrade === null
+    ? null
+    : getStartingLevelUpgradeState(nextStartingLevelUpgrade, snapshot)
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -101,7 +144,7 @@ export function MetaProgressionScreen({
           <div>
             <p className="screen-kicker">Essence store</p>
             <h2 id="meta-progression-title">Spend your Essence.</h2>
-            <p>Bank earned Essence between runs and make every XP pickup count for more.</p>
+            <p>Bank earned Essence between runs and make each new run stronger.</p>
           </div>
           <button className="secondary-action meta-shop-back" type="button" onClick={onBack}>
             <span aria-hidden="true">←</span>
@@ -151,6 +194,44 @@ export function MetaProgressionScreen({
             ) : (
               <p className="persistence-status" role="status">
                 XP multiplier fully upgraded.
+              </p>
+            )}
+            {nextStartingLevelUpgrade &&
+            nextStartingLevelUpgradeState &&
+            nextStartingLevelRank !== null &&
+            nextStartingLevel !== null ? (
+              <div className="dashboard-choice meta-unlock-card" key={nextStartingLevelUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>Starting level</span>
+                  <strong>Level {snapshot.startingLevel}</strong>
+                </div>
+                <div className="meta-unlock-card-heading">
+                  <strong>Starting Level</strong>
+                  <span>Rank {nextStartingLevelRank}</span>
+                </div>
+                <div className="meta-unlock-card-benefit">
+                  <strong>Start at level {nextStartingLevel}</strong>
+                  <span>Level {snapshot.startingLevel} → {nextStartingLevel}</span>
+                </div>
+                <span className="meta-unlock-state">{nextStartingLevelUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={
+                    nextStartingLevelUpgradeState.disabled ||
+                    purchaseState === 'purchasing'
+                  }
+                  onClick={() => { onPurchaseUnlock(nextStartingLevelUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' &&
+                  activePurchaseUnlockId === nextStartingLevelUpgrade.id
+                    ? 'Purchasing...'
+                    : `Purchase for ${formatCurrency(nextStartingLevelUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : (
+              <p className="persistence-status" role="status">
+                Starting level fully upgraded.
               </p>
             )}
           </div>
