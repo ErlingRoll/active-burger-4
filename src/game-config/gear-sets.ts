@@ -51,9 +51,9 @@ export const GEAR_SET_DEFINITIONS = {
       EquipmentSlot.Amulet,
     ],
     bonuses: [
-      { requiredPieces: 2, kind: 'cooldown-reduction', value: 5, label: '+5% Cooldown reduction' },
-      { requiredPieces: 4, kind: 'cooldown-reduction', value: 12, label: '+12% Cooldown reduction' },
-      { requiredPieces: 6, kind: 'cooldown-reduction', value: 20, label: '+20% Cooldown reduction' },
+      { requiredPieces: 2, kind: 'cooldown-reduction', value: 10, label: '+10% Cooldown reduction' },
+      { requiredPieces: 4, kind: 'cooldown-reduction', value: 20, label: '+20% Cooldown reduction' },
+      { requiredPieces: 6, kind: 'cooldown-reduction', value: 30, label: '+30% Cooldown reduction' },
     ],
   },
   splintering: {

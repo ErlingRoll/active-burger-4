@@ -52,7 +52,7 @@ describe('equipment gear sets', () => {
     equipItem(astralGame.state.player, 'astral-helm')
     equipItem(astralGame.state.player, 'astral-raiment')
     equipItem(astralGame.state.player, 'astral-sabatons')
-    expect(getDerivedPlayerStats(astralGame.state.player).cooldownReduction).toBe(17)
+    expect(getDerivedPlayerStats(astralGame.state.player).cooldownReduction).toBe(30)
 
     const splinteringGame = createGame({ seed: 74 })
     equipItem(splinteringGame.state.player, 'hunters-bow')
