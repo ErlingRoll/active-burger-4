@@ -27,6 +27,11 @@ import {
   type MetaProgressionSnapshot,
 } from './meta'
 import { MetaProgressionScreen } from './meta/MetaProgressionScreen'
+import {
+  createEssenceLeaderboardService,
+  type EssenceLeaderboardService,
+} from './leaderboard/EssenceLeaderboardService'
+import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
 import { GameCanvas } from './rendering/GameCanvas'
 import {
   getWorldModifierDefinitions,
@@ -229,6 +234,22 @@ function App() {
     try {
       return {
         service: createMetaProgressionService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const essenceLeaderboard = useMemo(() => {
+    try {
+      return {
+        service: createEssenceLeaderboardService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         }, () => authenticationService.service?.getClient()),
@@ -787,7 +808,10 @@ function App() {
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
         <GameDashboard
+          accountId={authentication.account.id}
           essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+          leaderboardService={essenceLeaderboard.service}
+          leaderboardConfigurationError={essenceLeaderboard.configurationError}
           onOpenMetaProgression={openMetaProgression}
           onOpenRunSetup={openRunSetup}
         />
@@ -881,13 +905,19 @@ function AppHeader({
 }
 
 interface GameDashboardProps {
+  accountId: string
   essenceBalance: number | null
+  leaderboardService: EssenceLeaderboardService | null
+  leaderboardConfigurationError: string | null
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
 }
 
 function GameDashboard({
+  accountId,
   essenceBalance,
+  leaderboardService,
+  leaderboardConfigurationError,
   onOpenRunSetup,
   onOpenMetaProgression,
 }: GameDashboardProps) {
@@ -945,7 +975,11 @@ function GameDashboard({
             </button>
           </div>
         </section>
-
+        <EssenceLeaderboard
+          accountId={accountId}
+          service={leaderboardService}
+          configurationError={leaderboardConfigurationError}
+        />
       </div>
     </section>
   )

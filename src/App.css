@@ -3694,6 +3694,108 @@
   border-color: #fdba74;
 }
 
+.essence-leaderboard {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgb(96 165 250 / 20%);
+}
+
+.essence-leaderboard-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.essence-leaderboard-heading h3 {
+  margin: 0.35rem 0 0;
+  color: #f8fafc;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  letter-spacing: -0.04em;
+}
+
+.essence-leaderboard-heading > span {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.essence-leaderboard-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.essence-leaderboard-row {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 3.25rem;
+  padding: 0.55rem 0.8rem;
+  color: #cbd5e1;
+  background: rgb(30 41 59 / 62%);
+  border: 1px solid rgb(148 163 184 / 15%);
+  border-radius: 0.5rem;
+}
+
+.essence-leaderboard-row-current {
+  background:
+    linear-gradient(90deg, rgb(30 64 175 / 22%), transparent 70%),
+    rgb(30 41 59 / 72%);
+  border-color: rgb(96 165 250 / 52%);
+}
+
+.essence-leaderboard-rank {
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.essence-leaderboard-player {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  overflow-wrap: anywhere;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.essence-leaderboard-player small {
+  flex-shrink: 0;
+  padding: 0.15rem 0.4rem;
+  color: #bfdbfe;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(37 99 235 / 28%);
+  border: 1px solid rgb(96 165 250 / 35%);
+  border-radius: 999px;
+}
+
+.essence-leaderboard-row > strong {
+  color: #fbbf24;
+  font-size: 1rem;
+}
+
+.essence-leaderboard-message,
+.essence-leaderboard-refresh-error {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.essence-leaderboard-refresh-error {
+  margin-top: 0.75rem;
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+
 .run-setup {
   background:
     radial-gradient(circle at 8% 8%, rgb(251 146 60 / 12%), transparent 24rem),
@@ -3748,4 +3850,8 @@
     justify-content: center;
   }
 
+  .essence-leaderboard-heading {
+    align-items: start;
+    flex-direction: column;
+  }
 }
