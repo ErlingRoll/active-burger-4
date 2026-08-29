@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { RunResultSnapshot, RunConfig } from './game'
 import {
-  BEHAVIOR_PROFILE_DEFINITIONS,
   DEFAULT_DUNGEON_CONFIG,
   type BehaviorProfileId,
 } from './game'
@@ -46,6 +45,25 @@ import './App.css'
 
 type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
+
+const APP_ROUTE_PATHS: Record<AppScreen, string> = {
+  dashboard: '/',
+  'run-setup': '/prepare',
+  'meta-progression': '/store',
+  gameplay: '/',
+  results: '/',
+}
+
+function getScreenForPath(pathname: string): AppScreen {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  if (normalizedPath === APP_ROUTE_PATHS['run-setup']) {
+    return 'run-setup'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS['meta-progression']) {
+    return 'meta-progression'
+  }
+  return 'dashboard'
+}
 interface PersistenceState {
   loadState: PersistenceLoadState
   settings: SettingsDto | null
@@ -187,7 +205,9 @@ function App() {
     () => createPersistenceRepository(createDexiePersistenceStore()),
     [],
   )
-  const [screen, setScreen] = useState<AppScreen>('dashboard')
+  const [screen, setScreen] = useState<AppScreen>(() =>
+    typeof window === 'undefined' ? 'dashboard' : getScreenForPath(window.location.pathname),
+  )
   const authenticationService = useMemo(() => {
     try {
       return {
@@ -251,6 +271,35 @@ function App() {
   const [metaLoadAttempt, setMetaLoadAttempt] = useState(0)
   const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
+
+  const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
+    const nextPath = APP_ROUTE_PATHS[nextScreen]
+    if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
+      if (replace) {
+        window.history.replaceState(null, '', nextPath)
+      } else {
+        window.history.pushState(null, '', nextPath)
+      }
+    }
+    setScreen(nextScreen)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const routePath = APP_ROUTE_PATHS[getScreenForPath(window.location.pathname)]
+    if (window.location.pathname !== routePath) {
+      window.history.replaceState(null, '', routePath)
+    }
+    const handlePopState = (): void => {
+      setScreen(getScreenForPath(window.location.pathname))
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -386,23 +435,23 @@ function App() {
 
   const openMetaProgression = useCallback((): void => {
     if (authentication.account) {
-      setScreen('meta-progression')
+      navigateToScreen('meta-progression')
     }
-  }, [authentication.account])
+  }, [authentication.account, navigateToScreen])
 
   const openRunSetup = useCallback((): void => {
     if (authentication.account) {
-      setScreen('run-setup')
+      navigateToScreen('run-setup')
     }
-  }, [authentication.account])
+  }, [authentication.account, navigateToScreen])
 
   const closeRunSetup = useCallback((): void => {
-    setScreen('dashboard')
-  }, [])
+    navigateToScreen('dashboard', true)
+  }, [navigateToScreen])
 
   const closeMetaProgression = useCallback((): void => {
-    setScreen('dashboard')
-  }, [])
+    navigateToScreen('dashboard', true)
+  }, [navigateToScreen])
 
   const signIn = useCallback(
     async (
@@ -473,7 +522,7 @@ function App() {
       ))
       setMetaLoadAttempt(0)
       setMetaLoadedAttempt(0)
-      setScreen('dashboard')
+      navigateToScreen('dashboard', true)
       return true
     } catch (error: unknown) {
       setAuthentication((current) => ({
@@ -487,27 +536,8 @@ function App() {
     authenticationService,
     metaProgressionService.configurationError,
     metaProgressionService.service,
+    navigateToScreen,
   ])
-
-  const selectDungeonMaxFloorContract = useCallback(
-    (contractId: string): void => {
-      if (!profile || !DUNGEON_MAX_FLOOR_CONTRACTS.some((contract) => contract.id === contractId)) {
-        return
-      }
-      const contract = DUNGEON_MAX_FLOOR_CONTRACTS.find((candidate) => candidate.id === contractId)!
-      if (!isMaxFloorContractUnlocked(
-        profile,
-        contract.id,
-        'requiredUnlockId' in contract ? contract.requiredUnlockId : undefined,
-      )) {
-        return
-      }
-      void persistSettings({ selectedDungeonMaxFloorContractId: contractId }).catch(() => {
-        // persistSettings already exposes this error in the UI.
-      })
-    },
-    [persistSettings, profile],
-  )
 
   const selectPlaystyle = useCallback(
     (playstyleId: PlaystyleId): void => {
@@ -552,8 +582,8 @@ function App() {
     })
     setRunReward({ status: 'idle', essenceAwarded: null, error: null })
     setRunId((currentRunId) => currentRunId + 1)
-    setScreen('gameplay')
-  }, [])
+    navigateToScreen('gameplay', true)
+  }, [navigateToScreen])
 
   const submitRunReward = useCallback(async (submission: MetaRunResultInput): Promise<void> => {
     const service = metaProgressionService.service
@@ -591,7 +621,7 @@ function App() {
 
   const handleRunEnd = useCallback((runResult: RunResultSnapshot): void => {
     setResult(runResult)
-    setScreen('results')
+    navigateToScreen('results', true)
     if (!activeRunSubmission) {
       setRunReward({
         status: 'error',
@@ -610,7 +640,7 @@ function App() {
     }
     setActiveRunSubmission(submission)
     void submitRunReward(submission)
-  }, [activeRunSubmission, submitRunReward])
+  }, [activeRunSubmission, navigateToScreen, submitRunReward])
 
   const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
     if (!metaProgressionService.service || !authentication.account) {
@@ -670,8 +700,8 @@ function App() {
 
   const returnToDashboard = useCallback((): void => {
     setResult(null)
-    setScreen('dashboard')
-  }, [])
+    navigateToScreen('dashboard', true)
+  }, [navigateToScreen])
 
 
   useEffect(() => {
@@ -773,31 +803,27 @@ function App() {
       {screen !== 'gameplay' ? (
         <AppHeader authentication={authentication} onSignOut={signOut} />
       ) : null}
-      {screen === 'dashboard' ? (
-        authentication.account ? (
-          <GameDashboard
-            essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
-            onOpenMetaProgression={openMetaProgression}
-            onOpenRunSetup={openRunSetup}
-          />
-        ) : (
-          <AuthGateway
-            authentication={authentication}
-            onSignIn={signIn}
-            onSignInWithDiscord={signInWithDiscord}
-            onSignOut={signOut}
-          />
-        )
+      {screen === 'dashboard' && authentication.account ? (
+        <GameDashboard
+          essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+          onOpenMetaProgression={openMetaProgression}
+          onOpenRunSetup={openRunSetup}
+        />
+      ) : null}
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression') &&
+      !authentication.account ? (
+        <AuthGateway
+          authentication={authentication}
+          onSignIn={signIn}
+          onSignInWithDiscord={signInWithDiscord}
+          onSignOut={signOut}
+        />
       ) : null}
       {screen === 'run-setup' && authentication.account ? (
         <RunSetupScreen
           settings={settings}
-          profile={profile}
-          essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
           writeError={writeError}
           onStart={startRun}
-          onSelectBehaviorProfile={selectBehaviorProfile}
-          onSelectDungeonMaxFloorContract={selectDungeonMaxFloorContract}
           onSelectPlaystyle={selectPlaystyle}
           onToggleWorldModifier={toggleWorldModifier}
           onBack={closeRunSetup}
@@ -947,12 +973,8 @@ function GameDashboard({
 
 interface RunSetupScreenProps {
   settings: SettingsDto
-  profile: BasicProfileDto
-  essenceBalance: number | null
   writeError: string | null
   onStart: () => void
-  onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
-  onSelectDungeonMaxFloorContract: (contractId: string) => void
   onSelectPlaystyle: (playstyleId: PlaystyleId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onBack: () => void
@@ -960,12 +982,8 @@ interface RunSetupScreenProps {
 
 function RunSetupScreen({
   settings,
-  profile,
-  essenceBalance,
   writeError,
   onStart,
-  onSelectBehaviorProfile,
-  onSelectDungeonMaxFloorContract,
   onSelectPlaystyle,
   onToggleWorldModifier,
   onBack,
@@ -982,68 +1000,31 @@ function RunSetupScreen({
             <span aria-hidden="true">←</span>
             Back to dashboard
           </button>
-          <div className="run-setup-identity">
-            <span className="run-setup-identity-label">Run setup</span>
-            <strong>Configuration saves automatically</strong>
-          </div>
         </header>
         <div className="run-dashboard-hero">
           <div>
-            <p className="screen-kicker">Prepare your descent</p>
-            <h2 id="dashboard-title">Build your next run.</h2>
+            <h2 id="dashboard-title">Prepare your descent</h2>
             <p>
-              Shape the fight before you enter. Every choice below changes how your
-              hero survives, moves, and grows in the dungeon.
+              Shape your fighter before entering the dungeon.
             </p>
-          </div>
-          <div className="run-dashboard-emblem" aria-hidden="true">
-            <span>AB</span>
-            <i />
-            <i />
-            <i />
           </div>
         </div>
         <div className="run-dashboard-command">
           <div>
             <span className="run-dashboard-command-label">Run briefing</span>
-            <strong>Arena run</strong>
-            <span>Configure your fighter, maximum floor, and risk level.</span>
+            <strong>Dungeon run</strong>
+            <span>Configure your character and risk level.</span>
           </div>
           <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
             <span>Start Run</span>
             <span aria-hidden="true">→</span>
           </button>
         </div>
-        <div className="run-dashboard-utility">
-          <div className="essence-balance" aria-live="polite">
-            <span className="essence-balance-label">Essence</span>
-            <strong>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</strong>
-          </div>
-        </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <div className="run-dashboard-section-heading">
-          <p className="screen-kicker">Set the pace</p>
-          <h3>Choose how the run plays</h3>
+          <p className="screen-kicker">Choose your fighter</p>
+          <h3>Select your character</h3>
         </div>
-        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
-          <legend>Behavior profile</legend>
-          <div className="dashboard-choice-list">
-            {Object.values(BEHAVIOR_PROFILE_DEFINITIONS).map((profileDefinition) => (
-              <button
-                className={`dashboard-choice${
-                  settings.selectedBehaviorProfileId === profileDefinition.id ? ' selected' : ''
-                }`}
-                type="button"
-                aria-pressed={settings.selectedBehaviorProfileId === profileDefinition.id}
-                key={profileDefinition.id}
-                onClick={() => onSelectBehaviorProfile(profileDefinition.id)}
-              >
-                <strong>{profileDefinition.name}</strong>
-                <span>{profileDefinition.description}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
           <div className="dashboard-choice-list">
@@ -1094,46 +1075,6 @@ function RunSetupScreen({
             })}
           </div>
         </fieldset>
-        <fieldset className="dashboard-choice-group run-dashboard-choice-group">
-          <legend>Maximum floor</legend>
-          <div className="dashboard-choice-list">
-            {DUNGEON_MAX_FLOOR_CONTRACTS.map((contract) => {
-              const unlocked = isMaxFloorContractUnlocked(
-                profile,
-                contract.id,
-                'requiredUnlockId' in contract ? contract.requiredUnlockId : undefined,
-              )
-              const selected = settings.selectedDungeonMaxFloorContractId === contract.id
-              return (
-                <button
-                  className={`dashboard-choice${selected ? ' selected' : ''}`}
-                  type="button"
-                  aria-pressed={selected}
-                  disabled={!unlocked}
-                  key={contract.id}
-                  onClick={() => onSelectDungeonMaxFloorContract(contract.id)}
-                >
-                  <strong>{contract.label}</strong>
-                  <span>{unlocked ? (selected ? 'Selected' : 'Select') : 'Locked'}</span>
-                </button>
-              )
-            })}
-          </div>
-        </fieldset>
-        <div className="run-dashboard-footer">
-          <div>
-            <p className="screen-kicker">How it works</p>
-            <ul className="control-list">
-          <li><strong>Movement:</strong> your selected behavior profile guides actions.</li>
-          <li><strong>Combat:</strong> attacks happen automatically.</li>
-          <li><strong>Upgrade:</strong> choose one option whenever you level up.</li>
-        </ul>
-          </div>
-          <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
-            <span>Start Run</span>
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
       </div>
     </section>
   )
