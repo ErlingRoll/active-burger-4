@@ -832,27 +832,30 @@ export class Game {
         this.beginFloorTransition(stairs)
       }
     })
-    updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
-      const levelsGained = grantExperience(this.gameState, amount * this.xpMultiplier)
-      if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
-        this.enqueueLevelUpFlows(levelsGained)
-      }
-    }, (pickup: GearPickupState) => {
-      this.collectedGearPickups.push({ ...pickup })
-      this.enqueueGearPickupFlow(pickup)
-    }, () => {
-      healPlayer(
-        this.gameState,
-        this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
-        'Healing potion',
-      )
-    })
+    if (this.gameState.run.phase === 'playing') {
+      updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
+        const levelsGained = grantExperience(this.gameState, amount * this.xpMultiplier)
+        if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
+          this.enqueueLevelUpFlows(levelsGained)
+        }
+      }, (pickup: GearPickupState) => {
+        this.collectedGearPickups.push({ ...pickup })
+        this.enqueueGearPickupFlow(pickup)
+      }, () => {
+        healPlayer(
+          this.gameState,
+          this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
+          'Healing potion',
+        )
+      })
+    }
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
   }
 
   private collectFloorPickupsAt(x: number, y: number): void {
-    const pickups = this.gameState.pickups
-    this.gameState.pickups = []
+    const collectionCount = Math.ceil(this.gameState.pickups.length / 2)
+    const pickups = this.gameState.pickups.slice(0, collectionCount)
+    this.gameState.pickups = this.gameState.pickups.slice(collectionCount)
     for (const pickup of pickups) {
       pickup.x = x
       pickup.y = y

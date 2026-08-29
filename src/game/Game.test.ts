@@ -391,8 +391,8 @@ describe('Game', () => {
         y: boss!.y,
         rewardsCollected: true,
       })
-      expect(game.state.pickups).toEqual([])
-      expect(game.getPendingChoiceFlows().length).toBeGreaterThan(1)
+      expect(game.state.pickups).toHaveLength(1)
+      expect(game.getPendingChoiceFlows()).toHaveLength(1)
       expect(game.phase).toBe('level-up')
 
       while (game.phase === 'level-up') {
