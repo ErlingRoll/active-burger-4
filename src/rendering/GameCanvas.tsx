@@ -31,6 +31,7 @@ import { LevelUpOverlay } from './LevelUpOverlay'
 import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
+import { formatExperience } from '../ui/formatNumbers'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
@@ -425,7 +426,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <dt>XP</dt>
           <dd>
             <progress value={xpPercent} max={100} aria-label="Experience progress" />
-            <span>{snapshot.xp} / {snapshot.xpRequired}</span>
+            <span>
+              {formatExperience(snapshot.xp)} / {formatExperience(snapshot.xpRequired)}
+            </span>
           </dd>
         </div>
       </dl>

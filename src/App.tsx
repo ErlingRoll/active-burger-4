@@ -37,6 +37,7 @@ import {
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
+import { formatExperience } from './ui/formatNumbers'
 import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
@@ -1126,7 +1127,7 @@ function ResultsScreen({
         <dl className="results-stats">
           <div><dt>Elapsed time</dt><dd>{formatElapsedTime(result.elapsedTime)}</dd></div>
           <div><dt>Level</dt><dd>{result.level}</dd></div>
-          <div><dt>XP</dt><dd>{result.xp}</dd></div>
+          <div><dt>XP</dt><dd>{formatExperience(result.xp)}</dd></div>
           <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
         </dl>
         {!victory ? (

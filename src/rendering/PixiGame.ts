@@ -33,6 +33,27 @@ import {
 import { ARENA_BOUNDS } from '../game-config/arena'
 
 const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
+const STATUS_EFFECT_ICON_SIZE = 10
+const STATUS_EFFECT_ICON_GAP = 2
+
+interface StatusEffectBadge {
+  id: string
+}
+
+function getEnemyStatusEffects(poisonStackCount: number): StatusEffectBadge[] {
+  if (poisonStackCount <= 0) {
+    return []
+  }
+  return [{
+    id: 'poison',
+  }]
+}
+
+function getStatusEffectSignature(
+  statuses: readonly StatusEffectBadge[],
+): string {
+  return statuses.map((status) => status.id).join('|')
+}
 
 export class PixiGame {
   private static readonly MIN_CAMERA_SCALE = 1 / 3
@@ -287,8 +308,9 @@ export class PixiGame {
     })
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
-    root.addChild(hpBar, label)
-    return { root, body, label, hpBar, poisonAura }
+    const statusEffects = new Container()
+    root.addChild(hpBar, statusEffects, label)
+    return { root, body, label, hpBar, statusEffects, poisonAura }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -374,9 +396,10 @@ export class PixiGame {
       .circle(0, 0, boss.radius + 8)
       .stroke({ color: '#c084fc', width: 4, alpha: 0.65 })
     poisonAura.visible = false
+    const statusEffects = new Container()
     const root = new Container()
-    root.addChild(poisonAura, body, marker, hpBar, label)
-    return { root, label, hpBar, poisonAura }
+    root.addChild(poisonAura, body, marker, hpBar, statusEffects, label)
+    return { root, label, hpBar, statusEffects, poisonAura }
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
@@ -640,6 +663,8 @@ export class PixiGame {
 
       enemyView.root.position.set(enemy.x, enemy.y)
       const poisonStackCount = enemy.poisonStacks?.length ?? 0
+      const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
+      const enemyBarWidth = Math.max(28, enemy.radius * renderScale * 1.8)
       enemyView.poisonAura.visible = poisonStackCount > 0
       if (poisonStackCount > 0) {
         const auraRadius = enemy.radius + 5 + Math.min(poisonStackCount, 8) * 1.5
@@ -658,11 +683,20 @@ export class PixiGame {
             alpha: 0.8,
           })
       }
+      const enemyStatuses = getEnemyStatusEffects(poisonStackCount)
+      const enemyStatusSignature = getStatusEffectSignature(enemyStatuses)
+      if (enemyView.statusEffectSignature !== enemyStatusSignature) {
+        enemyView.statusEffectSignature = enemyStatusSignature
+        this.drawStatusEffects(
+          enemyView.statusEffects,
+          enemyBarWidth,
+          enemyStatuses,
+        )
+      }
       enemyView.label.text = getEnemyDisplayLabel(
         enemy.definitionId,
         enemy.eliteModifier,
       )
-      const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
       const attackProgress = getEnemyMeleeAttackAnimationProgress(
         state.time,
         enemy.lastMeleeAttackTime,
@@ -681,13 +715,22 @@ export class PixiGame {
         normalizedDirectionY * enemy.radius * 0.38 * attackIntensity,
       )
       enemyView.body.scale.set(renderScale * (1 + attackIntensity * 0.14))
-      const labelY = -(enemy.radius * renderScale + 16)
+      const baseLabelY = -(enemy.radius * renderScale + 16)
+      const statusOffset = enemyStatuses.length > 0
+        ? STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
+        : 0
+      const labelY = baseLabelY - statusOffset
+      const barY = baseLabelY + 4
       enemyView.label.position.set(0, labelY)
+      enemyView.statusEffects.position.set(
+        0,
+        barY - STATUS_EFFECT_ICON_SIZE - STATUS_EFFECT_ICON_GAP,
+      )
       this.drawHealthBar(
         enemyView.hpBar,
-        Math.max(28, enemy.radius * renderScale * 1.8),
+        enemyBarWidth,
         4,
-        labelY + 4,
+        barY,
         enemy.hp,
         enemy.maxHp,
       )
@@ -717,6 +760,7 @@ export class PixiGame {
       }
       bossView.root.position.set(boss.x, boss.y)
       const poisonStackCount = boss.poisonStacks?.length ?? 0
+      const bossBarWidth = boss.radius * 2.5
       bossView.poisonAura.visible = poisonStackCount > 0
       if (poisonStackCount > 0) {
         bossView.poisonAura
@@ -726,16 +770,34 @@ export class PixiGame {
           .circle(0, 0, boss.radius * 0.82)
           .stroke({ color: '#a855f7', width: 3, alpha: 0.85 })
       }
+      const bossStatuses = getEnemyStatusEffects(poisonStackCount)
+      const bossStatusSignature = getStatusEffectSignature(bossStatuses)
+      if (bossView.statusEffectSignature !== bossStatusSignature) {
+        bossView.statusEffectSignature = bossStatusSignature
+        this.drawStatusEffects(
+          bossView.statusEffects,
+          bossBarWidth,
+          bossStatuses,
+        )
+      }
       const bossPulse = 1 + Math.sin(state.time * 3 + boss.id) * 0.025
       bossView.root.scale.set(bossPulse)
       const renderScale = 1
       bossView.label.text = getBossDisplayLabel(boss.bossDefinitionId)
-      bossView.label.position.set(0, -(boss.radius * renderScale + 30))
-      const barWidth = boss.radius * 2.5
+      const baseLabelY = -(boss.radius * renderScale + 30)
+      const statusOffset = bossStatuses.length > 0
+        ? STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
+        : 0
+      const labelY = baseLabelY - statusOffset
       const barY = -(boss.radius * renderScale + 22)
+      bossView.label.position.set(0, labelY)
+      bossView.statusEffects.position.set(
+        0,
+        barY - STATUS_EFFECT_ICON_SIZE - STATUS_EFFECT_ICON_GAP,
+      )
       this.drawHealthBar(
         bossView.hpBar,
-        barWidth,
+        bossBarWidth,
         6,
         barY,
         boss.hp,
@@ -946,6 +1008,40 @@ export class PixiGame {
       .stroke({ color: '#fee2e2', width: 1 })
   }
 
+  private drawStatusEffects(
+    view: Container,
+    barWidth: number,
+    statuses: readonly StatusEffectBadge[],
+  ): void {
+    for (const child of view.removeChildren()) {
+      child.destroy()
+    }
+
+    let offsetX = -barWidth / 2
+    for (const status of statuses) {
+      const icon = new Graphics()
+      if (status.id === 'poison') {
+        icon
+          .circle(STATUS_EFFECT_ICON_SIZE / 2, STATUS_EFFECT_ICON_SIZE * 0.68, 3.2)
+          .fill('#22c55e')
+          .poly([
+            STATUS_EFFECT_ICON_SIZE / 2,
+            0,
+            1.8,
+            STATUS_EFFECT_ICON_SIZE * 0.62,
+            STATUS_EFFECT_ICON_SIZE - 1.8,
+            STATUS_EFFECT_ICON_SIZE * 0.62,
+          ])
+          .fill('#22c55e')
+          .circle(4, 5.2, 0.8)
+          .fill({ color: '#dcfce7', alpha: 0.8 })
+      }
+      icon.position.set(offsetX, 0)
+      view.addChild(icon)
+      offsetX += STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
+    }
+  }
+
   private readonly handleWheel = (event: WheelEvent): void => {
     event.preventDefault()
     const scaleChange = Math.exp(
@@ -1137,6 +1233,8 @@ interface EnemyView {
   body: Graphics
   label: Text
   hpBar: Graphics
+  statusEffects: Container
+  statusEffectSignature?: string
   poisonAura: Graphics
 }
 
@@ -1155,6 +1253,8 @@ interface BossView {
   root: Container
   label: Text
   hpBar: Graphics
+  statusEffects: Container
+  statusEffectSignature?: string
   poisonAura: Graphics
 }
 
