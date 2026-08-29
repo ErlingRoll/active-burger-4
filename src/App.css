@@ -1294,6 +1294,7 @@
 }
 
 .skill-card-level {
+  margin-top: auto;
   color: #bfdbfe;
   font-size: 0.75rem;
   font-weight: 700;
