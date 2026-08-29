@@ -33,6 +33,7 @@ import {
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
+  RALLYING_STANDARD_HEAL_INTERVAL_SECONDS,
   RALLYING_STANDARD_EFFECT_RADIUS,
   RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
   RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
@@ -60,7 +61,10 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
 } from '../../state/GameState'
-import { healPlayer } from '../../combat/PlayerCombatLog'
+import {
+  healPlayer,
+  healSummon,
+} from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { summonSkeletonIfReady } from '../summons/SummonSystem'
 import { clampPlayerPosition } from '../../../game-config/arena'
@@ -77,6 +81,7 @@ function addEffect(
   radius: number,
   lifetime: number,
   shape?: 'arc' | 'line',
+  periodicHealingAmount?: number,
 ): void {
   const origin = points[0]
   if (!origin) {
@@ -92,6 +97,12 @@ function addEffect(
     remainingLifetime: lifetime,
     lifetime,
     points: points.map((point) => ({ x: point.x, y: point.y })),
+    ...(periodicHealingAmount === undefined
+      ? {}
+      : {
+          periodicHealingAmount,
+          periodicHealingRemaining: RALLYING_STANDARD_HEAL_INTERVAL_SECONDS,
+        }),
   }
   state.effects.push(effect)
 }
@@ -121,9 +132,43 @@ export function updateSkillCooldowns(
 export function updateSkillEffects(
   state: GameState,
   fixedStepSeconds: number,
+  random?: Pick<RandomSource, 'next'>,
 ): void {
+  const elapsed = Math.max(0, fixedStepSeconds)
   for (const effect of state.effects) {
-    effect.remainingLifetime -= fixedStepSeconds
+    effect.remainingLifetime -= elapsed
+    if (
+      effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
+      effect.periodicHealingAmount === undefined
+    ) {
+      continue
+    }
+    effect.periodicHealingRemaining =
+      (effect.periodicHealingRemaining ?? RALLYING_STANDARD_HEAL_INTERVAL_SECONDS) -
+      elapsed
+    while (
+      effect.remainingLifetime > 0 &&
+      (effect.periodicHealingRemaining ?? 0) <= 0
+    ) {
+      const healing = effect.periodicHealingAmount
+      if (
+        Math.hypot(state.player.x - effect.x, state.player.y - effect.y) <=
+        effect.radius + state.player.radius
+      ) {
+        healPlayer(state, healing, getSkillDefinition(RALLYING_STANDARD_SKILL_ID).name, random)
+      }
+      for (const summon of state.summons) {
+        if (
+          summon.hp > 0 &&
+          Math.hypot(summon.x - effect.x, summon.y - effect.y) <= effect.radius
+        ) {
+          healSummon(state, summon, healing, random)
+        }
+      }
+      effect.periodicHealingRemaining =
+        (effect.periodicHealingRemaining ?? 0) +
+        RALLYING_STANDARD_HEAL_INTERVAL_SECONDS
+    }
   }
   state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
 }
@@ -595,6 +640,8 @@ function collectRallyingStandardEffect(
     [{ x: state.player.x, y: state.player.y }],
     RALLYING_STANDARD_EFFECT_RADIUS,
     duration,
+    undefined,
+    healing,
   )
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)

@@ -17,7 +17,11 @@ import {
 } from '../../../game-config/skills'
 import { createGame } from '../../Game'
 import { equipRolledItem } from '../../equipment/EquipmentState'
-import { collectSkillDamage, updateSkillCooldowns } from './SkillSystem'
+import {
+  collectSkillDamage,
+  updateSkillCooldowns,
+  updateSkillEffects,
+} from './SkillSystem'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -427,6 +431,45 @@ describe('skill system', () => {
         lifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
         remainingLifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
       })
+    })
+
+    it('heals living allies inside the banner area on each healing pulse', () => {
+      const game = createGame({ seed: 70 })
+      game.state.player.skills = [{
+        skillId: RALLYING_STANDARD_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.player.hp = game.state.player.maxHp - 20
+      game.state.summons.push(
+        {
+          id: 101,
+          ownerId: game.state.player.id,
+          x: 40,
+          y: 0,
+          hp: 2,
+          maxHp: 10,
+          contactCooldownRemaining: 0,
+          attackCooldownRemaining: 0,
+        },
+        {
+          id: 102,
+          ownerId: game.state.player.id,
+          x: RALLYING_STANDARD_EFFECT_RADIUS + 20,
+          y: 0,
+          hp: 2,
+          maxHp: 10,
+          contactCooldownRemaining: 0,
+          attackCooldownRemaining: 0,
+        },
+      )
+
+      collectSkillDamage(game.state, allocator)
+      updateSkillEffects(game.state, 1)
+
+      expect(game.state.player.hp).toBe(game.state.player.maxHp - 12)
+      expect(game.state.summons[0]?.hp).toBe(6)
+      expect(game.state.summons[1]?.hp).toBe(2)
     })
 
     it('gives Bulwark a bigger reduction and longer duration', () => {

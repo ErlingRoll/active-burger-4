@@ -475,6 +475,9 @@ export interface SkillEffectState {
   remainingLifetime: number
   /** Deterministic world-space path or polygon, with the first point at x/y. */
   points: readonly SkillEffectPoint[]
+  /** Optional periodic healing payload for persistent area effects. */
+  periodicHealingAmount?: number
+  periodicHealingRemaining?: number
 }
 
 export interface GameState {

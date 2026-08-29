@@ -6,9 +6,9 @@
 - jpg image as avatar
 - enemies speed up over time when they are alive.
 - Rare blessing cannot appear before selecting
-- scale ralying banner healing
 - rallying banner does show damage reduction???
 - fix wand shotgunning a little bit
+- boss 1 - 3 is too hard for melee/necromancer
 
 # Maybe Pile
 

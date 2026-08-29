@@ -851,7 +851,7 @@ export class Game {
         )
       })
     }
-    updateSkillEffects(this.gameState, FIXED_STEP_SECONDS)
+    updateSkillEffects(this.gameState, FIXED_STEP_SECONDS, this.random)
   }
 
   private collectFloorPickupsAt(x: number, y: number): void {
