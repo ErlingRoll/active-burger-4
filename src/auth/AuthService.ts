@@ -56,6 +56,8 @@ export function resolveAuthRedirectUrl(
   configuredRedirectUrl?: string,
   currentOrigin?: string,
 ): string | undefined {
+  const fallbackOrigin = currentOrigin ??
+    (typeof window !== 'undefined' ? window.location.origin : undefined)
   const redirectUrl = configuredRedirectUrl?.trim()
   if (redirectUrl) {
     let parsedUrl: URL
@@ -67,10 +69,21 @@ export function resolveAuthRedirectUrl(
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
       throw new Error('VITE_AUTH_REDIRECT_URL must be an absolute HTTP(S) URL.')
     }
+    if (isLocalDevelopmentUrl(parsedUrl) && fallbackOrigin) {
+      const parsedFallbackOrigin = new URL(fallbackOrigin)
+      if (!isLocalDevelopmentUrl(parsedFallbackOrigin)) {
+        return fallbackOrigin
+      }
+    }
     return redirectUrl
   }
-  return currentOrigin ??
-    (typeof window !== 'undefined' ? window.location.origin : undefined)
+  return fallbackOrigin
+}
+
+function isLocalDevelopmentUrl(url: URL): boolean {
+  return url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]'
 }
 
 export function isMissingProfileDisplayNameError(error: unknown): boolean {

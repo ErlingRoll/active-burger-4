@@ -1,7 +1,5 @@
 # TODO Pile
 
-Show "Version: latest commit version" in dim text on the navbar
-
 # Maybe Pile
 
 spear character -> pick up for charge

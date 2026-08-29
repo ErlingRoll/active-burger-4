@@ -48,6 +48,13 @@ describe('Supabase authentication configuration', () => {
       .toBe('http://127.0.0.1:3000')
   })
 
+  it('ignores a stale localhost redirect when running on production origin', () => {
+    expect(resolveAuthRedirectUrl(
+      'http://localhost:3000',
+      'https://activeburger.com',
+    )).toBe('https://activeburger.com')
+  })
+
   it('rejects non-HTTP OAuth redirect URLs', () => {
     expect(() => resolveAuthRedirectUrl('javascript:alert(1)'))
       .toThrow('VITE_AUTH_REDIRECT_URL must be an absolute HTTP(S) URL.')
