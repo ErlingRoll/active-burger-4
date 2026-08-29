@@ -38,6 +38,7 @@ import { LevelUpOverlay } from './LevelUpOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
+import { KeywordText } from './KeywordTooltip'
 import { formatExperience } from '../ui/formatNumbers'
 import { formatCompactDamage } from '../ui/formatNumbers'
 
@@ -240,9 +241,9 @@ export function GameCanvas({
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
         event.target instanceof HTMLElement &&
-        event.target.closest(
+        (event.target.closest(
           '[data-keybind-capture="true"][data-keybind-listening="true"]',
-        )
+        ) || event.target.closest('[data-keyword-term="true"]'))
       ) {
         return
       }
@@ -630,13 +631,13 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     role="tooltip"
                   >
                     <strong>{skill.name}</strong>
-                    <p>{skill.description}</p>
+                    <p><KeywordText text={skill.description} /></p>
                     <section className="skill-tags-section" aria-label="Skill tags">
                       <p className="skill-upgrade-heading">Skill tags</p>
                       <ul className="skill-tag-list">
                         {skill.tags.map((tag) => (
                           <li className="skill-tag" key={tag}>
-                            {tag}
+                            <KeywordText text={tag} />
                           </li>
                         ))}
                       </ul>
@@ -689,13 +690,13 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <ul className="skill-upgrade-list">
                           {skill.skillModifiers.map((modifier) => (
                             <li key={`skill-${modifier.id}`}>
-                              <span>{modifier.label}</span>
+                              <span><KeywordText text={modifier.label} /></span>
                               <b>{modifier.value}</b>
                             </li>
                           ))}
                           {skill.gearModifiers.map((modifier) => (
                             <li key={`gear-${modifier.id}`}>
-                              {formatHudModifier(modifier)}
+                              <KeywordText text={formatHudModifier(modifier)} />
                             </li>
                           ))}
                         </ul>
@@ -845,9 +846,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             <p className="character-stat-tooltip-value">
                               Current value: {stat.value}
                             </p>
-                            <p>{stat.description}</p>
+                            <p><KeywordText text={stat.description} /></p>
                             <p className="character-stat-tooltip-applies">
-                              <span>Applies to:</span> {stat.appliesTo}
+                              <span>Applies to:</span> <KeywordText text={stat.appliesTo} />
                             </p>
                           </div>
                         ) : null}

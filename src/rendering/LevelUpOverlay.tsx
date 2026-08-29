@@ -33,6 +33,7 @@ import {
   formatKeybind,
   type GameKeybinds,
 } from '../input/Keybinds'
+import { KeywordText } from './KeywordTooltip'
 
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
@@ -135,7 +136,9 @@ function ModifierList({
           }
           key={`${modifier.id}-${modifier.sourceId}-${index}`}
         >
-          {delta ? formatDeltaModifier(modifier) : formatModifier(modifier)}
+          <KeywordText
+            text={delta ? formatDeltaModifier(modifier) : formatModifier(modifier)}
+          />
         </li>
       ))}
     </ul>
@@ -316,9 +319,11 @@ function GearCard({
           </span>
           <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {itemName}</span>
           <span className="gear-rarity-transition">
-            {currentModifier && upgradedModifier
-              ? `${formatGearModifier(currentModifier)} → ${formatGearModifier(upgradedModifier)}`
-              : `Improves one ${getGearModifierDefinition(choice.upgradedModifierId).label.toLowerCase()} roll by one tier.`}
+            <KeywordText
+              text={currentModifier && upgradedModifier
+                ? `${formatGearModifier(currentModifier)} → ${formatGearModifier(upgradedModifier)}`
+                : `Improves one ${getGearModifierDefinition(choice.upgradedModifierId).label.toLowerCase()} roll by one tier.`}
+            />
           </span>
           <span className="gear-net-heading">Upgrade gains</span>
           <ModifierList modifiers={gains} emptyLabel="No stat change" delta />
@@ -440,12 +445,16 @@ function UpgradeCard({
           <RarityBadge rarity={choice.rarity} />
         </span>
         <span className="upgrade-choice-value">
-          {removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+          <KeywordText
+            text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+          />
         </span>
         <span className="upgrade-choice-description">
-          {removedSkill
-            ? `Remove ${removedSkill.name} from your skill slots. It can be unlocked again later.`
-            : definition.description}
+          <KeywordText
+            text={removedSkill
+              ? `Remove ${removedSkill.name} from your skill slots. It can be unlocked again later.`
+              : definition.description}
+          />
         </span>
       </button>
     </div>

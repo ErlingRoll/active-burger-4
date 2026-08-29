@@ -1,7 +1,5 @@
 # TODO Pile
 
-How do you propose the player understands the different keywords like poison, freeze, cooldown reduction and so on? I suggest that whenever an option that includes these keywords appear they should appear as additional tooltips when hovered. What do you suggest?
-
 are all skills tagged with appropriate tags? I want knight to have a higher chance to recieve skill unlocks for skills with melee tags. and so on for the other classes. This should be shown to the user when selecting.
 
 # Maybe Pile
