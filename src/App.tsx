@@ -44,7 +44,7 @@ import {
 } from './content/playstyles/Playstyles'
 import './App.css'
 
-type AppScreen = 'dashboard' | 'meta-progression' | 'gameplay' | 'results'
+type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 interface PersistenceState {
   loadState: PersistenceLoadState
@@ -389,6 +389,16 @@ function App() {
       setScreen('meta-progression')
     }
   }, [authentication.account])
+
+  const openRunSetup = useCallback((): void => {
+    if (authentication.account) {
+      setScreen('run-setup')
+    }
+  }, [authentication.account])
+
+  const closeRunSetup = useCallback((): void => {
+    setScreen('dashboard')
+  }, [])
 
   const closeMetaProgression = useCallback((): void => {
     setScreen('dashboard')
@@ -765,17 +775,10 @@ function App() {
       ) : null}
       {screen === 'dashboard' ? (
         authentication.account ? (
-          <Dashboard
-            settings={settings}
-            profile={profile}
+          <GameDashboard
             essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
-            writeError={writeError}
-            onStart={startRun}
-            onSelectBehaviorProfile={selectBehaviorProfile}
-            onSelectDungeonMaxFloorContract={selectDungeonMaxFloorContract}
-            onSelectPlaystyle={selectPlaystyle}
-            onToggleWorldModifier={toggleWorldModifier}
             onOpenMetaProgression={openMetaProgression}
+            onOpenRunSetup={openRunSetup}
           />
         ) : (
           <AuthGateway
@@ -785,6 +788,20 @@ function App() {
             onSignOut={signOut}
           />
         )
+      ) : null}
+      {screen === 'run-setup' && authentication.account ? (
+        <RunSetupScreen
+          settings={settings}
+          profile={profile}
+          essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+          writeError={writeError}
+          onStart={startRun}
+          onSelectBehaviorProfile={selectBehaviorProfile}
+          onSelectDungeonMaxFloorContract={selectDungeonMaxFloorContract}
+          onSelectPlaystyle={selectPlaystyle}
+          onToggleWorldModifier={toggleWorldModifier}
+          onBack={closeRunSetup}
+        />
       ) : null}
       {screen === 'meta-progression' && authentication.account ? (
         <MetaProgressionScreen
@@ -857,7 +874,78 @@ function AppHeader({
   )
 }
 
-interface DashboardProps {
+interface GameDashboardProps {
+  essenceBalance: number | null
+  onOpenRunSetup: () => void
+  onOpenMetaProgression: () => void
+}
+
+function GameDashboard({
+  essenceBalance,
+  onOpenRunSetup,
+  onOpenMetaProgression,
+}: GameDashboardProps) {
+  return (
+    <section className="dashboard game-dashboard" aria-labelledby="game-dashboard-title">
+      <div className="dashboard-panel game-dashboard-panel">
+        <header className="game-dashboard-hero">
+          <div className="game-dashboard-hero-copy">
+            <p className="screen-kicker">Command deck</p>
+            <h2 id="game-dashboard-title">The dungeon is waiting.</h2>
+            <p>
+              Prepare your fighter, choose your risk, and descend farther than your last run.
+            </p>
+          </div>
+        </header>
+
+        <div className="game-dashboard-overview">
+          <dl className="game-dashboard-stats">
+            <div className="game-dashboard-stat game-dashboard-stat-essence">
+              <dt>Essence</dt>
+              <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
+              <span>Spend it on upgrades</span>
+            </div>
+          </dl>
+          <button
+            className="game-dashboard-action game-dashboard-action-secondary"
+            type="button"
+            onClick={onOpenMetaProgression}
+          >
+            <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
+            <span>
+              <strong>Essence store</strong>
+              <small>Turn earned Essence into deeper dungeon access.</small>
+            </span>
+            <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <section className="game-dashboard-actions" aria-labelledby="dashboard-actions-title">
+          <div className="game-dashboard-section-heading">
+            <h3 id="dashboard-actions-title">Game modes</h3>
+          </div>
+          <div className="game-dashboard-action-grid">
+            <button
+              className="game-dashboard-action game-dashboard-action-primary"
+              type="button"
+              onClick={onOpenRunSetup}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
+              <span>
+                <strong>Prepare dungeon</strong>
+                <small>Configure your fighter and descend into the dungeon.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </section>
+  )
+}
+
+interface RunSetupScreenProps {
   settings: SettingsDto
   profile: BasicProfileDto
   essenceBalance: number | null
@@ -867,10 +955,10 @@ interface DashboardProps {
   onSelectDungeonMaxFloorContract: (contractId: string) => void
   onSelectPlaystyle: (playstyleId: PlaystyleId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
-  onOpenMetaProgression: () => void
+  onBack: () => void
 }
 
-function Dashboard({
+function RunSetupScreen({
   settings,
   profile,
   essenceBalance,
@@ -880,22 +968,32 @@ function Dashboard({
   onSelectDungeonMaxFloorContract,
   onSelectPlaystyle,
   onToggleWorldModifier,
-  onOpenMetaProgression,
-}: DashboardProps) {
+  onBack,
+}: RunSetupScreenProps) {
   const worldModifierEffects = resolveWorldModifierEffects(
     settings.selectedWorldModifierIds,
     SPAWN_BALANCE,
   )
   return (
-    <section className="dashboard run-dashboard" aria-labelledby="dashboard-title">
+    <section className="dashboard run-setup run-dashboard" aria-labelledby="dashboard-title">
       <div className="dashboard-panel run-dashboard-panel">
+        <header className="run-setup-topbar">
+          <button className="secondary-action run-setup-back" type="button" onClick={onBack}>
+            <span aria-hidden="true">←</span>
+            Back to dashboard
+          </button>
+          <div className="run-setup-identity">
+            <span className="run-setup-identity-label">Run setup</span>
+            <strong>Configuration saves automatically</strong>
+          </div>
+        </header>
         <div className="run-dashboard-hero">
           <div>
-            <p className="screen-kicker">Arena briefing</p>
+            <p className="screen-kicker">Prepare your descent</p>
             <h2 id="dashboard-title">Build your next run.</h2>
             <p>
-              Survive the arena while your hero automatically targets nearby
-              enemies. Collect XP to level up and choose an upgrade between waves.
+              Shape the fight before you enter. Every choice below changes how your
+              hero survives, moves, and grows in the dungeon.
             </p>
           </div>
           <div className="run-dashboard-emblem" aria-hidden="true">
@@ -921,10 +1019,6 @@ function Dashboard({
             <span className="essence-balance-label">Essence</span>
             <strong>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</strong>
           </div>
-          <button className="secondary-action" type="button" onClick={onOpenMetaProgression}>
-            <span>Upgrades!</span>
-            <span aria-hidden="true">→</span>
-          </button>
         </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <div className="run-dashboard-section-heading">

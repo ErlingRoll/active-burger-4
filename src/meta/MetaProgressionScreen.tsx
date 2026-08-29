@@ -82,7 +82,7 @@ export function MetaProgressionScreen({
       <div className="dashboard-panel meta-shop-panel">
         <header className="meta-shop-header">
           <div>
-            <p className="screen-kicker">Arena upgrades</p>
+            <p className="screen-kicker">Essence store</p>
             <h2 id="meta-progression-title">Spend your Essence.</h2>
             <p>Bank earned Essence between runs and unlock deeper dungeon tiers.</p>
           </div>
