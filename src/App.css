@@ -1389,7 +1389,8 @@
 }
 
 .skill-cadence,
-.skill-dps {
+.skill-dps,
+.skill-damage-total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1400,20 +1401,28 @@
   margin-top: 0.55rem;
 }
 
+.skill-damage-total {
+  margin: 0.55rem 0 0;
+  padding-top: 0.45rem;
+  border-top: 1px solid #334155;
+}
+
 .skill-dps {
   padding-top: 0.45rem;
   border-top: 1px solid #334155;
 }
 
 .skill-cadence span,
-.skill-dps span {
+.skill-dps span,
+.skill-damage-total span {
   color: #fef08a;
   font-size: 0.73rem;
   font-weight: 700;
 }
 
 .skill-cadence b,
-.skill-dps b {
+.skill-dps b,
+.skill-damage-total b {
   color: #f8fafc;
   white-space: nowrap;
 }
@@ -1733,6 +1742,48 @@
   color: #f8fafc;
   font-size: 1.3rem;
   font-weight: 700;
+}
+
+.skill-damage-results {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0 0 2rem;
+  padding: 0.9rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.55rem;
+}
+
+.skill-damage-results-heading h3 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.skill-damage-results ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-damage-results li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.55rem;
+  color: #cbd5e1;
+  background: #1e293b;
+  border-radius: 0.35rem;
+}
+
+.skill-damage-results strong {
+  color: #fef08a;
+}
+
+.skill-damage-results-empty {
+  margin: 0;
+  color: #94a3b8;
 }
 
 .visually-hidden {

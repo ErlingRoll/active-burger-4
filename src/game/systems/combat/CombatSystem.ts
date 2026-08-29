@@ -895,6 +895,19 @@ function getPlayerDamageSource(
   return 'Unknown source'
 }
 
+function recordSkillDamage(
+  state: GameState,
+  sourceSkillId: DamageEvent['sourceSkillId'],
+  actualDamage: number,
+): void {
+  if (!sourceSkillId || actualDamage <= 0) {
+    return
+  }
+  state.run.skillDamageDealt ??= {}
+  state.run.skillDamageDealt[sourceSkillId] =
+    (state.run.skillDamageDealt[sourceSkillId] ?? 0) + actualDamage
+}
+
 export function applyDamageEvents(
   state: GameState,
   events: readonly DamageEvent[],
@@ -950,6 +963,7 @@ export function applyDamageEvents(
         sumDamageValues(resolvedDamage.mitigated),
       )
       enemy.hp -= actualDamage
+      recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
         state,
         enemy,
@@ -979,6 +993,7 @@ export function applyDamageEvents(
         sumDamageValues(resolvedDamage.mitigated),
       )
       boss.hp -= actualDamage
+      recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
         state,
         boss,
@@ -1022,6 +1037,7 @@ function applyPoisonApplication(
   target.poisonStacks.push({
     remainingDuration: application.durationSeconds,
     damagePerSecond,
+    ...(event.sourceSkillId ? { sourceSkillId: event.sourceSkillId } : {}),
   })
 }
 
@@ -1047,6 +1063,7 @@ export function updatePoison(
       if (damage > 0) {
         events.push({
           sourceLabel: 'Poison',
+          ...(stack.sourceSkillId ? { sourceSkillId: stack.sourceSkillId } : {}),
           targetId: target.id,
           damage: createDamageValues({ chaos: damage }),
           damageOverTime: true,

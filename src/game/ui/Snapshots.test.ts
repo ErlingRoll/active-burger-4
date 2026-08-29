@@ -77,6 +77,7 @@ describe('UI snapshots', () => {
     ])
     expect(snapshot.skills[0]?.name).toBe('Basic Attack')
     expect(snapshot.skills[0]?.castCount).toBe(0)
+    expect(snapshot.skills[0]?.totalDamageDealt).toBe(0)
     expect(snapshot.skills[0]?.damage).toMatchObject({ physical: 14 })
     expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
     expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
@@ -114,6 +115,24 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[1]?.cooldownProgress).toBeCloseTo(0.5)
     expect(snapshot.skills[0]?.castCount).toBe(3)
     expect(snapshot.skills[1]?.castCount).toBe(7)
+  })
+
+  it('projects cumulative skill damage into the HUD and run results', () => {
+    const game = createGame({ seed: 74 })
+    game.state.run.skillDamageDealt = {
+      [BASIC_ATTACK_SKILL_ID]: 1_250,
+      [WHIRLWIND_SKILL_ID]: 500,
+    }
+
+    const snapshot = createUiSnapshot(game.state)
+    const result = createRunResultSnapshot(game.state)
+
+    expect(snapshot.skills.find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
+      ?.totalDamageDealt).toBe(1_250)
+    expect(result.skillDamage).toEqual([
+      { skillId: BASIC_ATTACK_SKILL_ID, name: 'Basic Attack', damage: 1_250 },
+      { skillId: WHIRLWIND_SKILL_ID, name: 'Whirlwind', damage: 500 },
+    ])
   })
 
   it('projects Fiery Touch trigger stats and skill-specific cooldown ranks', () => {
@@ -351,6 +370,7 @@ describe('UI snapshots', () => {
         resultingHp: 0,
       },
     ])
+    expect(createRunResultSnapshot(game.state).skillDamage).toEqual([])
   })
 
   it('projects the active boss, telegraph, and autonomous Dodge state immutably', () => {

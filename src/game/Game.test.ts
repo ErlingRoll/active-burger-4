@@ -276,6 +276,7 @@ describe('Game', () => {
       killCount: game.state.run.killCount,
       worldModifierIds: [],
       playerCombatLog: [],
+      skillDamage: [],
     })
     expect(Object.isFrozen(result)).toBe(true)
   })

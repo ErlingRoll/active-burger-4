@@ -42,7 +42,7 @@ import {
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
-import { formatExperience } from './ui/formatNumbers'
+import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
@@ -1164,6 +1164,24 @@ function ResultsScreen({
           <div><dt>XP</dt><dd>{formatExperience(result.xp)}</dd></div>
           <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
         </dl>
+        <section className="skill-damage-results" aria-labelledby="skill-damage-results-title">
+          <div className="skill-damage-results-heading">
+            <p className="screen-kicker">Combat performance</p>
+            <h3 id="skill-damage-results-title">Skill damage</h3>
+          </div>
+          {result.skillDamage.length > 0 ? (
+            <ul>
+              {result.skillDamage.map((skill) => (
+                <li key={skill.skillId}>
+                  <span>{skill.name}</span>
+                  <strong>{formatCompactDamage(skill.damage)}</strong>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="skill-damage-results-empty">No skill damage was recorded.</p>
+          )}
+        </section>
         {!victory ? (
           <section className="death-combat-log" aria-labelledby="death-combat-log-title">
             <div className="death-combat-log-heading">

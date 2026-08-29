@@ -33,6 +33,7 @@ import { BehaviorScreen } from './BehaviorScreen'
 import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
 import { formatExperience } from '../ui/formatNumbers'
+import { formatCompactDamage } from '../ui/formatNumbers'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot) => void
@@ -525,7 +526,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                 <button
                   className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}`}
                   type="button"
-                  aria-label={`${skill.name}, level ${skill.level}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
+                  aria-label={`${skill.name}, level ${skill.level}, total damage ${formatCompactDamage(skill.totalDamageDealt)}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => setActiveSkillId(skill.skillId)}
                   onBlur={() => setActiveSkillId(null)}
@@ -589,6 +590,10 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </section>
                     ) : null}
+                    <p className="skill-damage-total">
+                      <span>Total damage</span>
+                      <b>{formatCompactDamage(skill.totalDamageDealt)}</b>
+                    </p>
                     {skill.healingPerCast !== null ? (
                       <p className="skill-cadence">
                         <span>Healing per cast</span>

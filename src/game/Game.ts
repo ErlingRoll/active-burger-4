@@ -279,6 +279,7 @@ export class Game {
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
+        skillDamageDealt: {},
         playerCombatLog: [],
         gearDropGenerated: false,
         ...(this.worldModifierEffects.ids.length > 0

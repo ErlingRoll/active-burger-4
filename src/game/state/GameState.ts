@@ -142,6 +142,8 @@ export interface RunState {
   completedEncounterIds?: string[]
   killCount: number
   selectedUpgradeIds: UpgradeId[]
+  /** Cumulative post-mitigation damage dealt by each skill during this run. */
+  skillDamageDealt?: Partial<Record<SkillId, number>>
   /** Remains true after the first gear orb is generated, even after collection. */
   gearDropGenerated?: boolean
   worldModifierIds?: readonly WorldModifierId[]
@@ -400,6 +402,8 @@ export interface SummonState {
 export interface PoisonStackState {
   remainingDuration: number
   damagePerSecond: number
+  /** Skill that applied the poison, when it came from player-owned damage. */
+  sourceSkillId?: SkillId
 }
 
 export interface PoisonApplication {

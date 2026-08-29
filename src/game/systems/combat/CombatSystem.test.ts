@@ -206,6 +206,8 @@ describe('collectProjectileDamage', () => {
       expect(poisonEvents).toHaveLength(2)
       applyDamageEvents(game.state, poisonEvents, neverCrit)
       expect(target.hp).toBeCloseTo(1_000 - 9 - 18 - 4.5 * 0.5 - 9 * 0.5)
+      expect(game.state.run.skillDamageDealt?.[BASIC_ATTACK_SKILL_ID]).toBeCloseTo(33.75)
+      expect(poisonEvents.every((event) => event.sourceSkillId === BASIC_ATTACK_SKILL_ID)).toBe(true)
 
       updatePoison(game.state, 3)
       expect(target.poisonStacks).toHaveLength(0)

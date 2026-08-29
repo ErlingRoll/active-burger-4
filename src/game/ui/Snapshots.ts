@@ -137,6 +137,8 @@ export interface SkillHudSnapshot {
   readonly icon: string
   readonly level: number
   readonly castCount: number
+  /** Cumulative post-mitigation damage dealt by this skill during the run. */
+  readonly totalDamageDealt: number
   readonly description: string
   readonly tags: readonly SkillTag[]
   /** Damage after flat and increased gear modifiers, before critical strikes and resistance. */
@@ -849,8 +851,16 @@ export interface RunResultSnapshot {
   readonly worldModifierIds: readonly string[]
   /** Damage and healing applied to the player during the final ten seconds. */
   readonly playerCombatLog: readonly PlayerCombatLogSnapshot[]
+  /** Cumulative post-mitigation damage totals, including skills removed during the run. */
+  readonly skillDamage: readonly SkillDamageSnapshot[]
   /** Present only when the completed run ended in a final-boss victory. */
   readonly outcome?: 'victory'
+}
+
+export interface SkillDamageSnapshot {
+  readonly skillId: SkillId
+  readonly name: string
+  readonly damage: number
 }
 
 export function createUiSnapshot(
@@ -1018,6 +1028,7 @@ export function createUiSnapshot(
       castCount: Number.isFinite(skill.castCount)
         ? Math.max(0, Math.floor(skill.castCount ?? 0))
         : 0,
+      totalDamageDealt: state.run.skillDamageDealt?.[skill.skillId] ?? 0,
       description: isBasicAttack ? basicAttackVariant.description : definition.description,
       tags: Object.freeze([...skillTags]),
       damage: outgoingDamage.damage,
@@ -1353,6 +1364,31 @@ function createBossHudSnapshot(
 export function createRunResultSnapshot(
   state: GameState,
 ): RunResultSnapshot {
+  const skillIds: SkillId[] = []
+  const seenSkillIds = new Set<SkillId>()
+  for (const skill of state.player.skills) {
+    if (isSkillId(skill.skillId) && !seenSkillIds.has(skill.skillId)) {
+      seenSkillIds.add(skill.skillId)
+      skillIds.push(skill.skillId)
+    }
+  }
+  for (const skillId of Object.keys(state.run.skillDamageDealt ?? {})) {
+    if (isSkillId(skillId) && !seenSkillIds.has(skillId)) {
+      seenSkillIds.add(skillId)
+      skillIds.push(skillId)
+    }
+  }
+  const skillDamage = skillIds.flatMap((skillId) => {
+    const damage = state.run.skillDamageDealt?.[skillId] ?? 0
+    if (!Number.isFinite(damage) || damage <= 0) {
+      return []
+    }
+    return [Object.freeze({
+      skillId,
+      name: getSkillDefinition(skillId).name,
+      damage,
+    })]
+  })
   const result = {
     phase: state.run.phase,
     elapsedTime: state.time,
@@ -1363,6 +1399,7 @@ export function createRunResultSnapshot(
     playerCombatLog: Object.freeze(
       (state.run.playerCombatLog ?? []).map((entry) => Object.freeze({ ...entry })),
     ),
+    skillDamage: Object.freeze(skillDamage),
     ...(state.run.phase === 'results' &&
     state.player.hp > 0
       ? { outcome: 'victory' as const }
