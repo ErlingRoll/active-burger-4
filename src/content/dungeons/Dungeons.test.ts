@@ -68,21 +68,27 @@ describe('default dungeon timeline foundation', () => {
     })
   })
 
-  it('uses aggressive early stat scaling with a softer late-floor curve', () => {
+  it('uses a forgiving early stat curve with softer late-floor scaling', () => {
     expect(getFloorStatMultiplier(1)).toBe(1)
-    expect(getFloorStatMultiplier(3)).toBeCloseTo(1.9)
-    expect(getFloorStatMultiplier(5)).toBeCloseTo(2.8)
-    expect(getFloorStatMultiplier(10)).toBeCloseTo(3.7)
+    expect(getFloorStatMultiplier(3)).toBeCloseTo(1.6)
+    expect(getFloorStatMultiplier(5)).toBeCloseTo(2.2)
+    expect(getFloorStatMultiplier(10)).toBeCloseTo(3.1)
 
     expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 1)).toEqual({
       maxHp: 100,
       contactDamage: 8,
     })
-    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5)).toMatchObject({
-      maxHp: 280,
+    expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 3)).toMatchObject({
+      maxHp: 160,
     })
     expect(
+      scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 3).contactDamage,
+    ).toBeCloseTo(9.6)
+    expect(
+      scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).maxHp,
+    ).toBeCloseTo(220)
+    expect(
       scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).contactDamage,
-    ).toBeCloseTo(15.2)
+    ).toBeCloseTo(11.2)
   })
 })
