@@ -70,7 +70,7 @@ function moveTowardTarget(
   }
 
   const movementDistance = Math.min(
-    enemy.speed * fixedStepSeconds,
+    getEffectiveEnemySpeed(enemy) * fixedStepSeconds,
     distance - distanceToMaintain,
   )
   const movementRatio = movementDistance / distance
@@ -92,7 +92,7 @@ function moveAwayFromTarget(
       ? (enemy.id * 0.6180339887498949 * Math.PI * 2) % (Math.PI * 2)
       : Math.atan2(offsetY, offsetX)
   const movementDistance = Math.min(
-    enemy.speed * fixedStepSeconds,
+    getEffectiveEnemySpeed(enemy) * fixedStepSeconds,
     distanceMaintainDelta(distance, distanceToMaintain),
   )
   if (movementDistance <= 0) {
@@ -168,12 +168,20 @@ export function updateEnemyBehavior(
   enemy: EnemyState,
   fixedStepSeconds: number,
 ): void {
+  if ((enemy.frozenRemainingDuration ?? 0) > 0) {
+    return
+  }
   const behavior = getEnemyDefinition(enemy.definitionId).behavior
   ENEMY_BEHAVIOR_COMPONENTS[behavior.kind](
     state,
     enemy,
     fixedStepSeconds,
   )
+}
+
+function getEffectiveEnemySpeed(enemy: Readonly<EnemyState>): number {
+  const chillStacks = Math.min(3, Math.max(0, enemy.chillStacks ?? 0))
+  return enemy.speed * (1 - chillStacks * 0.15)
 }
 
 export function getSplitChildren(

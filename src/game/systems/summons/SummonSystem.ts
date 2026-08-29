@@ -165,7 +165,8 @@ export function getSkeletonStats(
   return {
     damage: getSkeletonDamage(skill),
     maxHp: (definition.summonBaseMaxHp ?? 10) +
-      (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1),
+      (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1) +
+      (state.player.skeletonMaxHpBonus ?? 0),
     attackCooldown: definition.summonAttackCooldown ?? 1,
     attackRange: definition.summonAttackRange ?? 70,
     maximum: getMaximumSkeletons(state, skill),

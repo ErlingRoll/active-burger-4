@@ -17,6 +17,7 @@ export const ENEMY_DEFINITIONS = {
     contactDamage: 5,
     xpReward: 4,
     gearDropChance: GEAR_DROP_CHANCES.slime,
+    controlResistance: 0,
     behavior: { kind: 'chase' },
     render: {
       color: '#ef4444',
@@ -34,6 +35,7 @@ export const ENEMY_DEFINITIONS = {
     contactDamage: 4,
     xpReward: 5,
     gearDropChance: GEAR_DROP_CHANCES.runner,
+    controlResistance: 10,
     behavior: { kind: 'chase' },
     render: {
       color: '#f97316',
@@ -51,6 +53,7 @@ export const ENEMY_DEFINITIONS = {
     contactDamage: 10,
     xpReward: 11,
     gearDropChance: GEAR_DROP_CHANCES.brute,
+    controlResistance: 60,
     behavior: { kind: 'chase' },
     render: {
       color: '#7c3aed',
@@ -68,6 +71,7 @@ export const ENEMY_DEFINITIONS = {
     contactDamage: 7,
     xpReward: 8,
     gearDropChance: GEAR_DROP_CHANCES.archer,
+    controlResistance: 20,
     behavior: {
       kind: 'standoff',
       desiredDistance: 45,
@@ -89,6 +93,7 @@ export const ENEMY_DEFINITIONS = {
     contactDamage: 6,
     xpReward: 10,
     gearDropChance: GEAR_DROP_CHANCES.splitter,
+    controlResistance: 15,
     behavior: {
       kind: 'split',
       split: {

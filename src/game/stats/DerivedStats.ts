@@ -47,6 +47,7 @@ export interface PlayerStats extends StatValues {
   whirlwindLeech: number
   increasedHealing: number
   dotMultiplier: number
+  frostStacksOnHit: number
 }
 
 function directPlayerStats(player: Readonly<PlayerState>): StatValues {
@@ -98,6 +99,7 @@ interface AggregatedGearEffects {
   meleeLeech: number
   whirlwindLeech: number
   dotMultiplier: number
+  frostStacksOnHit: number
 }
 
 export function getEquippedGearSetPieceCounts(
@@ -149,6 +151,7 @@ function aggregateGearEffects(
       player.upgradeWhirlwindLeech ?? 0,
     ),
     dotMultiplier: Math.max(0, player.dotMultiplier ?? 0),
+    frostStacksOnHit: 0,
   }
 
   for (const modifier of getItemModifiers(player, itemDefinitions)) {
@@ -225,6 +228,8 @@ function aggregateGearEffects(
 
     if (definition.kind === 'dot-multiplier') {
       effects.dotMultiplier += modifier.value
+    } else if (definition.kind === 'frost-application') {
+      effects.frostStacksOnHit += modifier.value
     }
   }
 
@@ -290,6 +295,7 @@ export function getDerivedPlayerStats(
     increasedHealing: Math.max(0, player.increasedHealing ?? 0),
     dotMultiplier: Math.max(0, player.dotMultiplier ?? 0) +
       gearEffects.dotMultiplier,
+    frostStacksOnHit: Math.max(0, gearEffects.frostStacksOnHit),
   }
 }
 

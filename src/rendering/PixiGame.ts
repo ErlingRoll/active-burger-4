@@ -40,13 +40,26 @@ interface StatusEffectBadge {
   id: string
 }
 
-function getEnemyStatusEffects(poisonStackCount: number): StatusEffectBadge[] {
-  if (poisonStackCount <= 0) {
-    return []
+function getEnemyStatusEffects(
+  poisonStackCount: number,
+  chillStacks = 0,
+  frozenRemainingDuration = 0,
+  shockStacks = 0,
+): StatusEffectBadge[] {
+  const statuses: StatusEffectBadge[] = []
+  if (poisonStackCount > 0) {
+    statuses.push({ id: 'poison' })
   }
-  return [{
-    id: 'poison',
-  }]
+  if (chillStacks > 0) {
+    statuses.push({ id: 'chill' })
+  }
+  if (frozenRemainingDuration > 0) {
+    statuses.push({ id: 'freeze' })
+  }
+  if (shockStacks > 0) {
+    statuses.push({ id: 'shock' })
+  }
+  return statuses
 }
 
 function getStatusEffectSignature(
@@ -683,7 +696,12 @@ export class PixiGame {
             alpha: 0.8,
           })
       }
-      const enemyStatuses = getEnemyStatusEffects(poisonStackCount)
+      const enemyStatuses = getEnemyStatusEffects(
+        poisonStackCount,
+        enemy.chillStacks,
+        enemy.frozenRemainingDuration,
+        enemy.shockStacks,
+      )
       const enemyStatusSignature = getStatusEffectSignature(enemyStatuses)
       if (enemyView.statusEffectSignature !== enemyStatusSignature) {
         enemyView.statusEffectSignature = enemyStatusSignature
@@ -770,7 +788,12 @@ export class PixiGame {
           .circle(0, 0, boss.radius * 0.82)
           .stroke({ color: '#a855f7', width: 3, alpha: 0.85 })
       }
-      const bossStatuses = getEnemyStatusEffects(poisonStackCount)
+      const bossStatuses = getEnemyStatusEffects(
+        poisonStackCount,
+        boss.chillStacks,
+        boss.frozenRemainingDuration,
+        boss.shockStacks,
+      )
       const bossStatusSignature = getStatusEffectSignature(bossStatuses)
       if (bossView.statusEffectSignature !== bossStatusSignature) {
         bossView.statusEffectSignature = bossStatusSignature
@@ -1035,6 +1058,33 @@ export class PixiGame {
           .fill('#22c55e')
           .circle(4, 5.2, 0.8)
           .fill({ color: '#dcfce7', alpha: 0.8 })
+      } else if (status.id === 'chill') {
+        icon
+          .circle(STATUS_EFFECT_ICON_SIZE / 2, STATUS_EFFECT_ICON_SIZE / 2, 4)
+          .fill('#38bdf8')
+          .stroke({ color: '#e0f2fe', width: 1 })
+      } else if (status.id === 'freeze') {
+        icon
+          .rect(1, 1, STATUS_EFFECT_ICON_SIZE - 2, STATUS_EFFECT_ICON_SIZE - 2)
+          .fill('#bfdbfe')
+          .stroke({ color: '#eff6ff', width: 1 })
+      } else if (status.id === 'shock') {
+        icon
+          .poly([
+           5,
+           0,
+           1,
+           6,
+           5,
+           6,
+           3,
+           STATUS_EFFECT_ICON_SIZE,
+           9,
+           4,
+           5,
+           4,
+          ])
+          .fill('#facc15')
       }
       icon.position.set(offsetX, 0)
       view.addChild(icon)

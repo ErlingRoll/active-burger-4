@@ -67,6 +67,50 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
 
+  it('applies the selected Frost and Overload Chain Lightning branch effects', () => {
+    const game = createGame({ seed: 53 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push(
+      'chain-lightning-frost',
+      'chain-lightning-overload',
+    )
+    game.spawnSlime({ x: 100, y: 0 })
+
+    const [event] = collectSkillDamage(game.state, allocator)
+
+    expect(event?.frostApplication).toMatchObject({ stacks: 1 })
+    expect(event?.shockApplication).toMatchObject({ threshold: 3 })
+  })
+
+  it('gives Vitality distinct steady and emergency healing identities', () => {
+    const renewalGame = createGame({ seed: 54 })
+    renewalGame.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    renewalGame.state.player.hp = 50
+    renewalGame.state.run.selectedUpgradeIds.push('vitality-renewal')
+    renewalGame.state.player.vitalityMaxHpHealingPercent = 3
+    collectSkillDamage(renewalGame.state, allocator)
+    expect(renewalGame.state.player.hp).toBeGreaterThan(55)
+
+    const lastStandGame = createGame({ seed: 55 })
+    lastStandGame.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    lastStandGame.state.player.hp = 20
+    lastStandGame.state.player.vitalityLowHpHealingMultiplier = 2
+    collectSkillDamage(lastStandGame.state, allocator)
+    expect(lastStandGame.state.player.hp).toBe(24)
+  })
+
   it('applies skill-specific percentage damage growth without compounding rank bonuses', () => {
     const game = createGame({ seed: 55 })
     game.state.player.skills = [

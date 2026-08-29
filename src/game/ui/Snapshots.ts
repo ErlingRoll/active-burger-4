@@ -37,6 +37,7 @@ import {
   INITIAL_UPGRADES,
   getSkillCooldownReductionPercent,
   type UpgradeId,
+  type UpgradeBranch,
 } from '../../content/upgrades/Upgrades'
 import type {
   BossState,
@@ -129,6 +130,7 @@ export interface SkillUpgradeSnapshot {
   readonly valueLabel: string
   readonly relevant: true
   readonly status: SkillUpgradeStatus
+  readonly branch?: UpgradeBranch
 }
 
 export interface SkillHudSnapshot {
@@ -352,6 +354,7 @@ export type SkillModifierSummaryId =
   | 'healing-per-cast'
   | 'increased-healing'
   | 'dot-multiplier'
+  | 'frost-on-hit'
   | 'summon-damage'
   | 'summon-max-hp'
   | 'summon-attack-speed'
@@ -417,6 +420,14 @@ function getSkillModifierSummaries(
       'DoT multiplier',
       playerStats.dotMultiplier,
       formatUnsignedPercent(playerStats.dotMultiplier),
+    )
+  }
+  if (playerStats.frostStacksOnHit > 0) {
+    addSummary(
+      'frost-on-hit',
+      'Chill on hit',
+      playerStats.frostStacksOnHit,
+      formatStatNumber(playerStats.frostStacksOnHit),
     )
   }
 
@@ -568,6 +579,7 @@ const SKILL_SUMMARIZED_GEAR_MODIFIER_IDS = new Set<GearModifier['id']>([
   'melee-leech',
   'basic-attack-extra-projectiles',
   'dot-multiplier',
+  'frost-application',
 ])
 
 const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
@@ -1012,6 +1024,7 @@ export function createUiSnapshot(
             state.run.selectedUpgradeIds,
           ),
           relevant: true as const,
+          ...(upgrade.branch ? { branch: upgrade.branch } : {}),
           status: acquired
             ? ('acquired' as const)
             : available

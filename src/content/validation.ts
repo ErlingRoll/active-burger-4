@@ -730,7 +730,17 @@ function validateDefinitions(
           upgrade.whirlwindLeechAmount === undefined &&
           upgrade.increasedHealingPercent === undefined &&
           upgrade.summonMaxCountIncrease === undefined &&
-          upgrade.skillCooldownReductionPercent === undefined))
+          upgrade.summonMaxHpIncrease === undefined &&
+          upgrade.skillCooldownReductionPercent === undefined &&
+          upgrade.vitalityMaxHpHealingPercent === undefined &&
+          upgrade.vitalityLowHpHealingMultiplier === undefined &&
+          upgrade.vitalityLowHpDamageReductionPercent === undefined &&
+          upgrade.whirlwindFrostStacks === undefined &&
+          upgrade.whirlwindGuardDamageReductionPercent === undefined &&
+          upgrade.chainLightningFrost === undefined &&
+          upgrade.chainLightningOverload === undefined &&
+          upgrade.fieryTouchDamageIncreasePercent === undefined &&
+          upgrade.modifiers === undefined))
     ) {
       errors.push(
         `upgrades[${index}] must define a known skillId and skill action or effect.`,

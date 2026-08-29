@@ -46,6 +46,7 @@ export type GearModifierId =
   | 'increased-elemental-damage'
   | 'increased-chaos-damage'
   | 'dot-multiplier'
+  | 'frost-application'
   | 'increased-projectile-damage'
   | 'crit-chance'
   | 'crit-multiplier'
@@ -128,6 +129,11 @@ interface GearDotMultiplierModifierDefinition
   kind: 'dot-multiplier'
 }
 
+interface GearFrostApplicationModifierDefinition
+  extends GearModifierDefinitionBase {
+  kind: 'frost-application'
+}
+
 export type GearModifierDefinition =
   | GearStatModifierDefinition
   | GearFlatDamageModifierDefinition
@@ -140,6 +146,7 @@ export type GearModifierDefinition =
   | GearBasicAttackExtraProjectilesModifierDefinition
   | GearProjectileChainsModifierDefinition
   | GearDotMultiplierModifierDefinition
+  | GearFrostApplicationModifierDefinition
 
 export interface GearModifierTargetItem {
   id: string
@@ -337,6 +344,21 @@ export const GEAR_MODIFIER_DEFINITIONS = {
       { min: 4, max: 4 },
       { min: 3, max: 3 },
       { min: 2, max: 2 },
+      { min: 1, max: 1 },
+    ),
+  },
+  'frost-application': {
+    id: 'frost-application',
+    kind: 'frost-application',
+    label: 'Chill on hit',
+    valueType: 'flat',
+    availableSlots: [EquipmentSlot.Weapon, EquipmentSlot.Ring, EquipmentSlot.Amulet],
+    sortOrder: 68,
+    tiers: defineTiers(
+      { min: 2, max: 2 },
+      { min: 2, max: 2 },
+      { min: 1, max: 1 },
+      { min: 1, max: 1 },
       { min: 1, max: 1 },
     ),
   },

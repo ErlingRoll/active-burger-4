@@ -17,6 +17,14 @@ const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
 const RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 20
+const VITALITY_MAX_HP_HEALING_PERCENT = 3
+const VITALITY_LOW_HP_HEALING_MULTIPLIER = 2
+const VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT = 20
+const WHIRLWIND_FROST_STACKS = 1
+const WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT = 15
+const BASIC_ATTACK_RANGE_INCREASE = 15
+const FIERY_TOUCH_DAMAGE_INCREASE_PERCENT = 25
+const SKELETON_MAX_HP_INCREASE = 12
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -56,8 +64,24 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: '+1 maximum skeleton',
     skillId: RAISE_SKELETON_SKILL_ID,
+    branch: 'raise-skeleton-horde',
     summonMaxCountIncrease: 1,
     isEligible: (state) => state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID),
+  },
+  {
+    id: 'raise-skeleton-guardian',
+    name: 'Guardian Bones',
+    description: 'Skeletons gain 12 maximum HP and hold the frontline longer.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: SKELETON_MAX_HP_INCREASE,
+    valueLabel: `+${SKELETON_MAX_HP_INCREASE} skeleton maximum HP`,
+    skillId: RAISE_SKELETON_SKILL_ID,
+    branch: 'raise-skeleton-guardian',
+    summonMaxHpIncrease: SKELETON_MAX_HP_INCREASE,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-guardian'),
   },
   {
     id: 'whirlwind-leech',
@@ -70,6 +94,36 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillId: WHIRLWIND_SKILL_ID,
     whirlwindLeechAmount: 0.02,
     isEligible: (state) => state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID),
+  },
+  {
+    id: 'whirlwind-frost',
+    name: 'Rime Cyclone',
+    description: 'Whirlwind applies Chill and briefly freezes enemies after repeated hits.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: WHIRLWIND_FROST_STACKS,
+    valueLabel: '+1 Chill stack per Whirlwind hit',
+    skillId: WHIRLWIND_SKILL_ID,
+    branch: 'whirlwind-control',
+    whirlwindFrostStacks: WHIRLWIND_FROST_STACKS,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('whirlwind-frost'),
+  },
+  {
+    id: 'whirlwind-guard',
+    name: 'Whirlwind Guard',
+    description: 'Whirlwind grants 15% damage reduction for 1 second after it hits.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT,
+    valueLabel: '+15% Whirlwind Guard damage reduction',
+    skillId: WHIRLWIND_SKILL_ID,
+    branch: 'whirlwind-guard',
+    whirlwindGuardDamageReductionPercent: WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('whirlwind-guard'),
   },
   {
     id: 'attack-speed-boost',
@@ -85,6 +139,42 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: '+0.2 attacks/sec',
     skillId: BASIC_ATTACK_SKILL_ID,
     isEligible: () => true,
+  },
+  {
+    id: 'basic-attack-barrage',
+    name: 'Barrage',
+    description: 'Basic Attack fires 0.15 attacks per second faster.',
+    category: 'skill',
+    rarity: 'uncommon',
+    stat: 'attackSpeed',
+    amount: 0.15,
+    modifiers: [
+      { stat: 'attackSpeed', operation: 'add', value: 0.15, sourceId: 'upgrade:basic-attack-barrage' },
+    ],
+    valueLabel: '+0.15 Basic Attack attacks/sec',
+    skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-barrage',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-barrage'),
+  },
+  {
+    id: 'basic-attack-precision',
+    name: 'Deadeye',
+    description: 'Basic Attack gains 15 attack range for safer positioning.',
+    category: 'skill',
+    rarity: 'uncommon',
+    stat: 'attackRange',
+    amount: BASIC_ATTACK_RANGE_INCREASE,
+    modifiers: [
+      { stat: 'attackRange', operation: 'add', value: BASIC_ATTACK_RANGE_INCREASE, sourceId: 'upgrade:basic-attack-precision' },
+    ],
+    valueLabel: `+${BASIC_ATTACK_RANGE_INCREASE} Basic Attack range`,
+    skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-precision',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-precision'),
   },
   {
     id: 'magnet',
@@ -217,8 +307,24 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
     valueLabel: `+${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}% Fiery Touch cooldown reduction`,
     skillId: FIERY_TOUCH_SKILL_ID,
+    branch: 'fiery-touch-frequency',
     skillCooldownReductionPercent: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
     isEligible: (state) => state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID),
+  },
+  {
+    id: 'fiery-touch-ember',
+    name: 'Emberstorm',
+    description: `Fiery Touch deals ${FIERY_TOUCH_DAMAGE_INCREASE_PERCENT}% more damage, but does not gain extra triggers.`,
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
+    valueLabel: `+${FIERY_TOUCH_DAMAGE_INCREASE_PERCENT}% Fiery Touch damage`,
+    skillId: FIERY_TOUCH_SKILL_ID,
+    branch: 'fiery-touch-ember',
+    fieryTouchDamageIncreasePercent: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('fiery-touch-ember'),
   },
   {
     id: 'vitality-level',
@@ -244,5 +350,66 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillId: VITALITY_SKILL_ID,
     increasedHealingPercent: VITALITY_GLOBAL_HEALING_INCREASE_PERCENT,
     isEligible: (state) => state.ownedSkillIds.includes(VITALITY_SKILL_ID),
+  },
+  {
+    id: 'vitality-renewal',
+    name: 'Renewal',
+    description: 'Vitality also heals 3% of maximum HP, making steady regeneration and overheal more valuable.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: VITALITY_MAX_HP_HEALING_PERCENT,
+    valueLabel: `+${VITALITY_MAX_HP_HEALING_PERCENT}% maximum HP per cast`,
+    skillId: VITALITY_SKILL_ID,
+    branch: 'vitality-renewal',
+    vitalityMaxHpHealingPercent: VITALITY_MAX_HP_HEALING_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(VITALITY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('vitality-renewal'),
+  },
+  {
+    id: 'vitality-last-stand',
+    name: 'Last Stand',
+    description: 'Below 40% health, Vitality heals for twice as much and you take 20% less damage.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: VITALITY_LOW_HP_HEALING_MULTIPLIER,
+    valueLabel: '2x low-health healing, 20% low-health damage reduction',
+    skillId: VITALITY_SKILL_ID,
+    branch: 'vitality-last-stand',
+    vitalityLowHpHealingMultiplier: VITALITY_LOW_HP_HEALING_MULTIPLIER,
+    vitalityLowHpDamageReductionPercent: VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(VITALITY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('vitality-last-stand'),
+  },
+  {
+    id: 'chain-lightning-frost',
+    name: 'Freezing Conduit',
+    description: 'Chain Lightning applies Chill to every enemy it hits.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: '+1 Chill stack per lightning hit',
+    skillId: CHAIN_LIGHTNING_SKILL_ID,
+    branch: 'chain-lightning-frost',
+    chainLightningFrost: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('chain-lightning-frost'),
+  },
+  {
+    id: 'chain-lightning-overload',
+    name: 'Overload',
+    description: 'Chain Lightning applies Shock; three stacks detonate for 150% lightning damage.',
+    category: 'skill',
+    rarity: 'uncommon',
+    amount: 1,
+    valueLabel: 'Shock stacks and overload detonations',
+    skillId: CHAIN_LIGHTNING_SKILL_ID,
+    branch: 'chain-lightning-overload',
+    chainLightningOverload: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('chain-lightning-overload'),
   },
 ]

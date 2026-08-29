@@ -47,6 +47,7 @@ export function generateUpgradeChoices(
   }
   const eligible = INITIAL_UPGRADES
     .filter((upgrade) => upgrade.isEligible(eligibilityState))
+    .filter((upgrade) => isBranchCompatible(upgrade, eligibilityState))
     .filter(isSelectableUpgrade)
 
   if (eligible.length < count) {
@@ -55,7 +56,7 @@ export function generateUpgradeChoices(
     )
   }
 
-  function isSelectableUpgrade(
+    function isSelectableUpgrade(
     upgrade: UpgradeDefinition,
   ): upgrade is UpgradeDefinition & { id: UpgradeChoice['upgradeId'] } {
     return upgrade.id !== 'remove-skill'
@@ -126,6 +127,24 @@ export function generateUpgradeChoices(
     choices[choices.length - 1] = removalChoice
   }
   return choices
+}
+
+function isBranchCompatible(
+  upgrade: UpgradeDefinition,
+  state: UpgradeEligibilityState,
+): boolean {
+  if (!upgrade.branch) {
+    return true
+  }
+  return !state.selectedUpgradeIds.some((selectedId) => {
+    const selected = INITIAL_UPGRADES.find((candidate) => candidate.id === selectedId)
+    if (!selected) {
+      return false
+    }
+    return selected.skillId === upgrade.skillId &&
+      selected.branch !== undefined &&
+      selected.branch !== upgrade.branch
+  })
 }
 
 function getSkillSlotCount(state: Readonly<GameState>): number {

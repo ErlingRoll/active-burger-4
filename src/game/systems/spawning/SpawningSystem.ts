@@ -207,6 +207,10 @@ export function spawnEnemy(
     contactCooldownRemaining: 0,
     xpReward,
     canDropLoot,
+    ...(definition.controlResistance !== undefined
+      ? { controlResistance: definition.controlResistance }
+      : {}),
+    ...(definition.resistances ? { resistances: { ...definition.resistances } } : {}),
     ...(modifier ? { eliteModifier: modifier.id } : {}),
     targetId: state.player.id,
   }
@@ -251,6 +255,8 @@ export function spawnBoss(
     spawnTime: state.time,
     xpReward: definition.xpReward,
     targetId: state.player.id,
+    // Bosses can be controlled, but should not be permanently locked down.
+    controlResistance: 50,
     skills: definition.skills.map((skillId, index) => ({
       skillId,
       // The first skill is ready on spawn; subsequent skills follow in order.

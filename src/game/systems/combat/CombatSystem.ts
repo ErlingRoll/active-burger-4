@@ -69,6 +69,13 @@ import {
   HEALING_POTION_ELITE_DROP_CHANCE,
   HEALING_POTION_ORDINARY_DROP_CHANCE,
 } from '../../../content/progression/HealingPotions'
+import {
+  FROST_DEFAULT_DURATION_SECONDS,
+  FROST_DEFAULT_FREEZE_DURATION_SECONDS,
+  FROST_MAX_CHILL_STACKS,
+  SHOCK_DEFAULT_DURATION_SECONDS,
+  SHOCK_MAX_STACKS,
+} from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 const DEGREES_TO_RADIANS = Math.PI / 180
@@ -177,7 +184,12 @@ function collectFieryTouchTriggerEvents(
   const outgoingDamage = createPlayerDamageProfileFromStats(
     playerStats,
     getSkillDamage(definition, skill.level),
-    { sourceTags: definition.tags },
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: {
+        global: state.player.fieryTouchDamageIncreasePercent ?? 0,
+      },
+    },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
@@ -616,6 +628,9 @@ export function collectEnemyContactDamage(
     if (enemy.hp <= 0) {
       continue
     }
+    if ((enemy.frozenRemainingDuration ?? 0) > 0) {
+      continue
+    }
 
     const cooldown = Math.max(
       0,
@@ -918,8 +933,12 @@ export function applyDamageEvents(
   for (let eventIndex = 0; eventIndex < pendingEvents.length; eventIndex += 1) {
     const event = pendingEvents[eventIndex]!
     if (event.targetId === state.player.id) {
+      const playerDamageFactor = getIncomingPlayerDamageFactor(state.player)
+      const playerEvent = playerDamageFactor === 1
+        ? event
+        : { ...event, damage: scaleDamageValues(event.damage, playerDamageFactor) }
       const resolvedDamage = resolveEventDamage(
-        event,
+        playerEvent,
         getDerivedPlayerStats(state.player).resistances,
         rng,
       )
@@ -935,7 +954,7 @@ export function applyDamageEvents(
       applyPoisonApplication(
         state,
         state.player,
-        event,
+        playerEvent,
         resolvedDamage.preMitigation,
       )
       continue
@@ -957,7 +976,15 @@ export function applyDamageEvents(
     if (enemy) {
       const hitX = enemy.x
       const hitY = enemy.y
-      const resolvedDamage = resolveEventDamage(event, enemy.resistances, rng)
+      const shatters = (enemy.frozenRemainingDuration ?? 0) > 0 &&
+        event.damage.physical > 0
+      if (shatters) {
+        enemy.frozenRemainingDuration = 0
+      }
+      const enemyEvent = shatters
+        ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
+        : event
+      const resolvedDamage = resolveEventDamage(enemyEvent, enemy.resistances, rng)
       const actualDamage = Math.min(
         enemy.hp,
         sumDamageValues(resolvedDamage.mitigated),
@@ -967,9 +994,14 @@ export function applyDamageEvents(
       applyPoisonApplication(
         state,
         enemy,
-        event,
+        enemyEvent,
         resolvedDamage.preMitigation,
       )
+      applyFrostApplication(enemy, enemyEvent)
+      if (isPlayerOwnedDirectHit(state, event)) {
+        applyGearFrostApplication(state, enemy, enemyEvent)
+      }
+      applyShockApplication(enemy, enemyEvent, pendingEvents)
       applyMeleeLeech(state, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
@@ -987,7 +1019,15 @@ export function applyDamageEvents(
     if (boss) {
       const hitX = boss.x
       const hitY = boss.y
-      const resolvedDamage = resolveEventDamage(event, boss.resistances, rng)
+      const shatters = (boss.frozenRemainingDuration ?? 0) > 0 &&
+        event.damage.physical > 0
+      if (shatters) {
+        boss.frozenRemainingDuration = 0
+      }
+      const bossEvent = shatters
+        ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
+        : event
+      const resolvedDamage = resolveEventDamage(bossEvent, boss.resistances, rng)
       const actualDamage = Math.min(
         boss.hp,
         sumDamageValues(resolvedDamage.mitigated),
@@ -997,9 +1037,14 @@ export function applyDamageEvents(
       applyPoisonApplication(
         state,
         boss,
-        event,
+        bossEvent,
         resolvedDamage.preMitigation,
       )
+      applyFrostApplication(boss, bossEvent)
+      if (isPlayerOwnedDirectHit(state, event)) {
+        applyGearFrostApplication(state, boss, bossEvent)
+      }
+      applyShockApplication(boss, bossEvent, pendingEvents)
       applyMeleeLeech(state, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
@@ -1009,8 +1054,136 @@ export function applyDamageEvents(
           idAllocator,
         ))
       }
+
     }
   }
+}
+
+function getIncomingPlayerDamageFactor(player: PlayerState): number {
+  let reduction = 0
+  if (player.hp / Math.max(1, player.maxHp) <= 0.4) {
+    reduction += player.vitalityLowHpDamageReductionPercent ?? 0
+  }
+  if ((player.whirlwindGuardRemaining ?? 0) > 0) {
+    reduction += player.whirlwindGuardDamageReductionPercent ?? 0
+  }
+  return Math.max(0, 1 - Math.min(75, reduction) / 100)
+}
+
+function applyFrostApplication(
+  target: EnemyState,
+  event: Readonly<DamageEvent>,
+): void {
+  const application = event.frostApplication
+  if (!application || target.hp <= 0) {
+    return
+  }
+  const controlFactor = 1 - Math.min(90, Math.max(0, target.controlResistance ?? 0)) / 100
+  const stacks = Math.max(1, Math.floor(application.stacks * controlFactor))
+  target.chillStacks = Math.min(
+    FROST_MAX_CHILL_STACKS,
+    (target.chillStacks ?? 0) + stacks,
+  )
+  target.chillRemainingDuration = Math.max(
+    target.chillRemainingDuration ?? 0,
+    Math.min(FROST_DEFAULT_DURATION_SECONDS, application.durationSeconds),
+  )
+  const threshold = application.freezeThreshold ?? FROST_MAX_CHILL_STACKS
+  if (target.chillStacks >= threshold) {
+    const freezeDuration = Math.min(
+      FROST_DEFAULT_FREEZE_DURATION_SECONDS,
+      application.freezeDurationSeconds ?? FROST_DEFAULT_FREEZE_DURATION_SECONDS,
+    ) * controlFactor
+    target.frozenRemainingDuration = Math.max(
+      target.frozenRemainingDuration ?? 0,
+      freezeDuration,
+    )
+    target.chillStacks = 0
+    target.chillRemainingDuration = 0
+  }
+}
+
+function applyShockApplication(
+  target: EnemyState,
+  event: Readonly<DamageEvent>,
+  pendingEvents: DamageEvent[],
+): void {
+  const application = event.shockApplication
+  if (!application || target.hp <= 0) {
+    return
+  }
+
+  target.shockStacks = Math.min(
+    SHOCK_MAX_STACKS,
+    (target.shockStacks ?? 0) + Math.max(0, application.stacks),
+  )
+  target.shockRemainingDuration = Math.max(
+    target.shockRemainingDuration ?? 0,
+    Math.min(SHOCK_DEFAULT_DURATION_SECONDS, application.durationSeconds),
+  )
+  const threshold = application.threshold ?? SHOCK_MAX_STACKS
+  if (target.shockStacks >= threshold) {
+    target.shockStacks = 0
+    target.shockRemainingDuration = 0
+    pendingEvents.push({
+      sourceId: event.sourceId,
+      sourceSkillId: event.sourceSkillId,
+      sourceTags: event.sourceTags,
+      sourceLabel: 'Overload',
+      targetId: target.id,
+      damage: scaleDamageValues(event.damage, application.burstMultiplier ?? 1.5),
+    })
+  }
+}
+
+function applyGearFrostApplication(
+  state: GameState,
+  target: EnemyState,
+  event: Readonly<DamageEvent>,
+): void {
+  const stacks = getDerivedPlayerStats(state.player).frostStacksOnHit
+  if (stacks <= 0 || event.damageOverTime) {
+    return
+  }
+  applyFrostApplication(target, {
+    targetId: target.id,
+    damage: createDamageValues(),
+    frostApplication: {
+      stacks,
+      durationSeconds: FROST_DEFAULT_DURATION_SECONDS,
+    },
+  })
+}
+
+export function updateFrost(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const elapsed = Math.max(0, fixedStepSeconds)
+  for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
+    enemy.chillRemainingDuration = Math.max(
+      0,
+      (enemy.chillRemainingDuration ?? 0) - elapsed,
+    )
+    if (enemy.chillRemainingDuration <= 0) {
+      enemy.chillStacks = 0
+    }
+    enemy.frozenRemainingDuration = Math.max(
+      0,
+      (enemy.frozenRemainingDuration ?? 0) - elapsed,
+    )
+    enemy.shockRemainingDuration = Math.max(
+      0,
+      (enemy.shockRemainingDuration ?? 0) - elapsed,
+    )
+    if (enemy.shockRemainingDuration <= 0) {
+      enemy.shockStacks = 0
+    }
+  }
+  state.player.whirlwindGuardRemaining = Math.max(
+    0,
+    (state.player.whirlwindGuardRemaining ?? 0) - elapsed,
+  )
 }
 
 function applyPoisonApplication(

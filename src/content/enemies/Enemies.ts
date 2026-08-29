@@ -1,4 +1,5 @@
 import { ENEMY_DEFINITIONS } from './EnemyConfig'
+import type { DamageResistanceValues } from '../stats/Damage'
 
 export {
   ELITE_MODIFIER_DEFINITIONS,
@@ -41,6 +42,9 @@ export interface EnemyDefinition {
   contactDamage: number
   xpReward: number
   gearDropChance: number
+  /** Percentage resistance to Chill/Freeze duration and stack application. */
+  controlResistance?: number
+  resistances?: Partial<DamageResistanceValues>
   behavior: EnemyBehaviorDefinition
   render: EnemyRenderDefinition
 }

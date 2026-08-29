@@ -17,6 +17,11 @@ export const RAISE_SKELETON_SKILL_ID: SkillId = 'raise-skeleton'
 export const FIERY_TOUCH_SKILL_ID: SkillId = 'fiery-touch'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
+export const FROST_MAX_CHILL_STACKS = 3
+export const FROST_DEFAULT_DURATION_SECONDS = 4
+export const FROST_DEFAULT_FREEZE_DURATION_SECONDS = 1
+export const SHOCK_MAX_STACKS = 3
+export const SHOCK_DEFAULT_DURATION_SECONDS = 4
 
 export const BASIC_ATTACK_VARIANTS = {
   sword: {

@@ -129,7 +129,7 @@ function collectWhirlwindDamage(
     if (distance > radius + enemy.radius) {
       continue
     }
-    events.push(createPlayerDamageEventFromStats(
+    const event = createPlayerDamageEventFromStats(
       playerStats,
       state.player.id,
       enemy.id,
@@ -144,10 +144,22 @@ function collectWhirlwindDamage(
           ),
         },
       },
-    ))
+    )
+    if (state.run.selectedUpgradeIds.includes('whirlwind-frost')) {
+      event.frostApplication = {
+      stacks: 1,
+      durationSeconds: 4,
+      freezeThreshold: 3,
+      freezeDurationSeconds: 1,
+      }
+    }
+    events.push(event)
   }
 
   if (events.length > 0) {
+    if (state.run.selectedUpgradeIds.includes('whirlwind-guard')) {
+      state.player.whirlwindGuardRemaining = 1
+    }
     addEffect(
       state,
       allocator,
@@ -209,7 +221,7 @@ function collectChainLightningDamage(
     }
 
     visited.add(target.id)
-    events.push(createPlayerDamageEventFromStats(
+    const event = createPlayerDamageEventFromStats(
       playerStats,
       state.player.id,
       target.id,
@@ -224,7 +236,24 @@ function collectChainLightningDamage(
           ),
         },
       },
-    ))
+    )
+    if (state.run.selectedUpgradeIds.includes('chain-lightning-frost')) {
+      event.frostApplication = {
+      stacks: 1,
+      durationSeconds: 4,
+      freezeThreshold: 3,
+      freezeDurationSeconds: 1,
+      }
+    }
+    if (state.run.selectedUpgradeIds.includes('chain-lightning-overload')) {
+      event.shockApplication = {
+      stacks: 1,
+      durationSeconds: 4,
+      threshold: 3,
+      burstMultiplier: 1.5,
+      }
+    }
+    events.push(event)
     path.push({ x: target.x, y: target.y })
     originX = target.x
     originY = target.y
@@ -252,9 +281,18 @@ function collectVitalityHealing(
   random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const definition = getSkillDefinition(VITALITY_SKILL_ID)
+  let healing = getSkillHealing(definition, skill.level)
+  healing += state.player.maxHp *
+    (state.player.vitalityMaxHpHealingPercent ?? 0) / 100
+  if (
+    state.player.hp / Math.max(1, state.player.maxHp) <= 0.4 &&
+    state.player.vitalityLowHpHealingMultiplier
+  ) {
+    healing *= state.player.vitalityLowHpHealingMultiplier
+  }
   healPlayer(
     state,
-    getSkillHealing(definition, skill.level),
+    healing,
     definition.name,
     random,
   )

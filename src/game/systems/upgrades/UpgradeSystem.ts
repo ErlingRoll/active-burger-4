@@ -7,6 +7,7 @@ import {
 import type { SkillId } from '../../../content/skills/Skills'
 import {
   BASIC_ATTACK_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
@@ -50,6 +51,33 @@ export function applyUpgrade(
       (player.upgradeWhirlwindLeech ?? 0) + definition.whirlwindLeechAmount
     refreshMeleeLeech(player)
   }
+  if (definition.vitalityMaxHpHealingPercent) {
+    player.vitalityMaxHpHealingPercent =
+      (player.vitalityMaxHpHealingPercent ?? 0) +
+      definition.vitalityMaxHpHealingPercent
+  }
+  if (definition.vitalityLowHpHealingMultiplier) {
+    player.vitalityLowHpHealingMultiplier =
+      Math.max(
+        player.vitalityLowHpHealingMultiplier ?? 1,
+        definition.vitalityLowHpHealingMultiplier,
+      )
+  }
+  if (definition.vitalityLowHpDamageReductionPercent) {
+    player.vitalityLowHpDamageReductionPercent =
+      (player.vitalityLowHpDamageReductionPercent ?? 0) +
+      definition.vitalityLowHpDamageReductionPercent
+  }
+  if (definition.whirlwindGuardDamageReductionPercent) {
+    player.whirlwindGuardDamageReductionPercent =
+      (player.whirlwindGuardDamageReductionPercent ?? 0) +
+      definition.whirlwindGuardDamageReductionPercent
+  }
+  if (definition.fieryTouchDamageIncreasePercent) {
+    player.fieryTouchDamageIncreasePercent =
+      (player.fieryTouchDamageIncreasePercent ?? 0) +
+      definition.fieryTouchDamageIncreasePercent
+  }
   if (definition.increasedHealingPercent) {
     player.increasedHealing =
       (player.increasedHealing ?? 0) + definition.increasedHealingPercent
@@ -57,6 +85,17 @@ export function applyUpgrade(
   if (definition.summonMaxCountIncrease) {
     player.skeletonMaxCountBonus =
       (player.skeletonMaxCountBonus ?? 0) + definition.summonMaxCountIncrease
+  }
+  if (definition.summonMaxHpIncrease) {
+    player.skeletonMaxHpBonus =
+      (player.skeletonMaxHpBonus ?? 0) + definition.summonMaxHpIncrease
+    for (const summon of state.summons) {
+      summon.maxHp += definition.summonMaxHpIncrease
+      summon.hp = Math.min(
+        summon.maxHp,
+        summon.hp + definition.summonMaxHpIncrease,
+      )
+    }
   }
   if (definition.pickupCollectionRangeIncreasePercent) {
     const currentMultiplier = player.pickupCollectionRangeMultiplier
@@ -115,12 +154,21 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   state.player.skills.splice(skillIndex, 1)
   if (skillId === WHIRLWIND_SKILL_ID) {
     state.player.upgradeWhirlwindLeech = 0
+    state.player.whirlwindGuardRemaining = 0
+    state.player.whirlwindGuardDamageReductionPercent = 0
+  }
+  if (skillId === FIERY_TOUCH_SKILL_ID) {
+    state.player.fieryTouchDamageIncreasePercent = 0
   }
   if (skillId === VITALITY_SKILL_ID) {
     state.player.increasedHealing = 0
+    state.player.vitalityMaxHpHealingPercent = 0
+    state.player.vitalityLowHpHealingMultiplier = 1
+    state.player.vitalityLowHpDamageReductionPercent = 0
   }
   if (skillId === RAISE_SKELETON_SKILL_ID) {
     state.player.skeletonMaxCountBonus = 0
+    state.player.skeletonMaxHpBonus = 0
     state.summons = []
   }
   refreshPlayerDerivedStats(state.player)

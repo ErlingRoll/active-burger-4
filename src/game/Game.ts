@@ -61,6 +61,7 @@ import {
   resolvePlayerTarget,
   updateAttackCooldown,
   updateEnemyChase,
+  updateFrost,
   updateProjectiles,
   updatePoison,
 } from './systems/combat/CombatSystem'
@@ -768,6 +769,7 @@ export class Game {
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
     ]
+    updateFrost(this.gameState, FIXED_STEP_SECONDS)
     applyDamageEvents(this.gameState, damageEvents, this.random, this.idAllocator)
     removeDeadSummons(this.gameState)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {

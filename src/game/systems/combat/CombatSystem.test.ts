@@ -13,6 +13,7 @@ import {
   resolvePlayerTarget,
   updateProjectiles,
   updatePoison,
+  updateFrost,
 } from './CombatSystem'
 import type {
   BossState,
@@ -26,6 +27,7 @@ import {
 } from '../../equipment/EquipmentState'
 import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
 import { createGame } from '../../Game'
+import { createDamageValues } from '../../../content/stats/Damage'
 
 const neverCrit = { next: () => 1 }
 const alwaysCrit = { next: () => 0 }
@@ -809,6 +811,55 @@ describe('collectEnemyContactDamage', () => {
         damage: expect.objectContaining({ physical: 5 }),
       }),
     ])
+  })
+
+  describe('Frost and Shock statuses', () => {
+    it('freezes after capped Chill progress and shatters on physical damage', () => {
+      const gameState = state([enemy(2, 100)])
+      const frostEvent = {
+        targetId: 2,
+        damage: createDamageValues(),
+        frostApplication: {
+          stacks: 1,
+          durationSeconds: 4,
+          freezeThreshold: 3,
+          freezeDurationSeconds: 1,
+        },
+      }
+
+      applyDamageEvents(gameState, [frostEvent, frostEvent, frostEvent], neverCrit)
+
+      expect(gameState.enemies[0]?.frozenRemainingDuration).toBe(1)
+      applyDamageEvents(gameState, [{
+        targetId: 2,
+        damage: createDamageValues({ physical: 10 }),
+      }], neverCrit)
+      expect(gameState.enemies[0]?.hp).toBe(5)
+
+      updateFrost(gameState, 1)
+      expect(gameState.enemies[0]?.frozenRemainingDuration).toBe(0)
+    })
+
+    it('detonates Chain Lightning Shock at three stacks', () => {
+      const gameState = state([enemy(2, 100)])
+      const shockEvent = {
+        sourceId: 1,
+        sourceSkillId: 'chain-lightning' as const,
+        targetId: 2,
+        damage: createDamageValues({ lightning: 2 }),
+        shockApplication: {
+          stacks: 1,
+          durationSeconds: 4,
+          threshold: 3,
+          burstMultiplier: 1.5,
+        },
+      }
+
+      applyDamageEvents(gameState, [shockEvent, shockEvent, shockEvent], neverCrit)
+
+      expect(gameState.enemies[0]?.shockStacks).toBe(0)
+      expect(gameState.enemies[0]?.hp).toBe(11)
+    })
   })
 
   it.each([

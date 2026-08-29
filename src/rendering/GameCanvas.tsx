@@ -649,6 +649,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>
                                 {upgrade.name} ({upgrade.valueLabel})
+                                {upgrade.branch ? ` [${upgrade.branch}]` : ''}
                               </li>
                             ))}
                         </ul>

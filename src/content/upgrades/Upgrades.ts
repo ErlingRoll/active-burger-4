@@ -20,16 +20,39 @@ export type UpgradeId =
   | 'raise-skeleton-unlock'
   | 'raise-skeleton-level'
   | 'raise-skeleton-max-count'
+  | 'raise-skeleton-guardian'
   | 'whirlwind-leech'
+  | 'whirlwind-frost'
+  | 'whirlwind-guard'
   | 'magnet'
+  | 'chain-lightning-frost'
+  | 'chain-lightning-overload'
+  | 'vitality-renewal'
+  | 'vitality-last-stand'
+  | 'basic-attack-barrage'
+  | 'basic-attack-precision'
+  | 'fiery-touch-ember'
   | typeof REMOVE_SKILL_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = Rarity
 export type UpgradeStat = Extract<
   StatKey,
-  'attackDamage' | 'attackSpeed'
+  'attackDamage' | 'attackSpeed' | 'attackRange'
 >
 export type SkillUpgradeAction = 'unlock' | 'level'
+export type UpgradeBranch =
+  | 'vitality-renewal'
+  | 'vitality-last-stand'
+  | 'whirlwind-control'
+  | 'whirlwind-guard'
+  | 'chain-lightning-frost'
+  | 'chain-lightning-overload'
+  | 'raise-skeleton-horde'
+  | 'raise-skeleton-guardian'
+  | 'fiery-touch-frequency'
+  | 'fiery-touch-ember'
+  | 'basic-attack-barrage'
+  | 'basic-attack-precision'
 
 export interface UpgradeChoice {
   upgradeId: Exclude<UpgradeId, typeof REMOVE_SKILL_UPGRADE_ID>
@@ -65,6 +88,7 @@ export interface UpgradeDefinition {
   valueLabel: string
   skillId?: SkillId
   skillAction?: SkillUpgradeAction
+  branch?: UpgradeBranch
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
   whirlwindLeechAmount?: number
   /** Additive pickup collection range increase per rank, expressed as a percent. */
@@ -79,6 +103,24 @@ export interface UpgradeDefinition {
   summonMaxCountIncrease?: number
   /** Percentage-point cooldown reduction added for one skill per rank. */
   skillCooldownReductionPercent?: number
+  /** Percentage of max HP added to each Vitality cast. */
+  vitalityMaxHpHealingPercent?: number
+  /** Multiplier applied to Vitality healing while critically injured. */
+  vitalityLowHpHealingMultiplier?: number
+  /** Damage reduction while critically injured after choosing Last Stand. */
+  vitalityLowHpDamageReductionPercent?: number
+  /** Number of Chill stacks applied by a Whirlwind hit. */
+  whirlwindFrostStacks?: number
+  /** Damage reduction while Whirlwind Guard is active. */
+  whirlwindGuardDamageReductionPercent?: number
+  /** Enables Frost application on Chain Lightning hits. */
+  chainLightningFrost?: boolean
+  /** Enables Shock stacking and overload detonations. */
+  chainLightningOverload?: boolean
+  /** Percentage bonus applied only to Fiery Touch damage. */
+  fieryTouchDamageIncreasePercent?: number
+  /** Flat max HP bonus applied to each skeleton. */
+  summonMaxHpIncrease?: number
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'

@@ -203,8 +203,15 @@ export interface PlayerState {
   dotMultiplier?: number
   /** Repeatable Raise Skeleton upgrade count. */
   skeletonMaxCountBonus?: number
+  skeletonMaxHpBonus?: number
   /** Whirlwind leech earned from level-up upgrades. */
   upgradeWhirlwindLeech?: number
+  vitalityMaxHpHealingPercent?: number
+  vitalityLowHpHealingMultiplier?: number
+  vitalityLowHpDamageReductionPercent?: number
+  whirlwindGuardRemaining?: number
+  whirlwindGuardDamageReductionPercent?: number
+  fieryTouchDamageIncreasePercent?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
   /** Minimum rarity for future gear drops, raised by one-time gear blessings. */
@@ -266,6 +273,12 @@ export interface EnemyState {
   eliteModifier?: EliteModifierId
   resistances?: Partial<DamageResistanceValues>
   poisonStacks?: PoisonStackState[]
+  chillStacks?: number
+  chillRemainingDuration?: number
+  frozenRemainingDuration?: number
+  controlResistance?: number
+  shockStacks?: number
+  shockRemainingDuration?: number
   critChance?: number
   critMultiplier?: number
 
@@ -297,6 +310,10 @@ export interface DamageEvent {
   damageOverTime?: boolean
   /** Creates one independent poison stack after this hit is resolved. */
   poisonApplication?: PoisonApplication
+  /** Applies capped Chill/Freeze progress after this hit is resolved. */
+  frostApplication?: FrostApplication
+  /** Applies Shock stacks and optionally detonates them at a threshold. */
+  shockApplication?: ShockApplication
 }
 
 export interface ProjectileState {
@@ -409,6 +426,20 @@ export interface PoisonStackState {
 export interface PoisonApplication {
   durationSeconds: number
   physicalChaosRatio: number
+}
+
+export interface FrostApplication {
+  stacks: number
+  durationSeconds: number
+  freezeThreshold?: number
+  freezeDurationSeconds?: number
+}
+
+export interface ShockApplication {
+  stacks: number
+  durationSeconds: number
+  threshold?: number
+  burstMultiplier?: number
 }
 
 export interface SkillEffectState {
