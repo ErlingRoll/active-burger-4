@@ -1,6 +1,7 @@
 import {
   EQUIPMENT_SLOTS,
   ALL_ITEM_DEFINITIONS,
+  EquipmentSlot,
   getItemDefinition,
   getLegacyItemSetId,
   type ItemDefinition,
@@ -31,6 +32,7 @@ import {
   getActiveGearSetBonuses,
   type GearSetId,
 } from '../../game-config/gear-sets'
+import { getBasicAttackVariant } from '../../content/skills/Skills'
 import type { PlayerState } from '../state/GameState'
 
 export interface PlayerStats extends StatValues {
@@ -58,6 +60,22 @@ function directPlayerStats(player: Readonly<PlayerState>): StatValues {
     attackSpeed: player.attackSpeed,
     attackRange: player.attackRange,
   }
+}
+
+function getEquippedWeaponAttackRange(
+  player: Readonly<PlayerState>,
+  itemDefinitions: readonly ItemDefinition[],
+): number | undefined {
+  const equipped = player.equipment?.weapon
+  if (!equipped) {
+    return undefined
+  }
+  const definition = itemDefinitions.find(
+    (candidate) => candidate.id === equipped.itemId,
+  ) ?? getItemDefinition(equipped.itemId)
+  return definition.slot === EquipmentSlot.Weapon
+    ? getBasicAttackVariant(definition.weaponArchetype).attackRange
+    : undefined
 }
 
 function getItemModifiers(
@@ -267,6 +285,13 @@ export function getDerivedPlayerStats(
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): PlayerStats {
   const base = player.baseStats ?? directPlayerStats(player)
+  const equippedWeaponAttackRange = getEquippedWeaponAttackRange(
+    player,
+    itemDefinitions,
+  )
+  const effectiveBase = equippedWeaponAttackRange === undefined
+    ? base
+    : { ...base, attackRange: equippedWeaponAttackRange }
   const gearEffects = aggregateGearEffects(player, itemDefinitions)
   const modifiers = [
     ...(player.statModifiers ?? []),
@@ -274,8 +299,8 @@ export function getDerivedPlayerStats(
   ]
   const scalarStats = evaluateDerivedStats(
     {
-      ...base,
-      maxHp: base.maxHp + getLevelMaxHpBonus(player.level),
+      ...effectiveBase,
+      maxHp: effectiveBase.maxHp + getLevelMaxHpBonus(player.level),
     },
     modifiers,
   )

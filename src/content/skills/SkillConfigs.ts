@@ -74,6 +74,7 @@ export interface BasicAttackVariantDefinition {
   id: WeaponArchetype
   description: string
   kind: 'projectile' | 'area'
+  attackRange: number
   tags: readonly SkillTag[]
   projectileDefinitionId?: ProjectileDefinitionId
   swingArcDegrees?: number

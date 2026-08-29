@@ -28,6 +28,22 @@ describe('equipment melee leech', () => {
   })
 })
 
+describe('equipment attack range', () => {
+  it('uses the equipped weapon range after swapping archetypes', () => {
+    const game = createGame({ seed: 75, playstyleId: 'knight' })
+
+    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
+
+    equipItem(game.state.player, 'ritual-staff')
+    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(110)
+    expect(game.state.player.attackRange).toBe(110)
+
+    equipItem(game.state.player, 'iron-cleaver')
+    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
+    expect(game.state.player.attackRange).toBe(45)
+  })
+})
+
 describe('equipment gear sets', () => {
   it('applies cumulative Giant set max HP bonuses at each threshold', () => {
     const game = createGame({ seed: 72 })

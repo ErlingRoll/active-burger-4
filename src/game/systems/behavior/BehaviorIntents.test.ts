@@ -7,6 +7,7 @@ import {
 } from './BehaviorIntents'
 import { updatePlayerBehavior } from './BehaviorController'
 import { createInitialPlayerState } from '../spawning/SpawningSystem'
+import { equipItem } from '../../equipment/EquipmentState'
 import type { EnemyState, GameState } from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 
@@ -196,6 +197,16 @@ describe('data-driven player behavior intents', () => {
     const candidates = getPlayerBehaviorCandidates(state)
     expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
     expect(updatePlayerBehavior(state, 1 / 60)?.source).not.toBe('kite')
+  })
+
+  it('uses the equipped staff range after a knight swaps weapons', () => {
+    const state = createState([enemy(4, 'slime', 80)])
+    equipItem(state.player, 'ritual-staff')
+
+    const candidates = getPlayerBehaviorCandidates(state)
+
+    expect(candidates.map((candidate) => candidate.source)).toEqual(['hold'])
+    expect(state.player.attackRange).toBe(110)
   })
 
   it('keeps movement aligned with the active combat target', () => {

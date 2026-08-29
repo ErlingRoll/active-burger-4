@@ -457,7 +457,7 @@ describe('UI snapshots', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'attack-range',
-          value: '93',
+          value: '208',
         }),
         expect.objectContaining({
           id: 'basic-attack-extra-projectiles',
