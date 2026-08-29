@@ -14,6 +14,7 @@ export interface AuthEnvironment {
 export interface AuthAccount {
   id: string
   email: string | null
+  displayName: string | null
 }
 
 export interface SignInOptions {
@@ -28,6 +29,7 @@ export interface AuthenticationService {
     password: string,
     options?: SignInOptions,
   ): Promise<AuthAccount>
+  signInWithDiscord(options?: SignInOptions): Promise<void>
   signOut(): Promise<void>
   subscribe(onAccountChange: (account: AuthAccount | null) => void): () => void
 }
@@ -99,8 +101,12 @@ export function createAuthenticationServiceFromClient(
     onAccountChange: (account: AuthAccount | null) => void,
   ): void => {
     const { data } = activeClient.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        onAccountChange(toAuthAccount(session))
+      (event: AuthChangeEvent, session: Session | null) => {
+        const account = toAuthAccount(session)
+        if (account && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+          void ensureProfile(activeClient, account.id, account.displayName)
+        }
+        onAccountChange(account)
       },
     )
     subscriptions.set(onAccountChange, data.subscription)
@@ -148,8 +154,21 @@ export function createAuthenticationServiceFromClient(
       if (!account) {
         throw new Error('Authentication completed without an active session.')
       }
-      await ensureProfile(activeClient, account.id)
+      await ensureProfile(activeClient, account.id, account.displayName)
       return account
+    },
+
+    async signInWithDiscord(options: SignInOptions = {}): Promise<void> {
+      switchClient(options.persistSession ?? true)
+      const { error } = await activeClient.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        },
+      })
+      if (error) {
+        throw error
+      }
     },
 
     async signOut(): Promise<void> {
@@ -179,13 +198,37 @@ function toAuthAccountFromUser(user: User): AuthAccount {
   return {
     id: user.id,
     email: user.email ?? null,
+    displayName: resolveDisplayName(user),
   }
 }
 
-async function ensureProfile(client: SupabaseClient, accountId: string): Promise<void> {
+function resolveDisplayName(user: User): string | null {
+  const metadata = user.user_metadata as Record<string, unknown> | undefined
+  const candidates = [
+    metadata?.full_name,
+    metadata?.name,
+    metadata?.custom_claims && typeof metadata.custom_claims === 'object'
+      ? (metadata.custom_claims as Record<string, unknown>).global_name
+      : undefined,
+    metadata?.preferred_username,
+    metadata?.user_name,
+  ]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+  return null
+}
+
+async function ensureProfile(
+  client: SupabaseClient,
+  accountId: string,
+  displayName: string | null,
+): Promise<void> {
   const { error } = await client
     .from('profiles')
-    .upsert({ id: accountId }, { onConflict: 'id' })
+    .upsert({ id: accountId, display_name: displayName }, { onConflict: 'id' })
   if (error) {
     throw error
   }

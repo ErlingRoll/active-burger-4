@@ -422,6 +422,28 @@ function App() {
     [authenticationService],
   )
 
+  const signInWithDiscord = useCallback(
+    async (options?: SignInOptions): Promise<boolean> => {
+      const service = authenticationService.service
+      if (!service) {
+        setAuthentication({
+          status: 'unavailable',
+          account: null,
+          error: authenticationService.configurationError ?? 'Authentication unavailable.',
+        })
+        return false
+      }
+      try {
+        await service.signInWithDiscord(options)
+        return true
+      } catch (error: unknown) {
+        setAuthentication({ status: 'error', account: null, error: errorMessage(error) })
+        return false
+      }
+    },
+    [authenticationService],
+  )
+
   const signOut = useCallback(async (): Promise<boolean> => {
     const service = authenticationService.service
     if (!service) {
@@ -759,6 +781,7 @@ function App() {
           <AuthGateway
             authentication={authentication}
             onSignIn={signIn}
+            onSignInWithDiscord={signInWithDiscord}
             onSignOut={signOut}
           />
         )
@@ -814,13 +837,13 @@ function AppHeader({
     <header className="app-header">
       <div>
         <p className="app-kicker">Active Burger 4</p>
-        <h1>Prototype Arena</h1>
+        <h1>Active Burger</h1>
       </div>
       {authentication.account ? (
         <div className="app-account">
           <span className="app-account-label">Signed in</span>
           <strong className="app-account-email">
-            {authentication.account.email ?? 'Email unavailable'}
+            {authentication.account.displayName ?? authentication.account.email ?? 'Account unavailable'}
           </strong>
           {authentication.error ? (
             <span className="app-account-error">{authentication.error}</span>
@@ -1029,12 +1052,14 @@ interface AuthGatewayProps {
     password: string,
     options?: SignInOptions,
   ) => Promise<boolean>
+  onSignInWithDiscord: (options?: SignInOptions) => Promise<boolean>
   onSignOut: () => Promise<boolean>
 }
 
 function AuthGateway({
   authentication,
   onSignIn,
+  onSignInWithDiscord,
   onSignOut,
 }: AuthGatewayProps) {
   return (
@@ -1048,6 +1073,7 @@ function AuthGateway({
         <AuthPanel
           authentication={authentication}
           onSignIn={onSignIn}
+          onSignInWithDiscord={onSignInWithDiscord}
           onSignOut={onSignOut}
         />
       </div>
