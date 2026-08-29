@@ -274,6 +274,9 @@ export interface EnemyState {
   hp: number
   maxHp: number
 
+  /** Absolute simulation time at which this enemy was spawned. */
+  spawnTime?: number
+
   speed: number
 
   contactDamage: number

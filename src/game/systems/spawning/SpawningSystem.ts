@@ -198,6 +198,7 @@ export function spawnEnemy(
     radius: definition.radius * (modifier?.radiusMultiplier ?? 1),
     hp: maxHp,
     maxHp,
+    spawnTime: state.time,
     speed: definition.speed *
       getEnemyMovementSpeedMultiplier(enemyId) *
       (modifier?.speedMultiplier ?? 1) *
@@ -248,11 +249,11 @@ export function spawnBoss(
     radius: definition.radius,
     hp: definition.maxHp * hpMultiplier,
     maxHp: definition.maxHp * hpMultiplier,
+    spawnTime: state.time,
     speed: definition.speed,
     contactDamage: definition.contactDamage *
       contactDamageMultiplier *
       damageMultiplier,
-    spawnTime: state.time,
     xpReward: definition.xpReward,
     targetId: state.player.id,
     // Bosses can be controlled, but should not be permanently locked down.

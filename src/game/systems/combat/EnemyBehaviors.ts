@@ -3,6 +3,7 @@ import {
   type EnemyBehaviorDefinition,
   type EnemySplitDefinition,
 } from '../../../content/enemies/Enemies'
+import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import type { EnemyState, GameState } from '../../state/GameState'
 
 export interface ChildSpawnRequest {
@@ -57,6 +58,7 @@ export function getEnemyCombatTarget(
 }
 
 function moveTowardTarget(
+  state: Readonly<GameState>,
   target: Readonly<EnemyCombatTarget>,
   enemy: EnemyState,
   distanceToMaintain: number,
@@ -70,7 +72,7 @@ function moveTowardTarget(
   }
 
   const movementDistance = Math.min(
-    getEffectiveEnemySpeed(enemy) * fixedStepSeconds,
+    getEffectiveEnemySpeed(state, enemy) * fixedStepSeconds,
     distance - distanceToMaintain,
   )
   const movementRatio = movementDistance / distance
@@ -79,6 +81,7 @@ function moveTowardTarget(
 }
 
 function moveAwayFromTarget(
+  state: Readonly<GameState>,
   target: Readonly<EnemyCombatTarget>,
   enemy: EnemyState,
   distanceToMaintain: number,
@@ -92,7 +95,7 @@ function moveAwayFromTarget(
       ? (enemy.id * 0.6180339887498949 * Math.PI * 2) % (Math.PI * 2)
       : Math.atan2(offsetY, offsetX)
   const movementDistance = Math.min(
-    getEffectiveEnemySpeed(enemy) * fixedStepSeconds,
+    getEffectiveEnemySpeed(state, enemy) * fixedStepSeconds,
     distanceMaintainDelta(distance, distanceToMaintain),
   )
   if (movementDistance <= 0) {
@@ -115,6 +118,7 @@ function updateChaseBehavior(
   const target = getEnemyCombatTarget(state, enemy)
   enemy.targetId = target.id
   moveTowardTarget(
+    state,
     target,
     enemy,
     target.radius + enemy.radius,
@@ -132,9 +136,21 @@ function updateStandoffBehavior(
   enemy.targetId = target.id
   const distance = Math.hypot(target.x - enemy.x, target.y - enemy.y)
   if (distance < behavior.retreatDistance) {
-    moveAwayFromTarget(target, enemy, behavior.retreatDistance, fixedStepSeconds)
+    moveAwayFromTarget(
+      state,
+      target,
+      enemy,
+      behavior.retreatDistance,
+      fixedStepSeconds,
+    )
   } else {
-    moveTowardTarget(target, enemy, behavior.desiredDistance, fixedStepSeconds)
+    moveTowardTarget(
+      state,
+      target,
+      enemy,
+      behavior.desiredDistance,
+      fixedStepSeconds,
+    )
   }
 }
 
@@ -179,9 +195,14 @@ export function updateEnemyBehavior(
   )
 }
 
-function getEffectiveEnemySpeed(enemy: Readonly<EnemyState>): number {
+function getEffectiveEnemySpeed(
+  state: Readonly<GameState>,
+  enemy: Readonly<EnemyState>,
+): number {
   const chillStacks = Math.min(3, Math.max(0, enemy.chillStacks ?? 0))
-  return enemy.speed * (1 - chillStacks * 0.15)
+  return enemy.speed *
+    getPostSpawnSpeedMultiplier(state.time, enemy.spawnTime) *
+    (1 - chillStacks * 0.15)
 }
 
 export function getSplitChildren(

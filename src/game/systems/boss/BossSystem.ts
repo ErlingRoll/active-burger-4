@@ -11,6 +11,7 @@ import {
 } from '../../../content/bosses/Bosses'
 import { createDamageValues } from '../../../content/stats/Damage'
 import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
+import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import type { EntityIdAllocator } from '../../ids'
 import { createBossDamageProfile } from '../../combat/DamageSources'
 import type {
@@ -222,7 +223,9 @@ export function updateBosses(
     }
     const definition = getBossDefinition(boss.bossDefinitionId)
     const enrage = getBossEnrage(state, boss)
-    boss.speed = definition.speed * enrage.movementSpeedMultiplier
+    boss.speed = definition.speed *
+      enrage.movementSpeedMultiplier *
+      getPostSpawnSpeedMultiplier(state.time, boss.spawnTime)
     boss.contactDamage = definition.contactDamage * enrage.damageMultiplier
     moveBossTowardPlayer(state, boss, fixedStepSeconds)
     for (const skill of boss.skills) {

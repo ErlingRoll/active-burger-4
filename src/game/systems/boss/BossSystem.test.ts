@@ -16,6 +16,7 @@ import {
   getBossSkillDefinition,
   INFERNO_WARDEN_BOSS_ID,
 } from '../../../content/bosses/Bosses'
+import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
 import type { GameState } from '../../state/GameState'
 
@@ -185,6 +186,20 @@ describe('boss skills', () => {
       bossDefinitionId: INFERNO_WARDEN_BOSS_ID,
       spawnTime: 12,
     })
+  })
+
+  it('ramps boss movement speed after the spawn grace period', () => {
+    const gameState = state()
+    const boss = gameState.bosses![0]!
+    boss.spawnTime = 0
+    gameState.time = 55
+
+    updateBosses(gameState, createEntityIdAllocator(), 0)
+
+    expect(boss.speed).toBeCloseTo(
+      getBossDefinition('stone-golem').speed *
+        getPostSpawnSpeedMultiplier(gameState.time, boss.spawnTime),
+    )
   })
 
   it('resolves Inferno Warden flame lines and targeted meteor zones', () => {

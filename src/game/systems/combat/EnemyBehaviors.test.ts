@@ -3,6 +3,7 @@ import {
   ARCHER_DEFINITION_ID,
   BRUTE_DEFINITION_ID,
   RUNNER_DEFINITION_ID,
+  SLIME_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,
 } from '../../../content/enemies/EnemyConfig'
 import { FIXED_STEP_SECONDS, createGame } from '../../Game'
@@ -22,6 +23,32 @@ describe('enemy variety behaviors', () => {
     expect(runner.speed).toBeGreaterThan(brute.speed)
     expect(runner.maxHp).toBeLessThan(brute.maxHp)
     expect(runner.x).toBeLessThan(brute.x)
+  })
+
+  it('accelerates ordinary enemies after their grace period', () => {
+    const game = createGame({ seed: 105 })
+    const enemyId = game.spawnEnemy(SLIME_DEFINITION_ID, { x: 1_000, y: 0 })
+    const enemy = game.state.enemies.find((candidate) => candidate.id === enemyId)
+    if (!enemy) {
+      throw new Error('Expected slime to exist')
+    }
+    const baseSpeed = enemy.speed
+
+    enemy.spawnTime = -10
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+    const gracePeriodX = enemy.x
+
+    enemy.spawnTime = -55
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+    const midpointX = enemy.x
+
+    enemy.spawnTime = -110
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+    const cappedX = enemy.x
+
+    expect(gracePeriodX).toBeCloseTo(1_000 - baseSpeed * FIXED_STEP_SECONDS)
+    expect(gracePeriodX - midpointX).toBeCloseTo(baseSpeed * 2.5 * FIXED_STEP_SECONDS)
+    expect(midpointX - cappedX).toBeCloseTo(baseSpeed * 4 * FIXED_STEP_SECONDS)
   })
 
   it('keeps Archer outside contact while remaining in player targeting range', () => {
