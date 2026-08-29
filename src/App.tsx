@@ -51,6 +51,8 @@ import {
 } from './content/playstyles/Playstyles'
 import './App.css'
 
+const APP_VERSION = import.meta.env.VITE_APP_VERSION
+
 type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 
@@ -897,6 +899,7 @@ function AppHeader({
       <div>
         <p className="app-kicker">Active Burger 4</p>
         <h1>Active Burger</h1>
+        <p className="app-version">Version: {APP_VERSION}</p>
       </div>
       {authentication.account ? (
         <div className="app-account">
