@@ -22,7 +22,6 @@ import {
 } from './auth'
 import {
   createMetaProgressionService,
-  getDungeonMaxFloorContractId,
   type MetaRunResultInput,
   type MetaProgressionService,
   type MetaProgressionSnapshot,
@@ -37,6 +36,7 @@ import {
   type WorldModifierId,
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
+import { useToaster } from './ui/ToasterContext'
 import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
@@ -75,8 +75,7 @@ interface MetaProgressionState {
   loadState: 'idle' | 'loading' | 'ready' | 'error' | 'unavailable'
   snapshot: MetaProgressionSnapshot | null
   error: string | null
-  purchaseState: 'idle' | 'purchasing' | 'saved' | 'error'
-  purchaseError: string | null
+  purchaseState: 'idle' | 'purchasing'
   activePurchaseUnlockId: string | null
 }
 
@@ -141,7 +140,14 @@ function createEssenceReceipt(result: RunResultSnapshot): EssenceReceipt {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unable to access local persistence.'
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'object' && error !== null &&
+    'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return 'Unable to access local persistence.'
 }
 
 function createRunSeed(): number {
@@ -158,7 +164,6 @@ function createInitialMetaProgressionState(
         snapshot: null,
         error: null,
         purchaseState: 'idle',
-        purchaseError: null,
         activePurchaseUnlockId: null,
       }
     : {
@@ -166,14 +171,8 @@ function createInitialMetaProgressionState(
         snapshot: null,
         error: configurationError ?? 'Meta progression is unavailable.',
         purchaseState: 'idle',
-        purchaseError: null,
         activePurchaseUnlockId: null,
       }
-}
-
-function getMaxFloorContractIdFromMetaDefinition(definition: MetaProgressionSnapshot['definitions'][number]): string | null {
-  const contractId = getDungeonMaxFloorContractId(definition)
-  return contractId
 }
 
 function createInitialAuthenticationState(
@@ -201,6 +200,7 @@ function isMaxFloorContractUnlocked(
 }
 
 function App() {
+  const { showToast } = useToaster()
   const repository = useMemo<PersistenceRepository>(
     () => createPersistenceRepository(createDexiePersistenceStore()),
     [],
@@ -390,6 +390,7 @@ function App() {
       seed: runSeed,
       behaviorProfileId: settings.selectedBehaviorProfileId,
       playstyleId: settings.selectedPlaystyleId,
+      xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
@@ -398,7 +399,7 @@ function App() {
             unlockedDungeonMaxFloorIds,
           }),
     }
-  }, [profile, runSeed, settings])
+  }, [metaProgression.snapshot, profile, runSeed, settings])
 
   const persistSettings = useCallback(
     async (patch: SettingsPatch): Promise<void> => {
@@ -652,51 +653,31 @@ function App() {
     }
     const definition = snapshot.definitions.find((candidate) => candidate.id === unlockId)
     if (!definition) {
-      setMetaProgression((current) => ({
-        ...current,
-        purchaseState: 'error',
-        purchaseError: `Unknown unlock definition: ${unlockId}`,
-      }))
-      return
-    }
-    const contractId = getMaxFloorContractIdFromMetaDefinition(definition)
-    if (!contractId) {
-      setMetaProgression((current) => ({
-        ...current,
-        purchaseState: 'error',
-        purchaseError: `Unlock ${unlockId} does not map to a dungeon maximum-floor contract.`,
-      }))
+      showToast(`Unknown unlock definition: ${unlockId}`, 'error')
       return
     }
     setMetaProgression((current) => ({
       ...current,
       purchaseState: 'purchasing',
-      purchaseError: null,
       activePurchaseUnlockId: unlockId,
     }))
     try {
       const nextSnapshot = await metaProgressionService.service.purchaseUnlock(unlockId)
-      const nextProfile = await repository.unlockDungeonMaxFloor(contractId)
-      setPersistence((current) => ({
-        ...current,
-        profile: nextProfile,
-      }))
       setMetaProgression((current) => ({
         ...current,
         snapshot: nextSnapshot,
-        purchaseState: 'saved',
-        purchaseError: null,
+        purchaseState: 'idle',
         activePurchaseUnlockId: null,
       }))
     } catch (error: unknown) {
       setMetaProgression((current) => ({
         ...current,
-        purchaseState: 'error',
-        purchaseError: errorMessage(error),
+        purchaseState: 'idle',
         activePurchaseUnlockId: null,
       }))
+      showToast(`Unable to purchase upgrade: ${errorMessage(error)}`, 'error')
     }
-  }, [authentication.account, metaProgression.snapshot, metaProgressionService.service, repository])
+  }, [authentication.account, metaProgression.snapshot, metaProgressionService.service, showToast])
 
   const returnToDashboard = useCallback((): void => {
     setResult(null)
@@ -726,7 +707,6 @@ function App() {
             snapshot,
             error: null,
             purchaseState: 'idle',
-            purchaseError: null,
             activePurchaseUnlockId: null,
           }))
           setMetaLoadedAttempt(requestedAttempt)
@@ -832,11 +812,9 @@ function App() {
       {screen === 'meta-progression' && authentication.account ? (
         <MetaProgressionScreen
           snapshot={metaProgression.snapshot}
-          profile={profile}
           loadState={metaProgression.loadState}
           loadError={metaProgression.error}
           purchaseState={metaProgression.purchaseState}
-          purchaseError={metaProgression.purchaseError}
           activePurchaseUnlockId={metaProgression.activePurchaseUnlockId}
           onBack={closeMetaProgression}
           onRefresh={refreshMetaProgression}
@@ -940,7 +918,7 @@ function GameDashboard({
             <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
             <span>
               <strong>Essence store</strong>
-              <small>Turn earned Essence into deeper dungeon access.</small>
+              <small>Turn earned Essence into permanent XP gains.</small>
             </span>
             <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
           </button>

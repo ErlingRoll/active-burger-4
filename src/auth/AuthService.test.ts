@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAuthEnvironment } from './AuthService'
+import {
+  isMissingProfileDisplayNameError,
+  resolveAuthEnvironment,
+} from './AuthService'
 
 describe('Supabase authentication configuration', () => {
   it('requires both public browser configuration values', () => {
@@ -19,5 +22,16 @@ describe('Supabase authentication configuration', () => {
       supabaseUrl: 'https://example.supabase.co',
       supabasePublishableKey: 'public-key',
     })
+  })
+
+  it('recognizes a stale schema cache for the optional display name column', () => {
+    expect(isMissingProfileDisplayNameError({
+      code: 'PGRST204',
+      message: "Could not find the 'display_name' column of 'profiles' in the schema cache",
+    })).toBe(true)
+    expect(isMissingProfileDisplayNameError({
+      code: '42501',
+      message: 'new row violates row-level security policy',
+    })).toBe(false)
   })
 })

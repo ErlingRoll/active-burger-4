@@ -107,7 +107,7 @@ test('starts a run without showing the in-run character guide', async ({ page })
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-game-phase', 'playing')
 })
 
-test('loads account progression outside the active run', async ({ page }) => {
+test('loads the XP multiplier store outside the active run', async ({ page }) => {
   await page.goto('/')
   await signIn(page)
   await page.getByRole('button', { name: 'Upgrades!' }).click()
@@ -115,12 +115,17 @@ test('loads account progression outside the active run', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Spend your Essence.' }),
   ).toBeVisible()
-  await expect(page.getByText('Unlock higher maximum floors')).toBeVisible()
+  await expect(page.getByText('Increase XP multiplier')).toBeVisible()
+  await expect(page.getByText('Increased XP')).toBeVisible()
+  await expect(page.locator('.meta-unlock-card-multiplier')).toContainText('1.00x')
+  await expect(page.locator('.meta-unlock-card-benefit')).toContainText('+5% XP multiplier')
+  await expect(page.locator('.meta-unlock-card-benefit')).toContainText('1.05x')
   await expect(
     page.locator('.dashboard-choice strong').filter({
-      hasText: /^default-dungeon-20-floor$/,
+      hasText: 'Increased XP',
     }),
   ).toBeVisible()
+  await expect(page.locator('.dashboard-choice')).toHaveCount(1)
 })
 
 test('signs in and out with the configured Supabase test account', async ({ page }) => {

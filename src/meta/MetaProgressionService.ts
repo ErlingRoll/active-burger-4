@@ -1,6 +1,9 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP } from '../game-config/meta-progression'
+import {
+  XP_MULTIPLIER_MAX_LEVEL,
+  getXpMultiplierForLevel,
+} from '../content/progression/XpMultiplier'
 
 export interface MetaWallet {
   essenceBalance: number
@@ -21,6 +24,8 @@ export interface MetaProgressionSnapshot {
   wallet: MetaWallet
   definitions: MetaUnlockDefinition[]
   unlockedIds: string[]
+  xpMultiplierLevel: number
+  xpMultiplier: number
 }
 
 export interface MetaProgressionService {
@@ -108,20 +113,23 @@ function defaultWallet(): MetaWallet {
   return { essenceBalance: 0, essenceEarned: 0, essenceSpent: 0 }
 }
 
-export function getDungeonMaxFloorContractId(
-  definition: MetaUnlockDefinition,
-): string | null {
-  const contractId = definition.payload.maxFloorContractId
-  if (typeof contractId === 'string' && contractId.length > 0) {
-    return contractId
-  }
-  const legacyContractId = definition.payload.contractId
-  return typeof legacyContractId === 'string' &&
-    legacyContractId in LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
-    ? LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP[
-        legacyContractId as keyof typeof LEGACY_DUNGEON_MAX_FLOOR_CONTRACT_ID_MAP
-      ]
-    : null
+export function getXpMultiplierLevel(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  return Math.min(
+    XP_MULTIPLIER_MAX_LEVEL,
+    definitions.reduce((highestLevel, definition) => {
+      if (definition.category !== 'xp-multiplier' || !unlocked.has(definition.id)) {
+        return highestLevel
+      }
+      const level = definition.payload.level
+      return typeof level === 'number' && Number.isInteger(level)
+        ? Math.max(highestLevel, level)
+        : highestLevel
+    }, 0),
+  )
 }
 
 function toSnapshot(
@@ -142,17 +150,22 @@ function toSnapshot(
   if (!Array.isArray(unlockRows) || !unlockRows.every(isUnlockRow)) {
     throw new Error('Meta unlocks returned an invalid response.')
   }
+  const definitions = definitionRows.map((definition) => ({
+    id: definition.id,
+    category: definition.category,
+    cost: definition.cost,
+    requiresUnlockId: definition.requires_unlock_id,
+    isStarter: definition.is_starter,
+    payload: definition.payload,
+  }))
+  const unlockedIds = unlockRows.map((unlock) => unlock.unlock_id).sort()
+  const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
   return {
     wallet,
-    definitions: definitionRows.map((definition) => ({
-      id: definition.id,
-      category: definition.category,
-      cost: definition.cost,
-      requiresUnlockId: definition.requires_unlock_id,
-      isStarter: definition.is_starter,
-      payload: definition.payload,
-    })),
-    unlockedIds: unlockRows.map((unlock) => unlock.unlock_id).sort(),
+    definitions,
+    unlockedIds,
+    xpMultiplierLevel,
+    xpMultiplier: getXpMultiplierForLevel(xpMultiplierLevel),
   }
 }
 

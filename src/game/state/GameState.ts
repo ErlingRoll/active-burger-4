@@ -119,8 +119,10 @@ export interface RunConfig {
   dungeonId?: DungeonDefinitionId
   /** Optional maximum-floor contract; omitted runs use the default maximum floor. */
   dungeonMaxFloorContractId?: string
-  /** Unlock IDs supplied by a future meta-progression layer. */
+  /** Dungeon unlock IDs supplied by local progression state. */
   unlockedDungeonMaxFloorIds?: readonly string[]
+  /** Purchased permanent XP multiplier level, from 0 through 10. */
+  xpMultiplierLevel?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId

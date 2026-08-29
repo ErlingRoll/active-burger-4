@@ -28,6 +28,15 @@ describe('Game', () => {
     expect(game.state.run.seed).toBe(1)
   })
 
+  it('applies the purchased XP multiplier to collected XP', () => {
+    const game = createGame({ seed: 106, xpMultiplierLevel: 2 })
+    game.spawnXpPickup({ x: 0, y: 0 }, 10)
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.xp).toBe(11)
+  })
+
   it('equips each playstyle with its authored starter weapon', () => {
     expect(createGame({ seed: 101, playstyleId: 'knight' }).state.player.equipment?.weapon)
       .toMatchObject({ itemId: 'knight-training-sword' })

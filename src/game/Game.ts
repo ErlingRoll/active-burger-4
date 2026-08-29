@@ -88,6 +88,7 @@ import {
   updateSkillEffects,
 } from './systems/skills/SkillSystem'
 import { healPlayer } from './combat/PlayerCombatLog'
+import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
 import {
   createRunResultSnapshot,
   createUiSnapshot,
@@ -223,6 +224,7 @@ export class Game {
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
   private readonly worldModifierEffects: WorldModifierEffects
+  private readonly xpMultiplier: number
   readonly dungeon: DungeonDefinition
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
@@ -240,6 +242,7 @@ export class Game {
       config.worldModifierIds,
       SPAWN_BALANCE,
     )
+    this.xpMultiplier = getXpMultiplierForLevel(config.xpMultiplierLevel ?? 0)
     this.spawnDirector = new SpawnDirector(
       this.random,
       this.worldModifierEffects.spawnBalance,
@@ -821,7 +824,7 @@ export class Game {
       }
     })
     updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
-      const levelsGained = grantExperience(this.gameState, amount)
+      const levelsGained = grantExperience(this.gameState, amount * this.xpMultiplier)
       if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
         this.enqueueLevelUpFlows(levelsGained)
       }

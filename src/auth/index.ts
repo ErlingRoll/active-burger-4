@@ -2,6 +2,7 @@ export {
   createAuthenticationService,
   createAuthenticationServiceFromClient,
   getSupabaseClient,
+  isMissingProfileDisplayNameError,
   resolveAuthEnvironment,
 } from './AuthService'
 export type {

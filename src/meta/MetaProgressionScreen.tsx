@@ -1,14 +1,11 @@
-import type { BasicProfileDto } from '../persistence'
 import type { MetaProgressionSnapshot, MetaUnlockDefinition } from './MetaProgressionService'
-import { getDungeonMaxFloorContractId } from './MetaProgressionService'
+import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
 
 export interface MetaProgressionScreenProps {
   snapshot: MetaProgressionSnapshot | null
-  profile: BasicProfileDto
   loadState: 'idle' | 'loading' | 'ready' | 'error' | 'unavailable'
   loadError: string | null
-  purchaseState: 'idle' | 'purchasing' | 'saved' | 'error'
-  purchaseError: string | null
+  purchaseState: 'idle' | 'purchasing'
   activePurchaseUnlockId: string | null
   onBack: () => void
   onRefresh: () => void
@@ -19,18 +16,18 @@ function formatCurrency(value: number): string {
   return value.toLocaleString()
 }
 
-function getUnlockState(
+function getXpUpgradeState(
   definition: MetaUnlockDefinition,
   snapshot: MetaProgressionSnapshot,
-  profile: BasicProfileDto,
 ): { label: string; disabled: boolean } {
-  const contractId = getDungeonMaxFloorContractId(definition)
-  const owned = contractId !== null && profile.unlockedDungeonMaxFloorIds.includes(contractId)
-  if (definition.isStarter || owned) {
-    return { label: definition.isStarter ? 'Starter' : 'Owned', disabled: true }
+  const level = typeof definition.payload.level === 'number'
+    ? definition.payload.level
+    : null
+  if (level === null || level <= snapshot.xpMultiplierLevel) {
+    return { label: 'Owned', disabled: true }
   }
-  if (definition.requiresUnlockId && !snapshot.unlockedIds.includes(definition.requiresUnlockId)) {
-    return { label: `Locked - requires ${definition.requiresUnlockId}`, disabled: true }
+  if (level !== snapshot.xpMultiplierLevel + 1) {
+    return { label: `Locked - requires level ${level - 1}`, disabled: true }
   }
   if (snapshot.wallet.essenceBalance < definition.cost) {
     return { label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`, disabled: true }
@@ -38,13 +35,22 @@ function getUnlockState(
   return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
 }
 
+function getNextXpUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+  currentLevel: number,
+): MetaUnlockDefinition | null {
+  const nextLevel = currentLevel + 1
+  return definitions.find((definition) =>
+    definition.category === 'xp-multiplier' &&
+    definition.payload.level === nextLevel,
+  ) ?? null
+}
+
 export function MetaProgressionScreen({
   snapshot,
-  profile,
   loadState,
   loadError,
   purchaseState,
-  purchaseError,
   activePurchaseUnlockId,
   onBack,
   onRefresh,
@@ -56,7 +62,7 @@ export function MetaProgressionScreen({
         <div className="dashboard-panel" role="status">
           <p className="screen-kicker">Meta progression</p>
           <h2 id="meta-progression-loading-title">Loading account progression...</h2>
-          <p>Loading Essence balance and available maximum-floor unlocks.</p>
+          <p>Loading Essence balance and XP multiplier upgrades.</p>
           <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
         </div>
       </section>
@@ -77,6 +83,17 @@ export function MetaProgressionScreen({
     )
   }
 
+  const nextUpgrade = getNextXpUpgrade(snapshot.definitions, snapshot.xpMultiplierLevel)
+  const nextUpgradeLevel = typeof nextUpgrade?.payload.level === 'number'
+    ? nextUpgrade.payload.level
+    : null
+  const nextXpMultiplier = nextUpgradeLevel === null
+    ? null
+    : getXpMultiplierForLevel(nextUpgradeLevel)
+  const nextUpgradeState = nextUpgrade === null
+    ? null
+    : getXpUpgradeState(nextUpgrade, snapshot)
+
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
       <div className="dashboard-panel meta-shop-panel">
@@ -84,7 +101,7 @@ export function MetaProgressionScreen({
           <div>
             <p className="screen-kicker">Essence store</p>
             <h2 id="meta-progression-title">Spend your Essence.</h2>
-            <p>Bank earned Essence between runs and unlock deeper dungeon tiers.</p>
+            <p>Bank earned Essence between runs and make every XP pickup count for more.</p>
           </div>
           <button className="secondary-action meta-shop-back" type="button" onClick={onBack}>
             <span aria-hidden="true">←</span>
@@ -98,43 +115,48 @@ export function MetaProgressionScreen({
           <div><dt>Spent</dt><dd>{formatCurrency(snapshot.wallet.essenceSpent)}</dd></div>
         </dl>
 
-        <section className="meta-shop-unlocks" aria-labelledby="meta-unlocks-title">
+        <section className="meta-shop-unlocks" aria-labelledby="meta-upgrades-title">
           <div className="meta-shop-section-heading">
-            <p className="screen-kicker">Dungeon depth shop</p>
-            <h3 id="meta-unlocks-title">Unlock higher maximum floors</h3>
+            <h3 id="meta-upgrades-title" style={{marginBottom: "2rem"}}>Permanent upgrades</h3>
           </div>
           <div className="dashboard-choice-list">
-            {snapshot.definitions.map((definition) => {
-              const contractId = getDungeonMaxFloorContractId(definition)
-              const owned = contractId !== null && profile.unlockedDungeonMaxFloorIds.includes(contractId)
-              const state = getUnlockState(definition, snapshot, profile)
-              return (
-                <div className="dashboard-choice meta-unlock-card" key={definition.id}>
-                  <div className="meta-unlock-card-heading">
-                    <strong>{contractId ?? definition.id}</strong>
-                    <span>{contractId ? 'Maximum-floor tier' : 'No maximum-floor mapping'}</span>
-                  </div>
-                  <span className="meta-unlock-state">{state.label}</span>
-                  <button
-                    className="secondary-action meta-purchase-action"
-                    type="button"
-                    disabled={state.disabled || purchaseState === 'purchasing'}
-                    onClick={() => { if (contractId !== null) { onPurchaseUnlock(definition.id) } }}
-                  >
-                    {owned ? 'Owned' : purchaseState === 'purchasing' && activePurchaseUnlockId === definition.id ? 'Purchasing...' : 'Purchase'}
-                  </button>
+            {nextUpgrade && nextUpgradeState && nextUpgradeLevel !== null ? (
+              <div className="dashboard-choice meta-unlock-card" key={nextUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>XP multiplier</span>
+                  <strong>{snapshot.xpMultiplier.toFixed(2)}x</strong>
                 </div>
-              )
-            })}
+                <div className="meta-unlock-card-heading">
+                  <strong>Increased XP</strong>
+                  <span>Level {nextUpgradeLevel}</span>
+                </div>
+                <div className="meta-unlock-card-benefit">
+                  <strong>+5% XP multiplier</strong>
+                  <span>
+                    {snapshot.xpMultiplier.toFixed(2)}x → {nextXpMultiplier?.toFixed(2)}x
+                  </span>
+                </div>
+                <span className="meta-unlock-state">{nextUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={nextUpgradeState.disabled || purchaseState === 'purchasing'}
+                  onClick={() => { onPurchaseUnlock(nextUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' && activePurchaseUnlockId === nextUpgrade.id
+                    ? 'Purchasing...'
+                    : `Purchase for ${formatCurrency(nextUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : (
+              <p className="persistence-status" role="status">
+                XP multiplier fully upgraded.
+              </p>
+            )}
           </div>
-          {purchaseError ? <p className="persistence-error" role="alert">{purchaseError}</p> : null}
-          <p className="persistence-status" role="status">
-            {purchaseState === 'purchasing'
-              ? 'Submitting unlock purchase...'
-              : purchaseState === 'saved'
-                ? 'Unlock purchase saved.'
-                : 'Purchases update the local dashboard immediately after sync.'}
-          </p>
+          {purchaseState === 'purchasing' ? (
+            <p className="persistence-status" role="status">Submitting unlock purchase...</p>
+          ) : null}
         </section>
 
         {loadError ? <p className="persistence-error" role="alert">{loadError}</p> : null}

@@ -1,30 +1,42 @@
 import { describe, expect, it } from 'vitest'
 import {
-  getDungeonMaxFloorContractId,
+  getXpMultiplierLevel,
   type MetaUnlockDefinition,
 } from './MetaProgressionService'
 
-function unlock(payload: Record<string, unknown>): MetaUnlockDefinition {
+function unlock(id: string, level: number): MetaUnlockDefinition {
   return {
-    id: 'test-unlock',
-    category: 'dungeon-max-floor',
+    id,
+    category: 'xp-multiplier',
     cost: 100,
-    requiresUnlockId: null,
+    requiresUnlockId: level > 1 ? `xp-multiplier-${level - 1}` : null,
     isStarter: false,
-    payload,
+    payload: {
+      level,
+      xpMultiplier: 1 + level * 0.05,
+    },
   }
 }
 
-describe('maximum-floor unlock mappings', () => {
-  it('reads the current maximum-floor contract payload', () => {
-    expect(getDungeonMaxFloorContractId(unlock({
-      maxFloorContractId: 'default-dungeon-20-floor',
-    }))).toBe('default-dungeon-20-floor')
+describe('XP multiplier unlock definitions', () => {
+  it('derives the highest purchased level from unlocked definitions', () => {
+    const definitions = [
+      unlock('xp-multiplier-1', 1),
+      unlock('xp-multiplier-2', 2),
+      unlock('xp-multiplier-3', 3),
+    ]
+
+    expect(getXpMultiplierLevel(definitions, [
+      'xp-multiplier-1',
+      'xp-multiplier-2',
+      'xp-multiplier-3',
+    ])).toBe(3)
   })
 
-  it('migrates legacy time-length payloads during the server migration rollout', () => {
-    expect(getDungeonMaxFloorContractId(unlock({
-      contractId: 'default-dungeon-15-minute',
-    }))).toBe('default-dungeon-20-floor')
+  it('does not exceed the configured level cap', () => {
+    expect(getXpMultiplierLevel(
+      [unlock('xp-multiplier-11', 11)],
+      ['xp-multiplier-11'],
+    )).toBe(10)
   })
 })

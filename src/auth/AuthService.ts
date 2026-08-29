@@ -51,6 +51,16 @@ export function resolveAuthEnvironment(
   return { supabaseUrl, supabasePublishableKey }
 }
 
+export function isMissingProfileDisplayNameError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false
+  }
+  const candidate = error as { code?: unknown; message?: unknown }
+  return candidate.code === 'PGRST204' &&
+    typeof candidate.message === 'string' &&
+    candidate.message.includes("Could not find the 'display_name' column of 'profiles'")
+}
+
 export function createAuthenticationService(
   environment: AuthEnvironment,
 ): AuthenticationService {
@@ -226,10 +236,20 @@ async function ensureProfile(
   accountId: string,
   displayName: string | null,
 ): Promise<void> {
-  const { error } = await client
+  const response = await client
     .from('profiles')
     .upsert({ id: accountId, display_name: displayName }, { onConflict: 'id' })
-  if (error) {
-    throw error
+  if (!response.error) {
+    return
+  }
+  if (!isMissingProfileDisplayNameError(response.error)) {
+    throw response.error
+  }
+
+  const fallbackResponse = await client
+    .from('profiles')
+    .upsert({ id: accountId }, { onConflict: 'id' })
+  if (fallbackResponse.error) {
+    throw fallbackResponse.error
   }
 }
