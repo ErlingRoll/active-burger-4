@@ -273,6 +273,9 @@ function getEligibleGearRarityFloor(
   }
   const minimumRarity = state.player.gearRarityFloor ?? 'common'
   const next = nextRarity(currentRarity)
+  if (next === 'rare' && minimumRarity === 'common') {
+    return undefined
+  }
   if (
     !next ||
     RARITY_ORDER[next] <= RARITY_ORDER[minimumRarity]

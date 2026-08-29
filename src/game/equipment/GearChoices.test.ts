@@ -149,6 +149,13 @@ describe('gear choices', () => {
       item.rarity = 'uncommon'
     })
     firstEquippedItem.rarity = 'rare'
+    game.state.player.gearRarityFloor = 'common'
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
+        .some((choice) => choice.type === 'gear-rarity-floor'),
+    ).toBe(false)
+
+    game.state.player.gearRarityFloor = 'uncommon'
     const rareBlessing = generateGearChoices(
       game.state,
       GEAR_CHOICES_PER_PICKUP,
