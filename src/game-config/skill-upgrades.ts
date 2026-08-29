@@ -91,7 +91,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     name: 'Magnet',
     description: `Increase XP, health potion, equipment, and item collection range by ${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}%.`,
     category: 'passive',
-    rarity: 'uncommon',
+    rarity: 'rare',
     amount: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,
     valueLabel: `+${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}% collection range`,
     pickupCollectionRangeIncreasePercent: MAGNET_COLLECTION_RANGE_INCREASE_PERCENT,
