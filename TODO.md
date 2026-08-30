@@ -1,5 +1,6 @@
 # TODO Pile
 
+- chain lightning too few chains when many enemy.
 - extra projectiles working???
 - you can upgrade chill???
 - tiers are not shown in gear hover tooltip.
@@ -11,6 +12,7 @@
 - rallying banner does show damage reduction???
 - fix wand shotgunning a little bit
 - banish/exile
+- xp curve is very good early game but once you hit level 30 it becomes very slow.
 
 # Maybe Pile
 
