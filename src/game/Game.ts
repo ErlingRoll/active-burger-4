@@ -967,11 +967,7 @@ export class Game {
       this.choiceFlows.push({
         type: 'level-up',
         level: firstLevel + index,
-        choices: generateUpgradeChoices(
-          this.gameState,
-          UPGRADE_CHOICES_PER_LEVEL,
-          this.random,
-        ),
+        choices: [],
       })
     }
     this.activateChoiceFlow()
@@ -991,10 +987,10 @@ export class Game {
   }
 
   private activateChoiceFlow(): void {
-    if (
-      this.choiceFlows.length > 0 &&
-      this.gameState.run.phase === 'playing'
-    ) {
+    if (this.choiceFlows.length > 0) {
+      this.materializeActiveChoiceFlow()
+    }
+    if (this.choiceFlows.length > 0 && this.gameState.run.phase === 'playing') {
       this.transitionTo('level-up')
     }
   }
@@ -1010,6 +1006,7 @@ export class Game {
       }
     }
     if (this.choiceFlows.length > 0) {
+      this.materializeActiveChoiceFlow()
       this.notifyStateChanged()
     } else if (
       this.gameState.stairs?.rewardsCollected &&
@@ -1021,6 +1018,18 @@ export class Game {
     } else {
       this.transitionTo('playing')
     }
+  }
+
+  private materializeActiveChoiceFlow(): void {
+    const flow = this.choiceFlows[0]
+    if (!flow || flow.type !== 'level-up' || flow.choices.length > 0) {
+      return
+    }
+    flow.choices = generateUpgradeChoices(
+      this.gameState,
+      UPGRADE_CHOICES_PER_LEVEL,
+      this.random,
+    )
   }
 
   private notifyStateChanged(): void {

@@ -49,8 +49,9 @@ describe('Game', () => {
     expect(game.getPendingChoiceFlows().map((flow) =>
       flow.type === 'level-up' ? flow.level : flow.type,
     )).toEqual([2, 3, 4])
-    expect(game.getPendingChoiceFlows().every((flow) =>
-      flow.type === 'level-up' && flow.choices.length === 3,
+    expect(game.getPendingChoiceFlows()[0]?.choices).toHaveLength(3)
+    expect(game.getPendingChoiceFlows().slice(1).every((flow) =>
+      flow.type === 'level-up' && flow.choices.length === 0,
     )).toBe(true)
 
     while (game.phase === 'level-up') {
@@ -62,6 +63,31 @@ describe('Game', () => {
     }
     expect(game.phase).toBe('playing')
     expect(game.state.run.selectedUpgradeIds).toHaveLength(3)
+  })
+
+  it('generates each queued level-up after the previous selection is applied', () => {
+    const game = createGame({ seed: 6, startingLevel: 4 })
+    const firstFlow = game.getPendingChoiceFlow()
+    expect(firstFlow?.type).toBe('level-up')
+    if (firstFlow?.type !== 'level-up') {
+      return
+    }
+
+    const unlock = firstFlow.choices.find((choice) =>
+      choice.upgradeId === 'raise-skeleton-unlock',
+    )
+    expect(unlock).toBeDefined()
+    expect(game.selectUpgrade(unlock!)).toBe(true)
+
+    const nextFlow = game.getPendingChoiceFlow()
+    expect(nextFlow?.type).toBe('level-up')
+    if (nextFlow?.type !== 'level-up') {
+      return
+    }
+    expect(nextFlow.choices).toHaveLength(3)
+    expect(nextFlow.choices.map((choice) => choice.upgradeId)).not.toContain(
+      'raise-skeleton-unlock',
+    )
   })
 
   it('equips each playstyle with its authored starter weapon', () => {
