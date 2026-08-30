@@ -474,6 +474,7 @@ function getSkillModifierSummaries(
   skeletonAttackCooldown: number | undefined = undefined,
   skeletonMaxHp: number | undefined = undefined,
 ): readonly SkillModifierSummarySnapshot[] {
+  const definition = getSkillDefinition(skillId)
   const summaries: SkillModifierSummarySnapshot[] = []
   const addSummary = (
     id: SkillModifierSummaryId,
@@ -494,7 +495,7 @@ function getSkillModifierSummaries(
       formatUnsignedPercent(playerStats.dotMultiplier),
     )
   }
-  if (playerStats.frostStacksOnHit > 0) {
+  if (definition.canProduceDirectHit && playerStats.frostStacksOnHit > 0) {
     addSummary(
       'frost-on-hit',
       'Chill on hit',
@@ -625,10 +626,8 @@ function getSkillModifierSummaries(
     }
     if (skillId === VITALITY_SKILL_ID) {
       const healingMultiplier = 1 + playerStats.increasedHealing / 100
-      let healingPerCast = getSkillHealing(
-        getSkillDefinition(skillId),
-        skillLevel,
-      ) + playerMaxHp * vitalityMaxHpHealingPercent / 100
+      let healingPerCast = getSkillHealing(definition, skillLevel) +
+        playerMaxHp * vitalityMaxHpHealingPercent / 100
       if (
         playerHp / Math.max(1, playerMaxHp) <= 0.4 &&
         vitalityLowHpHealingMultiplier > 1
@@ -652,7 +651,6 @@ function getSkillModifierSummaries(
       }
     }
     if (skillId === RAISE_SKELETON_SKILL_ID) {
-      const definition = getSkillDefinition(skillId)
       const levelIncrease = getSkillDamageIncreasePercent(
         skillId,
         skillLevel,

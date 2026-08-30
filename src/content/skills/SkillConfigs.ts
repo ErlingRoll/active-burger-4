@@ -60,6 +60,8 @@ export interface SkillDefinition {
   description: string
   kind: SkillKind
   tags: readonly SkillTag[]
+  /** Whether this skill or its owned summons can produce direct-hit effects. */
+  canProduceDirectHit: boolean
   cooldown: number
   baseDamage: PartialDamageValues
   damagePerLevel: PartialDamageValues

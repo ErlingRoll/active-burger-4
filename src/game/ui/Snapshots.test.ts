@@ -4,9 +4,11 @@ import {
   BASIC_ATTACK_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   RALLYING_BANNER_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
@@ -397,6 +399,36 @@ describe('UI snapshots', () => {
     expect(skillModifierIds).toContain('cooldown-reduction')
     expect(vitality?.damageTypes).toEqual([])
     expect(vitality?.estimatedSingleTargetDps).toBeNull()
+  })
+
+  it('only shows Chill on hit for skills that can produce direct hits', () => {
+    const game = createGame({ seed: 100 })
+    game.state.player.skills = [
+      { skillId: VITALITY_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: SOUL_TETHER_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: CINDER_MINE_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    equipRolledItem(
+      game.state.player,
+      'starcaller-amulet',
+      Rarity.Legendary,
+      [createGearModifier('starcaller-amulet', 'frost-application', 4, 1)],
+    )
+
+    const skills = createUiSnapshot(game.state).skills
+    const vitality = skills.find((skill) => skill.skillId === VITALITY_SKILL_ID)
+    const soulTether = skills.find((skill) => skill.skillId === SOUL_TETHER_SKILL_ID)
+    const cinderMine = skills.find((skill) => skill.skillId === CINDER_MINE_SKILL_ID)
+
+    expect(vitality?.skillModifiers.map((modifier) => modifier.id)).not.toContain(
+      'frost-on-hit',
+    )
+    expect(soulTether?.skillModifiers.map((modifier) => modifier.id)).not.toContain(
+      'frost-on-hit',
+    )
+    expect(cinderMine?.skillModifiers.map((modifier) => modifier.id)).toContain(
+      'frost-on-hit',
+    )
   })
 
   it('shows staff DoT and Raise Skeleton modifiers in skill snapshots', () => {
