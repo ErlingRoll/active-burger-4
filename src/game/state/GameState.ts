@@ -135,6 +135,8 @@ export interface RunConfig {
   seed: number
   /** Initial behavior policy for this run. */
   behaviorProfileId?: BehaviorProfileId
+  /** Whether direct player movement starts enabled; defaults to true. */
+  freeMovementEnabled?: boolean
   /** Defaults to the first dungeon; maximum floors are selected by unlock state. */
   dungeonId?: DungeonDefinitionId
   /** Optional maximum-floor contract; omitted runs use the default maximum floor. */

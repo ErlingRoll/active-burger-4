@@ -25,8 +25,10 @@ Dodge is a strict emergency preemption. All other candidates use profile-defined
 priorities, safety thresholds, commitment durations, and hysteresis values to prevent
 oscillation.
 
-The first run profiles are Balanced, Aggressive, and Cautious. Players may switch among
-them through the in-run Behavior screen. Profile selections are explicit simulation
+The first run profiles are Balanced, Aggressive, and Cautious. New runs start in Free
+movement by default, allowing direct WASD control; players may switch among the
+autonomous profiles through the in-run Behavior screen. Free movement disables
+automatic behavior, including Dodge. Profile selections are explicit simulation
 actions; deterministic automatic decisions consume no random state. React and PixiJS
 only project the active profile and selected intent.
 

@@ -51,7 +51,7 @@ function projectScenario(game: ReturnType<typeof createGame>) {
 
 describe('headless deterministic scenario regression', () => {
   it('keeps the reviewed projection stable for a seeded run', () => {
-    const game = createGame({ seed: 20260826 })
+    const game = createGame({ seed: 20260826, freeMovementEnabled: false })
     // Two contact-range enemies exercise targeting, projectile collision,
     // cleanup, XP collection, and the level-up action. Three seconds then
     // crosses several spawn-budget boundaries, exercising seeded spawn
@@ -121,7 +121,7 @@ describe('headless deterministic scenario regression', () => {
   })
 
   it('does not introduce composition entries before their scheduled gates', () => {
-    const game = createGame({ seed: 20260826 })
+    const game = createGame({ seed: 20260826, freeMovementEnabled: false })
     const firstSpawnTimes = new Map<string, number>()
 
     for (let step = 1; step <= 120 * 60; step += 1) {

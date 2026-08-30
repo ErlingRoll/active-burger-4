@@ -808,6 +808,7 @@ describe('UI snapshots', () => {
 
   it('projects the selected behavior profile and active intent immutably', () => {
     const game = createGame({ seed: 73 })
+    game.setFreeMovementEnabled(false)
     game.setBehaviorProfile('cautious')
     game.state.player.behaviorController!.lastCandidate = {
       source: 'dodge',

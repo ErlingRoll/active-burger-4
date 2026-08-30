@@ -360,6 +360,8 @@ export class Game {
     }
     refreshPlayerDerivedStats(this.gameState.player)
     this.gameState.player.hp = this.gameState.player.maxHp
+    this.gameState.player.behaviorController!.freeMode =
+      config.freeMovementEnabled ?? true
     if (isBehaviorProfileId(config.behaviorProfileId)) {
       this.gameState.player.behaviorController!.profileId = config.behaviorProfileId
     }

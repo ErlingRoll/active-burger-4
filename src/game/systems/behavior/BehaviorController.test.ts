@@ -28,13 +28,13 @@ describe('behavior controller foundation', () => {
   it('toggles Free movement without changing the selected profile', () => {
     const game = createGame({ seed: 10 })
 
-    expect(game.freeMovementEnabled).toBe(false)
-    expect(game.setBehaviorProfile('cautious')).toBe(true)
-    expect(game.toggleFreeMovement()).toBe(true)
     expect(game.freeMovementEnabled).toBe(true)
-    expect(game.behaviorProfileId).toBe('cautious')
+    expect(game.setBehaviorProfile('cautious')).toBe(true)
     expect(game.toggleFreeMovement()).toBe(false)
     expect(game.freeMovementEnabled).toBe(false)
+    expect(game.behaviorProfileId).toBe('cautious')
+    expect(game.toggleFreeMovement()).toBe(true)
+    expect(game.freeMovementEnabled).toBe(true)
     expect(game.behaviorProfileId).toBe('cautious')
   })
 
