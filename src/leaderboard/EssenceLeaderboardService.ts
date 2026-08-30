@@ -5,6 +5,7 @@ export interface EssenceLeaderboardEntry {
   profileId: string
   displayName: string
   essence: number
+  rank: number
 }
 
 export interface EssenceLeaderboardService {
@@ -15,6 +16,7 @@ interface EssenceLeaderboardRow {
   profile_id: string
   display_name: string
   essence_balance: number
+  rank: number
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -26,7 +28,10 @@ function isEssenceLeaderboardRow(value: unknown): value is EssenceLeaderboardRow
     typeof value.profile_id === 'string' &&
     typeof value.display_name === 'string' &&
     typeof value.essence_balance === 'number' &&
-    Number.isFinite(value.essence_balance)
+    Number.isFinite(value.essence_balance) &&
+    typeof value.rank === 'number' &&
+    Number.isInteger(value.rank) &&
+    value.rank > 0
 }
 
 export function createEssenceLeaderboardService(
@@ -44,13 +49,14 @@ export function createEssenceLeaderboardService(
       }
       if (!Array.isArray(response.data) ||
         !response.data.every(isEssenceLeaderboardRow) ||
-        response.data.length > 10) {
+        response.data.length > 11) {
         throw new Error('Essence leaderboard returned an invalid response.')
       }
       return response.data.map((entry) => ({
         profileId: entry.profile_id,
         displayName: entry.display_name,
         essence: entry.essence_balance,
+        rank: entry.rank,
       }))
     },
   }

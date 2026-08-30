@@ -75,7 +75,7 @@ export function EssenceLeaderboard({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', refresh)
     }
-  }, [loadLeaderboard])
+  }, [accountId, loadLeaderboard])
 
   return (
     <section className="essence-leaderboard" aria-labelledby="essence-leaderboard-title">
@@ -84,7 +84,7 @@ export function EssenceLeaderboard({
           <p className="screen-kicker">Global rankings</p>
           <h3 id="essence-leaderboard-title">Essence leaderboard</h3>
         </div>
-        <span>Top 10 players by Essence</span>
+        <span>Top 10 players + your position</span>
       </div>
       {loadState === 'loading' && entries.length === 0 ? (
         <p className="essence-leaderboard-message" role="status">Loading rankings…</p>
@@ -97,14 +97,14 @@ export function EssenceLeaderboard({
       ) : null}
       {entries.length > 0 ? (
         <ol className="essence-leaderboard-list">
-          {entries.map((entry, index) => (
+          {entries.map((entry) => (
             <li
               className={entry.profileId === accountId
                 ? 'essence-leaderboard-row essence-leaderboard-row-current'
                 : 'essence-leaderboard-row'}
               key={entry.profileId}
             >
-              <span className="essence-leaderboard-rank">#{index + 1}</span>
+              <span className="essence-leaderboard-rank">#{entry.rank}</span>
               <span className="essence-leaderboard-player">
                 {entry.displayName}
                 {entry.profileId === accountId ? (
