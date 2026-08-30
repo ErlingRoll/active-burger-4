@@ -302,10 +302,11 @@ function App() {
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
     const nextPath = APP_ROUTE_PATHS[nextScreen]
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
+      const nextUrl = `${nextPath}${window.location.search}`
       if (replace) {
-        window.history.replaceState(null, '', nextPath)
+        window.history.replaceState(null, '', nextUrl)
       } else {
-        window.history.pushState(null, '', nextPath)
+        window.history.pushState(null, '', nextUrl)
       }
     }
     setScreen(nextScreen)

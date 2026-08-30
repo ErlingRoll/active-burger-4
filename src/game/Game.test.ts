@@ -100,6 +100,84 @@ describe('Game', () => {
       .toMatchObject({ itemId: 'necromancer-bone-staff' })
   })
 
+  it('grants development gear and refreshes the player projection', () => {
+    const game = createGame({ seed: 109 })
+    let notificationCount = 0
+    game.subscribe(() => {
+      notificationCount += 1
+    })
+
+    expect(game.grantDebugGear('hunters-bow')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.state.player.equipment?.weapon).toMatchObject({
+      itemId: 'hunters-bow',
+    })
+    expect(game.state.player.attackSpeed).toBeGreaterThan(1)
+    expect(notificationCount).toBe(1)
+  })
+
+  it('grants development skills once and respects the configured slot limit', () => {
+    const game = createGame({ seed: 110 })
+
+    expect(game.grantDebugSkill('chain-lightning')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.grantDebugSkill('chain-lightning')).toEqual({
+      ok: true,
+      changed: false,
+    })
+    expect(game.grantDebugSkill('vitality')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.grantDebugSkill('fiery-touch')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.state.player.skills).toHaveLength(5)
+    expect(game.grantDebugSkill('raise-skeleton')).toEqual({
+      ok: false,
+      error: 'No skill slots are available. Remove a skill before granting another.',
+    })
+  })
+
+  it('grants ineligible development upgrades and blocks skill unlocks at capacity', () => {
+    const game = createGame({ seed: 111 })
+
+    expect(game.grantDebugUpgrade('vitality-last-stand')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.state.player.vitalityLowHpHealingMultiplier).toBe(2)
+    expect(game.state.run.selectedUpgradeIds).toEqual(['vitality-last-stand'])
+
+    for (const skillId of [
+      'whirlwind',
+      'chain-lightning',
+      'vitality',
+      'raise-skeleton',
+    ] as const) {
+      expect(game.grantDebugSkill(skillId).ok).toBe(true)
+    }
+    expect(game.grantDebugUpgrade('fiery-touch-unlock')).toEqual({
+      ok: false,
+      error: 'No skill slots are available for this skill unlock.',
+    })
+  })
+
+  it('rejects development grants after the run ends', () => {
+    const game = createGame({ seed: 112 })
+    game.endRun()
+
+    expect(game.grantDebugGear('helmet')).toEqual({
+      ok: false,
+      error: 'Development grants are only available during an active run.',
+    })
+  })
+
   it('keeps the current floor when starting a boss manually', () => {
     const game = createGame({ seed: 104 })
 

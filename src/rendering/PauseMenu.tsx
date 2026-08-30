@@ -93,7 +93,7 @@ export function PauseMenu({
     <section
       className="pause-menu"
       role="dialog"
-      aria-modal="true"
+      aria-modal="false"
       aria-labelledby="pause-menu-title"
     >
       <div className="pause-panel">

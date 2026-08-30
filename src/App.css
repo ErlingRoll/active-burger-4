@@ -537,6 +537,18 @@
   inset: 0;
 }
 
+.game-renderer::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: '';
+  pointer-events: none;
+}
+
+.game-canvas[data-game-phase='paused'] .game-renderer::after {
+  background: rgb(2 6 23 / 78%);
+}
+
 .game-renderer canvas {
   display: block;
 }
@@ -860,7 +872,7 @@
   position: fixed;
   bottom: 1rem;
   left: 50%;
-  z-index: 2;
+  z-index: 3;
   width: min(25rem, calc(100vw - 2rem));
   min-width: 0;
   padding: 0.65rem;
@@ -1793,6 +1805,10 @@
   pointer-events: auto;
 }
 
+.game-canvas[data-game-phase='paused'] .development-controls {
+  z-index: 9;
+}
+
 .paused-indicator {
   position: absolute;
   top: 50%;
@@ -1820,7 +1836,7 @@
   display: grid;
   place-items: center;
   padding: 1.25rem;
-  background: rgb(2 6 23 / 78%);
+  pointer-events: none;
 }
 
 .pause-panel {
@@ -1833,6 +1849,7 @@
   border: 1px solid #93c5fd;
   border-radius: 0.85rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 65%);
+  pointer-events: auto;
 }
 
 .pause-panel h2 {
@@ -2089,6 +2106,39 @@
   margin-bottom: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid #334155;
+}
+
+.debug-grant-control {
+  margin-bottom: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #334155;
+}
+
+.debug-grant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.debug-grant-row select {
+  min-width: 0;
+  min-height: 2.3rem;
+  padding: 0.35rem 0.5rem;
+  color: #e0f2fe;
+  font: inherit;
+  background: #164e63;
+  border: 1px solid #0891b2;
+  border-radius: 0.4rem;
+}
+
+.debug-grant-row select:focus-visible {
+  outline: 3px solid rgb(103 232 249 / 35%);
+  outline-offset: 2px;
+}
+
+.debug-grant-feedback {
+  margin: -0.35rem 0 1rem;
+  color: #a5f3fc;
 }
 
 .time-scale-control {

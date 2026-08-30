@@ -33,12 +33,17 @@ import type {
   UpgradeId,
 } from '../content/upgrades/Upgrades'
 import {
+  getUpgradeDefinition,
+  REMOVE_SKILL_UPGRADE_ID,
+} from '../content/upgrades/Upgrades'
+import {
   generateGearChoices,
   GEAR_CHOICES_PER_PICKUP,
   gearChoiceSignature,
   type GearChoice,
 } from './equipment/GearChoices'
 import {
+  equipItem,
   equipRolledItem,
   upgradeEquippedItem,
 } from './equipment/EquipmentState'
@@ -101,6 +106,9 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
+import type { ItemId } from '../content/gear/Items'
+import type { SkillId } from '../content/skills/Skills'
+import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 import {
   completeBossEncounter,
   startBossEncounter,
@@ -211,6 +219,10 @@ export type DebugSpawnCount = (typeof DEBUG_SPAWN_COUNTS)[number]
 
 export type TimeScaleUpdateResult =
   | { ok: true; value: number }
+  | { ok: false; error: string }
+
+export type DevelopmentGrantResult =
+  | { ok: true; changed: boolean }
   | { ok: false; error: string }
 
 /**
@@ -431,6 +443,83 @@ export class Game {
 
     this.currentTimeScale = value
     return { ok: true, value }
+  }
+
+  /** Equips a catalog item immediately for development testing. */
+  grantDebugGear(itemId: ItemId): DevelopmentGrantResult {
+    const phaseError = this.getDevelopmentGrantPhaseError()
+    if (phaseError) {
+      return { ok: false, error: phaseError }
+    }
+
+    equipItem(this.gameState.player, itemId)
+    this.notifyStateChanged()
+    return { ok: true, changed: true }
+  }
+
+  /** Adds a catalog skill at level one for development testing. */
+  grantDebugSkill(skillId: SkillId): DevelopmentGrantResult {
+    const phaseError = this.getDevelopmentGrantPhaseError()
+    if (phaseError) {
+      return { ok: false, error: phaseError }
+    }
+
+    if (this.gameState.player.skills.some((skill) => skill.skillId === skillId)) {
+      return { ok: true, changed: false }
+    }
+
+    if (
+      this.gameState.player.skills.length >=
+      getConfiguredSkillSlotCount(this.gameState.player)
+    ) {
+      return {
+        ok: false,
+        error: 'No skill slots are available. Remove a skill before granting another.',
+      }
+    }
+
+    this.gameState.player.skills.push({
+      skillId,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+    this.notifyStateChanged()
+    return { ok: true, changed: true }
+  }
+
+  /** Applies a catalog upgrade without normal eligibility checks. */
+  grantDebugUpgrade(upgradeId: UpgradeId): DevelopmentGrantResult {
+    const phaseError = this.getDevelopmentGrantPhaseError()
+    if (phaseError) {
+      return { ok: false, error: phaseError }
+    }
+    if (upgradeId === REMOVE_SKILL_UPGRADE_ID) {
+      return {
+        ok: false,
+        error: 'Skill removal is not available as a development grant.',
+      }
+    }
+
+    const definition = getUpgradeDefinition(upgradeId)
+    if (
+      definition.skillAction === 'unlock' &&
+      definition.skillId &&
+      !this.gameState.player.skills.some(
+        (skill) => skill.skillId === definition.skillId,
+      ) &&
+      this.gameState.player.skills.length >=
+        getConfiguredSkillSlotCount(this.gameState.player)
+    ) {
+      return {
+        ok: false,
+        error: 'No skill slots are available for this skill unlock.',
+      }
+    }
+
+    applyUpgrade(this.gameState, upgradeId)
+    this.gameState.run.selectedUpgradeIds.push(upgradeId)
+    this.notifyStateChanged()
+    return { ok: true, changed: true }
   }
 
   getUiSnapshot(): GameUiSnapshot {
@@ -1037,8 +1126,23 @@ export class Game {
       listener(this.gameState)
     }
   }
+
+  private getDevelopmentGrantPhaseError(): string | undefined {
+    return this.gameState.run.phase === 'playing' ||
+      this.gameState.run.phase === 'paused' ||
+      this.gameState.run.phase === 'level-up'
+      ? undefined
+      : 'Development grants are only available during an active run.'
+  }
 }
 
 export function createGame(config: RunConfig): Game {
   return new Game(config)
+}
+
+function getConfiguredSkillSlotCount(player: GameState['player']): number {
+  const configuredCount = player.skillSlotCount
+  return typeof configuredCount === 'number' && Number.isFinite(configuredCount)
+    ? Math.max(1, Math.floor(configuredCount))
+    : DEFAULT_SKILL_SLOT_COUNT
 }

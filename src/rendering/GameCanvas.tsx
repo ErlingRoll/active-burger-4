@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import {
   createGame,
   DEFAULT_TIME_SCALE,
@@ -9,6 +10,7 @@ import {
   DEBUG_SPAWN_COUNTS,
   type Game,
   type DebugSpawnCount,
+  type DevelopmentGrantResult,
   type GameUiSnapshot,
   type GearChoice,
   type BehaviorProfileId,
@@ -28,9 +30,12 @@ import {
   type GameKeybinds,
 } from '../input/Keybinds'
 import {
+  ALL_ITEM_DEFINITIONS,
   EQUIPMENT_SLOTS,
   EquipmentSlot,
+  getItemDisplayName,
   type EquipmentSlot as EquipmentSlotType,
+  type ItemId,
 } from '../content/gear/Items'
 import {
   formatGearModifier,
@@ -40,9 +45,14 @@ import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import {
   BASIC_ATTACK_SKILL_ID,
+  isSkillId,
   RALLYING_STANDARD_SKILL_ID,
+  SKILL_DEFINITIONS,
 } from '../content/skills/Skills'
-import type { LevelUpUpgradeChoice } from '../content/upgrades/Upgrades'
+import {
+  INITIAL_UPGRADES,
+  type LevelUpUpgradeChoice,
+} from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
@@ -111,11 +121,14 @@ function useHudTooltipPosition<TAnchor extends HTMLElement, TTooltip extends HTM
       )
       return
     }
+    const tooltip = tooltipRef.current
+    if (!tooltip) {
+      return
+    }
 
     const updatePosition = (): void => {
       const anchor = anchorRef.current
-      const tooltip = tooltipRef.current
-      if (!anchor || !tooltip) {
+      if (!anchor) {
         return
       }
 
@@ -125,14 +138,18 @@ function useHudTooltipPosition<TAnchor extends HTMLElement, TTooltip extends HTM
       const gap = 10
       const anchorBox = anchor.getBoundingClientRect()
       const tooltipBox = tooltip.getBoundingClientRect()
+      const tooltipHeight = Math.min(
+        Math.max(tooltipBox.height, tooltip.scrollHeight),
+        viewportHeight - margin * 2,
+      )
       const maxLeft = Math.max(margin, viewportWidth - margin - tooltipBox.width)
-      const maxTop = Math.max(margin, viewportHeight - margin - tooltipBox.height)
+      const maxTop = Math.max(margin, viewportHeight - margin - tooltipHeight)
 
       let left = placement === 'above'
         ? anchorBox.right - tooltipBox.width
         : anchorBox.right + gap
       let top = placement === 'above'
-        ? anchorBox.top - gap - tooltipBox.height
+        ? anchorBox.top - gap - tooltipHeight
         : anchorBox.top
 
       if (placement === 'above' && top < margin) {
@@ -153,9 +170,14 @@ function useHudTooltipPosition<TAnchor extends HTMLElement, TTooltip extends HTM
     }
 
     updatePosition()
+    const animationFrame = window.requestAnimationFrame(updatePosition)
+    const resizeObserver = new ResizeObserver(updatePosition)
+    resizeObserver.observe(tooltip)
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
     return () => {
+      window.cancelAnimationFrame(animationFrame)
+      resizeObserver.disconnect()
       window.removeEventListener('resize', updatePosition)
       window.removeEventListener('scroll', updatePosition, true)
     }
@@ -836,11 +858,12 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   </span>
                 </button>
                 {isActive ? (
-                  <div
+                  createPortal(
+                    <div
                     className="skill-tooltip"
                     id={tooltipId}
                     role="tooltip"
-                    ref={isActive ? skillTooltipRef : undefined}
+                    ref={skillTooltipRef}
                     style={skillTooltipStyle}
                   >
                     <strong>{skill.name}</strong>
@@ -981,7 +1004,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     <span className="skill-tooltip-icon" aria-hidden="true">
                       {skill.icon}
                     </span>
-                  </div>
+                    </div>,
+                    document.body,
+                  )
                 ) : null}
               </li>
             )
@@ -1107,7 +1132,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             <strong>{stat.value}</strong>
                             {stat.uncappedValue !== undefined ? (
                               <span className="character-stat-uncapped">
-                                ({stat.uncappedValue} uncapped)
+                                ({stat.uncappedValue})
                               </span>
                             ) : null}
                           </span>
@@ -1260,6 +1285,16 @@ function DevelopmentMenu({
     game.timeScale.toString(),
   )
   const [timeScaleError, setTimeScaleError] = useState<string | null>(null)
+  const [selectedGearId, setSelectedGearId] = useState<ItemId>(
+    ALL_ITEM_DEFINITIONS[0]?.id ?? '',
+  )
+  const [selectedSkillId, setSelectedSkillId] = useState<string>(
+    Object.values(SKILL_DEFINITIONS)[0]?.id ?? '',
+  )
+  const [selectedUpgradeId, setSelectedUpgradeId] = useState<string>(
+    INITIAL_UPGRADES[0]?.id ?? '',
+  )
+  const [grantFeedback, setGrantFeedback] = useState<string | null>(null)
 
   const entityCounts = {
     enemies: game.state.enemies.length,
@@ -1356,6 +1391,65 @@ function DevelopmentMenu({
     game.update(1 / 60)
   }
 
+  const reportGrantResult = (
+    result: DevelopmentGrantResult,
+    changedMessage: string,
+    unchangedMessage: string,
+  ): void => {
+    setGrantFeedback(
+      result.ok
+        ? result.changed
+          ? changedMessage
+          : unchangedMessage
+        : result.error,
+    )
+  }
+
+  const grantSelectedGear = (): void => {
+    if (!selectedGearId) {
+      return
+    }
+    const item = ALL_ITEM_DEFINITIONS.find(
+      (candidate) => candidate.id === selectedGearId,
+    )
+    if (!item) {
+      setGrantFeedback('Select a valid gear item.')
+      return
+    }
+    reportGrantResult(
+      game.grantDebugGear(selectedGearId),
+      `Granted ${getItemDisplayName(item)}.`,
+      `${getItemDisplayName(item)} is already equipped.`,
+    )
+  }
+
+  const grantSelectedSkill = (): void => {
+    if (!isSkillId(selectedSkillId)) {
+      return
+    }
+    const skill = SKILL_DEFINITIONS[selectedSkillId]
+    reportGrantResult(
+      game.grantDebugSkill(selectedSkillId),
+      `Granted ${skill.name}.`,
+      `${skill.name} is already equipped.`,
+    )
+  }
+
+  const grantSelectedUpgrade = (): void => {
+    const upgrade = INITIAL_UPGRADES.find(
+      (candidate) => candidate.id === selectedUpgradeId,
+    )
+    if (!upgrade) {
+      setGrantFeedback('Select a valid upgrade.')
+      return
+    }
+    reportGrantResult(
+      game.grantDebugUpgrade(upgrade.id),
+      `Granted ${upgrade.name}.`,
+      `${upgrade.name} was already granted; applied it again for testing.`,
+    )
+  }
+
   return (
     <div className="development-controls">
       <button
@@ -1426,6 +1520,98 @@ function DevelopmentMenu({
               </button>
             </div>
           </div>
+          <div className="debug-grant-control">
+            <p className="development-control-label">Grant gear</p>
+            <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-gear-select">
+                Gear item
+              </label>
+              <select
+                id="debug-gear-select"
+                value={selectedGearId}
+                onChange={(event) => setSelectedGearId(event.target.value)}
+              >
+                {ALL_ITEM_DEFINITIONS.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {getItemDisplayName(item)}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={grantSelectedGear}
+                disabled={snapshot.phase !== 'playing' &&
+                  snapshot.phase !== 'paused' &&
+                  snapshot.phase !== 'level-up'}
+              >
+                Give gear
+              </button>
+            </div>
+          </div>
+          <div className="debug-grant-control">
+            <p className="development-control-label">Grant skill</p>
+            <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-skill-select">
+                Skill
+              </label>
+              <select
+                id="debug-skill-select"
+                value={selectedSkillId}
+                onChange={(event) => setSelectedSkillId(event.target.value)}
+              >
+                {Object.values(SKILL_DEFINITIONS).map((skill) => (
+                  <option value={skill.id} key={skill.id}>
+                    {skill.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={grantSelectedSkill}
+                disabled={snapshot.phase !== 'playing' &&
+                  snapshot.phase !== 'paused' &&
+                  snapshot.phase !== 'level-up'}
+              >
+                Give skill
+              </button>
+            </div>
+          </div>
+          <div className="debug-grant-control">
+            <p className="development-control-label">Grant upgrade</p>
+            <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-upgrade-select">
+                Upgrade
+              </label>
+              <select
+                id="debug-upgrade-select"
+                value={selectedUpgradeId}
+                onChange={(event) => setSelectedUpgradeId(event.target.value)}
+              >
+                {INITIAL_UPGRADES.map((upgrade) => (
+                  <option value={upgrade.id} key={upgrade.id}>
+                    {upgrade.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={grantSelectedUpgrade}
+                disabled={snapshot.phase !== 'playing' &&
+                  snapshot.phase !== 'paused' &&
+                  snapshot.phase !== 'level-up'}
+              >
+                Give upgrade
+              </button>
+            </div>
+          </div>
+          {grantFeedback ? (
+            <p className="input-help debug-grant-feedback" role="status">
+              {grantFeedback}
+            </p>
+          ) : null}
           <dl className="entity-counts" aria-label="Entity counts">
             <div>
               <dt>Total entities</dt>

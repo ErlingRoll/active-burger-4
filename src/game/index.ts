@@ -32,6 +32,7 @@ export {
   type DebugSpawnCount,
   type GameStateListener,
   type TimeScaleUpdateResult,
+  type DevelopmentGrantResult,
   type GameUiSnapshot,
   type RunHudSnapshot,
   type RunResultSnapshot,
