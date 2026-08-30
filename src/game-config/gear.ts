@@ -20,7 +20,7 @@ export const GEAR_DROP_CHANCE_BALANCE = {
     startFloor: 1,
     endFloor: 30,
     startMultiplier: 1,
-    endMultiplier: 0.5,
+    endMultiplier: 0.8,
   },
 } as const
 
