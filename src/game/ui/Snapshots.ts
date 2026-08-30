@@ -40,7 +40,9 @@ import {
 } from '../../content/skills/Skills'
 import {
   DEFAULT_SKILL_SLOT_COUNT,
+  RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
+  RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
 } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
@@ -391,6 +393,7 @@ export type SkillModifierSummaryId =
   | 'summon-max-count'
   | 'skill-cooldown-reduction'
   | 'duration'
+  | 'damage-reduction'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -511,6 +514,16 @@ function getSkillModifierSummaries(
         'Duration',
         duration,
         `${formatStatNumber(duration)} sec`,
+      )
+      const damageReduction = RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT +
+        (selectedUpgradeIds.includes('rallying-standard-bulwark')
+          ? RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT
+          : 0)
+      addSummary(
+        'damage-reduction',
+        'Damage reduction',
+        damageReduction,
+        formatUnsignedPercent(damageReduction),
       )
     }
     if (playerStats.cooldownReduction > 0) {
@@ -1231,7 +1244,7 @@ export function createUiSnapshot(
           : skill.skillId === LANCERS_CHARGE_SKILL_ID
           ? 'One target struck by the charge corridor, sustained over its cooldown.'
           : skill.skillId === RALLYING_STANDARD_SKILL_ID
-          ? 'Restores health and grants defensive bonuses automatically every cooldown.'
+          ? 'Heals immediately, then heals the player and living summons in the banner every second while active.'
           : skill.skillId === GRAVITY_WELL_SKILL_ID
           ? 'One target caught in the well, sustained over Gravity Well cooldown.'
           : skill.skillId === AEGIS_PULSE_SKILL_ID

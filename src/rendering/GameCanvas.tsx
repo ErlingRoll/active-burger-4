@@ -37,7 +37,10 @@ import {
 } from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
-import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
+} from '../content/skills/Skills'
 import type { LevelUpUpgradeChoice } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { PauseMenu } from './PauseMenu'
@@ -769,7 +772,11 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     ) : null}
                     {skill.healingPerCast !== null ? (
                       <p className="skill-cadence">
-                        <span>Healing per cast</span>
+                        <span>
+                          {skill.skillId === RALLYING_STANDARD_SKILL_ID
+                            ? 'Healing per cast/pulse'
+                            : 'Healing per cast'}
+                        </span>
                         <b>{formatCadence(skill.healingPerCast)} HP</b>
                       </p>
                     ) : null}

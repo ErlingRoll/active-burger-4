@@ -307,7 +307,7 @@ export const SKILL_DEFINITIONS = {
   [RALLYING_STANDARD_SKILL_ID]: {
     id: RALLYING_STANDARD_SKILL_ID,
     name: 'Rallying Banner',
-    description: 'Plants a banner that restores health and reduces incoming damage for its duration. Deals no direct damage.',
+    description: 'Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.',
     kind: 'utility',
     tags: ['defensive', 'duration'],
     cooldown: 16,

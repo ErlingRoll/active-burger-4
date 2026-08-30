@@ -5,6 +5,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
+  RALLYING_STANDARD_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
@@ -99,6 +100,30 @@ describe('UI snapshots', () => {
       .toMatchObject({ relevant: true, status: 'acquired' })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('projects Rallying Banner healing and active defensive values', () => {
+    const game = createGame({ seed: 75 })
+    game.state.player.skills = [{
+      skillId: RALLYING_STANDARD_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push('rallying-standard-bulwark')
+
+    const rallyingStandard = createUiSnapshot(game.state).skills[0]
+
+    expect(rallyingStandard?.description).toContain('every second')
+    expect(rallyingStandard?.healingPerCast).toBe(4)
+    expect(rallyingStandard?.dpsAssumption).toBe(
+      'Heals immediately, then heals the player and living summons in the banner every second while active.',
+    )
+    expect(rallyingStandard?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'duration', value: '10 sec' }),
+        expect.objectContaining({ id: 'damage-reduction', value: '25%' }),
+      ]),
+    )
   })
 
   it('projects active cooldown progress for skill feedback', () => {
