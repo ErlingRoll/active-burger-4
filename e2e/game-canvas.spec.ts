@@ -545,6 +545,7 @@ test('displays the level-up choices and resumes after selecting one', async ({
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
     'playing',
+    { timeout: 1_000 },
   )
 })
 
