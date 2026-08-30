@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ARCHER_DEFINITION_ID,
   BRUTE_DEFINITION_ID,
+  FLANKER_DEFINITION_ID,
   RUNNER_DEFINITION_ID,
   SLIME_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,
@@ -49,6 +50,49 @@ describe('enemy variety behaviors', () => {
     expect(gracePeriodX).toBeCloseTo(1_000 - baseSpeed * FIXED_STEP_SECONDS)
     expect(gracePeriodX - midpointX).toBeCloseTo(baseSpeed * 2.5 * FIXED_STEP_SECONDS)
     expect(midpointX - cappedX).toBeCloseTo(baseSpeed * 4 * FIXED_STEP_SECONDS)
+  })
+
+  it('separates colocated enemies deterministically while they chase', () => {
+    const run = () => {
+      const game = createGame({ seed: 106 })
+      const firstId = game.spawnEnemy(SLIME_DEFINITION_ID, { x: 200, y: 0 })
+      const secondId = game.spawnEnemy(SLIME_DEFINITION_ID, { x: 200, y: 0 })
+
+      updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+      const first = game.state.enemies.find((enemy) => enemy.id === firstId)
+      const second = game.state.enemies.find((enemy) => enemy.id === secondId)
+      if (!first || !second) {
+        throw new Error('Expected colocated enemies to exist')
+      }
+      return {
+        first: { x: first.x, y: first.y },
+        second: { x: second.x, y: second.y },
+      }
+    }
+
+    const firstRun = run()
+    expect(firstRun.first).not.toEqual(firstRun.second)
+    expect(firstRun).toEqual(run())
+  })
+
+  it('lets a Flanker move toward a predicted lateral escape point', () => {
+    const game = createGame({ seed: 107 })
+    const flankerId = game.spawnEnemy(
+      FLANKER_DEFINITION_ID,
+      { x: 300, y: 0 },
+    )
+    game.state.player.movementVelocityX = 100
+
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+    const flanker = game.state.enemies.find((enemy) => enemy.id === flankerId)
+    if (!flanker) {
+      throw new Error('Expected Flanker to exist')
+    }
+    expect(flanker.targetId).toBe(game.state.player.id)
+    expect(flanker.x).toBeLessThan(300)
+    expect(flanker.y).not.toBe(0)
   })
 
   it('keeps Archer outside contact while remaining in player targeting range', () => {

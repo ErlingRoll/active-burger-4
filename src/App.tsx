@@ -45,6 +45,7 @@ import { useToaster } from './ui/ToasterContext'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import type { GameKeybinds } from './input/Keybinds'
 import { DEFAULT_GAME_KEYBINDS } from './input/Keybinds'
+import { DEFAULT_SKILL_SLOT_COUNT } from './game-config/skills'
 import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
@@ -423,6 +424,7 @@ function App() {
       playstyleId: settings.selectedPlaystyleId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
       startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
+      skillSlotCount: metaProgression.snapshot?.skillSlotCount ?? DEFAULT_SKILL_SLOT_COUNT,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}

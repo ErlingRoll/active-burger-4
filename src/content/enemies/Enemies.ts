@@ -11,7 +11,7 @@ export type {
 } from './EliteModifiers'
 
 export type EnemyDefinitionId = string
-export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split'
+export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split' | 'intercept'
 export type EnemyRenderShape = 'circle' | 'diamond' | 'triangle' | 'hexagon'
 
 export interface EnemyRenderDefinition {
@@ -32,6 +32,12 @@ export type EnemyBehaviorDefinition =
   | { kind: 'chase' }
   | { kind: 'standoff'; desiredDistance: number; retreatDistance: number }
   | { kind: 'split'; split: EnemySplitDefinition }
+  | {
+      kind: 'intercept'
+      predictionSeconds: number
+      lateralOffset: number
+      engagementDistance: number
+    }
 
 export interface EnemyDefinition {
   id: EnemyDefinitionId
@@ -52,6 +58,7 @@ export {
   ARCHER_DEFINITION_ID,
   BRUTE_DEFINITION_ID,
   ENEMY_DEFINITIONS,
+  FLANKER_DEFINITION_ID,
   RUNNER_DEFINITION_ID,
   SLIME_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,

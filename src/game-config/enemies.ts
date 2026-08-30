@@ -6,6 +6,7 @@ export const RUNNER_DEFINITION_ID: EnemyDefinitionId = 'runner'
 export const BRUTE_DEFINITION_ID: EnemyDefinitionId = 'brute'
 export const ARCHER_DEFINITION_ID: EnemyDefinitionId = 'archer'
 export const SPLITTER_DEFINITION_ID: EnemyDefinitionId = 'splitter'
+export const FLANKER_DEFINITION_ID: EnemyDefinitionId = 'flanker'
 
 export const ENEMY_DEFINITIONS = {
   [SLIME_DEFINITION_ID]: {
@@ -108,6 +109,29 @@ export const ENEMY_DEFINITIONS = {
       outlineColor: '#d9f99d',
       scale: 1.05,
       shape: 'diamond',
+    },
+  },
+  [FLANKER_DEFINITION_ID]: {
+    id: FLANKER_DEFINITION_ID,
+    name: 'Flanker',
+    radius: 15,
+    maxHp: 18,
+    speed: 132,
+    contactDamage: 5,
+    xpReward: 7,
+    gearDropChance: GEAR_DROP_CHANCES.runner,
+    controlResistance: 25,
+    behavior: {
+      kind: 'intercept',
+      predictionSeconds: 1,
+      lateralOffset: 90,
+      engagementDistance: 56,
+    },
+    render: {
+      color: '#ec4899',
+      outlineColor: '#fbcfe8',
+      scale: 1,
+      shape: 'triangle',
     },
   },
 } as const satisfies Record<EnemyDefinitionId, EnemyDefinition>

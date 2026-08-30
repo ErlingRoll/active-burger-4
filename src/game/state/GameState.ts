@@ -131,6 +131,8 @@ export interface RunConfig {
   xpMultiplierLevel?: number
   /** Purchased permanent starting-level result, from level 1 through 4. */
   startingLevel?: number
+  /** Purchased permanent maximum skill capacity. */
+  skillSlotCount?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId
@@ -186,7 +188,7 @@ export interface PlayerState {
   movementVelocityX?: number
   movementVelocityY?: number
 
-  /** Number of skill slots available; future meta progression can increase it. */
+  /** Number of skill slots available, including permanent progression. */
   skillSlotCount?: number
 
   hp: number

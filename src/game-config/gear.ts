@@ -7,6 +7,7 @@ export const GEAR_DROP_CHANCES = {
   archer: 0.07,
   splitter: 0.07,
   brute: 0.07,
+  flanker: 0.07,
 } as const satisfies Record<EnemyDefinitionId, number>
 
 /**

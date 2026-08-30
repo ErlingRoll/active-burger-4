@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getSkillSlotCount,
   getXpMultiplierLevel,
   getStartingLevelRank,
+  SKILL_SLOT_UNLOCK_CATEGORY,
   type MetaUnlockDefinition,
 } from './MetaProgressionService'
 
@@ -75,5 +77,21 @@ describe('starting-level unlock definitions', () => {
       [startingLevelUnlock('starting-level-4', 4)],
       ['starting-level-4'],
     )).toBe(3)
+  })
+})
+
+describe('skill-slot unlock definitions', () => {
+  it('increases capacity only when the one-time unlock is owned', () => {
+    const definition: MetaUnlockDefinition = {
+      id: 'skill-slot-1',
+      category: SKILL_SLOT_UNLOCK_CATEGORY,
+      cost: 1000,
+      requiresUnlockId: null,
+      isStarter: false,
+      payload: { skillSlotCount: 6 },
+    }
+
+    expect(getSkillSlotCount([definition], [])).toBe(5)
+    expect(getSkillSlotCount([definition], ['skill-slot-1'])).toBe(6)
   })
 })

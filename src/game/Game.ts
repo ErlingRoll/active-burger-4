@@ -313,6 +313,7 @@ export class Game {
         this.worldModifierEffects,
         isPlaystyleId(config.playstyleId) ? config.playstyleId : DEFAULT_PLAYSTYLE_ID,
         config.startingLevel,
+        config.skillSlotCount,
       ),
       enemies: [],
       bosses: [],

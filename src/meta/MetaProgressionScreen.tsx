@@ -1,4 +1,8 @@
-import type { MetaProgressionSnapshot, MetaUnlockDefinition } from './MetaProgressionService'
+import {
+  SKILL_SLOT_UNLOCK_CATEGORY,
+  type MetaProgressionSnapshot,
+  type MetaUnlockDefinition,
+} from './MetaProgressionService'
 import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
 
 export interface MetaProgressionScreenProps {
@@ -76,6 +80,32 @@ function getNextStartingLevelUpgrade(
   ) ?? null
 }
 
+function getSkillSlotUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+): MetaUnlockDefinition | null {
+  return definitions.find((definition) =>
+    definition.category === SKILL_SLOT_UNLOCK_CATEGORY &&
+    typeof definition.payload.skillSlotCount === 'number' &&
+    Number.isInteger(definition.payload.skillSlotCount),
+  ) ?? null
+}
+
+function getSkillSlotUpgradeState(
+  definition: MetaUnlockDefinition,
+  snapshot: MetaProgressionSnapshot,
+): { label: string; disabled: boolean } {
+  if (snapshot.unlockedIds.includes(definition.id)) {
+    return { label: 'Owned', disabled: true }
+  }
+  if (snapshot.wallet.essenceBalance < definition.cost) {
+    return {
+      label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`,
+      disabled: true,
+    }
+  }
+  return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
+}
+
 export function MetaProgressionScreen({
   snapshot,
   loadState,
@@ -136,6 +166,15 @@ export function MetaProgressionScreen({
   const nextStartingLevelUpgradeState = nextStartingLevelUpgrade === null
     ? null
     : getStartingLevelUpgradeState(nextStartingLevelUpgrade, snapshot)
+  const skillSlotUpgrade = getSkillSlotUpgrade(snapshot.definitions)
+  const skillSlotUpgradeState = skillSlotUpgrade === null
+    ? null
+    : getSkillSlotUpgradeState(skillSlotUpgrade, snapshot)
+  const skillSlotUpgradeTarget = typeof skillSlotUpgrade?.payload.skillSlotCount === 'number'
+    ? skillSlotUpgrade.payload.skillSlotCount
+    : snapshot.skillSlotCount + 1
+  const skillSlotUpgradeOwned = skillSlotUpgrade !== null &&
+    snapshot.unlockedIds.includes(skillSlotUpgrade.id)
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -234,6 +273,40 @@ export function MetaProgressionScreen({
                 Starting level fully upgraded.
               </p>
             )}
+            {skillSlotUpgrade && skillSlotUpgradeState ? (
+              <div className="dashboard-choice meta-unlock-card" key={skillSlotUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>Skill capacity</span>
+                  <strong>{snapshot.skillSlotCount} skills</strong>
+                </div>
+                <div className="meta-unlock-card-heading">
+                  <strong>Expanded Skill Slots</strong>
+                  <span>One-time upgrade</span>
+                </div>
+                <div className="meta-unlock-card-benefit">
+                  <strong>{skillSlotUpgradeOwned ? 'Maximum skill capacity' : '+1 maximum skill'}</strong>
+                  <span>
+                    {skillSlotUpgradeOwned
+                      ? `${snapshot.skillSlotCount} skills`
+                      : `${snapshot.skillSlotCount} → ${skillSlotUpgradeTarget} skills`}
+                  </span>
+                </div>
+                <span className="meta-unlock-state">{skillSlotUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={skillSlotUpgradeState.disabled || purchaseState === 'purchasing'}
+                  onClick={() => { onPurchaseUnlock(skillSlotUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' &&
+                  activePurchaseUnlockId === skillSlotUpgrade.id
+                    ? 'Purchasing...'
+                    : skillSlotUpgradeOwned
+                      ? 'Owned'
+                      : `Purchase for ${formatCurrency(skillSlotUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : null}
           </div>
           {purchaseState === 'purchasing' ? (
             <p className="persistence-status" role="status">Submitting unlock purchase...</p>

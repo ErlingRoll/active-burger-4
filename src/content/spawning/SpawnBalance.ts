@@ -1,6 +1,7 @@
 import {
   ARCHER_DEFINITION_ID,
   BRUTE_DEFINITION_ID,
+  FLANKER_DEFINITION_ID,
   RUNNER_DEFINITION_ID,
   SLIME_DEFINITION_ID,
   SPLITTER_DEFINITION_ID,
@@ -35,6 +36,8 @@ export interface SpawnBalance {
   eliteStartTimeSeconds: number
   eliteModifierWeights: Readonly<Record<EliteModifierId, number>>
 }
+
+export const SPAWN_RING_DISTANCE_MULTIPLIER = 1.3
 
 /**
  * Composition is intentionally data-driven. Entries are introduced over time
@@ -73,11 +76,17 @@ export const SPAWN_BALANCE = {
       weight: 1,
       startTimeSeconds: 90,
     },
+    {
+      definitionId: FLANKER_DEFINITION_ID,
+      threatCost: 3,
+      weight: 1,
+      startTimeSeconds: 90,
+    },
   ],
   // The inner radius is outside the close-combat area and the default browser
   // arena's central view, while the outer radius keeps the ring bounded.
-  spawnRingInnerRadius: 500,
-  spawnRingOuterRadius: 650,
+  spawnRingInnerRadius: 500 * SPAWN_RING_DISTANCE_MULTIPLIER,
+  spawnRingOuterRadius: 650 * SPAWN_RING_DISTANCE_MULTIPLIER,
   eliteChance: 0.1,
   eliteStartTimeSeconds: 45,
   eliteModifierWeights: {

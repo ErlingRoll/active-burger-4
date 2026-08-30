@@ -54,7 +54,7 @@ import { getEquippedWeaponArchetype } from '../../equipment/EquipmentState'
 import {
   getSplitChildren,
   getEnemyCombatTarget,
-  updateEnemyBehavior,
+  updateEnemyBehaviors,
 } from './EnemyBehaviors'
 import type { ChildSpawnRequest } from './EnemyBehaviors'
 import type {
@@ -678,9 +678,7 @@ export function updateEnemyChase(
   state: GameState,
   fixedStepSeconds: number,
 ): void {
-  for (const enemy of state.enemies) {
-    updateEnemyBehavior(state, enemy, fixedStepSeconds)
-  }
+  updateEnemyBehaviors(state, fixedStepSeconds)
 }
 
 /**

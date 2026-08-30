@@ -80,9 +80,14 @@ export function createInitialPlayerState(
   effects?: Pick<WorldModifierEffects, 'playerStatMultipliers'>,
   playstyleId: PlaystyleId = DEFAULT_PLAYSTYLE_ID,
   startingLevel = 1,
+  skillSlotCount = DEFAULT_SKILL_SLOT_COUNT,
 ): PlayerState {
   const playstyle = getPlaystyleDefinition(playstyleId)
   const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
+  const normalizedSkillSlotCount =
+    typeof skillSlotCount === 'number' && Number.isFinite(skillSlotCount)
+      ? Math.max(1, Math.floor(skillSlotCount))
+      : DEFAULT_SKILL_SLOT_COUNT
   const startingSkillIds = [
     BASIC_ATTACK_SKILL_ID,
     ...playstyle.startingSkillIds.filter(
@@ -104,7 +109,7 @@ export function createInitialPlayerState(
     radius: 16,
     movementVelocityX: 0,
     movementVelocityY: 0,
-    skillSlotCount: DEFAULT_SKILL_SLOT_COUNT,
+    skillSlotCount: normalizedSkillSlotCount,
     hp: maxHp,
     maxHp,
     level: initialLevel,

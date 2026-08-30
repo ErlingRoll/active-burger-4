@@ -8,6 +8,9 @@ import {
   STARTING_LEVEL_MAX_RANK,
   getStartingLevelForRank,
 } from '../content/progression/StartingLevel'
+import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
+
+export const SKILL_SLOT_UNLOCK_CATEGORY = 'skill-slot'
 
 export interface MetaWallet {
   essenceBalance: number
@@ -32,6 +35,7 @@ export interface MetaProgressionSnapshot {
   xpMultiplier: number
   startingLevelRank: number
   startingLevel: number
+  skillSlotCount: number
 }
 
 export interface MetaProgressionService {
@@ -157,6 +161,25 @@ export function getStartingLevelRank(
   )
 }
 
+export function getSkillSlotCount(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  return definitions.reduce((highestCount, definition) => {
+    if (
+      definition.category !== SKILL_SLOT_UNLOCK_CATEGORY ||
+      !unlocked.has(definition.id)
+    ) {
+      return highestCount
+    }
+    const skillSlotCount = definition.payload.skillSlotCount
+    return typeof skillSlotCount === 'number' && Number.isInteger(skillSlotCount)
+      ? Math.max(highestCount, skillSlotCount)
+      : highestCount
+  }, DEFAULT_SKILL_SLOT_COUNT)
+}
+
 function toSnapshot(
   walletRow: unknown,
   definitionRows: unknown,
@@ -186,6 +209,7 @@ function toSnapshot(
   const unlockedIds = unlockRows.map((unlock) => unlock.unlock_id).sort()
   const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
   const startingLevelRank = getStartingLevelRank(definitions, unlockedIds)
+  const skillSlotCount = getSkillSlotCount(definitions, unlockedIds)
   return {
     wallet,
     definitions,
@@ -194,6 +218,7 @@ function toSnapshot(
     xpMultiplier: getXpMultiplierForLevel(xpMultiplierLevel),
     startingLevelRank,
     startingLevel: getStartingLevelForRank(startingLevelRank),
+    skillSlotCount,
   }
 }
 

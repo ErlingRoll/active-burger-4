@@ -111,6 +111,34 @@ describe('content validation', () => {
     )
   })
 
+  it('validates intercept behavior tuning', () => {
+    const flanker = CURRENT_CONTENT.enemies.find((enemy) => enemy.id === 'flanker')
+    if (!flanker) {
+      throw new Error('Expected Flanker content')
+    }
+    const errors = validateContent(
+      catalogWith({
+        enemies: [{
+          ...flanker,
+          behavior: {
+            kind: 'intercept',
+            predictionSeconds: 0,
+            lateralOffset: -1,
+            engagementDistance: Number.NaN,
+          },
+        }],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'enemies[0].behavior.predictionSeconds must be positive; received 0.',
+        'enemies[0].behavior.lateralOffset must be non-negative; received -1.',
+        'enemies[0].behavior.engagementDistance must be a finite number; received NaN.',
+      ]),
+    )
+  })
+
   it('reports invalid spawn entries and an impossible eligible choice pool', () => {
     const errors = validateContent(
       catalogWith({

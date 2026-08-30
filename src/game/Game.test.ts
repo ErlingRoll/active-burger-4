@@ -38,6 +38,25 @@ describe('Game', () => {
     expect(game.state.player.xp).toBe(11)
   })
 
+  it('applies the purchased skill capacity to a new run', () => {
+    const game = createGame({ seed: 113, skillSlotCount: 6 })
+
+    expect(game.state.player.skillSlotCount).toBe(6)
+    for (const skillId of [
+      'chain-lightning',
+      'vitality',
+      'fiery-touch',
+      'raise-skeleton',
+    ] as const) {
+      expect(game.grantDebugSkill(skillId).ok).toBe(true)
+    }
+    expect(game.state.player.skills).toHaveLength(6)
+    expect(game.grantDebugSkill('glacial-orb')).toEqual({
+      ok: false,
+      error: 'No skill slots are available. Remove a skill before granting another.',
+    })
+  })
+
   it('starts at the purchased level and queues skipped level-up choices', () => {
     const game = createGame({ seed: 107, startingLevel: 4 })
 

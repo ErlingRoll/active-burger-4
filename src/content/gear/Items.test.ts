@@ -351,6 +351,7 @@ describe('initial gear content', () => {
       archer: 0.07,
       splitter: 0.07,
       brute: 0.07,
+      flanker: 0.07,
     })
     expect(validateGearDropChances(GEAR_DROP_CHANCES)).toEqual([])
     expect(validateGearPickupBalance(GEAR_PICKUP_BALANCE)).toEqual([])

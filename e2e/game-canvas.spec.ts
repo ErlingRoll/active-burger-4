@@ -149,12 +149,14 @@ test('loads the permanent upgrade store outside the active run', async ({ page }
   ).toContainText(/\d+\.\d+x → \d+\.\d+x/)
   await expect(page.getByText('Starting Level', { exact: true })).toBeVisible()
   await expect(page.getByText(/Start at level \d+/, { exact: false })).toBeVisible()
+  await expect(page.getByText('Expanded Skill Slots')).toBeVisible()
+  await expect(page.getByText('+1 maximum skill')).toBeVisible()
   await expect(
     page.locator('.dashboard-choice strong').filter({
       hasText: 'Increased XP',
     }),
   ).toBeVisible()
-  await expect(page.locator('.dashboard-choice')).toHaveCount(2)
+  await expect(page.locator('.dashboard-choice')).toHaveCount(3)
 })
 
 test('signs in and out with the configured Supabase test account', async ({ page }) => {

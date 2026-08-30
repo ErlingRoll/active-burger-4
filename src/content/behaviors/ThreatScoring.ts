@@ -19,6 +19,7 @@ export const THREAT_SCORE_DEFINITIONS: Readonly<
   archer: { base: 2.5, packBonus: 0.2, eliteMultiplier: 1.5 },
   splitter: { base: 2.5, packBonus: 0.3, eliteMultiplier: 1.5 },
   brute: { base: 4, packBonus: 0.25, eliteMultiplier: 1.75 },
+  flanker: { base: 2.5, packBonus: 0.25, eliteMultiplier: 1.5 },
 }
 
 export const DEFAULT_THREAT_SCORE_DEFINITION: ThreatScoreDefinition = {

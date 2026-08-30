@@ -150,7 +150,7 @@ const VALID_SKILL_TAGS = new Set([
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
 const VALID_MODIFIER_OPERATIONS = new Set(['add', 'multiply'])
-const VALID_ENEMY_BEHAVIORS = new Set(['chase', 'standoff', 'split'])
+const VALID_ENEMY_BEHAVIORS = new Set(['chase', 'standoff', 'split', 'intercept'])
 const VALID_ENEMY_SHAPES = new Set([
   'circle',
   'diamond',
@@ -691,6 +691,25 @@ function validateDefinitions(
           `enemies[${index}].behavior.retreatDistance must be less than desiredDistance.`,
         )
       }
+    } else if (enemy.behavior.kind === 'intercept') {
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.predictionSeconds`,
+        enemy.behavior.predictionSeconds,
+        'positive',
+      )
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.lateralOffset`,
+        enemy.behavior.lateralOffset,
+        'non-negative',
+      )
+      validateFiniteNumber(
+        errors,
+        `enemies[${index}].behavior.engagementDistance`,
+        enemy.behavior.engagementDistance,
+        'positive',
+      )
     } else if (enemy.behavior.kind === 'split') {
       const split = enemy.behavior.split
       const child = split

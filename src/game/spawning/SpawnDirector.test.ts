@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
+import {
+  SPAWN_BALANCE,
+  SPAWN_RING_DISTANCE_MULTIPLIER,
+} from '../../content/spawning/SpawnBalance'
 import { Random } from '../random/Random'
 import {
   calculateThreatPerSecond,
@@ -51,6 +54,12 @@ describe('SpawnDirector', () => {
         SPAWN_BALANCE.spawnRingOuterRadius,
       )
     }
+  })
+
+  it('spawns the updated ring thirty percent farther from the player', () => {
+    expect(SPAWN_RING_DISTANCE_MULTIPLIER).toBe(1.3)
+    expect(SPAWN_BALANCE.spawnRingInnerRadius).toBe(650)
+    expect(SPAWN_BALANCE.spawnRingOuterRadius).toBe(845)
   })
 
   it('increases threat pressure as run time grows', () => {
