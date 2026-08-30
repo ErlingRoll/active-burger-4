@@ -149,7 +149,7 @@ describe('skill system', () => {
     lastStandGame.state.player.hp = 20
     lastStandGame.state.player.vitalityLowHpHealingMultiplier = 2
     collectSkillDamage(lastStandGame.state, allocator)
-    expect(lastStandGame.state.player.hp).toBe(24)
+    expect(lastStandGame.state.player.hp).toBe(32)
   })
 
   it('applies synergy bonuses to healing and shields', () => {
@@ -166,8 +166,8 @@ describe('skill system', () => {
 
     collectSkillDamage(game.state, allocator)
 
-    expect(game.state.player.hp).toBeCloseTo(52)
-    expect(game.state.player.aegisPulseShieldAmount).toBeCloseTo(11)
+    expect(game.state.player.hp).toBeCloseTo(56)
+    expect(game.state.player.aegisPulseShieldAmount).toBeCloseTo(13)
   })
 
   it('applies skill-specific percentage damage growth without compounding rank bonuses', () => {
@@ -339,7 +339,7 @@ describe('skill system', () => {
 
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
 
-    expect(game.state.player.hp).toBe(game.state.player.maxHp - 16)
+    expect(game.state.player.hp).toBe(game.state.player.maxHp - 12)
     expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(4.3)
     expect(game.state.effects[0]?.skillId).toBe(VITALITY_SKILL_ID)
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
