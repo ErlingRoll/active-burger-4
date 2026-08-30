@@ -405,6 +405,12 @@ export interface ProjectileState {
   targetId?: EntityId
   sourceTags?: readonly SkillTag[]
   basicAttackWeaponArchetype?: WeaponArchetype
+  /** Original target selected when a weapon Basic Attack volley was fired. */
+  primaryTargetId?: EntityId
+  /** Basic Attack damage increase against the original target only. */
+  primaryTargetDamageIncreasePercent?: number
+  /** True after the bow Precision bonus has been applied once. */
+  primaryTargetDamageApplied?: boolean
   /** Presentation-only projectile used by skills whose impact is resolved immediately. */
   visualOnly?: boolean
   /** Optional area radius to resolve around the projectile's collision point. */

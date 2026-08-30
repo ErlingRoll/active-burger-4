@@ -96,6 +96,8 @@ export interface BasicAttackVariantDefinition {
   swingArcDegrees?: number
   spreadDegrees?: number
   maxExtraProjectiles?: number
+  /** Increased projectile damage against the target selected for this volley. */
+  primaryTargetDamageIncreasePercent?: number
   areaShape?: 'arc' | 'circle'
   areaRadius?: number
   poisonApplication?: {

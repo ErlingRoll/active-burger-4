@@ -19,6 +19,23 @@ import {
 const PICKUP_CONTACT_EPSILON = 1e-6
 const BOSS_DEATH_MAGNET_RANGE_BONUS =
   BOSS_DEATH_MAGNET_RANGE_INCREASE_PERCENT / 100
+const PICKUP_ATTRACTION_MAX_SPEED_MULTIPLIER = 4
+
+function getPickupAttractionSpeedMultiplier(
+  distance: number,
+  contactRange: number,
+  attractionRadius: number,
+): number {
+  const attractionDistance = Math.max(0, attractionRadius - contactRange)
+  if (attractionDistance === 0) {
+    return PICKUP_ATTRACTION_MAX_SPEED_MULTIPLIER
+  }
+  const progress = Math.min(
+    1,
+    Math.max(0, (attractionRadius - distance) / attractionDistance),
+  )
+  return 1 + progress * (PICKUP_ATTRACTION_MAX_SPEED_MULTIPLIER - 1)
+}
 
 export function activateBossDeathMagnet(state: GameState): void {
   state.player.bossMagnetRemaining = BOSS_DEATH_MAGNET_DURATION_SECONDS
@@ -103,8 +120,14 @@ export function updatePickups(
     }
 
     const distanceToContact = distance - contactRange
+    const attractionSpeed = pickup.attractionSpeed *
+      getPickupAttractionSpeedMultiplier(
+        distance,
+        contactRange,
+        attractionRadius,
+      )
     const movementDistance = Math.min(
-      pickup.attractionSpeed * fixedStepSeconds,
+      attractionSpeed * fixedStepSeconds,
       distanceToContact,
     )
     const movementRatio = movementDistance / distance

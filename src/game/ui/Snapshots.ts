@@ -8,6 +8,7 @@ import {
   getItemDefinition,
   getLegacyItemSetId,
   type EquipmentSlot,
+  type ItemImplicitModifier,
   type WeaponArchetype,
 } from '../../content/gear/Items'
 import type { Rarity } from '../../content/rarity/Rarity'
@@ -369,7 +370,14 @@ export interface EquippedItemSnapshot {
   readonly slot: EquipmentSlot
   readonly rarity: Rarity
   readonly setId?: GearSetId
+  readonly implicitModifiers: readonly ItemImplicitModifierSnapshot[]
   readonly modifiers: readonly GearModifierSnapshot[]
+}
+
+export interface ItemImplicitModifierSnapshot {
+  readonly id: string
+  readonly label: string
+  readonly description: string
 }
 
 export interface GearSetHudSnapshot {
@@ -400,6 +408,7 @@ export type SkillModifierSummaryId =
   | 'attack-damage'
   | 'attack-speed'
   | 'attack-range'
+  | 'primary-target-damage'
   | 'cooldown-reduction'
   | 'area-of-effect'
   | 'melee-leech'
@@ -454,6 +463,7 @@ function getSkillModifierSummaries(
   skillId: SkillId,
   skillLevel: number,
   skillTags: readonly SkillTag[],
+  weaponArchetype: WeaponArchetype | undefined,
   supportsAreaOfEffect: boolean,
   skeletonMaxCountBonus = 0,
   selectedUpgradeIds: readonly UpgradeId[] = [],
@@ -512,6 +522,17 @@ function getSkillModifierSummaries(
       playerStats.attackRange,
       formatStatNumber(playerStats.attackRange),
     )
+    const primaryTargetDamageIncreasePercent = weaponArchetype
+      ? getBasicAttackVariant(weaponArchetype).primaryTargetDamageIncreasePercent ?? 0
+      : 0
+    if (primaryTargetDamageIncreasePercent > 0) {
+      addSummary(
+        'primary-target-damage',
+        'Precision damage to primary target',
+        primaryTargetDamageIncreasePercent,
+        formatSignedPercent(primaryTargetDamageIncreasePercent),
+      )
+    }
     if (
       skillTags.includes('projectile') &&
       playerStats.basicAttackExtraProjectiles > 0
@@ -1242,6 +1263,9 @@ export function createUiSnapshot(
       skill.skillId,
       skill.level,
       skillTags,
+      isBasicAttack
+        ? getEquippedWeaponArchetype(state.player)
+        : undefined,
       supportsAreaOfEffect,
       state.player.skeletonMaxCountBonus,
       state.run.selectedUpgradeIds,
@@ -1420,6 +1444,11 @@ export function createUiSnapshot(
           Object.freeze({ ...modifier }),
         ),
       )
+      const implicitModifiers = Object.freeze(
+        (definition.implicitModifiers ?? []).map(
+          (modifier: ItemImplicitModifier) => Object.freeze({ ...modifier }),
+        ),
+      )
       return [[slot, Object.freeze({
         itemId: equipped.itemId,
         name: getItemDisplayName(definition, setId),
@@ -1430,6 +1459,7 @@ export function createUiSnapshot(
               setId,
             }
           : {}),
+        implicitModifiers,
         modifiers,
       })]]
     }),

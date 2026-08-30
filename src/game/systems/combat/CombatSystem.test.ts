@@ -25,6 +25,7 @@ import {
   equipItem,
   equipRolledItem,
 } from '../../equipment/EquipmentState'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
 import { createGame } from '../../Game'
 import { createDamageValues } from '../../../content/stats/Damage'
@@ -378,6 +379,78 @@ describe('performBasicAttackIfReady', () => {
     }))).toEqual(initialVelocities)
   })
 
+  it('applies bow Precision to the primary target but not chained targets', () => {
+    const gameState = state(
+      [enemy(2, 120), enemy(3, 180)],
+      { projectiles: [] },
+    )
+    equipRolledItem(
+      gameState.player,
+      'hunters-bow',
+      Rarity.Rare,
+      [createGearModifier('hunters-bow', 'projectile-chains', 5, 2)],
+    )
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+    const projectile = gameState.projectiles[0]
+    if (!projectile) {
+      throw new Error('Expected a bow projectile to be created')
+    }
+    expect(projectile.primaryTargetId).toBe(2)
+    expect(projectile.primaryTargetDamageIncreasePercent).toBe(100)
+
+    projectile.x = 120
+    projectile.y = 0
+    const primaryHit = collectProjectileDamage(gameState)
+    expect(primaryHit).toHaveLength(1)
+    expect(primaryHit[0]?.targetId).toBe(2)
+    expect(primaryHit[0]?.damage.physical).toBe(20)
+    expect(projectile.targetId).toBe(3)
+
+    projectile.x = 180
+    projectile.y = 0
+    const chainedHit = collectProjectileDamage(gameState)
+    expect(chainedHit).toHaveLength(1)
+    expect(chainedHit[0]?.targetId).toBe(3)
+    expect(chainedHit[0]?.damage.physical).toBe(10)
+
+    projectile.x = 120
+    projectile.y = 0
+    const returnedHit = collectProjectileDamage(gameState)
+    expect(returnedHit).toHaveLength(1)
+    expect(returnedHit[0]?.targetId).toBe(2)
+    expect(returnedHit[0]?.damage.physical).toBe(10)
+  })
+
+  it('gives the bow a single-target DPS edge over the default Starcall Wand', () => {
+    const bowState = state([enemy(2, 120)], { projectiles: [] })
+    equipItem(bowState.player, 'hunters-bow')
+    bowState.player.targetId = 2
+    performBasicAttackIfReady(bowState, allocator)
+    for (const projectile of bowState.projectiles) {
+      projectile.x = 120
+      projectile.y = 0
+    }
+    const bowVolleyDamage = collectProjectileDamage(bowState)
+      .reduce((total, event) => total + event.damage.physical, 0)
+    const bowDps = bowVolleyDamage * getDerivedPlayerStats(bowState.player).attackSpeed
+
+    const wandState = state([enemy(2, 120)], { projectiles: [] })
+    equipItem(wandState.player, 'starcall-wand')
+    wandState.player.targetId = 2
+    performBasicAttackIfReady(wandState, allocator)
+    for (const projectile of wandState.projectiles) {
+      projectile.x = 120
+      projectile.y = 0
+    }
+    const wandVolleyDamage = collectProjectileDamage(wandState)
+      .reduce((total, event) => total + event.damage.physical, 0)
+    const wandDps = wandVolleyDamage * getDerivedPlayerStats(wandState.player).attackSpeed
+
+    expect(bowDps).toBeGreaterThan(wandDps)
+  })
+
   it('fires extra wand projectiles from the equipped modifier', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
     equipRolledItem(
@@ -391,6 +464,7 @@ describe('performBasicAttackIfReady', () => {
     expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
     expect(gameState.projectiles).toHaveLength(3)
     expect(gameState.projectiles.every((value) => value.definitionId === 'basic-attack-orb')).toBe(true)
+    expect(gameState.projectiles.every((value) => value.primaryTargetId === undefined)).toBe(true)
   })
 
   it('uses the default Starcall Wand extra-projectile modifier', () => {
@@ -401,6 +475,7 @@ describe('performBasicAttackIfReady', () => {
     expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
     expect(gameState.projectiles).toHaveLength(2)
     expect(gameState.projectiles.every((value) => value.definitionId === 'basic-attack-orb')).toBe(true)
+    expect(gameState.projectiles.every((value) => value.primaryTargetId === undefined)).toBe(true)
   })
 
   it('keeps multiple wand projectiles visibly separated while homing', () => {

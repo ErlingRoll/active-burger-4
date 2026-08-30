@@ -3,6 +3,7 @@ import {
   EquipmentSlot,
   getItemDisplayName,
   getItemDefinition,
+  type ItemImplicitModifier,
 } from '../content/gear/Items'
 import {
   formatGearModifier,
@@ -37,6 +38,7 @@ import type {
 } from '../game/ui/Snapshots'
 import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
 import { GearSetFormation } from './GearSetFormation'
+import { ImplicitModifierList } from './ImplicitModifierList'
 import {
   formatKeybind,
   type GameKeybinds,
@@ -197,6 +199,7 @@ function GearComparison({
   id,
   offeredName,
   offeredSlot,
+  offeredImplicitModifiers,
   offeredModifiers,
   equipped,
   setFormation,
@@ -204,6 +207,7 @@ function GearComparison({
   id: string
   offeredName: string
   offeredSlot: EquipmentSlot
+  offeredImplicitModifiers: readonly ItemImplicitModifier[]
   offeredModifiers: readonly GearModifierSnapshot[]
   equipped: EquippedItemSnapshot | undefined
   setFormation: { set: GearSetHudSnapshot; equippedPieces: number } | undefined
@@ -221,11 +225,13 @@ function GearComparison({
         <section>
           <span className="comparison-heading">Offered</span>
           <strong>{offeredName}</strong>
+          <ImplicitModifierList modifiers={offeredImplicitModifiers} />
           <ModifierList modifiers={offeredModifiers} />
         </section>
         <section>
           <span className="comparison-heading">Equipped in {SLOT_LABELS[offeredSlot]}</span>
           <strong>{equipped?.name ?? 'Empty slot'}</strong>
+          <ImplicitModifierList modifiers={equipped?.implicitModifiers ?? []} />
           <ModifierList modifiers={equipped?.modifiers ?? []} />
         </section>
       </div>
@@ -368,6 +374,7 @@ function GearCard({
             <RarityBadge rarity={choice.rarity} label="Item rarity" />
           </span>
           <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {itemName}</span>
+          <ImplicitModifierList modifiers={item.implicitModifiers ?? []} />
           <span className="gear-rarity-transition">
             <KeywordText
               text={currentModifier && upgradedModifier
@@ -386,6 +393,7 @@ function GearCard({
             id={comparisonId}
             offeredName={itemName}
             offeredSlot={choice.slot}
+            offeredImplicitModifiers={item.implicitModifiers ?? []}
             offeredModifiers={choice.upgradedModifiers}
             equipped={equipped}
             setFormation={setFormation}
@@ -419,6 +427,7 @@ function GearCard({
         <span className="gear-equipped-summary">
           Current: {equipped?.name ?? 'Empty slot'}
         </span>
+        <ImplicitModifierList modifiers={item.implicitModifiers ?? []} />
         {equipped ? (
           <>
             <span className="gear-stats-heading">Item modifiers</span>
@@ -449,6 +458,7 @@ function GearCard({
           id={comparisonId}
           offeredName={itemName}
           offeredSlot={choice.slot}
+          offeredImplicitModifiers={item.implicitModifiers ?? []}
           offeredModifiers={choice.modifiers}
           equipped={equipped}
           setFormation={setFormation}

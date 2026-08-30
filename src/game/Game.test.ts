@@ -583,39 +583,25 @@ describe('Game', () => {
 
   })
 
-  it('spawns stairs at the final boss death and collects floor rewards before transitioning', () => {
+  it('spawns stairs at the final boss death without collecting floor drops', () => {
       const game = createGame({ seed: 20260826 })
       expect(game.startBossEncounter()).toBe(true)
       const boss = game.state.bosses?.[0]
       expect(boss).toBeDefined()
+      boss!.xpReward = 0
       game.state.player.x = boss!.x
       game.state.player.y = boss!.y
-      game.spawnXpPickup({ x: boss!.x, y: boss!.y }, 10)
-      game.spawnGearPickup({ x: boss!.x, y: boss!.y })
+      game.spawnXpPickup({ x: boss!.x + 10_000, y: boss!.y }, 10)
+      game.spawnGearPickup({ x: boss!.x + 10_000, y: boss!.y })
       boss!.hp = 0
 
       game.update(FIXED_STEP_SECONDS)
 
-      expect(game.state.stairs).toMatchObject({
-        x: boss!.x,
-        y: boss!.y,
-        rewardsCollected: true,
-      })
-      expect(game.state.pickups).toHaveLength(1)
-      expect(game.getPendingChoiceFlows()).toHaveLength(1)
-      expect(game.phase).toBe('level-up')
-
-      while (game.phase === 'level-up') {
-        const flow = game.getPendingChoiceFlow()
-        expect(flow).toBeDefined()
-        if (flow?.type === 'level-up') {
-          expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
-        } else if (flow?.type === 'gear-pickup') {
-          expect(game.selectGearChoice(flow.choices[0]!)).toBe(true)
-        }
-      }
-
+      expect(game.state.stairs).toBeUndefined()
+      expect(game.state.pickups).toHaveLength(2)
+      expect(game.getPendingChoiceFlows()).toHaveLength(0)
       expect(game.phase).toBe('floor-transition')
+
       expect(game.state.floorTransition?.remainingSeconds).toBeCloseTo(1)
       for (let index = 0; index < 60; index += 1) {
         game.update(FIXED_STEP_SECONDS)
@@ -772,16 +758,13 @@ describe('Game', () => {
 
       game.update(FIXED_STEP_SECONDS)
 
-      expect(game.state.stairs).toMatchObject({ floorNumber: 30, isFinal: true })
+      expect(game.state.stairs).toBeUndefined()
+      expect(game.state.floorTransition).toMatchObject({
+        fromFloor: 30,
+        toFloor: 31,
+        isFinal: true,
+      })
       expect(game.state.run.floor).toBe(30)
-      while (game.phase === 'level-up') {
-        const flow = game.getPendingChoiceFlow()
-        if (flow?.type === 'level-up') {
-          expect(game.selectUpgrade(flow.choices[0]!)).toBe(true)
-        } else if (flow?.type === 'gear-pickup') {
-          expect(game.selectGearChoice(flow.choices[0]!)).toBe(true)
-        }
-      }
       expect(game.phase).toBe('floor-transition')
       for (let index = 0; index < 60; index += 1) {
         game.update(FIXED_STEP_SECONDS)
@@ -990,7 +973,10 @@ describe('Game', () => {
     expect(game.state.enemies).toHaveLength(0)
     expect(game.state.pickups).toHaveLength(2)
     expect(game.state.pickups.map((pickup) => pickup.xpAmount)).toEqual([4, 4])
-    expect(game.state.pickups.map((pickup) => pickup.x)).toEqual([94.59, 198.575])
+    const pickupPositions = game.state.pickups.map((pickup) => pickup.x)
+    expect(pickupPositions[0]).toBeGreaterThan(0)
+    expect(pickupPositions[0]).toBeLessThan(94.59)
+    expect(pickupPositions[1]).toBe(198.575)
     expect(firstId).not.toBe(secondId)
 
     game.update(FIXED_STEP_SECONDS)
@@ -1030,6 +1016,36 @@ describe('Game', () => {
 
     expect(game.state.pickups).toHaveLength(0)
     expect(game.state.player.xp).toBe(3)
+  })
+
+  it('accelerates attracted pickups as they approach the player', () => {
+    const game = createGame({ seed: 165 })
+    game.spawnXpPickup({ x: XP_BALANCE.pickupAttractionRadius, y: 0 }, 3)
+    const pickup = game.state.pickups[0]
+    if (!pickup) {
+      throw new Error('Expected an XP pickup')
+    }
+
+    const startX = pickup.x
+    updatePickups(game.state, FIXED_STEP_SECONDS, () => {})
+    const firstStepX = pickup.x
+    updatePickups(game.state, FIXED_STEP_SECONDS, () => {})
+    const secondStepX = pickup.x
+
+    expect(startX - firstStepX).toBeGreaterThan(0)
+    expect(firstStepX - secondStepX).toBeGreaterThan(startX - firstStepX)
+
+    pickup.x = game.state.player.x +
+      game.state.player.radius +
+      pickup.radius +
+      0.01
+    const nearContactX = pickup.x
+    const nearContactStepSeconds = 0.000001
+    updatePickups(game.state, nearContactStepSeconds, () => {})
+    expect(nearContactX - pickup.x).toBeCloseTo(
+      pickup.attractionSpeed * 4 * nearContactStepSeconds,
+      6,
+    )
   })
 
   it('keeps all enemy death drops reachable when the enemy dies outside the arena', () => {

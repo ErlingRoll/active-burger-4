@@ -57,6 +57,37 @@ describe('content validation', () => {
     )
   })
 
+  it('validates optional item implicit modifiers', () => {
+    const bow = CURRENT_CONTENT.items.find((item) => item.id === 'hunters-bow')
+    if (!bow || !bow.implicitModifiers?.[0]) {
+      throw new Error('Expected Hunters Bow implicit modifier')
+    }
+    const implicitModifier = bow.implicitModifiers[0]
+    const errors = validateContent(
+      catalogWith({
+        items: CURRENT_CONTENT.items.map((item) =>
+          item.id === bow.id
+            ? {
+                ...item,
+                implicitModifiers: [
+                  { ...implicitModifier, id: '' },
+                  { ...implicitModifier },
+                  { ...implicitModifier },
+                ],
+              }
+            : item,
+        ),
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'items[1].implicitModifiers[0].id must be a non-empty string.',
+        'items[1].implicitModifiers contains duplicate implicit modifier id "bow-precision".',
+      ]),
+    )
+  })
+
   it('reports invalid numeric balance values and XP thresholds', () => {
     const errors = validateContent(
       catalogWith({

@@ -109,6 +109,24 @@ describe('initial gear content', () => {
     )
   })
 
+  it('defines bow Precision as an implicit modifier on starter and droppable bows', () => {
+    expect(getItemDefinition('ranger-training-bow').implicitModifiers).toEqual([
+      {
+        id: 'bow-precision',
+        label: 'Precision',
+        description: '+100% Basic Attack damage against the primary target.',
+      },
+    ])
+    expect(getItemDefinition('hunters-bow').implicitModifiers).toEqual([
+      {
+        id: 'bow-precision',
+        label: 'Precision',
+        description: '+100% Basic Attack damage against the primary target.',
+      },
+    ])
+    expect(getItemDefinition('starcall-wand').implicitModifiers).toBeUndefined()
+  })
+
   it('defines the required five resistance tiers and slot-restricted offensive pools', () => {
     expect(getGearModifierDefinition('elemental-resistance').tiers).toEqual({
       1: { min: 41, max: 50 },

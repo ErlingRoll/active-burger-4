@@ -413,9 +413,20 @@ function collectProjectileImpactEvents(
   hitEnemy: EnemyState | BossState,
   enemies: ReturnType<typeof createEnemySpatialHash>,
 ): DamageEvent[] {
-  const damage = projectile.returning && projectile.returnDamageMultiplier
-    ? scaleDamageValues(projectile.damage, projectile.returnDamageMultiplier)
-    : projectile.damage
+  const getDamageForTarget = (targetId: number): DamageValues => {
+    let damage = projectile.returning && projectile.returnDamageMultiplier !== undefined
+      ? scaleDamageValues(projectile.damage, projectile.returnDamageMultiplier)
+      : projectile.damage
+    const precisionIncrease = !projectile.primaryTargetDamageApplied &&
+      projectile.primaryTargetId === targetId
+      ? Math.max(0, projectile.primaryTargetDamageIncreasePercent ?? 0)
+      : 0
+    if (precisionIncrease > 0) {
+      projectile.primaryTargetDamageApplied = true
+      damage = scaleDamageValues(damage, 1 + precisionIncrease / 100)
+    }
+    return damage
+  }
   const impactRadius = projectile.impactRadius
   if (impactRadius === undefined || impactRadius <= 0) {
     return [{
@@ -423,7 +434,7 @@ function collectProjectileImpactEvents(
       sourceSkillId: projectile.skillId,
       sourceTags: projectile.sourceTags,
       targetId: hitEnemy.id,
-      damage,
+      damage: getDamageForTarget(hitEnemy.id),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
       shockApplication: projectile.impactShockApplication,
@@ -449,7 +460,7 @@ function collectProjectileImpactEvents(
       sourceSkillId: projectile.skillId,
       sourceTags: projectile.sourceTags,
       targetId: enemy.id,
-      damage,
+      damage: getDamageForTarget(enemy.id),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
       shockApplication: projectile.impactShockApplication,
@@ -544,6 +555,10 @@ function createBasicAttackProjectileState(
     variant.maxExtraProjectiles ?? 0,
     Math.max(0, Math.trunc(stats.basicAttackExtraProjectiles)),
   )
+  const primaryTargetDamageIncreasePercent = Math.max(
+    0,
+    variant.primaryTargetDamageIncreasePercent ?? 0,
+  )
   const remainingChains = Math.max(0, Math.trunc(stats.projectileChains))
   const projectileCount = getProjectileVolleyCount(
     variant.tags,
@@ -563,6 +578,12 @@ function createBasicAttackProjectileState(
       targetId: target.id,
       sourceTags: [...variant.tags],
       basicAttackWeaponArchetype: variant.id,
+      ...(primaryTargetDamageIncreasePercent > 0
+        ? {
+            primaryTargetId: target.id,
+            primaryTargetDamageIncreasePercent,
+          }
+        : {}),
       remainingChains,
       chainRange: remainingChains > 0
         ? scaleAreaValue(PLAYER_PROJECTILE_CHAIN_RANGE, stats.areaOfEffect)

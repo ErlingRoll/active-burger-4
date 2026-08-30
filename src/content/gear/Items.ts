@@ -7,8 +7,17 @@ import {
   getGearSetDefinition,
   type GearSetId,
 } from '../../game-config/gear-sets'
+import {
+  BOW_PRECISION_IMPLICIT_MODIFIER,
+  type ItemImplicitModifier,
+} from './ImplicitModifiers'
 import { EquipmentSlot } from './EquipmentSlots'
 export { EquipmentSlot, EQUIPMENT_SLOTS } from './EquipmentSlots'
+export {
+  BOW_PRECISION_DAMAGE_INCREASE_PERCENT,
+  BOW_PRECISION_IMPLICIT_MODIFIER,
+  type ItemImplicitModifier,
+} from './ImplicitModifiers'
 
 export type ItemId = string
 export type WeaponArchetype = 'sword' | 'bow' | 'wand' | 'staff'
@@ -25,6 +34,7 @@ interface ItemDefinitionBase {
   name: string
   rarity: RarityValue
   modifiers: readonly GearModifier[]
+  implicitModifiers?: readonly ItemImplicitModifier[]
   starterOnly?: boolean
   setId?: GearSetId
 }
@@ -80,6 +90,7 @@ export const ITEM_DEFINITIONS = {
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
     modifiers: [],
+    implicitModifiers: [BOW_PRECISION_IMPLICIT_MODIFIER],
     starterOnly: true,
   },
   'necromancer-training-wand': {
@@ -146,6 +157,7 @@ export const ITEM_DEFINITIONS = {
     modifiers: [
       createGearModifier('hunters-bow', 'attack-speed', 5, 4),
     ],
+    implicitModifiers: [BOW_PRECISION_IMPLICIT_MODIFIER],
   },
   'starcall-wand': {
     id: 'starcall-wand',

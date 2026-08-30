@@ -1,4 +1,5 @@
 import type { WeaponArchetype } from '../content/gear/Items'
+import { BOW_PRECISION_DAMAGE_INCREASE_PERCENT } from '../content/gear/ImplicitModifiers'
 import {
   BASIC_ATTACK_ARROW_DEFINITION_ID,
   BASIC_ATTACK_ORB_DEFINITION_ID,
@@ -115,13 +116,14 @@ export const BASIC_ATTACK_VARIANTS = {
   },
   bow: {
     id: 'bow',
-    description: 'Fires arrows in a wide spread toward the current target.',
+    description: `Fires precise arrows in a wide spread toward the current target. Each arrow deals ${BOW_PRECISION_DAMAGE_INCREASE_PERCENT}% increased damage to that target.`,
     kind: 'projectile',
     attackRange: 160,
     tags: ['physical', 'projectile'],
     projectileDefinitionId: BASIC_ATTACK_ARROW_DEFINITION_ID,
     spreadDegrees: 15,
     maxExtraProjectiles: 4,
+    primaryTargetDamageIncreasePercent: BOW_PRECISION_DAMAGE_INCREASE_PERCENT,
     effectLifetime: 0.12,
     visual: {
       kind: 'projectile',

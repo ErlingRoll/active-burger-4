@@ -38,6 +38,7 @@ import {
   isItemId,
   isWeaponArchetype,
   type ItemDefinition,
+  type ItemImplicitModifier,
 } from './gear/Items'
 import {
   ALL_GEAR_SET_DEFINITIONS,
@@ -427,6 +428,43 @@ function validateGearModifiers(
       errors.push(
         `${path}[${index}].sourceId must start with "${expectedSourceIdPrefix}"; received "${modifier.sourceId}".`,
       )
+    }
+  })
+}
+
+function validateItemImplicitModifiers(
+  errors: string[],
+  path: string,
+  modifiers: readonly ItemImplicitModifier[] | undefined,
+): void {
+  if (modifiers === undefined) {
+    return
+  }
+  if (!Array.isArray(modifiers)) {
+    errors.push(`${path} must be an array when provided.`)
+    return
+  }
+  const seenIds = new Set<string>()
+  modifiers.forEach((modifier, index) => {
+    if (!modifier || typeof modifier !== 'object') {
+      errors.push(`${path}[${index}] must define an implicit modifier object.`)
+      return
+    }
+    if (typeof modifier.id !== 'string' || modifier.id.trim() === '') {
+      errors.push(`${path}[${index}].id must be a non-empty string.`)
+    } else if (seenIds.has(modifier.id)) {
+      errors.push(`${path} contains duplicate implicit modifier id "${modifier.id}".`)
+    } else {
+      seenIds.add(modifier.id)
+    }
+    if (typeof modifier.label !== 'string' || modifier.label.trim() === '') {
+      errors.push(`${path}[${index}].label must be a non-empty string.`)
+    }
+    if (
+      typeof modifier.description !== 'string' ||
+      modifier.description.trim() === ''
+    ) {
+      errors.push(`${path}[${index}].description must be a non-empty string.`)
     }
   })
 }
@@ -867,6 +905,11 @@ function validateDefinitions(
       `items[${index}].modifiers`,
       item.modifiers,
       item,
+    )
+    validateItemImplicitModifiers(
+      errors,
+      `items[${index}].implicitModifiers`,
+      item.implicitModifiers,
     )
   })
 

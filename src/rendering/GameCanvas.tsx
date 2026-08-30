@@ -63,6 +63,7 @@ import { LevelUpOverlay } from './LevelUpOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
+import { ImplicitModifierList } from './ImplicitModifierList'
 import { KeywordText } from './KeywordTooltip'
 import { formatExperience } from '../ui/formatNumbers'
 import { formatCompactDamage } from '../ui/formatNumbers'
@@ -1129,6 +1130,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <p>
                           {RARITY_VISUALS[item.rarity].label} {item.name}
                         </p>
+                        <ImplicitModifierList modifiers={item.implicitModifiers} />
                         <ul>
                           {item.modifiers.map((modifier, index) => (
                             <li key={`${modifier.sourceId}-${modifier.id}-${index}`}>

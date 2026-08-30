@@ -42,6 +42,7 @@ import {
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.1
+export const EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER = 2
 const STARTING_WEAPON_TYPE_WEIGHT = 2
 
 export interface GearItemChoice {
@@ -153,6 +154,15 @@ function getGearTemplateWeight(
     : 1
 }
 
+function getGearSlotWeight(
+  state: Readonly<GameState>,
+  slot: EquipmentSlot,
+): number {
+  return state.player.equipment?.[slot]
+    ? 1
+    : EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER
+}
+
 function chooseGearTemplateIndex(
   state: Readonly<GameState>,
   definitions: readonly ItemDefinition[],
@@ -161,7 +171,19 @@ function chooseGearTemplateIndex(
   const availableSlots = EQUIPMENT_SLOTS.filter((slot) =>
     definitions.some((definition) => definition.slot === slot)
   )
-  const selectedSlot = availableSlots[rng.int(0, availableSlots.length - 1)]
+  const totalSlotWeight = availableSlots.reduce(
+    (total, slot) => total + getGearSlotWeight(state, slot),
+    0,
+  )
+  let slotRoll = rng.int(0, totalSlotWeight - 1)
+  let selectedSlot = availableSlots[availableSlots.length - 1]
+  for (const slot of availableSlots) {
+    slotRoll -= getGearSlotWeight(state, slot)
+    if (slotRoll < 0) {
+      selectedSlot = slot
+      break
+    }
+  }
   const slotDefinitions = definitions.flatMap((definition, index) =>
     definition.slot === selectedSlot ? [{ definition, index }] : []
   )

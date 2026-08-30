@@ -561,6 +561,7 @@ describe('UI snapshots', () => {
       tags: ['physical', 'projectile'],
     })
     expect(snapshot.skills[0]?.description).toContain('arrows')
+    expect(snapshot.skills[0]?.description).toContain('100% increased damage')
     expect(snapshot.skills[0]?.gearModifiers.map((modifier) => modifier.id)).toEqual(
       expect.arrayContaining([
         'increased-projectile-damage',
@@ -577,8 +578,19 @@ describe('UI snapshots', () => {
           id: 'basic-attack-extra-projectiles',
           value: '1',
         }),
+        expect.objectContaining({
+          id: 'primary-target-damage',
+          value: '+100%',
+        }),
       ]),
     )
+    expect(snapshot.equipment.weapon?.implicitModifiers).toEqual([
+      {
+        id: 'bow-precision',
+        label: 'Precision',
+        description: '+100% Basic Attack damage against the primary target.',
+      },
+    ])
     expect(snapshot.characterStats.groups.map((group) => group.id)).toEqual(
       expect.arrayContaining([
         'offence',

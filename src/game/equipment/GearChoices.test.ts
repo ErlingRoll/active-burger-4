@@ -76,6 +76,20 @@ describe('gear choices', () => {
 
   it('weights each available equipment slot equally when choosing gear templates', () => {
     const game = createGame({ seed: 408 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.modifiers = []
+    })
+
     for (const [slotIndex, expectedSlot] of EQUIPMENT_SLOTS.entries()) {
       let slotRollPending = true
       const choice = generateGearChoices(game.state, 1, {
@@ -84,6 +98,49 @@ describe('gear choices', () => {
           if (slotRollPending) {
             slotRollPending = false
             return slotIndex
+          }
+          return min
+        },
+        chance: () => false,
+        pick: <T>(items: readonly T[]) => items[0] as T,
+      })[0]
+
+      expect(choice?.type === 'gear' ? choice.slot : undefined).toBe(expectedSlot)
+    }
+  })
+
+  it('weights empty equipment slots twice as heavily as occupied slots', () => {
+    const game = createGame({ seed: 408 })
+    for (const itemId of [
+      'iron-cleaver',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.modifiers = []
+    })
+
+    const expectedSlots = [
+      'weapon',
+      'helmet',
+      'helmet',
+      'armor',
+      'boots',
+      'ring',
+      'amulet',
+    ] as const
+    for (const [slotRoll, expectedSlot] of expectedSlots.entries()) {
+      let slotRollPending = true
+      const choice = generateGearChoices(game.state, 1, {
+        next: () => 0,
+        int: (min: number, _max: number) => {
+          if (slotRollPending) {
+            slotRollPending = false
+            return slotRoll
           }
           return min
         },

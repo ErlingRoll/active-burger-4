@@ -1045,7 +1045,6 @@ export class Game {
     })
     updateStairs(this.gameState, (stairs) => {
       stairs.rewardsCollected = true
-      this.collectFloorPickupsAt(stairs.x, stairs.y)
       if (this.choiceFlows.length === 0) {
         this.beginFloorTransition(stairs)
       }
@@ -1068,31 +1067,6 @@ export class Game {
       })
     }
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS, this.random)
-  }
-
-  private collectFloorPickupsAt(x: number, y: number): void {
-    const collectionCount = Math.ceil(this.gameState.pickups.length / 2)
-    const pickups = this.gameState.pickups.slice(0, collectionCount)
-    this.gameState.pickups = this.gameState.pickups.slice(collectionCount)
-    for (const pickup of pickups) {
-      pickup.x = x
-      pickup.y = y
-      if (pickup.kind === 'xp') {
-        const levelsGained = grantExperience(this.gameState, pickup.xpAmount)
-        if (levelsGained > 0) {
-          this.enqueueLevelUpFlows(levelsGained)
-        }
-      } else if (pickup.kind === 'gear') {
-        this.collectedGearPickups.push({ ...pickup })
-        this.enqueueGearPickupFlow(pickup)
-      } else {
-        healPlayer(
-          this.gameState,
-          this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
-          'Healing potion',
-        )
-      }
-    }
   }
 
   private beginFloorTransition(
