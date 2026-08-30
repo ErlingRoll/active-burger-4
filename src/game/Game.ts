@@ -315,6 +315,7 @@ export class Game {
         skillDamageDealt: {},
         playerCombatLog: [],
         gearDropGenerated: false,
+        gearXpBlessingActive: false,
         ...(this.worldModifierEffects.ids.length > 0
           ? { worldModifierIds: this.worldModifierEffects.ids }
           : {}),
@@ -711,6 +712,8 @@ export class Game {
       if (!upgraded) {
         return false
       }
+    } else if (offered.type === 'gear-xp-blessing') {
+      this.gameState.run.gearXpBlessingActive = true
     } else {
       this.gameState.player.gearRarityFloor = offered.minimumRarity
     }

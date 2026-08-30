@@ -31,6 +31,13 @@ Modifiers are evaluated deterministically as:
 (base + all additive modifiers) * all multiplicative modifiers
 ```
 
+Once every equipment slot contains rare-or-better gear, each gear choice flow
+has a 5% seeded chance to offer a one-time run blessing. Selecting it makes
+future generated gear drops become XP pickups worth 10 times the defeated
+enemy's XP reward instead of opening gear choice flows.
+Skipping the offer leaves the blessing eligible for the same chance on later
+gear choice flows.
+
 ## Consequences
 
 Gear is run-scoped and deterministic. The UI can show immutable item and

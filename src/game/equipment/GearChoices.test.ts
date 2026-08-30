@@ -11,6 +11,7 @@ import {
   GEAR_CHOICES_PER_PICKUP,
   type GearItemChoice,
 } from './GearChoices'
+import { GEAR_XP_BLESSING_CHANCE } from '../../game-config/gear'
 import {
   equipItem,
   equipRolledItem,
@@ -203,6 +204,52 @@ describe('gear choices', () => {
 
     expect(specialChoices[0]?.type).toBe('gear-rarity-floor')
     expect(specialChoices[1]?.type).toBe('upgrade-equipped-item')
+  })
+
+  it('offers the XP blessing again after an earlier offer is skipped', () => {
+    const game = createGame({ seed: 409 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+      item.rarity = Rarity.Rare
+    })
+    const alwaysBlessing = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: (probability: number) => probability === GEAR_XP_BLESSING_CHANCE,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const firstChoices = generateGearChoices(
+      game.state,
+      GEAR_CHOICES_PER_PICKUP,
+      alwaysBlessing,
+    )
+    expect(firstChoices.some((choice) => choice.type === 'gear-xp-blessing')).toBe(true)
+    expect(game.state.run.gearXpBlessingActive).toBe(false)
+
+    // Skipping the flow does not mutate the blessing flag, so the next gear
+    // flow gets the same independent 5% chance.
+    const secondChoices = generateGearChoices(
+      game.state,
+      GEAR_CHOICES_PER_PICKUP,
+      alwaysBlessing,
+    )
+    expect(secondChoices.some((choice) => choice.type === 'gear-xp-blessing')).toBe(true)
+
+    game.state.run.gearXpBlessingActive = true
+    expect(
+      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, alwaysBlessing)
+        .some((choice) => choice.type === 'gear-xp-blessing'),
+    ).toBe(false)
   })
 
   it('rolls a set assignment independently for each generated item', () => {

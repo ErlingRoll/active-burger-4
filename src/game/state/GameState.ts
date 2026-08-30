@@ -168,6 +168,8 @@ export interface RunState {
   skillDamageDealt?: Partial<Record<SkillId, number>>
   /** Remains true after the first gear orb is generated, even after collection. */
   gearDropGenerated?: boolean
+  /** True after the one-time blessing converts future gear drops to XP. */
+  gearXpBlessingActive?: boolean
   worldModifierIds?: readonly WorldModifierId[]
   /** Recent player damage and healing, retained to explain a defeat. */
   playerCombatLog?: PlayerCombatLogEntry[]

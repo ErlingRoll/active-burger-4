@@ -1128,6 +1128,54 @@ describe('Game', () => {
     expect(game.state.player).toEqual(playerBeforeGear)
   })
 
+  it('keeps the XP blessing eligible after its offer is skipped', () => {
+    let skippedBlessing = false
+    for (let seed = 1; seed <= 1_000 && !skippedBlessing; seed += 1) {
+      const game = createGame({ seed })
+      for (const itemId of [
+        'iron-cleaver',
+        'watchers-helm',
+        'bastion-plate',
+        'swiftstride-boots',
+        'duelists-band',
+        'giants-amulet',
+      ] as const) {
+        equipItem(game.state.player, itemId)
+      }
+      Object.values(game.state.player.equipment ?? {}).forEach((item) => {
+        item.rarity = Rarity.Rare
+      })
+
+      game.spawnGearPickup({ x: 0, y: 0 })
+      game.update(FIXED_STEP_SECONDS)
+      const firstFlow = game.getPendingChoiceFlow()
+      const firstBlessing = firstFlow?.type === 'gear-pickup'
+        ? firstFlow.choices.find((choice) => choice.type === 'gear-xp-blessing')
+        : undefined
+      if (!firstBlessing) {
+        continue
+      }
+
+      expect(game.skipChoice()).toBe(true)
+      expect(game.state.run.gearXpBlessingActive).toBe(false)
+      game.spawnGearPickup({ x: 0, y: 0 })
+      game.update(FIXED_STEP_SECONDS)
+      const secondFlow = game.getPendingChoiceFlow()
+      if (secondFlow?.type === 'gear-pickup') {
+        const secondBlessing = secondFlow.choices.find(
+          (choice) => choice.type === 'gear-xp-blessing',
+        )
+        if (secondBlessing) {
+          expect(game.selectGearChoice(secondBlessing)).toBe(true)
+          expect(game.state.run.gearXpBlessingActive).toBe(true)
+          skippedBlessing = true
+        }
+      }
+    }
+
+    expect(skippedBlessing).toBe(true)
+  })
+
   it('skips queued level-up flows one at a time before resuming', () => {
     const game = createGame({ seed: 201, startingLevel: 3 })
 

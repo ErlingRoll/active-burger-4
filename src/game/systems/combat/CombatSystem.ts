@@ -57,7 +57,9 @@ import {
   healPlayer,
   recordPlayerDamage,
 } from '../../combat/PlayerCombatLog'
-import { getEquippedWeaponArchetype } from '../../equipment/EquipmentState'
+import {
+  getEquippedWeaponArchetype,
+} from '../../equipment/EquipmentState'
 import {
   getSplitChildren,
   getEnemyCombatTarget,
@@ -76,6 +78,9 @@ import type {
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
+import {
+  GEAR_XP_BLESSING_MULTIPLIER,
+} from '../../../game-config/gear'
 import { resolveWorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from '../../../content/spawning/SpawnBalance'
 import type { RandomSource } from '../../random/Random'
@@ -1818,10 +1823,17 @@ export function removeDeadEntities(
       ) ?? false)
       if (randomGearDrop) {
         state.run.gearDropGenerated = true
-        spawnGearPickup?.(
-          { x: enemy.x, y: enemy.y },
-          enemy.definitionId,
-        )
+        if (state.run.gearXpBlessingActive) {
+          spawnPickup(
+            { x: enemy.x, y: enemy.y },
+            enemy.xpReward * GEAR_XP_BLESSING_MULTIPLIER,
+          )
+        } else {
+          spawnGearPickup?.(
+            { x: enemy.x, y: enemy.y },
+            enemy.definitionId,
+          )
+        }
       }
       if (enemy.canDropLoot !== false) {
         const potionChance = enemy.eliteModifier

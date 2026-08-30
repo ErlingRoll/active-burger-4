@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createGame } from '../../Game'
 import { HEALING_POTION_ELITE_DROP_CHANCE, HEALING_POTION_ORDINARY_DROP_CHANCE } from '../../../content/progression/HealingPotions'
+import { GEAR_XP_BLESSING_MULTIPLIER } from '../../../game-config/gear'
 import { removeDeadEntities } from './CombatSystem'
 
 const neverDrops = {
@@ -103,6 +104,41 @@ describe('enemy gear drops', () => {
     removeDeadEntities(game.state, () => {}, undefined, undefined, random)
 
     expect(gearRolls[0]).toBeCloseTo(0.056)
+  })
+
+  it('converts generated gear drops into ten-times XP after the blessing is selected', () => {
+    const game = createGame({ seed: 802 })
+    game.state.run.gearXpBlessingActive = true
+    game.spawnSlime({ x: 100, y: 200 })
+    const slime = game.state.enemies[0]
+    if (!slime) {
+      throw new Error('Expected a spawned slime')
+    }
+    slime.hp = 0
+    const xpDrops: number[] = []
+    const gearPickups: string[] = []
+    const random = {
+      chance: () => true,
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    removeDeadEntities(
+      game.state,
+      (_position, xpAmount) => xpDrops.push(xpAmount),
+      undefined,
+      (_position, sourceEnemyDefinitionId) => {
+        gearPickups.push(sourceEnemyDefinitionId)
+      },
+      random,
+    )
+
+    expect(xpDrops).toEqual([
+      slime.xpReward,
+      slime.xpReward * GEAR_XP_BLESSING_MULTIPLIER,
+    ])
+    expect(gearPickups).toEqual([])
   })
 
   it('allows a Splitter to drop once but suppresses child gear and potions', () => {

@@ -29,7 +29,11 @@ import {
 } from '../../game-config/gear-sets'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
-import { rollItemUpgradeModifiers } from './EquipmentState'
+import {
+  hasAllEquippedGearAtLeastRarity,
+  rollItemUpgradeModifiers,
+} from './EquipmentState'
+import { GEAR_XP_BLESSING_CHANCE } from '../../game-config/gear'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.1
@@ -61,10 +65,15 @@ export interface GearRarityFloorChoice {
   minimumRarity: RarityValue
 }
 
+export interface GearXpBlessingChoice {
+  type: 'gear-xp-blessing'
+}
+
 export type GearChoice =
   | GearItemChoice
   | UpgradeEquippedItemChoice
   | GearRarityFloorChoice
+  | GearXpBlessingChoice
 
 function rollRarity(
   rng: RandomSource,
@@ -245,7 +254,9 @@ export function gearChoiceSignature(choice: Readonly<GearChoice>): string {
     ? `gear:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
     : choice.type === 'upgrade-equipped-item'
       ? `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
-      : `gear-rarity-floor:${choice.minimumRarity}`
+      : choice.type === 'gear-rarity-floor'
+        ? `gear-rarity-floor:${choice.minimumRarity}`
+        : 'gear-xp-blessing'
 }
 
 function getLowestEquippedRarity(
@@ -295,19 +306,23 @@ function getEligibleGearRarityFloor(
 export function prioritizeSpecialGearChoices(
   choices: readonly GearChoice[],
 ): GearChoice[] {
-  const blessing = choices.filter((choice) => choice.type === 'gear-rarity-floor')
+  const xpBlessing = choices.filter((choice) => choice.type === 'gear-xp-blessing')
+  const rarityBlessing = choices.filter((choice) => choice.type === 'gear-rarity-floor')
   const upgrade = choices.filter((choice) => choice.type === 'upgrade-equipped-item')
   const ordinary = choices.filter((choice) =>
+    choice.type !== 'gear-xp-blessing' &&
     choice.type !== 'gear-rarity-floor' &&
     choice.type !== 'upgrade-equipped-item'
   )
-  return [...blessing, ...upgrade, ...ordinary]
+  return [...xpBlessing, ...rarityBlessing, ...upgrade, ...ordinary]
 }
 
 /**
  * Generates a deterministic, rarity-weighted set of distinct gear templates.
  * When an eligible equipped item exists, one normal offer is replaced by the
- * special upgrade offer for a single lower-tier modifier on that item.
+ * special upgrade offer for a single lower-tier modifier on that item. Once
+ * every equipment slot is rare or better, a separate chance can replace one
+ * offer with the XP blessing.
  */
 export function generateGearChoices(
   state: Readonly<GameState>,
@@ -385,6 +400,19 @@ export function generateGearChoices(
       choices[replacementIndex] = {
         type: 'gear-rarity-floor',
         minimumRarity,
+      }
+    }
+  }
+  if (
+    !state.run.gearXpBlessingActive &&
+    count > 0 &&
+    hasAllEquippedGearAtLeastRarity(state.player) &&
+    rng.chance(GEAR_XP_BLESSING_CHANCE)
+  ) {
+    const replacementIndex = choices.findIndex((choice) => choice.type === 'gear')
+    if (replacementIndex >= 0) {
+      choices[replacementIndex] = {
+        type: 'gear-xp-blessing',
       }
     }
   }

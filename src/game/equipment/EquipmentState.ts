@@ -1,4 +1,5 @@
 import {
+  EQUIPMENT_SLOTS,
   EquipmentSlot,
   getLegacyItemSetId,
   type ItemDefinition,
@@ -15,7 +16,11 @@ import {
   type GearModifier,
   type GearModifierTier,
 } from '../../content/gear/ModifierPools'
-import type { Rarity } from '../../content/rarity/Rarity'
+import {
+  RARITY_ORDER,
+  Rarity,
+  type Rarity as RarityValue,
+} from '../../content/rarity/Rarity'
 import type { GearSetId } from '../../game-config/gear-sets'
 import type { RandomSource } from '../random/Random'
 import type { PlayerState } from '../state/GameState'
@@ -104,6 +109,22 @@ export function getEquippedWeaponArchetype(
   return definition.slot === EquipmentSlot.Weapon
     ? definition.weaponArchetype
     : undefined
+}
+
+export function hasAllEquippedGearAtLeastRarity(
+  player: Readonly<PlayerState>,
+  minimumRarity: RarityValue = Rarity.Rare,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
+): boolean {
+  return EQUIPMENT_SLOTS.every((slot) => {
+    const equipped = player.equipment?.[slot]
+    if (!equipped) {
+      return false
+    }
+    const definition = getItemDefinition(equipped.itemId, itemDefinitions)
+    const rarity = equipped.rarity ?? definition.rarity
+    return RARITY_ORDER[rarity] >= RARITY_ORDER[minimumRarity]
+  })
 }
 
 export interface RolledItemUpgrade {

@@ -265,6 +265,33 @@ function GearCard({
   gearSets: GameUiSnapshot['gearSets']
   keybind: string | undefined
 }) {
+  if (choice.type === 'gear-xp-blessing') {
+    return (
+      <div className="choice-card-wrap">
+        <button
+          ref={index === 0 ? firstButtonRef : undefined}
+          className="upgrade-choice choice-card gear-xp-blessing-card"
+          data-choice-type="gear-xp-blessing"
+          type="button"
+          aria-keyshortcuts={keybind}
+          onClick={() => onSelect(choice)}
+        >
+          <ChoiceKeyHint keybind={keybind} />
+          <span className="choice-card-header">
+            <span className="upgrade-choice-name">Gear Salvage</span>
+            <span className="gear-xp-blessing-badge">BLESSING</span>
+          </span>
+          <span className="upgrade-choice-value">
+            All future gear drops become 10x XP
+          </span>
+          <span className="upgrade-choice-description">
+            Convert late-game gear drops into experience for the rest of this dungeon.
+          </span>
+        </button>
+      </div>
+    )
+  }
+
   if (choice.type === 'gear-rarity-floor') {
     const minimumRarity = RARITY_VISUALS[choice.minimumRarity]
     return (
@@ -650,16 +677,19 @@ export function LevelUpOverlay({
               ))
             : flow.choices.map((choice, index) => (
                 <GearCard
-                  key={choice.type === 'gear-rarity-floor'
-                    ? `${choice.type}-${choice.minimumRarity}-${index}`
+                  key={choice.type === 'gear-rarity-floor' ||
+                    choice.type === 'gear-xp-blessing'
+                    ? `${choice.type}-${index}`
                     : `${choice.type}-${choice.itemId}-${choice.slot}-${index}`}
                   choice={choice}
                   index={index}
-                  equipped={choice.type === 'gear-rarity-floor'
+                  equipped={choice.type === 'gear-rarity-floor' ||
+                    choice.type === 'gear-xp-blessing'
                     ? undefined
                     : equipment[choice.slot]}
                   onSelect={(selected) => onSelect(selected)}
                   active={choice.type !== 'gear-rarity-floor' &&
+                    choice.type !== 'gear-xp-blessing' &&
                     activeComparison === `gear-comparison-${choice.itemId}-${index}`}
                   setActive={setActiveComparison}
                   gearSets={gearSets}

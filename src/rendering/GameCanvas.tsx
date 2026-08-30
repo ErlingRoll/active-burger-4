@@ -209,7 +209,9 @@ function getChoiceFlowKey(
         ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
         : choice.type === 'upgrade-equipped-item'
           ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
-          : `${choice.type}:${choice.minimumRarity}`,
+          : choice.type === 'gear-rarity-floor'
+            ? `${choice.type}:${choice.minimumRarity}`
+            : choice.type,
   )
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
 }
@@ -1249,6 +1251,10 @@ function DungeonStats({ snapshot }: { snapshot: GameUiSnapshot }) {
         <div className="dungeon-stat">
           <dt>Kills</dt>
           <dd>{snapshot.killCount}</dd>
+        </div>
+        <div className="dungeon-stat">
+          <dt>Gear blessing</dt>
+          <dd>{snapshot.gearXpBlessingActive ? '10x XP' : 'Inactive'}</dd>
         </div>
       </dl>
     </section>

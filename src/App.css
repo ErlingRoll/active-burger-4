@@ -2749,6 +2749,21 @@
   border-top-color: #fbbf24;
 }
 
+.choice-card.gear-xp-blessing-card {
+  background:
+    linear-gradient(145deg, rgb(124 58 237 / 45%), transparent 58%),
+    #25183d;
+  border-color: #7c3aed;
+  border-top-color: #c084fc;
+}
+
+.gear-xp-blessing-badge {
+  color: #c084fc;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .choice-card.skill-removal-card {
   background:
     linear-gradient(145deg, rgb(127 29 29 / 42%), transparent 58%),
@@ -2969,6 +2984,14 @@
   box-shadow:
     0 0 0 1px rgb(252 211 77 / 45%),
     0 0 0.5rem rgb(252 211 77 / 25%);
+}
+
+.upgrade-choice.gear-xp-blessing-card:hover,
+.upgrade-choice.gear-xp-blessing-card:focus-visible {
+  outline-color: rgb(216 180 254 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(216 180 254 / 45%),
+    0 0 0.5rem rgb(216 180 254 / 25%);
 }
 
 .upgrade-choice-name {
@@ -3580,6 +3603,13 @@
       linear-gradient(145deg, rgb(161 98 7 / 48%), transparent 58%),
       #3a2918;
     border-color: #d97706;
+  }
+
+  .choice-card.gear-xp-blessing-card {
+    background:
+      linear-gradient(145deg, rgb(124 58 237 / 45%), transparent 58%),
+      #2b1d45;
+    border-color: #7c3aed;
   }
 
   .gear-comparison,
