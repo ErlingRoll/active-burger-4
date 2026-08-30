@@ -119,9 +119,9 @@ function formatElapsedTime(seconds: number): string {
 interface EssenceReceipt {
   levelReward: number
   killReward: number
-  victoryBonus: number
   baseEssence: number
   modifierMultiplier: number
+  victoryMultiplier: number
   projectedReward: number
   modifiers: ReturnType<typeof getWorldModifierDefinitions>
 }
@@ -132,19 +132,22 @@ function createEssenceReceipt(result: RunResultSnapshot): EssenceReceipt {
   )
   const levelReward = Math.max(1, result.level)
   const killReward = Math.floor(Math.max(0, result.killCount) / 10)
-  const victoryBonus = result.outcome === 'victory' ? 20 : 0
-  const baseEssence = levelReward + killReward + victoryBonus
+  const baseEssence = levelReward + killReward
   const modifierMultiplier = modifiers.reduce(
     (total, modifier) => total * modifier.essenceRewardMultiplier,
     1,
   )
+  const victoryMultiplier = result.outcome === 'victory' ? 1.1 : 1
   return {
     levelReward,
     killReward,
-    victoryBonus,
     baseEssence,
     modifierMultiplier,
-    projectedReward: Math.max(1, Math.floor(baseEssence * modifierMultiplier)),
+    victoryMultiplier,
+    projectedReward: Math.max(
+      1,
+      Math.floor(baseEssence * modifierMultiplier * victoryMultiplier),
+    ),
     modifiers,
   }
 }
@@ -1239,7 +1242,6 @@ function ResultsScreen({
               <dt>Kill bonus ({result.killCount} kills / 10)</dt>
               <dd>+{essenceReceipt.killReward}</dd>
             </div>
-            <div><dt>Victory bonus</dt><dd>+{essenceReceipt.victoryBonus}</dd></div>
             <div className="essence-receipt-subtotal">
               <dt>Base Essence</dt><dd>{essenceReceipt.baseEssence}</dd>
             </div>
@@ -1252,8 +1254,18 @@ function ResultsScreen({
               ))
               : <div><dt>No world modifiers</dt><dd>×1.00</dd></div>}
             <div className="essence-receipt-subtotal">
-              <dt>Total multiplier</dt>
+              <dt>World modifier multiplier</dt>
               <dd>×{essenceReceipt.modifierMultiplier.toFixed(2)}</dd>
+            </div>
+            <div>
+              <dt>Victory bonus</dt>
+              <dd>×{essenceReceipt.victoryMultiplier.toFixed(2)}</dd>
+            </div>
+            <div className="essence-receipt-subtotal">
+              <dt>Total multiplier</dt>
+              <dd>×{(
+                essenceReceipt.modifierMultiplier * essenceReceipt.victoryMultiplier
+              ).toFixed(2)}</dd>
             </div>
             <div className="essence-receipt-total">
               <dt>Projected Essence</dt>
