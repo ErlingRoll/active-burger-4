@@ -24,7 +24,6 @@ import {
 import {
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
-  getSkillSynergyEffectPercent,
 } from '../../../content/upgrades/Upgrades'
 import {
   createProjectileSpreadAngles,
@@ -48,6 +47,7 @@ import {
   RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
   RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS,
   RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
   GRAVITY_WELL_BASE_PULL_DISTANCE,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
@@ -56,6 +56,7 @@ import {
   AEGIS_PULSE_BASE_DURATION_SECONDS,
   AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
+  SHOCK_MAX_STACKS,
   RIFT_JAVELIN_MAX_RANGE,
   RIFT_JAVELIN_BARBED_DURATION_SECONDS,
   RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
@@ -295,6 +296,34 @@ function collectWhirlwindDamage(
   }
 
   if (events.length > 0) {
+    if (state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      state.player.attackCooldownRemaining = Math.max(
+        0,
+        state.player.attackCooldownRemaining * 0.5,
+      )
+    }
+    if (state.run.selectedUpgradeIds.includes('synergy-whirlwind-lancers-charge')) {
+      state.player.lancerMomentumStacks = Math.min(
+        LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+        Math.max(0, state.player.lancerMomentumStacks ?? 0) + 1,
+      )
+      state.player.lancerMomentumDecayRemaining = LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
+    }
+    if (
+      state.run.selectedUpgradeIds.includes('synergy-whirlwind-aegis-pulse') &&
+      (state.player.aegisPulseShieldMaxAmount ?? 0) > 0 &&
+      (state.player.aegisPulseShieldAmount ?? 0) > 0
+    ) {
+      const shieldMax = state.player.aegisPulseShieldMaxAmount ?? 0
+      state.player.aegisPulseShieldAmount = Math.min(
+        shieldMax,
+        (state.player.aegisPulseShieldAmount ?? 0) + shieldMax * 0.2,
+      )
+      state.player.aegisPulseShieldRemaining = Math.max(
+        state.player.aegisPulseShieldRemaining ?? 0,
+        1,
+      )
+    }
     if (state.run.selectedUpgradeIds.includes('whirlwind-guard')) {
       state.player.whirlwindGuardRemaining = 1
     }
@@ -320,7 +349,8 @@ function collectChainLightningDamage(
   const definition = getSkillDefinition(CHAIN_LIGHTNING_SKILL_ID)
   const maxRange = definition.maxRange ?? 0
   const jumpRange = definition.jumpRange ?? 0
-  const maxTargets = definition.maxTargets ?? 1
+  const maxTargets = (definition.maxTargets ?? 1) +
+    Math.max(0, Math.floor(state.player.chainLightningBonusTargets ?? 0))
   const playerStats = getDerivedPlayerStats(state.player)
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
@@ -376,20 +406,31 @@ function collectChainLightningDamage(
         },
       },
     )
-    if (state.run.selectedUpgradeIds.includes('chain-lightning-frost')) {
+    const stormfrost = state.run.selectedUpgradeIds.includes(
+      'synergy-chain-lightning-glacial-orb',
+    )
+    const targetWasChilled = (target.chillStacks ?? 0) > 0 ||
+      (target.frozenRemainingDuration ?? 0) > 0
+    if (
+      state.run.selectedUpgradeIds.includes('chain-lightning-frost') ||
+      stormfrost
+    ) {
       event.frostApplication = {
-      stacks: 1,
-      durationSeconds: 4,
-      freezeThreshold: 3,
-      freezeDurationSeconds: 1,
+        stacks: 1,
+        durationSeconds: 4,
+        freezeThreshold: 3,
+        freezeDurationSeconds: 1,
       }
     }
-    if (state.run.selectedUpgradeIds.includes('chain-lightning-overload')) {
+    const overload = state.run.selectedUpgradeIds.includes(
+      'chain-lightning-overload',
+    )
+    if (overload || (stormfrost && targetWasChilled)) {
       event.shockApplication = {
-      stacks: 1,
-      durationSeconds: 4,
-      threshold: 3,
-      burstMultiplier: 1.5,
+        stacks: (overload ? 1 : 0) + (stormfrost && targetWasChilled ? 1 : 0),
+        durationSeconds: 4,
+        threshold: 3,
+        burstMultiplier: 1.5,
       }
     }
     events.push(event)
@@ -399,6 +440,7 @@ function collectChainLightningDamage(
   }
 
   if (events.length > 0) {
+    state.player.chainLightningBonusTargets = 0
     addEffect(
       state,
       allocator,
@@ -429,17 +471,50 @@ function collectVitalityHealing(
   ) {
     healing *= state.player.vitalityLowHpHealingMultiplier
   }
-  healing *= 1 + getSkillSynergyEffectPercent(
-    skill.skillId,
-    state.run.selectedUpgradeIds,
-    'healingIncreasePercent',
-  ) / 100
+  const storedCharge = state.run.selectedUpgradeIds.includes(
+    'synergy-soul-tether-vitality',
+  )
+    ? state.player.soulTetherVitalityCharge ?? 0
+    : 0
+  healing += storedCharge
+  state.player.soulTetherVitalityCharge = 0
   healPlayer(
     state,
     healing,
     definition.name,
     random,
   )
+  if (
+    state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-standard') &&
+    (state.player.rallyingStandardRemaining ?? 0) > 0
+  ) {
+    const bannerRemaining = state.player.rallyingStandardRemaining ?? 0
+    const bannerExtension = Math.min(
+      2,
+      Math.max(0, RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS - bannerRemaining),
+    )
+    state.player.rallyingStandardRemaining =
+      bannerRemaining + bannerExtension
+    if (bannerExtension > 0) {
+      for (const effect of state.effects) {
+        if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
+          effect.remainingLifetime += bannerExtension
+          effect.lifetime += bannerExtension
+        }
+      }
+    }
+  }
+  if (
+    state.run.selectedUpgradeIds.includes('synergy-vitality-aegis-pulse') &&
+    (state.player.aegisPulseShieldMaxAmount ?? 0) > 0 &&
+    (state.player.aegisPulseShieldAmount ?? 0) > 0
+  ) {
+    const shieldMax = state.player.aegisPulseShieldMaxAmount ?? 0
+    state.player.aegisPulseShieldAmount = Math.min(
+      shieldMax,
+      (state.player.aegisPulseShieldAmount ?? 0) + healing * 0.5,
+    )
+  }
   addEffect(
     state,
     allocator,
@@ -674,6 +749,12 @@ function collectLancersChargeDamage(
   const momentumPercentPerStack = vanguard
     ? LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK
     : LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK
+  const ironVanguard = state.run.selectedUpgradeIds.includes(
+    'synergy-lancers-charge-aegis-pulse',
+  )
+  const shieldEmpowerment = ironVanguard &&
+    (state.player.aegisPulseShieldAmount ?? 0) > 0
+  const aegisEmpowermentBonus = shieldEmpowerment ? 25 : 0
   const singleTargetBonus = vanguard && struck.length === 1
     ? LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT
     : 0
@@ -681,7 +762,13 @@ function collectLancersChargeDamage(
   const damageIncreasePercent = levelIncrease +
     momentumStacks * momentumPercentPerStack +
     singleTargetBonus +
-    impalerPenalty
+    impalerPenalty +
+    aegisEmpowermentBonus
+
+  if (shieldEmpowerment) {
+    const shieldAmount = state.player.aegisPulseShieldAmount ?? 0
+    state.player.aegisPulseShieldAmount = shieldAmount * 0.75
+  }
 
   const events: DamageEvent[] = struck.map((enemy) =>
     createPlayerDamageEventFromStats(
@@ -729,12 +816,7 @@ function collectRallyingStandardEffect(
   const definition = getSkillDefinition(RALLYING_STANDARD_SKILL_ID)
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-standard-bulwark')
   const commander = state.run.selectedUpgradeIds.includes('rallying-standard-commander')
-  const healing = getSkillHealing(definition, skill.level) *
-    (1 + getSkillSynergyEffectPercent(
-      skill.skillId,
-      state.run.selectedUpgradeIds,
-      'healingIncreasePercent',
-    ) / 100)
+  const healing = getSkillHealing(definition, skill.level)
   healPlayer(state, healing, definition.name, random)
 
   const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
@@ -746,6 +828,18 @@ function collectRallyingStandardEffect(
   state.player.rallyingStandardCooldownReductionPercent = commander
     ? RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT
     : 0
+  if (
+    state.run.selectedUpgradeIds.includes(
+      'synergy-raise-skeleton-rallying-standard',
+    )
+  ) {
+    const skeletonSkill = state.player.skills.find(
+      (candidate) => candidate.skillId === RAISE_SKELETON_SKILL_ID,
+    )
+    if (skeletonSkill) {
+      skeletonSkill.cooldownRemaining = 0
+    }
+  }
 
   addEffect(
     state,
@@ -778,6 +872,9 @@ function collectGravityWellDamage(
   const pullDistance = eventHorizon
     ? 0
     : GRAVITY_WELL_BASE_PULL_DISTANCE + (singularity ? GRAVITY_WELL_SINGULARITY_PULL_BONUS : 0)
+  const anchorsToSkeletons = state.run.selectedUpgradeIds.includes(
+    'synergy-raise-skeleton-gravity-well',
+  )
   const damage = getSkillDamage(definition, skill.level)
   const damageIncreasePercent = getSkillDamageIncreasePercent(
     skill.skillId,
@@ -797,13 +894,27 @@ function collectGravityWellDamage(
 
   const events: DamageEvent[] = affected.map((enemy) => {
     if (pullDistance > 0) {
-      const distance = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y)
+      const skeletonAnchor = anchorsToSkeletons
+        ? [...state.summons]
+          .filter((summon) =>
+            summon.hp > 0 &&
+            (summon.skillId ?? RAISE_SKELETON_SKILL_ID) === RAISE_SKELETON_SKILL_ID
+          )
+          .sort((left, right) =>
+            (left.x - enemy.x) ** 2 + (left.y - enemy.y) ** 2 -
+            ((right.x - enemy.x) ** 2 + (right.y - enemy.y) ** 2) ||
+            left.id - right.id
+          )[0]
+        : undefined
+      const pullAnchorX = skeletonAnchor?.x ?? state.player.x
+      const pullAnchorY = skeletonAnchor?.y ?? state.player.y
+      const distance = Math.hypot(enemy.x - pullAnchorX, enemy.y - pullAnchorY)
       const minDistance = enemy.radius + state.player.radius + 8
       const controlFactor = 1 - Math.min(90, Math.max(0, enemy.controlResistance ?? 0)) / 100
       const pull = Math.min(pullDistance, Math.max(0, distance - minDistance)) * controlFactor
       if (pull > 0 && distance > 0) {
-        enemy.x += ((state.player.x - enemy.x) / distance) * pull
-        enemy.y += ((state.player.y - enemy.y) / distance) * pull
+        enemy.x += ((pullAnchorX - enemy.x) / distance) * pull
+        enemy.y += ((pullAnchorY - enemy.y) / distance) * pull
       }
     }
     const event = createPlayerDamageEventFromStats(
@@ -836,6 +947,17 @@ function collectGravityWellDamage(
     radius,
     definition.effectLifetime,
   )
+  if (state.run.selectedUpgradeIds.includes('synergy-chain-lightning-gravity-well')) {
+    state.player.chainLightningBonusTargets = Math.max(
+      1,
+      state.player.chainLightningBonusTargets ?? 0,
+    )
+  }
+  if (
+    state.run.selectedUpgradeIds.includes('synergy-fiery-touch-gravity-well')
+  ) {
+    state.player.fieryTouchGravityPrimed = true
+  }
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
   return events
@@ -875,16 +997,8 @@ function collectAegisPulseDamage(
       ),
     )
 
-  const shieldAmount = (
-    getSkillShieldAmount(definition, skill.level) +
+  const shieldAmount = getSkillShieldAmount(definition, skill.level) +
     (bulwark ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS : 0)
-  ) * (
-    1 + getSkillSynergyEffectPercent(
-      skill.skillId,
-      state.run.selectedUpgradeIds,
-      'shieldIncreasePercent',
-    ) / 100
-  )
   const shieldDuration = AEGIS_PULSE_BASE_DURATION_SECONDS +
     (bulwark ? AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS : 0)
   state.player.aegisPulseShieldAmount = shieldAmount
@@ -943,6 +1057,12 @@ function collectRiftJavelinDamage(
   const directionX = target.x - state.player.x
   const directionY = target.y - state.player.y
   const distance = Math.hypot(directionX, directionY) || 1
+  const primedReturnBonus = Math.max(
+    0,
+    state.player.riftJavelinReturnBonusPercent ?? 0,
+  )
+  const returnDamageBonus = (homeward ? RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT : 0) +
+    primedReturnBonus
 
   state.projectiles.push({
     id: allocator.createEntityId(),
@@ -954,8 +1074,8 @@ function collectRiftJavelinDamage(
     piercing: true,
     pierceHitTargetIds: [],
     pierceReturnRange: maxRange,
-    ...(homeward
-      ? { returnDamageMultiplier: 1 + RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT / 100 }
+    ...(returnDamageBonus > 0
+      ? { returnDamageMultiplier: 1 + returnDamageBonus / 100 }
       : {}),
     ...(barbed
       ? {
@@ -974,6 +1094,7 @@ function collectRiftJavelinDamage(
     criticalStrike: outgoingDamage.criticalStrike,
     remainingLifetime: projectileDefinition.lifetime,
   })
+  state.player.riftJavelinReturnBonusPercent = 0
 
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
@@ -1108,6 +1229,15 @@ function collectStormRelayChainDamage(
   relay: RelayState,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
+  const ashenCircuit = state.run.selectedUpgradeIds.includes(
+    'synergy-cinder-mine-storm-relay',
+  )
+  const voltaicBond = state.run.selectedUpgradeIds.includes(
+    'synergy-storm-relay-soul-tether',
+  )
+  const wardedConduit = state.run.selectedUpgradeIds.includes(
+    'synergy-storm-relay-rallying-standard',
+  )
   const visited = new Set<number>()
   let originX = relay.x
   let originY = relay.y
@@ -1143,6 +1273,14 @@ function collectStormRelayChainDamage(
     }
 
     visited.add(target.id)
+    const burningBonus = ashenCircuit &&
+      (target.burningStacks?.length ?? 0) > 0
+      ? 1
+      : 0
+    const shockStacks = Math.min(
+      SHOCK_MAX_STACKS - 1,
+      relay.shockStacks + burningBonus,
+    )
     events.push({
       sourceId: relay.ownerId,
       sourceSkillId: relay.skillId,
@@ -1151,12 +1289,16 @@ function collectStormRelayChainDamage(
       damage: relay.damage,
       criticalStrike: relay.criticalStrike,
       shockApplication: {
-        stacks: relay.shockStacks,
+        stacks: shockStacks,
         durationSeconds: relay.shockDurationSeconds,
         threshold: relay.shockThreshold,
         burstMultiplier: relay.shockBurstMultiplier,
       },
     })
+    if (voltaicBond && state.player.soulTetherTargetId === target.id) {
+      state.player.soulTetherRemaining =
+        (state.player.soulTetherRemaining ?? 0) + 0.5
+    }
     path.push({ x: target.x, y: target.y })
     originX = target.x
     originY = target.y
@@ -1179,16 +1321,37 @@ function collectStormRelayChainDamage(
         targetId: enemy.id,
         damage: burstDamage,
         shockApplication: {
-          stacks: relay.shockStacks,
+          stacks: Math.min(
+            SHOCK_MAX_STACKS - 1,
+            relay.shockStacks +
+              (ashenCircuit && (enemy.burningStacks?.length ?? 0) > 0 ? 1 : 0),
+          ),
           durationSeconds: relay.shockDurationSeconds,
           threshold: relay.shockThreshold,
           burstMultiplier: relay.shockBurstMultiplier,
         },
       })
+      if (voltaicBond && state.player.soulTetherTargetId === enemy.id) {
+        state.player.soulTetherRemaining =
+          (state.player.soulTetherRemaining ?? 0) + 0.5
+      }
     }
   }
 
   if (events.length > 0) {
+    if (
+      wardedConduit &&
+      (state.player.rallyingStandardRemaining ?? 0) > 0
+    ) {
+      state.player.rallyingStandardRemaining =
+        (state.player.rallyingStandardRemaining ?? 0) + 0.25
+      for (const effect of state.effects) {
+        if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
+          effect.remainingLifetime += 0.25
+          effect.lifetime += 0.25
+        }
+      }
+    }
     addEffect(
       state,
       allocator,

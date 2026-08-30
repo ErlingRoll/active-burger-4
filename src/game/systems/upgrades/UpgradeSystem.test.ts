@@ -81,7 +81,7 @@ describe('skill upgrades', () => {
     ])
   })
 
-  it('applies a selected synergy bonus to both skills in its pair', () => {
+  it('does not apply a generic damage bonus for a selected synergy', () => {
     const game = createGame({ seed: 70 })
     game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
 
@@ -89,12 +89,12 @@ describe('skill upgrades', () => {
       BASIC_ATTACK_SKILL_ID,
       1,
       game.state.run.selectedUpgradeIds,
-    )).toBe(15)
+    )).toBe(0)
     expect(getSkillDamageIncreasePercent(
       WHIRLWIND_SKILL_ID,
       1,
       game.state.run.selectedUpgradeIds,
-    )).toBe(15)
+    )).toBe(0)
     expect(getSkillDamageIncreasePercent(
       CHAIN_LIGHTNING_SKILL_ID,
       1,

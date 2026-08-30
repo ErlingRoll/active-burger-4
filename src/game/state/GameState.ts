@@ -233,6 +233,10 @@ export interface PlayerState {
   whirlwindGuardRemaining?: number
   whirlwindGuardDamageReductionPercent?: number
   fieryTouchDamageIncreasePercent?: number
+  /** Extra Chain Lightning targets primed by a Gravity Well synergy. */
+  chainLightningBonusTargets?: number
+  /** True when Gravity Well has primed the next Fiery Touch trigger. */
+  fieryTouchGravityPrimed?: boolean
   /** Current Lancer's Charge Momentum stacks (capped, decays after inactivity). */
   lancerMomentumStacks?: number
   /** Seconds remaining before Lancer's Charge Momentum stacks decay to zero. */
@@ -261,6 +265,10 @@ export interface PlayerState {
   soulTetherHealingRatio?: number
   /** True once the current Soul Tether has used its single weaker retarget. */
   soulTetherHasRetargeted?: boolean
+  /** Healing stored by Lifebound Pact for the next Vitality cast. */
+  soulTetherVitalityCharge?: number
+  /** Bonus return-leg damage primed by Phantom Arsenal. */
+  riftJavelinReturnBonusPercent?: number
   /** Repeatable Phantom Arsenal upgrade count. */
   phantomMaxCountBonus?: number
   phantomMaxHpBonus?: number
@@ -397,6 +405,8 @@ export interface ProjectileState {
   impactEffectRadius?: number
   /** Optional status application to attach to each impact damage event. */
   impactFrostApplication?: FrostApplication
+  /** Optional Shock application to attach to each impact damage event. */
+  impactShockApplication?: ShockApplication
   /** Optional poison application to attach to each impact damage event. */
   impactPoisonApplication?: PoisonApplication
   remainingChains?: number

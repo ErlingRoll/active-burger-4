@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
@@ -38,6 +40,7 @@ import {
 import {
   applyDamageEvents,
   collectProjectileDamage,
+  performBasicAttackIfReady,
   updateBurning,
   updateProjectiles,
 } from '../combat/CombatSystem'
@@ -152,15 +155,18 @@ describe('skill system', () => {
     const game = createGame({ seed: 56 })
     game.state.player.skills = [
       { skillId: VITALITY_SKILL_ID, level: 1, cooldownRemaining: 0 },
-      { skillId: AEGIS_PULSE_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: AEGIS_PULSE_SKILL_ID, level: 1, cooldownRemaining: 1 },
     ]
     game.state.player.hp = 50
+    game.state.player.aegisPulseShieldAmount = 10
+    game.state.player.aegisPulseShieldMaxAmount = 14
+    game.state.player.aegisPulseShieldRemaining = 4
     game.state.run.selectedUpgradeIds.push('synergy-vitality-aegis-pulse')
 
     collectSkillDamage(game.state, allocator)
 
-    expect(game.state.player.hp).toBeCloseTo(52.4)
-    expect(game.state.player.aegisPulseShieldAmount).toBeCloseTo(16.8)
+    expect(game.state.player.hp).toBeCloseTo(52)
+    expect(game.state.player.aegisPulseShieldAmount).toBeCloseTo(11)
   })
 
   it('applies skill-specific percentage damage growth without compounding rank bonuses', () => {
@@ -177,6 +183,80 @@ describe('skill system', () => {
       .toBeCloseTo(8.64)
     expect(events.find((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)?.damage.lightning)
       .toBeCloseTo(8.72)
+  })
+
+  it('lets Close Quarters prime a ready Basic Attack after a Whirlwind hit', () => {
+    const game = createGame({ seed: 57 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    game.state.player.attackCooldownRemaining = 1
+    game.spawnSlime({ x: 40, y: 0 })
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+
+    collectSkillDamage(game.state, allocator)
+
+    expect(game.state.player.attackCooldownRemaining).toBe(0.5)
+  })
+
+  it('lets Basic Attack prime Shock or Chill for its paired skill', () => {
+    const shockGame = createGame({ seed: 58 })
+    shockGame.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    const shockTargetId = shockGame.spawnSlime({ x: 40, y: 0 })
+    shockGame.state.player.targetId = shockTargetId
+    shockGame.state.run.selectedUpgradeIds.push(
+      'synergy-basic-attack-chain-lightning',
+    )
+
+    const shockEvents = performBasicAttackIfReady(shockGame.state, allocator)
+
+    expect(shockEvents[0]?.shockApplication).toMatchObject({ stacks: 1 })
+
+    const frostGame = createGame({ seed: 59 })
+    frostGame.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: GLACIAL_ORB_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    const frostTargetId = frostGame.spawnSlime({ x: 40, y: 0 })
+    frostGame.state.player.targetId = frostTargetId
+    frostGame.state.run.selectedUpgradeIds.push(
+      'synergy-basic-attack-glacial-orb',
+    )
+
+    const frostEvents = performBasicAttackIfReady(frostGame.state, allocator)
+
+    expect(frostEvents[0]?.frostApplication).toMatchObject({ stacks: 1 })
+  })
+
+  it('lets Gravity Well prime an extra Chain Lightning target', () => {
+    const game = createGame({ seed: 60 })
+    game.state.player.skills = [{
+      skillId: GRAVITY_WELL_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push(
+      'synergy-chain-lightning-gravity-well',
+    )
+    for (const x of [80, 120, 160, 200]) {
+      game.spawnSlime({ x, y: 0 })
+    }
+
+    collectSkillDamage(game.state, allocator)
+    game.state.player.skills = [
+      { skillId: GRAVITY_WELL_SKILL_ID, level: 1, cooldownRemaining: 1 },
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+
+    const events = collectSkillDamage(game.state, allocator)
+
+    expect(events.filter(
+      (event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID,
+    )).toHaveLength(4)
   })
 
   it('applies flat and increased player damage modifiers to every player skill', () => {
@@ -856,6 +936,37 @@ describe('skill system', () => {
       expect(game.state.traps?.[0]?.radius).toBeCloseTo(95)
       expect(game.state.traps?.[0]?.burningApplication?.fireDamageRatio).toBeCloseTo(0.6)
     })
+
+    it('lets Wildfire consume Burning when Fiery Touch triggers', () => {
+      const game = createGame({ seed: 85 })
+      game.state.player.skills = [
+        { skillId: FIERY_TOUCH_SKILL_ID, level: 1, cooldownRemaining: 0 },
+        { skillId: CINDER_MINE_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      ]
+      const targetId = game.spawnSlime({ x: 40, y: 0 })
+      const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+      target.maxHp = 100
+      target.hp = 100
+      target.burningStacks = [{
+        remainingDuration: 3,
+        damagePerSecond: 4,
+        sourceSkillId: CINDER_MINE_SKILL_ID,
+      }]
+      game.state.run.selectedUpgradeIds.push('synergy-cinder-mine-fiery-touch')
+
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: BASIC_ATTACK_SKILL_ID,
+        targetId,
+        damage: { physical: 1, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }])
+
+      expect(target.burningStacks).toEqual([])
+      expect(target.hp).toBeCloseTo(77)
+      expect(game.state.player.skills.find(
+        (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+      )?.cooldownRemaining).toBeGreaterThan(0)
+    })
   })
 
   describe('Storm Relay', () => {
@@ -976,7 +1087,8 @@ describe('skill system', () => {
         damage: { physical: 0, lightning: 0, fire: 0, cold: 0, chaos: 10 },
       }])
 
-      expect(game.state.player.hp).toBeCloseTo(3.6)
+      expect(game.state.player.hp).toBeCloseTo(3)
+      expect(game.state.player.soulTetherVitalityCharge).toBeCloseTo(1.5)
     })
 
     it('snaps to one weaker nearby enemy when the tethered enemy dies, then ends', () => {

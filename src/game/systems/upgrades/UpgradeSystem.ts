@@ -9,6 +9,7 @@ import {
 import type { SkillId } from '../../../content/skills/Skills'
 import {
   BASIC_ATTACK_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
@@ -16,6 +17,9 @@ import {
   LANCERS_CHARGE_SKILL_ID,
   RALLYING_STANDARD_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
 } from '../../../content/skills/Skills'
@@ -171,6 +175,8 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.upgradeWhirlwindLeech = 0
     state.player.whirlwindGuardRemaining = 0
     state.player.whirlwindGuardDamageReductionPercent = 0
+    state.player.lancerMomentumStacks = 0
+    state.player.lancerMomentumDecayRemaining = 0
   }
   if (skillId === FIERY_TOUCH_SKILL_ID) {
     state.player.fieryTouchDamageIncreasePercent = 0
@@ -180,6 +186,13 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.vitalityMaxHpHealingPercent = 0
     state.player.vitalityLowHpHealingMultiplier = 1
     state.player.vitalityLowHpDamageReductionPercent = 0
+    state.player.soulTetherVitalityCharge = 0
+  }
+  if (skillId === CHAIN_LIGHTNING_SKILL_ID) {
+    state.player.chainLightningBonusTargets = 0
+  }
+  if (skillId === FIERY_TOUCH_SKILL_ID) {
+    state.player.fieryTouchGravityPrimed = false
   }
   if (skillId === RAISE_SKELETON_SKILL_ID) {
     state.player.skeletonMaxCountBonus = 0
@@ -206,10 +219,31 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.soulTetherDamagePerSecond = 0
     state.player.soulTetherHealingRatio = 0
     state.player.soulTetherHasRetargeted = false
+    state.player.soulTetherVitalityCharge = 0
+  }
+  if (skillId === RIFT_JAVELIN_SKILL_ID) {
+    state.player.riftJavelinReturnBonusPercent = 0
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
+      enemy.poisonStacks = enemy.poisonStacks?.filter(
+        (stack) => stack.sourceSkillId !== RIFT_JAVELIN_SKILL_ID,
+      )
+    }
+  }
+  if (skillId === CINDER_MINE_SKILL_ID) {
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
+      enemy.burningStacks = enemy.burningStacks?.filter(
+        (stack) => stack.sourceSkillId !== CINDER_MINE_SKILL_ID,
+      )
+    }
+  }
+  if (skillId === GRAVITY_WELL_SKILL_ID) {
+    state.player.chainLightningBonusTargets = 0
+    state.player.fieryTouchGravityPrimed = false
   }
   if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
     state.player.phantomMaxCountBonus = 0
     state.player.phantomMaxHpBonus = 0
+    state.player.riftJavelinReturnBonusPercent = 0
   }
   state.summons = state.summons.filter(
     (summon) => (summon.skillId ?? RAISE_SKELETON_SKILL_ID) !== skillId,

@@ -59,7 +59,6 @@ import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
   getSkillCooldownReductionPercent,
-  getSkillSynergyEffectPercent,
   type UpgradeId,
   type UpgradeBranch,
 } from '../../content/upgrades/Upgrades'
@@ -1337,28 +1336,25 @@ export function createUiSnapshot(
           : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
         ? (
-            getSkillHealing(definition, skill.level) +
-            state.player.maxHp *
-              (state.player.vitalityMaxHpHealingPercent ?? 0) / 100
+            (
+              getSkillHealing(definition, skill.level) +
+              state.player.maxHp *
+                (state.player.vitalityMaxHpHealingPercent ?? 0) / 100
+            ) *
+            (
+              state.player.hp / Math.max(1, state.player.maxHp) <= 0.4
+                ? state.player.vitalityLowHpHealingMultiplier ?? 1
+                : 1
+            ) +
+            (state.run.selectedUpgradeIds.includes(
+              'synergy-soul-tether-vitality',
+            )
+              ? state.player.soulTetherVitalityCharge ?? 0
+              : 0)
           ) *
-          (
-            state.player.hp / Math.max(1, state.player.maxHp) <= 0.4
-              ? state.player.vitalityLowHpHealingMultiplier ?? 1
-              : 1
-          ) *
-          (1 + getSkillSynergyEffectPercent(
-            skill.skillId,
-            state.run.selectedUpgradeIds,
-            'healingIncreasePercent',
-          ) / 100) *
           (1 + playerStats.increasedHealing / 100)
         : skill.skillId === RALLYING_STANDARD_SKILL_ID
           ? getSkillHealing(definition, skill.level) *
-            (1 + getSkillSynergyEffectPercent(
-              skill.skillId,
-              state.run.selectedUpgradeIds,
-              'healingIncreasePercent',
-            ) / 100) *
             (1 + playerStats.increasedHealing / 100)
           : null,
       shieldPerCast: skill.skillId === AEGIS_PULSE_SKILL_ID
@@ -1367,12 +1363,7 @@ export function createUiSnapshot(
             (state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
               ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS
               : 0)
-          ) *
-          (1 + getSkillSynergyEffectPercent(
-            skill.skillId,
-            state.run.selectedUpgradeIds,
-            'shieldIncreasePercent',
-          ) / 100)
+          )
         : null,
       shieldDurationSeconds: skill.skillId === AEGIS_PULSE_SKILL_ID
         ? AEGIS_PULSE_BASE_DURATION_SECONDS +

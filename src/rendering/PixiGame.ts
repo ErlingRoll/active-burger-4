@@ -11,16 +11,23 @@ import {
 } from '../content/enemies/EliteModifiers'
 import {
   BASIC_ATTACK_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
   isSkillId,
+  PHANTOM_ARSENAL_SKILL_ID,
   RALLYING_STANDARD_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
 } from '../content/skills/Skills'
 import type {
   BossState,
+  RelayState,
   SkillEffectState,
   ProjectileState,
+  SummonState,
   TelegraphState,
+  TrapState,
   StairsState,
 } from '../game/state/GameState'
 import {
@@ -118,10 +125,13 @@ export class PixiGame {
   private readonly projectileViews = new Map<EntityId, Graphics>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
+  private readonly trapViews = new Map<EntityId, Graphics>()
+  private readonly relayViews = new Map<EntityId, Graphics>()
   private readonly summonViews = new Map<EntityId, SummonView>()
   private readonly stairsViews = new Map<EntityId, StairsView>()
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
+  private skillObjectLayer: Container | undefined
   private telegraphLayer: Container | undefined
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
@@ -186,6 +196,8 @@ export class PixiGame {
     this.enemyLayer = enemies
     const bosses = new Container()
     this.bossLayer = bosses
+    const skillObjects = new Container()
+    this.skillObjectLayer = skillObjects
     const player = new Container()
     const summons = new Container()
     this.summonLayer = summons
@@ -204,6 +216,7 @@ export class PixiGame {
       telegraphs,
       enemies,
       bosses,
+      skillObjects,
       summons,
       player,
       projectiles,
@@ -291,13 +304,29 @@ export class PixiGame {
     return { root, hpBar, shieldBar }
   }
 
-  private createSummonPlaceholder(): SummonView {
-    const body = new Graphics()
-      .circle(0, 0, 13)
-      .fill('#d8b4fe')
-      .stroke({ color: '#faf5ff', width: 2 })
-      .circle(0, 0, 7)
-      .fill('#7e22ce')
+  private createSummonPlaceholder(
+    summon: Readonly<SummonState>,
+  ): SummonView {
+    const body = summon.skillId === PHANTOM_ARSENAL_SKILL_ID
+      ? new Graphics()
+          .circle(0, 0, 14)
+          .fill({ color: '#60a5fa', alpha: 0.32 })
+          .stroke({ color: '#dbeafe', width: 2 })
+          .poly([-8, -4, 0, -15, 8, -4, 5, 10, -5, 10])
+          .fill('#2563eb')
+          .stroke({ color: '#bfdbfe', width: 1.5 })
+          .moveTo(-12, 0)
+          .quadraticCurveTo(0, 10, 12, 0)
+          .stroke({ color: '#e0f2fe', width: 2 })
+          .moveTo(0, -5)
+          .lineTo(13, -5)
+          .stroke({ color: '#fef08a', width: 2 })
+      : new Graphics()
+          .circle(0, 0, 13)
+          .fill('#d8b4fe')
+          .stroke({ color: '#faf5ff', width: 2 })
+          .circle(0, 0, 7)
+          .fill('#7e22ce')
     const hpBar = new Graphics()
     const root = new Container()
     root.addChild(body, hpBar)
@@ -567,6 +596,9 @@ export class PixiGame {
     if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
       return this.createRallyingFlagPlaceholder(effect)
     }
+    if (effect.skillId === SOUL_TETHER_SKILL_ID && effect.shape === 'line') {
+      return this.createSoulTetherPlaceholder(effect)
+    }
     const visual =
       effect.skillId === BASIC_ATTACK_SKILL_ID
         ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
@@ -662,6 +694,144 @@ export class PixiGame {
     return view
   }
 
+  private createSoulTetherPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(SOUL_TETHER_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const start = points[0]
+    const end = points[points.length - 1]
+    const view = new Graphics()
+    if (!start || !end) {
+      return view
+    }
+
+    const startX = start.x - effect.x
+    const startY = start.y - effect.y
+    const endX = end.x - effect.x
+    const endY = end.y - effect.y
+    view
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.primaryColor, width: 12, alpha: 0.2 })
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.secondaryColor, width: 3, alpha: 0.85 })
+
+    for (let index = 1; index < 7; index += 1) {
+      const progress = index / 7
+      const x = startX + (endX - startX) * progress
+      const y = startY + (endY - startY) * progress
+      view
+        .circle(x, y, 5)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+    view
+      .circle(startX, startY, 8)
+      .fill({ color: visual.primaryColor, alpha: 0.65 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+      .circle(endX, endY, 8)
+      .fill({ color: visual.secondaryColor, alpha: 0.8 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+    return view
+  }
+
+  private createCinderMinePlaceholder(trap: Readonly<TrapState>): Graphics {
+    const view = new Graphics()
+    this.drawCinderMine(view, trap, 0)
+    return view
+  }
+
+  private drawCinderMine(
+    view: Graphics,
+    trap: Readonly<TrapState>,
+    time: number,
+  ): void {
+    const visual = getSkillDefinition(CINDER_MINE_SKILL_ID).visual
+    const armed = trap.fuseRemaining <= 0
+    const pulse = armed
+      ? 1 + Math.sin(time * 12 + trap.id) * 0.08
+      : 1 + Math.sin(time * 8 + trap.id) * 0.04
+    const mineRadius = 12 * pulse
+    view.clear()
+    view
+      .circle(0, 0, trap.radius)
+      .stroke({
+        color: visual.primaryColor,
+        width: armed ? 3 : 2,
+        alpha: armed ? 0.42 : 0.2,
+      })
+      .poly([
+        0, -mineRadius,
+        mineRadius, 0,
+        0, mineRadius,
+        -mineRadius, 0,
+      ])
+      .fill({ color: visual.primaryColor, alpha: armed ? 0.9 : 0.55 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+      .circle(0, 0, mineRadius * 0.42)
+      .fill(visual.secondaryColor)
+    if (!armed) {
+      view
+        .moveTo(-5, 0)
+        .lineTo(5, 0)
+        .moveTo(0, -5)
+        .lineTo(0, 5)
+        .stroke({ color: visual.outlineColor, width: 2 })
+    } else {
+      view
+        .circle(0, 0, trap.radius * 0.72)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.7 })
+    }
+  }
+
+  private createStormRelayPlaceholder(relay: Readonly<RelayState>): Graphics {
+    const view = new Graphics()
+    this.drawStormRelay(view, relay, 0)
+    return view
+  }
+
+  private drawStormRelay(
+    view: Graphics,
+    relay: Readonly<RelayState>,
+    time: number,
+  ): void {
+    const visual = getSkillDefinition(STORM_RELAY_SKILL_ID).visual
+    const pulse = 1 + Math.sin(time * 7 + relay.id) * 0.08
+    const radius = 26 * pulse
+    view.clear()
+    view
+      .circle(0, 0, radius)
+      .stroke({ color: visual.primaryColor, width: 2, alpha: 0.28 })
+      .circle(0, 0, radius * 0.72)
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.45 })
+      .rect(-5, -18, 10, 36)
+      .fill({ color: visual.primaryColor, alpha: 0.9 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+      .poly([
+        -10, -18,
+        0, -29,
+        10, -18,
+        0, -8,
+      ])
+      .fill(visual.secondaryColor)
+      .stroke({ color: visual.outlineColor, width: 2 })
+
+    for (let index = 0; index < 3; index += 1) {
+      const angle = time * 1.8 + (Math.PI * 2 * index) / 3
+      const x = Math.cos(angle) * radius
+      const y = Math.sin(angle) * radius
+      view
+        .moveTo(0, 0)
+        .lineTo(x, y)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.75 })
+        .circle(x, y, 4)
+        .fill(visual.primaryColor)
+        .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+  }
+
   private createRallyingFlagPlaceholder(effect: SkillEffectState): Graphics {
     const visual = getSkillDefinition(RALLYING_STANDARD_SKILL_ID).visual
     const radius = Math.max(1, effect.radius)
@@ -720,12 +890,14 @@ export class PixiGame {
       activeSummonIds.add(summon.id)
       let summonView = this.summonViews.get(summon.id)
       if (!summonView) {
-        summonView = this.createSummonPlaceholder()
+        summonView = this.createSummonPlaceholder(summon)
         this.summonViews.set(summon.id, summonView)
         this.summonLayer?.addChild(summonView.root)
       }
       summonView.root.position.set(summon.x, summon.y)
-      summonView.body.rotation = state.time * 1.5
+      summonView.body.rotation = summon.skillId === PHANTOM_ARSENAL_SKILL_ID
+        ? 0
+        : state.time * 1.5
       this.drawHealthBar(
         summonView.hpBar,
         26,
@@ -915,6 +1087,48 @@ export class PixiGame {
       bossView.root.removeFromParent()
       bossView.root.destroy({ children: true })
       this.bossViews.delete(bossId)
+    }
+
+    const activeTrapIds = new Set<EntityId>()
+    for (const trap of state.traps ?? []) {
+      activeTrapIds.add(trap.id)
+      let view = this.trapViews.get(trap.id)
+      if (!view) {
+        view = this.createCinderMinePlaceholder(trap)
+        this.trapViews.set(trap.id, view)
+        this.skillObjectLayer?.addChild(view)
+      }
+      view.position.set(trap.x, trap.y)
+      this.drawCinderMine(view, trap, state.time)
+    }
+    for (const [trapId, view] of this.trapViews) {
+      if (activeTrapIds.has(trapId)) {
+        continue
+      }
+      view.removeFromParent()
+      view.destroy()
+      this.trapViews.delete(trapId)
+    }
+
+    const activeRelayIds = new Set<EntityId>()
+    for (const relay of state.relays ?? []) {
+      activeRelayIds.add(relay.id)
+      let view = this.relayViews.get(relay.id)
+      if (!view) {
+        view = this.createStormRelayPlaceholder(relay)
+        this.relayViews.set(relay.id, view)
+        this.skillObjectLayer?.addChild(view)
+      }
+      view.position.set(relay.x, relay.y)
+      this.drawStormRelay(view, relay, state.time)
+    }
+    for (const [relayId, view] of this.relayViews) {
+      if (activeRelayIds.has(relayId)) {
+        continue
+      }
+      view.removeFromParent()
+      view.destroy()
+      this.relayViews.delete(relayId)
     }
 
     const activeTelegraphIds = new Set<EntityId>()
@@ -1239,6 +1453,14 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const view of this.trapViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    for (const view of this.relayViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
     for (const { root } of this.summonViews.values()) {
       root.removeFromParent()
       root.destroy({ children: true })
@@ -1253,10 +1475,13 @@ export class PixiGame {
     this.projectileViews.clear()
     this.pickupViews.clear()
     this.effectViews.clear()
+    this.trapViews.clear()
+    this.relayViews.clear()
     this.summonViews.clear()
     this.stairsViews.clear()
     this.enemyLayer = undefined
     this.bossLayer = undefined
+    this.skillObjectLayer = undefined
     this.telegraphLayer = undefined
     this.projectileLayer = undefined
     this.pickupLayer = undefined

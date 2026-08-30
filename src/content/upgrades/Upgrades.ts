@@ -289,6 +289,7 @@ export {
   SYNERGY_OFFER_CHANCE,
   SYNERGY_UPGRADES,
   getSkillSynergyEffectPercent,
+  isSynergyActive,
   isSkillSynergyActive,
   isSynergyPairEligible,
 } from '../../game-config/synergies'

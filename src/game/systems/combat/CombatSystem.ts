@@ -5,9 +5,12 @@ import {
 } from '../../../content/projectiles/Projectiles'
 import {
   BASIC_ATTACK_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
   getEffectiveSkillCooldown,
   getBasicAttackVariant,
   getSkillDefinition,
@@ -20,10 +23,10 @@ import {
 import {
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
-  getSkillSynergyEffectPercent,
 } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
+  addDamageValues,
   createDamageValues,
   isCriticalStrike,
   mitigateDamageValues,
@@ -86,6 +89,8 @@ import {
   SHOCK_DEFAULT_DURATION_SECONDS,
   SHOCK_MAX_STACKS,
   AEGIS_PULSE_REPRISAL_RATIO,
+  LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+  LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT,
   SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
@@ -174,6 +179,33 @@ function isPlayerOwnedDirectHit(
     )
 }
 
+function getBasicAttackSynergyApplications(
+  state: Readonly<GameState>,
+): Pick<DamageEvent, 'frostApplication' | 'shockApplication'> {
+  return {
+    ...(state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')
+      ? {
+          frostApplication: {
+            stacks: 1,
+            durationSeconds: FROST_DEFAULT_DURATION_SECONDS,
+            freezeThreshold: FROST_MAX_CHILL_STACKS,
+            freezeDurationSeconds: FROST_DEFAULT_FREEZE_DURATION_SECONDS,
+          },
+        }
+      : {}),
+    ...(state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')
+      ? {
+          shockApplication: {
+            stacks: 1,
+            durationSeconds: SHOCK_DEFAULT_DURATION_SECONDS,
+            threshold: SHOCK_MAX_STACKS,
+            burstMultiplier: 1.5,
+          },
+        }
+      : {}),
+  }
+}
+
 function collectFieryTouchTriggerEvents(
   state: GameState,
   hitX: number,
@@ -194,7 +226,17 @@ function collectFieryTouchTriggerEvents(
       FIERY_TOUCH_SKILL_ID,
       state.run.selectedUpgradeIds,
     )
-  const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect)
+  const gravityPrimed = state.run.selectedUpgradeIds.includes(
+    'synergy-fiery-touch-gravity-well',
+  ) && state.player.fieryTouchGravityPrimed === true
+  const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect) *
+    (gravityPrimed ? 1.5 : 1)
+  const thermalShock = state.run.selectedUpgradeIds.includes(
+    'synergy-fiery-touch-glacial-orb',
+  )
+  const wildfire = state.run.selectedUpgradeIds.includes(
+    'synergy-cinder-mine-fiery-touch',
+  )
   const outgoingDamage = createPlayerDamageProfileFromStats(
     playerStats,
     getSkillDamage(definition, skill.level),
@@ -210,18 +252,53 @@ function collectFieryTouchTriggerEvents(
     .sort((left, right) => left.id - right.id)
     .flatMap((enemy) => {
       const distance = Math.hypot(enemy.x - hitX, enemy.y - hitY)
-      return distance <= radius + enemy.radius
-        ? [{
+      if (distance > radius + enemy.radius) {
+        return []
+      }
+      const chilled = (enemy.chillStacks ?? 0) > 0 ||
+        (enemy.frozenRemainingDuration ?? 0) > 0
+      const events: DamageEvent[] = [{
+        sourceId: state.player.id,
+        sourceSkillId: FIERY_TOUCH_SKILL_ID,
+        sourceTags: definition.tags,
+        targetId: enemy.id,
+        damage: thermalShock && chilled
+          ? addDamageValues(
+              outgoingDamage.damage,
+              { cold: outgoingDamage.damage.fire * 0.5 },
+            )
+          : outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+      }]
+      if (thermalShock && chilled) {
+        enemy.chillStacks = 0
+        enemy.chillRemainingDuration = 0
+        enemy.frozenRemainingDuration = 0
+      }
+      if (wildfire && (enemy.burningStacks?.length ?? 0) > 0) {
+        const burstDamage = enemy.burningStacks?.reduce(
+          (total, stack) =>
+            total + stack.damagePerSecond * Math.max(0, stack.remainingDuration),
+          0,
+        ) ?? 0
+        enemy.burningStacks = []
+        if (burstDamage > 0) {
+          events.push({
             sourceId: state.player.id,
             sourceSkillId: FIERY_TOUCH_SKILL_ID,
             sourceTags: definition.tags,
+            sourceLabel: 'Wildfire',
             targetId: enemy.id,
-            damage: outgoingDamage.damage,
-            criticalStrike: outgoingDamage.criticalStrike,
-          }]
-        : []
+            damage: createDamageValues({ fire: burstDamage }),
+          })
+        }
+      }
+      return events
     })
 
+  if (gravityPrimed && events.length > 0) {
+    state.player.fieryTouchGravityPrimed = false
+  }
   skill.cooldownRemaining = getEffectiveSkillCooldown(
     definition.cooldown,
     cooldownReduction,
@@ -338,6 +415,7 @@ function collectProjectileImpactEvents(
       damage,
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
+      shockApplication: projectile.impactShockApplication,
       poisonApplication: projectile.impactPoisonApplication,
     }]
   }
@@ -363,6 +441,7 @@ function collectProjectileImpactEvents(
       damage,
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
+      shockApplication: projectile.impactShockApplication,
       poisonApplication: projectile.impactPoisonApplication,
     }))
 }
@@ -485,6 +564,8 @@ function createBasicAttackProjectileState(
       radius: projectileDefinition.radius,
       damage: outgoingDamage.damage,
       criticalStrike: outgoingDamage.criticalStrike,
+      impactFrostApplication: getBasicAttackSynergyApplications(state).frostApplication,
+      impactShockApplication: getBasicAttackSynergyApplications(state).shockApplication,
       remainingLifetime: projectileDefinition.lifetime,
     }
   })
@@ -585,6 +666,7 @@ function collectSwordBasicAttackDamage(
         targetId: enemy.id,
         damage: outgoingDamage.damage,
         criticalStrike: outgoingDamage.criticalStrike,
+        ...getBasicAttackSynergyApplications(state),
       }]
     })
   if (events.length > 0) {
@@ -657,6 +739,7 @@ function collectStaffBasicAttackDamage(
         ...(variant.poisonApplication
           ? { poisonApplication: variant.poisonApplication }
           : {}),
+        ...getBasicAttackSynergyApplications(state),
       }]
     })
   if (events.length > 0) {
@@ -970,6 +1053,46 @@ export function collectProjectileDamage(
         hitEnemy.x,
         hitEnemy.y,
       )
+      if (
+        projectile.skillId === RIFT_JAVELIN_SKILL_ID &&
+        projectile.returning
+      ) {
+        if (
+          state.run.selectedUpgradeIds.includes(
+            'synergy-rift-javelin-lancers-charge',
+          )
+        ) {
+          state.player.lancerMomentumStacks = Math.min(
+            LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+            Math.max(0, state.player.lancerMomentumStacks ?? 0) + 1,
+          )
+          state.player.lancerMomentumDecayRemaining =
+            LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
+        }
+        if (
+          state.run.selectedUpgradeIds.includes(
+            'synergy-rift-javelin-cinder-mine',
+          )
+        ) {
+          for (const trap of state.traps ?? []) {
+            if (
+              trap.skillId === CINDER_MINE_SKILL_ID &&
+              Math.hypot(trap.x - hitEnemy.x, trap.y - hitEnemy.y) <=
+                trap.radius + hitEnemy.radius
+            ) {
+              trap.fuseRemaining = 0
+            }
+          }
+        }
+      }
+      if (
+        projectile.skillId === PHANTOM_ARSENAL_SKILL_ID &&
+        state.run.selectedUpgradeIds.includes(
+          'synergy-phantom-arsenal-rift-javelin',
+        )
+      ) {
+        state.player.riftJavelinReturnBonusPercent = 25
+      }
       if (projectile.piercing) {
         projectile.pierceHitTargetIds = [
           ...(projectile.pierceHitTargetIds ?? []),
@@ -1533,12 +1656,14 @@ function applySoulTetherHealing(
   if (ratio <= 0) {
     return
   }
-  const healingMultiplier = 1 + getSkillSynergyEffectPercent(
-    SOUL_TETHER_SKILL_ID,
-    state.run.selectedUpgradeIds,
-    'healingIncreasePercent',
-  ) / 100
-  healPlayer(state, actualDamage * ratio * healingMultiplier, 'Soul Tether')
+  const healing = actualDamage * ratio
+  if (state.run.selectedUpgradeIds.includes('synergy-soul-tether-vitality')) {
+    state.player.soulTetherVitalityCharge = Math.min(
+      20,
+      (state.player.soulTetherVitalityCharge ?? 0) + healing * 0.5,
+    )
+  }
+  healPlayer(state, healing, 'Soul Tether')
 }
 
 function triggerSoulTetherSnap(

@@ -29,4 +29,17 @@ describe('keyword glossary text', () => {
       { type: 'text', value: ' chance' },
     ])
   })
+
+  it('links Synergy buff terminology to glossary definitions', () => {
+    expect(
+      splitKeywordText('Prime Basic Attack with Momentum and a Synergy Charge.'),
+    ).toEqual([
+      { type: 'keyword', value: 'Prime', keywordId: 'primed' },
+      { type: 'text', value: ' Basic Attack with ' },
+      { type: 'keyword', value: 'Momentum', keywordId: 'momentum' },
+      { type: 'text', value: ' and a ' },
+      { type: 'keyword', value: 'Synergy Charge', keywordId: 'synergy-charge' },
+      { type: 'text', value: '.' },
+    ])
+  })
 })

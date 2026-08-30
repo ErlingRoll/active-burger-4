@@ -563,8 +563,8 @@ function validateSynergyDefinitions(
     }
 
     const effects = upgrade.synergyEffects
-    if (!Array.isArray(effects) || effects.length === 0) {
-      errors.push(`upgrades[${index}].synergyEffects must contain at least one effect.`)
+    if (!Array.isArray(effects)) {
+      errors.push(`upgrades[${index}].synergyEffects must define an effects array.`)
       return
     }
     effects.forEach((effect, effectIndex) => {

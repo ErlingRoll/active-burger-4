@@ -7,6 +7,11 @@ export type KeywordId =
   | 'shatter'
   | 'shock'
   | 'overload'
+  | 'momentum'
+  | 'primed'
+  | 'synergy-charge'
+  | 'shield'
+  | 'cooldown'
   | 'cooldown-reduction'
   | 'duration'
   | 'damage-over-time'
@@ -84,6 +89,41 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     details:
       'Overload deals 150% of the triggering hit\'s damage, then removes the target\'s Shock stacks.',
   },
+  momentum: {
+    id: 'momentum',
+    label: 'Momentum',
+    summary: 'Stacks that empower Lancer\'s Charge.',
+    details:
+      'Lancer\'s Charge gains increased damage from Momentum stacks. Momentum caps at 3 stacks and decays after 4 seconds without another Charge or Momentum-generating effect.',
+  },
+  primed: {
+    id: 'primed',
+    label: 'Primed',
+    summary: 'A stored effect waiting for a matching skill.',
+    details:
+      'A primed skill effect is consumed by the next matching cast or hit. Primed effects are normally created by another skill in the Synergy pair.',
+  },
+  'synergy-charge': {
+    id: 'synergy-charge',
+    label: 'Synergy Charge',
+    summary: 'Healing stored for a future Vitality cast.',
+    details:
+      'Lifebound Pact stores half of Soul Tether healing, up to 20 HP. The next Vitality cast consumes the stored charge as bonus healing.',
+  },
+  shield: {
+    id: 'shield',
+    label: 'Shield',
+    summary: 'An absorb barrier that prevents incoming damage.',
+    details:
+      'A shield absorbs incoming damage before HP is lost. Synergies can repair, refresh, or consume part of an active Aegis Pulse shield.',
+  },
+  cooldown: {
+    id: 'cooldown',
+    label: 'Cooldown',
+    summary: 'The time before a skill can be used again.',
+    details:
+      'A skill cannot be cast while its cooldown is above zero. Cooldown reductions and priming effects make the next cast available sooner.',
+  },
   'cooldown-reduction': {
     id: 'cooldown-reduction',
     label: 'Cooldown reduction',
@@ -103,7 +143,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Damage over time',
     summary: 'Damage dealt gradually instead of in one hit.',
     details:
-      'Damage over time effects tick during their duration. Poison is the current player-applied damage-over-time effect.',
+      'Damage over time effects tick during their duration. Poison and Burning are the current player-applied damage-over-time effects.',
   },
   stack: {
     id: 'stack',
@@ -201,6 +241,14 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'shock', text: 'shock' },
   { id: 'shock', text: 'shocked' },
   { id: 'overload', text: 'overload' },
+  { id: 'momentum', text: 'momentum' },
+  { id: 'primed', text: 'prime' },
+  { id: 'primed', text: 'primes' },
+  { id: 'primed', text: 'primed' },
+  { id: 'synergy-charge', text: 'synergy charge' },
+  { id: 'shield', text: 'shield' },
+  { id: 'shield', text: 'shielded' },
+  { id: 'cooldown', text: 'cooldown' },
   { id: 'leech', text: 'leech' },
   { id: 'resistance', text: 'resistance' },
   { id: 'stack', text: 'stacks' },

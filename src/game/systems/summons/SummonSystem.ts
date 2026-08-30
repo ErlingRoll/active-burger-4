@@ -21,6 +21,7 @@ import {
   PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
   type ProjectileDefinitionId,
 } from '../../../content/projectiles/Projectiles'
+import { addDamageValues } from '../../../content/stats/Damage'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import {
   clampPlayerPosition,
@@ -54,12 +55,31 @@ function getSummonCountBonus(
   state: Readonly<GameState>,
   skillId: SkillId,
 ): number {
+  const hasLivingOtherSummon = state.summons.some((summon) =>
+    summon.hp > 0 &&
+    (summon.skillId ?? RAISE_SKELETON_SKILL_ID) !== skillId
+  )
+  const legionBonus = state.run.selectedUpgradeIds.includes(
+    'synergy-phantom-arsenal-raise-skeleton',
+  ) && hasLivingOtherSummon
+    ? 1
+    : 0
+  const graveRallyBonus = skillId === RAISE_SKELETON_SKILL_ID &&
+    state.run.selectedUpgradeIds.includes(
+      'synergy-raise-skeleton-rallying-standard',
+    ) &&
+    (state.player.rallyingStandardRemaining ?? 0) > 0
+    ? 1
+    : 0
   if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
     const volley = state.run.selectedUpgradeIds.includes('phantom-arsenal-volley')
     return (state.player.phantomMaxCountBonus ?? 0) +
-      (volley ? PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS : 0)
+      (volley ? PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS : 0) +
+      legionBonus
   }
-  return state.player.skeletonMaxCountBonus ?? 0
+  return (state.player.skeletonMaxCountBonus ?? 0) +
+    legionBonus +
+    graveRallyBonus
 }
 
 function getSummonMaxHpBonus(
@@ -447,6 +467,9 @@ export function updateSummons(
       const directionX = attackTarget.x - summon.x
       const directionY = attackTarget.y - summon.y
       const distance = Math.hypot(directionX, directionY) || 1
+      const tethered = state.run.selectedUpgradeIds.includes(
+        'synergy-soul-tether-phantom-arsenal',
+      ) && state.player.soulTetherTargetId === attackTarget.id
       state.projectiles.push({
         id: allocator.createEntityId(),
         ownerId: summon.id,
@@ -459,7 +482,12 @@ export function updateSummons(
         velocityX: (directionX / distance) * projectileDefinition.speed,
         velocityY: (directionY / distance) * projectileDefinition.speed,
         radius: projectileDefinition.radius,
-        damage: outgoingDamage.damage,
+        damage: tethered
+          ? addDamageValues(
+              outgoingDamage.damage,
+              { chaos: outgoingDamage.damage.physical * 0.25 },
+            )
+          : outgoingDamage.damage,
         criticalStrike: outgoingDamage.criticalStrike,
         remainingLifetime: projectileDefinition.lifetime,
       })
