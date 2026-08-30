@@ -23,6 +23,7 @@ import {
   getSkillDefinition,
   getSkillDamage,
   getSkillHealing,
+  getSkillShieldAmount,
   getEffectiveSkillCooldown,
   isSkillId,
   FIERY_TOUCH_SKILL_ID,
@@ -44,6 +45,10 @@ import {
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
   RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+  AEGIS_PULSE_BASE_DURATION_SECONDS,
+  AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
+  AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
 } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
@@ -170,6 +175,8 @@ export interface SkillHudSnapshot {
   readonly estimatedSingleTargetDps: number | null
   readonly dpsAssumption: string
   readonly healingPerCast: number | null
+  readonly shieldPerCast: number | null
+  readonly shieldDurationSeconds: number | null
   /** Effective skill-specific stats, including their global gear contributions. */
   readonly skillModifiers: readonly SkillModifierSummarySnapshot[]
   /** Summed gear modifiers that affect this skill in the current combat systems. */
@@ -435,6 +442,11 @@ function getSkillModifierSummaries(
   supportsAreaOfEffect: boolean,
   skeletonMaxCountBonus = 0,
   selectedUpgradeIds: readonly UpgradeId[] = [],
+  playerHp = 0,
+  playerMaxHp = 0,
+  vitalityMaxHpHealingPercent = 0,
+  vitalityLowHpHealingMultiplier = 1,
+  skeletonAttackCooldown: number | undefined = undefined,
 ): readonly SkillModifierSummarySnapshot[] {
   const summaries: SkillModifierSummarySnapshot[] = []
   const addSummary = (
@@ -525,6 +537,16 @@ function getSkillModifierSummaries(
         damageReduction,
         formatUnsignedPercent(damageReduction),
       )
+      if (
+        selectedUpgradeIds.includes('rallying-standard-commander')
+      ) {
+        addSummary(
+          'skill-cooldown-reduction',
+          'Skill and skeleton cooldown reduction while active',
+          RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+          formatUnsignedPercent(RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT),
+        )
+      }
     }
     if (playerStats.cooldownReduction > 0) {
       addSummary(
@@ -566,13 +588,22 @@ function getSkillModifierSummaries(
     }
     if (skillId === VITALITY_SKILL_ID) {
       const healingMultiplier = 1 + playerStats.increasedHealing / 100
+      let healingPerCast = getSkillHealing(
+        getSkillDefinition(skillId),
+        skillLevel,
+      ) + playerMaxHp * vitalityMaxHpHealingPercent / 100
+      if (
+        playerHp / Math.max(1, playerMaxHp) <= 0.4 &&
+        vitalityLowHpHealingMultiplier > 1
+      ) {
+        healingPerCast *= vitalityLowHpHealingMultiplier
+      }
+      healingPerCast *= healingMultiplier
       addSummary(
         'healing-per-cast',
         'Healing per cast',
-        getSkillHealing(getSkillDefinition(skillId), skillLevel) * healingMultiplier,
-        formatStatNumber(
-          getSkillHealing(getSkillDefinition(skillId), skillLevel) * healingMultiplier,
-        ),
+        healingPerCast,
+        formatStatNumber(healingPerCast),
       )
       if (playerStats.increasedHealing > 0) {
         addSummary(
@@ -610,8 +641,10 @@ function getSkillModifierSummaries(
       addSummary(
         'summon-attack-speed',
         'Skeleton attack speed',
-        1 / (definition.summonAttackCooldown ?? 1),
-        `${formatStatNumber(1 / (definition.summonAttackCooldown ?? 1))} atk/s`,
+        1 / (skeletonAttackCooldown ?? definition.summonAttackCooldown ?? 1),
+        `${formatStatNumber(
+          1 / (skeletonAttackCooldown ?? definition.summonAttackCooldown ?? 1),
+        )} atk/s`,
       )
       addSummary(
         'summon-max-count',
@@ -1087,6 +1120,13 @@ export function createUiSnapshot(
     const supportsAreaOfEffect = isBasicAttack
       ? basicAttackVariant.kind === 'area'
       : definition.kind === 'area' && definition.radius !== undefined
+    const rallyingStandardCooldownReduction =
+      (state.player.rallyingStandardRemaining ?? 0) > 0
+        ? state.player.rallyingStandardCooldownReductionPercent ??
+          (state.run.selectedUpgradeIds.includes('rallying-standard-commander')
+            ? RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT
+            : 0)
+        : 0
     const cooldown = isBasicAttack
       ? playerStats.attackSpeed > 0
         ? 1 / playerStats.attackSpeed
@@ -1099,7 +1139,8 @@ export function createUiSnapshot(
               getSkillCooldownReductionPercent(
                 skill.skillId,
                 state.run.selectedUpgradeIds,
-              ),
+              ) +
+              rallyingStandardCooldownReduction,
           ),
         )
     const cooldownProgress = Number.isFinite(cooldown) && cooldown > 0
@@ -1156,6 +1197,11 @@ export function createUiSnapshot(
       supportsAreaOfEffect,
       state.player.skeletonMaxCountBonus,
       state.run.selectedUpgradeIds,
+      state.player.hp,
+      state.player.maxHp,
+      state.player.vitalityMaxHpHealingPercent ?? 0,
+      state.player.vitalityLowHpHealingMultiplier ?? 1,
+      skeletonStats?.attackCooldown,
     )
     const gearModifiers = summarizeGearModifiers(EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]
@@ -1251,12 +1297,33 @@ export function createUiSnapshot(
           ? 'One target caught in the pulse, sustained over Aegis Pulse cooldown.'
           : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
-        ? getSkillHealing(definition, skill.level) *
+        ? (
+            getSkillHealing(definition, skill.level) +
+            state.player.maxHp *
+              (state.player.vitalityMaxHpHealingPercent ?? 0) / 100
+          ) *
+          (
+            state.player.hp / Math.max(1, state.player.maxHp) <= 0.4
+              ? state.player.vitalityLowHpHealingMultiplier ?? 1
+              : 1
+          ) *
           (1 + playerStats.increasedHealing / 100)
         : skill.skillId === RALLYING_STANDARD_SKILL_ID
           ? getSkillHealing(definition, skill.level) *
             (1 + playerStats.increasedHealing / 100)
           : null,
+      shieldPerCast: skill.skillId === AEGIS_PULSE_SKILL_ID
+        ? getSkillShieldAmount(definition, skill.level) +
+          (state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
+            ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS
+            : 0)
+        : null,
+      shieldDurationSeconds: skill.skillId === AEGIS_PULSE_SKILL_ID
+        ? AEGIS_PULSE_BASE_DURATION_SECONDS +
+          (state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
+            ? AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS
+            : 0)
+        : null,
       skillModifiers,
       gearModifiers: Object.freeze(gearModifiers),
       upgrades: Object.freeze(upgrades),

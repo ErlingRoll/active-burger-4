@@ -50,6 +50,7 @@ export const GRAVITY_WELL_SINGULARITY_PULL_BONUS = 40
 export const GRAVITY_WELL_SINGULARITY_RADIUS_BONUS = 30
 export const GRAVITY_WELL_EVENT_HORIZON_DAMAGE_INCREASE_PERCENT = 50
 export const AEGIS_PULSE_BASE_DURATION_SECONDS = 4
+export const AEGIS_PULSE_SHIELD_AMOUNT_PER_LEVEL = 6
 export const AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS = 12
 export const AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS = 2
 export const AEGIS_PULSE_REPRISAL_RATIO = 0.5
@@ -203,7 +204,7 @@ export const SKILL_DEFINITIONS = {
   [VITALITY_SKILL_ID]: {
     id: VITALITY_SKILL_ID,
     name: 'Vitality',
-    description: 'Automatically restores 2 HP every 5 seconds. Each level adds 2 HP per cast. Vitality healing can critically strike.',
+    description: 'Automatically restores 2 HP every 5 seconds. Each level adds 2 HP per cast, and Vitality healing can critically strike.',
     kind: 'utility',
     tags: ['defensive'],
     cooldown: 5,
@@ -346,7 +347,7 @@ export const SKILL_DEFINITIONS = {
   [AEGIS_PULSE_SKILL_ID]: {
     id: AEGIS_PULSE_SKILL_ID,
     name: 'Aegis Pulse',
-    description: 'Releases a defensive burst that damages nearby enemies and grants a temporary absorb shield.',
+    description: `Releases a defensive burst that damages nearby enemies and grants a 14-HP absorb shield for ${AEGIS_PULSE_BASE_DURATION_SECONDS} seconds.`,
     kind: 'area',
     tags: ['physical', 'area', 'defensive'],
     cooldown: 11,
@@ -354,7 +355,7 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: {},
     radius: 70,
     shieldBaseAmount: 14,
-    shieldAmountPerLevel: 6,
+    shieldAmountPerLevel: AEGIS_PULSE_SHIELD_AMOUNT_PER_LEVEL,
     effectLifetime: 0.3,
     visual: {
       kind: 'area',

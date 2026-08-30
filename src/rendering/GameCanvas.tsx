@@ -780,6 +780,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <b>{formatCadence(skill.healingPerCast)} HP</b>
                       </p>
                     ) : null}
+                    {skill.shieldPerCast !== null ? (
+                      <p className="skill-cadence">
+                        <span>Shield per cast</span>
+                        <b>{formatCadence(skill.shieldPerCast)} HP</b>
+                      </p>
+                    ) : null}
+                    {skill.shieldDurationSeconds !== null ? (
+                      <p className="skill-cadence">
+                        <span>Shield duration</span>
+                        <b>{formatCadence(skill.shieldDurationSeconds)}s</b>
+                      </p>
+                    ) : null}
                     <p className="skill-cadence">
                       <span>
                         {skill.attacksPerSecond === null ? 'Cooldown' : 'Attacks per second'}

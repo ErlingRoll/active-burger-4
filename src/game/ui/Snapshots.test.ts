@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createGearModifier } from '../../content/gear/ModifierPools'
 import {
   BASIC_ATTACK_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
@@ -124,6 +125,45 @@ describe('UI snapshots', () => {
         expect.objectContaining({ id: 'damage-reduction', value: '25%' }),
       ]),
     )
+  })
+
+  it('projects branch-specific healing, shielding, and active cooldown values', () => {
+    const game = createGame({ seed: 76 })
+    game.state.player.skills = [
+      { skillId: VITALITY_SKILL_ID, level: 2, cooldownRemaining: 0 },
+      { skillId: AEGIS_PULSE_SKILL_ID, level: 2, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    game.state.player.hp = 30
+    game.state.player.maxHp = 100
+    game.state.player.vitalityMaxHpHealingPercent = 3
+    game.state.player.vitalityLowHpHealingMultiplier = 2
+    game.state.player.rallyingStandardRemaining = 5
+    game.state.player.rallyingStandardCooldownReductionPercent = 12
+    game.state.run.selectedUpgradeIds.push('aegis-pulse-bulwark')
+
+    const skills = createUiSnapshot(game.state).skills
+    const vitality = skills.find((skill) => skill.skillId === VITALITY_SKILL_ID)
+    const aegis = skills.find((skill) => skill.skillId === AEGIS_PULSE_SKILL_ID)
+    const whirlwind = skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)
+
+    expect(vitality?.healingPerCast).toBeCloseTo(14)
+    expect(vitality?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'healing-per-cast', value: '14' }),
+      ]),
+    )
+    expect(aegis).toMatchObject({
+      shieldPerCast: 32,
+      shieldDurationSeconds: 6,
+    })
+    expect(aegis?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'aegis-pulse-bulwark',
+    )).toMatchObject({
+      valueLabel: '+12 shield, +2s duration',
+      description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield.',
+    })
+    expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)
   })
 
   it('projects active cooldown progress for skill feedback', () => {
