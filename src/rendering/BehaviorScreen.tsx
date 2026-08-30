@@ -9,6 +9,7 @@ import {
 interface BehaviorScreenProps {
   behavior: BehaviorHudSnapshot
   onSelectProfile: (profileId: BehaviorProfileId) => void
+  onToggleFreeMovement: () => void
   onClose: () => void
 }
 
@@ -18,13 +19,17 @@ const PROFILE_DEFINITIONS = BEHAVIOR_PROFILE_ORDER
 export function BehaviorScreen({
   behavior,
   onSelectProfile,
+  onToggleFreeMovement,
   onClose,
 }: BehaviorScreenProps) {
   const selectedProfileRef = useRef<HTMLButtonElement>(null)
+  const freeMovementRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    selectedProfileRef.current?.focus()
-  }, [])
+    (behavior.freeMode
+      ? freeMovementRef
+      : selectedProfileRef).current?.focus()
+  }, [behavior.freeMode])
 
   return (
     <section
@@ -48,12 +53,13 @@ export function BehaviorScreen({
           </button>
         </div>
         <p className="behavior-instructions">
-          Choose how your hero prioritizes future actions. The active profile
-          changes immediately and does not alter the current run seed.
+          Choose how your hero prioritizes future actions, or take direct
+          control with WASD. The selected profile changes immediately and does
+          not alter the current run seed.
         </p>
         <div className="behavior-profile-list">
           {PROFILE_DEFINITIONS.map((profile) => {
-            const selected = behavior.profileId === profile.id
+            const selected = !behavior.freeMode && behavior.profileId === profile.id
             return (
               <button
                 ref={selected ? selectedProfileRef : undefined}
@@ -72,6 +78,19 @@ export function BehaviorScreen({
               </button>
             )
           })}
+          <button
+            ref={freeMovementRef}
+            className={`behavior-profile${behavior.freeMode ? ' selected' : ''}`}
+            type="button"
+            aria-pressed={behavior.freeMode}
+            onClick={onToggleFreeMovement}
+          >
+            <span className="behavior-profile-heading">
+              <strong>Free</strong>
+              <span>{behavior.freeMode ? 'Active' : 'Select'}</span>
+            </span>
+            <span>Control the character directly with WASD. Press F to toggle; automatic Dodge is disabled.</span>
+          </button>
         </div>
         <p className="behavior-current-intent">
           Current intent:{' '}

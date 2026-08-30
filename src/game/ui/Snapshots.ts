@@ -308,6 +308,7 @@ export interface BehaviorHudSnapshot {
   readonly profileId: BehaviorProfileId
   readonly profileName: string
   readonly profileDescription: string
+  readonly freeMode: boolean
   readonly activeIntent: BehaviorIntentHudSnapshot | null
 }
 
@@ -1428,6 +1429,7 @@ export function createUiSnapshot(
   const activeIntent = state.player.behaviorController?.lastCandidate
   const intentLabels: Record<PlayerMovementCandidate['source'], string> = {
     stairs: 'Take stairs',
+    free: 'Free movement',
     dodge: 'Dodge',
     gear: 'Collect gear',
     xp: 'Collect XP',
@@ -1439,6 +1441,7 @@ export function createUiSnapshot(
     profileId,
     profileName: profile.name,
     profileDescription: profile.description,
+    freeMode: state.player.behaviorController?.freeMode ?? false,
     activeIntent: activeIntent
       ? Object.freeze({
         source: activeIntent.source,

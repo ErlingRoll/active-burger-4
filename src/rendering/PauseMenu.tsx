@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import {
+  FREE_MOVEMENT_TOGGLE_KEY,
+  FREE_MOVEMENT_KEYS,
   formatKeybind,
   KEYBIND_DEFINITIONS,
   normalizeKey,
@@ -55,6 +57,19 @@ export function PauseMenu({
     const key = normalizeKey(event.key)
     if (!key) {
       setError('That key cannot be bound. Press a named key or printable character.')
+      return
+    }
+
+    if (key === FREE_MOVEMENT_TOGGLE_KEY) {
+      setError(`${formatKeybind(key)} is reserved for the Free movement toggle.`)
+      return
+    }
+
+    if (
+      (id === 'choiceLeft' || id === 'choiceMiddle' || id === 'choiceRight') &&
+      FREE_MOVEMENT_KEYS.some((movementKey) => movementKey === key)
+    ) {
+      setError(`${formatKeybind(key)} is reserved for Free movement.`)
       return
     }
 

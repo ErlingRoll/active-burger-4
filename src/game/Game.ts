@@ -348,6 +348,10 @@ export class Game {
     return getBehaviorProfileDefinition(this.behaviorProfileId)
   }
 
+  get freeMovementEnabled(): boolean {
+    return this.gameState.player.behaviorController?.freeMode ?? false
+  }
+
   /**
    * Switches the active behavior profile without consuming RNG. The profile is
    * state, so the same input sequence always produces the same simulation.
@@ -371,6 +375,39 @@ export class Game {
 
   switchBehaviorProfile(profileId: BehaviorProfileId | string): boolean {
     return this.setBehaviorProfile(profileId)
+  }
+
+  setFreeMovementEnabled(enabled: boolean): boolean {
+    const controller = this.gameState.player.behaviorController ??= {
+      profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+    }
+    if (controller.freeMode === enabled) {
+      return enabled
+    }
+    controller.freeMode = enabled
+    if (!enabled) {
+      controller.freeMovementDirectionX = 0
+      controller.freeMovementDirectionY = 0
+    }
+    controller.lastCandidate = undefined
+    controller.commitmentRemaining = 0
+    controller.committedSource = undefined
+    controller.committedTargetId = undefined
+    controller.committedPickupId = undefined
+    this.notifyStateChanged()
+    return enabled
+  }
+
+  toggleFreeMovement(): boolean {
+    return this.setFreeMovementEnabled(!this.freeMovementEnabled)
+  }
+
+  setFreeMovementDirection(directionX: number, directionY: number): void {
+    const controller = this.gameState.player.behaviorController ??= {
+      profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+    }
+    controller.freeMovementDirectionX = Number.isFinite(directionX) ? directionX : 0
+    controller.freeMovementDirectionY = Number.isFinite(directionY) ? directionY : 0
   }
 
   /**

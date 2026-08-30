@@ -51,9 +51,9 @@ describe('local persistence schema', () => {
         behaviorAggressive: 'a',
         behaviorBalanced: 's',
         behaviorCautious: 'd',
-        choiceLeft: 'q',
-        choiceMiddle: 'w',
-        choiceRight: 'e',
+        choiceLeft: '1',
+        choiceMiddle: '2',
+        choiceRight: '3',
       },
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
@@ -105,6 +105,31 @@ describe('local persistence schema', () => {
         DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
         'default-dungeon-50-floor',
       ],
+    })
+  })
+
+  it('migrates persisted legacy choice defaults while preserving custom choices', () => {
+    expect(migrateSettings({
+      keybinds: {
+        choiceLeft: 'q',
+        choiceMiddle: 'w',
+        choiceRight: 'e',
+      },
+    }).keybinds).toMatchObject({
+      choiceLeft: '1',
+      choiceMiddle: '2',
+      choiceRight: '3',
+    })
+    expect(migrateSettings({
+      keybinds: {
+        choiceLeft: 'j',
+        choiceMiddle: 'k',
+        choiceRight: 'l',
+      },
+    }).keybinds).toMatchObject({
+      choiceLeft: 'j',
+      choiceMiddle: 'k',
+      choiceRight: 'l',
     })
   })
 

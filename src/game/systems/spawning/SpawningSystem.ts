@@ -143,6 +143,9 @@ export function createInitialPlayerState(
     },
     behaviorController: {
       profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+      freeMode: false,
+      freeMovementDirectionX: 0,
+      freeMovementDirectionY: 0,
     },
     skills: startingSkillIds.map((skillId) => ({
       skillId,

@@ -458,8 +458,25 @@ export function getPlayerBehaviorCandidates(
   state: GameState,
   spatialHash?: SpatialHash<ThreatEntity>,
 ): PlayerMovementCandidate[] {
+  const controller = state.player.behaviorController
+  if (controller?.freeMode) {
+    const directionX = Number.isFinite(controller.freeMovementDirectionX)
+      ? controller.freeMovementDirectionX ?? 0
+      : 0
+    const directionY = Number.isFinite(controller.freeMovementDirectionY)
+      ? controller.freeMovementDirectionY ?? 0
+      : 0
+    return [{
+      source: 'free',
+      directionX,
+      directionY,
+      speed: getDerivedPlayerStats(state.player).movementSpeed,
+      priority: 100,
+    }]
+  }
+
   const profileId: BehaviorProfileId =
-    state.player.behaviorController?.profileId ?? DEFAULT_BEHAVIOR_PROFILE_ID
+    controller?.profileId ?? DEFAULT_BEHAVIOR_PROFILE_ID
   const policy = getBehaviorProfilePolicy(profileId)
   const playerStats = getDerivedPlayerStats(state.player)
   const threats = livingThreats(state)

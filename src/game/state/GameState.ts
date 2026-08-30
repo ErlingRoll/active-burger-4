@@ -77,6 +77,7 @@ export interface DodgeState {
 /** A movement request produced by a behavior and consumed by its controller. */
 export type PlayerMovementSource =
   | 'stairs'
+  | 'free'
   | 'dodge'
   | 'gear'
   | 'xp'
@@ -102,6 +103,11 @@ export type MovementCandidate = PlayerMovementCandidate
 
 export interface BehaviorControllerState {
   profileId: BehaviorProfileId
+  /** True when ordinary movement is controlled directly by the player. */
+  freeMode?: boolean
+  /** Raw WASD direction, normalized when the movement candidate is applied. */
+  freeMovementDirectionX?: number
+  freeMovementDirectionY?: number
   lastCandidate?: PlayerMovementCandidate
   /** Remaining time for which the current intent is committed. */
   commitmentRemaining?: number

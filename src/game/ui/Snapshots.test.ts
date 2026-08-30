@@ -634,6 +634,7 @@ describe('UI snapshots', () => {
       profileId: 'cautious',
       profileName: 'Cautious',
       profileDescription: 'Kites earlier around packs and high-threat enemies, closing to attack range when needed.',
+      freeMode: false,
       activeIntent: {
         source: 'dodge',
         label: 'Dodge',
@@ -643,6 +644,25 @@ describe('UI snapshots', () => {
     })
     expect(Object.isFrozen(snapshot.behavior)).toBe(true)
     expect(Object.isFrozen(snapshot.behavior.activeIntent)).toBe(true)
+  })
+
+  it('projects Free movement state and its manual intent', () => {
+    const game = createGame({ seed: 75 })
+    game.setFreeMovementEnabled(true)
+    game.setFreeMovementDirection(1, -1)
+    game.update(1 / 60)
+
+    const snapshot = game.getUiSnapshot()
+
+    expect(snapshot.behavior).toMatchObject({
+      freeMode: true,
+      activeIntent: {
+        source: 'free',
+        label: 'Free movement',
+        directionX: 1,
+        directionY: -1,
+      },
+    })
   })
 
   it('projects floor, stairs, transition, pickups, and Inferno enrage state', () => {

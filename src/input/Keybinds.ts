@@ -9,13 +9,16 @@ export interface GameKeybinds {
 
 export type KeybindId = keyof GameKeybinds
 
+export const FREE_MOVEMENT_TOGGLE_KEY = 'f'
+export const FREE_MOVEMENT_KEYS = ['w', 'a', 's', 'd'] as const
+
 export const DEFAULT_GAME_KEYBINDS: Readonly<GameKeybinds> = Object.freeze({
   behaviorAggressive: 'a',
   behaviorBalanced: 's',
   behaviorCautious: 'd',
-  choiceLeft: 'q',
-  choiceMiddle: 'w',
-  choiceRight: 'e',
+  choiceLeft: '1',
+  choiceMiddle: '2',
+  choiceRight: '3',
 })
 
 export const KEYBIND_DEFINITIONS = [
@@ -54,6 +57,18 @@ export const KEYBIND_DEFINITIONS = [
   label: string
   description: string
 }>
+
+function isChoiceKeybind(id: KeybindId): boolean {
+  return id === 'choiceLeft' || id === 'choiceMiddle' || id === 'choiceRight'
+}
+
+function isLegacyChoiceDefaults(
+  candidate: Record<string, unknown>,
+): boolean {
+  return normalizeKey(candidate.choiceLeft) === 'q' &&
+    normalizeKey(candidate.choiceMiddle) === 'w' &&
+    normalizeKey(candidate.choiceRight) === 'e'
+}
 
 const KEY_LABELS: Readonly<Record<string, string>> = {
   ' ': 'Space',
@@ -95,9 +110,17 @@ export function normalizeGameKeybinds(value: unknown): GameKeybinds {
   const candidate = typeof value === 'object' && value !== null
     ? value as Record<string, unknown>
     : {}
+  const legacyChoiceDefaults = isLegacyChoiceDefaults(candidate)
   return KEYBIND_DEFINITIONS.reduce<GameKeybinds>((keybinds, definition) => {
     const key = normalizeKey(candidate[definition.id])
-    keybinds[definition.id] = key ?? DEFAULT_GAME_KEYBINDS[definition.id]
+    const reservedForFreeMovement = isChoiceKeybind(definition.id) &&
+      key !== null &&
+      FREE_MOVEMENT_KEYS.some((movementKey) => movementKey === key)
+    keybinds[definition.id] = legacyChoiceDefaults ||
+      key === FREE_MOVEMENT_TOGGLE_KEY ||
+      reservedForFreeMovement
+      ? DEFAULT_GAME_KEYBINDS[definition.id]
+      : key ?? DEFAULT_GAME_KEYBINDS[definition.id]
     return keybinds
   }, { ...DEFAULT_GAME_KEYBINDS })
 }

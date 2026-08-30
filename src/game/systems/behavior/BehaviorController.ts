@@ -48,12 +48,13 @@ export function selectMovementCandidate(
 ): PlayerMovementCandidate | undefined {
   const sourceOrder: Record<PlayerMovementCandidate['source'], number> = {
     stairs: 0,
-    dodge: 1,
-    gear: 2,
-    xp: 3,
-    kite: 4,
-    'combat-range': 5,
-    hold: 6,
+    free: 1,
+    dodge: 2,
+    gear: 3,
+    xp: 4,
+    kite: 5,
+    'combat-range': 6,
+    hold: 7,
   }
   return candidates
     .map((candidate, index) => ({ candidate, index }))
@@ -99,8 +100,8 @@ function chooseCommittedCandidate(
     (controller.commitmentRemaining ?? 0) - elapsed,
   )
 
-  // Dodge is an interrupt: telegraphs must always be able to supersede a
-  // movement goal, including one that is currently committed.
+  // Dodge is an interrupt in autonomous mode: telegraphs must always be able
+  // to supersede a movement goal, including one that is currently committed.
   const dodge = candidates.find((candidate) => candidate.source === 'dodge')
   if (dodge) {
     return dodge

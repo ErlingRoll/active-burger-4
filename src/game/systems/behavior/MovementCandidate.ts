@@ -44,9 +44,10 @@ export function applyMovementCandidate(
   const deltaLength = Math.hypot(deltaX, deltaY)
   const currentSpeed = Math.hypot(currentVelocityX, currentVelocityY)
   const targetSpeed = Math.hypot(targetVelocityX, targetVelocityY)
+  const freeMovement = candidate.source === 'free'
   const response = targetSpeed < currentSpeed
-    ? PLAYER_MOVEMENT.deceleration
-    : PLAYER_MOVEMENT.acceleration
+    ? freeMovement ? PLAYER_MOVEMENT.freeDeceleration : PLAYER_MOVEMENT.deceleration
+    : freeMovement ? PLAYER_MOVEMENT.freeAcceleration : PLAYER_MOVEMENT.acceleration
   const maxDelta = response * seconds
   const scale = deltaLength > 0 && deltaLength > maxDelta
     ? maxDelta / deltaLength

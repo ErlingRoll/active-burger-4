@@ -20,6 +20,8 @@ import {
   BEHAVIOR_PROFILE_ORDER,
 } from '../content/behaviors/BehaviorProfiles'
 import {
+  FREE_MOVEMENT_KEYS,
+  FREE_MOVEMENT_TOGGLE_KEY,
   formatKeybind,
   normalizeKey,
   type GameKeybinds,
@@ -116,6 +118,12 @@ function getStoredDevelopmentTimeScale(): number | null {
 
 function storeDevelopmentTimeScale(value: number): void {
   window.localStorage.setItem(DEVELOPMENT_TIME_SCALE_STORAGE_KEY, value.toString())
+}
+
+function isFreeMovementKey(
+  value: string,
+): value is typeof FREE_MOVEMENT_KEYS[number] {
+  return FREE_MOVEMENT_KEYS.some((movementKey) => movementKey === value)
 }
 
 function applyInitialTimeScale(game: Game): void {
@@ -241,6 +249,25 @@ export function GameCanvas({
       }
     })
 
+    const pressedMovementKeys = new Set<string>()
+    const updateFreeMovementDirection = (): void => {
+      let directionX = 0
+      let directionY = 0
+      if (pressedMovementKeys.has('a')) {
+        directionX -= 1
+      }
+      if (pressedMovementKeys.has('d')) {
+        directionX += 1
+      }
+      if (pressedMovementKeys.has('w')) {
+        directionY -= 1
+      }
+      if (pressedMovementKeys.has('s')) {
+        directionY += 1
+      }
+      game.setFreeMovementDirection(directionX, directionY)
+    }
+
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
         event.target instanceof HTMLElement &&
@@ -256,13 +283,35 @@ export function GameCanvas({
         return
       }
 
+      if (
+        key === FREE_MOVEMENT_TOGGLE_KEY &&
+        !event.repeat &&
+        (game.phase === 'playing' || game.phase === 'level-up')
+      ) {
+        event.preventDefault()
+        game.toggleFreeMovement()
+        if (game.freeMovementEnabled) {
+          updateFreeMovementDirection()
+        } else {
+          game.setFreeMovementDirection(0, 0)
+        }
+        return
+      }
+
+      if (isFreeMovementKey(key) && game.freeMovementEnabled && game.phase === 'playing') {
+        event.preventDefault()
+        pressedMovementKeys.add(key)
+        updateFreeMovementDirection()
+        return
+      }
+
       const behaviorProfileByKey: Readonly<Record<string, BehaviorProfileId>> = {
         [activeKeybindsRef.current.behaviorAggressive]: 'aggressive',
         [activeKeybindsRef.current.behaviorBalanced]: 'balanced',
         [activeKeybindsRef.current.behaviorCautious]: 'cautious',
       }
       const behaviorProfile = behaviorProfileByKey[key]
-      if (behaviorProfile) {
+      if (behaviorProfile && !game.freeMovementEnabled) {
         event.preventDefault()
         if (game.setBehaviorProfile(behaviorProfile)) {
           onBehaviorProfileChangeRef.current?.(behaviorProfile)
@@ -297,7 +346,27 @@ export function GameCanvas({
       }
     }
 
+    const handleKeyUp = (event: KeyboardEvent): void => {
+      const key = normalizeKey(event.key)
+      if (!key || !isFreeMovementKey(key)) {
+        return
+      }
+      pressedMovementKeys.delete(key)
+      if (game.freeMovementEnabled) {
+        updateFreeMovementDirection()
+      }
+    }
+
+    const handleWindowBlur = (): void => {
+      pressedMovementKeys.clear()
+      if (game.freeMovementEnabled) {
+        updateFreeMovementDirection()
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown, { capture: true })
+    window.addEventListener('keyup', handleKeyUp, { capture: true })
+    window.addEventListener('blur', handleWindowBlur)
     const snapshotTimer = window.setInterval(
       publishSnapshot,
       UI_UPDATE_INTERVAL_MS,
@@ -313,6 +382,8 @@ export function GameCanvas({
       disposed = true
       window.clearInterval(snapshotTimer)
       window.removeEventListener('keydown', handleKeyDown, { capture: true })
+      window.removeEventListener('keyup', handleKeyUp, { capture: true })
+      window.removeEventListener('blur', handleWindowBlur)
       unsubscribe()
       if (gameRef.current === game) {
         gameRef.current = null
@@ -333,9 +404,20 @@ export function GameCanvas({
   }
 
   const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
-    if (gameRef.current?.setBehaviorProfile(profileId)) {
+    const currentGame = gameRef.current
+    if (!currentGame) {
+      return
+    }
+    if (currentGame.freeMovementEnabled) {
+      currentGame.setFreeMovementEnabled(false)
+    }
+    if (currentGame.setBehaviorProfile(profileId)) {
       onBehaviorProfileChange?.(profileId)
     }
+  }
+
+  const toggleFreeMovement = (): void => {
+    gameRef.current?.toggleFreeMovement()
   }
 
   const updateKeybinds = async (nextKeybinds: GameKeybinds): Promise<void> => {
@@ -375,6 +457,7 @@ export function GameCanvas({
           snapshot={snapshot}
           keybinds={activeKeybinds}
           onSelectProfile={selectBehaviorProfile}
+          onToggleFreeMovement={toggleFreeMovement}
         />
       ) : null}
       {import.meta.env.DEV && snapshot && game ? (
@@ -940,21 +1023,24 @@ function BehaviorHud({
   snapshot,
   keybinds,
   onSelectProfile,
+  onToggleFreeMovement,
 }: {
   snapshot: GameUiSnapshot
   keybinds: GameKeybinds
   onSelectProfile: (profileId: BehaviorProfileId) => void
+  onToggleFreeMovement: () => void
 }) {
   return (
     <section className="behavior-hud behavior-hud-bottom" aria-labelledby="behavior-hud-title">
       <h3 id="behavior-hud-title" className="visually-hidden">
         Behavior
       </h3>
-      <p className="behavior-hud-heading">Behavior profiles</p>
+      <p className="behavior-hud-heading">Movement behavior</p>
       <div className="behavior-hud-profile-list">
         {BEHAVIOR_PROFILE_ORDER.map((profileId) => {
           const profile = BEHAVIOR_PROFILE_DEFINITIONS[profileId]
-          const selected = snapshot.behavior.profileId === profile.id
+          const selected = !snapshot.behavior.freeMode &&
+            snapshot.behavior.profileId === profile.id
           const keybind = keybinds[PROFILE_KEYBIND_IDS[profile.id]]
           return (
             <button
@@ -971,9 +1057,22 @@ function BehaviorHud({
             </button>
           )
         })}
+        <button
+          className={`behavior-hud-profile${snapshot.behavior.freeMode ? ' selected' : ''}`}
+          type="button"
+          aria-pressed={snapshot.behavior.freeMode}
+          aria-label={`Free movement: control the character with WASD. Shortcut F. ${snapshot.behavior.freeMode ? 'Active' : 'Select'}`}
+          title="Control the character directly with WASD. Automatic Dodge is disabled."
+          onClick={onToggleFreeMovement}
+        >
+          <span className="behavior-hud-profile-name">Free</span>
+          <span className="keybind-hint">F</span>
+        </button>
       </div>
       <p className="behavior-hud-current-intent">
-        Intent: <strong>{snapshot.behavior.activeIntent?.label ?? 'No active intent'}</strong>
+        {snapshot.behavior.freeMode
+          ? <>WASD movement · Intent: <strong>{snapshot.behavior.activeIntent?.label ?? 'No active intent'}</strong></>
+          : <>Intent: <strong>{snapshot.behavior.activeIntent?.label ?? 'No active intent'}</strong></>}
       </p>
     </section>
   )

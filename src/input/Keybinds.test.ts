@@ -12,9 +12,9 @@ describe('game keybind settings', () => {
       behaviorAggressive: 'a',
       behaviorBalanced: 's',
       behaviorCautious: 'd',
-      choiceLeft: 'q',
-      choiceMiddle: 'w',
-      choiceRight: 'e',
+      choiceLeft: '1',
+      choiceMiddle: '2',
+      choiceRight: '3',
     })
   })
 
@@ -29,8 +29,38 @@ describe('game keybind settings', () => {
       behaviorBalanced: 's',
       behaviorCautious: 'd',
       choiceLeft: 'arrowleft',
+      choiceMiddle: '2',
+      choiceRight: '3',
+    })
+  })
+
+  it('rejects persisted use of the fixed Free movement toggle', () => {
+    expect(normalizeGameKeybinds({
+      behaviorAggressive: 'f',
+    }).behaviorAggressive).toBe('a')
+  })
+
+  it('migrates the former Q/W/E choice defaults to 1/2/3', () => {
+    expect(normalizeGameKeybinds({
+      choiceLeft: 'q',
       choiceMiddle: 'w',
       choiceRight: 'e',
+    })).toMatchObject({
+      choiceLeft: '1',
+      choiceMiddle: '2',
+      choiceRight: '3',
+    })
+  })
+
+  it('does not allow upgrade choices to use Free movement keys', () => {
+    expect(normalizeGameKeybinds({
+      choiceLeft: 'a',
+      choiceMiddle: 'w',
+      choiceRight: 'd',
+    })).toMatchObject({
+      choiceLeft: '1',
+      choiceMiddle: '2',
+      choiceRight: '3',
     })
   })
 
