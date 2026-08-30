@@ -3560,8 +3560,8 @@
     line-height: 1.4;
   }
 
-  .run-dashboard .dashboard-choice:hover:not(:disabled),
-  .run-dashboard .dashboard-choice:focus-visible {
+  .run-dashboard .dashboard-choice:hover:not(:disabled):not(.selected),
+  .run-dashboard .dashboard-choice:focus-visible:not(.selected) {
     color: #fff7ed;
     background: linear-gradient(145deg, #3f3531, #292524);
     border-color: #fb923c;
@@ -3578,6 +3578,15 @@
   .run-dashboard .dashboard-choice.selected strong,
   .run-dashboard .dashboard-choice.selected span {
     color: #18181b;
+  }
+
+  .run-dashboard .dashboard-choice.selected .playstyle-affinity {
+    color: #18181b;
+  }
+
+  .run-dashboard .dashboard-choice.selected:focus-visible {
+    outline: 3px solid #fef3c7;
+    outline-offset: 2px;
   }
 
   .run-dashboard .dashboard-choice:disabled {
