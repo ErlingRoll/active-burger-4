@@ -34,10 +34,15 @@ import {
   rollItemUpgradeModifiers,
 } from './EquipmentState'
 import { GEAR_XP_BLESSING_CHANCE } from '../../game-config/gear'
+import {
+  DEFAULT_PLAYSTYLE_ID,
+  getPlaystyleDefinition,
+  isPlaystyleId,
+} from '../../content/playstyles/Playstyles'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.1
-export const EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER = 2
+const STARTING_WEAPON_TYPE_WEIGHT = 2
 
 export interface GearItemChoice {
   type: 'gear'
@@ -124,13 +129,28 @@ function rollChoiceFromTemplate(
   }
 }
 
-function getGearTemplateWeight(
+function getStartingWeaponArchetype(
   state: Readonly<GameState>,
+): ItemDefinition['weaponArchetype'] | undefined {
+  const playstyleId = isPlaystyleId(state.player.playstyleId)
+    ? state.player.playstyleId
+    : DEFAULT_PLAYSTYLE_ID
+  const startingWeapon = getItemDefinition(
+    getPlaystyleDefinition(playstyleId).startingWeaponItemId,
+  )
+  return startingWeapon.slot === EquipmentSlot.Weapon
+    ? startingWeapon.weaponArchetype
+    : undefined
+}
+
+function getGearTemplateWeight(
   definition: Readonly<ItemDefinition>,
+  startingWeaponArchetype: ItemDefinition['weaponArchetype'] | undefined,
 ): number {
-  return state.player.equipment?.[definition.slot]
-    ? 1
-    : EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER
+  return definition.slot === EquipmentSlot.Weapon &&
+    definition.weaponArchetype === startingWeaponArchetype
+    ? STARTING_WEAPON_TYPE_WEIGHT
+    : 1
 }
 
 function chooseGearTemplateIndex(
@@ -138,78 +158,28 @@ function chooseGearTemplateIndex(
   definitions: readonly ItemDefinition[],
   rng: RandomSource,
 ): number {
-  const totalWeight = definitions.reduce(
-    (total, definition) => total + getGearTemplateWeight(state, definition),
+  const availableSlots = EQUIPMENT_SLOTS.filter((slot) =>
+    definitions.some((definition) => definition.slot === slot)
+  )
+  const selectedSlot = availableSlots[rng.int(0, availableSlots.length - 1)]
+  const slotDefinitions = definitions.flatMap((definition, index) =>
+    definition.slot === selectedSlot ? [{ definition, index }] : []
+  )
+  const startingWeaponArchetype = getStartingWeaponArchetype(state)
+  const totalWeight = slotDefinitions.reduce(
+    (total, candidate) =>
+      total + getGearTemplateWeight(candidate.definition, startingWeaponArchetype),
     0,
   )
   let roll = rng.int(0, totalWeight - 1)
-  for (const [index, definition] of definitions.entries()) {
-    roll -= getGearTemplateWeight(state, definition)
+  for (const candidate of slotDefinitions) {
+    roll -= getGearTemplateWeight(candidate.definition, startingWeaponArchetype)
     if (roll < 0) {
-      return index
+      return candidate.index
     }
   }
-  return definitions.length - 1
-}
-
-function isRangerPreferredWeapon(
-  definition: Readonly<ItemDefinition>,
-): boolean {
-  return definition.slot === EquipmentSlot.Weapon &&
-    (
-      definition.weaponArchetype === 'bow' ||
-      definition.weaponArchetype === 'wand'
-    )
-}
-
-function ensureRangerPreferredWeaponChoice(
-  state: Readonly<GameState>,
-  choices: GearChoice[],
-  rng: RandomSource,
-  itemDefinitions: readonly ItemDefinition[],
-): void {
-  if (state.player.playstyleId !== 'ranger') {
-    return
-  }
-  if (choices.some((choice) =>
-    choice.type === 'gear' &&
-    isRangerPreferredWeapon(getItemDefinition(choice.itemId, itemDefinitions))
-  )) {
-    return
-  }
-
-  const replacementIndices = choices.flatMap((choice, index) =>
-    choice.type === 'gear' ? [index] : []
-  )
-  if (replacementIndices.length === 0) {
-    return
-  }
-  const existingItemIds = new Set(
-    choices
-      .filter((choice): choice is GearItemChoice => choice.type === 'gear')
-      .map((choice) => choice.itemId),
-  )
-  const preferredTemplates = itemDefinitions.filter((definition) =>
-    isRangerPreferredWeapon(definition) && !existingItemIds.has(definition.id)
-  )
-  if (preferredTemplates.length === 0) {
-    return
-  }
-
-  const replacementIndex = replacementIndices[
-    rng.int(0, replacementIndices.length - 1)
-  ]
-  const replacementDefinition = preferredTemplates[
-    rng.int(0, preferredTemplates.length - 1)
-  ]
-  if (replacementIndex === undefined || !replacementDefinition) {
-    return
-  }
-  choices[replacementIndex] = rollChoiceFromTemplate(
-    replacementDefinition,
-    rng,
-    state.player.gearRarityFloor ?? Rarity.Common,
-  )
+  return slotDefinitions[slotDefinitions.length - 1]?.index ??
+    definitions.length - 1
 }
 
 interface EligibleUpgradeTarget {
@@ -382,20 +352,13 @@ export function generateGearChoices(
       }
     }
   }
-  ensureRangerPreferredWeaponChoice(state, choices, rng, itemDefinitions)
   const minimumRarity = getEligibleGearRarityFloor(state)
   if (
     minimumRarity &&
     count > 0 &&
     rng.chance(GEAR_RARITY_FLOOR_CHANCE)
   ) {
-    const nonPreferredReplacementIndex = choices.findIndex((choice) =>
-      choice.type === 'gear' &&
-      !isRangerPreferredWeapon(getItemDefinition(choice.itemId, itemDefinitions))
-    )
-    const replacementIndex = nonPreferredReplacementIndex >= 0
-      ? nonPreferredReplacementIndex
-      : choices.findIndex((choice) => choice.type === 'gear')
+    const replacementIndex = choices.findIndex((choice) => choice.type === 'gear')
     if (replacementIndex >= 0) {
       choices[replacementIndex] = {
         type: 'gear-rarity-floor',

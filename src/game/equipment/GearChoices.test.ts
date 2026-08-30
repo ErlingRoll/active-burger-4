@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { getItemDefinition, INITIAL_ITEMS } from '../../content/gear/Items'
+import {
+  EQUIPMENT_SLOTS,
+  getItemDefinition,
+  INITIAL_ITEMS,
+} from '../../content/gear/Items'
+import {
+  PLAYSTYLE_DEFINITIONS,
+  PLAYSTYLE_IDS,
+} from '../../game-config/classes'
 import { createGame } from '../Game'
 import { Random } from '../random/Random'
 import {
@@ -66,29 +74,68 @@ describe('gear choices', () => {
     expect(choice?.type === 'gear' ? choice.rarity : undefined).toBe(Rarity.Legendary)
   })
 
-  it('weights empty equipment slots more heavily when choosing gear templates', () => {
+  it('weights each available equipment slot equally when choosing gear templates', () => {
     const game = createGame({ seed: 408 })
-    for (const itemId of [
-      'iron-cleaver',
-      'bastion-plate',
-      'swiftstride-boots',
-      'duelists-band',
-      'giants-amulet',
-    ] as const) {
-      equipItem(game.state.player, itemId)
+    for (const [slotIndex, expectedSlot] of EQUIPMENT_SLOTS.entries()) {
+      let slotRollPending = true
+      const choice = generateGearChoices(game.state, 1, {
+        next: () => 0,
+        int: (min: number, _max: number) => {
+          if (slotRollPending) {
+            slotRollPending = false
+            return slotIndex
+          }
+          return min
+        },
+        chance: () => false,
+        pick: <T>(items: readonly T[]) => items[0] as T,
+      })[0]
+
+      expect(choice?.type === 'gear' ? choice.slot : undefined).toBe(expectedSlot)
     }
-    Object.values(game.state.player.equipment ?? {}).forEach((item) => {
-      item.modifiers = []
-    })
+  })
 
-    const choice = generateGearChoices(game.state, 1, {
-      next: () => 0,
-      int: () => 4,
-      chance: () => false,
-      pick: <T>(items: readonly T[]) => items[0] as T,
-    })[0]
+  it('weights the starting weapon type twice as heavily as other weapon types', () => {
+    for (const playstyleId of PLAYSTYLE_IDS) {
+      const game = createGame({ seed: 408, playstyleId })
+      const startingWeapon = getItemDefinition(
+        PLAYSTYLE_DEFINITIONS[playstyleId].startingWeaponItemId,
+      )
+      const archetypes = Array.from({ length: 5 }, (_, weaponRoll) => {
+        let slotRollPending = true
+        let templateRollPending = true
+        const choice = generateGearChoices(game.state, 1, {
+          next: () => 0,
+          int: (min: number, max: number) => {
+            if (slotRollPending) {
+              slotRollPending = false
+              return 0
+            }
+            if (templateRollPending && max === 4) {
+              templateRollPending = false
+              return weaponRoll
+            }
+            return min
+          },
+          chance: () => false,
+          pick: <T>(items: readonly T[]) => items[0] as T,
+        })[0]
+        if (choice?.type !== 'gear' || choice.slot !== 'weapon') {
+          throw new Error('Expected a weapon gear choice')
+        }
+        return getItemDefinition(choice.itemId).weaponArchetype
+      })
 
-    expect(choice?.type === 'gear' ? choice.slot : undefined).toBe('helmet')
+      expect(archetypes.filter((archetype) =>
+        archetype === startingWeapon.weaponArchetype
+      )).toHaveLength(2)
+      expect(new Set(archetypes)).toEqual(new Set([
+        'sword',
+        'bow',
+        'wand',
+        'staff',
+      ]))
+    }
   })
 
   it('can offer one-time minimum-rarity blessings as gear improves', () => {
@@ -305,27 +352,6 @@ describe('gear choices', () => {
       'starcall-wand',
       'ritual-staff',
     ]))
-  })
-
-  it('always offers Rangers at least one bow or wand gear template', () => {
-    const allHaveRangedOption = Array.from({ length: 32 }, (_, seed) => {
-      const game = createGame({ seed, playstyleId: 'ranger' })
-      const choices = generateGearChoices(
-        game.state,
-        GEAR_CHOICES_PER_PICKUP,
-        new Random(seed),
-      )
-      return choices.some((choice) => {
-        if (choice.type !== 'gear') {
-          return false
-        }
-        const definition = getItemDefinition(choice.itemId)
-        return definition.slot === 'weapon' &&
-          (definition.weaponArchetype === 'bow' || definition.weaponArchetype === 'wand')
-      })
-    })
-
-    expect(allHaveRangedOption.every(Boolean)).toBe(true)
   })
 
   it('offers and applies a one-tier equipped-item modifier upgrade with a persistent roll', () => {
