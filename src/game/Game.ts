@@ -202,6 +202,7 @@ export {
   DUNGEON_FLOOR_DURATION_SECONDS,
   DUNGEON_DEFINITIONS,
   ORDINARY_ENEMY_FLOOR_STAT_SCALING,
+  getFloorContactDamageMultiplier,
   getFloorDifficultyProfile,
   getDungeonDefinition,
   getFloorStatMultiplier,

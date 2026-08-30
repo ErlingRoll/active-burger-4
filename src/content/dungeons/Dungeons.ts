@@ -37,10 +37,15 @@ export const DUNGEON_FLOOR_DURATION_SECONDS = 60
 export const BOSS_FLOOR_EVENT_DURATION_SECONDS = 120
 export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.30
 export const ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING = 0.18
-export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.10
-export const ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.072
+/** Ordinary damage follows the same floor curve as HP, with a base reduction. */
+export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.30
+export const ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.18
 export const ORDINARY_ENEMY_CONTACT_DAMAGE_MULTIPLIER = 0.8
 export const FLOOR_SCALING_BREAKPOINT = 5
+/** Gentle compounding rates keep late-floor pressure rising without a spike. */
+export const ORDINARY_ENEMY_EXPONENTIAL_RATE = 0.0005
+export const ORDINARY_ENEMY_CONTACT_EXPONENTIAL_RATE =
+  ORDINARY_ENEMY_EXPONENTIAL_RATE
 export const BOSS_HP_FLOOR_SCALING = 0.1125
 export const BOSS_LATE_HP_FLOOR_SCALING = 0.036
 export const BOSS_CONTACT_DAMAGE_FLOOR_SCALING = 0.072
@@ -74,11 +79,11 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemyHpMultiplier: 1,
     ordinaryEnemyContactDamageMultiplier: 1,
     ordinaryEnemySpeedMultiplier: 1,
-    spawnThreatMultiplier: 1,
-    eliteChanceMultiplier: 1,
-    abilityIntensity: 0.18,
-    abilityDamageMultiplier: 0.6,
-    abilityCooldownMultiplier: 1.4,
+    spawnThreatMultiplier: 1.15,
+    eliteChanceMultiplier: 1.1,
+    abilityIntensity: 0.3,
+    abilityDamageMultiplier: 0.75,
+    abilityCooldownMultiplier: 1.25,
     compositionProgress: 0,
   },
   {
@@ -86,59 +91,59 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemyHpMultiplier: 1,
     ordinaryEnemyContactDamageMultiplier: 1,
     ordinaryEnemySpeedMultiplier: 1,
-    spawnThreatMultiplier: 1.04,
-    eliteChanceMultiplier: 1.04,
-    abilityIntensity: 0.25,
-    abilityDamageMultiplier: 0.7,
-    abilityCooldownMultiplier: 1.3,
+    spawnThreatMultiplier: 1.18,
+    eliteChanceMultiplier: 1.12,
+    abilityIntensity: 0.38,
+    abilityDamageMultiplier: 0.82,
+    abilityCooldownMultiplier: 1.18,
     compositionProgress: 0.08,
   },
   {
     floor: 20,
-    ordinaryEnemyHpMultiplier: 1,
-    ordinaryEnemyContactDamageMultiplier: 1.12,
-    ordinaryEnemySpeedMultiplier: 1.06,
-    spawnThreatMultiplier: 1.16,
-    eliteChanceMultiplier: 1.18,
-    abilityIntensity: 0.52,
-    abilityDamageMultiplier: 0.9,
-    abilityCooldownMultiplier: 1,
+    ordinaryEnemyHpMultiplier: 1.04,
+    ordinaryEnemyContactDamageMultiplier: 1.18,
+    ordinaryEnemySpeedMultiplier: 1.08,
+    spawnThreatMultiplier: 1.32,
+    eliteChanceMultiplier: 1.3,
+    abilityIntensity: 0.62,
+    abilityDamageMultiplier: 1.02,
+    abilityCooldownMultiplier: 0.95,
     compositionProgress: 0.45,
   },
   {
     floor: 50,
-    ordinaryEnemyHpMultiplier: 1.08,
-    ordinaryEnemyContactDamageMultiplier: 1.3,
-    ordinaryEnemySpeedMultiplier: 1.14,
-    spawnThreatMultiplier: 1.34,
-    eliteChanceMultiplier: 1.42,
-    abilityIntensity: 0.76,
-    abilityDamageMultiplier: 1.1,
-    abilityCooldownMultiplier: 0.84,
+    ordinaryEnemyHpMultiplier: 1.14,
+    ordinaryEnemyContactDamageMultiplier: 1.38,
+    ordinaryEnemySpeedMultiplier: 1.17,
+    spawnThreatMultiplier: 1.52,
+    eliteChanceMultiplier: 1.55,
+    abilityIntensity: 0.85,
+    abilityDamageMultiplier: 1.22,
+    abilityCooldownMultiplier: 0.8,
     compositionProgress: 0.72,
   },
   {
     floor: 100,
-    ordinaryEnemyHpMultiplier: 1.18,
-    ordinaryEnemyContactDamageMultiplier: 1.58,
-    ordinaryEnemySpeedMultiplier: 1.23,
-    spawnThreatMultiplier: 1.55,
-    eliteChanceMultiplier: 1.72,
-    abilityIntensity: 1,
-    abilityDamageMultiplier: 1.3,
-    abilityCooldownMultiplier: 0.72,
+    ordinaryEnemyHpMultiplier: 1.25,
+    ordinaryEnemyContactDamageMultiplier: 1.68,
+    ordinaryEnemySpeedMultiplier: 1.26,
+    spawnThreatMultiplier: 1.75,
+    eliteChanceMultiplier: 1.85,
+    abilityIntensity: 1.08,
+    abilityDamageMultiplier: 1.45,
+    abilityCooldownMultiplier: 0.7,
     compositionProgress: 0.9,
   },
   {
     floor: 1000,
-    ordinaryEnemyHpMultiplier: 1.5,
-    ordinaryEnemyContactDamageMultiplier: 2,
-    ordinaryEnemySpeedMultiplier: 1.38,
-    spawnThreatMultiplier: 2,
-    eliteChanceMultiplier: 2.15,
-    abilityIntensity: 1.2,
-    abilityDamageMultiplier: 1.6,
-    abilityCooldownMultiplier: 0.58,
+    ordinaryEnemyHpMultiplier: 1.65,
+    ordinaryEnemyContactDamageMultiplier: 2.2,
+    ordinaryEnemySpeedMultiplier: 1.42,
+    spawnThreatMultiplier: 2.3,
+    eliteChanceMultiplier: 2.35,
+    abilityIntensity: 1.3,
+    abilityDamageMultiplier: 1.8,
+    abilityCooldownMultiplier: 0.55,
     compositionProgress: 1,
   },
 ]
@@ -277,24 +282,26 @@ export function getFloorStatMultiplier(
   floorNumber: number,
   dungeon: DungeonDefinition = DEFAULT_DUNGEON_CONFIG,
 ): number {
+  const floor = Math.max(1, Math.floor(floorNumber))
   return getProgressiveFloorMultiplier(
-    floorNumber,
+    floor,
     dungeon.ordinaryEnemyStatScalingPerFloor,
     ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING,
     FLOOR_SCALING_BREAKPOINT,
-  )
+  ) * Math.pow(1 + ORDINARY_ENEMY_EXPONENTIAL_RATE, floor - 1)
 }
 
 export function getFloorContactDamageMultiplier(
   floorNumber: number,
   dungeon: DungeonDefinition = DEFAULT_DUNGEON_CONFIG,
 ): number {
+  const floor = Math.max(1, Math.floor(floorNumber))
   return getProgressiveFloorMultiplier(
-    floorNumber,
+    floor,
     dungeon.ordinaryEnemyContactDamageScalingPerFloor,
     ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING,
     FLOOR_SCALING_BREAKPOINT,
-  )
+  ) * Math.pow(1 + ORDINARY_ENEMY_CONTACT_EXPONENTIAL_RATE, floor - 1)
 }
 
 function getProgressiveFloorMultiplier(

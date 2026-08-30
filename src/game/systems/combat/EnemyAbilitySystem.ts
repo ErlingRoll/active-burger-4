@@ -5,6 +5,7 @@ import {
   type EnemyAbilityDefinition,
 } from '../../../content/enemies/EnemyAbilities'
 import {
+  getFloorStatMultiplier,
   getFloorDifficultyProfile,
 } from '../../../content/dungeons/Dungeons'
 import {
@@ -49,9 +50,11 @@ function getEnemyAbilityDamage(
   state: Readonly<GameState>,
 ): ReturnType<typeof createMonsterDamageProfile> {
   const profile = getFloorDifficultyProfile(state.run.floor ?? 1)
+  const floorStatMultiplier = getFloorStatMultiplier(state.run.floor ?? 1)
   return createMonsterDamageProfile(
     createDamageValues({
       [definition.damageType]: definition.damage *
+        floorStatMultiplier *
         profile.abilityDamageMultiplier,
     }),
     enemy,

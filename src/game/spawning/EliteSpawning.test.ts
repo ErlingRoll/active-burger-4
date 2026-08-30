@@ -77,11 +77,11 @@ describe('elite enemy spawning and rewards', () => {
     const [normal, hasted, giant] = game.state.enemies
     expect(hasted?.speed).toBeCloseTo(149.625)
     expect(hasted?.radius).toBe(18)
-    expect(hasted?.maxHp).toBe(20)
+    expect(hasted?.maxHp).toBe(25)
     expect(hasted?.xpReward).toBe(6)
     expect(giant?.speed).toBeCloseTo(86.4)
     expect(giant?.radius).toBe(27)
-    expect(giant?.maxHp).toBe(40)
+    expect(giant?.maxHp).toBe(50)
     expect(giant?.xpReward).toBe(8)
     expect(normal?.eliteModifier).toBeUndefined()
   })

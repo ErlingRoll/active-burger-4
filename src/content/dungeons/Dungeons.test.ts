@@ -6,6 +6,7 @@ import {
   createDungeonEncounterTimeline,
   getFloorStatMultiplier,
   getBossDamageMultiplier,
+  getFloorContactDamageMultiplier,
   getFloorDifficultyProfile,
   isDungeonMaxFloorUnlocked,
   resolveDungeonMaxFloor,
@@ -70,28 +71,33 @@ describe('default dungeon timeline foundation', () => {
     })
   })
 
-  it('uses a forgiving early stat curve with softer late-floor scaling', () => {
+  it('uses a smooth stat curve with gentle late-floor compounding', () => {
     expect(getFloorStatMultiplier(1)).toBe(1)
-    expect(getFloorStatMultiplier(3)).toBeCloseTo(1.6)
-    expect(getFloorStatMultiplier(5)).toBeCloseTo(2.2)
-    expect(getFloorStatMultiplier(10)).toBeCloseTo(3.1)
+    expect(getFloorStatMultiplier(3)).toBeCloseTo(1.6016, 4)
+    expect(getFloorStatMultiplier(5)).toBeCloseTo(2.2044, 4)
+    expect(getFloorStatMultiplier(10)).toBeCloseTo(3.114, 4)
+    expect(getFloorStatMultiplier(50)).toBeGreaterThan(10.3)
+    expect(getFloorContactDamageMultiplier(50)).toBeCloseTo(
+      getFloorStatMultiplier(50),
+      10,
+    )
 
     expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 1)).toEqual({
       maxHp: 100,
       contactDamage: 8,
     })
     expect(scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 3)).toMatchObject({
-      maxHp: 160,
+      maxHp: expect.closeTo(160.16, 2),
     })
     expect(
       scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 3).contactDamage,
-    ).toBeCloseTo(9.6)
+    ).toBeCloseTo(12.8128, 4)
     expect(
       scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).maxHp,
-    ).toBeCloseTo(220)
+    ).toBeCloseTo(220.4403, 4)
     expect(
       scaleOrdinaryEnemyStats({ maxHp: 100, contactDamage: 10 }, 5).contactDamage,
-    ).toBeCloseTo(11.2)
+    ).toBeCloseTo(17.6352, 4)
   })
 
   it('reduces damage from the first three floor bosses only', () => {
@@ -121,7 +127,7 @@ describe('default dungeon timeline foundation', () => {
     expect(floorOneHundred.spawnThreatMultiplier).toBeGreaterThan(
       floorTwenty.spawnThreatMultiplier,
     )
-    expect(getFloorDifficultyProfile(10_000).spawnThreatMultiplier).toBe(2)
-    expect(getFloorDifficultyProfile(10_000).abilityCooldownMultiplier).toBe(0.58)
+    expect(getFloorDifficultyProfile(10_000).spawnThreatMultiplier).toBe(2.3)
+    expect(getFloorDifficultyProfile(10_000).abilityCooldownMultiplier).toBe(0.55)
   })
 })

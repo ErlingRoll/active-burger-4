@@ -530,9 +530,9 @@ describe('Game', () => {
       x: 100,
       y: 25,
       radius: 18,
-      hp: 20,
-      maxHp: 20,
-      contactDamage: 4,
+      hp: 25,
+      maxHp: 25,
+      contactDamage: expect.closeTo(4.8, 10),
       xpReward: 4,
       targetId: game.state.player.id,
     })
