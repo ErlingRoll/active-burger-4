@@ -15,7 +15,7 @@ export interface XpBalance {
 
 const XP_LEVEL_ONE_THRESHOLD = 0
 const XP_LEVEL_TWO_REQUIREMENT = 12
-const XP_LEVEL_REQUIREMENT_GROWTH = 1.22
+const XP_LEVEL_REQUIREMENT_GROWTH = 1.16
 const XP_LEVEL_THRESHOLD_TABLE_SIZE = 100
 
 function buildLevelThresholds(maxLevel: number): readonly number[] {
@@ -33,8 +33,8 @@ function buildLevelThresholds(maxLevel: number): readonly number[] {
 }
 
 export const XP_BALANCE = {
-  // Level 1 starts at zero XP; later levels require roughly 20% more XP than
-  // before while retaining the existing 22% growth between levels.
+  // Level 1 starts at zero XP; later levels require meaningfully more XP while
+  // avoiding an excessive late-game wall.
   levelThresholds: buildLevelThresholds(XP_LEVEL_THRESHOLD_TABLE_SIZE),
   pickupRadius: 8,
   pickupAttractionRadius: 140,
@@ -46,8 +46,8 @@ export const XP_LEVEL_THRESHOLDS = XP_BALANCE.levelThresholds
 /**
  * Returns the cumulative XP needed to reach `level`.
  *
- * The table covers the conservative early-game curve. If later content pushes
- * past it, the same gentle exponential growth continues deterministically.
+ * The table covers the authored curve. If later content pushes past it, the
+ * same growth continues deterministically.
  */
 export function xpRequiredForLevel(
   level: number,
