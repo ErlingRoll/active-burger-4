@@ -942,62 +942,66 @@ function GameDashboard({
 }: GameDashboardProps) {
   return (
     <section className="dashboard game-dashboard" aria-labelledby="game-dashboard-title">
-      <div className="dashboard-panel game-dashboard-panel">
-        <header className="game-dashboard-hero">
-          <div className="game-dashboard-hero-copy">
-            <h2 id="game-dashboard-title">The dungeon is waiting.</h2>
-            <p>
-              Prepare your fighter, choose your risk, and descend farther than your last run.
-            </p>
-          </div>
-        </header>
-
-        <div className="game-dashboard-overview">
-          <dl className="game-dashboard-stats">
-            <div className="game-dashboard-stat game-dashboard-stat-essence">
-              <dt>Essence</dt>
-              <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
-              <span>Spend it on upgrades</span>
+      <div className="game-dashboard-layout">
+        <div className="dashboard-panel game-dashboard-panel">
+          <header className="game-dashboard-hero">
+            <div className="game-dashboard-hero-copy">
+              <h2 id="game-dashboard-title">The dungeon is waiting.</h2>
+              <p>
+                Prepare your fighter, choose your risk, and descend farther than your last run.
+              </p>
             </div>
-          </dl>
-          <button
-            className="game-dashboard-action game-dashboard-action-secondary"
-            type="button"
-            onClick={onOpenMetaProgression}
-          >
-            <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
-            <span>
-              <strong>Essence store</strong>
-              <small>Turn earned Essence into permanent XP gains.</small>
-            </span>
-            <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-          </button>
-        </div>
+          </header>
 
-        <section className="game-dashboard-actions" aria-labelledby="dashboard-actions-title">
-          <div className="game-dashboard-section-heading">
-            <h3 id="dashboard-actions-title">Game modes</h3>
-          </div>
-          <div className="game-dashboard-action-grid">
+          <div className="game-dashboard-overview">
+            <dl className="game-dashboard-stats">
+              <div className="game-dashboard-stat game-dashboard-stat-essence">
+                <dt>Essence</dt>
+                <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
+                <span>Spend it on upgrades</span>
+              </div>
+            </dl>
             <button
-              className="game-dashboard-action game-dashboard-action-primary"
+              className="game-dashboard-action game-dashboard-action-secondary"
               type="button"
-              onClick={onOpenRunSetup}
+              onClick={onOpenMetaProgression}
             >
-              <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
+              <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
               <span>
-                <strong>Prepare dungeon</strong>
-                <small>Configure your fighter and descend into the dungeon.</small>
+                <strong>Essence store</strong>
+                <small>Turn earned Essence into permanent XP gains.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
           </div>
-        </section>
-        <EssenceLeaderboard
-          accountId={accountId}
-          service={leaderboardService}
-          configurationError={leaderboardConfigurationError}
-        />
+
+          <section className="game-dashboard-actions" aria-labelledby="dashboard-actions-title">
+            <div className="game-dashboard-section-heading">
+              <h3 id="dashboard-actions-title">Game modes</h3>
+            </div>
+            <div className="game-dashboard-action-grid">
+              <button
+                className="game-dashboard-action game-dashboard-action-primary"
+                type="button"
+                onClick={onOpenRunSetup}
+              >
+                <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
+                <span>
+                  <strong>Prepare dungeon</strong>
+                  <small>Configure your fighter and descend into the dungeon.</small>
+                </span>
+                <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+        </div>
+        <aside className="dashboard-panel game-dashboard-sidebar">
+          <EssenceLeaderboard
+            accountId={accountId}
+            service={leaderboardService}
+            configurationError={leaderboardConfigurationError}
+          />
+        </aside>
       </div>
     </section>
   )
