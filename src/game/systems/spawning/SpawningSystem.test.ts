@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { getLevelMaxHpBonus } from '../../../content/progression/LevelScaling'
 import { createGame } from '../../Game'
+import { refreshPlayerDerivedStats } from '../../stats/DerivedStats'
 
 describe('ordinary enemy floor scaling', () => {
   it('scales HP and contact damage from authored stats per floor', () => {
@@ -72,5 +74,30 @@ describe('ordinary enemy floor scaling', () => {
       })
       expect(enemy?.contactDamage).toBeCloseTo(contactDamage)
     }
+  })
+
+  it('applies Glass World multipliers to the complete derived player stats', () => {
+    const game = createGame({
+      seed: 20260830,
+      worldModifierIds: ['glass-world'],
+    })
+
+    expect(game.state.player.baseStats).toMatchObject({
+      maxHp: 150,
+      attackDamage: 14,
+      attackSpeed: 1,
+      movementSpeed: 160,
+    })
+    expect(game.state.player.maxHp).toBeCloseTo(112.5)
+    expect(game.state.player.attackDamage).toBeCloseTo(15.4)
+    expect(game.state.player.attackSpeed).toBeCloseTo(1.1)
+    expect(game.state.player.movementSpeed).toBeCloseTo(168)
+
+    game.state.player.level = 100
+    refreshPlayerDerivedStats(game.state.player)
+
+    expect(game.state.player.maxHp).toBeCloseTo(
+      (150 + getLevelMaxHpBonus(100)) * 0.75,
+    )
   })
 })

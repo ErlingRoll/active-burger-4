@@ -19,43 +19,47 @@ export interface WorldModifierDefinition {
   readonly essenceRewardMultiplier: number
 }
 
+/** Later modifiers add less reward so stacking challenges stays sustainable. */
+export const WORLD_MODIFIER_REWARD_DIMINISHING_FACTOR = 0.75
+export const WORLD_MODIFIER_MAX_REWARD_MULTIPLIER = 1.5
+
 export const WORLD_MODIFIER_DEFINITIONS: Readonly<
   Record<WorldModifierId, WorldModifierDefinition>
 > = {
   swarming: {
     id: 'swarming',
     name: 'Swarming',
-    description: 'Enemy pressure is increased.',
+    description: 'Start with 35% more threat and gain 20% more threat over time.',
     difficulty: 2,
     essenceRewardMultiplier: 1.1,
   },
   juggernauts: {
     id: 'juggernauts',
     name: 'Juggernauts',
-    description: 'Ordinary enemies are tougher and more damaging, but slower.',
+    description: 'All non-boss enemies have 25% more health and 20% more contact damage, but move 10% slower.',
     difficulty: 3,
     essenceRewardMultiplier: 1.2,
   },
   'glass-world': {
     id: 'glass-world',
     name: 'Glass World',
-    description: 'Start with less health but stronger, faster attacks.',
-    difficulty: 4,
+    description: 'Maximum health is reduced by 25%; basic attacks fire 10% faster and deal 10% more damage.',
+    difficulty: 3,
     essenceRewardMultiplier: 1.15,
   },
   'elite-invasion': {
     id: 'elite-invasion',
     name: 'Elite Invasion',
-    description: 'Elites appear earlier and far more often.',
+    description: 'Elites start at 20 seconds and appear on 22% of normal spawns.',
     difficulty: 5,
-    essenceRewardMultiplier: 1.25,
+    essenceRewardMultiplier: 1.2,
   },
   'fast-start': {
     id: 'fast-start',
     name: 'Fast Start',
-    description: 'The first two minutes build threat much faster.',
+    description: 'For the first two minutes, threat builds 40% faster.',
     difficulty: 2,
-    essenceRewardMultiplier: 1.1,
+    essenceRewardMultiplier: 1.08,
   },
 }
 
@@ -89,7 +93,32 @@ export function normalizeWorldModifierIds(
 export function getWorldModifierDefinitions(
   ids: readonly WorldModifierId[],
 ): readonly WorldModifierDefinition[] {
-  return ids.map((id) => WORLD_MODIFIER_DEFINITIONS[id])
+  return ids
+    .map((id) => WORLD_MODIFIER_DEFINITIONS[id])
+    .sort((left, right) => {
+      const difficultyDelta = left.difficulty - right.difficulty
+      if (difficultyDelta !== 0) {
+        return difficultyDelta
+      }
+      return WORLD_MODIFIER_IDS.indexOf(left.id) - WORLD_MODIFIER_IDS.indexOf(right.id)
+    })
+}
+
+export function calculateWorldModifierRewardMultiplier(
+  ids: readonly unknown[] | undefined,
+): number {
+  return Math.min(
+    WORLD_MODIFIER_MAX_REWARD_MULTIPLIER,
+    getWorldModifierDefinitions(normalizeWorldModifierIds(ids)).reduce(
+      (total, definition, index) =>
+        total * (
+          1 +
+          (definition.essenceRewardMultiplier - 1) *
+            Math.pow(WORLD_MODIFIER_REWARD_DIMINISHING_FACTOR, index)
+        ),
+      1,
+    ),
+  )
 }
 
 export function resolveWorldModifierEffects(
@@ -108,12 +137,9 @@ export function resolveWorldModifierEffects(
   return {
     ids: normalizedIds,
     difficulty: definitions.reduce((total, definition) => total + definition.difficulty, 0),
-    essenceRewardMultiplier: definitions.reduce(
-      (total, definition) => total * definition.essenceRewardMultiplier,
-      1,
-    ),
+    essenceRewardMultiplier: calculateWorldModifierRewardMultiplier(normalizedIds),
     playerStatMultipliers: glassWorld
-      ? { maxHp: 0.65, attackDamage: 1.1, movementSpeed: 1.05 }
+      ? { maxHp: 0.75, attackDamage: 1.1, attackSpeed: 1.1, movementSpeed: 1.05 }
       : {},
     ordinaryEnemyMaxHpMultiplier: juggernauts ? 1.25 : 1,
     ordinaryEnemyContactDamageMultiplier: juggernauts ? 1.2 : 1,
@@ -122,7 +148,7 @@ export function resolveWorldModifierEffects(
       ...baseBalance,
       baseThreatPerSecond: baseBalance.baseThreatPerSecond * (swarming ? 1.35 : 1),
       threatGrowthPerMinute: baseBalance.threatGrowthPerMinute * (swarming ? 1.2 : 1),
-      eliteChance: eliteInvasion ? 0.25 : baseBalance.eliteChance,
+      eliteChance: eliteInvasion ? 0.22 : baseBalance.eliteChance,
       eliteStartTimeSeconds: Math.min(
         baseBalance.eliteStartTimeSeconds,
         eliteInvasion ? 20 : Number.POSITIVE_INFINITY,

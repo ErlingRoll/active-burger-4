@@ -34,6 +34,7 @@ import {
 import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
 import { GameCanvas } from './rendering/GameCanvas'
 import {
+  calculateWorldModifierRewardMultiplier,
   getWorldModifierDefinitions,
   normalizeWorldModifierIds,
   resolveWorldModifierEffects,
@@ -129,9 +130,8 @@ function createEssenceReceipt(result: RunResultSnapshot): EssenceReceipt {
   const modifiers = getWorldModifierDefinitions(
     normalizeWorldModifierIds(result.worldModifierIds),
   )
-  const modifierMultiplier = modifiers.reduce(
-    (total, modifier) => total * modifier.essenceRewardMultiplier,
-    1,
+  const modifierMultiplier = calculateWorldModifierRewardMultiplier(
+    result.worldModifierIds,
   )
   const calculation = calculateEssenceReward(
     result.level,
@@ -1089,6 +1089,9 @@ function RunSetupScreen({
             Difficulty {worldModifierEffects.difficulty} · Essence reward{' '}
             {worldModifierEffects.essenceRewardMultiplier.toFixed(2)}x
           </p>
+          <p className="world-modifier-summary">
+            Additional modifiers grant diminishing reward bonuses.
+          </p>
           <div className="dashboard-choice-list">
             {getWorldModifierDefinitions(
               normalizeWorldModifierIds(Object.keys(WORLD_MODIFIER_DEFINITIONS)),
@@ -1103,7 +1106,7 @@ function RunSetupScreen({
                   onClick={() => onToggleWorldModifier(modifier.id)}
                 >
                   <strong>{modifier.name} · +{modifier.difficulty}</strong>
-                  <span>{modifier.description} Reward {modifier.essenceRewardMultiplier.toFixed(2)}x</span>
+                  <span>{modifier.description} Reward {modifier.essenceRewardMultiplier.toFixed(2)}x alone</span>
                 </button>
               )
             })}

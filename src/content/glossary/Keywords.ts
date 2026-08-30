@@ -38,7 +38,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Poison',
     summary: 'Damage over time applied by a hit.',
     details:
-      'Each application creates a separate stack. Its damage and duration come from the source skill or modifier. Staff Poison lasts 4 seconds and deals 50% of the applying hit\'s physical and chaos damage per second.',
+      'Each application creates a separate stack. Its damage and duration come from the source skill or modifier.',
   },
   burning: {
     id: 'burning',

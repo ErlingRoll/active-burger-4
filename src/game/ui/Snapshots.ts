@@ -72,8 +72,7 @@ import type {
 } from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
 import type { KeywordId } from '../../content/glossary/Keywords'
-import { resolveWorldModifierEffects } from '../../content/modifiers/WorldModifiers'
-import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
+import { calculateWorldModifierRewardMultiplier } from '../../content/modifiers/WorldModifiers'
 import {
   getBossDefinition,
   type BossDefinitionId,
@@ -1514,10 +1513,9 @@ export function createUiSnapshot(
         dungeon.floorDurationSeconds,
     ),
   )
-  const worldModifierRewardMultiplier = resolveWorldModifierEffects(
+  const worldModifierRewardMultiplier = calculateWorldModifierRewardMultiplier(
     state.run.worldModifierIds,
-    SPAWN_BALANCE,
-  ).essenceRewardMultiplier
+  )
   const estimatedEssence = calculateEssenceReward(
     state.player.level,
     state.run.killCount,

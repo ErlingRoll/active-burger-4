@@ -1134,7 +1134,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <ul>
                           {item.modifiers.map((modifier, index) => (
                             <li key={`${modifier.sourceId}-${modifier.id}-${index}`}>
-                              {formatHudModifier(modifier)}
+                              {formatGearModifier(modifier)}
                             </li>
                           ))}
                         </ul>

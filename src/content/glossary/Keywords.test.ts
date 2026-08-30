@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { splitKeywordText } from './Keywords'
+import { KEYWORD_DEFINITIONS, splitKeywordText } from './Keywords'
 
 describe('keyword glossary text', () => {
+  it('keeps Poison details generic across applying skills and modifiers', () => {
+    expect(KEYWORD_DEFINITIONS.poison.details).toBe(
+      'Each application creates a separate stack. Its damage and duration come from the source skill or modifier.',
+    )
+  })
+
   it('finds mechanics inside generated option descriptions', () => {
     expect(
       splitKeywordText('Applies Chill and briefly freezes enemies.'),

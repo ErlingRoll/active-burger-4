@@ -56,6 +56,10 @@ import type {
   PlayerState,
 } from '../../state/GameState'
 import { projectPointToPlayerArena } from '../../../game-config/arena'
+import {
+  STAT_KEYS,
+  type StatModifier,
+} from '../../../content/stats/Stats'
 
 export interface WorldPosition {
   x: number
@@ -96,13 +100,28 @@ export function createInitialPlayerState(
       (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
     ),
   ]
-    const initialLevel = Number.isFinite(startingLevel)
-      ? getStartingLevelForRank(startingLevel - STARTING_LEVEL_BASE)
-      : STARTING_LEVEL_BASE
-    const baseMaxHp = playstyle.baseStats.maxHp * (playerStatMultipliers.maxHp ?? 1)
-    const maxHp = baseMaxHp + getLevelMaxHpBonus(initialLevel)
-    const movementSpeed = playstyle.baseStats.movementSpeed * (playerStatMultipliers.movementSpeed ?? 1)
-    const attackDamage = playstyle.baseStats.attackDamage * (playerStatMultipliers.attackDamage ?? 1)
+  const initialLevel = Number.isFinite(startingLevel)
+    ? getStartingLevelForRank(startingLevel - STARTING_LEVEL_BASE)
+    : STARTING_LEVEL_BASE
+  const getStatMultiplier = (stat: keyof typeof playerStatMultipliers): number =>
+    playerStatMultipliers[stat] ?? 1
+  const statModifiers: StatModifier[] = STAT_KEYS.flatMap((stat) => {
+    const multiplier = playerStatMultipliers[stat]
+    return multiplier !== undefined && Number.isFinite(multiplier) && multiplier > 0
+      ? [{
+          stat,
+          operation: 'multiply',
+          value: multiplier,
+          sourceId: `world-modifier:${stat}`,
+        }]
+      : []
+  })
+  const baseStats = { ...playstyle.baseStats }
+  const maxHp = (baseStats.maxHp + getLevelMaxHpBonus(initialLevel)) *
+    getStatMultiplier('maxHp')
+  const movementSpeed = baseStats.movementSpeed * getStatMultiplier('movementSpeed')
+  const attackDamage = baseStats.attackDamage * getStatMultiplier('attackDamage')
+  const attackSpeed = baseStats.attackSpeed * getStatMultiplier('attackSpeed')
   return {
     id,
     playstyleId,
@@ -118,7 +137,7 @@ export function createInitialPlayerState(
     xp: 0,
     movementSpeed,
     attackDamage,
-    attackSpeed: playstyle.baseStats.attackSpeed,
+    attackSpeed,
     attackCooldownRemaining: 0,
     meleeLeech: 0,
     whirlwindLeech: 0,
@@ -130,13 +149,8 @@ export function createInitialPlayerState(
     gearRarityFloor: Rarity.Common,
     pickupCollectionRangeMultiplier: 1,
     bossMagnetRemaining: 0,
-    baseStats: {
-      maxHp: baseMaxHp,
-      movementSpeed,
-      attackDamage,
-      attackSpeed: playstyle.baseStats.attackSpeed,
-    },
-    statModifiers: [],
+    baseStats,
+    statModifiers,
     equipment: {
       weapon: createEquippedItem(getItemDefinition(playstyle.startingWeaponItemId)),
     },

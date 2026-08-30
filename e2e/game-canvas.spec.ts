@@ -83,13 +83,23 @@ test('selects and persists world modifiers before starting a deterministic run',
   await signIn(page)
   await openRunSetup(page)
 
+  const modifierButtons = page
+    .getByRole('group', { name: 'World modifiers' })
+    .getByRole('button')
+  await expect(modifierButtons).toHaveText([
+    /Swarming.*\+2/,
+    /Fast Start.*\+2/,
+    /Juggernauts.*\+3/,
+    /Glass World.*\+3/,
+    /Elite Invasion.*\+5/,
+  ])
   const swarming = page.getByRole('button', { name: /swarming.*\+2/i })
   const eliteInvasion = page.getByRole('button', { name: /elite invasion.*\+5/i })
   await swarming.click()
   await eliteInvasion.click()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')
   await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('Difficulty 7 · Essence reward 1.38x')).toBeVisible()
+  await expect(page.getByText('Difficulty 7 · Essence reward 1.27x')).toBeVisible()
 
   await page.reload()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')

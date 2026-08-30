@@ -1893,27 +1893,48 @@ Examples:
 ## Swarming
 
 ```text
-Enemy spawn rate: +100%
-Enemy health: -25%
-Reward multiplier: increased
+Starting threat: +35%
+Threat growth: +20%
+Reward multiplier: 1.10x when selected alone
 ```
 
 ## Juggernauts
 
 ```text
-Enemy count: -40%
-Enemy health: +200%
-Elite rate: increased
+All non-boss enemy health: +25%
+All non-boss contact damage: +20%
+All non-boss movement speed: -10%
+Reward multiplier: 1.20x when selected alone
 ```
 
 ## Glass World
 
 ```text
-Player damage: +100%
-Enemy damage: +100%
+Player maximum health: -25%
+Basic attack speed: +10%
+Basic attack damage: +10%
+Reward multiplier: 1.15x when selected alone
 ```
 
-These should modify run configuration before simulation begins.
+## Elite Invasion
+
+```text
+Elite start time: 20 seconds
+Elite chance: 22% of normal spawns before floor scaling
+Reward multiplier: 1.20x when selected alone
+```
+
+## Fast Start
+
+```text
+Threat during the first 120 seconds: +40%
+Reward multiplier: 1.08x when selected alone
+```
+
+Modifiers are applied to the run configuration before simulation begins.
+Difficulty is ordered from low to high in the selection screen. Combining
+modifiers uses diminishing reward bonuses so stacking all modifiers does not
+produce an unbounded multiplicative reward.
 
 ---
 
