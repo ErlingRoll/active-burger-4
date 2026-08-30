@@ -1129,6 +1129,7 @@ export class Game {
     }
     this.gameState.run.floor = transition.toFloor
     this.gameState.run.floorStartedAt = this.gameState.time
+    healPlayer(this.gameState, this.gameState.player.maxHp, 'Entering new floor')
     this.transitionTo('playing')
   }
 

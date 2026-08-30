@@ -629,6 +629,26 @@ describe('Game', () => {
       expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
   })
 
+  it('heals the player to max HP when entering a new floor', () => {
+    const game = createGame({ seed: 20260832 })
+    const { maxHp } = game.state.player
+    game.state.player.hp = maxHp / 2
+    game.spawnStairs({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('floor-transition')
+    expect(game.state.player.hp).toBe(maxHp / 2)
+
+    for (let index = 0; index < 60; index += 1) {
+      game.update(FIXED_STEP_SECONDS)
+    }
+
+    expect(game.phase).toBe('playing')
+    expect(game.state.run.floor).toBe(2)
+    expect(game.state.player.hp).toBe(maxHp)
+  })
+
   it('activates a temporary long-range Magnet when a boss dies', () => {
     const game = createGame({ seed: 20260830 })
     const bossId = game.spawnBoss('stone-golem', { x: 320, y: 0 })
