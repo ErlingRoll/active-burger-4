@@ -20,7 +20,10 @@ import {
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
 import { getSkillDefinition } from '../content/skills/Skills'
-import type { GearSetId } from '../game-config/gear-sets'
+import {
+  normalizeGearSetId,
+  type GearSetId,
+} from '../game-config/gear-sets'
 import type { GearChoice } from '../game/equipment/GearChoices'
 import type {
   EquippedItemSnapshot,
@@ -81,9 +84,10 @@ function getProjectedGearSet(
   if (!set) {
     return undefined
   }
+  const equippedSetId = normalizeGearSetId(equipped?.setId)
   const equippedPieces = set.equippedPieces +
-    (equipped?.setId === itemSetId ? 0 : 1) -
-    (equipped?.setId && equipped.setId !== itemSetId ? 1 : 0)
+    (equippedSetId === itemSetId ? 0 : 1) -
+    (equippedSetId && equippedSetId !== itemSetId ? 1 : 0)
   return { set, equippedPieces }
 }
 

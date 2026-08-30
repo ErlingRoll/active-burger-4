@@ -6,7 +6,10 @@ import type {
   HealingPotionPickupState,
   PickupState,
 } from '../../state/GameState'
-import { refreshPlayerDerivedStats } from '../../stats/DerivedStats'
+import {
+  getDerivedPlayerStats,
+  refreshPlayerDerivedStats,
+} from '../../stats/DerivedStats'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
 const PICKUP_CONTACT_EPSILON = 1e-6
@@ -116,7 +119,11 @@ function collectPickup(
 }
 
 export function grantExperience(state: GameState, amount: number): number {
-  const experience = Number.isFinite(amount) ? Math.max(0, amount) : 0
+  const experience = Number.isFinite(amount)
+    ? Math.max(0, amount) * (
+        1 + Math.max(0, getDerivedPlayerStats(state.player).experienceGainPercent) / 100
+      )
+    : 0
   state.player.xp += experience
 
   let levelsGained = 0

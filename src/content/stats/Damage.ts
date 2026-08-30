@@ -35,6 +35,13 @@ export const DAMAGE_RESISTANCE_TYPES = [
   'chaos',
 ] as const satisfies readonly DamageResistanceType[]
 
+/** The resistance pools that directly reduce physical, elemental, and chaos damage. */
+export const PRIMARY_RESISTANCE_TYPES = [
+  'physical',
+  'elemental',
+  'chaos',
+] as const satisfies readonly DamageResistanceType[]
+
 export type DamageResistanceValues = { [K in DamageResistanceType]: number }
 export type PartialDamageResistanceValues = Partial<Record<DamageResistanceType, number>>
 

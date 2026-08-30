@@ -3,9 +3,11 @@ import { applyUpgrade } from '../systems/upgrades/UpgradeSystem'
 import { createGame } from '../Game'
 import {
   equipItem,
+  equipRolledItem,
   refreshMeleeLeech,
 } from './EquipmentState'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
+import { Rarity } from '../../content/rarity/Rarity'
 
 describe('equipment melee leech', () => {
   it('tracks gear melee leech separately from Whirlwind upgrade leech', () => {
@@ -44,21 +46,61 @@ describe('equipment attack range', () => {
 })
 
 describe('equipment gear sets', () => {
-  it('applies cumulative Giant set max HP bonuses at each threshold', () => {
+  it('applies cumulative Giant all-resistance bonuses at each threshold', () => {
     const game = createGame({ seed: 72 })
-    const baseMaxHp = getDerivedPlayerStats(game.state.player).maxHp
 
     equipItem(game.state.player, 'iron-cleaver')
     equipItem(game.state.player, 'watchers-helm')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 56) * 1.1)
+    expect(getDerivedPlayerStats(game.state.player).resistances).toMatchObject({
+      physical: 15,
+      elemental: 15,
+      chaos: 15,
+    })
 
     equipItem(game.state.player, 'bastion-plate')
     equipItem(game.state.player, 'swiftstride-boots')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 112) * 1.35)
+    expect(getDerivedPlayerStats(game.state.player).resistances).toMatchObject({
+      physical: 30,
+      elemental: 30,
+      chaos: 30,
+    })
 
     equipItem(game.state.player, 'duelists-band')
     equipItem(game.state.player, 'giants-amulet')
-    expect(getDerivedPlayerStats(game.state.player).maxHp).toBeCloseTo((baseMaxHp + 168) * 1.8)
+    expect(getDerivedPlayerStats(game.state.player).resistances).toMatchObject({
+      physical: 45,
+      elemental: 45,
+      chaos: 45,
+    })
+  })
+
+  it("applies cumulative Scholar's XP bonuses at each threshold", () => {
+    const scholarGame = createGame({ seed: 73 })
+    const scholarItems = [
+      'ritual-staff',
+      'helmet',
+      'armor',
+      'boots',
+      'ring',
+      'amulet',
+    ] as const
+    for (const [index, itemId] of scholarItems.entries()) {
+      equipRolledItem(
+        scholarGame.state.player,
+        itemId,
+        Rarity.Common,
+        [],
+        undefined,
+        'scholar',
+      )
+      if (index === 1) {
+        expect(getDerivedPlayerStats(scholarGame.state.player).experienceGainPercent).toBe(5)
+      } else if (index === 3) {
+        expect(getDerivedPlayerStats(scholarGame.state.player).experienceGainPercent).toBe(15)
+      } else if (index === 5) {
+        expect(getDerivedPlayerStats(scholarGame.state.player).experienceGainPercent).toBe(30)
+      }
+    }
   })
 
   it('applies Astral cooldown and Splintering projectile set bonuses', () => {

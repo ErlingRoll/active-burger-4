@@ -18,6 +18,7 @@ import {
   createDamageIncreaseValues,
   createDamageResistanceValues,
   createDamageValues,
+  PRIMARY_RESISTANCE_TYPES,
   type DamageIncreaseValues,
   type DamageResistanceValues,
   type DamageValues,
@@ -31,6 +32,7 @@ import {
 import {
   ALL_GEAR_SET_DEFINITIONS,
   getActiveGearSetBonuses,
+  normalizeGearSetId,
   type GearSetId,
 } from '../../game-config/gear-sets'
 import { getBasicAttackVariant } from '../../content/skills/Skills'
@@ -54,6 +56,7 @@ export interface PlayerStats extends StatValues {
   increasedHealing: number
   dotMultiplier: number
   frostStacksOnHit: number
+  experienceGainPercent: number
 }
 
 function directPlayerStats(player: Readonly<PlayerState>): CharacterStatValues {
@@ -122,6 +125,7 @@ interface AggregatedGearEffects {
   whirlwindLeech: number
   dotMultiplier: number
   frostStacksOnHit: number
+  experienceGainPercent: number
 }
 
 export function getEquippedGearSetPieceCounts(
@@ -129,7 +133,8 @@ export function getEquippedGearSetPieceCounts(
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): Readonly<Record<GearSetId, number>> {
   const counts: Record<GearSetId, number> = {
-    giants: 0,
+    scholar: 0,
+    giant: 0,
     astral: 0,
     splintering: 0,
   }
@@ -141,7 +146,9 @@ export function getEquippedGearSetPieceCounts(
     const definition = itemDefinitions.find(
       (candidate) => candidate.id === equipped.itemId,
     ) ?? getItemDefinition(equipped.itemId)
-    const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
+    const setId = normalizeGearSetId(equipped.setId) ??
+      definition.setId ??
+      getLegacyItemSetId(equipped.itemId)
     if (setId) {
       counts[setId] += 1
     }
@@ -175,6 +182,7 @@ function aggregateGearEffects(
     ),
     dotMultiplier: Math.max(0, player.dotMultiplier ?? 0),
     frostStacksOnHit: 0,
+    experienceGainPercent: 0,
   }
 
   for (const modifier of getItemModifiers(player, itemDefinitions)) {
@@ -270,6 +278,12 @@ function aggregateGearEffects(
         effects.cooldownReduction += bonus.value
       } else if (bonus.kind === 'extra-projectiles') {
         effects.globalExtraProjectiles += bonus.value
+      } else if (bonus.kind === 'experience-gain-percent') {
+        effects.experienceGainPercent += bonus.value
+      } else if (bonus.kind === 'all-resistances') {
+        for (const resistanceType of PRIMARY_RESISTANCE_TYPES) {
+          effects.resistances[resistanceType] += bonus.value
+        }
       }
     }
   }
@@ -324,6 +338,7 @@ export function getDerivedPlayerStats(
     dotMultiplier: Math.max(0, player.dotMultiplier ?? 0) +
       gearEffects.dotMultiplier,
     frostStacksOnHit: Math.max(0, gearEffects.frostStacksOnHit),
+    experienceGainPercent: Math.max(0, gearEffects.experienceGainPercent),
   }
 }
 

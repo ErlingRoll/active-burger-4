@@ -12,7 +12,10 @@ import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'
-import { updatePickups } from './systems/experience/ExperienceSystem'
+import {
+  grantExperience,
+  updatePickups,
+} from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
 import { getPlayerArenaBounds } from '../game-config/arena'
@@ -36,6 +39,31 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
 
     expect(game.state.player.xp).toBe(11)
+  })
+
+  it("applies the complete Scholar's set XP bonus to granted experience", () => {
+    const game = createGame({ seed: 114 })
+    for (const itemId of [
+      'ritual-staff',
+      'helmet',
+      'armor',
+      'boots',
+      'ring',
+      'amulet',
+    ] as const) {
+      equipRolledItem(
+        game.state.player,
+        itemId,
+        Rarity.Common,
+        [],
+        undefined,
+        'scholar',
+      )
+    }
+
+    grantExperience(game.state, 10)
+
+    expect(game.state.player.xp).toBe(13)
   })
 
   it('applies the purchased skill capacity to a new run', () => {

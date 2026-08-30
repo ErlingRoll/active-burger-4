@@ -32,6 +32,8 @@ import { Rarity } from '../rarity/Rarity'
 import {
   ALL_GEAR_SET_DEFINITIONS,
   getActiveGearSetBonuses,
+  isGearSetId,
+  normalizeGearSetId,
 } from '../../game-config/gear-sets'
 
 describe('initial gear content', () => {
@@ -88,6 +90,17 @@ describe('initial gear content', () => {
       expect(getActiveGearSetBonuses(set, 1)).toEqual([])
       expect(getActiveGearSetBonuses(set, 6)).toHaveLength(3)
     }
+  })
+
+  it("replaces Giant's with Scholar's and Giant's while preserving old set IDs", () => {
+    expect(ALL_GEAR_SET_DEFINITIONS.map((set) => set.id)).toEqual([
+      'scholar',
+      'giant',
+      'astral',
+      'splintering',
+    ])
+    expect(isGearSetId('giants')).toBe(false)
+    expect(normalizeGearSetId('giants')).toBe('giant')
   })
 
   it('combines a rolled set name with the generic gear type name', () => {

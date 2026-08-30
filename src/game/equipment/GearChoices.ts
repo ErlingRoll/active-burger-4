@@ -24,6 +24,7 @@ import {
 } from '../../content/rarity/Rarity'
 import {
   ALL_GEAR_SET_DEFINITIONS,
+  normalizeGearSetId,
   type GearSetId,
 } from '../../game-config/gear-sets'
 import type { RandomSource } from '../random/Random'
@@ -231,7 +232,9 @@ function eligibleUpgradeTargets(
       slot: slot as EquipmentSlot,
       rarity: equipped.rarity ?? definition.rarity,
       modifiers,
-      setId: equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId),
+      setId: normalizeGearSetId(equipped.setId) ??
+        definition.setId ??
+        getLegacyItemSetId(equipped.itemId),
     })
   }
   return choices

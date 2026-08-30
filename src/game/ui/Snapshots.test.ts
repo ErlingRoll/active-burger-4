@@ -642,6 +642,24 @@ describe('UI snapshots', () => {
     ).toBe(true)
   })
 
+  it('shows Giant set resistance bonuses as defence sources', () => {
+    const game = createGame({ seed: 81 })
+    equipItem(game.state.player, 'iron-cleaver')
+    equipItem(game.state.player, 'watchers-helm')
+
+    const physical = createUiSnapshot(game.state).characterStats.groups
+      .find((group) => group.id === 'defence')
+      ?.stats.find((stat) => stat.id === 'resistance-physical')
+
+    expect(physical).toMatchObject({
+      value: '15%',
+      uncappedValue: '15%',
+      sources: expect.arrayContaining([
+        expect.objectContaining({ label: "Giant's Set", value: '+15%' }),
+      ]),
+    })
+  })
+
   it('combines global and skill-specific modifiers for every acquired skill', () => {
     const game = createGame({ seed: 80 })
     game.state.player.skills = [

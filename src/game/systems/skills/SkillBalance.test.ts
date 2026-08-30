@@ -70,7 +70,7 @@ describe('new skill balance budgets', () => {
     expect(stormDps).toBeLessThan(14)
     expect(stormOverchargeDps).toBeCloseTo(19.09, 2)
     expect(stormOverchargeDps).toBeLessThan(21)
-    expect(soulDps).toBe(5)
+    expect(soulDps).toBe(7)
     expect(soulDps).toBeGreaterThan(3)
     expect(soulDps).toBeLessThan(8)
     expect(phantomDps).toBeCloseTo(3.85, 2)

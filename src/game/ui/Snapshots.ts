@@ -85,6 +85,7 @@ import {
 import {
   ALL_GEAR_SET_DEFINITIONS,
   getActiveGearSetBonuses,
+  normalizeGearSetId,
   type GearSetId,
 } from '../../game-config/gear-sets'
 import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
@@ -98,6 +99,7 @@ import {
   getAverageCriticalStrikeFactor,
   getResistanceForDamageType,
   RESISTANCE_CAP,
+  PRIMARY_RESISTANCE_TYPES,
   sumDamageValues,
   type DamageIncreaseType,
   type DamageResistanceType,
@@ -825,11 +827,32 @@ function getResistanceSources(
     if (contribution === 0) {
       continue
     }
-    const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
+    const setId = normalizeGearSetId(equipped.setId) ??
+      definition.setId ??
+      getLegacyItemSetId(equipped.itemId)
     sources.push({
       label: getItemDisplayName(definition, setId),
       value: formatSignedPercent(contribution),
     })
+  }
+
+  const gearSetPieceCounts = getEquippedGearSetPieceCounts(player)
+  for (const set of ALL_GEAR_SET_DEFINITIONS) {
+    const contribution = getActiveGearSetBonuses(
+      set,
+      gearSetPieceCounts[set.id],
+    )
+      .filter((bonus) => bonus.kind === 'all-resistances')
+      .reduce((total, bonus) => total + bonus.value, 0)
+    if (
+      contribution > 0 &&
+      PRIMARY_RESISTANCE_TYPES.some((type) => contributingTypes.includes(type))
+    ) {
+      sources.push({
+        label: `${set.name} Set`,
+        value: formatSignedPercent(contribution),
+      })
+    }
   }
 
   return sources
@@ -1388,7 +1411,9 @@ export function createUiSnapshot(
         return []
       }
       const definition = getItemDefinition(equipped.itemId)
-      const setId = equipped.setId ?? definition.setId ?? getLegacyItemSetId(equipped.itemId)
+      const setId = normalizeGearSetId(equipped.setId) ??
+        definition.setId ??
+        getLegacyItemSetId(equipped.itemId)
       const modifiers = Object.freeze(
         (equipped.modifiers ?? definition.modifiers).map((modifier) =>
           Object.freeze({ ...modifier }),

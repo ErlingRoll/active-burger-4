@@ -1,11 +1,13 @@
 import { EquipmentSlot } from '../content/gear/EquipmentSlots'
 
-export type GearSetId = 'giants' | 'astral' | 'splintering'
+export type GearSetId = 'scholar' | 'giant' | 'astral' | 'splintering'
 
 export type GearSetBonusKind =
   | 'max-hp-percent'
   | 'cooldown-reduction'
   | 'extra-projectiles'
+  | 'experience-gain-percent'
+  | 'all-resistances'
 
 export interface GearSetBonus {
   requiredPieces: 2 | 4 | 6
@@ -22,8 +24,25 @@ export interface GearSetDefinition {
 }
 
 export const GEAR_SET_DEFINITIONS = {
-  giants: {
-    id: 'giants',
+  scholar: {
+    id: 'scholar',
+    name: "Scholar's",
+    slots: [
+      EquipmentSlot.Weapon,
+      EquipmentSlot.Helmet,
+      EquipmentSlot.Armor,
+      EquipmentSlot.Boots,
+      EquipmentSlot.Ring,
+      EquipmentSlot.Amulet,
+    ],
+    bonuses: [
+      { requiredPieces: 2, kind: 'experience-gain-percent', value: 5, label: '+5% XP gained' },
+      { requiredPieces: 4, kind: 'experience-gain-percent', value: 10, label: '+10% XP gained' },
+      { requiredPieces: 6, kind: 'experience-gain-percent', value: 15, label: '+15% XP gained' },
+    ],
+  },
+  giant: {
+    id: 'giant',
     name: "Giant's",
     slots: [
       EquipmentSlot.Weapon,
@@ -34,9 +53,9 @@ export const GEAR_SET_DEFINITIONS = {
       EquipmentSlot.Amulet,
     ],
     bonuses: [
-      { requiredPieces: 2, kind: 'max-hp-percent', value: 10, label: '+10% Max HP' },
-      { requiredPieces: 4, kind: 'max-hp-percent', value: 25, label: '+25% Max HP' },
-      { requiredPieces: 6, kind: 'max-hp-percent', value: 45, label: '+45% Max HP' },
+      { requiredPieces: 2, kind: 'all-resistances', value: 15, label: '+15% all resistances' },
+      { requiredPieces: 4, kind: 'all-resistances', value: 15, label: '+15% all resistances' },
+      { requiredPieces: 6, kind: 'all-resistances', value: 15, label: '+15% all resistances' },
     ],
   },
   astral: {
@@ -81,6 +100,14 @@ export const ALL_GEAR_SET_DEFINITIONS: readonly GearSetDefinition[] =
 export function isGearSetId(value: unknown): value is GearSetId {
   return typeof value === 'string' &&
     ALL_GEAR_SET_DEFINITIONS.some((set) => set.id === value)
+}
+
+/** Normalizes the legacy `giants` ID to the current Giant's set. */
+export function normalizeGearSetId(value: unknown): GearSetId | undefined {
+  if (value === 'giants') {
+    return 'giant'
+  }
+  return isGearSetId(value) ? value : undefined
 }
 
 export function getGearSetDefinition(setId: GearSetId): GearSetDefinition {

@@ -130,7 +130,7 @@ Or:
 Heal 2% max HP plus 2 flat HP
 ```
 
-This allows a high-HP Giant's build to become a genuine defensive archetype.
+This allows a high-resistance Giant's build to become a genuine defensive archetype.
 
 Vitality could also grant a passive effect while equipped:
 
@@ -419,19 +419,36 @@ This creates a mobile melee build rather than another stationary AoE build.
 
 The current sets should have different strategic profiles.
 
-## Giant's
+## Scholar's
 
-Current identity: max HP.
+Current identity: experience acceleration.
 
-Improve it with defensive conversion:
+Keep the bonuses simple and useful for players who want to reach level-up
+choices faster:
 
 ```text
-2 pieces: +10% max HP
-4 pieces: +20% max HP, healing effectiveness based on missing HP
-6 pieces: +35% max HP, gain 1% damage reduction per 500 bonus HP
+2 pieces: +5% XP gained
+4 pieces: +10% XP gained
+6 pieces: +15% XP gained
 ```
 
-Avoid making the six-piece bonus simply another huge raw HP multiplier.
+The thresholds are cumulative, so a complete set grants +30% XP.
+
+## Giant's
+
+Current identity: broad damage mitigation.
+
+Give the set a clear defensive profile without adding another max-HP-only
+build:
+
+```text
+2 pieces: +15% physical, elemental, and chaos resistance
+4 pieces: +15% physical, elemental, and chaos resistance
+6 pieces: +15% physical, elemental, and chaos resistance
+```
+
+The resistance cap still applies, and a complete set grants +45% to each
+primary resistance pool.
 
 ## Astral
 

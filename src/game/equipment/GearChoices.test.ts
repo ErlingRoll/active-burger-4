@@ -207,7 +207,7 @@ describe('gear choices', () => {
 
   it('rolls a set assignment independently for each generated item', () => {
     const game = createGame({ seed: 405 })
-    const giantsRoll = {
+    const scholarRoll = {
       next: () => 0,
       int: (min: number) => min,
       chance: () => false,
@@ -220,18 +220,18 @@ describe('gear choices', () => {
       pick: <T>(items: readonly T[]) => items[items.length - 1] as T,
     }
 
-    const giantsChoice = generateGearChoices(game.state, 1, giantsRoll)[0]
+    const scholarChoice = generateGearChoices(game.state, 1, scholarRoll)[0]
     const splinteringChoice = generateGearChoices(game.state, 1, splinteringRoll)[0]
 
-    expect(giantsChoice).toMatchObject({
+    expect(scholarChoice).toMatchObject({
       type: 'gear',
-      setId: 'giants',
+      setId: 'scholar',
     })
     expect(splinteringChoice).toMatchObject({
       type: 'gear',
       setId: 'splintering',
     })
-    expect(giantsChoice?.type === 'gear' ? giantsChoice.itemId : undefined).toBe(
+    expect(scholarChoice?.type === 'gear' ? scholarChoice.itemId : undefined).toBe(
       splinteringChoice?.type === 'gear' ? splinteringChoice.itemId : undefined,
     )
   })

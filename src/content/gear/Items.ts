@@ -216,15 +216,15 @@ interface LegacyItemAlias {
 }
 
 const LEGACY_ITEM_ID_ALIASES: Readonly<Record<string, LegacyItemAlias>> = {
-  'iron-cleaver': { itemId: 'iron-cleaver', setId: 'giants' },
+  'iron-cleaver': { itemId: 'iron-cleaver', setId: 'giant' },
   'hunters-bow': { itemId: 'hunters-bow', setId: 'splintering' },
   'starcall-wand': { itemId: 'starcall-wand', setId: 'astral' },
-  'watchers-helm': { itemId: 'helmet', setId: 'giants' },
-  'bastion-plate': { itemId: 'armor', setId: 'giants' },
-  'swiftstride-boots': { itemId: 'boots', setId: 'giants' },
-  'duelists-band': { itemId: 'ring', setId: 'giants' },
+  'watchers-helm': { itemId: 'helmet', setId: 'giant' },
+  'bastion-plate': { itemId: 'armor', setId: 'giant' },
+  'swiftstride-boots': { itemId: 'boots', setId: 'giant' },
+  'duelists-band': { itemId: 'ring', setId: 'giant' },
   'starcaller-amulet': { itemId: 'amulet', setId: 'astral' },
-  'giants-amulet': { itemId: 'amulet', setId: 'giants' },
+  'giants-amulet': { itemId: 'amulet', setId: 'giant' },
   'astral-helm': { itemId: 'helmet', setId: 'astral' },
   'astral-raiment': { itemId: 'armor', setId: 'astral' },
   'astral-sabatons': { itemId: 'boots', setId: 'astral' },

@@ -1222,7 +1222,13 @@ function validateGearSets(
         errors.push(`${bonusPath}.requiredPieces must be strictly increasing.`)
       }
       previousPieces = bonus.requiredPieces
-      if (!['max-hp-percent', 'cooldown-reduction', 'extra-projectiles'].includes(bonus.kind)) {
+      if (![
+        'max-hp-percent',
+        'cooldown-reduction',
+        'extra-projectiles',
+        'experience-gain-percent',
+        'all-resistances',
+      ].includes(bonus.kind)) {
         errors.push(`${bonusPath}.kind is not supported; received "${String(bonus.kind)}".`)
       }
       if (!Number.isFinite(bonus.value) || bonus.value <= 0) {
