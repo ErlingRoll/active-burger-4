@@ -414,7 +414,7 @@ describe('UI snapshots', () => {
     expect(raiseSkeleton?.skillModifiers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'summon-damage', value: '6' }),
-        expect.objectContaining({ id: 'summon-max-hp', value: '10' }),
+        expect.objectContaining({ id: 'summon-max-hp', value: '30' }),
         expect.objectContaining({ id: 'summon-attack-speed', value: '1 atk/s' }),
         expect.objectContaining({ id: 'summon-max-count', value: '1' }),
       ]),

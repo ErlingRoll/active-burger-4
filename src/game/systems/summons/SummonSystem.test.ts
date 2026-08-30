@@ -1,10 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { createGame } from '../../Game'
 import { collectSkillDamage } from '../skills/SkillSystem'
-import { getSkeletonStats, removeDeadSummons, updateSummons } from './SummonSystem'
+import {
+  collectEnemyContactDamage,
+} from '../combat/CombatSystem'
+import {
+  getSkeletonStats,
+  removeDeadSummons,
+  updateSummons,
+} from './SummonSystem'
 import { createEntityIdAllocator } from '../../ids'
 import { applyUpgrade } from '../upgrades/UpgradeSystem'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
+import {
+  getFloorDifficultyProfile,
+  getFloorStatMultiplier,
+} from '../../../content/dungeons/Dungeons'
 
 describe('updateSummons', () => {
   it('has the Necromancer starter skeleton attack the nearest in-range enemy deterministically', () => {
@@ -49,7 +60,7 @@ describe('updateSummons', () => {
 
     expect(stats).toMatchObject({
       damage: 6.48,
-      maxHp: 15,
+      maxHp: 35,
       maximum: 2,
       attackCooldown: 1,
       attackRange: 70,
@@ -70,6 +81,35 @@ describe('updateSummons', () => {
     raiseSkeleton.cooldownRemaining = 0
     collectSkillDamage(game.state, allocator)
     expect(game.state.summons).toHaveLength(2)
+  })
+
+  it('scales persistent skeleton durability with the ordinary enemy HP curve', () => {
+    const game = createGame({ seed: 18, playstyleId: 'necromancer' })
+    game.state.run.floor = 20
+
+    const expectedMaxHp = 30 *
+      getFloorStatMultiplier(20) *
+      getFloorDifficultyProfile(20).ordinaryEnemyHpMultiplier
+
+    expect(getSkeletonStats(game.state)?.maxHp).toBeCloseTo(expectedMaxHp)
+  })
+
+  it('does not emit a duplicate contact hit for a skeleton', () => {
+    const game = createGame({ seed: 19, playstyleId: 'necromancer' })
+    const allocator = createEntityIdAllocator()
+    collectSkillDamage(game.state, allocator)
+    const summon = game.state.summons[0]!
+    summon.x = 50
+    summon.y = 0
+    game.spawnSlime({ x: 50, y: 0 })
+
+    const contactEvents = collectEnemyContactDamage(game.state, 1 / 60)
+    const summonEvents = updateSummons(game.state, 1 / 60, allocator)
+
+    expect(contactEvents.filter((event) => event.targetId === summon.id))
+      .toHaveLength(1)
+    expect(summonEvents.filter((event) => event.targetId === summon.id))
+      .toEqual([])
   })
 
   it('keeps one skeleton by default and only raises the cap through repeatable upgrades', () => {

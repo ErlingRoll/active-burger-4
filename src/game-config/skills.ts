@@ -273,7 +273,7 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: {},
     summonBaseDamage: 6,
     summonDamageIncreasePercentPerLevel: 8,
-    summonBaseMaxHp: 10,
+    summonBaseMaxHp: 30,
     summonMaxHpPerLevel: 5,
     summonAttackCooldown: 1,
     summonAttackRange: 70,

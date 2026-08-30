@@ -456,6 +456,7 @@ function getSkillModifierSummaries(
   vitalityMaxHpHealingPercent = 0,
   vitalityLowHpHealingMultiplier = 1,
   skeletonAttackCooldown: number | undefined = undefined,
+  skeletonMaxHp: number | undefined = undefined,
 ): readonly SkillModifierSummarySnapshot[] {
   const summaries: SkillModifierSummarySnapshot[] = []
   const addSummary = (
@@ -641,15 +642,14 @@ function getSkillModifierSummaries(
         skeletonDamage,
         formatStatNumber(skeletonDamage),
       )
+      const effectiveSkeletonMaxHp = skeletonMaxHp ??
+        (definition.summonBaseMaxHp ?? 0) +
+        (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skillLevel - 1)
       addSummary(
         'summon-max-hp',
         'Skeleton max HP',
-        (definition.summonBaseMaxHp ?? 0) +
-          (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skillLevel - 1),
-        formatStatNumber(
-          (definition.summonBaseMaxHp ?? 0) +
-            (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skillLevel - 1),
-        ),
+        effectiveSkeletonMaxHp,
+        formatStatNumber(effectiveSkeletonMaxHp),
       )
       addSummary(
         'summon-attack-speed',
@@ -1223,6 +1223,7 @@ export function createUiSnapshot(
       state.player.vitalityMaxHpHealingPercent ?? 0,
       state.player.vitalityLowHpHealingMultiplier ?? 1,
       skeletonStats?.attackCooldown,
+      skeletonStats?.maxHp,
     )
     const gearModifiers = summarizeGearModifiers(EQUIPMENT_SLOTS.flatMap((slot) => {
       const equipped = state.player.equipment?.[slot]

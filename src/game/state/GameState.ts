@@ -510,6 +510,7 @@ export interface SummonState {
   swarmPauseDuration?: number
   hp: number
   maxHp: number
+  /** Retained for compatibility; enemy contact cooldowns are owned by EnemyState. */
   contactCooldownRemaining: number
   attackCooldownRemaining: number
   /** Seconds remaining before a temporary summon automatically expires. */

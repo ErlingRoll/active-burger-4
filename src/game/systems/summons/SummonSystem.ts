@@ -28,6 +28,10 @@ import {
   getPlayerArenaBounds,
 } from '../../../game-config/arena'
 import {
+  getFloorDifficultyProfile,
+  getFloorStatMultiplier,
+} from '../../../content/dungeons/Dungeons'
+import {
   PHANTOM_ARSENAL_DURATION_SECONDS,
   PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT,
   PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
@@ -35,7 +39,6 @@ import {
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
 } from '../../../game-config/skills'
 
-const SUMMON_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 const SUMMON_AGGRO_RANGE = 560
 const SUMMON_MOVEMENT_SPEED = 180
 const SUMMON_RADIUS = 16
@@ -111,6 +114,26 @@ function getSummonDamage(
     }
   }
   return damage
+}
+
+function getSkeletonFloorMaxHpMultiplier(state: Readonly<GameState>): number {
+  const floor = state.run.floor ?? 1
+  return getFloorStatMultiplier(floor) *
+    getFloorDifficultyProfile(floor).ordinaryEnemyHpMultiplier
+}
+
+function getSummonMaxHp(
+  state: Readonly<GameState>,
+  skill: Readonly<SkillState>,
+  definition: ReturnType<typeof getSkillDefinition>,
+): number {
+  const authoredMaxHp = (definition.summonBaseMaxHp ?? 10) +
+    (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1)
+  const floorMultiplier = skill.skillId === RAISE_SKELETON_SKILL_ID
+    ? getSkeletonFloorMaxHpMultiplier(state)
+    : 1
+  return authoredMaxHp * floorMultiplier +
+    getSummonMaxHpBonus(state, skill.skillId)
 }
 
 function fractionalPart(value: number): number {
@@ -258,9 +281,7 @@ export function getSummonStats(
     (marksman ? 1 + PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT / 100 : 1)
   return {
     damage: getSummonDamage(state, skill),
-    maxHp: (definition.summonBaseMaxHp ?? 10) +
-      (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1) +
-      getSummonMaxHpBonus(state, skillId),
+    maxHp: getSummonMaxHp(state, skill, definition),
     attackCooldown: Math.max(
       0.1,
       (definition.summonAttackCooldown ?? 1) *
@@ -393,11 +414,6 @@ export function updateSummons(
       0,
       summon.attackCooldownRemaining - fixedStepSeconds,
     )
-    summon.contactCooldownRemaining = Math.max(
-      0,
-      summon.contactCooldownRemaining - fixedStepSeconds,
-    )
-
     const target = targets
       .map((enemy) => ({
         enemy,
@@ -416,25 +432,6 @@ export function updateSummons(
       moveInSwarm(summon, state.player.x, state.player.y, fixedStepSeconds)
     }
     clampSummonPosition(summon)
-
-    const contactTarget = targets.find((enemy) => {
-      const distance = Math.hypot(enemy.x - summon.x, enemy.y - summon.y)
-      return distance <= enemy.radius + 16
-    })
-    if (contactTarget && summon.contactCooldownRemaining <= 0) {
-      events.push({
-        sourceId: contactTarget.id,
-        targetId: summon.id,
-        damage: {
-          physical: contactTarget.contactDamage,
-          lightning: 0,
-          fire: 0,
-          cold: 0,
-          chaos: 0,
-        },
-      })
-      summon.contactCooldownRemaining = SUMMON_CONTACT_DAMAGE_INTERVAL_SECONDS
-    }
 
     if (summon.attackCooldownRemaining > 0) {
       return
