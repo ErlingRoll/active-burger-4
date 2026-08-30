@@ -14,6 +14,7 @@ import {
 import {
   equipItem,
   equipRolledItem,
+  rollItemUpgradeModifiers,
   upgradeEquippedItem,
 } from './EquipmentState'
 import { createUiSnapshot } from '../ui/Snapshots'
@@ -318,6 +319,27 @@ describe('gear choices', () => {
     const before = createUiSnapshot(game.state)
     const after = createUiSnapshot(game.state)
     expect(after.equipment.weapon).toEqual(before.equipment.weapon)
+  })
+
+  it('upgrades Chill on hit from two stacks to three stacks at Tier 1', () => {
+    const upgrade = rollItemUpgradeModifiers(
+      [createGearModifier('ring', 'frost-application', 2, 2)],
+      {
+        next: () => 0,
+        int: (min: number) => min,
+        chance: () => false,
+        pick: <T>(items: readonly T[]) => items[0] as T,
+      },
+    )
+
+    expect(upgrade).toMatchObject({
+      upgradedModifierId: 'frost-application',
+      fromTier: 2,
+      toTier: 1,
+      upgradedModifiers: [
+        { id: 'frost-application', tier: 1, value: 3 },
+      ],
+    })
   })
 
   it('offers upgrades only for equipped items with at least one modifier below Tier 1', () => {

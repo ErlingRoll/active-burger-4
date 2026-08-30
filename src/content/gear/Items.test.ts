@@ -108,6 +108,13 @@ describe('initial gear content', () => {
       4: { min: 2, max: 2 },
       5: { min: 2, max: 2 },
     })
+    expect(getGearModifierDefinition('frost-application').tiers).toEqual({
+      1: { min: 3, max: 3 },
+      2: { min: 2, max: 2 },
+      3: { min: 1, max: 1 },
+      4: { min: 1, max: 1 },
+      5: { min: 1, max: 1 },
+    })
     expect(
       getAvailableGearModifiersForSlot('weapon').some(
         (modifier) => modifier.id === 'crit-chance',

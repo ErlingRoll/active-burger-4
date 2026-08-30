@@ -840,6 +840,26 @@ describe('collectEnemyContactDamage', () => {
       expect(gameState.enemies[0]?.frozenRemainingDuration).toBe(0)
     })
 
+    it('freezes immediately when a Tier 1 gear Chill hit applies three stacks', () => {
+      const gameState = state([enemy(2, 100)])
+      equipRolledItem(
+        gameState.player,
+        'ring',
+        'common',
+        [createGearModifier('ring', 'frost-application', 1, 3)],
+      )
+
+      applyDamageEvents(gameState, [{
+        sourceId: gameState.player.id,
+        sourceSkillId: BASIC_ATTACK_SKILL_ID,
+        targetId: 2,
+        damage: createDamageValues(),
+      }], neverCrit)
+
+      expect(gameState.enemies[0]?.frozenRemainingDuration).toBe(1)
+      expect(gameState.enemies[0]?.chillStacks).toBe(0)
+    })
+
     it('detonates Chain Lightning Shock at three stacks', () => {
       const gameState = state([enemy(2, 100)])
       const shockEvent = {

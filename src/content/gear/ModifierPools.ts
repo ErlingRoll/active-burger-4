@@ -355,7 +355,7 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     availableSlots: [EquipmentSlot.Weapon, EquipmentSlot.Ring, EquipmentSlot.Amulet],
     sortOrder: 68,
     tiers: defineTiers(
-      { min: 2, max: 2 },
+      { min: 3, max: 3 },
       { min: 2, max: 2 },
       { min: 1, max: 1 },
       { min: 1, max: 1 },
