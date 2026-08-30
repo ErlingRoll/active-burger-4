@@ -84,7 +84,7 @@ export function EssenceLeaderboard({
           <p className="screen-kicker">Global rankings</p>
           <h3 id="essence-leaderboard-title">Essence leaderboard</h3>
         </div>
-        <span>Top 10 players + your position</span>
+        <span>Top 10 players</span>
       </div>
       {loadState === 'loading' && entries.length === 0 ? (
         <p className="essence-leaderboard-message" role="status">Loading rankings…</p>

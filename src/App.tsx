@@ -953,7 +953,7 @@ function GameDashboard({
               <div className="game-dashboard-stat game-dashboard-stat-essence">
                 <dt>Essence</dt>
                 <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
-                <span>Spend it on upgrades</span>
+                <span>Glittering blue value</span>
               </div>
             </dl>
             <button
@@ -964,7 +964,7 @@ function GameDashboard({
               <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
               <span>
                 <strong>Essence store</strong>
-                <small>Turn earned Essence into permanent XP gains.</small>
+                <small>Turn Essence into permanent power.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
