@@ -1,5 +1,6 @@
 import {
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
+  DUNGEON_MAX_FLOOR_MAX_RANK,
   SKILL_SLOT_UNLOCK_CATEGORY,
   type MetaProgressionSnapshot,
   type MetaUnlockDefinition,
@@ -216,6 +217,9 @@ export function MetaProgressionScreen({
   const nextDungeonMaxFloorUpgradeState = nextDungeonMaxFloorUpgrade === null
     ? null
     : getDungeonMaxFloorUpgradeState(nextDungeonMaxFloorUpgrade, snapshot)
+  const nextDungeonMaxFloorRank = typeof nextDungeonMaxFloorUpgrade?.payload.rank === 'number'
+    ? nextDungeonMaxFloorUpgrade.payload.rank
+    : null
   const nextDungeonMaxFloorBonus =
     typeof nextDungeonMaxFloorUpgrade?.payload.maxFloorBonus === 'number'
       ? nextDungeonMaxFloorUpgrade.payload.maxFloorBonus
@@ -353,7 +357,9 @@ export function MetaProgressionScreen({
                 </button>
               </div>
             ) : null}
-            {nextDungeonMaxFloorUpgrade && nextDungeonMaxFloorUpgradeState ? (
+            {nextDungeonMaxFloorUpgrade &&
+            nextDungeonMaxFloorUpgradeState &&
+            nextDungeonMaxFloorRank !== null ? (
               <div className="dashboard-choice meta-unlock-card" key={nextDungeonMaxFloorUpgrade.id}>
                 <div className="meta-unlock-card-multiplier">
                   <span>Dungeon length</span>
@@ -361,7 +367,7 @@ export function MetaProgressionScreen({
                 </div>
                 <div className="meta-unlock-card-heading">
                   <strong>Deeper Dungeon</strong>
-                  <span>Rank {nextDungeonMaxFloorUpgrade.payload.rank} of 4</span>
+                  <span>Rank {nextDungeonMaxFloorRank} of {DUNGEON_MAX_FLOOR_MAX_RANK}</span>
                 </div>
                 <div className="meta-unlock-card-benefit">
                   <strong>+{nextDungeonMaxFloorBonus} maximum floors</strong>

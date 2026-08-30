@@ -44,11 +44,8 @@ import {
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
   RALLYING_STANDARD_HEAL_INTERVAL_SECONDS,
   RALLYING_STANDARD_EFFECT_RADIUS,
-  RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
-  RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
   RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS,
-  RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
   GRAVITY_WELL_BASE_PULL_DISTANCE,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
   GRAVITY_WELL_SINGULARITY_RADIUS_BONUS,
@@ -106,6 +103,11 @@ import {
   healSummon,
 } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import {
+  getRallyingStandardCooldownReductionPercent,
+  getRallyingStandardEffects,
+  syncRallyingStandardPlayerState,
+} from './RallyingStandard'
 import {
   summonSkeletonIfReady,
   summonPhantomIfReady,
@@ -181,13 +183,6 @@ export function updateSkillEffects(
   for (const effect of state.effects) {
     effect.remainingLifetime -= elapsed
     if (
-      effect.skillId === RALLYING_STANDARD_SKILL_ID &&
-      (state.player.rallyingStandardRemaining ?? 0) <= 0
-    ) {
-      effect.remainingLifetime = 0
-      continue
-    }
-    if (
       effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
       effect.periodicHealingAmount === undefined
     ) {
@@ -220,13 +215,8 @@ export function updateSkillEffects(
         RALLYING_STANDARD_HEAL_INTERVAL_SECONDS
     }
   }
-  state.effects = state.effects.filter((effect) =>
-    effect.remainingLifetime > 0 &&
-    (
-      effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
-      (state.player.rallyingStandardRemaining ?? 0) > 0
-    )
-  )
+  state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
+  syncRallyingStandardPlayerState(state)
 }
 
 function getSkillCooldown(
@@ -240,9 +230,7 @@ function getSkillCooldown(
     state.run.selectedUpgradeIds,
   )
   const rallyingStandardCooldownReduction =
-    (state.player.rallyingStandardRemaining ?? 0) > 0
-      ? state.player.rallyingStandardCooldownReductionPercent ?? 0
-      : 0
+    getRallyingStandardCooldownReductionPercent(state)
   return getEffectiveSkillCooldown(
     baseCooldown,
     playerStats.cooldownReduction +
@@ -499,23 +487,23 @@ function collectVitalityHealing(
   )
   if (
     state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-standard') &&
-    (state.player.rallyingStandardRemaining ?? 0) > 0
+    getRallyingStandardEffects(state).length > 0
   ) {
-    const bannerRemaining = state.player.rallyingStandardRemaining ?? 0
-    const bannerExtension = Math.min(
-      2,
-      Math.max(0, RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS - bannerRemaining),
-    )
-    state.player.rallyingStandardRemaining =
-      bannerRemaining + bannerExtension
-    if (bannerExtension > 0) {
-      for (const effect of state.effects) {
-        if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
-          effect.remainingLifetime += bannerExtension
-          effect.lifetime += bannerExtension
-        }
+    for (const effect of getRallyingStandardEffects(state)) {
+      const bannerExtension = Math.min(
+        2,
+        Math.max(
+          0,
+          RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS -
+            effect.remainingLifetime,
+        ),
+      )
+      if (bannerExtension > 0) {
+        effect.remainingLifetime += bannerExtension
+        effect.lifetime += bannerExtension
       }
     }
+    syncRallyingStandardPlayerState(state)
   }
   if (
     state.run.selectedUpgradeIds.includes('synergy-vitality-aegis-pulse') &&
@@ -828,24 +816,11 @@ function collectRallyingStandardEffect(
 ): DamageEvent[] {
   const definition = getSkillDefinition(RALLYING_STANDARD_SKILL_ID)
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-standard-bulwark')
-  const commander = state.run.selectedUpgradeIds.includes('rallying-standard-commander')
   const healing = getSkillHealing(definition, skill.level)
-  // Rallying Standard is a single stationary effect. Recasting it replaces
-  // the previous placement instead of leaving old flags eligible for renewal.
-  state.effects = state.effects.filter(
-    (effect) => effect.skillId !== RALLYING_STANDARD_SKILL_ID,
-  )
   healPlayer(state, healing, definition.name, random)
 
   const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
     (bulwark ? RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS : 0)
-  state.player.rallyingStandardRemaining = duration
-  state.player.rallyingStandardDamageReductionPercent =
-    RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT +
-    (bulwark ? RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT : 0)
-  state.player.rallyingStandardCooldownReductionPercent = commander
-    ? RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT
-    : 0
   if (
     state.run.selectedUpgradeIds.includes(
       'synergy-raise-skeleton-rallying-standard',
@@ -869,6 +844,7 @@ function collectRallyingStandardEffect(
     undefined,
     healing,
   )
+  syncRallyingStandardPlayerState(state)
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
   return []
@@ -1357,18 +1333,12 @@ function collectStormRelayChainDamage(
   }
 
   if (events.length > 0) {
-    if (
-      wardedConduit &&
-      (state.player.rallyingStandardRemaining ?? 0) > 0
-    ) {
-      state.player.rallyingStandardRemaining =
-        (state.player.rallyingStandardRemaining ?? 0) + 0.25
-      for (const effect of state.effects) {
-        if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
-          effect.remainingLifetime += 0.25
-          effect.lifetime += 0.25
-        }
+    if (wardedConduit && getRallyingStandardEffects(state).length > 0) {
+      for (const effect of getRallyingStandardEffects(state)) {
+        effect.remainingLifetime += 0.25
+        effect.lifetime += 0.25
       }
+      syncRallyingStandardPlayerState(state)
     }
     addEffect(
       state,

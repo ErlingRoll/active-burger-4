@@ -38,6 +38,10 @@ import {
   PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS,
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
 } from '../../../game-config/skills'
+import {
+  getRallyingStandardCooldownReductionPercent,
+  isPlayerInRallyingStandard,
+} from '../skills/RallyingStandard'
 
 const SUMMON_AGGRO_RANGE = 560
 const SUMMON_MOVEMENT_SPEED = 180
@@ -71,7 +75,7 @@ function getSummonCountBonus(
     state.run.selectedUpgradeIds.includes(
       'synergy-raise-skeleton-rallying-standard',
     ) &&
-    (state.player.rallyingStandardRemaining ?? 0) > 0
+    isPlayerInRallyingStandard(state)
     ? 1
     : 0
   if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
@@ -271,9 +275,7 @@ export function getSummonStats(
   }
   const definition = getSkillDefinition(skillId)
   const rallyingStandardCooldownReduction =
-    (state.player.rallyingStandardRemaining ?? 0) > 0
-      ? state.player.rallyingStandardCooldownReductionPercent ?? 0
-      : 0
+    getRallyingStandardCooldownReductionPercent(state)
   const isPhantom = skillId === PHANTOM_ARSENAL_SKILL_ID
   const marksman = isPhantom &&
     state.run.selectedUpgradeIds.includes('phantom-arsenal-marksman')

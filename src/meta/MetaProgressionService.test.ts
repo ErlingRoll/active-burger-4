@@ -132,9 +132,16 @@ describe('dungeon maximum-floor unlock definitions', () => {
   })
 
   it('does not exceed the four-rank cap', () => {
-    const definition = dungeonMaxFloorUnlock('dungeon-max-floor-5', 5)
+    const definitions = Array.from(
+      { length: DUNGEON_MAX_FLOOR_MAX_RANK + 1 },
+      (_, index) => dungeonMaxFloorUnlock(
+        `dungeon-max-floor-${index + 1}`,
+        index + 1,
+      ),
+    )
+    const unlockedIds = definitions.map((definition) => definition.id)
 
-    expect(getDungeonMaxFloorRank([definition], [definition.id])).toBe(4)
-    expect(getDungeonMaxFloorBonus([definition], [definition.id])).toBe(20)
+    expect(getDungeonMaxFloorRank(definitions, unlockedIds)).toBe(4)
+    expect(getDungeonMaxFloorBonus(definitions, unlockedIds)).toBe(20)
   })
 })

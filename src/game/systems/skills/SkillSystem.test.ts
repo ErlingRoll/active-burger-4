@@ -26,7 +26,7 @@ import {
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
 } from '../../../game-config/skills'
-import { createGame } from '../../Game'
+import { createGame, FIXED_STEP_SECONDS } from '../../Game'
 import { equipItem, equipRolledItem } from '../../equipment/EquipmentState'
 import { Rarity } from '../../../content/rarity/Rarity'
 import {
@@ -48,6 +48,7 @@ import {
   removeDeadSummons,
   updateSummons,
 } from '../summons/SummonSystem'
+import { isPlayerInRallyingStandard } from './RallyingStandard'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -672,7 +673,7 @@ describe('skill system', () => {
       )
     })
 
-    it('replaces the previous placement when recast before it expires', () => {
+    it('allows overlapping placements with independent durations', () => {
       const game = createGame({ seed: 69 })
       game.state.player.skills = [{
         skillId: RALLYING_STANDARD_SKILL_ID,
@@ -681,11 +682,20 @@ describe('skill system', () => {
       }]
 
       collectSkillDamage(game.state, allocator)
+      const firstBanner = game.state.effects[0]!
       game.state.player.skills[0]!.cooldownRemaining = 0
+      game.state.player.x = RALLYING_STANDARD_EFFECT_RADIUS + 20
       collectSkillDamage(game.state, allocator)
 
+      expect(game.state.player.skills[0]?.castCount).toBe(2)
+      expect(game.state.effects).toHaveLength(2)
+      expect(game.state.effects.map((effect) => effect.x)).toEqual([0, 116])
+
+      firstBanner.remainingLifetime = 1
+      updateSkillEffects(game.state, 1)
+
       expect(game.state.effects).toHaveLength(1)
-      expect(game.state.effects[0]?.skillId).toBe(RALLYING_STANDARD_SKILL_ID)
+      expect(game.state.effects[0]?.x).toBe(116)
     })
 
     it('removes the banner effect when its active duration expires', () => {
@@ -700,6 +710,78 @@ describe('skill system', () => {
       updateSkillEffects(game.state, RALLYING_STANDARD_BASE_DURATION_SECONDS)
 
       expect(game.state.effects).toEqual([])
+    })
+
+    it('keeps overlapping banners independent during high-cooldown-reduction casts', () => {
+      const game = createGame({ seed: 72 })
+      game.state.player.skills = [{
+        skillId: RALLYING_STANDARD_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('rallying-standard-commander')
+      equipRolledItem(
+        game.state.player,
+        'starcall-wand',
+        Rarity.Rare,
+        [],
+        undefined,
+        'astral',
+      )
+      for (const itemId of ['helmet', 'armor', 'boots', 'ring', 'amulet']) {
+        equipRolledItem(
+          game.state.player,
+          itemId,
+          Rarity.Rare,
+          [],
+          undefined,
+          'astral',
+        )
+      }
+
+      let casts = 0
+      let previousCastCount = 0
+      let maximumBannerCount = 0
+      for (let tick = 0; tick < 60 * 30; tick += 1) {
+        game.update(FIXED_STEP_SECONDS)
+        const bannerCount = game.state.effects.filter(
+          (effect) => effect.skillId === RALLYING_STANDARD_SKILL_ID,
+        ).length
+        maximumBannerCount = Math.max(maximumBannerCount, bannerCount)
+        const castCount = game.state.player.skills[0]?.castCount ?? 0
+        if (castCount > previousCastCount) {
+          casts += castCount - previousCastCount
+          previousCastCount = castCount
+        }
+      }
+
+      expect(casts).toBeGreaterThan(3)
+      expect(maximumBannerCount).toBeGreaterThan(1)
+    })
+
+    it('does not stack defensive bonuses from overlapping banners', () => {
+      const game = createGame({ seed: 73 })
+      game.state.player.skills = [{
+        skillId: RALLYING_STANDARD_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('rallying-standard-bulwark')
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.player.rallyingStandardRemaining).toBe(10)
+      expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(25)
+      expect(isPlayerInRallyingStandard(game.state)).toBe(true)
+      applyDamageEvents(game.state, [{
+        sourceId: 2,
+        targetId: game.state.player.id,
+        damage: { physical: 100, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }])
+
+      expect(game.state.player.hp).toBe(game.state.player.maxHp - 55)
     })
 
     it("lets Commander's active cooldown reduction apply to every equipped skill", () => {
