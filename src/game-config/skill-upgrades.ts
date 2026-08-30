@@ -139,6 +139,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: '+1 Chill stack per Whirlwind hit',
     skillId: WHIRLWIND_SKILL_ID,
     branch: 'whirlwind-control',
+    evolutionTags: ['chill', 'freeze'],
     whirlwindFrostStacks: WHIRLWIND_FROST_STACKS,
     isEligible: (state) =>
       state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
@@ -154,6 +155,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: '+15% Whirlwind Guard damage reduction',
     skillId: WHIRLWIND_SKILL_ID,
     branch: 'whirlwind-guard',
+    evolutionTags: ['duration'],
     whirlwindGuardDamageReductionPercent: WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
@@ -164,7 +166,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     name: 'Barrage',
     description: 'Basic Attack fires 0.15 attacks per second faster.',
     category: 'skill',
-    rarity: Rarity.Uncommon,
+    rarity: Rarity.Rare,
     stat: 'attackSpeed',
     amount: 0.15,
     repeatable: true,
@@ -173,7 +175,6 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     ],
     valueLabel: '+0.15 Basic Attack attacks/sec',
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-barrage',
     isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
   },
   {
@@ -189,10 +190,8 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     ],
     valueLabel: `+${BASIC_ATTACK_RANGE_INCREASE} Basic Attack range`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-precision',
-    isEligible: (state) =>
-      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
-      !state.selectedUpgradeIds.includes('basic-attack-precision'),
+    repeatable: true,
+    isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
   },
   {
     id: 'magnet',
@@ -255,7 +254,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     name: 'Empowered Attack',
     description: `Increase Basic Attack damage by ${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
     category: 'skill',
-    rarity: Rarity.Common,
+    rarity: Rarity.Uncommon,
     amount: 1,
     valueLabel: `+${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}% Basic Attack damage`,
     skillId: BASIC_ATTACK_SKILL_ID,
@@ -326,6 +325,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}% Fiery Touch cooldown reduction`,
     skillId: FIERY_TOUCH_SKILL_ID,
     branch: 'fiery-touch-frequency',
+    evolutionTags: ['cooldown-reduction'],
     skillCooldownReductionPercent: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
     isEligible: (state) => state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID),
   },
@@ -410,6 +410,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: '+1 Chill stack per lightning hit',
     skillId: CHAIN_LIGHTNING_SKILL_ID,
     branch: 'chain-lightning-frost',
+    evolutionTags: ['chill'],
     chainLightningFrost: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
@@ -425,6 +426,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: 'Shock; 3 stacks detonate for 150% lightning damage',
     skillId: CHAIN_LIGHTNING_SKILL_ID,
     branch: 'chain-lightning-overload',
+    evolutionTags: ['shock', 'overload'],
     chainLightningOverload: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID) &&
@@ -468,6 +470,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+1 Chill stack, +${GLACIAL_ORB_PERMAFROST_RADIUS_BONUS} explosion radius`,
     skillId: GLACIAL_ORB_SKILL_ID,
     branch: 'glacial-orb-permafrost',
+    evolutionTags: ['chill'],
     glacialOrbFrostStacks: GLACIAL_ORB_PERMAFROST_FROST_STACKS,
     isEligible: (state) =>
       state.ownedSkillIds.includes(GLACIAL_ORB_SKILL_ID) &&
@@ -484,6 +487,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `Single-target, +${GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT}% vs Chilled/Frozen`,
     skillId: GLACIAL_ORB_SKILL_ID,
     branch: 'glacial-orb-ice-lance',
+    evolutionTags: ['chill', 'freeze'],
     glacialOrbIceLance: true,
     glacialOrbIceLanceDamageIncreasePercent: GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) =>
@@ -589,6 +593,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `${RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and skeleton cooldown reduction while active`,
     skillId: RALLYING_STANDARD_SKILL_ID,
     branch: 'rallying-standard-commander',
+    evolutionTags: ['cooldown-reduction'],
     rallyingStandardCommander: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
@@ -605,6 +610,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% damage reduction, +${RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS}s duration`,
     skillId: RALLYING_STANDARD_SKILL_ID,
     branch: 'rallying-standard-bulwark',
+    evolutionTags: ['duration'],
     rallyingStandardBulwark: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
@@ -649,6 +655,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${GRAVITY_WELL_SINGULARITY_PULL_BONUS} pull distance, +${GRAVITY_WELL_SINGULARITY_RADIUS_BONUS} radius, +1 Chill stack`,
     skillId: GRAVITY_WELL_SKILL_ID,
     branch: 'gravity-well-singularity',
+    evolutionTags: ['chill'],
     gravityWellSingularity: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(GRAVITY_WELL_SKILL_ID) &&
@@ -709,6 +716,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS} shield, +${AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS}s duration`,
     skillId: AEGIS_PULSE_SKILL_ID,
     branch: 'aegis-pulse-bulwark',
+    evolutionTags: ['duration'],
     aegisPulseBulwark: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&

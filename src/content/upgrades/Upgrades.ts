@@ -1,5 +1,6 @@
 import type { StatModifier, StatKey } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
+import type { KeywordId } from '../glossary/Keywords'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
 
@@ -70,8 +71,6 @@ export type UpgradeBranch =
   | 'raise-skeleton-guardian'
   | 'fiery-touch-frequency'
   | 'fiery-touch-ember'
-  | 'basic-attack-barrage'
-  | 'basic-attack-precision'
   | 'glacial-orb-permafrost'
   | 'glacial-orb-ice-lance'
   | 'lancers-charge-vanguard'
@@ -119,6 +118,8 @@ export interface UpgradeDefinition {
   skillId?: SkillId
   skillAction?: SkillUpgradeAction
   branch?: UpgradeBranch
+  /** Status or mechanic tags added or modified by a skill evolution. */
+  evolutionTags?: readonly KeywordId[]
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
   whirlwindLeechAmount?: number
   /** Additive pickup collection range increase per rank, expressed as a percent. */

@@ -100,6 +100,11 @@ describe('UI snapshots', () => {
     const basicUpgrades = snapshot.skills[0]?.upgrades ?? []
     expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-attack-level'))
       .toMatchObject({ relevant: true, status: 'acquired' })
+    expect(snapshot.skills[1]?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'whirlwind-frost',
+    )).toMatchObject({
+      evolutionTags: ['chill', 'freeze'],
+    })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
   })
@@ -163,6 +168,7 @@ describe('UI snapshots', () => {
     )).toMatchObject({
       valueLabel: '+12 shield, +2s duration',
       description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield.',
+      branch: 'aegis-pulse-bulwark',
     })
     expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)
   })

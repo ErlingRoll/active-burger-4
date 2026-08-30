@@ -827,16 +827,48 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </section>
                     ) : null}
-                    {skill.upgrades.some((upgrade) => upgrade.status === 'acquired') ? (
+                    {skill.upgrades.some((upgrade) =>
+                      upgrade.status === 'acquired' && upgrade.branch !== undefined,
+                    ) ? (
+                      <section className="skill-evolution-section" aria-label="Skill evolution">
+                        <p className="skill-upgrade-heading skill-evolution-heading">Evolution</p>
+                        <ul className="skill-evolution-list">
+                          {skill.upgrades
+                            .filter((upgrade) =>
+                              upgrade.status === 'acquired' && upgrade.branch !== undefined,
+                            )
+                            .map((upgrade) => (
+                              <li key={upgrade.upgradeId}>
+                                <strong>Evolve: {upgrade.name}</strong>
+                                <span>{upgrade.valueLabel}</span>
+                                {upgrade.evolutionTags && upgrade.evolutionTags.length > 0 ? (
+                                  <span className="skill-tag-list" aria-label="Evolution tags">
+                                    {upgrade.evolutionTags.map((tag) => (
+                                      <span className="skill-tag" key={tag}>
+                                        <KeywordText text={tag} />
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : null}
+                                <p><KeywordText text={upgrade.description} /></p>
+                              </li>
+                            ))}
+                        </ul>
+                      </section>
+                    ) : null}
+                    {skill.upgrades.some((upgrade) =>
+                      upgrade.status === 'acquired' && upgrade.branch === undefined,
+                    ) ? (
                       <>
                         <p className="skill-upgrade-heading">Upgrades</p>
                         <ul className="skill-upgrade-list">
                           {skill.upgrades
-                            .filter((upgrade) => upgrade.status === 'acquired')
+                            .filter((upgrade) =>
+                              upgrade.status === 'acquired' && upgrade.branch === undefined,
+                            )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>
                                 {upgrade.name} ({upgrade.valueLabel})
-                                {upgrade.branch ? ` [${upgrade.branch}]` : ''}
                               </li>
                             ))}
                         </ul>

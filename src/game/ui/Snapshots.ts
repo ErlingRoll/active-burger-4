@@ -65,6 +65,7 @@ import type {
   TelegraphState,
 } from '../state/GameState'
 import type { RunPhase } from '../state/RunPhase'
+import type { KeywordId } from '../../content/glossary/Keywords'
 import { resolveWorldModifierEffects } from '../../content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
 import {
@@ -151,6 +152,7 @@ export interface SkillUpgradeSnapshot {
   readonly relevant: true
   readonly status: SkillUpgradeStatus
   readonly branch?: UpgradeBranch
+  readonly evolutionTags?: readonly KeywordId[]
 }
 
 export interface SkillHudSnapshot {
@@ -1244,6 +1246,9 @@ export function createUiSnapshot(
           ),
           relevant: true as const,
           ...(upgrade.branch ? { branch: upgrade.branch } : {}),
+          ...(upgrade.evolutionTags
+            ? { evolutionTags: Object.freeze([...upgrade.evolutionTags]) }
+            : {}),
           status: acquired
             ? ('acquired' as const)
             : available

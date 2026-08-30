@@ -1685,6 +1685,41 @@
   font-weight: 700;
 }
 
+.skill-evolution-section {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(217 70 239 / 45%);
+}
+
+.skill-evolution-heading,
+.skill-evolution-list strong {
+  color: #f0abfc;
+}
+
+.skill-evolution-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-evolution-list li {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+}
+
+.skill-evolution-list span {
+  color: #e9d5ff;
+}
+
+.skill-evolution-list p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+}
+
 .skill-upgrade-list {
   display: grid;
   gap: 0.35rem;
@@ -2667,18 +2702,17 @@
   font-weight: 700;
 }
 
-.upgrade-skill-context {
-  color: #e2e8f0;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.upgrade-skill-context strong {
-  color: #94a3b8;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+.upgrade-action-label {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+.upgrade-action-label-evolve { color: #f0abfc; }
+.upgrade-action-label-unlock { color: #fb923c; }
+.upgrade-action-label-upgrade { color: #93c5fd; }
+.upgrade-action-label-release { color: #f87171; }
 
 .upgrade-skill-tags {
   display: flex;

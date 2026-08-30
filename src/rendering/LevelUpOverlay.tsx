@@ -430,11 +430,17 @@ function UpgradeCard({
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
     ? getSkillDefinition(choice.skillId)
     : undefined
-  const relatedSkill = removedSkill ??
-    (definition.skillId ? getSkillDefinition(definition.skillId) : undefined)
   const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
+  const actionLabel = removedSkill
+    ? 'Release'
+    : definition.branch
+      ? 'Evolve'
+      : definition.skillAction === 'unlock'
+        ? 'Unlock'
+        : 'Upgrade'
+  const actionLabelClass = `upgrade-action-label-${actionLabel.toLowerCase()}`
   return (
     <div className="choice-card-wrap">
       <button
@@ -454,18 +460,28 @@ function UpgradeCard({
           </span>
           <RarityBadge rarity={choice.rarity} />
         </span>
-        {relatedSkill ? (
-          <span className="upgrade-skill-context">
-            <strong>Skill:</strong>{' '}
-            <span aria-hidden="true">{relatedSkill.visual.icon}</span>{' '}
-            {relatedSkill.name}
+        <span className={`upgrade-action-label ${actionLabelClass}`}>
+          {actionLabel}
+        </span>
+        {!unlockedSkill ? (
+          <span className="upgrade-choice-value">
+            <KeywordText
+              text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+            />
           </span>
         ) : null}
-        <span className="upgrade-choice-value">
-          <KeywordText
-            text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
-          />
-        </span>
+        {definition.evolutionTags && definition.evolutionTags.length > 0 ? (
+          <span className="upgrade-skill-tags" aria-label="Evolution tags">
+            <span className="upgrade-skill-tags-label">Tags</span>
+            <span className="skill-tag-list upgrade-skill-tag-list" role="list">
+              {definition.evolutionTags.map((tag) => (
+                <span className="skill-tag" role="listitem" key={tag}>
+                  <KeywordText text={tag} />
+                </span>
+              ))}
+            </span>
+          </span>
+        ) : null}
         {unlockedSkill ? (
           <span className="upgrade-skill-tags" aria-label="Skill tags">
             <span className="upgrade-skill-tags-label">Tags</span>

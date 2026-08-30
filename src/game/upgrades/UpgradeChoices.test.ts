@@ -57,11 +57,17 @@ describe('upgrade choice generation', () => {
     expect(ids).not.toContain('whirlwind-unlock')
   })
 
-  it('removes Rapid Fire and keeps Barrage eligible after it is selected', () => {
+  it('keeps repeatable Basic Attack upgrades available after they are selected', () => {
     expect(INITIAL_UPGRADES.some((upgrade) => upgrade.name === 'Rapid Fire')).toBe(false)
 
     const barrage = getUpgrade('basic-attack-barrage')
+    const deadeye = getUpgrade('basic-attack-precision')
+    expect(barrage.rarity).toBe(Rarity.Rare)
+    expect(deadeye.rarity).toBe(Rarity.Rare)
     expect(barrage.repeatable).toBe(true)
+    expect(deadeye.repeatable).toBe(true)
+    expect(barrage.branch).toBeUndefined()
+    expect(deadeye.branch).toBeUndefined()
     expect(barrage.isEligible({
       playerLevel: 2,
       selectedUpgradeIds: ['basic-attack-barrage'],
@@ -69,6 +75,37 @@ describe('upgrade choice generation', () => {
       skillLevels: { [BASIC_ATTACK_SKILL_ID]: 1 },
       skillSlotCount: 6,
     })).toBe(true)
+    expect(deadeye.isEligible({
+     playerLevel: 2,
+     selectedUpgradeIds: ['basic-attack-precision'],
+     ownedSkillIds: [BASIC_ATTACK_SKILL_ID],
+     skillLevels: { [BASIC_ATTACK_SKILL_ID]: 1 },
+     skillSlotCount: 6,
+    })).toBe(true)
+  })
+
+  it('makes Empowered Attack an Uncommon upgrade', () => {
+    expect(getUpgrade('basic-attack-level').rarity).toBe(Rarity.Uncommon)
+  })
+
+  it('assigns glossary tags to evolutions with status or timing mechanics', () => {
+    const expectedTags = {
+      'whirlwind-frost': ['chill', 'freeze'],
+      'whirlwind-guard': ['duration'],
+      'fiery-touch-cooldown-reduction': ['cooldown-reduction'],
+      'chain-lightning-frost': ['chill'],
+      'chain-lightning-overload': ['shock', 'overload'],
+      'glacial-orb-permafrost': ['chill'],
+      'glacial-orb-ice-lance': ['chill', 'freeze'],
+      'rallying-standard-commander': ['cooldown-reduction'],
+      'rallying-standard-bulwark': ['duration'],
+      'gravity-well-singularity': ['chill'],
+      'aegis-pulse-bulwark': ['duration'],
+    } as const
+
+    for (const [upgradeId, tags] of Object.entries(expectedTags)) {
+      expect(getUpgrade(upgradeId).evolutionTags).toEqual(tags)
+    }
   })
 
   it('does not offer new skills when every skill slot is filled', () => {
