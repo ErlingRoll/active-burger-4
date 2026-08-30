@@ -16,7 +16,7 @@ import {
   getSkillDefinition,
   isSkillId,
   PHANTOM_ARSENAL_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   STORM_RELAY_SKILL_ID,
 } from '../content/skills/Skills'
@@ -593,7 +593,7 @@ export class PixiGame {
   }
 
   private createEffectPlaceholder(effect: SkillEffectState): Graphics {
-    if (effect.skillId === RALLYING_STANDARD_SKILL_ID) {
+    if (effect.skillId === RALLYING_BANNER_SKILL_ID) {
       return this.createRallyingFlagPlaceholder(effect)
     }
     if (effect.skillId === SOUL_TETHER_SKILL_ID && effect.shape === 'line') {
@@ -833,7 +833,7 @@ export class PixiGame {
   }
 
   private createRallyingFlagPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(RALLYING_STANDARD_SKILL_ID).visual
+    const visual = getSkillDefinition(RALLYING_BANNER_SKILL_ID).visual
     const radius = Math.max(1, effect.radius)
     const poleTop = -radius * 0.62
     const poleBottom = radius * 0.38

@@ -14,12 +14,12 @@ import {
   LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT,
   LANCERS_CHARGE_IMPALER_RANGE_BONUS,
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
-  RALLYING_STANDARD_SKILL_ID,
-  RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
-  RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
-  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
-  RALLYING_STANDARD_BASE_DURATION_SECONDS,
-  RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+  RALLYING_BANNER_SKILL_ID,
+  RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT,
+  RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
+  RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_BANNER_BASE_DURATION_SECONDS,
+  RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
   GRAVITY_WELL_SKILL_ID,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
   GRAVITY_WELL_SINGULARITY_RADIUS_BONUS,
@@ -74,7 +74,7 @@ const GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const GLACIAL_ORB_PERMAFROST_FROST_STACKS = 1
 const GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT = 40
 const LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
-const RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL = 2
+const RALLYING_BANNER_HEALING_INCREASE_PER_LEVEL = 2
 const GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT = 9
 const AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const RIFT_JAVELIN_LEVEL_DAMAGE_INCREASE_PERCENT = 9
@@ -579,66 +579,66 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('lancers-charge-vanguard'),
   },
   {
-    id: 'rallying-standard-unlock',
+    id: 'rallying-banner-unlock',
     name: 'Rallying Banner',
     description: 'Unlock a support banner that heals you immediately, then heals you and living summons inside it every second while active, while reducing incoming damage.',
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
     valueLabel: 'Unlock skill',
-    skillId: RALLYING_STANDARD_SKILL_ID,
+    skillId: RALLYING_BANNER_SKILL_ID,
     skillAction: 'unlock',
     isEligible: (state) =>
       state.ownedSkillIds.length < state.skillSlotCount &&
-      !state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
-      !state.selectedUpgradeIds.includes('rallying-standard-unlock'),
+      !state.ownedSkillIds.includes(RALLYING_BANNER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-banner-unlock'),
   },
   {
-    id: 'rallying-standard-level',
+    id: 'rallying-banner-level',
     name: 'Inspiring Banner',
-    description: `Increase Rallying Banner immediate and periodic healing by ${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP per heal.`,
+    description: `Increase Rallying Banner immediate and periodic healing by ${RALLYING_BANNER_HEALING_INCREASE_PER_LEVEL} HP per heal.`,
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
-    valueLabel: `+${RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL} HP to each Rallying Banner heal`,
-    skillId: RALLYING_STANDARD_SKILL_ID,
+    valueLabel: `+${RALLYING_BANNER_HEALING_INCREASE_PER_LEVEL} HP to each Rallying Banner heal`,
+    skillId: RALLYING_BANNER_SKILL_ID,
     skillAction: 'level',
-    skillHealingIncreaseAmount: RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL,
-    isEligible: (state) => (state.skillLevels[RALLYING_STANDARD_SKILL_ID] ?? 0) >= 1,
+    skillHealingIncreaseAmount: RALLYING_BANNER_HEALING_INCREASE_PER_LEVEL,
+    isEligible: (state) => (state.skillLevels[RALLYING_BANNER_SKILL_ID] ?? 0) >= 1,
   },
   {
-    id: 'rallying-standard-commander',
+    id: 'rallying-banner-commander',
     name: 'Commander',
-    description: `While the banner is active, skills and skeleton attacks gain ${RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% cooldown reduction.`,
+    description: `While the banner is active, skills and skeleton attacks gain ${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% cooldown reduction.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
-    valueLabel: `${RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and skeleton cooldown reduction while active`,
-    skillId: RALLYING_STANDARD_SKILL_ID,
-    branch: 'rallying-standard-commander',
+    valueLabel: `${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and skeleton cooldown reduction while active`,
+    skillId: RALLYING_BANNER_SKILL_ID,
+    branch: 'rallying-banner-commander',
     evolutionTags: ['cooldown-reduction'],
-    rallyingStandardCommander: true,
+    rallyingBannerCommander: true,
     isEligible: (state) =>
-      state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
-      !state.selectedUpgradeIds.includes('rallying-standard-commander') &&
-      !state.selectedUpgradeIds.includes('rallying-standard-bulwark'),
+      state.ownedSkillIds.includes(RALLYING_BANNER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-banner-commander') &&
+      !state.selectedUpgradeIds.includes('rallying-banner-bulwark'),
   },
   {
-    id: 'rallying-standard-bulwark',
+    id: 'rallying-banner-bulwark',
     name: 'Bulwark',
-    description: `The banner gains ${RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% additional damage reduction (${RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT + RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% total) and lasts ${RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS} seconds longer (${RALLYING_STANDARD_BASE_DURATION_SECONDS + RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS} seconds total).`,
+    description: `The banner gains ${RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% additional damage reduction (${RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT + RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% total) and lasts ${RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS} seconds longer (${RALLYING_BANNER_BASE_DURATION_SECONDS + RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS} seconds total).`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
-    valueLabel: `+${RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% damage reduction, +${RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS}s duration`,
-    skillId: RALLYING_STANDARD_SKILL_ID,
-    branch: 'rallying-standard-bulwark',
+    valueLabel: `+${RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% damage reduction, +${RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS}s duration`,
+    skillId: RALLYING_BANNER_SKILL_ID,
+    branch: 'rallying-banner-bulwark',
     evolutionTags: ['duration'],
-    rallyingStandardBulwark: true,
+    rallyingBannerBulwark: true,
     isEligible: (state) =>
-      state.ownedSkillIds.includes(RALLYING_STANDARD_SKILL_ID) &&
-      !state.selectedUpgradeIds.includes('rallying-standard-bulwark') &&
-      !state.selectedUpgradeIds.includes('rallying-standard-commander'),
+      state.ownedSkillIds.includes(RALLYING_BANNER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rallying-banner-bulwark') &&
+      !state.selectedUpgradeIds.includes('rallying-banner-commander'),
   },
   {
     id: 'gravity-well-unlock',

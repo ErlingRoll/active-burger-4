@@ -12,7 +12,7 @@ import {
   WHIRLWIND_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -41,11 +41,11 @@ import {
   LANCERS_CHARGE_IMPALER_RANGE_BONUS,
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
-  RALLYING_STANDARD_BASE_DURATION_SECONDS,
-  RALLYING_STANDARD_HEAL_INTERVAL_SECONDS,
-  RALLYING_STANDARD_EFFECT_RADIUS,
-  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
-  RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS,
+  RALLYING_BANNER_BASE_DURATION_SECONDS,
+  RALLYING_BANNER_HEAL_INTERVAL_SECONDS,
+  RALLYING_BANNER_EFFECT_RADIUS,
+  RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   GRAVITY_WELL_BASE_PULL_DISTANCE,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
   GRAVITY_WELL_SINGULARITY_RADIUS_BONUS,
@@ -104,10 +104,10 @@ import {
 } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import {
-  getRallyingStandardCooldownReductionPercent,
-  getRallyingStandardEffects,
-  syncRallyingStandardPlayerState,
-} from './RallyingStandard'
+  getRallyingBannerCooldownReductionPercent,
+  getRallyingBannerEffects,
+  syncRallyingBannerPlayerState,
+} from './RallyingBanner'
 import {
   summonSkeletonIfReady,
   summonPhantomIfReady,
@@ -146,7 +146,7 @@ function addEffect(
       ? {}
       : {
           periodicHealingAmount,
-          periodicHealingRemaining: RALLYING_STANDARD_HEAL_INTERVAL_SECONDS,
+          periodicHealingRemaining: RALLYING_BANNER_HEAL_INTERVAL_SECONDS,
         }),
   }
   state.effects.push(effect)
@@ -183,13 +183,13 @@ export function updateSkillEffects(
   for (const effect of state.effects) {
     effect.remainingLifetime -= elapsed
     if (
-      effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
+      effect.skillId !== RALLYING_BANNER_SKILL_ID ||
       effect.periodicHealingAmount === undefined
     ) {
       continue
     }
     effect.periodicHealingRemaining =
-      (effect.periodicHealingRemaining ?? RALLYING_STANDARD_HEAL_INTERVAL_SECONDS) -
+      (effect.periodicHealingRemaining ?? RALLYING_BANNER_HEAL_INTERVAL_SECONDS) -
       elapsed
     while (
       effect.remainingLifetime > 0 &&
@@ -200,7 +200,7 @@ export function updateSkillEffects(
         Math.hypot(state.player.x - effect.x, state.player.y - effect.y) <=
         effect.radius + state.player.radius
       ) {
-        healPlayer(state, healing, getSkillDefinition(RALLYING_STANDARD_SKILL_ID).name, random)
+        healPlayer(state, healing, getSkillDefinition(RALLYING_BANNER_SKILL_ID).name, random)
       }
       for (const summon of state.summons) {
         if (
@@ -212,11 +212,11 @@ export function updateSkillEffects(
       }
       effect.periodicHealingRemaining =
         (effect.periodicHealingRemaining ?? 0) +
-        RALLYING_STANDARD_HEAL_INTERVAL_SECONDS
+        RALLYING_BANNER_HEAL_INTERVAL_SECONDS
     }
   }
   state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
-  syncRallyingStandardPlayerState(state)
+  syncRallyingBannerPlayerState(state)
 }
 
 function getSkillCooldown(
@@ -229,13 +229,13 @@ function getSkillCooldown(
     skill.skillId,
     state.run.selectedUpgradeIds,
   )
-  const rallyingStandardCooldownReduction =
-    getRallyingStandardCooldownReductionPercent(state)
+  const rallyingBannerCooldownReduction =
+    getRallyingBannerCooldownReductionPercent(state)
   return getEffectiveSkillCooldown(
     baseCooldown,
     playerStats.cooldownReduction +
       skillCooldownReduction +
-      rallyingStandardCooldownReduction,
+      rallyingBannerCooldownReduction,
   )
 }
 
@@ -486,15 +486,15 @@ function collectVitalityHealing(
     random,
   )
   if (
-    state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-standard') &&
-    getRallyingStandardEffects(state).length > 0
+    state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-banner') &&
+    getRallyingBannerEffects(state).length > 0
   ) {
-    for (const effect of getRallyingStandardEffects(state)) {
+    for (const effect of getRallyingBannerEffects(state)) {
       const bannerExtension = Math.min(
         2,
         Math.max(
           0,
-          RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS -
+          RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS -
             effect.remainingLifetime,
         ),
       )
@@ -503,7 +503,7 @@ function collectVitalityHealing(
         effect.lifetime += bannerExtension
       }
     }
-    syncRallyingStandardPlayerState(state)
+    syncRallyingBannerPlayerState(state)
   }
   if (
     state.run.selectedUpgradeIds.includes('synergy-vitality-aegis-pulse') &&
@@ -808,22 +808,22 @@ function collectLancersChargeDamage(
   return events
 }
 
-function collectRallyingStandardEffect(
+function collectRallyingBannerEffect(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
   random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
-  const definition = getSkillDefinition(RALLYING_STANDARD_SKILL_ID)
-  const bulwark = state.run.selectedUpgradeIds.includes('rallying-standard-bulwark')
+  const definition = getSkillDefinition(RALLYING_BANNER_SKILL_ID)
+  const bulwark = state.run.selectedUpgradeIds.includes('rallying-banner-bulwark')
   const healing = getSkillHealing(definition, skill.level)
   healPlayer(state, healing, definition.name, random)
 
-  const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
-    (bulwark ? RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS : 0)
+  const duration = RALLYING_BANNER_BASE_DURATION_SECONDS +
+    (bulwark ? RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS : 0)
   if (
     state.run.selectedUpgradeIds.includes(
-      'synergy-raise-skeleton-rallying-standard',
+      'synergy-raise-skeleton-rallying-banner',
     )
   ) {
     const skeletonSkill = state.player.skills.find(
@@ -839,12 +839,12 @@ function collectRallyingStandardEffect(
     allocator,
     skill.skillId,
     [{ x: state.player.x, y: state.player.y }],
-    RALLYING_STANDARD_EFFECT_RADIUS,
+    RALLYING_BANNER_EFFECT_RADIUS,
     duration,
     undefined,
     healing,
   )
-  syncRallyingStandardPlayerState(state)
+  syncRallyingBannerPlayerState(state)
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
   return []
@@ -1230,7 +1230,7 @@ function collectStormRelayChainDamage(
     'synergy-storm-relay-soul-tether',
   )
   const wardedConduit = state.run.selectedUpgradeIds.includes(
-    'synergy-storm-relay-rallying-standard',
+    'synergy-storm-relay-rallying-banner',
   )
   const visited = new Set<number>()
   let originX = relay.x
@@ -1333,12 +1333,12 @@ function collectStormRelayChainDamage(
   }
 
   if (events.length > 0) {
-    if (wardedConduit && getRallyingStandardEffects(state).length > 0) {
-      for (const effect of getRallyingStandardEffects(state)) {
+    if (wardedConduit && getRallyingBannerEffects(state).length > 0) {
+      for (const effect of getRallyingBannerEffects(state)) {
         effect.remainingLifetime += 0.25
         effect.lifetime += 0.25
       }
-      syncRallyingStandardPlayerState(state)
+      syncRallyingBannerPlayerState(state)
     }
     addEffect(
       state,
@@ -1579,8 +1579,8 @@ export function collectSkillDamage(
       events.push(...collectGlacialOrbDamage(state, skill, allocator))
     } else if (skill.skillId === LANCERS_CHARGE_SKILL_ID) {
       events.push(...collectLancersChargeDamage(state, skill, allocator))
-    } else if (skill.skillId === RALLYING_STANDARD_SKILL_ID) {
-      events.push(...collectRallyingStandardEffect(state, skill, allocator, random))
+    } else if (skill.skillId === RALLYING_BANNER_SKILL_ID) {
+      events.push(...collectRallyingBannerEffect(state, skill, allocator, random))
     } else if (skill.skillId === GRAVITY_WELL_SKILL_ID) {
       events.push(...collectGravityWellDamage(state, skill, allocator))
     } else if (skill.skillId === AEGIS_PULSE_SKILL_ID) {

@@ -935,8 +935,8 @@ function validateDefinitions(
           upgrade.glacialOrbIceLanceDamageIncreasePercent === undefined &&
           upgrade.lancersChargeVanguard === undefined &&
           upgrade.lancersChargeImpaler === undefined &&
-          upgrade.rallyingStandardCommander === undefined &&
-          upgrade.rallyingStandardBulwark === undefined &&
+          upgrade.rallyingBannerCommander === undefined &&
+          upgrade.rallyingBannerBulwark === undefined &&
           upgrade.gravityWellSingularity === undefined &&
           upgrade.gravityWellEventHorizon === undefined &&
           upgrade.aegisPulseBulwark === undefined &&

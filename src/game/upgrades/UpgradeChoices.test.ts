@@ -157,8 +157,8 @@ describe('upgrade choice generation', () => {
       'chain-lightning-overload': ['shock', 'overload'],
       'glacial-orb-permafrost': ['chill'],
       'glacial-orb-ice-lance': ['chill', 'freeze'],
-      'rallying-standard-commander': ['cooldown-reduction'],
-      'rallying-standard-bulwark': ['duration'],
+      'rallying-banner-commander': ['cooldown-reduction'],
+      'rallying-banner-bulwark': ['duration'],
       'gravity-well-singularity': ['chill'],
       'aegis-pulse-bulwark': ['duration'],
     } as const
@@ -234,7 +234,7 @@ describe('upgrade choice generation', () => {
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), frostWarden.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('cinder-mine-unlock'), ashenAlchemist.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('fiery-touch-unlock'), ashenAlchemist.state)).toBe(6)
-    expect(getSkillUnlockWeight(getUpgrade('rallying-standard-unlock'), warShepherd.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('rallying-banner-unlock'), warShepherd.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), warShepherd.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('whirlwind-level'), knight.state)).toBe(1)
   })

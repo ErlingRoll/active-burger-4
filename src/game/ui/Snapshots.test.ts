@@ -6,7 +6,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
@@ -112,20 +112,19 @@ describe('UI snapshots', () => {
   it('projects Rallying Banner healing and active defensive values', () => {
     const game = createGame({ seed: 75 })
     game.state.player.skills = [{
-      skillId: RALLYING_STANDARD_SKILL_ID,
+      skillId: RALLYING_BANNER_SKILL_ID,
       level: 1,
       cooldownRemaining: 0,
     }]
-    game.state.run.selectedUpgradeIds.push('rallying-standard-bulwark')
+    game.state.run.selectedUpgradeIds.push('rallying-banner-bulwark')
 
-    const rallyingStandard = createUiSnapshot(game.state).skills[0]
-
-    expect(rallyingStandard?.description).toContain('every second')
-    expect(rallyingStandard?.healingPerCast).toBe(4)
-    expect(rallyingStandard?.dpsAssumption).toBe(
+    const rallyingBanner = createUiSnapshot(game.state).skills[0]
+    expect(rallyingBanner?.description).toContain('every second')
+    expect(rallyingBanner?.healingPerCast).toBe(4)
+    expect(rallyingBanner?.dpsAssumption).toBe(
       'Heals immediately, then heals the player and living summons in the banner every second while active.',
     )
-    expect(rallyingStandard?.skillModifiers).toEqual(
+    expect(rallyingBanner?.skillModifiers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'duration', value: '10 sec' }),
         expect.objectContaining({ id: 'damage-reduction', value: '25%' }),
@@ -144,8 +143,8 @@ describe('UI snapshots', () => {
     game.state.player.maxHp = 100
     game.state.player.vitalityMaxHpHealingPercent = 3
     game.state.player.vitalityLowHpHealingMultiplier = 2
-    game.state.player.rallyingStandardRemaining = 5
-    game.state.player.rallyingStandardCooldownReductionPercent = 12
+    game.state.player.rallyingBannerRemaining = 5
+    game.state.player.rallyingBannerCooldownReductionPercent = 12
     game.state.run.selectedUpgradeIds.push('aegis-pulse-bulwark')
 
     const skills = createUiSnapshot(game.state).skills

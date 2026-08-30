@@ -19,7 +19,7 @@ export const RAISE_SKELETON_SKILL_ID: SkillId = 'raise-skeleton'
 export const FIERY_TOUCH_SKILL_ID: SkillId = 'fiery-touch'
 export const GLACIAL_ORB_SKILL_ID: SkillId = 'glacial-orb'
 export const LANCERS_CHARGE_SKILL_ID: SkillId = 'lancers-charge'
-export const RALLYING_STANDARD_SKILL_ID: SkillId = 'rallying-standard'
+export const RALLYING_BANNER_SKILL_ID: SkillId = 'rallying-banner'
 export const GRAVITY_WELL_SKILL_ID: SkillId = 'gravity-well'
 export const AEGIS_PULSE_SKILL_ID: SkillId = 'aegis-pulse'
 export const RIFT_JAVELIN_SKILL_ID: SkillId = 'rift-javelin'
@@ -45,14 +45,14 @@ export const LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT = 15
 export const LANCERS_CHARGE_IMPALER_RANGE_BONUS = 50
 export const LANCERS_CHARGE_IMPALER_WIDTH_BONUS = 25
 export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 4
-export const RALLYING_STANDARD_BASE_DURATION_SECONDS = 6
-export const RALLYING_STANDARD_HEAL_INTERVAL_SECONDS = 1
-export const RALLYING_STANDARD_EFFECT_RADIUS = 96
-export const RALLYING_STANDARD_SYNERGY_MAX_DURATION_SECONDS = 12
-export const RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT = 10
-export const RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT = 15
-export const RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS = 4
-export const RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT = 12
+export const RALLYING_BANNER_BASE_DURATION_SECONDS = 6
+export const RALLYING_BANNER_HEAL_INTERVAL_SECONDS = 1
+export const RALLYING_BANNER_EFFECT_RADIUS = 96
+export const RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS = 12
+export const RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT = 10
+export const RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT = 15
+export const RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS = 4
+export const RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT = 12
 export const GRAVITY_WELL_BASE_PULL_DISTANCE = 60
 export const GRAVITY_WELL_SINGULARITY_PULL_BONUS = 40
 export const GRAVITY_WELL_SINGULARITY_RADIUS_BONUS = 30
@@ -351,8 +351,8 @@ export const SKILL_DEFINITIONS = {
       outlineColor: '#ffedd5',
     },
   },
-  [RALLYING_STANDARD_SKILL_ID]: {
-    id: RALLYING_STANDARD_SKILL_ID,
+  [RALLYING_BANNER_SKILL_ID]: {
+    id: RALLYING_BANNER_SKILL_ID,
     name: 'Rallying Banner',
     description: 'Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.',
     kind: 'utility',
@@ -362,7 +362,7 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: {},
     baseHealing: 4,
     healingPerLevel: 2,
-    effectLifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
+    effectLifetime: RALLYING_BANNER_BASE_DURATION_SECONDS,
     visual: {
       kind: 'utility',
       icon: '🚩',

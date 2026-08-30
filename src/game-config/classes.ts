@@ -3,7 +3,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   CINDER_MINE_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
 } from './skills'
@@ -107,7 +107,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     description: 'A battlefield commander who protects allies and sustains the fight with a rallying banner.',
     baseStats: { maxHp: 140, movementSpeed: 150, attackDamage: 12, attackSpeed: 0.95 } as CharacterStatValues,
     startingWeaponItemId: 'war-shepherd-training-sword' as ItemId,
-    startingSkillIds: [BASIC_ATTACK_SKILL_ID, RALLYING_STANDARD_SKILL_ID],
+    startingSkillIds: [BASIC_ATTACK_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     skillAffinity: {
       tags: ['defensive', 'duration', 'summon'],
       label: 'Defensive, duration, and summon',

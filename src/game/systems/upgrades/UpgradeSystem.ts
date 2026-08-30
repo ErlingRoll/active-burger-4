@@ -15,7 +15,7 @@ import {
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -202,12 +202,12 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.lancerMomentumStacks = 0
     state.player.lancerMomentumDecayRemaining = 0
   }
-  if (skillId === RALLYING_STANDARD_SKILL_ID) {
-    state.player.rallyingStandardRemaining = 0
-    state.player.rallyingStandardDamageReductionPercent = 0
-    state.player.rallyingStandardCooldownReductionPercent = 0
+  if (skillId === RALLYING_BANNER_SKILL_ID) {
+    state.player.rallyingBannerRemaining = 0
+    state.player.rallyingBannerDamageReductionPercent = 0
+    state.player.rallyingBannerCooldownReductionPercent = 0
     state.effects = state.effects.filter(
-      (effect) => effect.skillId !== RALLYING_STANDARD_SKILL_ID,
+      (effect) => effect.skillId !== RALLYING_BANNER_SKILL_ID,
     )
   }
   if (skillId === AEGIS_PULSE_SKILL_ID) {

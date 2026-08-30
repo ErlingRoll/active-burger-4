@@ -15,7 +15,7 @@ import {
   GRAVITY_WELL_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -166,11 +166,11 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     [CHAIN_LIGHTNING_SKILL_ID, GRAVITY_WELL_SKILL_ID],
   ),
   createSynergyUpgrade(
-    'synergy-vitality-rallying-standard',
-    'Renewing Standard',
+    'synergy-vitality-rallying-banner',
+    'Renewing Banner',
     'Vitality extends an active Rallying Banner by 2 seconds.',
     'Vitality extends Rallying Banner',
-    [VITALITY_SKILL_ID, RALLYING_STANDARD_SKILL_ID],
+    [VITALITY_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
   createSynergyUpgrade(
@@ -182,11 +182,11 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     [],
   ),
   createSynergyUpgrade(
-    'synergy-raise-skeleton-rallying-standard',
+    'synergy-raise-skeleton-rallying-banner',
     'Grave Rally',
     'While Rallying Banner is active, Raise Skeleton can maintain one additional Skeleton and its summon cooldown resets when the banner is cast.',
     'Rallying Banner empowers Skeleton summons',
-    [RAISE_SKELETON_SKILL_ID, RALLYING_STANDARD_SKILL_ID],
+    [RAISE_SKELETON_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
   createSynergyUpgrade(
@@ -246,11 +246,11 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     [PHANTOM_ARSENAL_SKILL_ID, RAISE_SKELETON_SKILL_ID],
   ),
   createSynergyUpgrade(
-    'synergy-storm-relay-rallying-standard',
+    'synergy-storm-relay-rallying-banner',
     'Warded Conduit',
     'Storm Relay strikes while Rallying Banner is active extend the banner by 0.25 seconds.',
     'Storm Relay sustains Rallying Banner',
-    [STORM_RELAY_SKILL_ID, RALLYING_STANDARD_SKILL_ID],
+    [STORM_RELAY_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
   createSynergyUpgrade(

@@ -47,7 +47,7 @@ import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import {
   BASIC_ATTACK_SKILL_ID,
   isSkillId,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   SKILL_DEFINITIONS,
 } from '../content/skills/Skills'
 import {
@@ -922,7 +922,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     {skill.healingPerCast !== null ? (
                       <p className="skill-cadence">
                         <span>
-                          {skill.skillId === RALLYING_STANDARD_SKILL_ID
+                          {skill.skillId === RALLYING_BANNER_SKILL_ID
                             ? 'Healing per cast/pulse'
                             : 'Healing per cast'}
                         </span>

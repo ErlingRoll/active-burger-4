@@ -12,7 +12,7 @@ import {
 import {
   CINDER_MINE_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   STORM_RELAY_SKILL_ID,
   VITALITY_SKILL_ID,
@@ -167,14 +167,14 @@ describe('new skill combination balance', () => {
     expect(target.hp).toBeGreaterThan(0)
   })
 
-  it('caps Renewing Standard extension instead of creating permanent duration growth', () => {
+  it('caps Renewing Banner extension instead of creating permanent duration growth', () => {
     const game = createGame({ seed: 96 })
     game.state.player.skills = [
-      { skillId: RALLYING_STANDARD_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: RALLYING_BANNER_SKILL_ID, level: 1, cooldownRemaining: 0 },
       { skillId: VITALITY_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]
     game.state.run.selectedUpgradeIds.push(
-      'synergy-vitality-rallying-standard',
+      'synergy-vitality-rallying-banner',
     )
 
     collectSkillDamage(game.state, allocator)
@@ -186,7 +186,7 @@ describe('new skill combination balance', () => {
       collectSkillDamage(game.state, allocator)
     }
 
-    expect(game.state.player.rallyingStandardRemaining).toBe(12)
+    expect(game.state.player.rallyingBannerRemaining).toBe(12)
   })
 
   it('keeps all redesigned synergies free of generic damage effects', () => {

@@ -936,11 +936,11 @@ describe('collectEnemyContactDamage', () => {
     expect(gameState.player.hp).toBeCloseTo(93.75)
   })
 
-  describe('Rallying Standard and Aegis Pulse player defenses', () => {
-    it('reduces incoming player damage while the Rallying Standard banner is active', () => {
+  describe('Rallying Banner and Aegis Pulse player defenses', () => {
+    it('reduces incoming player damage while the Rallying Banner is active', () => {
       const gameState = state([enemy(2, 34)])
-      gameState.player.rallyingStandardRemaining = 6
-      gameState.player.rallyingStandardDamageReductionPercent = 10
+      gameState.player.rallyingBannerRemaining = 6
+      gameState.player.rallyingBannerDamageReductionPercent = 10
 
       applyDamageEvents(gameState, [{
         sourceId: 2,
@@ -1030,19 +1030,19 @@ describe('collectEnemyContactDamage', () => {
       expect(gameState.enemies[0]?.hp).toBe(20)
     })
 
-    it('decays Rallying Standard and Aegis Pulse timers and clears their bonuses on expiry', () => {
+    it('decays Rallying Banner and Aegis Pulse timers and clears their bonuses on expiry', () => {
       const gameState = state([])
-      gameState.player.rallyingStandardRemaining = 0.5
-      gameState.player.rallyingStandardDamageReductionPercent = 10
-      gameState.player.rallyingStandardCooldownReductionPercent = 12
+      gameState.player.rallyingBannerRemaining = 0.5
+      gameState.player.rallyingBannerDamageReductionPercent = 10
+      gameState.player.rallyingBannerCooldownReductionPercent = 12
       gameState.player.aegisPulseShieldRemaining = 0.5
       gameState.player.aegisPulseShieldAmount = 8
 
       updateFrost(gameState, 1)
 
-      expect(gameState.player.rallyingStandardRemaining).toBe(0)
-      expect(gameState.player.rallyingStandardDamageReductionPercent).toBe(0)
-      expect(gameState.player.rallyingStandardCooldownReductionPercent).toBe(0)
+      expect(gameState.player.rallyingBannerRemaining).toBe(0)
+      expect(gameState.player.rallyingBannerDamageReductionPercent).toBe(0)
+      expect(gameState.player.rallyingBannerCooldownReductionPercent).toBe(0)
       expect(gameState.player.aegisPulseShieldRemaining).toBe(0)
       expect(gameState.player.aegisPulseShieldAmount).toBe(0)
     })

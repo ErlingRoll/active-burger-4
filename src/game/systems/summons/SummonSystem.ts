@@ -39,9 +39,9 @@ import {
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
 } from '../../../game-config/skills'
 import {
-  getRallyingStandardCooldownReductionPercent,
-  isPlayerInRallyingStandard,
-} from '../skills/RallyingStandard'
+  getRallyingBannerCooldownReductionPercent,
+  isPlayerInRallyingBanner,
+} from '../skills/RallyingBanner'
 
 const SUMMON_AGGRO_RANGE = 560
 const SUMMON_MOVEMENT_SPEED = 180
@@ -73,9 +73,9 @@ function getSummonCountBonus(
     : 0
   const graveRallyBonus = skillId === RAISE_SKELETON_SKILL_ID &&
     state.run.selectedUpgradeIds.includes(
-      'synergy-raise-skeleton-rallying-standard',
+      'synergy-raise-skeleton-rallying-banner',
     ) &&
-    isPlayerInRallyingStandard(state)
+    isPlayerInRallyingBanner(state)
     ? 1
     : 0
   if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
@@ -274,8 +274,8 @@ export function getSummonStats(
     return undefined
   }
   const definition = getSkillDefinition(skillId)
-  const rallyingStandardCooldownReduction =
-    getRallyingStandardCooldownReductionPercent(state)
+  const rallyingBannerCooldownReduction =
+    getRallyingBannerCooldownReductionPercent(state)
   const isPhantom = skillId === PHANTOM_ARSENAL_SKILL_ID
   const marksman = isPhantom &&
     state.run.selectedUpgradeIds.includes('phantom-arsenal-marksman')
@@ -287,7 +287,7 @@ export function getSummonStats(
     attackCooldown: Math.max(
       0.1,
       (definition.summonAttackCooldown ?? 1) *
-        (1 - Math.max(0, rallyingStandardCooldownReduction) / 100),
+        (1 - Math.max(0, rallyingBannerCooldownReduction) / 100),
     ),
     attackRange,
     maximum: Math.max(

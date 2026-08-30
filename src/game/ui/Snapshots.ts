@@ -33,7 +33,7 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -46,11 +46,11 @@ import {
 } from '../../content/skills/Skills'
 import {
   DEFAULT_SKILL_SLOT_COUNT,
-  RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT,
-  RALLYING_STANDARD_BASE_DURATION_SECONDS,
-  RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
-  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
-  RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+  RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT,
+  RALLYING_BANNER_BASE_DURATION_SECONDS,
+  RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
+  RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
   AEGIS_PULSE_BASE_DURATION_SECONDS,
   AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
@@ -532,10 +532,10 @@ function getSkillModifierSummaries(
       )
     }
   } else {
-    if (skillId === RALLYING_STANDARD_SKILL_ID) {
-      const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
-        (selectedUpgradeIds.includes('rallying-standard-bulwark')
-          ? RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS
+    if (skillId === RALLYING_BANNER_SKILL_ID) {
+      const duration = RALLYING_BANNER_BASE_DURATION_SECONDS +
+        (selectedUpgradeIds.includes('rallying-banner-bulwark')
+          ? RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS
           : 0)
       addSummary(
         'duration',
@@ -543,9 +543,9 @@ function getSkillModifierSummaries(
         duration,
         `${formatStatNumber(duration)} sec`,
       )
-      const damageReduction = RALLYING_STANDARD_BASE_DAMAGE_REDUCTION_PERCENT +
-        (selectedUpgradeIds.includes('rallying-standard-bulwark')
-          ? RALLYING_STANDARD_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT
+      const damageReduction = RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT +
+        (selectedUpgradeIds.includes('rallying-banner-bulwark')
+          ? RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT
           : 0)
       addSummary(
         'damage-reduction',
@@ -554,13 +554,13 @@ function getSkillModifierSummaries(
         formatUnsignedPercent(damageReduction),
       )
       if (
-        selectedUpgradeIds.includes('rallying-standard-commander')
+        selectedUpgradeIds.includes('rallying-banner-commander')
       ) {
         addSummary(
           'skill-cooldown-reduction',
           'Skill and skeleton cooldown reduction while active',
-          RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
-          formatUnsignedPercent(RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT),
+          RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+          formatUnsignedPercent(RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT),
         )
       }
     }
@@ -1162,11 +1162,11 @@ export function createUiSnapshot(
     const supportsAreaOfEffect = isBasicAttack
       ? basicAttackVariant.kind === 'area'
       : definition.kind === 'area' && definition.radius !== undefined
-    const rallyingStandardCooldownReduction =
-      (state.player.rallyingStandardRemaining ?? 0) > 0
-        ? state.player.rallyingStandardCooldownReductionPercent ??
-          (state.run.selectedUpgradeIds.includes('rallying-standard-commander')
-            ? RALLYING_STANDARD_COMMANDER_COOLDOWN_REDUCTION_PERCENT
+    const rallyingBannerCooldownReduction =
+      (state.player.rallyingBannerRemaining ?? 0) > 0
+        ? state.player.rallyingBannerCooldownReductionPercent ??
+          (state.run.selectedUpgradeIds.includes('rallying-banner-commander')
+            ? RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT
             : 0)
         : 0
     const cooldown = isBasicAttack
@@ -1182,7 +1182,7 @@ export function createUiSnapshot(
                 skill.skillId,
                 state.run.selectedUpgradeIds,
               ) +
-              rallyingStandardCooldownReduction,
+              rallyingBannerCooldownReduction,
           ),
         )
     const cooldownProgress = Number.isFinite(cooldown) && cooldown > 0
@@ -1202,7 +1202,7 @@ export function createUiSnapshot(
           )
         : getSkillDamage(definition, skill.level)
     const dealsNoDirectDamage = skill.skillId === VITALITY_SKILL_ID ||
-      skill.skillId === RALLYING_STANDARD_SKILL_ID
+      skill.skillId === RALLYING_BANNER_SKILL_ID
     const outgoingDamage = dealsNoDirectDamage
       ? {
           damage: createDamageValues(),
@@ -1345,7 +1345,7 @@ export function createUiSnapshot(
           ? 'Nearest target in range, sustained over Glacial Orb cooldown.'
           : skill.skillId === LANCERS_CHARGE_SKILL_ID
           ? 'One target struck by the charge corridor, sustained over its cooldown.'
-          : skill.skillId === RALLYING_STANDARD_SKILL_ID
+          : skill.skillId === RALLYING_BANNER_SKILL_ID
           ? 'Heals immediately, then heals the player and living summons in the banner every second while active.'
           : skill.skillId === GRAVITY_WELL_SKILL_ID
           ? 'One target caught in the well, sustained over Gravity Well cooldown.'
@@ -1381,7 +1381,7 @@ export function createUiSnapshot(
               : 0)
           ) *
           (1 + playerStats.increasedHealing / 100)
-        : skill.skillId === RALLYING_STANDARD_SKILL_ID
+        : skill.skillId === RALLYING_BANNER_SKILL_ID
           ? getSkillHealing(definition, skill.level) *
             (1 + playerStats.increasedHealing / 100)
           : null,

@@ -7,7 +7,7 @@ import {
   WHIRLWIND_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -18,9 +18,9 @@ import {
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
-  RALLYING_STANDARD_BASE_DURATION_SECONDS,
-  RALLYING_STANDARD_EFFECT_RADIUS,
-  RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_BANNER_BASE_DURATION_SECONDS,
+  RALLYING_BANNER_EFFECT_RADIUS,
+  RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
   CINDER_MINE_FUSE_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
@@ -48,7 +48,7 @@ import {
   removeDeadSummons,
   updateSummons,
 } from '../summons/SummonSystem'
-import { isPlayerInRallyingStandard } from './RallyingStandard'
+import { isPlayerInRallyingBanner } from './RallyingBanner'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -592,11 +592,11 @@ describe('skill system', () => {
     })
   })
 
-  describe('Rallying Standard', () => {
+  describe('Rallying Banner', () => {
     it('heals the player and activates its base banner bonuses', () => {
       const game = createGame({ seed: 67 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
@@ -605,20 +605,20 @@ describe('skill system', () => {
       expect(collectSkillDamage(game.state, allocator)).toEqual([])
 
       expect(game.state.player.hp).toBe(game.state.player.maxHp - 16)
-      expect(game.state.player.rallyingStandardRemaining).toBe(6)
-      expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(10)
-      expect(game.state.player.rallyingStandardCooldownReductionPercent).toBe(0)
+      expect(game.state.player.rallyingBannerRemaining).toBe(6)
+      expect(game.state.player.rallyingBannerDamageReductionPercent).toBe(10)
+      expect(game.state.player.rallyingBannerCooldownReductionPercent).toBe(0)
       expect(game.state.effects[0]).toMatchObject({
-        radius: RALLYING_STANDARD_EFFECT_RADIUS,
-        lifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
-        remainingLifetime: RALLYING_STANDARD_BASE_DURATION_SECONDS,
+        radius: RALLYING_BANNER_EFFECT_RADIUS,
+        lifetime: RALLYING_BANNER_BASE_DURATION_SECONDS,
+        remainingLifetime: RALLYING_BANNER_BASE_DURATION_SECONDS,
       })
     })
 
     it('heals living allies inside the banner area on each healing pulse', () => {
       const game = createGame({ seed: 70 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
@@ -637,7 +637,7 @@ describe('skill system', () => {
         {
           id: 102,
           ownerId: game.state.player.id,
-          x: RALLYING_STANDARD_EFFECT_RADIUS + 20,
+          x: RALLYING_BANNER_EFFECT_RADIUS + 20,
           y: 0,
           hp: 2,
           maxHp: 10,
@@ -657,26 +657,26 @@ describe('skill system', () => {
     it('gives Bulwark a bigger reduction and longer duration', () => {
       const game = createGame({ seed: 68 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
-      game.state.run.selectedUpgradeIds.push('rallying-standard-bulwark')
+      game.state.run.selectedUpgradeIds.push('rallying-banner-bulwark')
 
       collectSkillDamage(game.state, allocator)
 
-      expect(game.state.player.rallyingStandardRemaining).toBe(10)
-      expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(25)
+      expect(game.state.player.rallyingBannerRemaining).toBe(10)
+      expect(game.state.player.rallyingBannerDamageReductionPercent).toBe(25)
       expect(game.state.effects[0]?.lifetime).toBe(
-        RALLYING_STANDARD_BASE_DURATION_SECONDS +
-          RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+        RALLYING_BANNER_BASE_DURATION_SECONDS +
+          RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
       )
     })
 
     it('allows overlapping placements with independent durations', () => {
       const game = createGame({ seed: 69 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
@@ -684,7 +684,7 @@ describe('skill system', () => {
       collectSkillDamage(game.state, allocator)
       const firstBanner = game.state.effects[0]!
       game.state.player.skills[0]!.cooldownRemaining = 0
-      game.state.player.x = RALLYING_STANDARD_EFFECT_RADIUS + 20
+      game.state.player.x = RALLYING_BANNER_EFFECT_RADIUS + 20
       collectSkillDamage(game.state, allocator)
 
       expect(game.state.player.skills[0]?.castCount).toBe(2)
@@ -701,13 +701,13 @@ describe('skill system', () => {
     it('removes the banner effect when its active duration expires', () => {
       const game = createGame({ seed: 70 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
 
       collectSkillDamage(game.state, allocator)
-      updateSkillEffects(game.state, RALLYING_STANDARD_BASE_DURATION_SECONDS)
+      updateSkillEffects(game.state, RALLYING_BANNER_BASE_DURATION_SECONDS)
 
       expect(game.state.effects).toEqual([])
     })
@@ -715,11 +715,11 @@ describe('skill system', () => {
     it('keeps overlapping banners independent during high-cooldown-reduction casts', () => {
       const game = createGame({ seed: 72 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
-      game.state.run.selectedUpgradeIds.push('rallying-standard-commander')
+      game.state.run.selectedUpgradeIds.push('rallying-banner-commander')
       equipRolledItem(
         game.state.player,
         'starcall-wand',
@@ -745,7 +745,7 @@ describe('skill system', () => {
       for (let tick = 0; tick < 60 * 30; tick += 1) {
         game.update(FIXED_STEP_SECONDS)
         const bannerCount = game.state.effects.filter(
-          (effect) => effect.skillId === RALLYING_STANDARD_SKILL_ID,
+          (effect) => effect.skillId === RALLYING_BANNER_SKILL_ID,
         ).length
         maximumBannerCount = Math.max(maximumBannerCount, bannerCount)
         const castCount = game.state.player.skills[0]?.castCount ?? 0
@@ -762,19 +762,19 @@ describe('skill system', () => {
     it('does not stack defensive bonuses from overlapping banners', () => {
       const game = createGame({ seed: 73 })
       game.state.player.skills = [{
-        skillId: RALLYING_STANDARD_SKILL_ID,
+        skillId: RALLYING_BANNER_SKILL_ID,
         level: 1,
         cooldownRemaining: 0,
       }]
-      game.state.run.selectedUpgradeIds.push('rallying-standard-bulwark')
+      game.state.run.selectedUpgradeIds.push('rallying-banner-bulwark')
 
       collectSkillDamage(game.state, allocator)
       game.state.player.skills[0]!.cooldownRemaining = 0
       collectSkillDamage(game.state, allocator)
 
-      expect(game.state.player.rallyingStandardRemaining).toBe(10)
-      expect(game.state.player.rallyingStandardDamageReductionPercent).toBe(25)
-      expect(isPlayerInRallyingStandard(game.state)).toBe(true)
+      expect(game.state.player.rallyingBannerRemaining).toBe(10)
+      expect(game.state.player.rallyingBannerDamageReductionPercent).toBe(25)
+      expect(isPlayerInRallyingBanner(game.state)).toBe(true)
       applyDamageEvents(game.state, [{
         sourceId: 2,
         targetId: game.state.player.id,
@@ -787,21 +787,21 @@ describe('skill system', () => {
     it("lets Commander's active cooldown reduction apply to every equipped skill", () => {
       const game = createGame({ seed: 71 })
       game.state.player.skills = [
-        { skillId: RALLYING_STANDARD_SKILL_ID, level: 1, cooldownRemaining: 0 },
+        { skillId: RALLYING_BANNER_SKILL_ID, level: 1, cooldownRemaining: 0 },
         { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
       ]
-      game.state.run.selectedUpgradeIds.push('rallying-standard-commander')
+      game.state.run.selectedUpgradeIds.push('rallying-banner-commander')
       game.spawnSlime({ x: 50, y: 0 })
 
       collectSkillDamage(game.state, allocator)
 
-      const rallyingStandard = game.state.player.skills.find(
-        (skill) => skill.skillId === RALLYING_STANDARD_SKILL_ID,
+      const rallyingBanner = game.state.player.skills.find(
+        (skill) => skill.skillId === RALLYING_BANNER_SKILL_ID,
       )
       const whirlwind = game.state.player.skills.find(
         (skill) => skill.skillId === WHIRLWIND_SKILL_ID,
       )
-      expect(rallyingStandard?.cooldownRemaining).toBeCloseTo(14.08)
+      expect(rallyingBanner?.cooldownRemaining).toBeCloseTo(14.08)
       expect(whirlwind?.cooldownRemaining).toBeCloseTo(2.2)
     })
   })

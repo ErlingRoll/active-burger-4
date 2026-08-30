@@ -12,7 +12,7 @@ export type SkillId =
   | 'fiery-touch'
   | 'glacial-orb'
   | 'lancers-charge'
-  | 'rallying-standard'
+  | 'rallying-banner'
   | 'gravity-well'
   | 'aegis-pulse'
   | 'rift-javelin'
@@ -117,7 +117,7 @@ export {
   WHIRLWIND_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
-  RALLYING_STANDARD_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,

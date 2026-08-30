@@ -45,10 +45,10 @@ export type UpgradeId =
   | 'lancers-charge-level'
   | 'lancers-charge-vanguard'
   | 'lancers-charge-impaler'
-  | 'rallying-standard-unlock'
-  | 'rallying-standard-level'
-  | 'rallying-standard-commander'
-  | 'rallying-standard-bulwark'
+  | 'rallying-banner-unlock'
+  | 'rallying-banner-level'
+  | 'rallying-banner-commander'
+  | 'rallying-banner-bulwark'
   | 'gravity-well-unlock'
   | 'gravity-well-level'
   | 'gravity-well-singularity'
@@ -84,9 +84,9 @@ export type UpgradeId =
   | 'synergy-whirlwind-aegis-pulse'
   | 'synergy-chain-lightning-glacial-orb'
   | 'synergy-chain-lightning-gravity-well'
-  | 'synergy-vitality-rallying-standard'
+  | 'synergy-vitality-rallying-banner'
   | 'synergy-vitality-aegis-pulse'
-  | 'synergy-raise-skeleton-rallying-standard'
+  | 'synergy-raise-skeleton-rallying-banner'
   | 'synergy-raise-skeleton-gravity-well'
   | 'synergy-fiery-touch-glacial-orb'
   | 'synergy-fiery-touch-gravity-well'
@@ -95,7 +95,7 @@ export type UpgradeId =
   | 'synergy-cinder-mine-fiery-touch'
   | 'synergy-soul-tether-vitality'
   | 'synergy-phantom-arsenal-raise-skeleton'
-  | 'synergy-storm-relay-rallying-standard'
+  | 'synergy-storm-relay-rallying-banner'
   | 'synergy-rift-javelin-cinder-mine'
   | 'synergy-cinder-mine-storm-relay'
   | 'synergy-storm-relay-soul-tether'
@@ -125,8 +125,8 @@ export type UpgradeBranch =
   | 'glacial-orb-ice-lance'
   | 'lancers-charge-vanguard'
   | 'lancers-charge-impaler'
-  | 'rallying-standard-commander'
-  | 'rallying-standard-bulwark'
+  | 'rallying-banner-commander'
+  | 'rallying-banner-bulwark'
   | 'gravity-well-singularity'
   | 'gravity-well-event-horizon'
   | 'aegis-pulse-bulwark'
@@ -242,9 +242,9 @@ export interface UpgradeDefinition {
   /** Enables the wider, weaker Impaler corridor for Lancer's Charge. */
   lancersChargeImpaler?: boolean
   /** Enables the Commander cooldown-reduction banner for Rallying Banner. */
-  rallyingStandardCommander?: boolean
+  rallyingBannerCommander?: boolean
   /** Enables the stronger, longer Bulwark banner for Rallying Banner. */
-  rallyingStandardBulwark?: boolean
+  rallyingBannerBulwark?: boolean
   /** Enables the bigger pull and Chill application for Gravity Well. */
   gravityWellSingularity?: boolean
   /** Enables the pull-free, higher-damage mode for Gravity Well. */

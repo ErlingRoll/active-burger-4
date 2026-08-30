@@ -61,9 +61,9 @@ import {
   getEquippedWeaponArchetype,
 } from '../../equipment/EquipmentState'
 import {
-  getRallyingStandardDamageReductionPercent,
-  getRallyingStandardEffects,
-} from '../skills/RallyingStandard'
+  getRallyingBannerDamageReductionPercent,
+  getRallyingBannerEffects,
+} from '../skills/RallyingBanner'
 import {
   getSplitChildren,
   getEnemyCombatTarget,
@@ -1389,7 +1389,7 @@ function getIncomingPlayerDamageFactor(state: GameState): number {
   if ((player.whirlwindGuardRemaining ?? 0) > 0) {
     reduction += player.whirlwindGuardDamageReductionPercent ?? 0
   }
-  reduction += getRallyingStandardDamageReductionPercent(state)
+  reduction += getRallyingBannerDamageReductionPercent(state)
   return Math.max(0, 1 - Math.min(75, reduction) / 100)
 }
 
@@ -1507,14 +1507,14 @@ export function updateFrost(
     0,
     (state.player.whirlwindGuardRemaining ?? 0) - elapsed,
   )
-  if (getRallyingStandardEffects(state).length === 0) {
-    state.player.rallyingStandardRemaining = Math.max(
+  if (getRallyingBannerEffects(state).length === 0) {
+    state.player.rallyingBannerRemaining = Math.max(
       0,
-      (state.player.rallyingStandardRemaining ?? 0) - elapsed,
+      (state.player.rallyingBannerRemaining ?? 0) - elapsed,
     )
-    if (state.player.rallyingStandardRemaining <= 0) {
-      state.player.rallyingStandardDamageReductionPercent = 0
-      state.player.rallyingStandardCooldownReductionPercent = 0
+    if (state.player.rallyingBannerRemaining <= 0) {
+      state.player.rallyingBannerDamageReductionPercent = 0
+      state.player.rallyingBannerCooldownReductionPercent = 0
     }
   }
   state.player.aegisPulseShieldRemaining = Math.max(
