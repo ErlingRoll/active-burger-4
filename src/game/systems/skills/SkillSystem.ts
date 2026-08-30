@@ -28,6 +28,7 @@ import {
 import {
   createProjectileSpreadAngles,
   getProjectileDefinition,
+  getProjectileVolleyCount,
 } from '../../../content/projectiles/Projectiles'
 import {
   GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
@@ -652,9 +653,9 @@ function collectGlacialOrbDamage(
     freezeThreshold: 3,
     freezeDurationSeconds: 1,
   }
-  const projectileCount = 1 + Math.max(
-    0,
-    Math.trunc(playerStats.globalExtraProjectiles),
+  const projectileCount = getProjectileVolleyCount(
+    definition.tags,
+    playerStats.globalExtraProjectiles,
   )
   const spreadAngles = createProjectileSpreadAngles(
     projectileCount,
@@ -1050,7 +1051,15 @@ function collectRiftJavelinDamage(
   const projectileDefinition = getProjectileDefinition(projectileDefinitionId)
   const directionX = target.x - state.player.x
   const directionY = target.y - state.player.y
-  const distance = Math.hypot(directionX, directionY) || 1
+  const projectileCount = getProjectileVolleyCount(
+    definition.tags,
+    playerStats.globalExtraProjectiles,
+  )
+  const directionAngle = Math.atan2(directionY, directionX)
+  const spreadAngles = createProjectileSpreadAngles(
+    projectileCount,
+    definition.spreadDegrees ?? 0,
+  )
   const primedReturnBonus = Math.max(
     0,
     state.player.riftJavelinReturnBonusPercent ?? 0,
@@ -1058,36 +1067,41 @@ function collectRiftJavelinDamage(
   const returnDamageBonus = (homeward ? RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT : 0) +
     primedReturnBonus
 
-  state.projectiles.push({
-    id: allocator.createEntityId(),
-    ownerId: state.player.id,
-    definitionId: projectileDefinition.id,
-    skillId: skill.skillId,
-    targetId: target.id,
-    sourceTags: definition.tags,
-    piercing: true,
-    pierceHitTargetIds: [],
-    pierceReturnRange: maxRange,
-    ...(returnDamageBonus > 0
-      ? { returnDamageMultiplier: 1 + returnDamageBonus / 100 }
-      : {}),
-    ...(barbed
-      ? {
-          impactPoisonApplication: {
-            durationSeconds: RIFT_JAVELIN_BARBED_DURATION_SECONDS,
-            physicalChaosRatio: RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
-          },
-        }
-      : {}),
-    x: state.player.x,
-    y: state.player.y,
-    velocityX: (directionX / distance) * projectileDefinition.speed,
-    velocityY: (directionY / distance) * projectileDefinition.speed,
-    radius: projectileDefinition.radius,
-    damage: outgoingDamage.damage,
-    criticalStrike: outgoingDamage.criticalStrike,
-    remainingLifetime: projectileDefinition.lifetime,
-  })
+  state.projectiles.push(
+    ...spreadAngles.map((spreadAngle) => {
+      const angle = directionAngle + spreadAngle
+      return {
+        id: allocator.createEntityId(),
+        ownerId: state.player.id,
+        definitionId: projectileDefinition.id,
+        skillId: skill.skillId,
+        targetId: target.id,
+        sourceTags: definition.tags,
+        piercing: true,
+        pierceHitTargetIds: [],
+        pierceReturnRange: maxRange,
+        ...(returnDamageBonus > 0
+          ? { returnDamageMultiplier: 1 + returnDamageBonus / 100 }
+          : {}),
+        ...(barbed
+          ? {
+              impactPoisonApplication: {
+                durationSeconds: RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+                physicalChaosRatio: RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
+              },
+            }
+          : {}),
+        x: state.player.x,
+        y: state.player.y,
+        velocityX: Math.cos(angle) * projectileDefinition.speed,
+        velocityY: Math.sin(angle) * projectileDefinition.speed,
+        radius: projectileDefinition.radius,
+        damage: outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+        remainingLifetime: projectileDefinition.lifetime,
+      }
+    }),
+  )
   state.player.riftJavelinReturnBonusPercent = 0
 
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)

@@ -421,6 +421,7 @@ export const SKILL_DEFINITIONS = {
     baseDamage: { physical: 16 },
     damagePerLevel: {},
     projectileDefinitionId: RIFT_JAVELIN_PROJECTILE_DEFINITION_ID,
+    spreadDegrees: 15,
     maxRange: RIFT_JAVELIN_MAX_RANGE,
     effectLifetime: 0.2,
     visual: {
@@ -510,6 +511,7 @@ export const SKILL_DEFINITIONS = {
     summonAttackCooldown: 1.3,
     summonAttackRange: 190,
     summonBaseMaxCount: 1,
+    spreadDegrees: 15,
     effectLifetime: 0.3,
     visual: {
       kind: 'utility',

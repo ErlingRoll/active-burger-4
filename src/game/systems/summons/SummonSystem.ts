@@ -17,7 +17,9 @@ import {
   createPlayerDamageProfileFromStats,
 } from '../../combat/DamageSources'
 import {
+  createProjectileSpreadAngles,
   getProjectileDefinition,
+  getProjectileVolleyCount,
   PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
   type ProjectileDefinitionId,
 } from '../../../content/projectiles/Projectiles'
@@ -465,31 +467,44 @@ export function updateSummons(
       )
       const directionX = attackTarget.x - summon.x
       const directionY = attackTarget.y - summon.y
-      const distance = Math.hypot(directionX, directionY) || 1
       const tethered = state.run.selectedUpgradeIds.includes(
         'synergy-soul-tether-phantom-arsenal',
       ) && state.player.soulTetherTargetId === attackTarget.id
-      state.projectiles.push({
-        id: allocator.createEntityId(),
-        ownerId: summon.id,
-        definitionId: projectileDefinition.id,
-        skillId,
-        targetId: attackTarget.id,
-        sourceTags: skillDefinition.tags,
-        x: summon.x,
-        y: summon.y,
-        velocityX: (directionX / distance) * projectileDefinition.speed,
-        velocityY: (directionY / distance) * projectileDefinition.speed,
-        radius: projectileDefinition.radius,
-        damage: tethered
-          ? addDamageValues(
-              outgoingDamage.damage,
-              { chaos: outgoingDamage.damage.physical * 0.25 },
-            )
-          : outgoingDamage.damage,
-        criticalStrike: outgoingDamage.criticalStrike,
-        remainingLifetime: projectileDefinition.lifetime,
-      })
+      const projectileCount = getProjectileVolleyCount(
+        skillDefinition.tags,
+        playerStats.globalExtraProjectiles,
+      )
+      const directionAngle = Math.atan2(directionY, directionX)
+      const spreadAngles = createProjectileSpreadAngles(
+        projectileCount,
+        skillDefinition.spreadDegrees ?? 0,
+      )
+      state.projectiles.push(
+        ...spreadAngles.map((spreadAngle) => {
+          const angle = directionAngle + spreadAngle
+          return {
+            id: allocator.createEntityId(),
+            ownerId: summon.id,
+            definitionId: projectileDefinition.id,
+            skillId,
+            targetId: attackTarget.id,
+            sourceTags: skillDefinition.tags,
+            x: summon.x,
+            y: summon.y,
+            velocityX: Math.cos(angle) * projectileDefinition.speed,
+            velocityY: Math.sin(angle) * projectileDefinition.speed,
+            radius: projectileDefinition.radius,
+            damage: tethered
+              ? addDamageValues(
+                  outgoingDamage.damage,
+                  { chaos: outgoingDamage.damage.physical * 0.25 },
+                )
+              : outgoingDamage.damage,
+            criticalStrike: outgoingDamage.criticalStrike,
+            remainingLifetime: projectileDefinition.lifetime,
+          }
+        }),
+      )
       return
     }
 

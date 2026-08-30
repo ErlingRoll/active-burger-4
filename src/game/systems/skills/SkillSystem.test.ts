@@ -933,6 +933,28 @@ describe('skill system', () => {
       expect(inboundEvents.map((event) => event.targetId)).toEqual([farId, nearId])
     })
 
+    it('fires a spread volley for global extra projectiles', () => {
+      const game = createGame({ seed: 84 })
+      game.state.player.skills = [{
+        skillId: RIFT_JAVELIN_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      equipItem(game.state.player, 'splintering-helm')
+      equipItem(game.state.player, 'splintering-armor')
+      game.spawnSlime({ x: 160, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.projectiles).toHaveLength(2)
+      const first = game.state.projectiles[0]!
+      const second = game.state.projectiles[1]!
+      expect(
+        Math.atan2(second.velocityY, second.velocityX) -
+          Math.atan2(first.velocityY, first.velocityX),
+      ).toBeCloseTo((15 * Math.PI) / 180)
+    })
+
     it('lets Homeward Edge increase damage only on the return leg', () => {
       const game = createGame({ seed: 81 })
       game.state.player.skills = [{
@@ -1274,6 +1296,29 @@ describe('skill system', () => {
       expect(firedProjectile).toBe(true)
       expect(game.state.projectiles[0]?.targetId).toBe(targetId)
       expect(game.state.projectiles[0]?.damage.physical).toBeGreaterThan(0)
+    })
+
+    it('fires a spread volley for global extra projectiles', () => {
+      const game = createGame({ seed: 94 })
+      game.state.player.skills = [{
+        skillId: PHANTOM_ARSENAL_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      equipItem(game.state.player, 'splintering-helm')
+      equipItem(game.state.player, 'splintering-armor')
+      game.spawnSlime({ x: 60, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      updateSummons(game.state, 1 / 60, allocator)
+
+      expect(game.state.projectiles).toHaveLength(2)
+      const first = game.state.projectiles[0]!
+      const second = game.state.projectiles[1]!
+      expect(
+        Math.atan2(second.velocityY, second.velocityX) -
+          Math.atan2(first.velocityY, first.velocityX),
+      ).toBeCloseTo((15 * Math.PI) / 180)
     })
 
     it('despawns automatically once its temporary duration elapses', () => {

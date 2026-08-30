@@ -1,5 +1,6 @@
 import {
   createProjectileSpreadAngles,
+  getProjectileVolleyCount,
   getProjectileDefinition,
   PLAYER_PROJECTILE_CHAIN_RANGE,
 } from '../../../content/projectiles/Projectiles'
@@ -543,12 +544,11 @@ function createBasicAttackProjectileState(
     variant.maxExtraProjectiles ?? 0,
     Math.max(0, Math.trunc(stats.basicAttackExtraProjectiles)),
   )
-  const globalExtraProjectiles = Math.max(
-    0,
-    Math.trunc(stats.globalExtraProjectiles),
-  )
   const remainingChains = Math.max(0, Math.trunc(stats.projectileChains))
-  const projectileCount = 1 + globalExtraProjectiles + localExtraProjectiles
+  const projectileCount = getProjectileVolleyCount(
+    variant.tags,
+    stats.globalExtraProjectiles,
+  ) + localExtraProjectiles
   const spreadAngles = createProjectileSpreadAngles(
     projectileCount,
     variant.spreadDegrees ?? 0,

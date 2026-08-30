@@ -73,6 +73,16 @@ export const PROJECTILE_DEFINITIONS = {
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>
 
+export function getProjectileVolleyCount(
+  sourceTags: readonly string[],
+  globalExtraProjectiles: number,
+): number {
+  if (!sourceTags.includes('projectile')) {
+    return 1
+  }
+  return 1 + Math.max(0, Math.trunc(globalExtraProjectiles))
+}
+
 /**
  * Returns centered angular offsets for a projectile volley. The configured
  * spread is the angle between adjacent projectiles.
