@@ -28,6 +28,7 @@ import {
 import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
 import { createGame } from '../../Game'
 import { createDamageValues } from '../../../content/stats/Damage'
+import { Rarity } from '../../../content/rarity/Rarity'
 
 const neverCrit = { next: () => 1 }
 const alwaysCrit = { next: () => 0 }
@@ -175,7 +176,7 @@ describe('collectProjectileDamage', () => {
       equipRolledItem(
         game.state.player,
         'swiftstride-boots',
-        'common',
+        Rarity.Common,
         [createGearModifier('swiftstride-boots', 'area-of-effect', 1, 25)],
       )
       const scaledEvents = performBasicAttackIfReady(game.state, allocator)
@@ -347,7 +348,7 @@ describe('performBasicAttackIfReady', () => {
     equipRolledItem(
       gameState.player,
       'hunters-bow',
-      'rare',
+      Rarity.Rare,
       [
         createGearModifier('hunters-bow', 'basic-attack-extra-projectiles', 3, 2),
         createGearModifier('hunters-bow', 'projectile-chains', 4, 2),
@@ -384,7 +385,7 @@ describe('performBasicAttackIfReady', () => {
     equipRolledItem(
       gameState.player,
       'starcall-wand',
-      'rare',
+      Rarity.Rare,
       [createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 3, 2)],
     )
     gameState.player.targetId = 2
@@ -409,7 +410,7 @@ describe('performBasicAttackIfReady', () => {
     equipRolledItem(
       gameState.player,
       'starcall-wand',
-      'rare',
+      Rarity.Rare,
       [createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 3, 2)],
     )
     gameState.player.targetId = 2
@@ -432,13 +433,13 @@ describe('performBasicAttackIfReady', () => {
     equipRolledItem(
       gameState.player,
       'hunters-bow',
-      'rare',
+      Rarity.Rare,
       [createGearModifier('hunters-bow', 'projectile-chains', 4, 2)],
     )
     equipRolledItem(
       gameState.player,
       'watchers-helm',
-      'uncommon',
+      Rarity.Uncommon,
       [createGearModifier('watchers-helm', 'area-of-effect', 1, 25)],
     )
     gameState.player.targetId = 2
@@ -453,7 +454,7 @@ describe('performBasicAttackIfReady', () => {
     equipRolledItem(
       gameState.player,
       'starcall-wand',
-      'uncommon',
+      Rarity.Uncommon,
       [createGearModifier('starcall-wand', 'projectile-chains', 5, 2)],
     )
     gameState.player.targetId = 2
@@ -630,7 +631,7 @@ describe('applyDamageEvents', () => {
     equipRolledItem(
       gameState.player,
       'iron-cleaver',
-      'common',
+      Rarity.Common,
       [createGearModifier('iron-cleaver', 'cooldown-reduction', 3, 12)],
     )
     gameState.run.selectedUpgradeIds = [
@@ -845,7 +846,7 @@ describe('collectEnemyContactDamage', () => {
       equipRolledItem(
         gameState.player,
         'ring',
-        'common',
+        Rarity.Common,
         [createGearModifier('ring', 'frost-application', 1, 3)],
       )
 
@@ -992,7 +993,7 @@ describe('collectEnemyContactDamage', () => {
       equipRolledItem(
         gameState.player,
         'iron-cleaver',
-        'legendary',
+        Rarity.Legendary,
         [createGearModifier('iron-cleaver', 'increased-global-damage', 5, 8)],
       )
 

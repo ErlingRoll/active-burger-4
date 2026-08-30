@@ -1,4 +1,4 @@
-import type { Rarity } from '../rarity/Rarity'
+import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
 import {
   createGearModifier,
   type GearModifier,
@@ -23,7 +23,7 @@ export const WEAPON_ARCHETYPES = [
 interface ItemDefinitionBase {
   id: ItemId
   name: string
-  rarity: Rarity
+  rarity: RarityValue
   modifiers: readonly GearModifier[]
   starterOnly?: boolean
   setId?: GearSetId
@@ -67,7 +67,7 @@ export const ITEM_DEFINITIONS = {
   'knight-training-sword': {
     id: 'knight-training-sword',
     name: 'Knight Training Sword',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
     modifiers: [],
@@ -76,7 +76,7 @@ export const ITEM_DEFINITIONS = {
   'ranger-training-bow': {
     id: 'ranger-training-bow',
     name: 'Ranger Training Bow',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
     modifiers: [],
@@ -85,7 +85,7 @@ export const ITEM_DEFINITIONS = {
   'necromancer-training-wand': {
     id: 'necromancer-training-wand',
     name: 'Necromancer Training Wand',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
     modifiers: [],
@@ -94,7 +94,7 @@ export const ITEM_DEFINITIONS = {
   'necromancer-bone-staff': {
     id: 'necromancer-bone-staff',
     name: 'Necromancer Bone Staff',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
     modifiers: [],
@@ -103,7 +103,7 @@ export const ITEM_DEFINITIONS = {
   'iron-cleaver': {
     id: 'iron-cleaver',
     name: 'Cleaver',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
     modifiers: [
@@ -113,7 +113,7 @@ export const ITEM_DEFINITIONS = {
   'hunters-bow': {
     id: 'hunters-bow',
     name: 'Bow',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
     modifiers: [
@@ -123,7 +123,7 @@ export const ITEM_DEFINITIONS = {
   'starcall-wand': {
     id: 'starcall-wand',
     name: 'Wand',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
     modifiers: [
@@ -133,7 +133,7 @@ export const ITEM_DEFINITIONS = {
   'ritual-staff': {
     id: 'ritual-staff',
     name: 'Staff',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
     modifiers: [
@@ -143,35 +143,35 @@ export const ITEM_DEFINITIONS = {
   helmet: {
     id: 'helmet',
     name: 'Helmet',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Helmet,
     modifiers: [createGearModifier('helmet', 'max-hp', 1, 56)],
   },
   armor: {
     id: 'armor',
     name: 'Armor',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Armor,
     modifiers: [createGearModifier('armor', 'max-hp', 1, 56)],
   },
   boots: {
     id: 'boots',
     name: 'Boots',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Boots,
     modifiers: [createGearModifier('boots', 'movement-speed', 1, 16)],
   },
   ring: {
     id: 'ring',
     name: 'Ring',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Ring,
     modifiers: [createGearModifier('ring', 'flat-lightning-damage', 1, 9)],
   },
   amulet: {
     id: 'amulet',
     name: 'Amulet',
-    rarity: 'common',
+    rarity: Rarity.Common,
     slot: EquipmentSlot.Amulet,
     modifiers: [createGearModifier('amulet', 'max-hp', 1, 56)],
   },

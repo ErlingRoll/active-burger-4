@@ -12,6 +12,7 @@ import {
   getSkillUnlockWeight,
 } from './UpgradeChoices'
 import { applyUpgrade } from '../systems/upgrades/UpgradeSystem'
+import { Rarity } from '../../content/rarity/Rarity'
 
 function getUpgrade(id: string): UpgradeDefinition {
   const upgrade = INITIAL_UPGRADES.find((candidate) => candidate.id === id)
@@ -95,7 +96,7 @@ describe('upgrade choice generation', () => {
     expect(removal).toMatchObject({
       upgradeId: 'remove-skill',
       skillId: 'whirlwind',
-      rarity: 'rare',
+      rarity: Rarity.Rare,
     })
   })
 
@@ -122,7 +123,7 @@ describe('upgrade choice generation', () => {
     const game = createGame({ seed: 463, playstyleId: 'knight' })
     game.state.player.skills = []
     game.state.run.selectedUpgradeIds = INITIAL_UPGRADES
-      .filter((upgrade) => upgrade.rarity !== 'common')
+      .filter((upgrade) => upgrade.rarity !== Rarity.Common)
       .map((upgrade) => upgrade.id)
     game.state.player.skillSlotCount = game.state.player.skills.length
     const rng = {
@@ -135,7 +136,7 @@ describe('upgrade choice generation', () => {
     const choices = generateUpgradeChoices(game.state, 3, rng)
 
     expect(choices).toHaveLength(3)
-    expect(choices.every((choice) => choice.rarity === 'common')).toBe(true)
+    expect(choices.every((choice) => choice.rarity === Rarity.Common)).toBe(true)
     expect(new Set(choices.map((choice) => choice.upgradeId)).size).toBe(3)
   })
 })

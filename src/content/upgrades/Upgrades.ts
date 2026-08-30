@@ -1,7 +1,7 @@
 import type { StatModifier, StatKey } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
-import type { Rarity } from '../rarity/Rarity'
+import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
 
 export const REMOVE_SKILL_UPGRADE_ID = 'remove-skill' as const
 export type UpgradeId =
@@ -53,7 +53,7 @@ export type UpgradeId =
   | 'aegis-pulse-reprisal'
   | typeof REMOVE_SKILL_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
-export type UpgradeRarity = Rarity
+export type UpgradeRarity = RarityValue
 export type UpgradeStat = Extract<
   StatKey,
   'attackDamage' | 'attackSpeed' | 'attackRange'
@@ -184,7 +184,7 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
       name: 'Release Skill',
       description: 'Remove an acquired skill and lose all upgrades for it.',
       category: 'skill',
-      rarity: 'rare',
+      rarity: Rarity.Rare,
       amount: 1,
       valueLabel: 'Remove skill',
       isEligible: () => false,

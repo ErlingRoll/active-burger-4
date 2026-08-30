@@ -16,8 +16,12 @@ import {
   type GearModifier,
   type GearModifierTier,
 } from '../../content/gear/ModifierPools'
-import type { Rarity } from '../../content/rarity/Rarity'
-import { nextRarity, RARITY_ORDER } from '../../content/rarity/Rarity'
+import {
+  nextRarity,
+  RARITY_ORDER,
+  Rarity,
+  type Rarity as RarityValue,
+} from '../../content/rarity/Rarity'
 import {
   ALL_GEAR_SET_DEFINITIONS,
   type GearSetId,
@@ -34,7 +38,7 @@ export interface GearItemChoice {
   type: 'gear'
   itemId: ItemId
   slot: EquipmentSlot
-  rarity: Rarity
+  rarity: RarityValue
   modifiers: readonly GearModifier[]
   setId?: GearSetId
 }
@@ -43,7 +47,7 @@ export interface UpgradeEquippedItemChoice {
   type: 'upgrade-equipped-item'
   itemId: ItemId
   slot: EquipmentSlot
-  rarity: Rarity
+  rarity: RarityValue
   upgradedModifierId: GearModifier['id']
   fromTier: GearModifierTier
   toTier: GearModifierTier
@@ -53,7 +57,7 @@ export interface UpgradeEquippedItemChoice {
 
 export interface GearRarityFloorChoice {
   type: 'gear-rarity-floor'
-  minimumRarity: Rarity
+  minimumRarity: RarityValue
 }
 
 export type GearChoice =
@@ -63,14 +67,14 @@ export type GearChoice =
 
 function rollRarity(
   rng: RandomSource,
-  minimumRarity: Rarity = 'common',
-): Rarity {
+  minimumRarity: RarityValue = Rarity.Common,
+): RarityValue {
   const totalWeight = Object.values(GEAR_RARITY_WEIGHTS).reduce(
     (total, weight) => total + weight,
     0,
   )
   let roll = rng.next() * totalWeight
-  const rarities = Object.keys(GEAR_RARITY_WEIGHTS) as Rarity[]
+  const rarities = Object.keys(GEAR_RARITY_WEIGHTS) as RarityValue[]
   for (const rarity of rarities) {
     roll -= GEAR_RARITY_WEIGHTS[rarity]
     if (roll < 0) {
@@ -79,7 +83,7 @@ function rollRarity(
         : minimumRarity
     }
   }
-  const selected = rarities[rarities.length - 1] as Rarity
+  const selected = rarities[rarities.length - 1] as RarityValue
   return RARITY_ORDER[selected] >= RARITY_ORDER[minimumRarity]
     ? selected
     : minimumRarity
@@ -88,7 +92,7 @@ function rollRarity(
 function rollChoiceFromTemplate(
   definition: ItemDefinition,
   rng: RandomSource,
-  minimumRarity: Rarity,
+  minimumRarity: RarityValue,
 ): GearItemChoice {
   const rarity = rollRarity(rng, minimumRarity)
   const setId = rng.pick(ALL_GEAR_SET_DEFINITIONS).id
@@ -194,14 +198,14 @@ function ensureRangerPreferredWeaponChoice(
   choices[replacementIndex] = rollChoiceFromTemplate(
     replacementDefinition,
     rng,
-    state.player.gearRarityFloor ?? 'common',
+    state.player.gearRarityFloor ?? Rarity.Common,
   )
 }
 
 interface EligibleUpgradeTarget {
   itemId: ItemId
   slot: EquipmentSlot
-  rarity: Rarity
+  rarity: RarityValue
   modifiers: readonly GearModifier[]
   setId?: GearSetId
 }
@@ -243,11 +247,11 @@ export function gearChoiceSignature(choice: Readonly<GearChoice>): string {
 
 function getLowestEquippedRarity(
   state: Readonly<GameState>,
-): Rarity | undefined {
+): RarityValue | undefined {
   const equippedItems = EQUIPMENT_SLOTS.map(
     (slot) => state.player.equipment?.[slot],
   )
-  let lowestRarity: Rarity | undefined
+  let lowestRarity: RarityValue | undefined
   for (const item of equippedItems) {
     if (!item) {
       return undefined
@@ -266,14 +270,14 @@ function getLowestEquippedRarity(
 
 function getEligibleGearRarityFloor(
   state: Readonly<GameState>,
-): Rarity | undefined {
+): RarityValue | undefined {
   const currentRarity = getLowestEquippedRarity(state)
-  if (currentRarity !== 'common' && currentRarity !== 'uncommon') {
+  if (currentRarity !== Rarity.Common && currentRarity !== Rarity.Uncommon) {
     return undefined
   }
-  const minimumRarity = state.player.gearRarityFloor ?? 'common'
+  const minimumRarity = state.player.gearRarityFloor ?? Rarity.Common
   const next = nextRarity(currentRarity)
-  if (next === 'rare' && minimumRarity === 'common') {
+  if (next === Rarity.Rare && minimumRarity === Rarity.Common) {
     return undefined
   }
   if (
@@ -331,7 +335,7 @@ export function generateGearChoices(
     choices.push(rollChoiceFromTemplate(
       definition,
       rng,
-      state.player.gearRarityFloor ?? 'common',
+      state.player.gearRarityFloor ?? Rarity.Common,
     ))
   }
 

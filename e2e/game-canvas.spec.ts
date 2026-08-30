@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { loadEnv } from 'vite'
+import { Rarity } from '../src/content/rarity/Rarity'
 
 const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
 const testUserEmail = testEnvironment.VITE_TEST_USER_EMAIL
@@ -500,7 +501,7 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
     /^Upgrade: /,
   )
   await expect(
-    upgradeCard.locator('.choice-card-header [data-rarity="rare"]'),
+    upgradeCard.locator(`.choice-card-header [data-rarity="${Rarity.Rare}"]`),
   ).toBeVisible()
   await expect(upgradeCard).toContainText(/Upgrade equipped item/i)
   await expect(upgradeCard).toContainText(/current rarity/i)

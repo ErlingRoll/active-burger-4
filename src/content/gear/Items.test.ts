@@ -26,6 +26,7 @@ import {
   validateGearDropChances,
   validateGearPickupBalance,
 } from './GearDrops'
+import { Rarity } from '../rarity/Rarity'
 import {
   ALL_GEAR_SET_DEFINITIONS,
   getActiveGearSetBonuses,
@@ -48,7 +49,7 @@ describe('initial gear content', () => {
       INITIAL_ITEMS.filter((item) => item.slot !== 'weapon').map((item) => item.name),
     ).toEqual(['Helmet', 'Armor', 'Boots', 'Ring', 'Amulet'])
     expect(new Set(INITIAL_ITEMS.map((item) => item.rarity))).toEqual(
-      new Set(['common']),
+      new Set([Rarity.Common]),
     )
     expect(INITIAL_ITEMS.every((item) => isItemId(item.id))).toBe(true)
     expect(validateGearModifierDefinitions()).toEqual([])
@@ -238,7 +239,7 @@ describe('initial gear content', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     expect(
-      rollGearModifiersForItem(sword, 'common', scriptedAreaOfEffectRng),
+      rollGearModifiersForItem(sword, Rarity.Common, scriptedAreaOfEffectRng),
     ).toEqual([
       expect.objectContaining({ id: 'area-of-effect' }),
     ])
@@ -262,7 +263,7 @@ describe('initial gear content', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     expect(
-      rollGearModifiersForItem(bow, 'common', scriptedChainRng),
+      rollGearModifiersForItem(bow, Rarity.Common, scriptedChainRng),
     ).toEqual([
       expect.objectContaining({ id: 'projectile-chains', value: 4 }),
     ])
@@ -285,7 +286,7 @@ describe('initial gear content', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     expect(
-      rollGearModifiersForItem(bow, 'common', scriptedBowRng),
+      rollGearModifiersForItem(bow, Rarity.Common, scriptedBowRng),
     ).toEqual([
       expect.objectContaining({ id: 'basic-attack-extra-projectiles' }),
     ])
@@ -297,7 +298,7 @@ describe('initial gear content', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     expect(
-      rollGearModifiersForItem(sword, 'legendary', scriptedSwordRng).every(
+      rollGearModifiersForItem(sword, Rarity.Legendary, scriptedSwordRng).every(
         (modifier) =>
           modifier.id !== 'increased-projectile-damage' &&
           modifier.id !== 'basic-attack-extra-projectiles' &&

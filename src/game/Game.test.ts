@@ -16,6 +16,7 @@ import { updatePickups } from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
 import { getPlayerArenaBounds } from '../game-config/arena'
+import { Rarity } from '../content/rarity/Rarity'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -566,7 +567,7 @@ describe('Game', () => {
 
   it('stops at contact range without overshooting the player', () => {
     const game = createGame({ seed: 10 })
-    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
+    equipRolledItem(game.state.player, 'starcall-wand', Rarity.Common, [])
     game.spawnSlime({ x: 34.5, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
@@ -626,7 +627,7 @@ describe('Game', () => {
 
   it('keeps a lone slime inside the engagement envelope targeted and firing', () => {
     const game = createGame({ seed: 111 })
-    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
+    equipRolledItem(game.state.player, 'starcall-wand', Rarity.Common, [])
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]
@@ -640,7 +641,7 @@ describe('Game', () => {
 
   it('keeps pursuing and firing at the current target when another enemy moves closer', () => {
     const game = createGame({ seed: 112 })
-    equipRolledItem(game.state.player, 'starcall-wand', 'common', [])
+    equipRolledItem(game.state.player, 'starcall-wand', Rarity.Common, [])
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]

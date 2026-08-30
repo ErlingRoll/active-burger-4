@@ -1,29 +1,37 @@
 /** Shared rarity values used by all content types. */
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+export const Rarity = {
+  Common: 'common',
+  Uncommon: 'uncommon',
+  Rare: 'rare',
+  Epic: 'epic',
+  Legendary: 'legendary',
+} as const
+
+export type Rarity = typeof Rarity[keyof typeof Rarity]
 
 export const RARITIES = [
-  'common',
-  'uncommon',
-  'rare',
-  'epic',
-  'legendary',
+  Rarity.Common,
+  Rarity.Uncommon,
+  Rarity.Rare,
+  Rarity.Epic,
+  Rarity.Legendary,
 ] as const satisfies readonly Rarity[]
 
 /** Placeholder weights; these are centralized so balance can change safely. */
 export const RARITY_WEIGHTS = {
-  common: 60,
-  uncommon: 25,
-  rare: 10,
-  epic: 4,
-  legendary: 1,
+  [Rarity.Common]: 60,
+  [Rarity.Uncommon]: 25,
+  [Rarity.Rare]: 10,
+  [Rarity.Epic]: 4,
+  [Rarity.Legendary]: 1,
 } as const satisfies Record<Rarity, number>
 
 export const RARITY_ORDER = {
-  common: 0,
-  uncommon: 1,
-  rare: 2,
-  epic: 3,
-  legendary: 4,
+  [Rarity.Common]: 0,
+  [Rarity.Uncommon]: 1,
+  [Rarity.Rare]: 2,
+  [Rarity.Epic]: 3,
+  [Rarity.Legendary]: 4,
 } as const satisfies Record<Rarity, number>
 
 export function nextRarity(rarity: Rarity): Rarity | undefined {
@@ -37,11 +45,11 @@ export interface RarityVisualMetadata {
 }
 
 export const RARITY_VISUALS = {
-  common: { label: 'Common', color: '#d1d5db', icon: '◆' },
-  uncommon: { label: 'Uncommon', color: '#4ade80', icon: '◆' },
-  rare: { label: 'Rare', color: '#60a5fa', icon: '◆' },
-  epic: { label: 'Epic', color: '#c084fc', icon: '◆' },
-  legendary: { label: 'Legendary', color: '#fbbf24', icon: '◆' },
+  [Rarity.Common]: { label: 'Common', color: '#d1d5db', icon: '◆' },
+  [Rarity.Uncommon]: { label: 'Uncommon', color: '#4ade80', icon: '◆' },
+  [Rarity.Rare]: { label: 'Rare', color: '#60a5fa', icon: '◆' },
+  [Rarity.Epic]: { label: 'Epic', color: '#c084fc', icon: '◆' },
+  [Rarity.Legendary]: { label: 'Legendary', color: '#fbbf24', icon: '◆' },
 } as const satisfies Record<Rarity, RarityVisualMetadata>
 
 export function isRarity(value: unknown): value is Rarity {

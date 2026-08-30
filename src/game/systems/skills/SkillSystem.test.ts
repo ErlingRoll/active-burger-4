@@ -17,6 +17,7 @@ import {
 } from '../../../game-config/skills'
 import { createGame } from '../../Game'
 import { equipRolledItem } from '../../equipment/EquipmentState'
+import { Rarity } from '../../../content/rarity/Rarity'
 import {
   collectSkillDamage,
   updateSkillCooldowns,
@@ -150,7 +151,7 @@ describe('skill system', () => {
     equipRolledItem(
       game.state.player,
       'duelists-band',
-      'rare',
+      Rarity.Rare,
       [
         createGearModifier('duelists-band', 'flat-lightning-damage', 3, 5),
         createGearModifier('duelists-band', 'increased-elemental-damage', 3, 20),
@@ -193,7 +194,7 @@ describe('skill system', () => {
     equipRolledItem(
       game.state.player,
       'iron-cleaver',
-      'common',
+      Rarity.Common,
       [createGearModifier('iron-cleaver', 'cooldown-reduction', 3, 12)],
     )
     game.spawnSlime({ x: 80, y: 0 })
@@ -214,7 +215,7 @@ describe('skill system', () => {
     equipRolledItem(
       game.state.player,
       'iron-cleaver',
-      'common',
+      Rarity.Common,
       [createGearModifier('iron-cleaver', 'cooldown-reduction', 3, 14)],
     )
 
@@ -252,7 +253,7 @@ describe('skill system', () => {
     equipRolledItem(
       game.state.player,
       'duelists-band',
-      'common',
+      Rarity.Common,
       [createGearModifier('duelists-band', 'area-of-effect', 1, 21)],
     )
     const targetId = game.spawnSlime({ x: 100, y: 0 })

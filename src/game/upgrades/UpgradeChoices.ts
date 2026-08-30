@@ -18,7 +18,11 @@ import type {
 } from '../../content/upgrades/Upgrades'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
-import { RARITIES, RARITY_WEIGHTS } from '../../content/rarity/Rarity'
+import {
+  RARITIES,
+  RARITY_WEIGHTS,
+  Rarity,
+} from '../../content/rarity/Rarity'
 import {
   DEFAULT_PLAYSTYLE_ID,
   getPlaystyleDefinition,
@@ -128,7 +132,7 @@ export function generateUpgradeChoices(
     const removalChoice: SkillRemovalChoice = {
       upgradeId: 'remove-skill',
       skillId,
-      rarity: 'rare',
+      rarity: Rarity.Rare,
     }
     choices[choices.length - 1] = removalChoice
   }

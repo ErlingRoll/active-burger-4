@@ -14,6 +14,7 @@ import {
 import { getLevelMaxHpBonus } from '../../../content/progression/LevelScaling'
 import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDropConfig'
 import { getItemDefinition } from '../../../content/gear/Items'
+import { Rarity } from '../../../content/rarity/Rarity'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
   BASIC_ATTACK_SKILL_ID,
@@ -120,7 +121,7 @@ export function createInitialPlayerState(
     skeletonMaxCountBonus: 0,
     upgradeWhirlwindLeech: 0,
     gearDropChanceMultiplier: 1,
-    gearRarityFloor: 'common',
+    gearRarityFloor: Rarity.Common,
     pickupCollectionRangeMultiplier: 1,
     baseStats: {
       maxHp: baseMaxHp,

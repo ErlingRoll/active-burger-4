@@ -17,6 +17,7 @@ import {
   rollItemUpgradeModifiers,
   upgradeEquippedItem,
 } from './EquipmentState'
+import { Rarity } from '../../content/rarity/Rarity'
 import { createUiSnapshot } from '../ui/Snapshots'
 
 describe('gear choices', () => {
@@ -61,7 +62,7 @@ describe('gear choices', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
     const choice = generateGearChoices(game.state, 1, highRoll)[0]
-    expect(choice?.type === 'gear' ? choice.rarity : undefined).toBe('legendary')
+    expect(choice?.type === 'gear' ? choice.rarity : undefined).toBe(Rarity.Legendary)
   })
 
   it('weights empty equipment slots more heavily when choosing gear templates', () => {
@@ -102,7 +103,7 @@ describe('gear choices', () => {
       equipItem(game.state.player, itemId)
     }
     Object.values(game.state.player.equipment ?? {}).forEach((item) => {
-      item.rarity = 'common'
+      item.rarity = Rarity.Common
     })
     const guaranteedBlessing = {
       next: () => 0,
@@ -118,7 +119,7 @@ describe('gear choices', () => {
     ).find((choice) => choice.type === 'gear-rarity-floor')
     expect(commonBlessing).toEqual({
       type: 'gear-rarity-floor',
-      minimumRarity: 'uncommon',
+      minimumRarity: Rarity.Uncommon,
     })
 
     const equippedItems = Object.values(game.state.player.equipment ?? {})
@@ -126,16 +127,16 @@ describe('gear choices', () => {
     if (!firstEquippedItem) {
       throw new Error('Expected equipped gear')
     }
-    firstEquippedItem.rarity = 'uncommon'
+    firstEquippedItem.rarity = Rarity.Uncommon
     expect(
       generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
         .find((choice) => choice.type === 'gear-rarity-floor'),
     ).toEqual({
       type: 'gear-rarity-floor',
-      minimumRarity: 'uncommon',
+      minimumRarity: Rarity.Uncommon,
     })
 
-    game.state.player.gearRarityFloor = 'uncommon'
+    game.state.player.gearRarityFloor = Rarity.Uncommon
     expect(
       generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
         .some((choice) => choice.type === 'gear-rarity-floor'),
@@ -143,20 +144,20 @@ describe('gear choices', () => {
     expect(
       generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
         .filter((choice) => choice.type === 'gear')
-        .every((choice) => choice.rarity !== 'common'),
+        .every((choice) => choice.rarity !== Rarity.Common),
     ).toBe(true)
 
     equippedItems.forEach((item) => {
-      item.rarity = 'uncommon'
+      item.rarity = Rarity.Uncommon
     })
-    firstEquippedItem.rarity = 'rare'
-    game.state.player.gearRarityFloor = 'common'
+    firstEquippedItem.rarity = Rarity.Rare
+    game.state.player.gearRarityFloor = Rarity.Common
     expect(
       generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
         .some((choice) => choice.type === 'gear-rarity-floor'),
     ).toBe(false)
 
-    game.state.player.gearRarityFloor = 'uncommon'
+    game.state.player.gearRarityFloor = Rarity.Uncommon
     const rareBlessing = generateGearChoices(
       game.state,
       GEAR_CHOICES_PER_PICKUP,
@@ -164,13 +165,13 @@ describe('gear choices', () => {
     ).find((choice) => choice.type === 'gear-rarity-floor')
     expect(rareBlessing).toEqual({
       type: 'gear-rarity-floor',
-      minimumRarity: 'rare',
+      minimumRarity: Rarity.Rare,
     })
 
     equippedItems.forEach((item) => {
-      item.rarity = 'rare'
+      item.rarity = Rarity.Rare
     })
-    game.state.player.gearRarityFloor = 'rare'
+    game.state.player.gearRarityFloor = Rarity.Rare
     expect(
       generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
         .some((choice) => choice.type === 'gear-rarity-floor'),
@@ -190,7 +191,7 @@ describe('gear choices', () => {
       equipItem(game.state.player, itemId)
     }
     Object.values(game.state.player.equipment ?? {}).forEach((item) => {
-      item.rarity = 'common'
+      item.rarity = Rarity.Common
     })
 
     const specialChoices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
@@ -290,7 +291,7 @@ describe('gear choices', () => {
     expect(choices[0]).toBe(upgrade)
     expect(upgrade).toMatchObject({
       itemId: 'iron-cleaver',
-      rarity: 'common',
+      rarity: Rarity.Common,
       upgradedModifierId: 'melee-leech',
       fromTier: 4,
       toTier: 3,
@@ -313,7 +314,7 @@ describe('gear choices', () => {
       ),
     ).toBe(true)
     const rolled = game.state.player.equipment?.weapon
-    expect(rolled?.rarity).toBe('common')
+    expect(rolled?.rarity).toBe(Rarity.Common)
     expect(rolled?.modifiers).toEqual(upgrade.upgradedModifiers)
 
     const before = createUiSnapshot(game.state)
@@ -347,7 +348,7 @@ describe('gear choices', () => {
     equipRolledItem(
       game.state.player,
       'armor',
-      'common',
+      Rarity.Common,
       [createGearModifier('armor', 'max-hp', 4, 21)],
     )
     expect(

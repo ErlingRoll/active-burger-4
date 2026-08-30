@@ -17,6 +17,7 @@ import {
   GEAR_CHOICES_PER_PICKUP,
   generateGearChoices,
 } from '../equipment/GearChoices'
+import { Rarity } from '../../content/rarity/Rarity'
 import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
 
 describe('UI snapshots', () => {
@@ -33,7 +34,7 @@ describe('UI snapshots', () => {
       equipItem(game.state.player, itemId)
     }
     Object.values(game.state.player.equipment ?? {}).forEach((item) => {
-      item.rarity = 'common'
+      item.rarity = Rarity.Common
     })
     const choices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
       next: () => 0,
@@ -322,7 +323,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'starcaller-amulet',
-      'legendary',
+      Rarity.Legendary,
       [
         createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
         createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
@@ -356,7 +357,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'swiftstride-boots',
-      'common',
+      Rarity.Common,
       [createGearModifier('swiftstride-boots', 'dot-multiplier', 1, 20)],
     )
 
@@ -473,7 +474,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'swiftstride-boots',
-      'epic',
+      Rarity.Epic,
       [
         createGearModifier('swiftstride-boots', 'movement-speed', 3, 11),
         createGearModifier('swiftstride-boots', 'attack-speed', 5, 6),
@@ -484,7 +485,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'starcaller-amulet',
-      'legendary',
+      Rarity.Legendary,
       [
         createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
         createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
@@ -496,7 +497,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'hunters-bow',
-      'rare',
+      Rarity.Rare,
       [
         createGearModifier('hunters-bow', 'increased-projectile-damage', 4, 14),
         createGearModifier('hunters-bow', 'basic-attack-extra-projectiles', 4, 1),
@@ -603,7 +604,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'iron-cleaver',
-      'legendary',
+      Rarity.Legendary,
       [
         createGearModifier('iron-cleaver', 'attack-speed', 5, 4),
         createGearModifier('iron-cleaver', 'cooldown-reduction', 5, 4),
@@ -615,7 +616,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'swiftstride-boots',
-      'legendary',
+      Rarity.Legendary,
       [
         createGearModifier('swiftstride-boots', 'attack-range', 5, 10),
         createGearModifier('swiftstride-boots', 'area-of-effect', 5, 5),
@@ -667,7 +668,7 @@ describe('UI snapshots', () => {
     equipRolledItem(
       game.state.player,
       'iron-cleaver',
-      'common',
+      Rarity.Common,
       [
         createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
       ],
