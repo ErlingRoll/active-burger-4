@@ -941,7 +941,6 @@ function GameDashboard({
       <div className="dashboard-panel game-dashboard-panel">
         <header className="game-dashboard-hero">
           <div className="game-dashboard-hero-copy">
-            <p className="screen-kicker">Command deck</p>
             <h2 id="game-dashboard-title">The dungeon is waiting.</h2>
             <p>
               Prepare your fighter, choose your risk, and descend farther than your last run.
