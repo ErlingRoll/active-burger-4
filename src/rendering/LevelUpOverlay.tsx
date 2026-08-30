@@ -16,6 +16,7 @@ import {
 import {
   getUpgradeDefinition,
   REMOVE_SKILL_UPGRADE_ID,
+  REMOVE_SYNERGY_UPGRADE_ID,
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
 import { getSkillDefinition } from '../content/skills/Skills'
@@ -162,13 +163,21 @@ function ChoiceKeyHint({ keybind }: { keybind: string | undefined }) {
   ) : null
 }
 
-function RarityBadge({ rarity, label = 'Rarity' }: { rarity: Rarity; label?: string }) {
+function RarityBadge({
+  rarity,
+  label = 'Rarity',
+  synergy = false,
+}: {
+  rarity: Rarity
+  label?: string
+  synergy?: boolean
+}) {
   const visual = RARITY_VISUALS[rarity]
   return (
     <span
-      className={`rarity-badge ${rarityClass(rarity)}`}
+      className={`rarity-badge ${rarityClass(rarity)}${synergy ? ' synergy-rarity-badge' : ''}`}
       data-rarity={rarity}
-      aria-label={`${label}: ${visual.label}`}
+      aria-label={`${label}: ${synergy ? 'Synergy, ' : ''}${visual.label}`}
     >
       <span aria-hidden="true">{visual.icon}</span> {visual.label}
     </span>
@@ -430,33 +439,50 @@ function UpgradeCard({
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
     ? getSkillDefinition(choice.skillId)
     : undefined
+  const removedSynergy = choice.upgradeId === REMOVE_SYNERGY_UPGRADE_ID
+    ? getUpgradeDefinition(choice.synergyId)
+    : undefined
   const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
   const evolvedSkill = definition.branch && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
+  const synergySkillIds = definition.synergySkillIds ??
+    removedSynergy?.synergySkillIds
+  const synergySkills = synergySkillIds?.map((skillId) =>
+    getSkillDefinition(skillId)
+  )
+  const isSynergy = synergySkillIds !== undefined
   const actionLabel = removedSkill
     ? 'Release'
-    : definition.branch
-      ? 'Evolve:'
-      : definition.skillAction === 'unlock'
-        ? 'Unlock skill'
-        : 'Upgrade'
+    : isSynergy
+      ? removedSynergy
+        ? 'Release synergy:'
+        : 'Synergy:'
+      : definition.branch
+        ? 'Evolve:'
+        : definition.skillAction === 'unlock'
+          ? 'Unlock skill'
+          : 'Upgrade'
   const actionLabelClass = `upgrade-action-label-${
     removedSkill
       ? 'release'
-      : definition.branch
-        ? 'evolve'
-        : definition.skillAction === 'unlock'
-          ? 'unlock'
-          : 'upgrade'
+      : isSynergy
+        ? 'synergy'
+        : definition.branch
+          ? 'evolve'
+          : definition.skillAction === 'unlock'
+            ? 'unlock'
+            : 'upgrade'
   }`
   return (
     <div className="choice-card-wrap">
       <button
         ref={index === 0 ? firstButtonRef : undefined}
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)} ${
+          isSynergy ? 'synergy-card' : ''
+        } ${
           choice.upgradeId === REMOVE_SKILL_UPGRADE_ID ? 'skill-removal-card' : ''
         }`}
         data-choice-type="upgrade"
@@ -467,9 +493,18 @@ function UpgradeCard({
         <ChoiceKeyHint keybind={keybind} />
         <span className="choice-card-header">
           <span className="upgrade-choice-name">
-            {removedSkill ? `Release ${removedSkill.name}` : definition.name}
+            {removedSkill
+              ? `Release ${removedSkill.name}`
+              : removedSynergy
+                ? `Release ${removedSynergy.name}`
+                : definition.name}
           </span>
-          <RarityBadge rarity={choice.rarity} />
+          <span className="choice-card-badges">
+            {isSynergy ? (
+              <span className="synergy-card-badge">SYNERGY</span>
+            ) : null}
+            <RarityBadge rarity={choice.rarity} synergy={isSynergy} />
+          </span>
         </span>
         <span className={`upgrade-action-label ${actionLabelClass}`}>
           {actionLabel}
@@ -481,6 +516,11 @@ function UpgradeCard({
             </span>
           ) : null}
         </span>
+        {synergySkills ? (
+          <span className="upgrade-synergy-pair">
+            {synergySkills[0]?.name} + {synergySkills[1]?.name}
+          </span>
+        ) : null}
         {definition.evolutionTags && definition.evolutionTags.length > 0 ? (
           <span className="upgrade-skill-tags" aria-label="Evolution tags">
             <span className="upgrade-skill-tags-label">Tags</span>
@@ -508,7 +548,13 @@ function UpgradeCard({
         {!unlockedSkill ? (
           <span className="upgrade-choice-value">
             <KeywordText
-              text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+              text={
+                removedSkill
+                  ? 'Lose all upgrades for this skill'
+                  : removedSynergy
+                    ? 'Free both skill links'
+                    : definition.valueLabel
+              }
             />
           </span>
         ) : null}
@@ -516,7 +562,9 @@ function UpgradeCard({
           <KeywordText
             text={removedSkill
               ? `Remove ${removedSkill.name} from your skill slots. It can be unlocked again later.`
-              : definition.description}
+              : removedSynergy
+                ? `Remove ${removedSynergy.name} and make both skills eligible for another synergy.`
+                : definition.description}
           />
         </span>
       </button>

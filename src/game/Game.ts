@@ -35,6 +35,7 @@ import type {
 import {
   getUpgradeDefinition,
   REMOVE_SKILL_UPGRADE_ID,
+  REMOVE_SYNERGY_UPGRADE_ID,
 } from '../content/upgrades/Upgrades'
 import {
   generateGearChoices,
@@ -241,6 +242,7 @@ export class Game {
 
   private readonly idAllocator: EntityIdAllocator
   private readonly gearRandom: RandomSource
+  private readonly synergyRandom: RandomSource
   private readonly gameState: GameState
   readonly spawnDirector: SpawnDirector
   private readonly worldModifierEffects: WorldModifierEffects
@@ -258,6 +260,7 @@ export class Game {
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
     this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
+    this.synergyRandom = new Random(config.seed ^ 0x85ebca6b)
     this.worldModifierEffects = resolveWorldModifierEffects(
       config.worldModifierIds,
       SPAWN_BALANCE,
@@ -520,10 +523,13 @@ export class Game {
     if (phaseError) {
       return { ok: false, error: phaseError }
     }
-    if (upgradeId === REMOVE_SKILL_UPGRADE_ID) {
+    if (
+      upgradeId === REMOVE_SKILL_UPGRADE_ID ||
+      upgradeId === REMOVE_SYNERGY_UPGRADE_ID
+    ) {
       return {
         ok: false,
-        error: 'Skill removal is not available as a development grant.',
+        error: 'Release cards are not available as development grants.',
       }
     }
 
@@ -631,17 +637,31 @@ export class Game {
     const skillId = typeof choice === 'object' && 'skillId' in choice
       ? choice.skillId
       : undefined
+    const synergyId = typeof choice === 'object' && 'synergyId' in choice
+      ? choice.synergyId
+      : undefined
     if (
-      !flow.choices.some((candidate) =>
-        candidate.upgradeId === upgradeId &&
-        ('skillId' in candidate ? candidate.skillId === skillId : skillId === undefined),
-      )
+      !flow.choices.some((candidate) => {
+        if (candidate.upgradeId !== upgradeId) {
+          return false
+        }
+        if ('skillId' in candidate) {
+          return candidate.skillId === skillId
+        }
+        if ('synergyId' in candidate) {
+          return candidate.synergyId === synergyId
+        }
+        return skillId === undefined && synergyId === undefined
+      })
     ) {
       return false
     }
 
-    applyUpgrade(this.gameState, upgradeId, skillId)
-    if (upgradeId !== 'remove-skill') {
+    applyUpgrade(this.gameState, upgradeId, skillId, synergyId)
+    if (
+      upgradeId !== REMOVE_SKILL_UPGRADE_ID &&
+      upgradeId !== REMOVE_SYNERGY_UPGRADE_ID
+    ) {
       this.gameState.run.selectedUpgradeIds.push(upgradeId)
     }
 
@@ -1158,6 +1178,7 @@ export class Game {
       this.gameState,
       UPGRADE_CHOICES_PER_LEVEL,
       this.random,
+      this.synergyRandom,
     )
   }
 

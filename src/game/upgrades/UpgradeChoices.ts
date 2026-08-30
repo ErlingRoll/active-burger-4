@@ -12,9 +12,15 @@ import { INITIAL_UPGRADES } from '../../content/upgrades/Upgrades'
 import type {
   LevelUpUpgradeChoice,
   SkillRemovalChoice,
+  SynergyRemovalChoice,
   UpgradeChoice,
   UpgradeEligibilityState,
   UpgradeDefinition,
+} from '../../content/upgrades/Upgrades'
+import {
+  isSynergyUpgradeId,
+  isSynergyUpgradeDefinition,
+  REMOVE_SYNERGY_UPGRADE_ID,
 } from '../../content/upgrades/Upgrades'
 import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
@@ -28,6 +34,7 @@ import {
   getPlaystyleDefinition,
   isPlaystyleId,
 } from '../../content/playstyles/Playstyles'
+import { SYNERGY_OFFER_CHANCE } from '../../game-config/synergies'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
 
@@ -44,6 +51,7 @@ export function generateUpgradeChoices(
   state: Readonly<GameState>,
   count: number,
   rng: RandomSource,
+  synergyRng: RandomSource = rng,
 ): LevelUpUpgradeChoice[] {
   if (!Number.isInteger(count) || count < 0) {
     throw new Error(`Upgrade choice count must be a non-negative integer: ${count}`)
@@ -74,67 +82,77 @@ export function generateUpgradeChoices(
   function isSelectableUpgrade(
     upgrade: UpgradeDefinition,
   ): upgrade is UpgradeDefinition & { id: UpgradeChoice['upgradeId'] } {
-    return upgrade.id !== 'remove-skill'
+    return upgrade.id !== 'remove-skill' &&
+      upgrade.id !== REMOVE_SYNERGY_UPGRADE_ID
   }
 
   const choices: LevelUpUpgradeChoice[] = []
-  if (new Set(eligible.map((upgrade) => upgrade.rarity)).size === 1) {
-    const remaining = [...eligible]
-    while (choices.length < count) {
-      const selected = pickWeightedUpgrade(remaining, state, rng)
-      if (!selected) {
-        break
-      }
-      choices.push({ upgradeId: selected.id, rarity: selected.rarity })
-      remaining.splice(remaining.indexOf(selected), 1)
+  const remainingUpgrades = eligible.filter(
+    (upgrade) => !isSynergyUpgradeDefinition(upgrade),
+  )
+  const remainingSynergies = eligible.filter(isSynergyUpgradeDefinition)
+  while (choices.length < count) {
+    const selected = pickWeightedRarityUpgrade(remainingUpgrades, state, rng)
+    if (!selected) {
+      break
     }
-  } else {
-    const remaining = [...eligible]
-    while (choices.length < count) {
-      const availableRarities = RARITIES.filter((rarity) =>
-        remaining.some((upgrade) => upgrade.rarity === rarity),
-      )
-      const totalWeight = availableRarities.reduce(
-        (total, rarity) => total + RARITY_WEIGHTS[rarity],
-        0,
-      )
-      let roll = rng.next() * totalWeight
-      let selectedRarity = availableRarities[availableRarities.length - 1]
-      for (const rarity of availableRarities) {
-        roll -= RARITY_WEIGHTS[rarity]
-        if (roll < 0) {
-          selectedRarity = rarity
-          break
-        }
-      }
-      const candidates = remaining.filter(
-        (upgrade) => upgrade.rarity === selectedRarity,
-      )
-      const selected = pickWeightedUpgrade(candidates, state, rng)
-      if (selected) {
-        choices.push({ upgradeId: selected.id, rarity: selected.rarity })
-        remaining.splice(remaining.indexOf(selected), 1)
-      }
+    choices.push({ upgradeId: selected.id, rarity: selected.rarity })
+    remainingUpgrades.splice(remainingUpgrades.indexOf(selected), 1)
+  }
 
+  for (let index = 0; index < choices.length; index += 1) {
+    if (
+      remainingSynergies.length === 0 ||
+      !synergyRng.chance(SYNERGY_OFFER_CHANCE)
+    ) {
+      continue
     }
+    const selected = pickWeightedUpgrade(remainingSynergies, state, synergyRng)
+    if (!selected) {
+      continue
+    }
+    choices[index] = { upgradeId: selected.id, rarity: selected.rarity }
+    remainingSynergies.splice(remainingSynergies.indexOf(selected), 1)
+  }
+
+  while (choices.length < count && remainingSynergies.length > 0) {
+    const selected = pickWeightedUpgrade(remainingSynergies, state, synergyRng)
+    if (!selected) {
+      break
+    }
+    choices.push({ upgradeId: selected.id, rarity: selected.rarity })
+    remainingSynergies.splice(remainingSynergies.indexOf(selected), 1)
   }
 
   const removableSkillIds = state.player.skills
     .map((skill) => skill.skillId)
     .filter(isSkillId)
     .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
+  const activeSynergyIds = state.run.selectedUpgradeIds.filter(isSynergyUpgradeId)
   if (
     count > 0 &&
-    removableSkillIds.length > 0 &&
+    (activeSynergyIds.length > 0 || removableSkillIds.length > 0) &&
     rng.chance(SKILL_REMOVAL_CHANCE)
   ) {
-    const skillId = removableSkillIds[rng.int(0, removableSkillIds.length - 1)]
-    const removalChoice: SkillRemovalChoice = {
-      upgradeId: 'remove-skill',
-      skillId,
-      rarity: Rarity.Rare,
+    if (activeSynergyIds.length > 0) {
+      const synergyId = activeSynergyIds[
+        rng.int(0, activeSynergyIds.length - 1)
+      ]
+      const removalChoice: SynergyRemovalChoice = {
+        upgradeId: REMOVE_SYNERGY_UPGRADE_ID,
+        synergyId,
+        rarity: Rarity.Rare,
+      }
+      choices[choices.length - 1] = removalChoice
+    } else if (removableSkillIds.length > 0) {
+      const skillId = removableSkillIds[rng.int(0, removableSkillIds.length - 1)]
+      const removalChoice: SkillRemovalChoice = {
+        upgradeId: 'remove-skill',
+        skillId,
+        rarity: Rarity.Rare,
+      }
+      choices[choices.length - 1] = removalChoice
     }
-    choices[choices.length - 1] = removalChoice
   }
   return choices
 }
@@ -157,6 +175,41 @@ function pickWeightedUpgrade(
     }
   }
   return weights[weights.length - 1]?.upgrade
+}
+
+function pickWeightedRarityUpgrade(
+  candidates: readonly SelectableUpgradeDefinition[],
+  state: Readonly<GameState>,
+  rng: RandomSource,
+): SelectableUpgradeDefinition | undefined {
+  if (candidates.length === 0) {
+    return undefined
+  }
+  if (new Set(candidates.map((upgrade) => upgrade.rarity)).size === 1) {
+    return pickWeightedUpgrade(candidates, state, rng)
+  }
+
+  const availableRarities = RARITIES.filter((rarity) =>
+    candidates.some((upgrade) => upgrade.rarity === rarity),
+  )
+  const totalWeight = availableRarities.reduce(
+    (total, rarity) => total + RARITY_WEIGHTS[rarity],
+    0,
+  )
+  let roll = rng.next() * totalWeight
+  let selectedRarity = availableRarities[availableRarities.length - 1]
+  for (const rarity of availableRarities) {
+    roll -= RARITY_WEIGHTS[rarity]
+    if (roll < 0) {
+      selectedRarity = rarity
+      break
+    }
+  }
+  return pickWeightedUpgrade(
+    candidates.filter((upgrade) => upgrade.rarity === selectedRarity),
+    state,
+    rng,
+  )
 }
 
 export function getSkillUnlockWeight(

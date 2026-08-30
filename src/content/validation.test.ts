@@ -5,6 +5,7 @@ import {
   validateContent,
   type ContentCatalog,
 } from './validation'
+import { SYNERGY_UPGRADES } from './upgrades/Upgrades'
 
 function catalogWith(
   overrides: Partial<ContentCatalog>,
@@ -16,6 +17,25 @@ describe('content validation', () => {
   it('accepts all current content definitions and balance configuration', () => {
     expect(validateContent(CURRENT_CONTENT)).toEqual([])
     expect(() => assertValidContent()).not.toThrow()
+  })
+
+  it('ships a bounded unique synergy graph for all current skills', () => {
+    const pairs = new Set<string>()
+    const counts = new Map<string, number>()
+
+    for (const synergy of SYNERGY_UPGRADES) {
+      const pair = [...synergy.synergySkillIds].sort().join('|')
+      expect(pairs.has(pair)).toBe(false)
+      pairs.add(pair)
+      for (const skillId of synergy.synergySkillIds) {
+        counts.set(skillId, (counts.get(skillId) ?? 0) + 1)
+      }
+    }
+
+    for (const skill of CURRENT_CONTENT.skills) {
+      expect(counts.get(skill.id)).toBeGreaterThanOrEqual(2)
+      expect(counts.get(skill.id)).toBeLessThanOrEqual(3)
+    }
   })
 
   it('reports empty and duplicate IDs with their collection', () => {

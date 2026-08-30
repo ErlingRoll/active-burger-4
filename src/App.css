@@ -1748,6 +1748,39 @@
   font-size: 0.72rem;
 }
 
+.skill-synergy-section {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(20 184 166 / 45%);
+}
+
+.skill-synergy-heading,
+.skill-synergy-section strong {
+  color: #5eead4;
+}
+
+.skill-synergy-section .skill-upgrade-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.skill-synergy-section .skill-upgrade-list li {
+  display: grid;
+  gap: 0.15rem;
+  justify-content: stretch;
+  font-size: 0.75rem;
+}
+
+.skill-synergy-section .skill-upgrade-list span {
+  color: #99f6e4;
+}
+
+.skill-synergy-section .skill-upgrade-list p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+}
+
 .skill-upgrade-list {
   display: grid;
   gap: 0.35rem;
@@ -2643,6 +2676,14 @@
 .choice-card.rarity-epic { border-top-color: #c084fc; }
 .choice-card.rarity-legendary { border-top-color: #fbbf24; }
 
+.choice-card.synergy-card {
+  background:
+    linear-gradient(145deg, rgb(13 148 136 / 35%), transparent 58%),
+    #102a2a;
+  border-color: #0f766e;
+  border-top-color: #2dd4bf;
+}
+
 .choice-card.gear-upgrade-card {
   border-top-color: #22c55e;
 }
@@ -2676,6 +2717,19 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.choice-card-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.synergy-card-badge {
+  color: #5eead4;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
 }
 
 .gear-upgrade-type {
@@ -2718,6 +2772,7 @@
 .rarity-rare .rarity-badge { color: #60a5fa; }
 .rarity-epic .rarity-badge { color: #c084fc; }
 .rarity-legendary .rarity-badge { color: #fbbf24; }
+.synergy-rarity-badge { color: #2dd4bf !important; }
 
 .gear-slot,
 .gear-equipped-summary,
@@ -2886,6 +2941,13 @@
 .upgrade-action-label-unlock { color: #fb923c; }
 .upgrade-action-label-upgrade { color: #93c5fd; }
 .upgrade-action-label-release { color: #f87171; }
+.upgrade-action-label-synergy { color: #2dd4bf; }
+
+.upgrade-synergy-pair {
+  color: #99f6e4;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
 
 .upgrade-skill-tags {
   display: flex;

@@ -7,12 +7,19 @@ import { SKILL_DEFINITIONS } from '../../content/skills/Skills'
 import { Random } from '../random/Random'
 import { createGame } from '../Game'
 import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
+import { SKILL_REMOVAL_CHANCE } from '../../game-config/skills'
 import {
   generateUpgradeChoices,
   getSkillUnlockWeight,
 } from './UpgradeChoices'
 import { applyUpgrade } from '../systems/upgrades/UpgradeSystem'
 import { Rarity } from '../../content/rarity/Rarity'
+import {
+  REMOVE_SYNERGY_UPGRADE_ID,
+  SYNERGY_OFFER_CHANCE,
+  SYNERGY_UPGRADES,
+  isSkillSynergyActive,
+} from '../../content/upgrades/Upgrades'
 
 function getUpgrade(id: string): UpgradeDefinition {
   const upgrade = INITIAL_UPGRADES.find((candidate) => candidate.id === id)
@@ -41,9 +48,61 @@ describe('upgrade choice generation', () => {
     expect(new Set(choices.map((choice) => choice.upgradeId)).size).toBe(3)
     expect(
       choices.every((choice) =>
+        choice.upgradeId === 'remove-skill' ||
+        choice.upgradeId === REMOVE_SYNERGY_UPGRADE_ID ||
         INITIAL_UPGRADES.some((upgrade) => upgrade.id === choice.upgradeId),
       ),
     ).toBe(true)
+  })
+
+  it('defines two or three unique legendary synergies for every skill', () => {
+    const counts = new Map<string, number>()
+    const pairs = new Set<string>()
+
+    for (const synergy of SYNERGY_UPGRADES) {
+      expect(synergy.rarity).toBe(Rarity.Legendary)
+      const pair = [...synergy.synergySkillIds].sort().join('|')
+      expect(pairs.has(pair)).toBe(false)
+      pairs.add(pair)
+      for (const skillId of synergy.synergySkillIds) {
+        counts.set(skillId, (counts.get(skillId) ?? 0) + 1)
+      }
+    }
+
+    for (const skill of Object.keys(SKILL_DEFINITIONS)) {
+      expect(counts.get(skill)).toBeGreaterThanOrEqual(2)
+      expect(counts.get(skill)).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('offers an eligible synergy only when its 10% roll succeeds', () => {
+    const game = createGame({ seed: 456 })
+    const rng = {
+      next: () => 0.5,
+      int: (min: number) => min,
+      chance: (probability: number) => probability === SYNERGY_OFFER_CHANCE,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const choices = generateUpgradeChoices(game.state, 1, rng)
+
+    expect(choices[0]?.upgradeId).toBe('synergy-basic-attack-whirlwind')
+  })
+
+  it('does not offer another synergy for a skill with an active synergy', () => {
+    const game = createGame({ seed: 457 })
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+
+    expect(isSkillSynergyActive(
+      BASIC_ATTACK_SKILL_ID,
+      game.state.run.selectedUpgradeIds,
+    )).toBe(true)
+    expect(generateUpgradeChoices(game.state, 3, {
+      next: () => 0.5,
+      int: (min: number) => min,
+      chance: (probability: number) => probability === SYNERGY_OFFER_CHANCE,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }).some((choice) => choice.upgradeId.startsWith('synergy-'))).toBe(false)
   })
 
   it('enables a skill rank choice after its unlock and never offers the unlock twice', () => {
@@ -133,6 +192,25 @@ describe('upgrade choice generation', () => {
     expect(removal).toMatchObject({
       upgradeId: 'remove-skill',
       skillId: 'whirlwind',
+      rarity: Rarity.Rare,
+    })
+  })
+
+  it('offers Release Synergy in the existing special release slot', () => {
+    const game = createGame({ seed: 460 })
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+    const rng = {
+      next: () => 0.99,
+      int: (min: number) => min,
+      chance: (probability: number) => probability === SKILL_REMOVAL_CHANCE,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const choices = generateUpgradeChoices(game.state, 3, rng)
+
+    expect(choices.at(-1)).toEqual({
+      upgradeId: REMOVE_SYNERGY_UPGRADE_ID,
+      synergyId: 'synergy-basic-attack-whirlwind',
       rarity: Rarity.Rare,
     })
   })

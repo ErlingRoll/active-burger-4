@@ -434,6 +434,7 @@ function createBasicAttackProjectileState(
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,
           skillLevel,
+          state.run.selectedUpgradeIds,
         ),
       },
     },
@@ -541,6 +542,7 @@ function collectSwordBasicAttackDamage(
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,
           skill.level,
+          state.run.selectedUpgradeIds,
         ),
       },
     },
@@ -619,6 +621,7 @@ function collectStaffBasicAttackDamage(
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,
           skill.level,
+          state.run.selectedUpgradeIds,
         ),
       },
     },

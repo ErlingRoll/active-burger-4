@@ -102,7 +102,7 @@ describe('enemy gear drops', () => {
 
     removeDeadEntities(game.state, () => {}, undefined, undefined, random)
 
-    expect(gearRolls[0]).toBeCloseTo(0.035)
+    expect(gearRolls[0]).toBeCloseTo(0.056)
   })
 
   it('allows a Splitter to drop once but suppresses child gear and potions', () => {

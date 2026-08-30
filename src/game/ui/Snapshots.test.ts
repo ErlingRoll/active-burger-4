@@ -173,6 +173,34 @@ describe('UI snapshots', () => {
     expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)
   })
 
+  it('projects synergy metadata and acquired status independently of evolutions', () => {
+    const game = createGame({ seed: 77 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+
+    const available = createUiSnapshot(game.state)
+    expect(available.skills[0]?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'synergy-basic-attack-whirlwind',
+    )).toMatchObject({
+      status: 'available',
+      synergySkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
+    })
+    expect(available.skills[0]?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'synergy-basic-attack-whirlwind',
+    )).not.toHaveProperty('branch')
+
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+    const acquired = createUiSnapshot(game.state)
+    expect(acquired.skills[1]?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'synergy-basic-attack-whirlwind',
+    )).toMatchObject({
+      status: 'acquired',
+      synergySkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
+    })
+  })
+
   it('projects active cooldown progress for skill feedback', () => {
     const game = createGame({ seed: 72 })
     game.state.player.skills = [

@@ -3,6 +3,8 @@ import {
   getUpgradeModifiers,
   INITIAL_UPGRADES,
   REMOVE_SKILL_UPGRADE_ID,
+  isSynergyUpgradeId,
+  REMOVE_SYNERGY_UPGRADE_ID,
 } from '../../../content/upgrades/Upgrades'
 import type { SkillId } from '../../../content/skills/Skills'
 import {
@@ -25,12 +27,17 @@ export function applyUpgrade(
   state: GameState,
   upgradeId: UpgradeId,
   skillId?: SkillId,
+  synergyId?: UpgradeId,
 ): void {
   if (upgradeId === REMOVE_SKILL_UPGRADE_ID) {
     if (!skillId || skillId === BASIC_ATTACK_SKILL_ID) {
       throw new Error('Skill removal requires a non-basic skill.')
     }
     removeSkill(state, skillId)
+    return
+  }
+  if (upgradeId === REMOVE_SYNERGY_UPGRADE_ID) {
+    removeSynergy(state, synergyId)
     return
   }
   const definition = getUpgradeDefinition(upgradeId)
@@ -142,7 +149,10 @@ function removeSkill(state: GameState, skillId: SkillId): void {
 
   const removedUpgradeIds = new Set(
     INITIAL_UPGRADES
-      .filter((upgrade) => upgrade.skillId === skillId)
+      .filter((upgrade) =>
+        upgrade.skillId === skillId ||
+        upgrade.synergySkillIds?.includes(skillId) === true,
+      )
       .map((upgrade) => upgrade.id),
   )
   const removedUpgradeSources = new Set(
@@ -191,4 +201,20 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   }
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)
+}
+
+function removeSynergy(
+  state: GameState,
+  synergyId: UpgradeId | undefined,
+): void {
+  if (
+    synergyId === undefined ||
+    !isSynergyUpgradeId(synergyId) ||
+    !state.run.selectedUpgradeIds.includes(synergyId)
+  ) {
+    throw new Error(`Cannot remove inactive synergy: ${String(synergyId)}`)
+  }
+  state.run.selectedUpgradeIds = state.run.selectedUpgradeIds.filter(
+    (upgradeId) => upgradeId !== synergyId,
+  )
 }

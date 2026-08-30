@@ -130,6 +130,21 @@ describe('skill system', () => {
     expect(lastStandGame.state.player.hp).toBe(24)
   })
 
+  it('applies synergy bonuses to healing and shields', () => {
+    const game = createGame({ seed: 56 })
+    game.state.player.skills = [
+      { skillId: VITALITY_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: AEGIS_PULSE_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    game.state.player.hp = 50
+    game.state.run.selectedUpgradeIds.push('synergy-vitality-aegis-pulse')
+
+    collectSkillDamage(game.state, allocator)
+
+    expect(game.state.player.hp).toBeCloseTo(52.4)
+    expect(game.state.player.aegisPulseShieldAmount).toBeCloseTo(16.8)
+  })
+
   it('applies skill-specific percentage damage growth without compounding rank bonuses', () => {
     const game = createGame({ seed: 55 })
     game.state.player.skills = [

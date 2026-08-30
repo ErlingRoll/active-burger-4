@@ -54,6 +54,7 @@ import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
   getSkillCooldownReductionPercent,
+  getSkillSynergyEffectPercent,
   type UpgradeId,
   type UpgradeBranch,
 } from '../../content/upgrades/Upgrades'
@@ -153,6 +154,7 @@ export interface SkillUpgradeSnapshot {
   readonly status: SkillUpgradeStatus
   readonly branch?: UpgradeBranch
   readonly evolutionTags?: readonly KeywordId[]
+  readonly synergySkillIds?: readonly SkillId[]
 }
 
 export interface SkillHudSnapshot {
@@ -618,7 +620,11 @@ function getSkillModifierSummaries(
     }
     if (skillId === RAISE_SKELETON_SKILL_ID) {
       const definition = getSkillDefinition(skillId)
-      const levelIncrease = getSkillDamageIncreasePercent(skillId, skillLevel)
+      const levelIncrease = getSkillDamageIncreasePercent(
+        skillId,
+        skillLevel,
+        selectedUpgradeIds,
+      )
       const skeletonDamage = createPlayerDamageProfileFromStats(
         playerStats,
         { physical: definition.summonBaseDamage ?? 0 },
@@ -1177,7 +1183,11 @@ export function createUiSnapshot(
           {
             isProjectile: skillTags.includes('projectile'),
             additionalIncreasedDamage: {
-              global: getSkillDamageIncreasePercent(skill.skillId, skill.level),
+              global: getSkillDamageIncreasePercent(
+                skill.skillId,
+                skill.level,
+                state.run.selectedUpgradeIds,
+              ),
             },
           },
         )
@@ -1226,9 +1236,10 @@ export function createUiSnapshot(
         .map((modifier) => Object.freeze({ ...modifier }))
     }))
     const upgrades = INITIAL_UPGRADES
-      .filter(
-        (upgrade) =>
-          upgrade.skillId === skill.skillId && upgrade.skillAction !== 'unlock',
+      .filter((upgrade) =>
+        upgrade.skillAction !== 'unlock' &&
+        (upgrade.skillId === skill.skillId ||
+          upgrade.synergySkillIds?.includes(skill.skillId) === true),
       )
       .map((upgrade) => {
         const repeatable = upgrade.repeatable === true ||
@@ -1250,6 +1261,9 @@ export function createUiSnapshot(
           ...(upgrade.branch ? { branch: upgrade.branch } : {}),
           ...(upgrade.evolutionTags
             ? { evolutionTags: Object.freeze([...upgrade.evolutionTags]) }
+            : {}),
+          ...(upgrade.synergySkillIds
+            ? { synergySkillIds: Object.freeze([...upgrade.synergySkillIds]) }
             : {}),
           status: acquired
             ? ('acquired' as const)
@@ -1314,16 +1328,33 @@ export function createUiSnapshot(
               ? state.player.vitalityLowHpHealingMultiplier ?? 1
               : 1
           ) *
+          (1 + getSkillSynergyEffectPercent(
+            skill.skillId,
+            state.run.selectedUpgradeIds,
+            'healingIncreasePercent',
+          ) / 100) *
           (1 + playerStats.increasedHealing / 100)
         : skill.skillId === RALLYING_STANDARD_SKILL_ID
           ? getSkillHealing(definition, skill.level) *
+            (1 + getSkillSynergyEffectPercent(
+              skill.skillId,
+              state.run.selectedUpgradeIds,
+              'healingIncreasePercent',
+            ) / 100) *
             (1 + playerStats.increasedHealing / 100)
           : null,
       shieldPerCast: skill.skillId === AEGIS_PULSE_SKILL_ID
-        ? getSkillShieldAmount(definition, skill.level) +
-          (state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
-            ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS
-            : 0)
+        ? (
+            getSkillShieldAmount(definition, skill.level) +
+            (state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
+              ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS
+              : 0)
+          ) *
+          (1 + getSkillSynergyEffectPercent(
+            skill.skillId,
+            state.run.selectedUpgradeIds,
+            'shieldIncreasePercent',
+          ) / 100)
         : null,
       shieldDurationSeconds: skill.skillId === AEGIS_PULSE_SKILL_ID
         ? AEGIS_PULSE_BASE_DURATION_SECONDS +

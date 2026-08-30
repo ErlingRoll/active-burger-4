@@ -81,6 +81,27 @@ describe('skill upgrades', () => {
     ])
   })
 
+  it('applies a selected synergy bonus to both skills in its pair', () => {
+    const game = createGame({ seed: 70 })
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+
+    expect(getSkillDamageIncreasePercent(
+      BASIC_ATTACK_SKILL_ID,
+      1,
+      game.state.run.selectedUpgradeIds,
+    )).toBe(15)
+    expect(getSkillDamageIncreasePercent(
+      WHIRLWIND_SKILL_ID,
+      1,
+      game.state.run.selectedUpgradeIds,
+    )).toBe(15)
+    expect(getSkillDamageIncreasePercent(
+      CHAIN_LIGHTNING_SKILL_ID,
+      1,
+      game.state.run.selectedUpgradeIds,
+    )).toBe(0)
+  })
+
   it('adds Magnet collection range ranks without compounding them', () => {
     const game = createGame({ seed: 64 })
 
@@ -98,6 +119,7 @@ describe('skill upgrades', () => {
       'whirlwind-unlock',
       'whirlwind-level',
       'whirlwind-leech',
+      'synergy-basic-attack-whirlwind',
     )
 
     applyUpgrade(game.state, 'remove-skill', WHIRLWIND_SKILL_ID)
@@ -111,6 +133,7 @@ describe('skill upgrades', () => {
         'whirlwind-unlock',
         'whirlwind-level',
         'whirlwind-leech',
+        'synergy-basic-attack-whirlwind',
       ]),
     )
     expect(game.state.player.meleeLeech).toBe(0)
@@ -120,6 +143,26 @@ describe('skill upgrades', () => {
       expect.objectContaining({ skillId: BASIC_ATTACK_SKILL_ID, level: 1 }),
       expect.objectContaining({ skillId: WHIRLWIND_SKILL_ID, level: 1 }),
     ])
+  })
+
+  it('releases an active synergy without removing either skill', () => {
+    const game = createGame({ seed: 66 })
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+
+    applyUpgrade(
+      game.state,
+      'remove-synergy',
+      undefined,
+      'synergy-basic-attack-whirlwind',
+    )
+
+    expect(game.state.player.skills.map((skill) => skill.skillId)).toEqual([
+      BASIC_ATTACK_SKILL_ID,
+      WHIRLWIND_SKILL_ID,
+    ])
+    expect(game.state.run.selectedUpgradeIds).not.toContain(
+      'synergy-basic-attack-whirlwind',
+    )
   })
 
   it('applies and removes Vitality global healing upgrades', () => {

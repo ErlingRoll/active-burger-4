@@ -3,8 +3,13 @@ import type { SkillId } from '../skills/Skills'
 import type { KeywordId } from '../glossary/Keywords'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
+import {
+  getSkillSynergyEffectPercent,
+  SYNERGY_UPGRADES,
+} from '../../game-config/synergies'
 
 export const REMOVE_SKILL_UPGRADE_ID = 'remove-skill' as const
+export const REMOVE_SYNERGY_UPGRADE_ID = 'remove-synergy' as const
 export type UpgradeId =
   | 'whirlwind-unlock'
   | 'chain-lightning-unlock'
@@ -52,7 +57,22 @@ export type UpgradeId =
   | 'aegis-pulse-level'
   | 'aegis-pulse-bulwark'
   | 'aegis-pulse-reprisal'
+  | 'synergy-basic-attack-whirlwind'
+  | 'synergy-basic-attack-chain-lightning'
+  | 'synergy-basic-attack-glacial-orb'
+  | 'synergy-whirlwind-lancers-charge'
+  | 'synergy-whirlwind-aegis-pulse'
+  | 'synergy-chain-lightning-glacial-orb'
+  | 'synergy-chain-lightning-gravity-well'
+  | 'synergy-vitality-rallying-standard'
+  | 'synergy-vitality-aegis-pulse'
+  | 'synergy-raise-skeleton-rallying-standard'
+  | 'synergy-raise-skeleton-gravity-well'
+  | 'synergy-fiery-touch-glacial-orb'
+  | 'synergy-fiery-touch-gravity-well'
+  | 'synergy-lancers-charge-aegis-pulse'
   | typeof REMOVE_SKILL_UPGRADE_ID
+  | typeof REMOVE_SYNERGY_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = RarityValue
 export type UpgradeStat = Extract<
@@ -83,8 +103,18 @@ export type UpgradeBranch =
   | 'aegis-pulse-reprisal'
 
 export interface UpgradeChoice {
-  upgradeId: Exclude<UpgradeId, typeof REMOVE_SKILL_UPGRADE_ID>
+  upgradeId: Exclude<
+    UpgradeId,
+    typeof REMOVE_SKILL_UPGRADE_ID | typeof REMOVE_SYNERGY_UPGRADE_ID
+  >
   rarity: UpgradeRarity
+}
+
+export interface SynergyEffect {
+  skillId: SkillId
+  damageIncreasePercent?: number
+  healingIncreasePercent?: number
+  shieldIncreasePercent?: number
 }
 
 export interface SkillRemovalChoice {
@@ -93,7 +123,16 @@ export interface SkillRemovalChoice {
   rarity: UpgradeRarity
 }
 
-export type LevelUpUpgradeChoice = UpgradeChoice | SkillRemovalChoice
+export interface SynergyRemovalChoice {
+  upgradeId: typeof REMOVE_SYNERGY_UPGRADE_ID
+  synergyId: UpgradeId
+  rarity: UpgradeRarity
+}
+
+export type LevelUpUpgradeChoice =
+  | UpgradeChoice
+  | SkillRemovalChoice
+  | SynergyRemovalChoice
 
 export interface UpgradeEligibilityState {
   playerLevel: number
@@ -174,9 +213,36 @@ export interface UpgradeDefinition {
   aegisPulseBulwark?: boolean
   /** Enables the retaliation burst when Aegis Pulse's shield absorbs damage. */
   aegisPulseReprisal?: boolean
+  /** The two equipped skills required for this synergy card. */
+  synergySkillIds?: readonly [SkillId, SkillId]
+  /** Per-skill bonuses granted while this synergy is selected. */
+  synergyEffects?: readonly SynergyEffect[]
+}
+
+export interface SynergyUpgradeDefinition extends UpgradeDefinition {
+  synergySkillIds: readonly [SkillId, SkillId]
+  synergyEffects: readonly SynergyEffect[]
 }
 
 export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
+export {
+  SYNERGY_OFFER_CHANCE,
+  SYNERGY_UPGRADES,
+  getSkillSynergyEffectPercent,
+  isSkillSynergyActive,
+  isSynergyPairEligible,
+} from '../../game-config/synergies'
+
+export function isSynergyUpgradeDefinition(
+  upgrade: UpgradeDefinition,
+): upgrade is SynergyUpgradeDefinition {
+  return upgrade.synergySkillIds !== undefined &&
+    upgrade.synergyEffects !== undefined
+}
+
+export function isSynergyUpgradeId(upgradeId: UpgradeId): boolean {
+  return SYNERGY_UPGRADES.some((synergy) => synergy.id === upgradeId)
+}
 
 export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
   if (upgradeId === REMOVE_SKILL_UPGRADE_ID) {
@@ -188,6 +254,18 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
       rarity: Rarity.Rare,
       amount: 1,
       valueLabel: 'Remove skill',
+      isEligible: () => false,
+    }
+  }
+  if (upgradeId === REMOVE_SYNERGY_UPGRADE_ID) {
+    return {
+      id: REMOVE_SYNERGY_UPGRADE_ID,
+      name: 'Release Synergy',
+      description: 'Remove an active synergy and free both of its skill links.',
+      category: 'skill',
+      rarity: Rarity.Rare,
+      amount: 1,
+      valueLabel: 'Release synergy',
       isEligible: () => false,
     }
   }
@@ -221,13 +299,19 @@ export function getUpgradeModifiers(
 export function getSkillDamageIncreasePercent(
   skillId: SkillId,
   level: number,
+  selectedUpgradeIds: readonly UpgradeId[] = [],
 ): number {
   const levelUpgrade = INITIAL_UPGRADES.find(
     (upgrade) =>
       upgrade.skillId === skillId && upgrade.skillAction === 'level',
   )
   return Math.max(0, level - 1) *
-    Math.max(0, levelUpgrade?.skillDamageIncreasePercent ?? 0)
+    Math.max(0, levelUpgrade?.skillDamageIncreasePercent ?? 0) +
+    getSkillSynergyEffectPercent(
+      skillId,
+      selectedUpgradeIds,
+      'damageIncreasePercent',
+    )
 }
 
 export function getSkillCooldownReductionPercent(

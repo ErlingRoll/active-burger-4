@@ -1002,14 +1002,39 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       </section>
                     ) : null}
                     {skill.upgrades.some((upgrade) =>
-                      upgrade.status === 'acquired' && upgrade.branch === undefined,
+                      upgrade.status === 'acquired' && upgrade.synergySkillIds !== undefined,
+                    ) ? (
+                      <section className="skill-synergy-section" aria-label="Skill synergies">
+                        <p className="skill-upgrade-heading skill-synergy-heading">Synergies</p>
+                        <ul className="skill-upgrade-list">
+                          {skill.upgrades
+                            .filter((upgrade) =>
+                              upgrade.status === 'acquired' &&
+                              upgrade.synergySkillIds !== undefined,
+                            )
+                            .map((upgrade) => (
+                              <li key={upgrade.upgradeId}>
+                                <strong>{upgrade.name}</strong>
+                                <span>{upgrade.valueLabel}</span>
+                                <p><KeywordText text={upgrade.description} /></p>
+                              </li>
+                            ))}
+                        </ul>
+                      </section>
+                    ) : null}
+                    {skill.upgrades.some((upgrade) =>
+                      upgrade.status === 'acquired' &&
+                      upgrade.branch === undefined &&
+                      upgrade.synergySkillIds === undefined,
                     ) ? (
                       <>
                         <p className="skill-upgrade-heading">Upgrades</p>
                         <ul className="skill-upgrade-list">
                           {skill.upgrades
                             .filter((upgrade) =>
-                              upgrade.status === 'acquired' && upgrade.branch === undefined,
+                              upgrade.status === 'acquired' &&
+                              upgrade.branch === undefined &&
+                              upgrade.synergySkillIds === undefined,
                             )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>

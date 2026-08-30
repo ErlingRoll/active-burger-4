@@ -52,6 +52,7 @@ import {
 } from './gear/ModifierPools'
 import {
   isRarity,
+  Rarity,
   RARITY_WEIGHTS,
   validateRarityWeights,
 } from './rarity/Rarity'
@@ -453,6 +454,113 @@ function validateEliteModifiers(
   return modifierIds
 }
 
+function validateSynergyDefinitions(
+  errors: string[],
+  upgrades: readonly UpgradeDefinition[],
+  skillIds: Set<string>,
+): void {
+  const pairKeys = new Set<string>()
+  const synergyCountBySkill = new Map<string, number>()
+  const effectKeys = [
+    'damageIncreasePercent',
+    'healingIncreasePercent',
+    'shieldIncreasePercent',
+  ] as const
+
+  upgrades.forEach((upgrade, index) => {
+    const hasSynergyMetadata = upgrade.synergySkillIds !== undefined ||
+      upgrade.synergyEffects !== undefined
+    if (!hasSynergyMetadata) {
+      return
+    }
+
+    if (upgrade.category !== 'skill') {
+      errors.push(`upgrades[${index}] synergies must be skill upgrades.`)
+    }
+    if (upgrade.rarity !== Rarity.Legendary) {
+      errors.push(`upgrades[${index}] synergies must use legendary rarity.`)
+    }
+    if (upgrade.branch !== undefined || upgrade.skillAction !== undefined) {
+      errors.push(`upgrades[${index}] synergies must be separate from evolutions.`)
+    }
+
+    const pair = upgrade.synergySkillIds
+    const hasValidPair = Array.isArray(pair) &&
+      pair.length === 2 &&
+      pair[0] !== pair[1] &&
+      pair.every((skillId) => skillIds.has(skillId))
+    if (!hasValidPair) {
+      errors.push(
+        `upgrades[${index}].synergySkillIds must contain two distinct known skills.`,
+      )
+    } else {
+      const pairKey = [...pair].sort().join('|')
+      if (pairKeys.has(pairKey)) {
+        errors.push(
+          `upgrades contains multiple synergies for skill pair "${pairKey}".`,
+        )
+      }
+      pairKeys.add(pairKey)
+      for (const skillId of pair) {
+        synergyCountBySkill.set(
+          skillId,
+          (synergyCountBySkill.get(skillId) ?? 0) + 1,
+        )
+      }
+    }
+
+    const effects = upgrade.synergyEffects
+    if (!Array.isArray(effects) || effects.length === 0) {
+      errors.push(`upgrades[${index}].synergyEffects must contain at least one effect.`)
+      return
+    }
+    effects.forEach((effect, effectIndex) => {
+      if (!effect || typeof effect !== 'object') {
+        errors.push(
+          `upgrades[${index}].synergyEffects[${effectIndex}] must define an effect object.`,
+        )
+        return
+      }
+      if (!skillIds.has(effect.skillId)) {
+        errors.push(
+          `upgrades[${index}].synergyEffects[${effectIndex}].skillId must reference a known skill.`,
+        )
+      } else if (hasValidPair && !pair.includes(effect.skillId)) {
+        errors.push(
+          `upgrades[${index}].synergyEffects[${effectIndex}].skillId must be part of synergySkillIds.`,
+        )
+      }
+      const hasEffectValue = effectKeys.some((effectKey) =>
+        effect[effectKey] !== undefined
+      )
+      if (!hasEffectValue) {
+        errors.push(
+          `upgrades[${index}].synergyEffects[${effectIndex}] must define a bonus.`,
+        )
+      }
+      for (const effectKey of effectKeys) {
+        if (effect[effectKey] !== undefined) {
+          validateFiniteNumber(
+            errors,
+            `upgrades[${index}].synergyEffects[${effectIndex}].${effectKey}`,
+            effect[effectKey] ?? Number.NaN,
+            'positive',
+          )
+        }
+      }
+    })
+  })
+
+  for (const skillId of skillIds) {
+    const count = synergyCountBySkill.get(skillId) ?? 0
+    if (count < 2 || count > 3) {
+      errors.push(
+        `skill "${skillId}" must have between 2 and 3 predefined synergies; found ${count}.`,
+      )
+    }
+  }
+}
+
 function validateDefinitions(
   errors: string[],
   catalog: ContentCatalog,
@@ -726,10 +834,13 @@ function validateDefinitions(
     ) {
       errors.push(`upgrades[${index}].category is not supported; received "${String(upgrade.category)}".`)
     }
+    const hasSynergyMetadata = upgrade.synergySkillIds !== undefined ||
+      upgrade.synergyEffects !== undefined
     if (
       upgrade.category === 'skill' &&
-      (!upgrade.skillId ||
-        !skillIds.has(upgrade.skillId) ||
+      ((!upgrade.skillId ||
+        !skillIds.has(upgrade.skillId)) &&
+        !hasSynergyMetadata ||
         (!(
           upgrade.skillAction &&
           VALID_SKILL_ACTIONS.has(upgrade.skillAction)
@@ -758,6 +869,8 @@ function validateDefinitions(
           upgrade.gravityWellEventHorizon === undefined &&
           upgrade.aegisPulseBulwark === undefined &&
           upgrade.aegisPulseReprisal === undefined &&
+          upgrade.synergySkillIds === undefined &&
+          upgrade.synergyEffects === undefined &&
           upgrade.modifiers === undefined))
     ) {
       errors.push(
@@ -773,6 +886,7 @@ function validateDefinitions(
       )
     }
   })
+  validateSynergyDefinitions(errors, catalog.upgrades, skillIds)
 }
 
 function validateXpBalance(errors: string[], balance: XpBalance): void {

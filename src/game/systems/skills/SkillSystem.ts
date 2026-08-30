@@ -19,6 +19,7 @@ import {
 import {
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
+  getSkillSynergyEffectPercent,
 } from '../../../content/upgrades/Upgrades'
 import {
   createProjectileSpreadAngles,
@@ -242,6 +243,7 @@ function collectWhirlwindDamage(
           global: getSkillDamageIncreasePercent(
             skill.skillId,
             skill.level,
+            state.run.selectedUpgradeIds,
           ),
         },
       },
@@ -334,6 +336,7 @@ function collectChainLightningDamage(
           global: getSkillDamageIncreasePercent(
             skill.skillId,
             skill.level,
+            state.run.selectedUpgradeIds,
           ),
         },
       },
@@ -391,6 +394,11 @@ function collectVitalityHealing(
   ) {
     healing *= state.player.vitalityLowHpHealingMultiplier
   }
+  healing *= 1 + getSkillSynergyEffectPercent(
+    skill.skillId,
+    state.run.selectedUpgradeIds,
+    'healingIncreasePercent',
+  ) / 100
   healPlayer(
     state,
     healing,
@@ -500,7 +508,11 @@ function collectGlacialOrbDamage(
   }
 
   const damage = getSkillDamage(definition, skill.level)
-  const damageIncreasePercent = getSkillDamageIncreasePercent(skill.skillId, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
   const explosionRadius = scaleAreaValue(
     (definition.radius ?? 0) + (permafrost ? GLACIAL_ORB_PERMAFROST_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
@@ -615,7 +627,11 @@ function collectLancersChargeDamage(
     .sort((left, right) => left.id - right.id)
 
   const damage = getSkillDamage(definition, skill.level)
-  const levelIncrease = getSkillDamageIncreasePercent(skill.skillId, skill.level)
+  const levelIncrease = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
   const momentumStacks = Math.min(
     LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
     Math.max(0, state.player.lancerMomentumStacks ?? 0),
@@ -678,7 +694,12 @@ function collectRallyingStandardEffect(
   const definition = getSkillDefinition(RALLYING_STANDARD_SKILL_ID)
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-standard-bulwark')
   const commander = state.run.selectedUpgradeIds.includes('rallying-standard-commander')
-  const healing = getSkillHealing(definition, skill.level)
+  const healing = getSkillHealing(definition, skill.level) *
+    (1 + getSkillSynergyEffectPercent(
+      skill.skillId,
+      state.run.selectedUpgradeIds,
+      'healingIncreasePercent',
+    ) / 100)
   healPlayer(state, healing, definition.name, random)
 
   const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +
@@ -723,7 +744,11 @@ function collectGravityWellDamage(
     ? 0
     : GRAVITY_WELL_BASE_PULL_DISTANCE + (singularity ? GRAVITY_WELL_SINGULARITY_PULL_BONUS : 0)
   const damage = getSkillDamage(definition, skill.level)
-  const damageIncreasePercent = getSkillDamageIncreasePercent(skill.skillId, skill.level) +
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  ) +
     (eventHorizon ? GRAVITY_WELL_EVENT_HORIZON_DAMAGE_INCREASE_PERCENT : 0)
 
   const affected = [...state.enemies, ...(state.bosses ?? [])]
@@ -791,7 +816,11 @@ function collectAegisPulseDamage(
   const bulwark = state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
   const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect)
   const damage = getSkillDamage(definition, skill.level)
-  const damageIncreasePercent = getSkillDamageIncreasePercent(skill.skillId, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
 
   const events: DamageEvent[] = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
@@ -811,8 +840,16 @@ function collectAegisPulseDamage(
       ),
     )
 
-  const shieldAmount = getSkillShieldAmount(definition, skill.level) +
+  const shieldAmount = (
+    getSkillShieldAmount(definition, skill.level) +
     (bulwark ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS : 0)
+  ) * (
+    1 + getSkillSynergyEffectPercent(
+      skill.skillId,
+      state.run.selectedUpgradeIds,
+      'shieldIncreasePercent',
+    ) / 100
+  )
   const shieldDuration = AEGIS_PULSE_BASE_DURATION_SECONDS +
     (bulwark ? AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS : 0)
   state.player.aegisPulseShieldAmount = shieldAmount

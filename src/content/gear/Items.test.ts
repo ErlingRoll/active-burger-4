@@ -389,11 +389,11 @@ describe('initial gear content', () => {
   it('tapers gear drops continuously from floor 1 through floor 30', () => {
     expect(getGearDropFloorMultiplier()).toBe(1)
     expect(getGearDropFloorMultiplier(1)).toBe(1)
-    expect(getGearDropFloorMultiplier(15)).toBeCloseTo(1 - 0.5 * 14 / 29)
-    expect(getGearDropFloorMultiplier(30)).toBe(0.5)
-    expect(getGearDropFloorMultiplier(60)).toBe(0.5)
+    expect(getGearDropFloorMultiplier(15)).toBeCloseTo(1 - 0.2 * 14 / 29)
+    expect(getGearDropFloorMultiplier(30)).toBe(0.8)
+    expect(getGearDropFloorMultiplier(60)).toBe(0.8)
     expect(getGearDropChance('slime', undefined, {
       floorNumber: GEAR_DROP_CHANCE_BALANCE.floorTaper.endFloor,
-    })).toBeCloseTo(0.035)
+    })).toBeCloseTo(0.056)
   })
 })

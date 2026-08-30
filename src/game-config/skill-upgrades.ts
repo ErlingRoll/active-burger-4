@@ -34,6 +34,7 @@ import {
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 import { Rarity } from '../content/rarity/Rarity'
+import { SYNERGY_UPGRADES } from './synergies'
 
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
@@ -739,4 +740,5 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('aegis-pulse-reprisal') &&
       !state.selectedUpgradeIds.includes('aegis-pulse-bulwark'),
   },
+  ...SYNERGY_UPGRADES,
 ]

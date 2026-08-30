@@ -45,12 +45,14 @@ function getMaximumSkeletons(
 }
 
 function getSkeletonDamage(
+  state: Readonly<GameState>,
   skill: Readonly<SkillState>,
 ): number {
   const definition = getSkillDefinition(skill.skillId)
   const levelIncrease = getSkillDamageIncreasePercent(
     skill.skillId,
     skill.level,
+    state.run.selectedUpgradeIds,
   )
   return (definition.summonBaseDamage ?? 0) * (1 + levelIncrease / 100)
 }
@@ -188,7 +190,7 @@ export function getSkeletonStats(
       ? state.player.rallyingStandardCooldownReductionPercent ?? 0
       : 0
   return {
-    damage: getSkeletonDamage(skill),
+    damage: getSkeletonDamage(state, skill),
     maxHp: (definition.summonBaseMaxHp ?? 10) +
       (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1) +
       (state.player.skeletonMaxHpBonus ?? 0),
