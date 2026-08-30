@@ -43,10 +43,17 @@ import {
   type GearChoice,
 } from './equipment/GearChoices'
 import {
-  equipItem,
   equipRolledItem,
   upgradeEquippedItem,
 } from './equipment/EquipmentState'
+import {
+  getItemDefinition,
+  type ItemId,
+} from '../content/gear/Items'
+import {
+  isGearSetId,
+  type GearSetId,
+} from '../game-config/gear-sets'
 import type {
   PendingChoiceFlow,
 } from './choices/ChoiceFlows'
@@ -106,7 +113,6 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
-import type { ItemId } from '../content/gear/Items'
 import type { SkillId } from '../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 import {
@@ -446,13 +452,34 @@ export class Game {
   }
 
   /** Equips a catalog item immediately for development testing. */
-  grantDebugGear(itemId: ItemId): DevelopmentGrantResult {
+  grantDebugGear(
+    itemId: ItemId,
+    setId?: GearSetId,
+  ): DevelopmentGrantResult {
     const phaseError = this.getDevelopmentGrantPhaseError()
     if (phaseError) {
       return { ok: false, error: phaseError }
     }
 
-    equipItem(this.gameState.player, itemId)
+    const definition = getItemDefinition(itemId)
+    if (definition.starterOnly) {
+      return {
+        ok: false,
+        error: 'Training weapons are not available as development grants.',
+      }
+    }
+    if (setId !== undefined && !isGearSetId(setId)) {
+      return { ok: false, error: `Unknown gear set: ${setId}.` }
+    }
+
+    equipRolledItem(
+      this.gameState.player,
+      itemId,
+      definition.rarity,
+      definition.modifiers,
+      undefined,
+      setId,
+    )
     this.notifyStateChanged()
     return { ok: true, changed: true }
   }
@@ -889,7 +916,7 @@ export class Game {
     const damageEvents = [
       ...collectEnemyContactDamage(this.gameState, FIXED_STEP_SECONDS),
       ...basicAttackEvents,
-      ...collectProjectileDamage(this.gameState, enemySpatialHash),
+      ...collectProjectileDamage(this.gameState, enemySpatialHash, this.idAllocator),
       ...collectSkillDamage(this.gameState, this.idAllocator, this.random),
       ...updateSummons(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),

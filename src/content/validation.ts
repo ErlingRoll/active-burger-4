@@ -529,6 +529,12 @@ function validateDefinitions(
     ) {
       errors.push(`skills[${index}].projectileDefinitionId must reference a projectile.`)
     }
+    if (
+      skill.projectileDefinitionId &&
+      !skill.tags.includes('projectile')
+    ) {
+      errors.push(`skills[${index}].tags must include projectile for projectile skills.`)
+    }
   })
 
   catalog.enemies.forEach((enemy, index) => {

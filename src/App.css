@@ -2116,7 +2116,7 @@
 
 .debug-grant-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 0.4rem;
 }
 
@@ -2465,10 +2465,12 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+  align-items: stretch;
 }
 
 .skip-choice-button {
   display: block;
+  position: relative;
   min-width: 8rem;
   min-height: 2.75rem;
   margin: 1.25rem auto 0;
@@ -2480,6 +2482,13 @@
   border: 1px solid #64748b;
   border-radius: 0.5rem;
   cursor: pointer;
+}
+
+.skip-choice-button .choice-keybind-hint {
+  position: static;
+  display: inline-grid;
+  margin-left: 0.5rem;
+  vertical-align: middle;
 }
 
 .skip-choice-button:hover,
@@ -2514,12 +2523,14 @@
 }
 
 .choice-card-wrap {
+  display: flex;
   position: relative;
   min-width: 0;
 }
 
 .choice-card {
   width: 100%;
+  height: 100%;
   border-top: 3px solid #64748b;
 }
 
@@ -2776,6 +2787,7 @@
 }
 
 .upgrade-action-label-evolve { color: #f0abfc; }
+.upgrade-action-evolved-skill { color: #fb923c; }
 .upgrade-action-label-unlock { color: #fb923c; }
 .upgrade-action-label-upgrade { color: #93c5fd; }
 .upgrade-action-label-release { color: #f87171; }

@@ -214,9 +214,17 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(
     developmentMenu.getByRole('button', { name: 'Spawn 1000 enemies' }),
   ).toBeVisible()
+  const gearOptions = await developmentMenu
+    .getByLabel('Gear item')
+    .locator('option')
+    .allTextContents()
+  expect(gearOptions.some((label) => label.includes('Training'))).toBe(false)
+  await developmentMenu.getByLabel('Gear set').selectOption('splintering')
   await developmentMenu.getByLabel('Gear item').selectOption('hunters-bow')
   await developmentMenu.getByRole('button', { name: 'Give gear' }).click()
-  await expect(developmentMenu.getByRole('status')).toContainText('Granted Bow.')
+  await expect(developmentMenu.getByRole('status')).toContainText(
+    'Granted Splintering Bow.',
+  )
   await developmentMenu.getByLabel('Skill').selectOption('whirlwind')
   await developmentMenu.getByRole('button', { name: 'Give skill' }).click()
   await expect(developmentMenu.getByRole('status')).toContainText(
@@ -522,6 +530,29 @@ test('displays the level-up choices and resumes after selecting one', async ({
   const firstChoice = overlay.getByRole('button').first()
   await expect(firstChoice).toBeFocused()
   await firstChoice.click()
+
+  await expect(overlay).toBeHidden()
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'playing',
+  )
+})
+
+test('skips level-up choices with the default keybind', async ({ page }) => {
+  await page.goto('/?demo=level-up')
+  await signIn(page)
+  await openRunSetup(page)
+  await startRun(page)
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    'level-up',
+  )
+
+  const overlay = page.getByRole('dialog', { name: /level 2/i })
+  await expect(overlay).toBeVisible()
+  const skipButton = overlay.getByRole('button', { name: 'Skip' })
+  await expect(skipButton).toHaveAttribute('aria-keyshortcuts', '5')
+  await page.keyboard.press('5')
 
   await expect(overlay).toBeHidden()
   await expect(page.locator('.game-canvas')).toHaveAttribute(

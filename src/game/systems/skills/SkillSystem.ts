@@ -21,6 +21,7 @@ import {
   getSkillDamageIncreasePercent,
 } from '../../../content/upgrades/Upgrades'
 import {
+  createProjectileSpreadAngles,
   getProjectileDefinition,
 } from '../../../content/projectiles/Projectiles'
 import {
@@ -64,8 +65,8 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
   ProjectileState,
+  FrostApplication,
 } from '../../state/GameState'
-import { createDamageValues } from '../../../content/stats/Damage'
 import {
   healPlayer,
   healSummon,
@@ -438,10 +439,16 @@ function findNearestLivingTarget(
   return target
 }
 
-function createGlacialOrbVisualProjectile(
+function createGlacialOrbProjectile(
   state: GameState,
   allocator: EntityIdAllocator,
   target: EnemyState | BossState,
+  damage: DamageEvent['damage'],
+  criticalStrike: DamageEvent['criticalStrike'],
+  spreadAngleRadians: number,
+  impactRadius: number,
+  impactEffectRadius: number,
+  impactFrostApplication: FrostApplication,
 ): ProjectileState {
   const skillDefinition = getSkillDefinition(GLACIAL_ORB_SKILL_ID)
   const definitionId = skillDefinition.projectileDefinitionId
@@ -452,7 +459,7 @@ function createGlacialOrbVisualProjectile(
   const directionX = target.x - state.player.x
   const directionY = target.y - state.player.y
   const distance = Math.hypot(directionX, directionY)
-  const directionLength = distance || 1
+  const directionAngle = Math.atan2(directionY, directionX) + spreadAngleRadians
 
   return {
     id: allocator.createEntityId(),
@@ -461,13 +468,16 @@ function createGlacialOrbVisualProjectile(
     skillId: GLACIAL_ORB_SKILL_ID,
     targetId: target.id,
     sourceTags: skillDefinition.tags,
-    visualOnly: true,
     x: state.player.x,
     y: state.player.y,
-    velocityX: directionX / directionLength * projectileDefinition.speed,
-    velocityY: directionY / directionLength * projectileDefinition.speed,
+    velocityX: Math.cos(directionAngle) * projectileDefinition.speed,
+    velocityY: Math.sin(directionAngle) * projectileDefinition.speed,
     radius: projectileDefinition.radius,
-    damage: createDamageValues({}),
+    damage,
+    criticalStrike,
+    impactRadius,
+    impactEffectRadius,
+    impactFrostApplication,
     remainingLifetime: Math.max(
       0.1,
       Math.min(projectileDefinition.lifetime, distance / projectileDefinition.speed),
@@ -489,61 +499,63 @@ function collectGlacialOrbDamage(
     return []
   }
 
-  state.projectiles.push(
-    createGlacialOrbVisualProjectile(state, allocator, target),
-  )
-
   const damage = getSkillDamage(definition, skill.level)
   const damageIncreasePercent = getSkillDamageIncreasePercent(skill.skillId, skill.level)
   const explosionRadius = scaleAreaValue(
     (definition.radius ?? 0) + (permafrost ? GLACIAL_ORB_PERMAFROST_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
   )
-  const struck = iceLance
-    ? [target]
-    : [...state.enemies, ...(state.bosses ?? [])]
-        .filter((enemy) => enemy.hp > 0)
-        .filter((enemy) => Math.hypot(enemy.x - target.x, enemy.y - target.y) <= explosionRadius + enemy.radius)
-        .sort((left, right) => left.id - right.id)
-
-  const events: DamageEvent[] = struck.map((enemy) => {
-    const isChilledOrFrozen = (enemy.chillStacks ?? 0) > 0 || (enemy.frozenRemainingDuration ?? 0) > 0
-    const iceLanceBonus = iceLance && isChilledOrFrozen
-      ? GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT
-      : 0
-    const event = createPlayerDamageEventFromStats(
-      playerStats,
-      state.player.id,
-      enemy.id,
-      skill.skillId,
-      damage,
-      {
-        sourceTags: definition.tags,
-        additionalIncreasedDamage: {
-          global: damageIncreasePercent + iceLanceBonus,
-        },
-      },
-    )
-    event.frostApplication = {
-      stacks: permafrost ? 1 + GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS : 1,
-      durationSeconds: 4,
-      freezeThreshold: 3,
-      freezeDurationSeconds: 1,
-    }
-    return event
-  })
-
-  addEffect(
-    state,
-    allocator,
+  const isChilledOrFrozen = (target.chillStacks ?? 0) > 0 ||
+    (target.frozenRemainingDuration ?? 0) > 0
+  const iceLanceBonus = iceLance && isChilledOrFrozen
+    ? GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT
+    : 0
+  const damageEvent = createPlayerDamageEventFromStats(
+    playerStats,
+    state.player.id,
+    target.id,
     skill.skillId,
-    [{ x: target.x, y: target.y }],
-    iceLance ? 10 : explosionRadius,
-    definition.effectLifetime,
+    damage,
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: {
+        global: damageIncreasePercent + iceLanceBonus,
+      },
+    },
   )
+  const impactFrostApplication: FrostApplication = {
+    stacks: permafrost ? 1 + GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS : 1,
+    durationSeconds: 4,
+    freezeThreshold: 3,
+    freezeDurationSeconds: 1,
+  }
+  const projectileCount = 1 + Math.max(
+    0,
+    Math.trunc(playerStats.globalExtraProjectiles),
+  )
+  const spreadAngles = createProjectileSpreadAngles(
+    projectileCount,
+    definition.spreadDegrees ?? 0,
+  )
+  state.projectiles.push(
+    ...spreadAngles.map((spreadAngleRadians) =>
+      createGlacialOrbProjectile(
+        state,
+        allocator,
+        target,
+        damageEvent.damage,
+        damageEvent.criticalStrike,
+        spreadAngleRadians,
+        iceLance ? 0 : explosionRadius,
+        iceLance ? 10 : explosionRadius,
+        impactFrostApplication,
+      ),
+    ),
+  )
+
   skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
   markSkillUsed(skill)
-  return events
+  return []
 }
 
 function collectLancersChargeDamage(

@@ -34,6 +34,7 @@ import {
   EQUIPMENT_SLOTS,
   EquipmentSlot,
   getItemDisplayName,
+  isItemId,
   type EquipmentSlot as EquipmentSlotType,
   type ItemId,
 } from '../content/gear/Items'
@@ -49,6 +50,11 @@ import {
   RALLYING_STANDARD_SKILL_ID,
   SKILL_DEFINITIONS,
 } from '../content/skills/Skills'
+import {
+  ALL_GEAR_SET_DEFINITIONS,
+  isGearSetId,
+  type GearSetId,
+} from '../game-config/gear-sets'
 import {
   INITIAL_UPGRADES,
   type LevelUpUpgradeChoice,
@@ -77,6 +83,10 @@ const PROFILE_KEYBIND_IDS = {
   balanced: 'behaviorBalanced',
   cautious: 'behaviorCautious',
 } as const
+
+const GRANTABLE_GEAR_DEFINITIONS = ALL_ITEM_DEFINITIONS.filter(
+  (item) => !item.starterOnly,
+)
 
 const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
   [EquipmentSlot.Weapon]: 'Weapon',
@@ -401,6 +411,12 @@ export function GameCanvas({
         event.preventDefault()
         pressedMovementKeys.add(key)
         updateFreeMovementDirection()
+        return
+      }
+
+      if (game.phase === 'level-up' && key === activeKeybindsRef.current.skipChoice) {
+        event.preventDefault()
+        game.skipChoice()
         return
       }
 
@@ -1286,8 +1302,9 @@ function DevelopmentMenu({
   )
   const [timeScaleError, setTimeScaleError] = useState<string | null>(null)
   const [selectedGearId, setSelectedGearId] = useState<ItemId>(
-    ALL_ITEM_DEFINITIONS[0]?.id ?? '',
+    GRANTABLE_GEAR_DEFINITIONS[0]?.id ?? '',
   )
+  const [selectedGearSetId, setSelectedGearSetId] = useState<GearSetId | ''>('')
   const [selectedSkillId, setSelectedSkillId] = useState<string>(
     Object.values(SKILL_DEFINITIONS)[0]?.id ?? '',
   )
@@ -1412,14 +1429,15 @@ function DevelopmentMenu({
     const item = ALL_ITEM_DEFINITIONS.find(
       (candidate) => candidate.id === selectedGearId,
     )
-    if (!item) {
+    if (!item || item.starterOnly || !isItemId(selectedGearId)) {
       setGrantFeedback('Select a valid gear item.')
       return
     }
+    const setId = selectedGearSetId || undefined
     reportGrantResult(
-      game.grantDebugGear(selectedGearId),
-      `Granted ${getItemDisplayName(item)}.`,
-      `${getItemDisplayName(item)} is already equipped.`,
+      game.grantDebugGear(selectedGearId, setId),
+      `Granted ${getItemDisplayName(item, setId)}.`,
+      `${getItemDisplayName(item, setId)} is already equipped.`,
     )
   }
 
@@ -1523,6 +1541,24 @@ function DevelopmentMenu({
           <div className="debug-grant-control">
             <p className="development-control-label">Grant gear</p>
             <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-gear-set-select">
+                Gear set
+              </label>
+              <select
+                id="debug-gear-set-select"
+                value={selectedGearSetId}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setSelectedGearSetId(isGearSetId(value) ? value : '')
+                }}
+              >
+                <option value="">No set</option>
+                {ALL_GEAR_SET_DEFINITIONS.map((set) => (
+                  <option value={set.id} key={set.id}>
+                    {set.name} set
+                  </option>
+                ))}
+              </select>
               <label className="visually-hidden" htmlFor="debug-gear-select">
                 Gear item
               </label>
@@ -1531,7 +1567,7 @@ function DevelopmentMenu({
                 value={selectedGearId}
                 onChange={(event) => setSelectedGearId(event.target.value)}
               >
-                {ALL_ITEM_DEFINITIONS.map((item) => (
+                {GRANTABLE_GEAR_DEFINITIONS.map((item) => (
                   <option value={item.id} key={item.id}>
                     {getItemDisplayName(item)}
                   </option>

@@ -354,6 +354,12 @@ export interface ProjectileState {
   basicAttackWeaponArchetype?: WeaponArchetype
   /** Presentation-only projectile used by skills whose impact is resolved immediately. */
   visualOnly?: boolean
+  /** Optional area radius to resolve around the projectile's collision point. */
+  impactRadius?: number
+  /** Optional radius for the impact effect, independent of its damage area. */
+  impactEffectRadius?: number
+  /** Optional status application to attach to each impact damage event. */
+  impactFrostApplication?: FrostApplication
   remainingChains?: number
   chainRange?: number
   lastHitTargetId?: EntityId

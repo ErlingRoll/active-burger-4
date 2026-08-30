@@ -276,6 +276,7 @@ export const SKILL_DEFINITIONS = {
     baseDamage: { cold: 9 },
     damagePerLevel: {},
     projectileDefinitionId: GLACIAL_ORB_PROJECTILE_DEFINITION_ID,
+    spreadDegrees: 15,
     radius: 55,
     maxRange: 240,
     effectLifetime: 0.22,

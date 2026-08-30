@@ -5,6 +5,7 @@ export interface GameKeybinds {
   choiceLeft: string
   choiceMiddle: string
   choiceRight: string
+  skipChoice: string
 }
 
 export type KeybindId = keyof GameKeybinds
@@ -19,6 +20,7 @@ export const DEFAULT_GAME_KEYBINDS: Readonly<GameKeybinds> = Object.freeze({
   choiceLeft: '1',
   choiceMiddle: '2',
   choiceRight: '3',
+  skipChoice: '5',
 })
 
 export const KEYBIND_DEFINITIONS = [
@@ -51,6 +53,11 @@ export const KEYBIND_DEFINITIONS = [
     id: 'choiceRight',
     label: 'Right choice',
     description: 'Select the rightmost level-up or gear choice.',
+  },
+  {
+    id: 'skipChoice',
+    label: 'Skip choice',
+    description: 'Skip the current level-up or gear choice.',
   },
 ] as const satisfies ReadonlyArray<{
   id: KeybindId

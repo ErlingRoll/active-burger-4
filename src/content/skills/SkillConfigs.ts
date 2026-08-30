@@ -75,6 +75,8 @@ export interface SkillDefinition {
   maxTargets?: number
   jumpRange?: number
   projectileDefinitionId?: ProjectileDefinitionId
+  /** Angle between adjacent projectiles when this skill fires a volley. */
+  spreadDegrees?: number
   effectLifetime: number
   visual: SkillVisualPresentation
 }

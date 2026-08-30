@@ -11,6 +11,7 @@ export interface ProjectileDefinition {
 }
 
 export const PLAYER_PROJECTILE_CHAIN_RANGE = 180
+const DEGREES_TO_RADIANS = Math.PI / 180
 
 export const BASIC_ATTACK_ARROW_DEFINITION_ID: ProjectileDefinitionId =
   'basic-attack-arrow'
@@ -44,6 +45,24 @@ export const PROJECTILE_DEFINITIONS = {
     guidance: 'straight',
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>
+
+/**
+ * Returns centered angular offsets for a projectile volley. The configured
+ * spread is the angle between adjacent projectiles.
+ */
+export function createProjectileSpreadAngles(
+  projectileCount: number,
+  spreadDegrees: number,
+): number[] {
+  if (projectileCount <= 1 || spreadDegrees <= 0) {
+    return [0]
+  }
+  const step = spreadDegrees * DEGREES_TO_RADIANS
+  const center = (projectileCount - 1) / 2
+  return Array.from({ length: projectileCount }, (_, index) =>
+    (index - center) * step
+  )
+}
 
 export function getProjectileDefinition(
   definitionId: ProjectileDefinitionId,

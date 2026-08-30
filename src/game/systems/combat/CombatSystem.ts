@@ -1,4 +1,5 @@
 import {
+  createProjectileSpreadAngles,
   getProjectileDefinition,
   PLAYER_PROJECTILE_CHAIN_RANGE,
 } from '../../../content/projectiles/Projectiles'
@@ -11,6 +12,7 @@ import {
   getSkillDefinition,
   getSkillDamage,
   isSkillId,
+  GLACIAL_ORB_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   type SkillTag,
 } from '../../../content/skills/Skills'
@@ -283,24 +285,81 @@ function createBasicAttackEffect(
   })
 }
 
+function createProjectileImpactEffect(
+  state: GameState,
+  allocator: EntityIdAllocator | undefined,
+  projectile: ProjectileState,
+  x: number,
+  y: number,
+): void {
+  if (
+    !allocator ||
+    projectile.skillId !== GLACIAL_ORB_SKILL_ID ||
+    projectile.impactEffectRadius === undefined
+  ) {
+    return
+  }
+
+  const definition = getSkillDefinition(GLACIAL_ORB_SKILL_ID)
+  state.effects.push({
+    id: allocator.createEntityId(),
+    skillId: GLACIAL_ORB_SKILL_ID,
+    x,
+    y,
+    radius: projectile.impactEffectRadius,
+    lifetime: definition.effectLifetime,
+    remainingLifetime: definition.effectLifetime,
+    points: [{ x, y }],
+  })
+}
+
+function collectProjectileImpactEvents(
+  state: GameState,
+  projectile: ProjectileState,
+  hitEnemy: EnemyState | BossState,
+  enemies: ReturnType<typeof createEnemySpatialHash>,
+): DamageEvent[] {
+  const impactRadius = projectile.impactRadius
+  if (impactRadius === undefined || impactRadius <= 0) {
+    return [{
+      sourceId: projectile.ownerId,
+      sourceSkillId: projectile.skillId,
+      sourceTags: projectile.sourceTags,
+      targetId: hitEnemy.id,
+      damage: projectile.damage,
+      criticalStrike: projectile.criticalStrike,
+      frostApplication: projectile.impactFrostApplication,
+    }]
+  }
+
+  const maxEnemyRadius = Math.max(
+    0,
+    ...state.enemies.map((enemy) => enemy.radius),
+    ...(state.bosses ?? []).map((boss) => boss.radius),
+  )
+  return enemies
+    .queryRadius(hitEnemy.x, hitEnemy.y, impactRadius + maxEnemyRadius)
+    .filter((enemy) => enemy.hp > 0)
+    .filter((enemy) =>
+      Math.hypot(enemy.x - hitEnemy.x, enemy.y - hitEnemy.y) <=
+        impactRadius + enemy.radius,
+    )
+    .sort((left, right) => left.id - right.id)
+    .map((enemy) => ({
+      sourceId: projectile.ownerId,
+      sourceSkillId: projectile.skillId,
+      sourceTags: projectile.sourceTags,
+      targetId: enemy.id,
+      damage: projectile.damage,
+      criticalStrike: projectile.criticalStrike,
+      frostApplication: projectile.impactFrostApplication,
+    }))
+}
+
 function getBasicAttackTarget(
   state: GameState,
 ): EnemyState | BossState | undefined {
   return findLivingTarget(state, state.player.targetId)
-}
-
-function createProjectileSpreadAngles(
-  projectileCount: number,
-  spreadDegrees: number,
-): number[] {
-  if (projectileCount <= 1 || spreadDegrees <= 0) {
-    return [0]
-  }
-  const step = spreadDegrees * DEGREES_TO_RADIANS
-  const center = (projectileCount - 1) / 2
-  return Array.from({ length: projectileCount }, (_, index) =>
-    (index - center) * step
-  )
 }
 
 function resolveProjectileTarget(
@@ -379,12 +438,16 @@ function createBasicAttackProjectileState(
       },
     },
   )
-  const extraProjectiles = Math.min(
+  const localExtraProjectiles = Math.min(
     variant.maxExtraProjectiles ?? 0,
     Math.max(0, Math.trunc(stats.basicAttackExtraProjectiles)),
   )
+  const globalExtraProjectiles = Math.max(
+    0,
+    Math.trunc(stats.globalExtraProjectiles),
+  )
   const remainingChains = Math.max(0, Math.trunc(stats.projectileChains))
-  const projectileCount = 1 + extraProjectiles
+  const projectileCount = 1 + globalExtraProjectiles + localExtraProjectiles
   const spreadAngles = createProjectileSpreadAngles(
     projectileCount,
     variant.spreadDegrees ?? 0,
@@ -796,6 +859,7 @@ export function updateProjectiles(
 export function collectProjectileDamage(
   state: GameState,
   enemies = createEnemySpatialHash(state),
+  idAllocator?: EntityIdAllocator,
 ): DamageEvent[] {
   const damageEvents: DamageEvent[] = []
   const projectiles = [...state.projectiles].sort(
@@ -837,14 +901,16 @@ export function collectProjectileDamage(
     }
 
     if (hitEnemy) {
-      damageEvents.push({
-        sourceId: projectile.ownerId,
-        sourceSkillId: projectile.skillId,
-        sourceTags: projectile.sourceTags,
-        targetId: hitEnemy.id,
-        damage: projectile.damage,
-        criticalStrike: projectile.criticalStrike,
-      })
+      damageEvents.push(
+        ...collectProjectileImpactEvents(state, projectile, hitEnemy, enemies),
+      )
+      createProjectileImpactEffect(
+        state,
+        idAllocator,
+        projectile,
+        hitEnemy.x,
+        hitEnemy.y,
+      )
       if (canProjectileChain(state, projectile)) {
         const nextTarget = findNearestEnemy(
           {

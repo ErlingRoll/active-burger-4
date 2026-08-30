@@ -116,6 +116,20 @@ describe('Game', () => {
     })
     expect(game.state.player.attackSpeed).toBeGreaterThan(1)
     expect(notificationCount).toBe(1)
+
+    expect(game.grantDebugGear('hunters-bow', 'splintering')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.state.player.equipment?.weapon).toMatchObject({
+      itemId: 'hunters-bow',
+      setId: 'splintering',
+    })
+    expect(notificationCount).toBe(2)
+    expect(game.grantDebugGear('knight-training-sword')).toEqual({
+      ok: false,
+      error: 'Training weapons are not available as development grants.',
+    })
   })
 
   it('grants development skills once and respects the configured slot limit', () => {

@@ -54,6 +54,7 @@ describe('local persistence schema', () => {
         choiceLeft: '1',
         choiceMiddle: '2',
         choiceRight: '3',
+        skipChoice: '5',
       },
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
@@ -125,11 +126,13 @@ describe('local persistence schema', () => {
         choiceLeft: 'j',
         choiceMiddle: 'k',
         choiceRight: 'l',
+        skipChoice: 'x',
       },
     }).keybinds).toMatchObject({
       choiceLeft: 'j',
       choiceMiddle: 'k',
       choiceRight: 'l',
+      skipChoice: 'x',
     })
   })
 

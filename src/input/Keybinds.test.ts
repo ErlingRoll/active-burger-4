@@ -15,6 +15,7 @@ describe('game keybind settings', () => {
       choiceLeft: '1',
       choiceMiddle: '2',
       choiceRight: '3',
+      skipChoice: '5',
     })
   })
 
@@ -24,6 +25,7 @@ describe('game keybind settings', () => {
       behaviorBalanced: '',
       choiceLeft: 'ArrowLeft',
       choiceRight: 42,
+      skipChoice: 'x',
     })).toEqual({
       behaviorAggressive: 'a',
       behaviorBalanced: 's',
@@ -31,6 +33,7 @@ describe('game keybind settings', () => {
       choiceLeft: 'arrowleft',
       choiceMiddle: '2',
       choiceRight: '3',
+      skipChoice: 'x',
     })
   })
 

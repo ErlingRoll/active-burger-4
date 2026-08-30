@@ -433,14 +433,25 @@ function UpgradeCard({
   const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
+  const evolvedSkill = definition.branch && definition.skillId
+    ? getSkillDefinition(definition.skillId)
+    : undefined
   const actionLabel = removedSkill
     ? 'Release'
     : definition.branch
-      ? 'Evolve'
+      ? 'Evolve:'
       : definition.skillAction === 'unlock'
-        ? 'Unlock'
+        ? 'Unlock skill'
         : 'Upgrade'
-  const actionLabelClass = `upgrade-action-label-${actionLabel.toLowerCase()}`
+  const actionLabelClass = `upgrade-action-label-${
+    removedSkill
+      ? 'release'
+      : definition.branch
+        ? 'evolve'
+        : definition.skillAction === 'unlock'
+          ? 'unlock'
+          : 'upgrade'
+  }`
   return (
     <div className="choice-card-wrap">
       <button
@@ -462,14 +473,14 @@ function UpgradeCard({
         </span>
         <span className={`upgrade-action-label ${actionLabelClass}`}>
           {actionLabel}
+          {evolvedSkill ? (
+            <span className="upgrade-action-evolved-skill">
+              {' '}
+              <span aria-hidden="true">{evolvedSkill.visual.icon}</span>{' '}
+              {evolvedSkill.name}
+            </span>
+          ) : null}
         </span>
-        {!unlockedSkill ? (
-          <span className="upgrade-choice-value">
-            <KeywordText
-              text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
-            />
-          </span>
-        ) : null}
         {definition.evolutionTags && definition.evolutionTags.length > 0 ? (
           <span className="upgrade-skill-tags" aria-label="Evolution tags">
             <span className="upgrade-skill-tags-label">Tags</span>
@@ -492,6 +503,13 @@ function UpgradeCard({
                 </span>
               ))}
             </span>
+          </span>
+        ) : null}
+        {!unlockedSkill ? (
+          <span className="upgrade-choice-value">
+            <KeywordText
+              text={removedSkill ? 'Lose all upgrades for this skill' : definition.valueLabel}
+            />
           </span>
         ) : null}
         <span className="upgrade-choice-description">
@@ -609,9 +627,11 @@ export function LevelUpOverlay({
         <button
           className="skip-choice-button"
           type="button"
+          aria-keyshortcuts={keybinds.skipChoice}
           onClick={onSkip}
         >
           Skip
+          <ChoiceKeyHint keybind={keybinds.skipChoice} />
         </button>
       </div>
     </section>

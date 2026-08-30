@@ -43,6 +43,9 @@ export interface PlayerStats extends StatValues {
   critMultiplier: number
   cooldownReduction: number
   areaOfEffect: number
+  /** Extra projectiles granted globally to every projectile-tagged skill. */
+  globalExtraProjectiles: number
+  /** Extra projectiles granted by weapon-local Basic Attack modifiers. */
   basicAttackExtraProjectiles: number
   projectileChains: number
   meleeLeech: number
@@ -112,6 +115,7 @@ interface AggregatedGearEffects {
   critMultiplier: number
   cooldownReduction: number
   areaOfEffect: number
+  globalExtraProjectiles: number
   basicAttackExtraProjectiles: number
   projectileChains: number
   meleeLeech: number
@@ -161,6 +165,7 @@ function aggregateGearEffects(
     critMultiplier: player.critMultiplier ?? DEFAULT_PLAYER_CRITICAL_STRIKE.multiplier,
     cooldownReduction: 0,
     areaOfEffect: 0,
+    globalExtraProjectiles: 0,
     basicAttackExtraProjectiles: 0,
     projectileChains: 0,
     meleeLeech: 0,
@@ -264,7 +269,7 @@ function aggregateGearEffects(
       } else if (bonus.kind === 'cooldown-reduction') {
         effects.cooldownReduction += bonus.value
       } else if (bonus.kind === 'extra-projectiles') {
-        effects.basicAttackExtraProjectiles += bonus.value
+        effects.globalExtraProjectiles += bonus.value
       }
     }
   }
@@ -313,6 +318,7 @@ export function getDerivedPlayerStats(
     critMultiplier: gearEffects.critMultiplier,
     cooldownReduction: gearEffects.cooldownReduction,
     areaOfEffect: gearEffects.areaOfEffect,
+    globalExtraProjectiles: gearEffects.globalExtraProjectiles,
     basicAttackExtraProjectiles: gearEffects.basicAttackExtraProjectiles,
     projectileChains: gearEffects.projectileChains,
     meleeLeech: gearEffects.meleeLeech,

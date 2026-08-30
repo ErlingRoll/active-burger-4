@@ -16,13 +16,17 @@ import {
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
 } from '../../../game-config/skills'
 import { createGame } from '../../Game'
-import { equipRolledItem } from '../../equipment/EquipmentState'
+import { equipItem, equipRolledItem } from '../../equipment/EquipmentState'
 import { Rarity } from '../../../content/rarity/Rarity'
 import {
   collectSkillDamage,
   updateSkillCooldowns,
   updateSkillEffects,
 } from './SkillSystem'
+import {
+  collectProjectileDamage,
+  updateProjectiles,
+} from '../combat/CombatSystem'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -281,18 +285,35 @@ describe('skill system', () => {
       const splashId = game.spawnSlime({ x: 200, y: 50 })
       const outOfRangeId = game.spawnSlime({ x: 500, y: 0 })
 
-      const events = collectSkillDamage(game.state, allocator)
+      const castEvents = collectSkillDamage(game.state, allocator)
 
-      expect(events.map((event) => event.targetId)).toEqual([nearestId, splashId])
-      expect(events.every((event) => event.damage.cold === 9)).toBe(true)
-      expect(events.every((event) => event.frostApplication?.stacks === 1)).toBe(true)
-      expect(events.some((event) => event.targetId === outOfRangeId)).toBe(false)
+      expect(castEvents).toEqual([])
+      expect(game.state.effects).toEqual([])
       expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(3.2)
       expect(game.state.projectiles).toEqual([
         expect.objectContaining({
           skillId: GLACIAL_ORB_SKILL_ID,
           targetId: nearestId,
-          visualOnly: true,
+        }),
+      ])
+      expect(game.state.projectiles[0]?.visualOnly).toBeUndefined()
+
+      let impactEvents: ReturnType<typeof collectProjectileDamage> = []
+      for (let tick = 0; tick < 60 && impactEvents.length === 0; tick += 1) {
+        updateProjectiles(game.state, 1 / 60)
+        impactEvents = collectProjectileDamage(game.state, undefined, allocator)
+      }
+
+      expect(impactEvents.map((event) => event.targetId)).toEqual([nearestId, splashId])
+      expect(impactEvents.every((event) => event.damage.cold === 9)).toBe(true)
+      expect(impactEvents.every((event) => event.frostApplication?.stacks === 1)).toBe(true)
+      expect(impactEvents.some((event) => event.targetId === outOfRangeId)).toBe(false)
+      expect(game.state.effects).toEqual([
+        expect.objectContaining({
+          skillId: GLACIAL_ORB_SKILL_ID,
+          x: 200,
+          y: 0,
+          radius: 55,
         }),
       ])
     })
@@ -308,7 +329,9 @@ describe('skill system', () => {
       const nearestId = game.spawnSlime({ x: 200, y: 0 })
       const edgeId = game.spawnSlime({ x: 200, y: 90 })
 
-      const events = collectSkillDamage(game.state, allocator)
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      game.state.projectiles[0]!.x = 200
+      const events = collectProjectileDamage(game.state, undefined, allocator)
 
       expect(events.map((event) => event.targetId)).toEqual([nearestId, edgeId])
       expect(events.every((event) => event.frostApplication?.stacks === 2)).toBe(true)
@@ -326,11 +349,48 @@ describe('skill system', () => {
       game.spawnSlime({ x: 200, y: 50 })
       game.state.enemies.find((enemy) => enemy.id === targetId)!.chillStacks = 1
 
-      const events = collectSkillDamage(game.state, allocator)
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      game.state.projectiles[0]!.x = 200
+      const events = collectProjectileDamage(game.state, undefined, allocator)
 
       expect(events).toEqual([
         expect.objectContaining({ targetId, damage: expect.objectContaining({ cold: 12.6 }) }),
       ])
+    })
+
+    it('uses global projectile bonuses but ignores Basic Attack-only projectile bonuses', () => {
+      const localModifierGame = createGame({ seed: 64 })
+      localModifierGame.state.player.skills = [{
+        skillId: GLACIAL_ORB_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      equipItem(localModifierGame.state.player, 'hunters-bow')
+      localModifierGame.spawnSlime({ x: 120, y: 0 })
+
+      collectSkillDamage(localModifierGame.state, allocator)
+
+      expect(localModifierGame.state.projectiles).toHaveLength(1)
+
+      const globalModifierGame = createGame({ seed: 65 })
+      globalModifierGame.state.player.skills = [{
+        skillId: GLACIAL_ORB_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      equipItem(globalModifierGame.state.player, 'splintering-helm')
+      equipItem(globalModifierGame.state.player, 'splintering-armor')
+      globalModifierGame.spawnSlime({ x: 120, y: 0 })
+
+      collectSkillDamage(globalModifierGame.state, allocator)
+
+      expect(globalModifierGame.state.projectiles).toHaveLength(2)
+      const first = globalModifierGame.state.projectiles[0]!
+      const second = globalModifierGame.state.projectiles[1]!
+      expect(
+        Math.atan2(second.velocityY, second.velocityX) -
+          Math.atan2(first.velocityY, first.velocityX),
+      ).toBeCloseTo((15 * Math.PI) / 180)
     })
   })
 
