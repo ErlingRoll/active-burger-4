@@ -206,6 +206,9 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.rallyingStandardRemaining = 0
     state.player.rallyingStandardDamageReductionPercent = 0
     state.player.rallyingStandardCooldownReductionPercent = 0
+    state.effects = state.effects.filter(
+      (effect) => effect.skillId !== RALLYING_STANDARD_SKILL_ID,
+    )
   }
   if (skillId === AEGIS_PULSE_SKILL_ID) {
     state.player.aegisPulseShieldAmount = 0

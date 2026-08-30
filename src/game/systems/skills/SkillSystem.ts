@@ -181,6 +181,13 @@ export function updateSkillEffects(
   for (const effect of state.effects) {
     effect.remainingLifetime -= elapsed
     if (
+      effect.skillId === RALLYING_STANDARD_SKILL_ID &&
+      (state.player.rallyingStandardRemaining ?? 0) <= 0
+    ) {
+      effect.remainingLifetime = 0
+      continue
+    }
+    if (
       effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
       effect.periodicHealingAmount === undefined
     ) {
@@ -213,7 +220,13 @@ export function updateSkillEffects(
         RALLYING_STANDARD_HEAL_INTERVAL_SECONDS
     }
   }
-  state.effects = state.effects.filter((effect) => effect.remainingLifetime > 0)
+  state.effects = state.effects.filter((effect) =>
+    effect.remainingLifetime > 0 &&
+    (
+      effect.skillId !== RALLYING_STANDARD_SKILL_ID ||
+      (state.player.rallyingStandardRemaining ?? 0) > 0
+    )
+  )
 }
 
 function getSkillCooldown(
@@ -817,6 +830,11 @@ function collectRallyingStandardEffect(
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-standard-bulwark')
   const commander = state.run.selectedUpgradeIds.includes('rallying-standard-commander')
   const healing = getSkillHealing(definition, skill.level)
+  // Rallying Standard is a single stationary effect. Recasting it replaces
+  // the previous placement instead of leaving old flags eligible for renewal.
+  state.effects = state.effects.filter(
+    (effect) => effect.skillId !== RALLYING_STANDARD_SKILL_ID,
+  )
   healPlayer(state, healing, definition.name, random)
 
   const duration = RALLYING_STANDARD_BASE_DURATION_SECONDS +

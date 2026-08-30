@@ -672,8 +672,38 @@ describe('skill system', () => {
       )
     })
 
-    it("lets Commander's active cooldown reduction apply to every equipped skill", () => {
+    it('replaces the previous placement when recast before it expires', () => {
       const game = createGame({ seed: 69 })
+      game.state.player.skills = [{
+        skillId: RALLYING_STANDARD_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.effects).toHaveLength(1)
+      expect(game.state.effects[0]?.skillId).toBe(RALLYING_STANDARD_SKILL_ID)
+    })
+
+    it('removes the banner effect when its active duration expires', () => {
+      const game = createGame({ seed: 70 })
+      game.state.player.skills = [{
+        skillId: RALLYING_STANDARD_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+
+      collectSkillDamage(game.state, allocator)
+      updateSkillEffects(game.state, RALLYING_STANDARD_BASE_DURATION_SECONDS)
+
+      expect(game.state.effects).toEqual([])
+    })
+
+    it("lets Commander's active cooldown reduction apply to every equipped skill", () => {
+      const game = createGame({ seed: 71 })
       game.state.player.skills = [
         { skillId: RALLYING_STANDARD_SKILL_ID, level: 1, cooldownRemaining: 0 },
         { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
