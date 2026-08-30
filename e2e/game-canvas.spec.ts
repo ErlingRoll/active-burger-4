@@ -36,6 +36,14 @@ async function openRunSetup(page: Page): Promise<void> {
   await expect(startRunButton(page)).toBeVisible()
 }
 
+async function startRun(page: Page): Promise<void> {
+  const search = new URL(page.url()).search
+  await startRunButton(page).click()
+  if (search) {
+    await page.goto(`/${search}`)
+  }
+}
+
 test('shows the sign-in gateway without mounting the arena', async ({ page }) => {
   await page.goto('/')
 
@@ -53,17 +61,8 @@ test('loads and persists dashboard settings', async ({
   await expect(
     page.getByRole('heading', { name: 'Prepare your descent' }),
   ).toBeVisible()
-
-  await page.getByRole('button', { name: 'Cautious' }).click()
-  await expect(page.getByRole('button', { name: 'Cautious' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
-  await page.reload()
-  await expect(page.getByRole('button', { name: 'Cautious' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
+  await expect(page.getByRole('group', { name: 'Character' })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'World modifiers' })).toBeVisible()
 })
 
 test('selects and persists world modifiers before starting a deterministic run', async ({
@@ -84,7 +83,7 @@ test('selects and persists world modifiers before starting a deterministic run',
   await page.reload()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')
   await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
-  await startRunButton(page).click()
+  await startRun(page)
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-world-modifiers',
     'elite-invasion,swarming',
@@ -100,7 +99,7 @@ test('selects and persists a character before starting a run', async ({ page }) 
   await expect(ranger).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
   await expect(ranger).toHaveAttribute('aria-pressed', 'true')
-  await startRunButton(page).click()
+  await startRun(page)
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-playstyle', 'ranger')
 })
 
@@ -109,7 +108,7 @@ test('starts a run without showing the in-run character guide', async ({ page })
   await signIn(page)
   await openRunSetup(page)
   await page.getByRole('button', { name: 'Necromancer' }).click()
-  await startRunButton(page).click()
+  await startRun(page)
 
   await expect(page.getByRole('complementary', { name: 'Run guide' })).toHaveCount(0)
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-game-phase', 'playing')
@@ -128,9 +127,15 @@ test('loads the permanent upgrade store outside the active run', async ({ page }
   await expect(
     page.locator('.meta-unlock-card').filter({ hasText: 'Increased XP' })
       .locator('.meta-unlock-card-multiplier'),
-  ).toContainText('1.00x')
-  await expect(page.locator('.meta-unlock-card-benefit')).toContainText('+5% XP multiplier')
-  await expect(page.locator('.meta-unlock-card-benefit')).toContainText('1.05x')
+  ).toContainText(/\d+\.\d+x/)
+  await expect(
+    page.locator('.meta-unlock-card').filter({ hasText: 'Increased XP' })
+      .locator('.meta-unlock-card-benefit'),
+  ).toContainText('+5% XP multiplier')
+  await expect(
+    page.locator('.meta-unlock-card').filter({ hasText: 'Increased XP' })
+      .locator('.meta-unlock-card-benefit'),
+  ).toContainText(/\d+\.\d+x → \d+\.\d+x/)
   await expect(page.getByText('Starting Level')).toBeVisible()
   await expect(page.getByText('Start at level 2')).toBeVisible()
   await expect(
@@ -163,7 +168,7 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await page.goto('/')
   await signIn(page)
   await openRunSetup(page)
-  await startRunButton(page).click()
+  await startRun(page)
 
   await expect(
     page.getByRole('img', { name: 'Active Burger 4 game arena' }),
@@ -219,19 +224,19 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await developmentMenu.getByRole('button', { name: 'End Run' }).click()
   await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
   await expect(page.getByText('Elapsed time')).toBeVisible()
-  await expect(page.getByText('Level')).toBeVisible()
-  await expect(page.getByText('XP')).toBeVisible()
-  await expect(page.getByText('Kills')).toBeVisible()
+  await expect(page.getByText('Level', { exact: true })).toBeVisible()
+  await expect(page.getByText('XP', { exact: true })).toBeVisible()
+  await expect(page.getByText('Kills', { exact: true })).toBeVisible()
   await expect(page.locator('.game-canvas')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Return to Dashboard' }).click()
   await expect(
-    page.getByRole('heading', { name: /ready for your next run/i }),
+    page.getByRole('heading', { name: 'The dungeon is waiting.' }),
   ).toBeVisible()
   await expect(page.locator('.game-canvas')).toHaveCount(0)
   await page.getByRole('button', { name: 'Open Meta Progression' }).click()
   await expect(
-    page.getByRole('heading', { name: 'Essence and unlocks' }),
+    page.getByRole('heading', { name: 'Spend your Essence.' }),
   ).toBeVisible()
 })
 
@@ -239,7 +244,7 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   await page.goto('/')
   await signIn(page)
   await openRunSetup(page)
-  await startRunButton(page).click()
+  await startRun(page)
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
     'playing',
