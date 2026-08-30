@@ -7,9 +7,17 @@ import {
 } from './Playstyles'
 
 describe('Playstyles', () => {
-  it('defines three valid, distinct starter playstyles', () => {
-    expect(PLAYSTYLE_IDS).toEqual(['knight', 'ranger', 'necromancer'])
+  it('defines six valid, distinct starter playstyles', () => {
+    expect(PLAYSTYLE_IDS).toEqual([
+      'knight',
+      'ranger',
+      'necromancer',
+      'frost-warden',
+      'ashen-alchemist',
+      'war-shepherd',
+    ])
     expect(isPlaystyleId('ranger')).toBe(true)
+    expect(isPlaystyleId('frost-warden')).toBe(true)
     expect(isPlaystyleId('unknown')).toBe(false)
   })
 
