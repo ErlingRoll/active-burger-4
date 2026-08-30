@@ -36,6 +36,11 @@ import {
   RALLYING_STANDARD_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
   type SkillId,
   type SkillTag,
 } from '../../content/skills/Skills'
@@ -84,7 +89,7 @@ import {
   type GearSetId,
 } from '../../game-config/gear-sets'
 import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
-import { getSkeletonStats } from '../systems/summons/SummonSystem'
+import { getSkeletonStats, getPhantomArsenalStats } from '../systems/summons/SummonSystem'
 import {
   addDamageValues,
   DAMAGE_INCREASE_TYPES,
@@ -1158,7 +1163,9 @@ export function createUiSnapshot(
       : 0
     const skeletonStats = skill.skillId === RAISE_SKELETON_SKILL_ID
       ? getSkeletonStats(state)
-      : undefined
+      : skill.skillId === PHANTOM_ARSENAL_SKILL_ID
+        ? getPhantomArsenalStats(state)
+        : undefined
     const baseDamage = skeletonStats
       ? { physical: skeletonStats.damage }
       : isBasicAttack
@@ -1316,6 +1323,16 @@ export function createUiSnapshot(
           ? 'One target caught in the well, sustained over Gravity Well cooldown.'
           : skill.skillId === AEGIS_PULSE_SKILL_ID
           ? 'One target caught in the pulse, sustained over Aegis Pulse cooldown.'
+          : skill.skillId === RIFT_JAVELIN_SKILL_ID
+          ? 'Every enemy pierced once outbound and once inbound, sustained over its cooldown.'
+          : skill.skillId === CINDER_MINE_SKILL_ID
+          ? 'Every enemy caught in the delayed blast, sustained over its cooldown.'
+          : skill.skillId === STORM_RELAY_SKILL_ID
+          ? 'Primary target struck by the relay each strike interval while it is active.'
+          : skill.skillId === SOUL_TETHER_SKILL_ID
+          ? 'The tethered target, sustained for the link\'s duration.'
+          : skill.skillId === PHANTOM_ARSENAL_SKILL_ID
+          ? 'One persistent phantom archer attacks the nearest target in range on its own cadence.'
           : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
         ? (

@@ -19,6 +19,10 @@ export const BASIC_ATTACK_ORB_DEFINITION_ID: ProjectileDefinitionId =
   'basic-attack-orb'
 export const GLACIAL_ORB_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
   'glacial-orb-projectile'
+export const RIFT_JAVELIN_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
+  'rift-javelin-projectile'
+export const PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
+  'phantom-arsenal-projectile'
 
 export const PROJECTILE_DEFINITIONS = {
   [BASIC_ATTACK_ARROW_DEFINITION_ID]: {
@@ -42,6 +46,20 @@ export const PROJECTILE_DEFINITIONS = {
     speed: 360,
     radius: 9,
     lifetime: 1,
+    guidance: 'straight',
+  },
+  [RIFT_JAVELIN_PROJECTILE_DEFINITION_ID]: {
+    id: RIFT_JAVELIN_PROJECTILE_DEFINITION_ID,
+    speed: 480,
+    radius: 8,
+    lifetime: 1.4,
+    guidance: 'straight',
+  },
+  [PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID]: {
+    id: PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
+    speed: 340,
+    radius: 5,
+    lifetime: 1.2,
     guidance: 'straight',
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>

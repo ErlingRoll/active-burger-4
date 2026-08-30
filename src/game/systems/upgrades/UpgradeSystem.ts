@@ -16,6 +16,8 @@ import {
   LANCERS_CHARGE_SKILL_ID,
   RALLYING_STANDARD_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../../../game-config/skills'
 import type { UpgradeId } from '../../../content/upgrades/Upgrades'
@@ -182,7 +184,6 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   if (skillId === RAISE_SKELETON_SKILL_ID) {
     state.player.skeletonMaxCountBonus = 0
     state.player.skeletonMaxHpBonus = 0
-    state.summons = []
   }
   if (skillId === LANCERS_CHARGE_SKILL_ID) {
     state.player.lancerMomentumStacks = 0
@@ -199,6 +200,22 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.aegisPulseShieldRemaining = 0
     state.player.aegisPulseShieldDuration = 0
   }
+  if (skillId === SOUL_TETHER_SKILL_ID) {
+    state.player.soulTetherTargetId = undefined
+    state.player.soulTetherRemaining = 0
+    state.player.soulTetherDamagePerSecond = 0
+    state.player.soulTetherHealingRatio = 0
+    state.player.soulTetherHasRetargeted = false
+  }
+  if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
+    state.player.phantomMaxCountBonus = 0
+    state.player.phantomMaxHpBonus = 0
+  }
+  state.summons = state.summons.filter(
+    (summon) => (summon.skillId ?? RAISE_SKELETON_SKILL_ID) !== skillId,
+  )
+  state.traps = (state.traps ?? []).filter((trap) => trap.skillId !== skillId)
+  state.relays = (state.relays ?? []).filter((relay) => relay.skillId !== skillId)
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)
 }

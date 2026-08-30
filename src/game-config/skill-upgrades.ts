@@ -31,6 +31,23 @@ import {
   AEGIS_PULSE_REPRISAL_RATIO,
   FROST_MAX_CHILL_STACKS,
   FROST_DEFAULT_FREEZE_DURATION_SECONDS,
+  RIFT_JAVELIN_SKILL_ID,
+  RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+  RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT,
+  CINDER_MINE_SKILL_ID,
+  CINDER_MINE_INFERNO_RADIUS_BONUS,
+  STORM_RELAY_SKILL_ID,
+  STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
+  STORM_RELAY_STRIKE_INTERVAL_SECONDS,
+  STORM_RELAY_CONDUIT_BURST_RADIUS,
+  SOUL_TETHER_SKILL_ID,
+  SOUL_TETHER_SIPHON_HEALING_BONUS,
+  SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT,
+  PHANTOM_ARSENAL_SKILL_ID,
+  PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS,
+  PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
+  PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT,
+  PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 import { Rarity } from '../content/rarity/Rarity'
@@ -60,6 +77,11 @@ const LANCERS_CHARGE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const RALLYING_STANDARD_HEALING_INCREASE_PER_LEVEL = 2
 const GRAVITY_WELL_LEVEL_DAMAGE_INCREASE_PERCENT = 9
 const AEGIS_PULSE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const RIFT_JAVELIN_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const CINDER_MINE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const STORM_RELAY_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const SOUL_TETHER_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const PHANTOM_ARSENAL_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -739,6 +761,311 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('aegis-pulse-reprisal') &&
       !state.selectedUpgradeIds.includes('aegis-pulse-bulwark'),
+  },
+  {
+    id: 'rift-javelin-unlock',
+    name: 'Rift Javelin',
+    description: 'Unlock a long-range javelin that pierces every enemy in its path and returns along the same path.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: RIFT_JAVELIN_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(RIFT_JAVELIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rift-javelin-unlock'),
+  },
+  {
+    id: 'rift-javelin-level',
+    name: 'Honed Javelin',
+    description: `Increase Rift Javelin damage by ${RIFT_JAVELIN_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${RIFT_JAVELIN_LEVEL_DAMAGE_INCREASE_PERCENT}% Rift Javelin damage`,
+    skillId: RIFT_JAVELIN_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: RIFT_JAVELIN_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[RIFT_JAVELIN_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'rift-javelin-barbed',
+    name: 'Barbed Javelin',
+    description: `Rift Javelin hits apply a Poison stack lasting ${RIFT_JAVELIN_BARBED_DURATION_SECONDS} seconds.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Applies a ${RIFT_JAVELIN_BARBED_DURATION_SECONDS}s Poison stack per hit`,
+    skillId: RIFT_JAVELIN_SKILL_ID,
+    branch: 'rift-javelin-barbed',
+    evolutionTags: ['poison', 'damage-over-time'],
+    riftJavelinBarbed: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RIFT_JAVELIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rift-javelin-barbed') &&
+      !state.selectedUpgradeIds.includes('rift-javelin-homeward'),
+  },
+  {
+    id: 'rift-javelin-homeward',
+    name: 'Homeward Edge',
+    description: `Rift Javelin deals ${RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT}% more damage while returning to you.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `+${RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT}% damage on the return trip`,
+    skillId: RIFT_JAVELIN_SKILL_ID,
+    branch: 'rift-javelin-homeward',
+    riftJavelinHomeward: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RIFT_JAVELIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('rift-javelin-homeward') &&
+      !state.selectedUpgradeIds.includes('rift-javelin-barbed'),
+  },
+  {
+    id: 'cinder-mine-unlock',
+    name: 'Cinder Mine',
+    description: 'Unlock a delayed fire trap that explodes and leaves enemies Burning.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: CINDER_MINE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(CINDER_MINE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('cinder-mine-unlock'),
+  },
+  {
+    id: 'cinder-mine-level',
+    name: 'Volatile Charge',
+    description: `Increase Cinder Mine damage by ${CINDER_MINE_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${CINDER_MINE_LEVEL_DAMAGE_INCREASE_PERCENT}% Cinder Mine damage`,
+    skillId: CINDER_MINE_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: CINDER_MINE_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[CINDER_MINE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'cinder-mine-inferno',
+    name: 'Inferno Charge',
+    description: `Cinder Mine's blast radius grows by ${CINDER_MINE_INFERNO_RADIUS_BONUS} and its Burning stacks deal more damage.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `+${CINDER_MINE_INFERNO_RADIUS_BONUS} radius, stronger Burning`,
+    skillId: CINDER_MINE_SKILL_ID,
+    branch: 'cinder-mine-inferno',
+    evolutionTags: ['burning', 'area-of-effect'],
+    cinderMineInferno: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CINDER_MINE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('cinder-mine-inferno') &&
+      !state.selectedUpgradeIds.includes('cinder-mine-cluster'),
+  },
+  {
+    id: 'cinder-mine-cluster',
+    name: 'Cluster Charges',
+    description: 'Cinder Mine deploys a second, weaker mine alongside the first.',
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'Deploys 2 mines per cast',
+    skillId: CINDER_MINE_SKILL_ID,
+    branch: 'cinder-mine-cluster',
+    cinderMineCluster: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CINDER_MINE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('cinder-mine-cluster') &&
+      !state.selectedUpgradeIds.includes('cinder-mine-inferno'),
+  },
+  {
+    id: 'storm-relay-unlock',
+    name: 'Storm Relay',
+    description: 'Unlock a persistent lightning relay that periodically strikes and chains to nearby enemies.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: STORM_RELAY_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(STORM_RELAY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('storm-relay-unlock'),
+  },
+  {
+    id: 'storm-relay-level',
+    name: 'Amplified Relay',
+    description: `Increase Storm Relay damage by ${STORM_RELAY_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${STORM_RELAY_LEVEL_DAMAGE_INCREASE_PERCENT}% Storm Relay damage`,
+    skillId: STORM_RELAY_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: STORM_RELAY_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[STORM_RELAY_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'storm-relay-overcharge',
+    name: 'Overcharge',
+    description: `Storm Relay strikes every ${STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS}s instead of every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS}s and applies extra Shock stacks.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS}s strike interval, +1 Shock stack`,
+    skillId: STORM_RELAY_SKILL_ID,
+    branch: 'storm-relay-overcharge',
+    evolutionTags: ['shock', 'overload'],
+    stormRelayOvercharge: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(STORM_RELAY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('storm-relay-overcharge') &&
+      !state.selectedUpgradeIds.includes('storm-relay-conduit'),
+  },
+  {
+    id: 'storm-relay-conduit',
+    name: 'Conduit',
+    description: `Storm Relay never expires and also zaps every enemy within ${STORM_RELAY_CONDUIT_BURST_RADIUS} units of itself on each strike.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'Permanent relay, adds a burst pulse',
+    skillId: STORM_RELAY_SKILL_ID,
+    branch: 'storm-relay-conduit',
+    evolutionTags: ['duration', 'area-of-effect'],
+    stormRelayConduit: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(STORM_RELAY_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('storm-relay-conduit') &&
+      !state.selectedUpgradeIds.includes('storm-relay-overcharge'),
+  },
+  {
+    id: 'soul-tether-unlock',
+    name: 'Soul Tether',
+    description: 'Unlock a chaos link to the nearest enemy that damages it over time and restores some of that damage as health.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: SOUL_TETHER_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(SOUL_TETHER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('soul-tether-unlock'),
+  },
+  {
+    id: 'soul-tether-level',
+    name: 'Deepened Bond',
+    description: `Increase Soul Tether damage by ${SOUL_TETHER_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${SOUL_TETHER_LEVEL_DAMAGE_INCREASE_PERCENT}% Soul Tether damage`,
+    skillId: SOUL_TETHER_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: SOUL_TETHER_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[SOUL_TETHER_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'soul-tether-siphon',
+    name: 'Vampiric Tether',
+    description: `Soul Tether restores an additional ${Math.round(SOUL_TETHER_SIPHON_HEALING_BONUS * 100)}% of its damage as health.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `+${Math.round(SOUL_TETHER_SIPHON_HEALING_BONUS * 100)}% healing ratio`,
+    skillId: SOUL_TETHER_SKILL_ID,
+    branch: 'soul-tether-siphon',
+    evolutionTags: ['leech'],
+    soulTetherSiphon: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(SOUL_TETHER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('soul-tether-siphon') &&
+      !state.selectedUpgradeIds.includes('soul-tether-requiem'),
+  },
+  {
+    id: 'soul-tether-requiem',
+    name: 'Requiem Chain',
+    description: `When the tethered enemy dies, the snap burst chains to up to ${SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT} nearby enemies instead of one.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Snap burst chains to ${SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT} enemies`,
+    skillId: SOUL_TETHER_SKILL_ID,
+    branch: 'soul-tether-requiem',
+    soulTetherRequiem: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(SOUL_TETHER_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('soul-tether-requiem') &&
+      !state.selectedUpgradeIds.includes('soul-tether-siphon'),
+  },
+  {
+    id: 'phantom-arsenal-unlock',
+    name: 'Phantom Arsenal',
+    description: 'Unlock a temporary spectral archer that fires physical bolts at nearby enemies.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: PHANTOM_ARSENAL_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('phantom-arsenal-unlock'),
+  },
+  {
+    id: 'phantom-arsenal-level',
+    name: 'Spectral Focus',
+    description: `Increase Phantom Arsenal damage by ${PHANTOM_ARSENAL_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${PHANTOM_ARSENAL_LEVEL_DAMAGE_INCREASE_PERCENT}% Phantom Arsenal damage`,
+    skillId: PHANTOM_ARSENAL_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: PHANTOM_ARSENAL_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[PHANTOM_ARSENAL_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'phantom-arsenal-volley',
+    name: 'Spectral Volley',
+    description: `Phantom Arsenal keeps ${PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS} additional archer active, each dealing ${PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT}% less damage.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `+${PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS} active archer, -${PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT}% damage each`,
+    skillId: PHANTOM_ARSENAL_SKILL_ID,
+    branch: 'phantom-arsenal-volley',
+    phantomArsenalVolley: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('phantom-arsenal-volley') &&
+      !state.selectedUpgradeIds.includes('phantom-arsenal-marksman'),
+  },
+  {
+    id: 'phantom-arsenal-marksman',
+    name: "Marksman's Focus",
+    description: `The single Phantom Arsenal archer gains ${PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT}% more range and ${PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT}% more damage.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `+${PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT}% range, +${PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT}% damage`,
+    skillId: PHANTOM_ARSENAL_SKILL_ID,
+    branch: 'phantom-arsenal-marksman',
+    phantomArsenalMarksman: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('phantom-arsenal-marksman') &&
+      !state.selectedUpgradeIds.includes('phantom-arsenal-volley'),
   },
   ...SYNERGY_UPGRADES,
 ]

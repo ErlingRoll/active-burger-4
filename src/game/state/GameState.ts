@@ -240,6 +240,19 @@ export interface PlayerState {
   aegisPulseShieldRemaining?: number
   /** Total duration for the current Aegis Pulse shield. */
   aegisPulseShieldDuration?: number
+  /** Entity ID of the enemy currently linked by Soul Tether. */
+  soulTetherTargetId?: EntityId
+  /** Seconds remaining before the active Soul Tether link expires. */
+  soulTetherRemaining?: number
+  /** Chaos damage per second currently dealt through the Soul Tether link. */
+  soulTetherDamagePerSecond?: number
+  /** Fraction of Soul Tether damage restored to the player as health. */
+  soulTetherHealingRatio?: number
+  /** True once the current Soul Tether has used its single weaker retarget. */
+  soulTetherHasRetargeted?: boolean
+  /** Repeatable Phantom Arsenal upgrade count. */
+  phantomMaxCountBonus?: number
+  phantomMaxHpBonus?: number
   /** Multiplicative per-enemy gear drop chance from future progression. */
   gearDropChanceMultiplier?: number
   /** Minimum rarity for future gear drops, raised by one-time gear blessings. */
@@ -310,6 +323,7 @@ export interface EnemyState {
   controlResistance?: number
   shockStacks?: number
   shockRemainingDuration?: number
+  burningStacks?: BurningStackState[]
   critChance?: number
   critMultiplier?: number
 
@@ -345,6 +359,8 @@ export interface DamageEvent {
   frostApplication?: FrostApplication
   /** Applies Shock stacks and optionally detonates them at a threshold. */
   shockApplication?: ShockApplication
+  /** Creates one independent Burning stack after this hit is resolved. */
+  burningApplication?: BurningApplication
 }
 
 export interface ProjectileState {
@@ -364,9 +380,23 @@ export interface ProjectileState {
   impactEffectRadius?: number
   /** Optional status application to attach to each impact damage event. */
   impactFrostApplication?: FrostApplication
+  /** Optional poison application to attach to each impact damage event. */
+  impactPoisonApplication?: PoisonApplication
   remainingChains?: number
   chainRange?: number
   lastHitTargetId?: EntityId
+  /** Marks a projectile that does not despawn on hit and keeps traveling. */
+  piercing?: boolean
+  /** Enemy IDs already struck during the current outbound or inbound pass. */
+  pierceHitTargetIds?: EntityId[]
+  /** One-way travel distance before a piercing projectile reverses course. */
+  pierceReturnRange?: number
+  /** Distance traveled during the current outbound or inbound leg. */
+  pierceTraveledDistance?: number
+  /** True once a piercing projectile has reversed and is traveling back along its path. */
+  returning?: boolean
+  /** Multiplies damage dealt while this projectile is on its return leg. */
+  returnDamageMultiplier?: number
 
   x: number
   y: number
@@ -434,6 +464,8 @@ export interface FloorTransitionState {
 export interface SummonState {
   id: EntityId
   ownerId: EntityId
+  /** Optional for backwards-compatible summon fixtures; defaults to Raise Skeleton. */
+  skillId?: SkillId
   x: number
   y: number
   /** Persistent deterministic movement state for the summon swarm. */
@@ -453,6 +485,8 @@ export interface SummonState {
   maxHp: number
   contactCooldownRemaining: number
   attackCooldownRemaining: number
+  /** Seconds remaining before a temporary summon automatically expires. */
+  expiryRemaining?: number
 }
 
 export interface PoisonStackState {
@@ -479,6 +513,59 @@ export interface ShockApplication {
   durationSeconds: number
   threshold?: number
   burstMultiplier?: number
+}
+
+export interface BurningStackState {
+  remainingDuration: number
+  damagePerSecond: number
+  /** Skill that applied the Burning stack, when it came from player-owned damage. */
+  sourceSkillId?: SkillId
+}
+
+export interface BurningApplication {
+  durationSeconds: number
+  /** Fraction of the applying hit's pre-mitigation fire damage dealt per second. */
+  fireDamageRatio: number
+}
+
+/** A delayed-fuse trap placed by a player skill (e.g. Cinder Mine). */
+export interface TrapState {
+  id: EntityId
+  ownerId: EntityId
+  skillId: SkillId
+  x: number
+  y: number
+  radius: number
+  fuseRemaining: number
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
+  burningApplication?: BurningApplication
+}
+
+/** A persistent, periodically striking structure placed by a player skill (e.g. Storm Relay). */
+export interface RelayState {
+  id: EntityId
+  ownerId: EntityId
+  skillId: SkillId
+  x: number
+  y: number
+  /** True when the relay ignores remainingDuration and persists until removed. */
+  permanent?: boolean
+  remainingDuration: number
+  strikeIntervalSeconds: number
+  strikeCooldownRemaining: number
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
+  maxRange: number
+  jumpRange: number
+  maxTargets: number
+  shockStacks: number
+  shockDurationSeconds: number
+  shockThreshold: number
+  shockBurstMultiplier: number
+  /** Optional radius for an additional burst around the relay on each strike. */
+  burstRadius?: number
+  burstDamageRatio?: number
 }
 
 export interface SkillEffectState {
@@ -513,6 +600,10 @@ export interface GameState {
   pickups: PickupState[]
   summons: SummonState[]
   effects: SkillEffectState[]
+  /** Delayed-fuse traps placed by player skills (e.g. Cinder Mine). */
+  traps?: TrapState[]
+  /** Persistent, periodically striking structures (e.g. Storm Relay). */
+  relays?: RelayState[]
 
   time: number
   tick: number

@@ -8,43 +8,70 @@ import type {
 import {
   getSkillDefinition,
   RAISE_SKELETON_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
+  type SkillId,
 } from '../../../content/skills/Skills'
 import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrades'
-import { createPlayerDamageEventFromStats } from '../../combat/DamageSources'
+import {
+  createPlayerDamageEventFromStats,
+  createPlayerDamageProfileFromStats,
+} from '../../combat/DamageSources'
+import {
+  getProjectileDefinition,
+  PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
+  type ProjectileDefinitionId,
+} from '../../../content/projectiles/Projectiles'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import {
   clampPlayerPosition,
   getPlayerArenaBounds,
 } from '../../../game-config/arena'
+import {
+  PHANTOM_ARSENAL_DURATION_SECONDS,
+  PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT,
+  PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
+  PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS,
+  PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
+} from '../../../game-config/skills'
 
 const SUMMON_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 const SUMMON_AGGRO_RANGE = 560
 const SUMMON_MOVEMENT_SPEED = 180
 const SUMMON_RADIUS = 16
 
-function getRaiseSkeletonSkill(
+function getSummonSkillId(summon: Readonly<SummonState>): SkillId {
+  return summon.skillId ?? RAISE_SKELETON_SKILL_ID
+}
+
+function getSummonSkill(
   state: Readonly<GameState>,
+  skillId: SkillId,
 ): SkillState | undefined {
-  return state.player.skills.find(
-    (skill) => skill.skillId === RAISE_SKELETON_SKILL_ID,
-  )
+  return state.player.skills.find((skill) => skill.skillId === skillId)
 }
 
-function getMaximumSkeletons(
+function getSummonCountBonus(
   state: Readonly<GameState>,
-  skill: Readonly<SkillState>,
+  skillId: SkillId,
 ): number {
-  const definition = getSkillDefinition(skill.skillId)
-  return Math.max(
-    1,
-    Math.floor(
-      (definition.summonBaseMaxCount ?? 1) +
-        Math.max(0, state.player.skeletonMaxCountBonus ?? 0),
-    ),
-  )
+  if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
+    const volley = state.run.selectedUpgradeIds.includes('phantom-arsenal-volley')
+    return (state.player.phantomMaxCountBonus ?? 0) +
+      (volley ? PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS : 0)
+  }
+  return state.player.skeletonMaxCountBonus ?? 0
 }
 
-function getSkeletonDamage(
+function getSummonMaxHpBonus(
+  state: Readonly<GameState>,
+  skillId: SkillId,
+): number {
+  return skillId === PHANTOM_ARSENAL_SKILL_ID
+    ? state.player.phantomMaxHpBonus ?? 0
+    : state.player.skeletonMaxHpBonus ?? 0
+}
+
+function getSummonDamage(
   state: Readonly<GameState>,
   skill: Readonly<SkillState>,
 ): number {
@@ -54,7 +81,16 @@ function getSkeletonDamage(
     skill.level,
     state.run.selectedUpgradeIds,
   )
-  return (definition.summonBaseDamage ?? 0) * (1 + levelIncrease / 100)
+  let damage = (definition.summonBaseDamage ?? 0) * (1 + levelIncrease / 100)
+  if (skill.skillId === PHANTOM_ARSENAL_SKILL_ID) {
+    if (state.run.selectedUpgradeIds.includes('phantom-arsenal-marksman')) {
+      damage *= 1 + PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT / 100
+    }
+    if (state.run.selectedUpgradeIds.includes('phantom-arsenal-volley')) {
+      damage *= 1 - PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT / 100
+    }
+  }
+  return damage
 }
 
 function fractionalPart(value: number): number {
@@ -171,64 +207,107 @@ function clampSummonPosition(summon: SummonState): void {
   summon.y = position.y
 }
 
-export function getSkeletonStats(
-  state: Readonly<GameState>,
-): {
+export interface SummonStats {
   damage: number
   maxHp: number
   attackCooldown: number
   attackRange: number
   maximum: number
-} | undefined {
-  const skill = getRaiseSkeletonSkill(state)
+  ranged: boolean
+  projectileDefinitionId?: ProjectileDefinitionId
+  expiryDuration?: number
+}
+
+export function getSummonStats(
+  state: Readonly<GameState>,
+  skillId: SkillId,
+): SummonStats | undefined {
+  const skill = getSummonSkill(state, skillId)
   if (!skill) {
     return undefined
   }
-  const definition = getSkillDefinition(skill.skillId)
+  const definition = getSkillDefinition(skillId)
   const rallyingStandardCooldownReduction =
     (state.player.rallyingStandardRemaining ?? 0) > 0
       ? state.player.rallyingStandardCooldownReductionPercent ?? 0
       : 0
+  const isPhantom = skillId === PHANTOM_ARSENAL_SKILL_ID
+  const marksman = isPhantom &&
+    state.run.selectedUpgradeIds.includes('phantom-arsenal-marksman')
+  const attackRange = (definition.summonAttackRange ?? 70) *
+    (marksman ? 1 + PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT / 100 : 1)
   return {
-    damage: getSkeletonDamage(state, skill),
+    damage: getSummonDamage(state, skill),
     maxHp: (definition.summonBaseMaxHp ?? 10) +
       (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1) +
-      (state.player.skeletonMaxHpBonus ?? 0),
+      getSummonMaxHpBonus(state, skillId),
     attackCooldown: Math.max(
       0.1,
       (definition.summonAttackCooldown ?? 1) *
         (1 - Math.max(0, rallyingStandardCooldownReduction) / 100),
     ),
-    attackRange: definition.summonAttackRange ?? 70,
-    maximum: getMaximumSkeletons(state, skill),
+    attackRange,
+    maximum: Math.max(
+      1,
+      Math.floor(
+        (definition.summonBaseMaxCount ?? 1) +
+          Math.max(0, getSummonCountBonus(state, skillId)),
+      ),
+    ),
+    ranged: isPhantom,
+    ...(isPhantom
+      ? {
+          projectileDefinitionId: PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
+          expiryDuration: PHANTOM_ARSENAL_DURATION_SECONDS,
+        }
+      : {}),
   }
 }
 
-export function summonSkeletonIfReady(
+export function getSkeletonStats(
+  state: Readonly<GameState>,
+): SummonStats | undefined {
+  return getSummonStats(state, RAISE_SKELETON_SKILL_ID)
+}
+
+export function getPhantomArsenalStats(
+  state: Readonly<GameState>,
+): SummonStats | undefined {
+  return getSummonStats(state, PHANTOM_ARSENAL_SKILL_ID)
+}
+
+function summonIfReady(
   state: GameState,
   allocator: EntityIdAllocator,
+  skillId: SkillId,
 ): boolean {
-  const skill = getRaiseSkeletonSkill(state)
+  const skill = getSummonSkill(state, skillId)
   if (!skill || skill.cooldownRemaining > 0) {
     return false
   }
-  const stats = getSkeletonStats(state)
-  const livingSummonCount = state.summons.filter((summon) => summon.hp > 0).length
+  const stats = getSummonStats(state, skillId)
+  const livingSummonCount = state.summons.filter(
+    (summon) => summon.hp > 0 && getSummonSkillId(summon) === skillId,
+  ).length
   if (!stats || livingSummonCount >= stats.maximum) {
     return false
   }
   const playerStats = getDerivedPlayerStats(state.player)
-  const definition = getSkillDefinition(skill.skillId)
+  const definition = getSkillDefinition(skillId)
   const index = livingSummonCount
   state.summons.push({
     id: allocator.createEntityId(),
     ownerId: state.player.id,
+    skillId,
     x: state.player.x - 28 + index * 24,
     y: state.player.y + 20,
     hp: stats.maxHp,
     maxHp: stats.maxHp,
     contactCooldownRemaining: 0,
     attackCooldownRemaining: 0,
+    ...(stats.expiryDuration !== undefined
+      ? { expiryRemaining: stats.expiryDuration }
+      : {}),
   })
   skill.cooldownRemaining = Math.max(
     0.1,
@@ -238,18 +317,34 @@ export function summonSkeletonIfReady(
   return true
 }
 
+export function summonSkeletonIfReady(
+  state: GameState,
+  allocator: EntityIdAllocator,
+): boolean {
+  return summonIfReady(state, allocator, RAISE_SKELETON_SKILL_ID)
+}
+
+export function summonPhantomIfReady(
+  state: GameState,
+  allocator: EntityIdAllocator,
+): boolean {
+  return summonIfReady(state, allocator, PHANTOM_ARSENAL_SKILL_ID)
+}
+
 export function updateSummons(
   state: GameState,
   fixedStepSeconds: number,
   allocator: EntityIdAllocator,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
-  const stats = getSkeletonStats(state)
-  if (!stats) {
-    state.summons = []
-    return events
-  }
   const playerStats = getDerivedPlayerStats(state.player)
+  const statsCache = new Map<SkillId, SummonStats | undefined>()
+  const getCachedStats = (skillId: SkillId): SummonStats | undefined => {
+    if (!statsCache.has(skillId)) {
+      statsCache.set(skillId, getSummonStats(state, skillId))
+    }
+    return statsCache.get(skillId)
+  }
   const targets = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
     .filter((enemy) => isInsidePlayArea(enemy))
@@ -257,6 +352,19 @@ export function updateSummons(
 
   state.summons.forEach((summon, index) => {
     if (summon.hp <= 0) {
+      return
+    }
+    if (summon.expiryRemaining !== undefined) {
+      summon.expiryRemaining -= fixedStepSeconds
+      if (summon.expiryRemaining <= 0) {
+        summon.hp = 0
+        return
+      }
+    }
+    const skillId = getSummonSkillId(summon)
+    const stats = getCachedStats(skillId)
+    if (!stats) {
+      summon.hp = 0
       return
     }
     clampSummonPosition(summon)
@@ -324,12 +432,44 @@ export function updateSummons(
       return
     }
     summon.attackCooldownRemaining = stats.attackCooldown
-    const attackEffectLifetime = getSkillDefinition(
-      RAISE_SKELETON_SKILL_ID,
-    ).effectLifetime
+    const skillDefinition = getSkillDefinition(skillId)
+
+    if (stats.ranged && stats.projectileDefinitionId) {
+      const projectileDefinition = getProjectileDefinition(stats.projectileDefinitionId)
+      const outgoingDamage = createPlayerDamageProfileFromStats(
+        playerStats,
+        { physical: stats.damage },
+        {
+          isProjectile: true,
+          sourceTags: skillDefinition.tags,
+        },
+      )
+      const directionX = attackTarget.x - summon.x
+      const directionY = attackTarget.y - summon.y
+      const distance = Math.hypot(directionX, directionY) || 1
+      state.projectiles.push({
+        id: allocator.createEntityId(),
+        ownerId: summon.id,
+        definitionId: projectileDefinition.id,
+        skillId,
+        targetId: attackTarget.id,
+        sourceTags: skillDefinition.tags,
+        x: summon.x,
+        y: summon.y,
+        velocityX: (directionX / distance) * projectileDefinition.speed,
+        velocityY: (directionY / distance) * projectileDefinition.speed,
+        radius: projectileDefinition.radius,
+        damage: outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+        remainingLifetime: projectileDefinition.lifetime,
+      })
+      return
+    }
+
+    const attackEffectLifetime = skillDefinition.effectLifetime
     state.effects.push({
       id: allocator.createEntityId(),
-      skillId: RAISE_SKELETON_SKILL_ID,
+      skillId,
       shape: 'line',
       x: summon.x,
       y: summon.y,
@@ -345,9 +485,9 @@ export function updateSummons(
       playerStats,
       summon.id,
       attackTarget.id,
-      RAISE_SKELETON_SKILL_ID,
+      skillId,
       { physical: stats.damage },
-      { sourceTags: getSkillDefinition(RAISE_SKELETON_SKILL_ID).tags },
+      { sourceTags: skillDefinition.tags },
     ))
   })
   return events

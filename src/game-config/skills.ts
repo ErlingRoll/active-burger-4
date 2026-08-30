@@ -3,6 +3,7 @@ import {
   BASIC_ATTACK_ARROW_DEFINITION_ID,
   BASIC_ATTACK_ORB_DEFINITION_ID,
   GLACIAL_ORB_PROJECTILE_DEFINITION_ID,
+  RIFT_JAVELIN_PROJECTILE_DEFINITION_ID,
 } from '../content/projectiles/Projectiles'
 import type {
   BasicAttackVariantDefinition,
@@ -21,6 +22,11 @@ export const LANCERS_CHARGE_SKILL_ID: SkillId = 'lancers-charge'
 export const RALLYING_STANDARD_SKILL_ID: SkillId = 'rallying-standard'
 export const GRAVITY_WELL_SKILL_ID: SkillId = 'gravity-well'
 export const AEGIS_PULSE_SKILL_ID: SkillId = 'aegis-pulse'
+export const RIFT_JAVELIN_SKILL_ID: SkillId = 'rift-javelin'
+export const CINDER_MINE_SKILL_ID: SkillId = 'cinder-mine'
+export const STORM_RELAY_SKILL_ID: SkillId = 'storm-relay'
+export const SOUL_TETHER_SKILL_ID: SkillId = 'soul-tether'
+export const PHANTOM_ARSENAL_SKILL_ID: SkillId = 'phantom-arsenal'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const SKILL_REMOVAL_CHANCE = 0.05
 export const FROST_MAX_CHILL_STACKS = 3
@@ -55,6 +61,39 @@ export const AEGIS_PULSE_SHIELD_AMOUNT_PER_LEVEL = 6
 export const AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS = 12
 export const AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS = 2
 export const AEGIS_PULSE_REPRISAL_RATIO = 0.5
+
+export const RIFT_JAVELIN_MAX_RANGE = 260
+export const RIFT_JAVELIN_BARBED_DURATION_SECONDS = 3
+export const RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO = 0.35
+export const RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT = 40
+
+export const CINDER_MINE_FUSE_SECONDS = 1.1
+export const CINDER_MINE_BURNING_DURATION_SECONDS = 3
+export const CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO = 0.4
+export const CINDER_MINE_INFERNO_RADIUS_BONUS = 30
+export const CINDER_MINE_INFERNO_BURNING_RATIO_BONUS = 0.2
+export const CINDER_MINE_CLUSTER_OFFSET = 46
+export const CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER = 0.65
+
+export const STORM_RELAY_BASE_DURATION_SECONDS = 9
+export const STORM_RELAY_STRIKE_INTERVAL_SECONDS = 1.4
+export const STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS = 0.85
+export const STORM_RELAY_OVERCHARGE_SHOCK_STACKS = 2
+export const STORM_RELAY_CONDUIT_BURST_RADIUS = 90
+export const STORM_RELAY_CONDUIT_BURST_DAMAGE_RATIO = 0.6
+
+export const SOUL_TETHER_DURATION_SECONDS = 7
+export const SOUL_TETHER_BASE_HEALING_RATIO = 0.3
+export const SOUL_TETHER_SIPHON_HEALING_BONUS = 0.35
+export const SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER = 0.5
+export const SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT = 3.5
+export const SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT = 3
+
+export const PHANTOM_ARSENAL_DURATION_SECONDS = 12
+export const PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS = 1
+export const PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT = 20
+export const PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT = 50
+export const PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT = 30
 
 export const BASIC_ATTACK_VARIANTS = {
   sword: {
@@ -369,6 +408,114 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#0ea5e9',
       secondaryColor: '#bae6fd',
       outlineColor: '#e0f2fe',
+    },
+  },
+  [RIFT_JAVELIN_SKILL_ID]: {
+    id: RIFT_JAVELIN_SKILL_ID,
+    name: 'Rift Javelin',
+    description: 'Hurls a long-range javelin that pierces every enemy in its path, then returns along the same path, hitting each enemy once outbound and once inbound.',
+    kind: 'projectile',
+    tags: ['physical', 'projectile'],
+    cooldown: 3.4,
+    baseDamage: { physical: 16 },
+    damagePerLevel: {},
+    projectileDefinitionId: RIFT_JAVELIN_PROJECTILE_DEFINITION_ID,
+    maxRange: RIFT_JAVELIN_MAX_RANGE,
+    effectLifetime: 0.2,
+    visual: {
+      kind: 'projectile',
+      icon: '⟰',
+      primaryColor: '#8b5cf6',
+      secondaryColor: '#a78bfa',
+      outlineColor: '#ddd6fe',
+      trailLength: 32,
+      trailWidth: 4,
+      projectileShape: 'arrow',
+    },
+  },
+  [CINDER_MINE_SKILL_ID]: {
+    id: CINDER_MINE_SKILL_ID,
+    name: 'Cinder Mine',
+    description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then explodes and leaves every enemy caught in the blast Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds.`,
+    kind: 'area',
+    tags: ['fire', 'area', 'dot'],
+    cooldown: 3.8,
+    baseDamage: { fire: 15 },
+    damagePerLevel: {},
+    radius: 65,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'area',
+      icon: '⏱',
+      primaryColor: '#ea580c',
+      secondaryColor: '#fdba74',
+      outlineColor: '#ffedd5',
+    },
+  },
+  [STORM_RELAY_SKILL_ID]: {
+    id: STORM_RELAY_SKILL_ID,
+    name: 'Storm Relay',
+    description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds.`,
+    kind: 'chain',
+    tags: ['lightning', 'area', 'duration'],
+    cooldown: 9,
+    baseDamage: { lightning: 9 },
+    damagePerLevel: {},
+    maxRange: 240,
+    jumpRange: 150,
+    maxTargets: 3,
+    effectLifetime: 0.18,
+    visual: {
+      kind: 'chain',
+      icon: '🗼',
+      primaryColor: '#38bdf8',
+      secondaryColor: '#fef08a',
+      outlineColor: '#e0f2fe',
+      nodeRadius: 9,
+    },
+  },
+  [SOUL_TETHER_SKILL_ID]: {
+    id: SOUL_TETHER_SKILL_ID,
+    name: 'Soul Tether',
+    description: `Latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, dealing chaos damage over time and restoring a portion of that damage as health. If the tethered enemy dies, the tether snaps to one weaker nearby enemy.`,
+    kind: 'utility',
+    tags: ['chaos', 'dot', 'trigger'],
+    cooldown: 6.5,
+    baseDamage: { chaos: 5 },
+    damagePerLevel: {},
+    maxRange: 320,
+    effectLifetime: 0.15,
+    visual: {
+      kind: 'utility',
+      icon: '🔗',
+      primaryColor: '#a855f7',
+      secondaryColor: '#f0abfc',
+      outlineColor: '#fae8ff',
+    },
+  },
+  [PHANTOM_ARSENAL_SKILL_ID]: {
+    id: PHANTOM_ARSENAL_SKILL_ID,
+    name: 'Phantom Arsenal',
+    description: `Summons a temporary spectral archer that fires physical bolts at nearby enemies for ${PHANTOM_ARSENAL_DURATION_SECONDS} seconds before fading.`,
+    kind: 'utility',
+    tags: ['physical', 'projectile', 'summon'],
+    cooldown: 6,
+    baseDamage: {},
+    damagePerLevel: {},
+    summonBaseDamage: 5,
+    summonDamageIncreasePercentPerLevel: 8,
+    summonBaseMaxHp: 8,
+    summonMaxHpPerLevel: 3,
+    summonAttackCooldown: 1.3,
+    summonAttackRange: 190,
+    summonBaseMaxCount: 1,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '👻',
+      primaryColor: '#60a5fa',
+      secondaryColor: '#bfdbfe',
+      outlineColor: '#eff6ff',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

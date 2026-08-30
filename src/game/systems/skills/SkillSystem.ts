@@ -15,6 +15,11 @@ import {
   RALLYING_STANDARD_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
 } from '../../../content/skills/Skills'
 import {
   getSkillCooldownReductionPercent,
@@ -51,11 +56,36 @@ import {
   AEGIS_PULSE_BASE_DURATION_SECONDS,
   AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
+  RIFT_JAVELIN_MAX_RANGE,
+  RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+  RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
+  RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT,
+  CINDER_MINE_FUSE_SECONDS,
+  CINDER_MINE_BURNING_DURATION_SECONDS,
+  CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO,
+  CINDER_MINE_INFERNO_RADIUS_BONUS,
+  CINDER_MINE_INFERNO_BURNING_RATIO_BONUS,
+  CINDER_MINE_CLUSTER_OFFSET,
+  CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER,
+  STORM_RELAY_BASE_DURATION_SECONDS,
+  STORM_RELAY_STRIKE_INTERVAL_SECONDS,
+  STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
+  STORM_RELAY_OVERCHARGE_SHOCK_STACKS,
+  STORM_RELAY_CONDUIT_BURST_RADIUS,
+  STORM_RELAY_CONDUIT_BURST_DAMAGE_RATIO,
+  SOUL_TETHER_DURATION_SECONDS,
+  SOUL_TETHER_BASE_HEALING_RATIO,
+  SOUL_TETHER_SIPHON_HEALING_BONUS,
 } from '../../../game-config/skills'
+import {
+  createDamageValues,
+  scaleDamageValues,
+} from '../../../content/stats/Damage'
 import type { EntityIdAllocator } from '../../ids'
 import type { RandomSource } from '../../random/Random'
 import {
   createPlayerDamageEventFromStats,
+  createPlayerDamageProfileFromStats,
 } from '../../combat/DamageSources'
 import type {
   SkillState,
@@ -67,13 +97,18 @@ import type {
   SkillEffectState,
   ProjectileState,
   FrostApplication,
+  TrapState,
+  RelayState,
 } from '../../state/GameState'
 import {
   healPlayer,
   healSummon,
 } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
-import { summonSkeletonIfReady } from '../summons/SummonSystem'
+import {
+  summonSkeletonIfReady,
+  summonPhantomIfReady,
+} from '../summons/SummonSystem'
 import { clampPlayerPosition } from '../../../game-config/arena'
 
 function scaleAreaValue(value: number, areaOfEffect: number): number {
@@ -870,6 +905,501 @@ function collectAegisPulseDamage(
   return events
 }
 
+function collectRiftJavelinDamage(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(RIFT_JAVELIN_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const barbed = state.run.selectedUpgradeIds.includes('rift-javelin-barbed')
+  const homeward = state.run.selectedUpgradeIds.includes('rift-javelin-homeward')
+  const maxRange = definition.maxRange ?? RIFT_JAVELIN_MAX_RANGE
+  const target = findNearestLivingTarget(state, maxRange)
+  if (!target) {
+    return []
+  }
+
+  const damage = getSkillDamage(definition, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    damage,
+    {
+      isProjectile: true,
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+    },
+  )
+  const projectileDefinitionId = definition.projectileDefinitionId
+  if (!projectileDefinitionId) {
+    throw new Error('Rift Javelin must define a projectile.')
+  }
+  const projectileDefinition = getProjectileDefinition(projectileDefinitionId)
+  const directionX = target.x - state.player.x
+  const directionY = target.y - state.player.y
+  const distance = Math.hypot(directionX, directionY) || 1
+
+  state.projectiles.push({
+    id: allocator.createEntityId(),
+    ownerId: state.player.id,
+    definitionId: projectileDefinition.id,
+    skillId: skill.skillId,
+    targetId: target.id,
+    sourceTags: definition.tags,
+    piercing: true,
+    pierceHitTargetIds: [],
+    pierceReturnRange: maxRange,
+    ...(homeward
+      ? { returnDamageMultiplier: 1 + RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT / 100 }
+      : {}),
+    ...(barbed
+      ? {
+          impactPoisonApplication: {
+            durationSeconds: RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+            physicalChaosRatio: RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
+          },
+        }
+      : {}),
+    x: state.player.x,
+    y: state.player.y,
+    velocityX: (directionX / distance) * projectileDefinition.speed,
+    velocityY: (directionY / distance) * projectileDefinition.speed,
+    radius: projectileDefinition.radius,
+    damage: outgoingDamage.damage,
+    criticalStrike: outgoingDamage.criticalStrike,
+    remainingLifetime: projectileDefinition.lifetime,
+  })
+
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
+function placeCinderMineIfReady(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): boolean {
+  const definition = getSkillDefinition(CINDER_MINE_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const inferno = state.run.selectedUpgradeIds.includes('cinder-mine-inferno')
+  const cluster = state.run.selectedUpgradeIds.includes('cinder-mine-cluster')
+  const damage = getSkillDamage(definition, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    damage,
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+    },
+  )
+  const radius = scaleAreaValue(
+    (definition.radius ?? 0) + (inferno ? CINDER_MINE_INFERNO_RADIUS_BONUS : 0),
+    playerStats.areaOfEffect,
+  )
+  const burningApplication = {
+    durationSeconds: CINDER_MINE_BURNING_DURATION_SECONDS,
+    fireDamageRatio: CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO +
+      (inferno ? CINDER_MINE_INFERNO_BURNING_RATIO_BONUS : 0),
+  }
+  const mineDamage = cluster
+    ? scaleDamageValues(outgoingDamage.damage, CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER)
+    : outgoingDamage.damage
+
+  state.traps ??= []
+  state.traps.push({
+    id: allocator.createEntityId(),
+    ownerId: state.player.id,
+    skillId: skill.skillId,
+    x: state.player.x,
+    y: state.player.y,
+    radius,
+    fuseRemaining: CINDER_MINE_FUSE_SECONDS,
+    damage: mineDamage,
+    criticalStrike: outgoingDamage.criticalStrike,
+    burningApplication,
+  })
+  if (cluster) {
+    state.traps.push({
+      id: allocator.createEntityId(),
+      ownerId: state.player.id,
+      skillId: skill.skillId,
+      x: state.player.x + CINDER_MINE_CLUSTER_OFFSET,
+      y: state.player.y,
+      radius,
+      fuseRemaining: CINDER_MINE_FUSE_SECONDS,
+      damage: mineDamage,
+      criticalStrike: outgoingDamage.criticalStrike,
+      burningApplication,
+    })
+  }
+
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    radius,
+    CINDER_MINE_FUSE_SECONDS,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return true
+}
+
+/** Resolves armed Cinder Mine traps, detonating any whose fuse has elapsed. */
+export function updateCinderMineTraps(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const remaining: TrapState[] = []
+  for (const trap of [...(state.traps ?? [])].sort((left, right) => left.id - right.id)) {
+    trap.fuseRemaining -= fixedStepSeconds
+    const affected = [...state.enemies, ...(state.bosses ?? [])]
+      .filter((enemy) => enemy.hp > 0)
+      .filter((enemy) => Math.hypot(enemy.x - trap.x, enemy.y - trap.y) <= trap.radius + enemy.radius)
+      .sort((left, right) => left.id - right.id)
+    if (trap.fuseRemaining > 0 && affected.length === 0) {
+      remaining.push(trap)
+      continue
+    }
+    for (const enemy of affected) {
+      events.push({
+        sourceId: trap.ownerId,
+        sourceSkillId: trap.skillId,
+        sourceTags: getSkillDefinition(trap.skillId).tags,
+        targetId: enemy.id,
+        damage: trap.damage,
+        criticalStrike: trap.criticalStrike,
+        ...(trap.burningApplication ? { burningApplication: trap.burningApplication } : {}),
+      })
+    }
+    if (affected.length > 0) {
+      const definition = getSkillDefinition(trap.skillId)
+      addEffect(
+        state,
+        allocator,
+        trap.skillId,
+        [{ x: trap.x, y: trap.y }],
+        trap.radius,
+        definition.effectLifetime,
+      )
+    }
+  }
+  state.traps = remaining
+  return events
+}
+
+function collectStormRelayChainDamage(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  relay: RelayState,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const visited = new Set<number>()
+  let originX = relay.x
+  let originY = relay.y
+  const path: SkillEffectPoint[] = [{ x: originX, y: originY }]
+
+  for (let jump = 0; jump < relay.maxTargets; jump += 1) {
+    let target: EnemyState | BossState | undefined
+    let targetDistanceSquared = Number.POSITIVE_INFINITY
+    const range = jump === 0 ? relay.maxRange : relay.jumpRange
+    const rangeSquared = range * range
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
+      if (enemy.hp <= 0 || visited.has(enemy.id)) {
+        continue
+      }
+      const offsetX = enemy.x - originX
+      const offsetY = enemy.y - originY
+      const distanceSquared = offsetX * offsetX + offsetY * offsetY
+      if (
+        distanceSquared > rangeSquared ||
+        distanceSquared > targetDistanceSquared ||
+        (distanceSquared === targetDistanceSquared &&
+          target !== undefined &&
+          enemy.id > target.id)
+      ) {
+        continue
+      }
+      target = enemy
+      targetDistanceSquared = distanceSquared
+    }
+
+    if (!target) {
+      break
+    }
+
+    visited.add(target.id)
+    events.push({
+      sourceId: relay.ownerId,
+      sourceSkillId: relay.skillId,
+      sourceTags: getSkillDefinition(relay.skillId).tags,
+      targetId: target.id,
+      damage: relay.damage,
+      criticalStrike: relay.criticalStrike,
+      shockApplication: {
+        stacks: relay.shockStacks,
+        durationSeconds: relay.shockDurationSeconds,
+        threshold: relay.shockThreshold,
+        burstMultiplier: relay.shockBurstMultiplier,
+      },
+    })
+    path.push({ x: target.x, y: target.y })
+    originX = target.x
+    originY = target.y
+  }
+
+  if (relay.burstRadius) {
+    const burstDamage = scaleDamageValues(relay.damage, relay.burstDamageRatio ?? 1)
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]
+      .filter((enemy) => enemy.hp > 0 && !visited.has(enemy.id))
+      .filter((enemy) =>
+        Math.hypot(enemy.x - relay.x, enemy.y - relay.y) <= (relay.burstRadius ?? 0) + enemy.radius,
+      )
+      .sort((left, right) => left.id - right.id)
+    ) {
+      events.push({
+        sourceId: relay.ownerId,
+        sourceSkillId: relay.skillId,
+        sourceLabel: 'Conduit Burst',
+        sourceTags: getSkillDefinition(relay.skillId).tags,
+        targetId: enemy.id,
+        damage: burstDamage,
+        shockApplication: {
+          stacks: relay.shockStacks,
+          durationSeconds: relay.shockDurationSeconds,
+          threshold: relay.shockThreshold,
+          burstMultiplier: relay.shockBurstMultiplier,
+        },
+      })
+    }
+  }
+
+  if (events.length > 0) {
+    addEffect(
+      state,
+      allocator,
+      relay.skillId,
+      path,
+      16,
+      getSkillDefinition(relay.skillId).effectLifetime,
+    )
+  }
+  return events
+}
+
+function collectStormRelayCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(STORM_RELAY_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const overcharge = state.run.selectedUpgradeIds.includes('storm-relay-overcharge')
+  const conduit = state.run.selectedUpgradeIds.includes('storm-relay-conduit')
+  const damage = getSkillDamage(definition, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    damage,
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+    },
+  )
+
+  state.relays = (state.relays ?? []).filter((relay) => relay.skillId !== skill.skillId)
+  const relay: RelayState = {
+    id: allocator.createEntityId(),
+    ownerId: state.player.id,
+    skillId: skill.skillId,
+    x: state.player.x,
+    y: state.player.y,
+    permanent: conduit,
+    remainingDuration: STORM_RELAY_BASE_DURATION_SECONDS,
+    strikeIntervalSeconds: overcharge
+      ? STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS
+      : STORM_RELAY_STRIKE_INTERVAL_SECONDS,
+    strikeCooldownRemaining: overcharge
+      ? STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS
+      : STORM_RELAY_STRIKE_INTERVAL_SECONDS,
+    damage: outgoingDamage.damage,
+    criticalStrike: outgoingDamage.criticalStrike,
+    maxRange: definition.maxRange ?? 0,
+    jumpRange: definition.jumpRange ?? 0,
+    maxTargets: definition.maxTargets ?? 1,
+    shockStacks: overcharge ? STORM_RELAY_OVERCHARGE_SHOCK_STACKS : 1,
+    shockDurationSeconds: 4,
+    shockThreshold: 3,
+    shockBurstMultiplier: 1.5,
+    ...(conduit
+      ? {
+          burstRadius: STORM_RELAY_CONDUIT_BURST_RADIUS,
+          burstDamageRatio: STORM_RELAY_CONDUIT_BURST_DAMAGE_RATIO,
+        }
+      : {}),
+  }
+  state.relays.push(relay)
+
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    24,
+    definition.effectLifetime,
+  )
+  const events = collectStormRelayChainDamage(state, allocator, relay)
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return events
+}
+
+/** Ticks placed Storm Relays: strikes on their interval and expires when their duration ends. */
+export function updateStormRelay(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const remaining: RelayState[] = []
+  for (const relay of [...(state.relays ?? [])].sort((left, right) => left.id - right.id)) {
+    if (!relay.permanent) {
+      relay.remainingDuration -= fixedStepSeconds
+      if (relay.remainingDuration <= 0) {
+        continue
+      }
+    }
+    relay.strikeCooldownRemaining -= fixedStepSeconds
+    if (relay.strikeCooldownRemaining <= 0) {
+      events.push(...collectStormRelayChainDamage(state, allocator, relay))
+      relay.strikeCooldownRemaining = relay.strikeIntervalSeconds
+    }
+    remaining.push(relay)
+  }
+  state.relays = remaining
+  return events
+}
+
+function collectSoulTetherCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(SOUL_TETHER_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const siphon = state.run.selectedUpgradeIds.includes('soul-tether-siphon')
+  const target = findNearestLivingTarget(state, definition.maxRange ?? Number.POSITIVE_INFINITY)
+  if (!target) {
+    return []
+  }
+
+  const damage = getSkillDamage(definition, skill.level)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    damage,
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+    },
+  )
+
+  state.player.soulTetherTargetId = target.id
+  state.player.soulTetherRemaining = SOUL_TETHER_DURATION_SECONDS
+  state.player.soulTetherDamagePerSecond = outgoingDamage.damage.chaos
+  state.player.soulTetherHealingRatio = SOUL_TETHER_BASE_HEALING_RATIO +
+    (siphon ? SOUL_TETHER_SIPHON_HEALING_BONUS : 0)
+  state.player.soulTetherHasRetargeted = false
+
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }, { x: target.x, y: target.y }],
+    6,
+    definition.effectLifetime,
+    'line',
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
+/** Ticks the active Soul Tether link, dealing chaos damage over time to its target. */
+export function updateSoulTether(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  if ((state.player.soulTetherRemaining ?? 0) <= 0) {
+    return events
+  }
+  state.player.soulTetherRemaining =
+    (state.player.soulTetherRemaining ?? 0) - fixedStepSeconds
+  if (state.player.soulTetherRemaining <= 0) {
+    state.player.soulTetherTargetId = undefined
+    state.player.soulTetherDamagePerSecond = 0
+    return events
+  }
+  const targetId = state.player.soulTetherTargetId
+  const target = targetId === undefined
+    ? undefined
+    : [...state.enemies, ...(state.bosses ?? [])].find(
+        (enemy) => enemy.id === targetId && enemy.hp > 0,
+      )
+  if (!target) {
+    state.player.soulTetherTargetId = undefined
+    state.player.soulTetherRemaining = 0
+    state.player.soulTetherDamagePerSecond = 0
+    return events
+  }
+  const dps = state.player.soulTetherDamagePerSecond ?? 0
+  if (dps > 0) {
+    events.push({
+      sourceId: state.player.id,
+      sourceSkillId: SOUL_TETHER_SKILL_ID,
+      sourceTags: ['chaos'],
+      targetId: target.id,
+      damage: createDamageValues({ chaos: dps * fixedStepSeconds }),
+      damageOverTime: true,
+    })
+    const definition = getSkillDefinition(SOUL_TETHER_SKILL_ID)
+    addEffect(
+      state,
+      allocator,
+      SOUL_TETHER_SKILL_ID,
+      [{ x: state.player.x, y: state.player.y }, { x: target.x, y: target.y }],
+      6,
+      definition.effectLifetime,
+      'line',
+    )
+  }
+  return events
+}
+
 /**
  * Resolves ready non-projectile skills in stable skill order. Damage is queued
  * for the same deterministic damage pass as projectiles.
@@ -907,6 +1437,27 @@ export function collectSkillDamage(
     } else if (skill.skillId === RAISE_SKELETON_SKILL_ID) {
       if (summonSkeletonIfReady(state, allocator)) {
         const definition = getSkillDefinition(RAISE_SKELETON_SKILL_ID)
+        addEffect(
+          state,
+          allocator,
+          skill.skillId,
+          [{ x: state.player.x, y: state.player.y }],
+          24,
+          definition.effectLifetime,
+        )
+        markSkillUsed(skill)
+      }
+    } else if (skill.skillId === RIFT_JAVELIN_SKILL_ID) {
+      events.push(...collectRiftJavelinDamage(state, skill, allocator))
+    } else if (skill.skillId === CINDER_MINE_SKILL_ID) {
+      placeCinderMineIfReady(state, skill, allocator)
+    } else if (skill.skillId === STORM_RELAY_SKILL_ID) {
+      events.push(...collectStormRelayCast(state, skill, allocator))
+    } else if (skill.skillId === SOUL_TETHER_SKILL_ID) {
+      events.push(...collectSoulTetherCast(state, skill, allocator))
+    } else if (skill.skillId === PHANTOM_ARSENAL_SKILL_ID) {
+      if (summonPhantomIfReady(state, allocator)) {
+        const definition = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID)
         addEffect(
           state,
           allocator,

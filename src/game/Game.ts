@@ -77,6 +77,7 @@ import {
   updateFrost,
   updateProjectiles,
   updatePoison,
+  updateBurning,
 } from './systems/combat/CombatSystem'
 import { createEnemySpatialHash } from './combat/Targeting'
 import {
@@ -101,6 +102,9 @@ import {
   collectSkillDamage,
   updateSkillCooldowns,
   updateSkillEffects,
+  updateCinderMineTraps,
+  updateStormRelay,
+  updateSoulTether,
 } from './systems/skills/SkillSystem'
 import { healPlayer } from './combat/PlayerCombatLog'
 import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
@@ -953,7 +957,11 @@ export class Game {
       ...collectProjectileDamage(this.gameState, enemySpatialHash, this.idAllocator),
       ...collectSkillDamage(this.gameState, this.idAllocator, this.random),
       ...updateSummons(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updateCinderMineTraps(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updateStormRelay(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updateSoulTether(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
+      ...updateBurning(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
     ]
     updateFrost(this.gameState, FIXED_STEP_SECONDS)

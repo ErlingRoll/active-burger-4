@@ -15,6 +15,11 @@ export type SkillId =
   | 'rallying-standard'
   | 'gravity-well'
   | 'aegis-pulse'
+  | 'rift-javelin'
+  | 'cinder-mine'
+  | 'storm-relay'
+  | 'soul-tether'
+  | 'phantom-arsenal'
 
 export type SkillTag =
   | 'physical'
@@ -115,6 +120,11 @@ export {
   RALLYING_STANDARD_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
 } from '../../game-config/skills'
 
 export function getBasicAttackVariant(

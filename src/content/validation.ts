@@ -888,6 +888,16 @@ function validateDefinitions(
           upgrade.gravityWellEventHorizon === undefined &&
           upgrade.aegisPulseBulwark === undefined &&
           upgrade.aegisPulseReprisal === undefined &&
+          upgrade.riftJavelinBarbed === undefined &&
+          upgrade.riftJavelinHomeward === undefined &&
+          upgrade.cinderMineInferno === undefined &&
+          upgrade.cinderMineCluster === undefined &&
+          upgrade.stormRelayOvercharge === undefined &&
+          upgrade.stormRelayConduit === undefined &&
+          upgrade.soulTetherSiphon === undefined &&
+          upgrade.soulTetherRequiem === undefined &&
+          upgrade.phantomArsenalVolley === undefined &&
+          upgrade.phantomArsenalMarksman === undefined &&
           upgrade.synergySkillIds === undefined &&
           upgrade.synergyEffects === undefined &&
           upgrade.modifiers === undefined))

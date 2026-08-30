@@ -1,5 +1,6 @@
 export type KeywordId =
   | 'poison'
+  | 'burning'
   | 'frost'
   | 'chill'
   | 'freeze'
@@ -33,6 +34,13 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     summary: 'Damage over time applied by a hit.',
     details:
       'Each application creates a separate stack. Its damage and duration come from the source skill or modifier. Staff Poison lasts 4 seconds and deals 50% of the applying hit\'s physical and chaos damage per second.',
+  },
+  burning: {
+    id: 'burning',
+    label: 'Burning',
+    summary: 'A fire damage-over-time stack.',
+    details:
+      'Each application creates a separate stack that deals fire damage per second based on the applying hit\'s fire damage. Cinder Mine applies Burning to every enemy caught in its explosion.',
   },
   frost: {
     id: 'frost',
@@ -181,6 +189,8 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'poison', text: 'poison' },
   { id: 'poison', text: 'poisons' },
   { id: 'poison', text: 'poisoned' },
+  { id: 'burning', text: 'burning' },
+  { id: 'burning', text: 'burns' },
   { id: 'frost', text: 'frost' },
   { id: 'chill', text: 'chill' },
   { id: 'chill', text: 'chilled' },

@@ -8,12 +8,21 @@ import {
   RALLYING_STANDARD_SKILL_ID,
   GRAVITY_WELL_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
   RALLYING_STANDARD_BASE_DURATION_SECONDS,
   RALLYING_STANDARD_EFFECT_RADIUS,
   RALLYING_STANDARD_BULWARK_DURATION_BONUS_SECONDS,
+  CINDER_MINE_FUSE_SECONDS,
+  STORM_RELAY_STRIKE_INTERVAL_SECONDS,
+  STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
+  SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
 } from '../../../game-config/skills'
 import { createGame } from '../../Game'
 import { equipItem, equipRolledItem } from '../../equipment/EquipmentState'
@@ -22,11 +31,20 @@ import {
   collectSkillDamage,
   updateSkillCooldowns,
   updateSkillEffects,
+  updateCinderMineTraps,
+  updateStormRelay,
+  updateSoulTether,
 } from './SkillSystem'
 import {
+  applyDamageEvents,
   collectProjectileDamage,
+  updateBurning,
   updateProjectiles,
 } from '../combat/CombatSystem'
+import {
+  removeDeadSummons,
+  updateSummons,
+} from '../summons/SummonSystem'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -74,14 +92,14 @@ describe('skill system', () => {
     ])
     expect(new Set(events.map((event) => event.targetId)).size).toBe(3)
     expect(events.every((event) => event.targetId !== outOfRangeId)).toBe(true)
-    expect(events.every((event) => event.damage.lightning === 7)).toBe(true)
+    expect(events.every((event) => event.damage.lightning === 8)).toBe(true)
     expect(game.state.effects[0]?.points).toEqual([
       { x: 0, y: 0 },
       { x: 100, y: 0 },
       { x: 200, y: 0 },
       { x: 220, y: 0 },
     ])
-    expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(3.5)
+    expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(3)
 
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
@@ -158,7 +176,7 @@ describe('skill system', () => {
     expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)?.damage.physical)
       .toBeCloseTo(8.64)
     expect(events.find((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)?.damage.lightning)
-      .toBeCloseTo(7.63)
+      .toBeCloseTo(8.72)
   })
 
   it('applies flat and increased player damage modifiers to every player skill', () => {
@@ -200,7 +218,7 @@ describe('skill system', () => {
     const chainEvent = events.find(
       (event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID,
     )
-    expect(chainEvent?.damage.lightning).toBeCloseTo(14.4)
+    expect(chainEvent?.damage.lightning).toBeCloseTo(15.6)
   })
 
   it('applies weapon cooldown reduction to non-projectile skills', () => {
@@ -681,6 +699,372 @@ describe('skill system', () => {
 
       expect(game.state.player.aegisPulseShieldAmount).toBe(26)
       expect(game.state.player.aegisPulseShieldRemaining).toBe(6)
+    })
+  })
+
+  describe('Rift Javelin', () => {
+    it('pierces every enemy outbound, then returns to hit each enemy again inbound', () => {
+      const game = createGame({ seed: 80 })
+      game.state.player.skills = [{
+        skillId: RIFT_JAVELIN_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const nearId = game.spawnSlime({ x: 80, y: 0 })
+      const farId = game.spawnSlime({ x: 160, y: 0 })
+
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      expect(game.state.projectiles).toHaveLength(1)
+      const projectile = game.state.projectiles[0]!
+      expect(projectile.piercing).toBe(true)
+
+      let outboundEvents: ReturnType<typeof collectProjectileDamage> = []
+      for (let tick = 0; tick < 240; tick += 1) {
+        updateProjectiles(game.state, 1 / 60)
+        outboundEvents = outboundEvents.concat(
+          collectProjectileDamage(game.state, undefined, allocator),
+        )
+        if (game.state.projectiles[0]?.returning) {
+          break
+        }
+      }
+      expect(outboundEvents.map((event) => event.targetId)).toEqual([nearId, farId])
+      expect(game.state.projectiles[0]?.returning).toBe(true)
+
+      let inboundEvents: ReturnType<typeof collectProjectileDamage> = []
+      for (let tick = 0; tick < 240 && game.state.projectiles.length > 0; tick += 1) {
+        updateProjectiles(game.state, 1 / 60)
+        inboundEvents = inboundEvents.concat(
+          collectProjectileDamage(game.state, undefined, allocator),
+        )
+      }
+      expect(inboundEvents.map((event) => event.targetId)).toEqual([farId, nearId])
+    })
+
+    it('lets Homeward Edge increase damage only on the return leg', () => {
+      const game = createGame({ seed: 81 })
+      game.state.player.skills = [{
+        skillId: RIFT_JAVELIN_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('rift-javelin-homeward')
+      game.spawnSlime({ x: 80, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      const projectile = game.state.projectiles[0]!
+      expect(projectile.returnDamageMultiplier).toBeCloseTo(1.4)
+
+      let outboundEvents: ReturnType<typeof collectProjectileDamage> = []
+      for (let tick = 0; tick < 60 && outboundEvents.length === 0; tick += 1) {
+        updateProjectiles(game.state, 1 / 60)
+        outboundEvents = collectProjectileDamage(game.state, undefined, allocator)
+      }
+      expect(outboundEvents[0]?.damage.physical).toBeCloseTo(16)
+
+      projectile.returning = true
+      projectile.pierceHitTargetIds = []
+      const inboundEvents = collectProjectileDamage(game.state, undefined, allocator)
+      expect(inboundEvents[0]?.damage.physical).toBeCloseTo(16 * 1.4)
+    })
+
+    it('applies a Poison stack from Barbed Javelin hits', () => {
+      const game = createGame({ seed: 82 })
+      game.state.player.skills = [{
+        skillId: RIFT_JAVELIN_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('rift-javelin-barbed')
+      game.spawnSlime({ x: 80, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      let events: ReturnType<typeof collectProjectileDamage> = []
+      for (let tick = 0; tick < 60 && events.length === 0; tick += 1) {
+        updateProjectiles(game.state, 1 / 60)
+        events = collectProjectileDamage(game.state, undefined, allocator)
+      }
+      expect(events[0]?.poisonApplication).toMatchObject({ physicalChaosRatio: 0.35 })
+    })
+  })
+
+  describe('Cinder Mine', () => {
+    it('arms until an enemy enters its radius, then explodes and applies Burning', () => {
+      const game = createGame({ seed: 83 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      equipItem(game.state.player, 'ritual-staff')
+      const targetId = game.spawnSlime({ x: 200, y: 0 })
+
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      expect(game.state.traps).toHaveLength(1)
+      expect(updateCinderMineTraps(game.state, CINDER_MINE_FUSE_SECONDS - 0.1, allocator))
+        .toEqual([])
+      expect(game.state.traps).toHaveLength(1)
+
+      game.state.enemies.find((enemy) => enemy.id === targetId)!.x = 20
+      const events = updateCinderMineTraps(game.state, 0.05, allocator)
+      expect(events).toEqual([
+        expect.objectContaining({
+          targetId,
+          damage: expect.objectContaining({ fire: 15 }),
+          burningApplication: expect.objectContaining({ fireDamageRatio: 0.4 }),
+        }),
+      ])
+      expect(game.state.traps).toEqual([])
+
+      applyDamageEvents(game.state, events)
+      const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+      expect(target.burningStacks).toHaveLength(1)
+      const burningEvents = updateBurning(game.state, 1)
+      expect(burningEvents).toEqual([
+        expect.objectContaining({ targetId, sourceLabel: 'Burning', damageOverTime: true }),
+      ])
+      expect(burningEvents[0]?.damage.fire).toBeCloseTo(6.3)
+    })
+
+    it('deploys a second, weaker mine with Cluster Charges', () => {
+      const game = createGame({ seed: 84 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('cinder-mine-cluster')
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.traps).toHaveLength(2)
+      expect(game.state.traps?.[0]?.damage.fire).toBeCloseTo(15 * 0.65)
+      expect(game.state.traps?.[1]?.x).not.toBe(game.state.traps?.[0]?.x)
+    })
+
+    it('gives Inferno Charge a bigger radius and stronger Burning', () => {
+      const game = createGame({ seed: 85 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('cinder-mine-inferno')
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.traps?.[0]?.radius).toBeCloseTo(95)
+      expect(game.state.traps?.[0]?.burningApplication?.fireDamageRatio).toBeCloseTo(0.6)
+    })
+  })
+
+  describe('Storm Relay', () => {
+    it('strikes immediately on cast, chains to nearby enemies, and applies Shock', () => {
+      const game = createGame({ seed: 86 })
+      game.state.player.skills = [{
+        skillId: STORM_RELAY_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const firstId = game.spawnSlime({ x: 100, y: 0 })
+      const secondId = game.spawnSlime({ x: 200, y: 0 })
+
+      const events = collectSkillDamage(game.state, allocator)
+
+      expect(events.map((event) => event.targetId)).toEqual([firstId, secondId])
+      expect(events.every((event) => event.shockApplication?.threshold === 3)).toBe(true)
+      expect(game.state.relays).toHaveLength(1)
+      expect(game.state.relays?.[0]?.strikeIntervalSeconds).toBe(STORM_RELAY_STRIKE_INTERVAL_SECONDS)
+    })
+
+    it('strikes again once its interval elapses, then expires after its duration', () => {
+      const game = createGame({ seed: 87 })
+      game.state.player.skills = [{
+        skillId: STORM_RELAY_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 100, y: 0 })
+      collectSkillDamage(game.state, allocator)
+
+      expect(updateStormRelay(game.state, STORM_RELAY_STRIKE_INTERVAL_SECONDS - 0.1, allocator))
+        .toEqual([])
+      const secondStrike = updateStormRelay(game.state, 0.2, allocator)
+      expect(secondStrike.length).toBeGreaterThan(0)
+
+      const finalTick = updateStormRelay(game.state, 30, allocator)
+      expect(finalTick).toEqual([])
+      expect(game.state.relays).toEqual([])
+    })
+
+    it('gives Overcharge a faster strike interval and extra Shock stacks', () => {
+      const game = createGame({ seed: 88 })
+      game.state.player.skills = [{
+        skillId: STORM_RELAY_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('storm-relay-overcharge')
+      game.spawnSlime({ x: 100, y: 0 })
+
+      const events = collectSkillDamage(game.state, allocator)
+
+      expect(events[0]?.shockApplication?.stacks).toBe(2)
+      expect(game.state.relays?.[0]?.strikeIntervalSeconds)
+        .toBe(STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS)
+    })
+
+    it('makes Conduit permanent and adds a burst pulse around the relay', () => {
+      const game = createGame({ seed: 89 })
+      game.state.player.skills = [{
+        skillId: STORM_RELAY_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('storm-relay-conduit')
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      expect(game.state.relays?.[0]?.permanent).toBe(true)
+
+      updateStormRelay(game.state, 1000, allocator)
+      expect(game.state.relays).toHaveLength(1)
+    })
+  })
+
+  describe('Soul Tether', () => {
+    it('tethers the nearest enemy, deals chaos damage over time, and heals the player', () => {
+      const game = createGame({ seed: 90 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.player.hp = 50
+      const targetId = game.spawnSlime({ x: 60, y: 0 })
+
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      expect(game.state.player.soulTetherTargetId).toBe(targetId)
+
+      const events = updateSoulTether(game.state, 1, allocator)
+      expect(events).toEqual([
+        expect.objectContaining({
+          targetId,
+          sourceSkillId: SOUL_TETHER_SKILL_ID,
+          damageOverTime: true,
+        }),
+      ])
+      applyDamageEvents(game.state, events)
+      expect(game.state.player.hp).toBeGreaterThan(50)
+    })
+
+    it('applies Lifebound Pact healing to Soul Tether damage', () => {
+      const game = createGame({ seed: 93 })
+      game.state.player.skills = [
+        { skillId: SOUL_TETHER_SKILL_ID, level: 1, cooldownRemaining: 0 },
+        { skillId: VITALITY_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      ]
+      const targetId = game.spawnSlime({ x: 60, y: 0 })
+      collectSkillDamage(game.state, allocator)
+      game.state.player.hp = 0
+      game.state.run.selectedUpgradeIds.push('synergy-soul-tether-vitality')
+
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId,
+        damage: { physical: 0, lightning: 0, fire: 0, cold: 0, chaos: 10 },
+      }])
+
+      expect(game.state.player.hp).toBeCloseTo(3.6)
+    })
+
+    it('snaps to one weaker nearby enemy when the tethered enemy dies, then ends', () => {
+      const game = createGame({ seed: 91 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const primaryId = game.spawnSlime({ x: 60, y: 0 })
+      const secondaryId = game.spawnSlime({ x: 90, y: 0 })
+      collectSkillDamage(game.state, allocator)
+      const initialDps = game.state.player.soulTetherDamagePerSecond ?? 0
+
+      const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
+      primary.hp = 1
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId: primaryId,
+        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }])
+
+      expect(game.state.player.soulTetherTargetId).toBe(secondaryId)
+      expect(game.state.player.soulTetherDamagePerSecond)
+        .toBeCloseTo(initialDps * SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER)
+      expect(game.state.player.soulTetherHasRetargeted).toBe(true)
+
+      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
+      secondary.hp = 1
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId: secondaryId,
+        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }])
+      expect(game.state.player.soulTetherTargetId).toBeUndefined()
+      expect(game.state.player.soulTetherRemaining).toBe(0)
+    })
+  })
+
+  describe('Phantom Arsenal', () => {
+    it('summons a temporary archer that fires physical bolts, respecting its cap', () => {
+      const game = createGame({ seed: 92 })
+      game.state.player.skills = [{
+        skillId: PHANTOM_ARSENAL_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const targetId = game.spawnSlime({ x: 60, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      expect(game.state.summons).toHaveLength(1)
+      expect(game.state.summons[0]?.skillId).toBe(PHANTOM_ARSENAL_SKILL_ID)
+      expect(game.state.summons[0]?.expiryRemaining).toBeGreaterThan(0)
+
+      const summonSkill = game.state.player.skills.find(
+        (skill) => skill.skillId === PHANTOM_ARSENAL_SKILL_ID,
+      )!
+      summonSkill.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+      expect(game.state.summons).toHaveLength(1)
+
+      let firedProjectile = false
+      for (let tick = 0; tick < 180 && !firedProjectile; tick += 1) {
+        updateSummons(game.state, 1 / 60, allocator)
+        firedProjectile = game.state.projectiles.some(
+          (projectile) => projectile.skillId === PHANTOM_ARSENAL_SKILL_ID,
+        )
+      }
+      expect(firedProjectile).toBe(true)
+      expect(game.state.projectiles[0]?.targetId).toBe(targetId)
+      expect(game.state.projectiles[0]?.damage.physical).toBeGreaterThan(0)
+    })
+
+    it('despawns automatically once its temporary duration elapses', () => {
+      const game = createGame({ seed: 93 })
+      game.state.player.skills = [{
+        skillId: PHANTOM_ARSENAL_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      collectSkillDamage(game.state, allocator)
+      expect(game.state.summons).toHaveLength(1)
+
+      updateSummons(game.state, 999, allocator)
+      removeDeadSummons(game.state)
+      expect(game.state.summons).toEqual([])
     })
   })
 })

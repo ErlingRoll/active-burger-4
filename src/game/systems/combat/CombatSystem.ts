@@ -7,6 +7,7 @@ import {
   BASIC_ATTACK_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
   getEffectiveSkillCooldown,
   getBasicAttackVariant,
   getSkillDefinition,
@@ -19,6 +20,7 @@ import {
 import {
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
+  getSkillSynergyEffectPercent,
 } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
@@ -83,6 +85,9 @@ import {
   SHOCK_DEFAULT_DURATION_SECONDS,
   SHOCK_MAX_STACKS,
   AEGIS_PULSE_REPRISAL_RATIO,
+  SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT,
+  SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
+  SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -319,6 +324,9 @@ function collectProjectileImpactEvents(
   hitEnemy: EnemyState | BossState,
   enemies: ReturnType<typeof createEnemySpatialHash>,
 ): DamageEvent[] {
+  const damage = projectile.returning && projectile.returnDamageMultiplier
+    ? scaleDamageValues(projectile.damage, projectile.returnDamageMultiplier)
+    : projectile.damage
   const impactRadius = projectile.impactRadius
   if (impactRadius === undefined || impactRadius <= 0) {
     return [{
@@ -326,9 +334,10 @@ function collectProjectileImpactEvents(
       sourceSkillId: projectile.skillId,
       sourceTags: projectile.sourceTags,
       targetId: hitEnemy.id,
-      damage: projectile.damage,
+      damage,
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
+      poisonApplication: projectile.impactPoisonApplication,
     }]
   }
 
@@ -350,9 +359,10 @@ function collectProjectileImpactEvents(
       sourceSkillId: projectile.skillId,
       sourceTags: projectile.sourceTags,
       targetId: enemy.id,
-      damage: projectile.damage,
+      damage,
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
+      poisonApplication: projectile.impactPoisonApplication,
     }))
 }
 
@@ -854,6 +864,20 @@ export function updateProjectiles(
     projectile.x += projectile.velocityX * fixedStepSeconds
     projectile.y += projectile.velocityY * fixedStepSeconds
     projectile.remainingLifetime -= fixedStepSeconds
+    if (projectile.piercing && !projectile.returning) {
+      const speed = Math.hypot(projectile.velocityX, projectile.velocityY)
+      projectile.pierceTraveledDistance =
+        (projectile.pierceTraveledDistance ?? 0) + speed * fixedStepSeconds
+      if (
+        projectile.pierceTraveledDistance >=
+          (projectile.pierceReturnRange ?? Number.POSITIVE_INFINITY)
+      ) {
+        projectile.velocityX = -projectile.velocityX
+        projectile.velocityY = -projectile.velocityY
+        projectile.returning = true
+        projectile.pierceHitTargetIds = []
+      }
+    }
   }
 }
 
@@ -879,7 +903,11 @@ export function collectProjectileDamage(
       projectile.y,
       projectile.radius,
     )) {
-      if (enemy.id === projectile.lastHitTargetId) {
+      if (
+        projectile.piercing
+          ? (projectile.pierceHitTargetIds ?? []).includes(enemy.id)
+          : enemy.id === projectile.lastHitTargetId
+      ) {
         continue
       }
       const offsetX = enemy.x - projectile.x
@@ -912,6 +940,13 @@ export function collectProjectileDamage(
         hitEnemy.x,
         hitEnemy.y,
       )
+      if (projectile.piercing) {
+        projectile.pierceHitTargetIds = [
+          ...(projectile.pierceHitTargetIds ?? []),
+          hitEnemy.id,
+        ]
+        continue
+      }
       if (canProjectileChain(state, projectile)) {
         const nextTarget = findNearestEnemy(
           {
@@ -1105,7 +1140,9 @@ export function applyDamageEvents(
         applyGearFrostApplication(state, enemy, enemyEvent)
       }
       applyShockApplication(enemy, enemyEvent, pendingEvents)
+      applyBurningApplication(state, enemy, enemyEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
+      applySoulTetherHealing(state, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1113,6 +1150,9 @@ export function applyDamageEvents(
           hitY,
           idAllocator,
         ))
+      }
+      if (enemy.hp <= 0 && state.player.soulTetherTargetId === enemy.id) {
+        pendingEvents.push(...triggerSoulTetherSnap(state, enemy))
       }
       continue
     }
@@ -1148,7 +1188,9 @@ export function applyDamageEvents(
         applyGearFrostApplication(state, boss, bossEvent)
       }
       applyShockApplication(boss, bossEvent, pendingEvents)
+      applyBurningApplication(state, boss, bossEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
+      applySoulTetherHealing(state, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1156,6 +1198,9 @@ export function applyDamageEvents(
           hitY,
           idAllocator,
         ))
+      }
+      if (boss.hp <= 0 && state.player.soulTetherTargetId === boss.id) {
+        pendingEvents.push(...triggerSoulTetherSnap(state, boss))
       }
 
     }
@@ -1379,6 +1424,147 @@ export function updatePoison(
       (stack) => stack.remainingDuration > 0 && stack.damagePerSecond > 0,
     )
   }
+  return events
+}
+
+function applyBurningApplication(
+  state: Readonly<GameState>,
+  target: EnemyState,
+  event: Readonly<DamageEvent>,
+  preMitigationDamage: Readonly<DamageValues>,
+): void {
+  const application = event.burningApplication
+  if (!application || target.hp <= 0) {
+    return
+  }
+  const dotMultiplier = event.sourceId === state.player.id
+    ? getDerivedPlayerStats(state.player).dotMultiplier
+    : 0
+  const damagePerSecond = preMitigationDamage.fire *
+    application.fireDamageRatio *
+    (1 + dotMultiplier / 100)
+  if (damagePerSecond <= 0) {
+    return
+  }
+  target.burningStacks ??= []
+  target.burningStacks.push({
+    remainingDuration: application.durationSeconds,
+    damagePerSecond,
+    ...(event.sourceSkillId ? { sourceSkillId: event.sourceSkillId } : {}),
+  })
+}
+
+export function updateBurning(
+  state: GameState,
+  fixedStepSeconds: number,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const elapsed = Math.max(0, fixedStepSeconds)
+  for (const target of [...state.enemies, ...(state.bosses ?? [])]) {
+    if (!target.burningStacks || target.burningStacks.length === 0) {
+      continue
+    }
+    for (const stack of target.burningStacks) {
+      if (stack.remainingDuration <= 0 || stack.damagePerSecond <= 0) {
+        continue
+      }
+      const damage = stack.damagePerSecond * Math.min(elapsed, stack.remainingDuration)
+      if (damage > 0) {
+        events.push({
+          sourceLabel: 'Burning',
+          ...(stack.sourceSkillId ? { sourceSkillId: stack.sourceSkillId } : {}),
+          targetId: target.id,
+          damage: createDamageValues({ fire: damage }),
+          damageOverTime: true,
+        })
+      }
+      stack.remainingDuration -= elapsed
+    }
+    target.burningStacks = target.burningStacks.filter(
+      (stack) => stack.remainingDuration > 0 && stack.damagePerSecond > 0,
+    )
+  }
+  return events
+}
+
+function applySoulTetherHealing(
+  state: GameState,
+  event: Readonly<DamageEvent>,
+  actualDamage: number,
+): void {
+  if (
+    event.sourceSkillId !== SOUL_TETHER_SKILL_ID ||
+    event.sourceId !== state.player.id ||
+    actualDamage <= 0
+  ) {
+    return
+  }
+  const ratio = state.player.soulTetherHealingRatio ?? 0
+  if (ratio <= 0) {
+    return
+  }
+  const healingMultiplier = 1 + getSkillSynergyEffectPercent(
+    SOUL_TETHER_SKILL_ID,
+    state.run.selectedUpgradeIds,
+    'healingIncreasePercent',
+  ) / 100
+  healPlayer(state, actualDamage * ratio * healingMultiplier, 'Soul Tether')
+}
+
+function triggerSoulTetherSnap(
+  state: GameState,
+  deadEnemy: Readonly<EnemyState | BossState>,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  const alreadyRetargeted = state.player.soulTetherHasRetargeted ?? false
+  if (alreadyRetargeted) {
+    state.player.soulTetherTargetId = undefined
+    state.player.soulTetherRemaining = 0
+    state.player.soulTetherDamagePerSecond = 0
+    return events
+  }
+
+  const requiem = state.run.selectedUpgradeIds.includes('soul-tether-requiem')
+  const burstTargetCount = requiem ? SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT : 1
+  const nearby = [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0 && enemy.id !== deadEnemy.id)
+    .map((enemy) => ({
+      enemy,
+      distanceSquared: (enemy.x - deadEnemy.x) ** 2 + (enemy.y - deadEnemy.y) ** 2,
+    }))
+    .sort((left, right) =>
+      left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
+    )
+    .slice(0, burstTargetCount)
+    .map((candidate) => candidate.enemy)
+
+  if (nearby.length === 0) {
+    state.player.soulTetherTargetId = undefined
+    state.player.soulTetherRemaining = 0
+    state.player.soulTetherDamagePerSecond = 0
+    return events
+  }
+
+  const burstDamage = (state.player.soulTetherDamagePerSecond ?? 0) *
+    SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT
+  if (burstDamage > 0) {
+    for (const enemy of nearby) {
+      events.push({
+        sourceId: state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        sourceLabel: 'Soul Snap',
+        sourceTags: ['chaos'],
+        targetId: enemy.id,
+        damage: createDamageValues({ chaos: burstDamage }),
+      })
+    }
+  }
+
+  const newTarget = nearby[0]!
+  state.player.soulTetherTargetId = newTarget.id
+  state.player.soulTetherDamagePerSecond =
+    (state.player.soulTetherDamagePerSecond ?? 0) * SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER
+  state.player.soulTetherHasRetargeted = true
   return events
 }
 

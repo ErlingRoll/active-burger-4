@@ -57,6 +57,26 @@ export type UpgradeId =
   | 'aegis-pulse-level'
   | 'aegis-pulse-bulwark'
   | 'aegis-pulse-reprisal'
+  | 'rift-javelin-unlock'
+  | 'rift-javelin-level'
+  | 'rift-javelin-barbed'
+  | 'rift-javelin-homeward'
+  | 'cinder-mine-unlock'
+  | 'cinder-mine-level'
+  | 'cinder-mine-inferno'
+  | 'cinder-mine-cluster'
+  | 'storm-relay-unlock'
+  | 'storm-relay-level'
+  | 'storm-relay-overcharge'
+  | 'storm-relay-conduit'
+  | 'soul-tether-unlock'
+  | 'soul-tether-level'
+  | 'soul-tether-siphon'
+  | 'soul-tether-requiem'
+  | 'phantom-arsenal-unlock'
+  | 'phantom-arsenal-level'
+  | 'phantom-arsenal-volley'
+  | 'phantom-arsenal-marksman'
   | 'synergy-basic-attack-whirlwind'
   | 'synergy-basic-attack-chain-lightning'
   | 'synergy-basic-attack-glacial-orb'
@@ -71,6 +91,16 @@ export type UpgradeId =
   | 'synergy-fiery-touch-glacial-orb'
   | 'synergy-fiery-touch-gravity-well'
   | 'synergy-lancers-charge-aegis-pulse'
+  | 'synergy-rift-javelin-lancers-charge'
+  | 'synergy-cinder-mine-fiery-touch'
+  | 'synergy-soul-tether-vitality'
+  | 'synergy-phantom-arsenal-raise-skeleton'
+  | 'synergy-storm-relay-rallying-standard'
+  | 'synergy-rift-javelin-cinder-mine'
+  | 'synergy-cinder-mine-storm-relay'
+  | 'synergy-storm-relay-soul-tether'
+  | 'synergy-soul-tether-phantom-arsenal'
+  | 'synergy-phantom-arsenal-rift-javelin'
   | typeof REMOVE_SKILL_UPGRADE_ID
   | typeof REMOVE_SYNERGY_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
@@ -101,6 +131,16 @@ export type UpgradeBranch =
   | 'gravity-well-event-horizon'
   | 'aegis-pulse-bulwark'
   | 'aegis-pulse-reprisal'
+  | 'rift-javelin-barbed'
+  | 'rift-javelin-homeward'
+  | 'cinder-mine-inferno'
+  | 'cinder-mine-cluster'
+  | 'storm-relay-overcharge'
+  | 'storm-relay-conduit'
+  | 'soul-tether-siphon'
+  | 'soul-tether-requiem'
+  | 'phantom-arsenal-volley'
+  | 'phantom-arsenal-marksman'
 
 export interface UpgradeChoice {
   upgradeId: Exclude<
@@ -213,6 +253,26 @@ export interface UpgradeDefinition {
   aegisPulseBulwark?: boolean
   /** Enables the retaliation burst when Aegis Pulse's shield absorbs damage. */
   aegisPulseReprisal?: boolean
+  /** Applies a Bleed (Poison) stack from every Rift Javelin hit. */
+  riftJavelinBarbed?: boolean
+  /** Increases Rift Javelin damage while it travels back on its return leg. */
+  riftJavelinHomeward?: boolean
+  /** Enlarges Cinder Mine's blast and Burning intensity. */
+  cinderMineInferno?: boolean
+  /** Deploys a second, weaker Cinder Mine alongside the first. */
+  cinderMineCluster?: boolean
+  /** Strikes more often and applies extra Shock stacks for Storm Relay. */
+  stormRelayOvercharge?: boolean
+  /** Makes Storm Relay permanent and adds a periodic burst around it. */
+  stormRelayConduit?: boolean
+  /** Increases the fraction of Soul Tether damage restored as healing. */
+  soulTetherSiphon?: boolean
+  /** Lets Soul Tether's death snap burst chain to multiple nearby enemies. */
+  soulTetherRequiem?: boolean
+  /** Grants an additional active Phantom Arsenal summon at reduced damage. */
+  phantomArsenalVolley?: boolean
+  /** Grants Phantom Arsenal more range and damage at a single active summon. */
+  phantomArsenalMarksman?: boolean
   /** The two equipped skills required for this synergy card. */
   synergySkillIds?: readonly [SkillId, SkillId]
   /** Per-skill bonuses granted while this synergy is selected. */
