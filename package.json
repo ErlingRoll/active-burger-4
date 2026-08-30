@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "supabase:check": "npx supabase migration list",
+    "supabase:migrate": "npx supabase db push",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
