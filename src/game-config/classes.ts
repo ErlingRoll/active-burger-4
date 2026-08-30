@@ -9,7 +9,7 @@ import {
 } from './skills'
 import type { ItemId } from '../content/gear/Items'
 import type { PlaystyleDefinition } from '../content/playstyles/Playstyles'
-import type { StatValues } from '../content/stats/Stats'
+import type { CharacterStatValues } from '../content/stats/Stats'
 
 export type PlaystyleId =
   | 'knight'
@@ -35,7 +35,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'knight',
     name: 'Knight',
     description: 'A durable close-range fighter who begins with Whirlwind and has Vanguard Guard through floor 2.',
-    baseStats: { maxHp: 150, movementSpeed: 160, attackDamage: 14, attackSpeed: 1, attackRange: 45 } as StatValues,
+    baseStats: { maxHp: 150, movementSpeed: 160, attackDamage: 14, attackSpeed: 1 } as CharacterStatValues,
     startingWeaponItemId: 'knight-training-sword' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
     skillAffinity: {
@@ -49,7 +49,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'ranger',
     name: 'Ranger',
     description: 'A swift long-range attacker who begins with Chain Lightning.',
-    baseStats: { maxHp: 85, movementSpeed: 180, attackDamage: 11, attackSpeed: 1.1, attackRange: 160 } as StatValues,
+    baseStats: { maxHp: 85, movementSpeed: 180, attackDamage: 11, attackSpeed: 1.1 } as CharacterStatValues,
     startingWeaponItemId: 'ranger-training-bow' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, CHAIN_LIGHTNING_SKILL_ID],
     skillAffinity: {
@@ -63,7 +63,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'necromancer',
     name: 'Necromancer',
     description: 'A resilient summoner who commands skeletons from a cursed staff.',
-    baseStats: { maxHp: 115, movementSpeed: 150, attackDamage: 9, attackSpeed: 1, attackRange: 110 } as StatValues,
+    baseStats: { maxHp: 115, movementSpeed: 150, attackDamage: 9, attackSpeed: 1 } as CharacterStatValues,
     startingWeaponItemId: 'necromancer-bone-staff' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, RAISE_SKELETON_SKILL_ID],
     skillAffinity: {
@@ -77,7 +77,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'frost-warden',
     name: 'Frost Warden',
     description: 'A disciplined cryomancer who opens with Glacial Orb and controls packs from range.',
-    baseStats: { maxHp: 100, movementSpeed: 160, attackDamage: 10, attackSpeed: 1.05, attackRange: 110 } as StatValues,
+    baseStats: { maxHp: 100, movementSpeed: 160, attackDamage: 10, attackSpeed: 1.05 } as CharacterStatValues,
     startingWeaponItemId: 'frost-warden-training-wand' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, GLACIAL_ORB_SKILL_ID],
     skillAffinity: {
@@ -91,7 +91,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'ashen-alchemist',
     name: 'Ashen Alchemist',
     description: 'A patient firestarter who seeds the battlefield with burning zones.',
-    baseStats: { maxHp: 110, movementSpeed: 170, attackDamage: 11, attackSpeed: 0.95, attackRange: 110 } as StatValues,
+    baseStats: { maxHp: 110, movementSpeed: 170, attackDamage: 11, attackSpeed: 0.95 } as CharacterStatValues,
     startingWeaponItemId: 'ashen-alchemist-training-staff' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, CINDER_MINE_SKILL_ID],
     skillAffinity: {
@@ -105,7 +105,7 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
     id: 'war-shepherd',
     name: 'War Shepherd',
     description: 'A battlefield commander who protects allies and sustains the fight with a rallying banner.',
-    baseStats: { maxHp: 140, movementSpeed: 150, attackDamage: 12, attackSpeed: 0.95, attackRange: 45 } as StatValues,
+    baseStats: { maxHp: 140, movementSpeed: 150, attackDamage: 12, attackSpeed: 0.95 } as CharacterStatValues,
     startingWeaponItemId: 'war-shepherd-training-sword' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, RALLYING_STANDARD_SKILL_ID],
     skillAffinity: {

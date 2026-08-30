@@ -116,7 +116,6 @@ function state(
       movementSpeed: 200,
       attackDamage: 10,
       attackSpeed: 1,
-      attackRange: 50,
       attackCooldownRemaining: 0,
       skills: [{
         skillId: BASIC_ATTACK_SKILL_ID,
@@ -130,7 +129,6 @@ function state(
         movementSpeed: 200,
         attackDamage: 10,
         attackSpeed: 1,
-        attackRange: 50,
       },
     },
     enemies,

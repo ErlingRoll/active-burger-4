@@ -18,6 +18,8 @@ export const STAT_KEYS = [
 ] as const satisfies readonly StatKey[]
 
 export type StatValues = { [K in StatKey]: number }
+/** Character-authored stats; attack range is supplied by the equipped weapon. */
+export type CharacterStatValues = Omit<StatValues, 'attackRange'>
 
 export interface StatModifier {
   stat: StatKey

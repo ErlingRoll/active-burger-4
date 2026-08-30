@@ -11,6 +11,7 @@ import { FIXED_STEP_SECONDS, createGame } from '../../Game'
 import { collectEnemyContactDamage, updateEnemyChase } from './CombatSystem'
 import { collectSkillDamage } from '../skills/SkillSystem'
 import { createEntityIdAllocator } from '../../ids'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 
 describe('enemy variety behaviors', () => {
   it('makes Runner faster and less durable than Brute', () => {
@@ -124,7 +125,7 @@ describe('enemy variety behaviors', () => {
       game.state.player.radius + currentArcher.radius,
     )
     expect(archerDistance).toBeLessThanOrEqual(
-      game.state.player.attackRange,
+      getDerivedPlayerStats(game.state.player).attackRange,
     )
     expect(game.state.player.targetId).toBe(currentArcher.id)
   })

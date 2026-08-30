@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { createGame, FIXED_STEP_SECONDS } from './Game'
+import { getDerivedPlayerStats } from './stats/DerivedStats'
 
 function round(value: number): number {
   return Number(value.toFixed(6))
 }
 
 function projectScenario(game: ReturnType<typeof createGame>) {
+  const playerStats = getDerivedPlayerStats(game.state.player)
   return {
     phase: game.phase,
     tick: game.state.tick,
@@ -22,7 +24,7 @@ function projectScenario(game: ReturnType<typeof createGame>) {
       attackDamage: game.state.player.attackDamage,
       attackSpeed: round(game.state.player.attackSpeed),
       movementSpeed: game.state.player.movementSpeed,
-      attackRange: game.state.player.attackRange,
+      attackRange: playerStats.attackRange,
     },
     kills: game.state.run.killCount,
     enemies: game.state.enemies.map((enemy) => ({
@@ -78,15 +80,15 @@ describe('headless deterministic scenario regression', () => {
       time: 3,
       player: {
         id: 1,
-        x: -27.90457236780178,
-        y: 99.66736934500646,
+        x: -32.46464518060455,
+        y: 115.95783702901849,
         hp: 130.79999999999998,
         maxHp: 160,
         level: 2,
         xp: 18,
         attackDamage: 14,
         attackSpeed: 1,
-        movementSpeed: 135,
+        movementSpeed: 160,
         attackRange: 75,
       },
       kills: 2,
@@ -95,22 +97,22 @@ describe('headless deterministic scenario regression', () => {
           id: 7,
           definitionId: 'slime',
           hp: 25,
-          x: -137.450703,
-          y: 491.430575,
+          x: -137.451032,
+          y: 491.430481,
         },
         {
           id: 10,
           definitionId: 'slime',
           hp: 25,
-          x: -156.4038,
-          y: 549.36254,
+          x: -156.398477,
+          y: 549.364028,
         },
         {
           id: 13,
           definitionId: 'slime',
           hp: 25,
-          x: 285.663921,
-          y: 726.205698,
+          x: 281.438731,
+          y: 741.293159,
         },
       ],
       projectiles: [],

@@ -3,7 +3,10 @@ import type {
   EntityId,
   ProjectileDefinitionId,
 } from '../ids'
-import type { StatModifier, StatValues } from '../../content/stats/Stats'
+import type {
+  CharacterStatValues,
+  StatModifier,
+} from '../../content/stats/Stats'
 import type {
   SkillId,
   SkillTag,
@@ -212,7 +215,6 @@ export interface PlayerState {
 
   attackDamage: number
   attackSpeed: number
-  attackRange: number
   attackCooldownRemaining: number
   /** Additive fraction of actual gear-based melee damage restored as health. */
   meleeLeech?: number
@@ -284,7 +286,7 @@ export interface PlayerState {
   critMultiplier?: number
 
   /** Base values and modifiers are optional for backwards-compatible fixtures. */
-  baseStats?: StatValues
+  baseStats?: CharacterStatValues
   statModifiers?: StatModifier[]
   equipment?: EquipmentLoadout
 

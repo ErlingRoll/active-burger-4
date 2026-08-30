@@ -8,6 +8,7 @@ import {
 import { updatePlayerBehavior } from './BehaviorController'
 import { createInitialPlayerState } from '../spawning/SpawningSystem'
 import { equipItem } from '../../equipment/EquipmentState'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import type { EnemyState, GameState } from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 
@@ -206,7 +207,8 @@ describe('data-driven player behavior intents', () => {
     const candidates = getPlayerBehaviorCandidates(state)
 
     expect(candidates.map((candidate) => candidate.source)).toEqual(['hold'])
-    expect(state.player.attackRange).toBe(110)
+    expect(getDerivedPlayerStats(state.player).attackRange).toBe(110)
+    expect('attackRange' in state.player).toBe(false)
   })
 
   it('keeps movement aligned with the active combat target', () => {

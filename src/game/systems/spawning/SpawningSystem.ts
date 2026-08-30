@@ -118,7 +118,6 @@ export function createInitialPlayerState(
     movementSpeed,
     attackDamage,
     attackSpeed: playstyle.baseStats.attackSpeed,
-    attackRange: playstyle.baseStats.attackRange,
     attackCooldownRemaining: 0,
     meleeLeech: 0,
     whirlwindLeech: 0,
@@ -134,7 +133,6 @@ export function createInitialPlayerState(
       movementSpeed,
       attackDamage,
       attackSpeed: playstyle.baseStats.attackSpeed,
-      attackRange: playstyle.baseStats.attackRange,
     },
     statModifiers: [],
     equipment: {

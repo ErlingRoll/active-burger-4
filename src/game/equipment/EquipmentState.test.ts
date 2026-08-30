@@ -36,11 +36,10 @@ describe('equipment attack range', () => {
 
     equipItem(game.state.player, 'ritual-staff')
     expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(110)
-    expect(game.state.player.attackRange).toBe(110)
 
     equipItem(game.state.player, 'iron-cleaver')
     expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
-    expect(game.state.player.attackRange).toBe(45)
+    expect('attackRange' in game.state.player).toBe(false)
   })
 })
 

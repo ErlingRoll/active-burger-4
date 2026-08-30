@@ -865,7 +865,6 @@ interface PlayerState {
 
   attackDamage: number
   attackSpeed: number
-  attackRange: number
 
   targetId?: EntityId
 }

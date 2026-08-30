@@ -24,6 +24,7 @@ import {
 } from '../../content/stats/Damage'
 import {
   evaluateDerivedStats,
+  type CharacterStatValues,
   type StatModifier,
   type StatValues,
 } from '../../content/stats/Stats'
@@ -55,30 +56,29 @@ export interface PlayerStats extends StatValues {
   frostStacksOnHit: number
 }
 
-function directPlayerStats(player: Readonly<PlayerState>): StatValues {
+function directPlayerStats(player: Readonly<PlayerState>): CharacterStatValues {
   return {
     maxHp: player.maxHp,
     movementSpeed: player.movementSpeed,
     attackDamage: player.attackDamage,
     attackSpeed: player.attackSpeed,
-    attackRange: player.attackRange,
   }
 }
 
 function getEquippedWeaponAttackRange(
   player: Readonly<PlayerState>,
   itemDefinitions: readonly ItemDefinition[],
-): number | undefined {
+): number {
   const equipped = player.equipment?.weapon
   if (!equipped) {
-    return undefined
+    return getBasicAttackVariant().attackRange
   }
   const definition = itemDefinitions.find(
     (candidate) => candidate.id === equipped.itemId,
   ) ?? getItemDefinition(equipped.itemId)
   return definition.slot === EquipmentSlot.Weapon
     ? getBasicAttackVariant(definition.weaponArchetype).attackRange
-    : undefined
+    : getBasicAttackVariant().attackRange
 }
 
 function getItemModifiers(
@@ -290,13 +290,10 @@ export function getDerivedPlayerStats(
   itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
 ): PlayerStats {
   const base = player.baseStats ?? directPlayerStats(player)
-  const equippedWeaponAttackRange = getEquippedWeaponAttackRange(
-    player,
-    itemDefinitions,
-  )
-  const effectiveBase = equippedWeaponAttackRange === undefined
-    ? base
-    : { ...base, attackRange: equippedWeaponAttackRange }
+  const effectiveBase: StatValues = {
+    ...base,
+    attackRange: getEquippedWeaponAttackRange(player, itemDefinitions),
+  }
   const gearEffects = aggregateGearEffects(player, itemDefinitions)
   const modifiers = [
     ...(player.statModifiers ?? []),
@@ -346,7 +343,6 @@ export function refreshPlayerDerivedStats(
   player.movementSpeed = derived.movementSpeed
   player.attackDamage = derived.attackDamage
   player.attackSpeed = derived.attackSpeed
-  player.attackRange = derived.attackRange
   player.meleeLeech = derived.meleeLeech
   player.whirlwindLeech = derived.whirlwindLeech
 }

@@ -1,5 +1,5 @@
 import type { ItemId } from '../gear/Items'
-import type { StatValues } from '../stats/Stats'
+import type { CharacterStatValues } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
 import type { SkillTag } from '../skills/Skills'
 import type { PlaystyleId } from '../../game-config/classes'
@@ -12,7 +12,7 @@ export interface PlaystyleDefinition {
   readonly id: PlaystyleId
   readonly name: string
   readonly description: string
-  readonly baseStats: StatValues
+  readonly baseStats: CharacterStatValues
   readonly startingWeaponItemId: ItemId
   readonly startingSkillIds: readonly SkillId[]
   readonly skillAffinity: {
