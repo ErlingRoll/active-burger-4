@@ -7,7 +7,10 @@ import {
   getFloorDifficultyProfile,
 } from '../../content/dungeons/Dungeons'
 import type { EnemyDefinitionId } from '../ids'
-import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
+import {
+  isEliteModifierAllowedForEnemy,
+  type EliteModifierId,
+} from '../../content/enemies/EliteModifiers'
 import type { RandomSource } from '../random/Random'
 import type { EnemyState, GameState, PlayerState } from '../state/GameState'
 
@@ -107,6 +110,7 @@ export class SpawnDirector {
       const eliteModifier = this.selectEliteModifier(
         state.time,
         state.run?.floor ?? 1,
+        entry.definitionId,
       )
       requests.push({
         definitionId: entry.definitionId,
@@ -122,6 +126,7 @@ export class SpawnDirector {
   private selectEliteModifier(
     timeSeconds: number,
     floorNumber: number,
+    enemyDefinitionId: EnemyDefinitionId,
   ): EliteModifierId | undefined {
     const floorDifficulty = getFloorDifficultyProfile(floorNumber)
     if (
@@ -138,7 +143,14 @@ export class SpawnDirector {
 
     const weightedModifiers = Object.entries(
       this.balance.eliteModifierWeights,
-    ).filter(([, weight]) => weight > 0) as [EliteModifierId, number][]
+    ).filter(
+      ([modifierId, weight]) =>
+        weight > 0 &&
+        isEliteModifierAllowedForEnemy(
+          enemyDefinitionId,
+          modifierId as EliteModifierId,
+        ),
+    ) as [EliteModifierId, number][]
     const totalWeight = weightedModifiers.reduce(
       (sum, [, weight]) => sum + weight,
       0,

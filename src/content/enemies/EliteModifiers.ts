@@ -1,3 +1,8 @@
+import {
+  FLANKER_BEHAVIOR,
+  FLANKER_DEFINITION_ID,
+} from '../../game-config/enemies'
+import type { EnemyBehaviorDefinition } from './Enemies'
 import type { ElementalDamageType } from '../stats/Damage'
 
 export type EliteModifierId =
@@ -7,6 +12,7 @@ export type EliteModifierId =
   | 'electrocuting'
   | 'frigid'
   | 'poisoner'
+  | 'flanking'
 
 export type EliteAuraStyle =
   | 'ring'
@@ -33,6 +39,7 @@ export interface EliteModifierDefinition {
   extraDamageType?: ElementalDamageType
   extraPhysicalDamageRatio?: number
   poisonApplication?: ElitePoisonApplication
+  behaviorOverride?: Extract<EnemyBehaviorDefinition, { kind: 'intercept' }>
 }
 
 /**
@@ -117,10 +124,29 @@ export const ELITE_MODIFIER_DEFINITIONS = {
       physicalChaosRatio: 0.5,
     },
   },
+  flanking: {
+    id: 'flanking',
+    name: 'Flanking',
+    speedMultiplier: 1,
+    radiusMultiplier: 1,
+    maxHpMultiplier: 1,
+    xpRewardMultiplier: 1.5,
+    gearDropChanceMultiplier: 1.5,
+    markerColor: '#d946ef',
+    auraStyle: 'ring',
+    behaviorOverride: FLANKER_BEHAVIOR,
+  },
 } as const satisfies Record<EliteModifierId, EliteModifierDefinition>
 
 export function getEliteModifierDefinition(
   modifierId: EliteModifierId,
 ): EliteModifierDefinition {
   return ELITE_MODIFIER_DEFINITIONS[modifierId]
+}
+
+export function isEliteModifierAllowedForEnemy(
+  enemyDefinitionId: string,
+  modifierId: EliteModifierId,
+): boolean {
+  return modifierId !== 'flanking' || enemyDefinitionId !== FLANKER_DEFINITION_ID
 }

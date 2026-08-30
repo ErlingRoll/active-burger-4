@@ -541,6 +541,34 @@ function validateEliteModifiers(
         `eliteModifiers[${index}] must define both extraDamageType and extraPhysicalDamageRatio together.`,
       )
     }
+    if (modifier.behaviorOverride !== undefined) {
+      const behavior = modifier.behaviorOverride
+      const path = `eliteModifiers[${index}].behaviorOverride`
+      if (!behavior || behavior.kind !== 'intercept') {
+        errors.push(
+          `${path}.kind is not supported; received "${String(behavior?.kind)}".`,
+        )
+      } else {
+        validateFiniteNumber(
+          errors,
+          `${path}.predictionSeconds`,
+          behavior.predictionSeconds,
+          'positive',
+        )
+        validateFiniteNumber(
+          errors,
+          `${path}.lateralOffset`,
+          behavior.lateralOffset,
+          'non-negative',
+        )
+        validateFiniteNumber(
+          errors,
+          `${path}.engagementDistance`,
+          behavior.engagementDistance,
+          'positive',
+        )
+      }
+    }
   })
   return modifierIds
 }

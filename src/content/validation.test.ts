@@ -340,6 +340,36 @@ describe('content validation', () => {
     )
   })
 
+  it('validates elite modifier behavior overrides', () => {
+    const flanking = CURRENT_CONTENT.eliteModifiers.find(
+      (modifier) => modifier.id === 'flanking',
+    )
+    if (!flanking) {
+      throw new Error('Expected Flanking elite modifier')
+    }
+    const errors = validateContent(
+      catalogWith({
+        eliteModifiers: [{
+          ...flanking,
+          behaviorOverride: {
+            kind: 'intercept',
+            predictionSeconds: 0,
+            lateralOffset: -1,
+            engagementDistance: Number.NaN,
+          },
+        }],
+      }),
+    )
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        'eliteModifiers[0].behaviorOverride.predictionSeconds must be positive; received 0.',
+        'eliteModifiers[0].behaviorOverride.lateralOffset must be non-negative; received -1.',
+        'eliteModifiers[0].behaviorOverride.engagementDistance must be a finite number; received NaN.',
+      ]),
+    )
+  })
+
   it('validates shared rarity, equipment slots, and gear modifiers', () => {
     const errors = validateContent(
       catalogWith({

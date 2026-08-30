@@ -8,6 +8,13 @@ export const ARCHER_DEFINITION_ID: EnemyDefinitionId = 'archer'
 export const SPLITTER_DEFINITION_ID: EnemyDefinitionId = 'splitter'
 export const FLANKER_DEFINITION_ID: EnemyDefinitionId = 'flanker'
 
+export const FLANKER_BEHAVIOR = {
+  kind: 'intercept',
+  predictionSeconds: 1,
+  lateralOffset: 90,
+  engagementDistance: 56,
+} as const satisfies Extract<EnemyDefinition['behavior'], { kind: 'intercept' }>
+
 export const ENEMY_DEFINITIONS = {
   [SLIME_DEFINITION_ID]: {
     id: SLIME_DEFINITION_ID,
@@ -121,12 +128,7 @@ export const ENEMY_DEFINITIONS = {
     xpReward: 7,
     gearDropChance: GEAR_DROP_CHANCES.runner,
     controlResistance: 25,
-    behavior: {
-      kind: 'intercept',
-      predictionSeconds: 1,
-      lateralOffset: 90,
-      engagementDistance: 56,
-    },
+    behavior: FLANKER_BEHAVIOR,
     render: {
       color: '#ec4899',
       outlineColor: '#fbcfe8',

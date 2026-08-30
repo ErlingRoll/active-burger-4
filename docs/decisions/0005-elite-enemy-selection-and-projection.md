@@ -26,6 +26,11 @@ their authored child spawn path and do not inherit the parent modifier.
 Rendering projects the state into a gold/pink ring and a temporary Pixi Text
 label above every enemy; it does not roll or infer elite gameplay state.
 
+The Flanking modifier reuses the Flanker's intercept behavior, allowing any
+ordinary enemy to pressure the player's lateral escape route. Flanker enemies
+are excluded from this modifier during both weighted selection and entity
+creation so the modifier cannot be duplicated with their authored behavior.
+
 ## Consequences
 
 Runs with the same seed and actions produce the same elite assignments,

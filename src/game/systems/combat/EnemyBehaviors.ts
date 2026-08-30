@@ -4,6 +4,7 @@ import {
   type EnemySplitDefinition,
 } from '../../../content/enemies/Enemies'
 import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
+import { getEliteModifierDefinition } from '../../../content/enemies/EliteModifiers'
 import type { EnemyState, GameState } from '../../state/GameState'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
@@ -45,6 +46,15 @@ const ENEMY_SEPARATION_RADIUS = 72
 const ENEMY_SEPARATION_PADDING = 8
 const ENEMY_SEPARATION_STRENGTH = 0.85
 const MAX_INTERCEPT_PREDICTION_SECONDS = 1.5
+
+function getEffectiveEnemyBehavior(
+  enemy: Readonly<EnemyState>,
+): EnemyBehaviorDefinition {
+  const behaviorOverride = enemy.eliteModifier
+    ? getEliteModifierDefinition(enemy.eliteModifier).behaviorOverride
+    : undefined
+  return behaviorOverride ?? getEnemyDefinition(enemy.definitionId).behavior
+}
 
 export function getEnemyCombatTarget(
   state: Readonly<GameState>,
@@ -321,7 +331,7 @@ const ENEMY_BEHAVIOR_COMPONENTS: Record<
 > = {
   chase: updateChaseBehavior,
   standoff: (state, enemy, fixedStepSeconds, movementIndex) => {
-    const behavior = getEnemyDefinition(enemy.definitionId).behavior
+    const behavior = getEffectiveEnemyBehavior(enemy)
     if (behavior.kind === 'standoff') {
       updateStandoffBehavior(
         state,
@@ -334,7 +344,7 @@ const ENEMY_BEHAVIOR_COMPONENTS: Record<
   },
   split: updateSplitBehavior,
   intercept: (state, enemy, fixedStepSeconds, movementIndex) => {
-    const behavior = getEnemyDefinition(enemy.definitionId).behavior
+    const behavior = getEffectiveEnemyBehavior(enemy)
     if (behavior.kind === 'intercept') {
       updateInterceptBehavior(
         state,
@@ -356,7 +366,7 @@ export function updateEnemyBehavior(
   if ((enemy.frozenRemainingDuration ?? 0) > 0) {
     return
   }
-  const behavior = getEnemyDefinition(enemy.definitionId).behavior
+  const behavior = getEffectiveEnemyBehavior(enemy)
   ENEMY_BEHAVIOR_COMPONENTS[behavior.kind](
     state,
     enemy,

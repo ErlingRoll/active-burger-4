@@ -5,6 +5,10 @@ import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { Random } from '../random/Random'
 import { SpawnDirector, type SpawnDirectorState } from './SpawnDirector'
 import {
+  FLANKER_DEFINITION_ID,
+  SLIME_DEFINITION_ID,
+} from '../../content/enemies/EnemyConfig'
+import {
   getEnemyDisplayLabel,
   getEnemyMeleeAttackAnimationProgress,
 } from '../../rendering/PixiGame'
@@ -30,6 +34,7 @@ describe('elite enemy spawning and rewards', () => {
         electrocuting: 0,
         frigid: 0,
         poisoner: 0,
+        flanking: 0,
       },
     }
     const first = new SpawnDirector(new Random(11), balance).update(
@@ -57,6 +62,7 @@ describe('elite enemy spawning and rewards', () => {
         electrocuting: 0,
         frigid: 0,
         poisoner: 1,
+        flanking: 0,
       },
     }
 
@@ -66,6 +72,49 @@ describe('elite enemy spawning and rewards', () => {
     )
 
     expect(spawn?.eliteModifier).toBe('poisoner')
+  })
+
+  it('assigns Flanking to ordinary enemies but not to Flanker enemies', () => {
+    const weights = {
+      hasted: 0,
+      giant: 0,
+      fiery: 0,
+      electrocuting: 0,
+      frigid: 0,
+      poisoner: 0,
+      flanking: 1,
+    }
+    const ordinaryBalance = {
+      ...SPAWN_BALANCE,
+      spawnEntries: [{
+        definitionId: SLIME_DEFINITION_ID,
+        threatCost: 1,
+        weight: 1,
+      }],
+      eliteChance: 1,
+      eliteStartTimeSeconds: 0,
+      eliteModifierWeights: weights,
+    }
+    const flankerBalance = {
+      ...ordinaryBalance,
+      spawnEntries: [{
+        definitionId: FLANKER_DEFINITION_ID,
+        threatCost: 1,
+        weight: 1,
+      }],
+    }
+
+    const [ordinarySpawn] = new SpawnDirector(
+      new Random(11),
+      ordinaryBalance,
+    ).update(directorState(), 1)
+    const [flankerSpawn] = new SpawnDirector(
+      new Random(11),
+      flankerBalance,
+    ).update(directorState(), 1)
+
+    expect(ordinarySpawn?.eliteModifier).toBe('flanking')
+    expect(flankerSpawn?.eliteModifier).toBeUndefined()
   })
 
   it('applies exact Hasted and Giant stat and XP multipliers', () => {
@@ -128,6 +177,7 @@ describe('elite enemy spawning and rewards', () => {
     expect(getEnemyDisplayLabel('slime')).toBe('Slime')
     expect(getEnemyDisplayLabel('slime', 'hasted')).toBe('Slime · Hasted')
     expect(getEnemyDisplayLabel('brute', 'giant')).toBe('Brute · Giant')
+    expect(getEnemyDisplayLabel('slime', 'flanking')).toBe('Slime · Flanking')
   })
 
   it('projects a short melee attack animation window from the attack timestamp', () => {

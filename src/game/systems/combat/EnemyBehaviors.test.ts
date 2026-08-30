@@ -96,6 +96,40 @@ describe('enemy variety behaviors', () => {
     expect(flanker.y).not.toBe(0)
   })
 
+  it('lets a Flanking elite use the Flanker intercept behavior', () => {
+    const game = createGame({ seed: 108 })
+    const flankingId = game.spawnEnemy(
+      SLIME_DEFINITION_ID,
+      { x: 300, y: 0 },
+      undefined,
+      'flanking',
+    )
+    game.state.player.movementVelocityX = 100
+
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+    const flanking = game.state.enemies.find((enemy) => enemy.id === flankingId)
+    if (!flanking) {
+      throw new Error('Expected Flanking elite to exist')
+    }
+    expect(flanking.eliteModifier).toBe('flanking')
+    expect(flanking.targetId).toBe(game.state.player.id)
+    expect(flanking.x).toBeLessThan(300)
+    expect(flanking.y).not.toBe(0)
+  })
+
+  it('does not apply Flanking to a Flanker enemy', () => {
+    const game = createGame({ seed: 109 })
+    game.spawnEnemy(
+      FLANKER_DEFINITION_ID,
+      { x: 300, y: 0 },
+      undefined,
+      'flanking',
+    )
+
+    expect(game.state.enemies[0]?.eliteModifier).toBeUndefined()
+  })
+
   it('keeps Archer outside contact while remaining in player targeting range', () => {
     const game = createGame({ seed: 102 })
     const archerId = game.spawnEnemy(ARCHER_DEFINITION_ID, { x: 100, y: 0 })

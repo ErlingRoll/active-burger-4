@@ -136,6 +136,7 @@ export function resolveWorldModifierEffects(
             electrocuting: 20,
             frigid: 20,
             poisoner: 20,
+            flanking: 20,
           }
         : baseBalance.eliteModifierWeights,
     },

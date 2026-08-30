@@ -4,6 +4,7 @@ import {
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import {
   getEliteModifierDefinition,
+  isEliteModifierAllowedForEnemy,
   type EliteModifierId,
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
@@ -177,8 +178,13 @@ export function spawnEnemy(
   canDropLoot = true,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
-  const modifier = eliteModifier
-    ? getEliteModifierDefinition(eliteModifier)
+  const eligibleEliteModifier =
+    eliteModifier !== undefined &&
+    isEliteModifierAllowedForEnemy(definition.id, eliteModifier)
+      ? eliteModifier
+      : undefined
+  const modifier = eligibleEliteModifier
+    ? getEliteModifierDefinition(eligibleEliteModifier)
     : undefined
   const baseXpReward = xpRewardOverride ?? definition.xpReward
   const xpReward =
