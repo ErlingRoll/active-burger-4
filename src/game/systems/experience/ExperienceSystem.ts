@@ -11,8 +11,35 @@ import {
   refreshPlayerDerivedStats,
 } from '../../stats/DerivedStats'
 import { SpatialHash } from '../../spatial/SpatialHash'
+import {
+  BOSS_DEATH_MAGNET_DURATION_SECONDS,
+  BOSS_DEATH_MAGNET_RANGE_INCREASE_PERCENT,
+} from '../../../content/bosses/BossRewards'
 
 const PICKUP_CONTACT_EPSILON = 1e-6
+const BOSS_DEATH_MAGNET_RANGE_BONUS =
+  BOSS_DEATH_MAGNET_RANGE_INCREASE_PERCENT / 100
+
+export function activateBossDeathMagnet(state: GameState): void {
+  state.player.bossMagnetRemaining = BOSS_DEATH_MAGNET_DURATION_SECONDS
+}
+
+export function updateBossDeathMagnet(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const remaining = state.player.bossMagnetRemaining
+  if (remaining === undefined) {
+    return
+  }
+  const elapsed = Number.isFinite(fixedStepSeconds)
+    ? Math.max(0, fixedStepSeconds)
+    : 0
+  state.player.bossMagnetRemaining = Math.max(
+    0,
+    (Number.isFinite(remaining) ? remaining : 0) - elapsed,
+  )
+}
 
 export function updatePickups(
   state: GameState,
@@ -28,13 +55,20 @@ export function updatePickups(
     Number.isFinite(configuredRangeMultiplier)
       ? Math.max(0, configuredRangeMultiplier)
       : 1
+  const bossMagnetRangeBonus =
+    Number.isFinite(player.bossMagnetRemaining) &&
+    (player.bossMagnetRemaining ?? 0) > 0
+      ? BOSS_DEATH_MAGNET_RANGE_BONUS
+      : 0
+  const effectivePickupCollectionRangeMultiplier =
+    pickupCollectionRangeMultiplier + bossMagnetRangeBonus
   const pickups = new SpatialHash<GameState['pickups'][number]>()
   let broadphaseRadius = 0
   for (const pickup of state.pickups) {
     pickups.insert(pickup.id, pickup.x, pickup.y, pickup.radius, pickup)
     broadphaseRadius = Math.max(
       broadphaseRadius,
-      pickup.attractionRadius * pickupCollectionRangeMultiplier,
+      pickup.attractionRadius * effectivePickupCollectionRangeMultiplier,
       player.radius + pickup.radius + PICKUP_CONTACT_EPSILON,
     )
   }
@@ -50,7 +84,7 @@ export function updatePickups(
     const distance = Math.hypot(offsetX, offsetY)
     const contactRange = player.radius + pickup.radius
     const attractionRadius =
-      pickup.attractionRadius * pickupCollectionRangeMultiplier
+      pickup.attractionRadius * effectivePickupCollectionRangeMultiplier
 
     if (
       distance <= contactRange + PICKUP_CONTACT_EPSILON ||

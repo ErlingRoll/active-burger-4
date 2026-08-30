@@ -81,7 +81,9 @@ import {
 } from './systems/combat/CombatSystem'
 import { createEnemySpatialHash } from './combat/Targeting'
 import {
+  activateBossDeathMagnet,
   grantExperience,
+  updateBossDeathMagnet,
   updatePickups,
 } from './systems/experience/ExperienceSystem'
 import {
@@ -941,6 +943,7 @@ export class Game {
       this.advanceFloorTransition()
       return
     }
+    updateBossDeathMagnet(this.gameState, FIXED_STEP_SECONDS)
     // Start due boss events before normal spawning so a completed normal floor
     // never produces an ordinary enemy alongside its boss.
     updateEncounter(this.gameState, this.idAllocator)
@@ -997,6 +1000,7 @@ export class Game {
         new Set(defeatedBosses.map((boss) => boss.id)),
       )
       for (const boss of defeatedBosses) {
+        activateBossDeathMagnet(this.gameState)
         if (boss.xpReward > 0) {
           this.spawnXpPickup({ x: boss.x, y: boss.y }, boss.xpReward)
         }

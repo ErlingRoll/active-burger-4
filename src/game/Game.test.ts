@@ -9,10 +9,12 @@ import {
   MIN_TIME_SCALE,
 } from './Game'
 import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
+import { BOSS_DEATH_MAGNET_DURATION_SECONDS } from '../content/bosses/BossRewards'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'
 import {
+  updateBossDeathMagnet,
   grantExperience,
   updatePickups,
 } from './systems/experience/ExperienceSystem'
@@ -625,6 +627,48 @@ describe('Game', () => {
       expect(game.getUiSnapshot().floorProgress).toBe(0)
       game.update(FIXED_STEP_SECONDS)
       expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
+  })
+
+  it('activates a temporary long-range Magnet when a boss dies', () => {
+    const game = createGame({ seed: 20260830 })
+    const bossId = game.spawnBoss('stone-golem', { x: 320, y: 0 })
+    const boss = game.state.bosses?.find((candidate) => candidate.id === bossId)
+    expect(boss).toBeDefined()
+    if (!boss) {
+      throw new Error('Expected the spawned boss to exist')
+    }
+    boss.xpReward = 0
+    boss.hp = 0
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.bossMagnetRemaining).toBeCloseTo(
+      BOSS_DEATH_MAGNET_DURATION_SECONDS,
+    )
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.state.player.bossMagnetRemaining).toBeCloseTo(
+      BOSS_DEATH_MAGNET_DURATION_SECONDS - FIXED_STEP_SECONDS,
+    )
+    game.spawnXpPickup({ x: 1_000, y: 0 }, 3)
+    updatePickups(
+      game.state,
+      10,
+      (amount) => grantExperience(game.state, amount),
+    )
+
+    expect(game.state.pickups).toHaveLength(0)
+    expect(game.state.player.xp).toBe(3)
+  })
+
+  it('expires the boss-death Magnet after ten seconds', () => {
+    const game = createGame({ seed: 20260831 })
+    game.state.player.bossMagnetRemaining = BOSS_DEATH_MAGNET_DURATION_SECONDS
+
+    updateBossDeathMagnet(game.state, 4)
+    expect(game.state.player.bossMagnetRemaining).toBe(6)
+
+    updateBossDeathMagnet(game.state, 6)
+    expect(game.state.player.bossMagnetRemaining).toBe(0)
   })
 
   it('waits for every boss in an event before creating stairs', () => {

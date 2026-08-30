@@ -284,6 +284,8 @@ export interface PlayerState {
   gearRarityFloor?: Rarity
   /** Additive multiplier for the range that attracts all collectible pickups. */
   pickupCollectionRangeMultiplier?: number
+  /** Seconds remaining for the temporary boss-death Magnet effect. */
+  bossMagnetRemaining?: number
   resistances?: Partial<DamageResistanceValues>
   poisonStacks?: PoisonStackState[]
   critChance?: number

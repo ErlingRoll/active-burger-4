@@ -128,6 +128,7 @@ export function createInitialPlayerState(
     gearDropChanceMultiplier: 1,
     gearRarityFloor: Rarity.Common,
     pickupCollectionRangeMultiplier: 1,
+    bossMagnetRemaining: 0,
     baseStats: {
       maxHp: baseMaxHp,
       movementSpeed,
