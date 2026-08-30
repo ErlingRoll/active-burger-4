@@ -629,3 +629,56 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   await equippedItems.last().focus()
   await expect(loadout.locator('.loadout-tooltip')).toBeVisible()
 })
+
+test('uses a custom skip key immediately', async ({ page }) => {
+  await page.goto('/?demo=level-up')
+  await signIn(page)
+  await openRunSetup(page)
+  await startRun(page)
+
+  const canvas = page.locator('.game-canvas')
+  await expect(canvas).toHaveAttribute('data-game-phase', 'level-up')
+  const overlay = page.getByRole('dialog', { name: /level 2/i })
+  await expect(overlay).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  const pauseMenu = page.getByRole('dialog', { name: 'Pause menu' })
+  await expect(pauseMenu).toBeVisible()
+  const skipBinding = pauseMenu.getByRole('button', {
+    name: /Rebind Skip choice, current key 5/i,
+  })
+  await skipBinding.click()
+  await page.keyboard.press('x')
+  await expect(
+    pauseMenu.getByRole('button', {
+      name: /Rebind Skip choice, current key X/i,
+    }),
+  ).toBeVisible()
+
+  await pauseMenu.getByRole('button', { name: 'Resume run' }).click()
+  await expect(overlay).toBeVisible()
+  const skipButton = overlay.getByRole('button', { name: 'Skip' })
+  await expect(skipButton).toHaveAttribute('aria-keyshortcuts', 'x')
+
+  await page.keyboard.press('5')
+  await expect(overlay).toBeVisible()
+  await page.keyboard.press('x')
+  await expect(overlay).toBeHidden()
+  await expect(canvas).toHaveAttribute('data-game-phase', 'playing', {
+    timeout: 1_000,
+  })
+
+  await page.keyboard.press('Escape')
+  await expect(pauseMenu).toBeVisible()
+  const customSkipBinding = pauseMenu.getByRole('button', {
+    name: /Rebind Skip choice, current key X/i,
+  })
+  await customSkipBinding.click()
+  await page.keyboard.press('5')
+  await expect(
+    pauseMenu.getByRole('button', {
+      name: /Rebind Skip choice, current key 5/i,
+    }),
+  ).toBeVisible()
+  await pauseMenu.getByRole('button', { name: 'Resume run' }).click()
+})

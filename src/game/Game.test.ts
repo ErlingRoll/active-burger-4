@@ -1075,6 +1075,66 @@ describe('Game', () => {
     expect(game.state.player).toEqual(playerBeforeGear)
   })
 
+  it('skips queued level-up flows one at a time before resuming', () => {
+    const game = createGame({ seed: 201, startingLevel: 3 })
+
+    expect(game.phase).toBe('level-up')
+    expect(game.getPendingChoiceFlows()).toHaveLength(2)
+    expect(game.getPendingChoiceFlow()).toMatchObject({
+      type: 'level-up',
+      level: 2,
+    })
+
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('level-up')
+    expect(game.getPendingChoiceFlow()).toMatchObject({
+      type: 'level-up',
+      level: 3,
+    })
+
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.getPendingChoiceFlows()).toEqual([])
+  })
+
+  it('does not skip an active choice flow while paused', () => {
+    const game = createGame({ seed: 202 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.update(FIXED_STEP_SECONDS)
+
+    const pendingBeforePause = game.getPendingChoiceFlow()
+    expect(pendingBeforePause?.type).toBe('level-up')
+    expect(game.pause()).toBeUndefined()
+    expect(game.phase).toBe('paused')
+
+    expect(game.skipChoice()).toBe(false)
+    expect(game.getPendingChoiceFlow()).toEqual(pendingBeforePause)
+
+    game.resume()
+    expect(game.phase).toBe('level-up')
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+  })
+
+  it('skips queued level-up and gear flows in order', () => {
+    const game = createGame({ seed: 203 })
+    game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(2))
+    game.spawnGearPickup({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.getPendingChoiceFlow()?.type).toBe('level-up')
+    expect(game.getPendingChoiceFlows()).toHaveLength(1)
+
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+
+    game.update(FIXED_STEP_SECONDS)
+    expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+    expect(game.skipChoice()).toBe(true)
+    expect(game.phase).toBe('playing')
+    expect(game.getPendingChoiceFlows()).toEqual([])
+  })
+
   it('offers and notifies once for every level in a multi-level XP award', () => {
     const game = createGame({ seed: 21 })
     const notifications: Array<{
