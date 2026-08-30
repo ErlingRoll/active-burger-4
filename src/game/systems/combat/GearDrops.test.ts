@@ -80,6 +80,31 @@ describe('enemy gear drops', () => {
     expect(rolls).toContain(HEALING_POTION_ELITE_DROP_CHANCE)
   })
 
+  it('uses the current dungeon floor when calculating gear drops', () => {
+    const game = createGame({ seed: 8 })
+    game.state.run.floor = 30
+    game.spawnSlime({ x: 100, y: 200 })
+    const slime = game.state.enemies[0]
+    if (!slime) {
+      throw new Error('Expected a spawned slime')
+    }
+    slime.hp = 0
+    const gearRolls: number[] = []
+    const random = {
+      chance: (chance: number) => {
+        gearRolls.push(chance)
+        return false
+      },
+      next: () => 0.5,
+      int: () => 1,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    removeDeadEntities(game.state, () => {}, undefined, undefined, random)
+
+    expect(gearRolls[0]).toBeCloseTo(0.035)
+  })
+
   it('allows a Splitter to drop once but suppresses child gear and potions', () => {
     const game = createGame({ seed: 7 })
     game.spawnEnemy('splitter', { x: 100, y: 200 })

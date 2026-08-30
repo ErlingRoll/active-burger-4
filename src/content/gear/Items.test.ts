@@ -18,10 +18,12 @@ import {
 } from './ModifierPools'
 import { ENEMY_DEFINITIONS } from '../enemies/EnemyConfig'
 import {
+  GEAR_DROP_CHANCE_BALANCE,
   GEAR_DROP_CHANCES,
   GEAR_PICKUP_BALANCE,
 } from './GearDropConfig'
 import {
+  getGearDropFloorMultiplier,
   getGearDropChance,
   validateGearDropChances,
   validateGearPickupBalance,
@@ -382,5 +384,16 @@ describe('initial gear content', () => {
       timeSeconds: 600,
       chanceMultiplier: 6,
     })).toBeCloseTo(0.07)
+  })
+
+  it('tapers gear drops continuously from floor 1 through floor 30', () => {
+    expect(getGearDropFloorMultiplier()).toBe(1)
+    expect(getGearDropFloorMultiplier(1)).toBe(1)
+    expect(getGearDropFloorMultiplier(15)).toBeCloseTo(1 - 0.5 * 14 / 29)
+    expect(getGearDropFloorMultiplier(30)).toBe(0.5)
+    expect(getGearDropFloorMultiplier(60)).toBe(0.5)
+    expect(getGearDropChance('slime', undefined, {
+      floorNumber: GEAR_DROP_CHANCE_BALANCE.floorTaper.endFloor,
+    })).toBeCloseTo(0.035)
   })
 })

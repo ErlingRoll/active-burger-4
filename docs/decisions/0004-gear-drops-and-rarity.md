@@ -8,9 +8,12 @@ shared rarity model so the visual language and offer weights are consistent.
 
 ## Decision
 
-Enemy death uses seeded drop rolls defined by enemy content. If a run has not
-generated a gear orb by its 50th kill, that kill generates one. Generation, not
-collection, satisfies the safeguard.
+Enemy death uses seeded drop rolls defined by enemy content. Effective gear
+chance is normalized against spawn threat and tapered continuously by dungeon
+floor: it starts at 100% of the authored rate on floor 1, reaches 50% on floor
+30, and remains at 50% beyond floor 30. If a run has not generated a gear orb
+by its 50th kill, that kill generates one. Generation, not collection, satisfies
+the safeguard.
 
 Gear orbs are distinct simulation pickups. Collecting one queues a gear-only,
 three-choice flow. Level-up and gear flows are resolved in order, one at a

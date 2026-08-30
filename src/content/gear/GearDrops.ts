@@ -21,8 +21,32 @@ export interface GearPickupBalance {
 
 export interface GearDropChanceOptions {
   timeSeconds?: number
+  floorNumber?: number
   chanceMultiplier?: number
   spawnBalance?: SpawnBalance
+}
+
+export function getGearDropFloorMultiplier(floorNumber?: number): number {
+  const taper = GEAR_DROP_CHANCE_BALANCE.floorTaper
+  if (!Number.isFinite(floorNumber)) {
+    return 1
+  }
+
+  const floorRange = taper.endFloor - taper.startFloor
+  if (floorRange <= 0) {
+    return taper.endMultiplier
+  }
+
+  const progress = Math.min(
+    1,
+    Math.max(
+      0,
+      (Math.floor(floorNumber ?? taper.startFloor) - taper.startFloor) /
+        floorRange,
+    ),
+  )
+  return taper.startMultiplier +
+    (taper.endMultiplier - taper.startMultiplier) * progress
 }
 
 export function getGearDropChance(
@@ -51,10 +75,15 @@ export function getGearDropChance(
   const multiplier = eliteModifier
     ? getEliteModifierDefinition(eliteModifier).gearDropChanceMultiplier
     : 1
+  const floorMultiplier = getGearDropFloorMultiplier(options.floorNumber)
   const chanceMultiplier = Math.max(0, options.chanceMultiplier ?? 1)
   return Math.min(
     1,
-    baseChance * threatNormalization * multiplier * chanceMultiplier,
+    baseChance *
+      threatNormalization *
+      floorMultiplier *
+      multiplier *
+      chanceMultiplier,
   )
 }
 

@@ -16,6 +16,12 @@ export const GEAR_DROP_CHANCES = {
  */
 export const GEAR_DROP_CHANCE_BALANCE = {
   threatNormalizationExponent: 1,
+  floorTaper: {
+    startFloor: 1,
+    endFloor: 30,
+    startMultiplier: 1,
+    endMultiplier: 0.5,
+  },
 } as const
 
 export const GEAR_PICKUP_BALANCE = {

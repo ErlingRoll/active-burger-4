@@ -1399,6 +1399,7 @@ export function removeDeadEntities(
       const randomGearDrop = enemy.canDropLoot !== false && (random?.chance(
         getGearDropChance(enemy.definitionId, enemy.eliteModifier, {
           timeSeconds: state.time,
+          floorNumber: state.run.floor,
           chanceMultiplier: state.player.gearDropChanceMultiplier,
           spawnBalance,
         }),
