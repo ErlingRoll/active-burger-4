@@ -163,6 +163,8 @@ export interface RunState {
   floor?: number
   /** Simulation time at which the current floor began. */
   floorStartedAt?: number
+  /** Effective normal-floor duration after world modifier adjustments. */
+  floorDurationSeconds?: number
   completedEncounterIds?: string[]
   killCount: number
   selectedUpgradeIds: UpgradeId[]

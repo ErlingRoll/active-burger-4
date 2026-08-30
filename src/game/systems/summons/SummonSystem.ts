@@ -46,6 +46,7 @@ import {
 } from '../skills/RallyingBanner'
 
 const SUMMON_AGGRO_RANGE = 560
+const PHANTOM_FOLLOW_DISTANCE = 240
 const SUMMON_MOVEMENT_SPEED = 180
 const SUMMON_RADIUS = 16
 
@@ -427,9 +428,17 @@ export function updateSummons(
       .sort((left, right) =>
         left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
       )[0]?.enemy
+    const distanceToPlayer = Math.hypot(
+      state.player.x - summon.x,
+      state.player.y - summon.y,
+    )
+    const shouldFollowPlayer = skillId === PHANTOM_ARSENAL_SKILL_ID &&
+      distanceToPlayer > PHANTOM_FOLLOW_DISTANCE
     if (target) {
       const distanceToTarget = Math.hypot(target.x - summon.x, target.y - summon.y)
-      if (distanceToTarget > stats.attackRange) {
+      if (shouldFollowPlayer) {
+        moveInSwarm(summon, state.player.x, state.player.y, fixedStepSeconds)
+      } else if (distanceToTarget > stats.attackRange) {
         moveTowardsTarget(summon, target, fixedStepSeconds)
       }
     } else {

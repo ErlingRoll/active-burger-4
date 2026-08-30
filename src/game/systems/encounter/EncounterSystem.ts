@@ -14,8 +14,10 @@ function nextEncounter(
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   const floor = state.run.floor ?? 1
   const floorStartedAt = state.run.floorStartedAt ?? 0
+  const floorDurationSeconds =
+    state.run.floorDurationSeconds ?? dungeon.floorDurationSeconds
   const floorComplete =
-    state.time - floorStartedAt >= dungeon.floorDurationSeconds - 1e-9
+    state.time - floorStartedAt >= floorDurationSeconds - 1e-9
   return getEncounterTimeline(state)
     .filter((event) =>
       floorComplete &&

@@ -1287,27 +1287,7 @@
   font-size: 0.8rem;
 }
 
-.loadout-tooltip .gear-implicit-heading,
-.gear-comparison .gear-implicit-heading {
-  display: block;
-  margin-top: 0.55rem;
-  padding-top: 0.45rem;
-  border-top: 1px solid rgb(245 158 11 / 28%);
-}
-
-.loadout-tooltip .implicit-modifier-list,
-.gear-comparison .implicit-modifier-list {
-  gap: 0.15rem;
-  margin: 0.2rem 0 0.1rem;
-  padding: 0 0 0 0.6rem;
-  color: #fde68a;
-  background: transparent;
-  border: 0;
-  border-left: 2px solid rgb(245 158 11 / 62%);
-  border-radius: 0;
-}
-
-.loadout-tooltip ul {
+.loadout-tooltip > ul:not(.implicit-modifier-list) {
   display: grid;
   gap: 0.25rem;
   margin: 0;
@@ -2887,6 +2867,10 @@
 }
 
 .gear-implicit-heading {
+  display: block;
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(245 158 11 / 28%);
   color: #fbbf24;
 }
 
@@ -2919,13 +2903,14 @@
 
 .implicit-modifier-list {
   display: grid;
-  gap: 0.2rem;
-  margin: 0;
-  padding: 0.35rem 0.5rem;
-  color: #fef3c7;
-  background: rgb(120 53 15 / 25%);
-  border: 1px solid rgb(245 158 11 / 35%);
-  border-radius: 0.35rem;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0.25rem;
+  padding: 0 0 0 0.6rem;
+  color: #fde68a;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid rgb(245 158 11 / 62%);
+  border-radius: 0;
   font-size: 0.8rem;
   list-style: none;
 }

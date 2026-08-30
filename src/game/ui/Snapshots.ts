@@ -1499,18 +1499,20 @@ export function createUiSnapshot(
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   const floor = state.run.floor ?? 1
   const floorElapsedTime = Math.min(
-    dungeon.floorDurationSeconds,
+    state.run.floorDurationSeconds ?? dungeon.floorDurationSeconds,
     Math.max(
       0,
       state.time - (state.run.floorStartedAt ?? 0),
     ),
   )
+  const floorDurationSeconds =
+    state.run.floorDurationSeconds ?? dungeon.floorDurationSeconds
   const floorProgress = Math.min(
     1,
     Math.max(
       0,
-      (state.time - (state.run.floorStartedAt ?? (floor - 1) * dungeon.floorDurationSeconds)) /
-        dungeon.floorDurationSeconds,
+      (state.time - (state.run.floorStartedAt ?? (floor - 1) * floorDurationSeconds)) /
+        floorDurationSeconds,
     ),
   )
   const worldModifierRewardMultiplier = calculateWorldModifierRewardMultiplier(
@@ -1683,7 +1685,7 @@ export function createUiSnapshot(
     floor,
     floorProgress,
     floorElapsedTime,
-    floorDurationSeconds: dungeon.floorDurationSeconds,
+    floorDurationSeconds,
     skillSlotCount: eligibilityState.skillSlotCount,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),

@@ -59,6 +59,26 @@ describe('boss encounter timeline', () => {
     })
   })
 
+  it('starts a boss after 45 seconds with Shorter Minute enabled', () => {
+    const game = createGame({
+      seed: 126,
+      worldModifierIds: ['shorter-minute'],
+    })
+
+    expect(game.dungeon.floorDurationSeconds).toBe(45)
+    expect(game.dungeon.bossFloorDurationSeconds).toBe(120)
+    game.state.run.floorStartedAt =
+      game.state.time - game.dungeon.floorDurationSeconds
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.encounter).toMatchObject({
+      status: 'active',
+      bossDefinitionId: 'stone-golem',
+      floorNumber: 1,
+    })
+  })
+
   it('supports a manual encounter and resumes normal spawns after victory', () => {
     const game = createGame({ seed: 456 })
     expect(game.startBossEncounter()).toBe(true)

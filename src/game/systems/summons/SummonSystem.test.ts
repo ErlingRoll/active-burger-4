@@ -12,10 +12,27 @@ import {
 import { createEntityIdAllocator } from '../../ids'
 import { applyUpgrade } from '../upgrades/UpgradeSystem'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
+import { PHANTOM_ARSENAL_SKILL_ID } from '../../../content/skills/Skills'
 import {
   getFloorDifficultyProfile,
   getFloorStatMultiplier,
 } from '../../../content/dungeons/Dungeons'
+
+function createPhantomSummon(seed: number) {
+  const game = createGame({ seed, playstyleId: 'ranger' })
+  const allocator = createEntityIdAllocator()
+  game.state.player.skills.push({
+    skillId: PHANTOM_ARSENAL_SKILL_ID,
+    level: 1,
+    cooldownRemaining: 0,
+  })
+  collectSkillDamage(game.state, allocator)
+  return {
+    game,
+    allocator,
+    summon: game.state.summons[0]!,
+  }
+}
 
 describe('updateSummons', () => {
   it('has the Necromancer starter skeleton attack the nearest in-range enemy deterministically', () => {
@@ -236,6 +253,33 @@ describe('updateSummons', () => {
     expect(targetId).toBe(game.state.enemies[0]!.id)
     expect(events).toEqual([])
     expect(distanceAfterCharge).toBeLessThan(initialDistance)
+  })
+
+  it('returns a separated phantom archer toward the player instead of chasing an out-of-range enemy', () => {
+    const { game, allocator, summon } = createPhantomSummon(20)
+    summon.x = 400
+    summon.y = 0
+    const initialX = summon.x
+    game.spawnSlime({ x: 650, y: 0 })
+
+    const events = updateSummons(game.state, 1 / 60, allocator)
+
+    expect(events).toEqual([])
+    expect(summon.x).toBeLessThan(initialX)
+  })
+
+  it('keeps a separated phantom archer attacking an enemy that is already in range', () => {
+    const { game, allocator, summon } = createPhantomSummon(21)
+    summon.x = 400
+    summon.y = 0
+    const targetId = game.spawnSlime({ x: 500, y: 0 })
+
+    const events = updateSummons(game.state, 1 / 60, allocator)
+
+    expect(events).toEqual([])
+    expect(summon.x).toBeLessThan(400)
+    expect(game.state.projectiles).toHaveLength(1)
+    expect(game.state.projectiles[0]).toMatchObject({ targetId })
   })
 
   it('ignores enemies outside the play area and keeps summons inside it', () => {

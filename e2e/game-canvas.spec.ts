@@ -91,6 +91,7 @@ test('selects and persists world modifiers before starting a deterministic run',
     /Fast Start.*\+2/,
     /Juggernauts.*\+3/,
     /Glass World.*\+3/,
+    /Shorter Minute.*\+3/,
     /Elite Invasion.*\+5/,
   ])
   const swarming = page.getByRole('button', { name: /swarming.*\+2/i })

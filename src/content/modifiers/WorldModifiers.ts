@@ -3,10 +3,11 @@ import type { StatKey } from '../stats/Stats'
 
 export const WORLD_MODIFIER_IDS = [
   'swarming',
+  'fast-start',
   'juggernauts',
   'glass-world',
+  'shorter-minute',
   'elite-invasion',
-  'fast-start',
 ] as const
 
 export type WorldModifierId = (typeof WORLD_MODIFIER_IDS)[number]
@@ -47,6 +48,13 @@ export const WORLD_MODIFIER_DEFINITIONS: Readonly<
     difficulty: 3,
     essenceRewardMultiplier: 1.15,
   },
+  'shorter-minute': {
+    id: 'shorter-minute',
+    name: 'Shorter Minute',
+    description: 'Normal floors last 45 seconds instead of 60, leaving less time to build before the boss.',
+    difficulty: 3,
+    essenceRewardMultiplier: 1.15,
+  },
   'elite-invasion': {
     id: 'elite-invasion',
     name: 'Elite Invasion',
@@ -71,6 +79,7 @@ export interface WorldModifierEffects {
   readonly ordinaryEnemyMaxHpMultiplier: number
   readonly ordinaryEnemyContactDamageMultiplier: number
   readonly ordinaryEnemySpeedMultiplier: number
+  readonly floorDurationMultiplier: number
   readonly spawnBalance: SpawnBalance
   readonly fastStartThreatMultiplier: number
   readonly fastStartDurationSeconds: number
@@ -132,6 +141,7 @@ export function resolveWorldModifierEffects(
   const fastStart = selected.has('fast-start')
   const juggernauts = selected.has('juggernauts')
   const glassWorld = selected.has('glass-world')
+  const shorterMinute = selected.has('shorter-minute')
   const definitions = getWorldModifierDefinitions(normalizedIds)
 
   return {
@@ -144,6 +154,7 @@ export function resolveWorldModifierEffects(
     ordinaryEnemyMaxHpMultiplier: juggernauts ? 1.25 : 1,
     ordinaryEnemyContactDamageMultiplier: juggernauts ? 1.2 : 1,
     ordinaryEnemySpeedMultiplier: juggernauts ? 0.9 : 1,
+    floorDurationMultiplier: shorterMinute ? 0.75 : 1,
     spawnBalance: {
       ...baseBalance,
       baseThreatPerSecond: baseBalance.baseThreatPerSecond * (swarming ? 1.35 : 1),

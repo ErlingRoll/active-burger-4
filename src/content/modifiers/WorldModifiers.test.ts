@@ -23,12 +23,14 @@ describe('WorldModifiers', () => {
       'glass-world',
       'juggernauts',
       'fast-start',
+      'shorter-minute',
       'swarming',
     ]).map((modifier) => modifier.id)).toEqual([
       'swarming',
       'fast-start',
       'juggernauts',
       'glass-world',
+      'shorter-minute',
       'elite-invasion',
     ])
   })
@@ -67,7 +69,18 @@ describe('WorldModifiers', () => {
       eliteStartTimeSeconds: 20,
       eliteChance: 0.22,
     })
+    expect(effects.floorDurationMultiplier).toBe(1)
     expect(effects.fastStartThreatMultiplier).toBe(1.4)
     expect(effects.fastStartDurationSeconds).toBe(120)
+  })
+
+  it('shortens normal floors without changing boss encounter duration', () => {
+    const effects = resolveWorldModifierEffects(
+      ['shorter-minute'],
+      SPAWN_BALANCE,
+    )
+
+    expect(effects.floorDurationMultiplier).toBe(0.75)
+    expect(effects.essenceRewardMultiplier).toBe(1.15)
   })
 })

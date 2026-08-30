@@ -1916,6 +1916,14 @@ Basic attack damage: +10%
 Reward multiplier: 1.15x when selected alone
 ```
 
+## Shorter Minute
+
+```text
+Normal floor duration: 45 seconds instead of 60
+Boss encounter duration: unchanged at 120 seconds
+Reward multiplier: 1.15x when selected alone
+```
+
 ## Elite Invasion
 
 ```text
@@ -3867,6 +3875,7 @@ Initial modifiers:
 Swarming
 Juggernauts
 Glass World
+Shorter Minute
 Elite Invasion
 Fast Start
 ```

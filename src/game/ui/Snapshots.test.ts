@@ -250,6 +250,19 @@ describe('UI snapshots', () => {
     expect(createUiSnapshot(game.state).estimatedEssence).toBe(7)
   })
 
+  it('projects the shortened normal-floor duration', () => {
+    const game = createGame({
+      seed: 76,
+      worldModifierIds: ['shorter-minute'],
+    })
+
+    expect(createUiSnapshot(game.state)).toMatchObject({
+      floorElapsedTime: 0,
+      floorProgress: 0,
+      floorDurationSeconds: 45,
+    })
+  })
+
   it('projects Fiery Touch trigger stats and skill-specific cooldown ranks', () => {
     const game = createGame({ seed: 73 })
     game.state.player.skills.push({

@@ -285,7 +285,15 @@ export class Game {
       this.worldModifierEffects.fastStartThreatMultiplier,
       this.worldModifierEffects.fastStartDurationSeconds,
     )
-    const dungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
+    const baseDungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
+    const dungeon = this.worldModifierEffects.floorDurationMultiplier === 1
+      ? baseDungeon
+      : {
+          ...baseDungeon,
+          floorDurationSeconds:
+            baseDungeon.floorDurationSeconds *
+            this.worldModifierEffects.floorDurationMultiplier,
+        }
     const contractMaxFloor = resolveDungeonMaxFloor(
       dungeon,
       config.dungeonMaxFloorContractId,
@@ -316,6 +324,7 @@ export class Game {
         dungeonMaxFloor,
         floor: 1,
         floorStartedAt: 0,
+        floorDurationSeconds: this.dungeon.floorDurationSeconds,
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
