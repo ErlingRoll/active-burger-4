@@ -482,7 +482,7 @@ export const SKILL_DEFINITIONS = {
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger'],
     cooldown: 6.5,
-    baseDamage: { chaos: 5 },
+    baseDamage: { chaos: 7 },
     damagePerLevel: {},
     maxRange: 320,
     effectLifetime: 0.15,
