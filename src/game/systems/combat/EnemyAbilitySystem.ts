@@ -11,6 +11,9 @@ import {
 import {
   getProjectileDefinition,
 } from '../../../content/projectiles/Projectiles'
+import {
+  getPostSpawnDamageMultiplier,
+} from '../../../content/enemies/EnemyAcceleration'
 import { createDamageValues } from '../../../content/stats/Damage'
 import {
   createMonsterDamageProfile,
@@ -51,11 +54,16 @@ function getEnemyAbilityDamage(
 ): ReturnType<typeof createMonsterDamageProfile> {
   const profile = getFloorDifficultyProfile(state.run.floor ?? 1)
   const floorStatMultiplier = getFloorStatMultiplier(state.run.floor ?? 1)
+  const postSpawnDamageMultiplier = getPostSpawnDamageMultiplier(
+    state.time,
+    enemy.spawnTime,
+  )
   return createMonsterDamageProfile(
     createDamageValues({
       [definition.damageType]: definition.damage *
         floorStatMultiplier *
-        profile.abilityDamageMultiplier,
+        profile.abilityDamageMultiplier *
+        postSpawnDamageMultiplier,
     }),
     enemy,
   )

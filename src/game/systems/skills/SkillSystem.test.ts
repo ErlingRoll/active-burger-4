@@ -1087,8 +1087,8 @@ describe('skill system', () => {
         damage: { physical: 0, lightning: 0, fire: 0, cold: 0, chaos: 10 },
       }])
 
-      expect(game.state.player.hp).toBeCloseTo(3)
-      expect(game.state.player.soulTetherVitalityCharge).toBeCloseTo(1.5)
+      expect(game.state.player.hp).toBeCloseTo(0.5)
+      expect(game.state.player.soulTetherVitalityCharge).toBeCloseTo(0.25)
     })
 
     it('snaps to one weaker nearby enemy when the tethered enemy dies, then ends', () => {

@@ -38,6 +38,7 @@ import {
 } from '../../../content/stats/Damage'
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import { getEnemyAbilityDefinition } from '../../../content/enemies/EnemyAbilities'
+import { getPostSpawnDamageMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import { getBossDefinition } from '../../../content/bosses/Bosses'
 import {
   KNIGHT_EARLY_FLOOR_COUNT,
@@ -817,7 +818,10 @@ export function collectEnemyContactDamage(
     events.push(createMonsterDamageEvent(
       enemy,
       target.id,
-      { physical: enemy.contactDamage },
+      {
+        physical: enemy.contactDamage *
+          getPostSpawnDamageMultiplier(state.time, enemy.spawnTime),
+      },
     ))
     enemy.contactCooldownRemaining = ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS
     enemy.lastMeleeAttackTime = state.time

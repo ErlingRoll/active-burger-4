@@ -814,6 +814,15 @@ describe('collectEnemyContactDamage', () => {
     ])
   })
 
+  it('ramps contact damage with the enemy age multiplier', () => {
+    const gameState = state([enemy(2, 34)])
+    gameState.enemies[0]!.spawnTime = -55
+
+    const [event] = collectEnemyContactDamage(gameState, 1 / 60)
+
+    expect(event?.damage.physical).toBeCloseTo(8.75)
+  })
+
   describe('Frost and Shock statuses', () => {
     it('freezes after capped Chill progress and shatters on physical damage', () => {
       const gameState = state([enemy(2, 100)])

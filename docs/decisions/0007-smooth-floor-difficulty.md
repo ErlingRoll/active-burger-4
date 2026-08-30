@@ -31,6 +31,14 @@ player's normal resistance/damage-reduction pipeline, and deterministic
 cleanup. Hostile projectiles are explicitly marked so existing non-player
 projectile fixtures and future friendly projectiles remain compatible.
 
+## Spawn-age ramp
+
+Ordinary mobs retain their initial floor-scaled stats for a 10-second grace
+period. During the following 60 seconds, their movement speed ramps linearly to
+4x and their contact/special-ability damage ramps linearly to 2x. Both
+multipliers are capped and use the same spawn timestamp, so a mob that survives
+longer becomes more dangerous without creating a floor breakpoint.
+
 Floor 20 increases the slope of the profile gradually. It does not unlock a
 separate ruleset or introduce an adjacent-floor difficulty spike. World
 modifiers and boss enrage remain independent multipliers.

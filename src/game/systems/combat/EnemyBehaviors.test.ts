@@ -48,7 +48,7 @@ describe('enemy variety behaviors', () => {
     const cappedX = enemy.x
 
     expect(gracePeriodX).toBeCloseTo(1_000 - baseSpeed * FIXED_STEP_SECONDS)
-    expect(gracePeriodX - midpointX).toBeCloseTo(baseSpeed * 2.5 * FIXED_STEP_SECONDS)
+    expect(gracePeriodX - midpointX).toBeCloseTo(baseSpeed * 3.25 * FIXED_STEP_SECONDS)
     expect(midpointX - cappedX).toBeCloseTo(baseSpeed * 4 * FIXED_STEP_SECONDS)
   })
 
