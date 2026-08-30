@@ -1168,7 +1168,8 @@ export function createUiSnapshot(
           upgrade.skillId === skill.skillId && upgrade.skillAction !== 'unlock',
       )
       .map((upgrade) => {
-        const repeatable = upgrade.skillCooldownReductionPercent !== undefined ||
+        const repeatable = upgrade.repeatable === true ||
+          upgrade.skillCooldownReductionPercent !== undefined ||
           upgrade.summonMaxCountIncrease !== undefined
         const acquired = !repeatable &&
           state.run.selectedUpgradeIds.includes(upgrade.id)

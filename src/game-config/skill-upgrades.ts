@@ -139,21 +139,6 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('whirlwind-guard'),
   },
   {
-    id: 'attack-speed-boost',
-    name: 'Rapid Fire',
-    description: 'Attack more often with Basic Attack.',
-    category: 'passive',
-    rarity: 'common',
-    stat: 'attackSpeed',
-    amount: 0.2,
-    modifiers: [
-      { stat: 'attackSpeed', operation: 'add', value: 0.2, sourceId: 'upgrade:attack-speed-boost' },
-    ],
-    valueLabel: '+0.2 attacks/sec',
-    skillId: BASIC_ATTACK_SKILL_ID,
-    isEligible: () => true,
-  },
-  {
     id: 'basic-attack-barrage',
     name: 'Barrage',
     description: 'Basic Attack fires 0.15 attacks per second faster.',
@@ -161,15 +146,14 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     rarity: 'uncommon',
     stat: 'attackSpeed',
     amount: 0.15,
+    repeatable: true,
     modifiers: [
       { stat: 'attackSpeed', operation: 'add', value: 0.15, sourceId: 'upgrade:basic-attack-barrage' },
     ],
     valueLabel: '+0.15 Basic Attack attacks/sec',
     skillId: BASIC_ATTACK_SKILL_ID,
     branch: 'basic-attack-barrage',
-    isEligible: (state) =>
-      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
-      !state.selectedUpgradeIds.includes('basic-attack-barrage'),
+    isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
   },
   {
     id: 'basic-attack-precision',

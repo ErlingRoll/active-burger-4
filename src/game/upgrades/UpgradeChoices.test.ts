@@ -6,6 +6,7 @@ import {
 import { SKILL_DEFINITIONS } from '../../content/skills/Skills'
 import { Random } from '../random/Random'
 import { createGame } from '../Game'
+import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
 import {
   generateUpgradeChoices,
   getSkillUnlockWeight,
@@ -53,6 +54,20 @@ describe('upgrade choice generation', () => {
 
     expect(ids).toContain('whirlwind-level')
     expect(ids).not.toContain('whirlwind-unlock')
+  })
+
+  it('removes Rapid Fire and keeps Barrage eligible after it is selected', () => {
+    expect(INITIAL_UPGRADES.some((upgrade) => upgrade.name === 'Rapid Fire')).toBe(false)
+
+    const barrage = getUpgrade('basic-attack-barrage')
+    expect(barrage.repeatable).toBe(true)
+    expect(barrage.isEligible({
+      playerLevel: 2,
+      selectedUpgradeIds: ['basic-attack-barrage'],
+      ownedSkillIds: [BASIC_ATTACK_SKILL_ID],
+      skillLevels: { [BASIC_ATTACK_SKILL_ID]: 1 },
+      skillSlotCount: 6,
+    })).toBe(true)
   })
 
   it('does not offer new skills when every skill slot is filled', () => {
@@ -105,6 +120,7 @@ describe('upgrade choice generation', () => {
 
   it('selects unique weighted choices when every eligible upgrade shares one rarity', () => {
     const game = createGame({ seed: 463, playstyleId: 'knight' })
+    game.state.player.skills = []
     game.state.run.selectedUpgradeIds = INITIAL_UPGRADES
       .filter((upgrade) => upgrade.rarity !== 'common')
       .map((upgrade) => upgrade.id)

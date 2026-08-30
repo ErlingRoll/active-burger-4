@@ -196,19 +196,20 @@ describe('UI snapshots', () => {
     expect(upgrade?.valueLabel).toBe('+20% Basic Attack damage')
   })
 
-  it('shows the accumulated value for repeated Rapid Fire upgrades', () => {
+  it('shows the accumulated value for repeated Barrage upgrades', () => {
     const game = createGame({ seed: 95 })
     game.state.run.selectedUpgradeIds.push(
-      'attack-speed-boost',
-      'attack-speed-boost',
-      'attack-speed-boost',
+      'basic-attack-barrage',
+      'basic-attack-barrage',
+      'basic-attack-barrage',
     )
 
     const upgrade = createUiSnapshot(game.state).skills
       .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
-      ?.upgrades.find((candidate) => candidate.upgradeId === 'attack-speed-boost')
+      ?.upgrades.find((candidate) => candidate.upgradeId === 'basic-attack-barrage')
 
-    expect(upgrade?.valueLabel).toBe('+0.6 attacks/sec')
+    expect(upgrade?.valueLabel).toBe('+0.45 Basic Attack attacks/sec')
+    expect(upgrade?.status).toBe('available')
   })
 
   it('shows Vitality healing and increased healing in the skill and Defence panels', () => {

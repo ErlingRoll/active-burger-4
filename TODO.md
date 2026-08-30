@@ -1,5 +1,9 @@
 # TODO Pile
 
+- extra projectiles working???
+- you can upgrade chill???
+- tiers are not shown in gear hover tooltip.
+- hover over skill goes under character stats.
 - implement new flat damage sources
 - I want a cast on critical strike skill
 - skip choice keybind

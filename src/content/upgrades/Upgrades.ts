@@ -5,7 +5,6 @@ import type { Rarity } from '../rarity/Rarity'
 
 export const REMOVE_SKILL_UPGRADE_ID = 'remove-skill' as const
 export type UpgradeId =
-  | 'attack-speed-boost'
   | 'whirlwind-unlock'
   | 'chain-lightning-unlock'
   | 'basic-attack-level'
@@ -113,6 +112,7 @@ export interface UpgradeDefinition {
   rarity: UpgradeRarity
   stat?: UpgradeStat
   amount: number
+  repeatable?: boolean
   /** Optional explicit modifiers for passive content and future scaling. */
   modifiers?: readonly StatModifier[]
   valueLabel: string
