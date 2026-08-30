@@ -284,11 +284,16 @@ export class Game {
       this.worldModifierEffects.fastStartDurationSeconds,
     )
     const dungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
-    const dungeonMaxFloor = resolveDungeonMaxFloor(
+    const contractMaxFloor = resolveDungeonMaxFloor(
       dungeon,
       config.dungeonMaxFloorContractId,
       new Set(config.unlockedDungeonMaxFloorIds ?? []),
     )
+    const dungeonMaxFloorBonus = typeof config.dungeonMaxFloorBonus === 'number' &&
+      Number.isFinite(config.dungeonMaxFloorBonus)
+      ? Math.max(0, Math.floor(config.dungeonMaxFloorBonus))
+      : 0
+    const dungeonMaxFloor = contractMaxFloor + dungeonMaxFloorBonus
     this.dungeon = dungeonMaxFloor === dungeon.defaultMaxFloor
       ? dungeon
       : {

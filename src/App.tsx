@@ -417,6 +417,7 @@ function App() {
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
       startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
       skillSlotCount: metaProgression.snapshot?.skillSlotCount ?? DEFAULT_SKILL_SLOT_COUNT,
+      dungeonMaxFloorBonus: metaProgression.snapshot?.dungeonMaxFloorBonus ?? 0,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}

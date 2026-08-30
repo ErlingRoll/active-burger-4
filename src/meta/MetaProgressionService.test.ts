@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DUNGEON_MAX_FLOOR_BONUS_PER_RANK,
+  DUNGEON_MAX_FLOOR_MAX_RANK,
+  DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
+  getDungeonMaxFloorBonus,
+  getDungeonMaxFloorRank,
   getSkillSlotCount,
   getXpMultiplierLevel,
   getStartingLevelRank,
@@ -31,6 +36,20 @@ function startingLevelUnlock(id: string, rank: number): MetaUnlockDefinition {
     payload: {
       rank,
       startingLevel: rank + 1,
+    },
+  }
+}
+
+function dungeonMaxFloorUnlock(id: string, rank: number): MetaUnlockDefinition {
+  return {
+    id,
+    category: DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
+    cost: rank * 1000,
+    requiresUnlockId: rank > 1 ? `dungeon-max-floor-${rank - 1}` : null,
+    isStarter: false,
+    payload: {
+      rank,
+      maxFloorBonus: DUNGEON_MAX_FLOOR_BONUS_PER_RANK,
     },
   }
 }
@@ -93,5 +112,29 @@ describe('skill-slot unlock definitions', () => {
 
     expect(getSkillSlotCount([definition], [])).toBe(5)
     expect(getSkillSlotCount([definition], ['skill-slot-1'])).toBe(6)
+  })
+})
+
+describe('dungeon maximum-floor unlock definitions', () => {
+  it('adds five floors for each purchased rank', () => {
+    const definitions = Array.from(
+      { length: DUNGEON_MAX_FLOOR_MAX_RANK },
+      (_, index) => dungeonMaxFloorUnlock(
+        `dungeon-max-floor-${index + 1}`,
+        index + 1,
+      ),
+    )
+    const unlockedIds = definitions.map((definition) => definition.id)
+
+    expect(getDungeonMaxFloorRank(definitions, unlockedIds)).toBe(4)
+    expect(getDungeonMaxFloorBonus(definitions, unlockedIds)).toBe(20)
+    expect(getDungeonMaxFloorBonus(definitions, [])).toBe(0)
+  })
+
+  it('does not exceed the four-rank cap', () => {
+    const definition = dungeonMaxFloorUnlock('dungeon-max-floor-5', 5)
+
+    expect(getDungeonMaxFloorRank([definition], [definition.id])).toBe(4)
+    expect(getDungeonMaxFloorBonus([definition], [definition.id])).toBe(20)
   })
 })

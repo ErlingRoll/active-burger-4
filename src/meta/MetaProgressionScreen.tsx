@@ -1,4 +1,5 @@
 import {
+  DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
   SKILL_SLOT_UNLOCK_CATEGORY,
   type MetaProgressionSnapshot,
   type MetaUnlockDefinition,
@@ -106,6 +107,39 @@ function getSkillSlotUpgradeState(
   return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
 }
 
+function getNextDungeonMaxFloorUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+  currentRank: number,
+): MetaUnlockDefinition | null {
+  const nextRank = currentRank + 1
+  return definitions.find((definition) =>
+    definition.category === DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY &&
+    definition.payload.rank === nextRank,
+  ) ?? null
+}
+
+function getDungeonMaxFloorUpgradeState(
+  definition: MetaUnlockDefinition,
+  snapshot: MetaProgressionSnapshot,
+): { label: string; disabled: boolean } {
+  const rank = typeof definition.payload.rank === 'number'
+    ? definition.payload.rank
+    : null
+  if (rank === null || rank <= snapshot.dungeonMaxFloorRank) {
+    return { label: 'Owned', disabled: true }
+  }
+  if (rank !== snapshot.dungeonMaxFloorRank + 1) {
+    return { label: `Locked - requires rank ${rank - 1}`, disabled: true }
+  }
+  if (snapshot.wallet.essenceBalance < definition.cost) {
+    return {
+      label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`,
+      disabled: true,
+    }
+  }
+  return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
+}
+
 export function MetaProgressionScreen({
   snapshot,
   loadState,
@@ -175,6 +209,18 @@ export function MetaProgressionScreen({
     : snapshot.skillSlotCount + 1
   const skillSlotUpgradeOwned = skillSlotUpgrade !== null &&
     snapshot.unlockedIds.includes(skillSlotUpgrade.id)
+  const nextDungeonMaxFloorUpgrade = getNextDungeonMaxFloorUpgrade(
+    snapshot.definitions,
+    snapshot.dungeonMaxFloorRank,
+  )
+  const nextDungeonMaxFloorUpgradeState = nextDungeonMaxFloorUpgrade === null
+    ? null
+    : getDungeonMaxFloorUpgradeState(nextDungeonMaxFloorUpgrade, snapshot)
+  const nextDungeonMaxFloorBonus =
+    typeof nextDungeonMaxFloorUpgrade?.payload.maxFloorBonus === 'number'
+      ? nextDungeonMaxFloorUpgrade.payload.maxFloorBonus
+      : 0
+  const nextDungeonMaxFloor = snapshot.dungeonMaxFloor + nextDungeonMaxFloorBonus
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -307,6 +353,41 @@ export function MetaProgressionScreen({
                 </button>
               </div>
             ) : null}
+            {nextDungeonMaxFloorUpgrade && nextDungeonMaxFloorUpgradeState ? (
+              <div className="dashboard-choice meta-unlock-card" key={nextDungeonMaxFloorUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>Dungeon length</span>
+                  <strong>{snapshot.dungeonMaxFloor} floors</strong>
+                </div>
+                <div className="meta-unlock-card-heading">
+                  <strong>Deeper Dungeon</strong>
+                  <span>Rank {nextDungeonMaxFloorUpgrade.payload.rank} of 4</span>
+                </div>
+                <div className="meta-unlock-card-benefit">
+                  <strong>+{nextDungeonMaxFloorBonus} maximum floors</strong>
+                  <span>{snapshot.dungeonMaxFloor} → {nextDungeonMaxFloor} floors</span>
+                </div>
+                <span className="meta-unlock-state">{nextDungeonMaxFloorUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={
+                    nextDungeonMaxFloorUpgradeState.disabled ||
+                    purchaseState === 'purchasing'
+                  }
+                  onClick={() => { onPurchaseUnlock(nextDungeonMaxFloorUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' &&
+                  activePurchaseUnlockId === nextDungeonMaxFloorUpgrade.id
+                    ? 'Purchasing...'
+                    : `Purchase for ${formatCurrency(nextDungeonMaxFloorUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : (
+              <p className="persistence-status" role="status">
+                Dungeon maximum floor fully upgraded.
+              </p>
+            )}
           </div>
           {purchaseState === 'purchasing' ? (
             <p className="persistence-status" role="status">Submitting unlock purchase...</p>

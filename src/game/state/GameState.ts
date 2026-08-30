@@ -147,6 +147,8 @@ export interface RunConfig {
   startingLevel?: number
   /** Purchased permanent maximum skill capacity. */
   skillSlotCount?: number
+  /** Purchased permanent maximum-floor bonus, in floors. */
+  dungeonMaxFloorBonus?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId

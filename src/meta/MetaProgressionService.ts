@@ -8,9 +8,13 @@ import {
   STARTING_LEVEL_MAX_RANK,
   getStartingLevelForRank,
 } from '../content/progression/StartingLevel'
+import { DEFAULT_DUNGEON_MAX_FLOOR } from '../content/dungeons/Dungeons'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 
 export const SKILL_SLOT_UNLOCK_CATEGORY = 'skill-slot'
+export const DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY = 'dungeon-max-floor'
+export const DUNGEON_MAX_FLOOR_BONUS_PER_RANK = 5
+export const DUNGEON_MAX_FLOOR_MAX_RANK = 4
 
 export interface MetaWallet {
   essenceBalance: number
@@ -36,6 +40,9 @@ export interface MetaProgressionSnapshot {
   startingLevelRank: number
   startingLevel: number
   skillSlotCount: number
+  dungeonMaxFloorRank: number
+  dungeonMaxFloorBonus: number
+  dungeonMaxFloor: number
 }
 
 export interface MetaProgressionService {
@@ -180,6 +187,53 @@ export function getSkillSlotCount(
   }, DEFAULT_SKILL_SLOT_COUNT)
 }
 
+export function getDungeonMaxFloorRank(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  return Math.min(
+    DUNGEON_MAX_FLOOR_MAX_RANK,
+    definitions.reduce((highestRank, definition) => {
+      if (
+        definition.category !== DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY ||
+        !unlocked.has(definition.id)
+      ) {
+        return highestRank
+      }
+      const rank = definition.payload.rank
+      return typeof rank === 'number' && Number.isInteger(rank)
+        ? Math.max(highestRank, rank)
+        : highestRank
+    }, 0),
+  )
+}
+
+export function getDungeonMaxFloorBonus(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  const bonus = definitions.reduce((totalBonus, definition) => {
+    if (
+      definition.category !== DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY ||
+      !unlocked.has(definition.id)
+    ) {
+      return totalBonus
+    }
+    const maxFloorBonus = definition.payload.maxFloorBonus
+    return typeof maxFloorBonus === 'number' &&
+      Number.isInteger(maxFloorBonus) &&
+      maxFloorBonus > 0
+      ? totalBonus + maxFloorBonus
+      : totalBonus
+  }, 0)
+  return Math.min(
+    bonus,
+    DUNGEON_MAX_FLOOR_MAX_RANK * DUNGEON_MAX_FLOOR_BONUS_PER_RANK,
+  )
+}
+
 function toSnapshot(
   walletRow: unknown,
   definitionRows: unknown,
@@ -210,6 +264,8 @@ function toSnapshot(
   const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
   const startingLevelRank = getStartingLevelRank(definitions, unlockedIds)
   const skillSlotCount = getSkillSlotCount(definitions, unlockedIds)
+  const dungeonMaxFloorRank = getDungeonMaxFloorRank(definitions, unlockedIds)
+  const dungeonMaxFloorBonus = getDungeonMaxFloorBonus(definitions, unlockedIds)
   return {
     wallet,
     definitions,
@@ -219,6 +275,9 @@ function toSnapshot(
     startingLevelRank,
     startingLevel: getStartingLevelForRank(startingLevelRank),
     skillSlotCount,
+    dungeonMaxFloorRank,
+    dungeonMaxFloorBonus,
+    dungeonMaxFloor: DEFAULT_DUNGEON_MAX_FLOOR + dungeonMaxFloorBonus,
   }
 }
 

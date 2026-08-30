@@ -267,6 +267,19 @@ describe('Game', () => {
     })
   })
 
+  it('applies the permanent maximum-floor bonus to the encounter timeline', () => {
+    const game = createGame({
+      seed: 106,
+      dungeonMaxFloorBonus: 20,
+    })
+
+    expect(game.state.run.dungeonMaxFloor).toBe(50)
+    expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
+      floorNumber: 50,
+      isFinal: true,
+    })
+  })
+
   it('runs headlessly: no renderer is required to advance the simulation', () => {
     // Mirrors PLAN.md section 79's deterministic simulation test: the
     // simulation can run for a full minute of ticks with nothing but the
