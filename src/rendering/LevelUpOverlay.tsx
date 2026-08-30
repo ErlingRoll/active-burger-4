@@ -496,19 +496,20 @@ function UpgradeCard({
     getSkillDefinition(skillId)
   )
   const isSynergy = synergySkillIds !== undefined
+  const isRelease = removedSkill !== undefined || removedSynergy !== undefined
   const actionLabel = removedSkill
     ? 'Release'
-    : isSynergy
-      ? removedSynergy
-        ? 'Release synergy:'
-        : 'Synergy:'
-      : definition.branch
-        ? 'Evolve:'
-        : definition.skillAction === 'unlock'
-          ? 'Unlock skill'
-          : 'Upgrade'
+    : removedSynergy
+      ? 'Release synergy:'
+      : isSynergy
+        ? 'Synergy:'
+        : definition.branch
+          ? 'Evolve:'
+          : definition.skillAction === 'unlock'
+            ? 'Unlock skill'
+            : 'Upgrade'
   const actionLabelClass = `upgrade-action-label-${
-    removedSkill
+    isRelease
       ? 'release'
       : isSynergy
         ? 'synergy'
@@ -525,7 +526,7 @@ function UpgradeCard({
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)} ${
           isSynergy ? 'synergy-card' : ''
         } ${
-          choice.upgradeId === REMOVE_SKILL_UPGRADE_ID ? 'skill-removal-card' : ''
+          isRelease ? 'skill-removal-card' : ''
         }`}
         data-choice-type="upgrade"
         type="button"
@@ -545,7 +546,7 @@ function UpgradeCard({
             {isSynergy ? (
               <span className="synergy-card-badge">SYNERGY</span>
             ) : null}
-            <RarityBadge rarity={choice.rarity} synergy={isSynergy} />
+            <RarityBadge rarity={choice.rarity} synergy={isSynergy && !isRelease} />
           </span>
         </span>
         <span className={`upgrade-action-label ${actionLabelClass}`}>
