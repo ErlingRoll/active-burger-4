@@ -2,6 +2,7 @@ import type { WeaponArchetype } from '../content/gear/Items'
 import {
   BASIC_ATTACK_ARROW_DEFINITION_ID,
   BASIC_ATTACK_ORB_DEFINITION_ID,
+  GLACIAL_ORB_PROJECTILE_DEFINITION_ID,
 } from '../content/projectiles/Projectiles'
 import type {
   BasicAttackVariantDefinition,
@@ -274,6 +275,7 @@ export const SKILL_DEFINITIONS = {
     cooldown: 3.2,
     baseDamage: { cold: 9 },
     damagePerLevel: {},
+    projectileDefinitionId: GLACIAL_ORB_PROJECTILE_DEFINITION_ID,
     radius: 55,
     maxRange: 240,
     effectLifetime: 0.22,
@@ -283,6 +285,9 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#38bdf8',
       secondaryColor: '#bae6fd',
       outlineColor: '#e0f2fe',
+      trailLength: 20,
+      trailWidth: 5,
+      projectileShape: 'orb',
     },
   },
   [LANCERS_CHARGE_SKILL_ID]: {

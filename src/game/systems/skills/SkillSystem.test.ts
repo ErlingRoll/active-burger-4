@@ -288,6 +288,13 @@ describe('skill system', () => {
       expect(events.every((event) => event.frostApplication?.stacks === 1)).toBe(true)
       expect(events.some((event) => event.targetId === outOfRangeId)).toBe(false)
       expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(3.2)
+      expect(game.state.projectiles).toEqual([
+        expect.objectContaining({
+          skillId: GLACIAL_ORB_SKILL_ID,
+          targetId: nearestId,
+          visualOnly: true,
+        }),
+      ])
     })
 
     it('extends splash radius and adds an extra Chill stack with Permafrost', () => {

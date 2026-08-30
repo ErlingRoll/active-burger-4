@@ -802,7 +802,7 @@ export function collectProjectileDamage(
     (left, right) => left.id - right.id,
   )
   for (const projectile of projectiles) {
-    if (projectile.remainingLifetime <= 0) {
+    if (projectile.remainingLifetime <= 0 || projectile.visualOnly) {
       continue
     }
 

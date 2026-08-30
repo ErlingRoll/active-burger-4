@@ -352,6 +352,8 @@ export interface ProjectileState {
   targetId?: EntityId
   sourceTags?: readonly SkillTag[]
   basicAttackWeaponArchetype?: WeaponArchetype
+  /** Presentation-only projectile used by skills whose impact is resolved immediately. */
+  visualOnly?: boolean
   remainingChains?: number
   chainRange?: number
   lastHitTargetId?: EntityId

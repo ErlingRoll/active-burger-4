@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import type { CSSProperties } from 'react'
 import {
   createGame,
   DEFAULT_TIME_SCALE,
@@ -88,6 +89,79 @@ function formatCadence(value: number): string {
 
 function formatEstimatedDps(value: number | null): string {
   return value === null ? 'N/A' : Math.ceil(value).toString()
+}
+
+type TooltipElementRef<T extends HTMLElement> = { current: T | null }
+
+function useHudTooltipPosition<TAnchor extends HTMLElement, TTooltip extends HTMLElement>(
+  isOpen: boolean,
+  anchorKey: string | null,
+  placement: 'above' | 'right',
+  anchorRef: TooltipElementRef<TAnchor>,
+  tooltipRef: TooltipElementRef<TTooltip>,
+): CSSProperties {
+  const [style, setStyle] = useState<CSSProperties>(() => ({
+    visibility: 'hidden',
+  }))
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setStyle((current) =>
+        current.visibility === 'hidden' ? current : { visibility: 'hidden' },
+      )
+      return
+    }
+
+    const updatePosition = (): void => {
+      const anchor = anchorRef.current
+      const tooltip = tooltipRef.current
+      if (!anchor || !tooltip) {
+        return
+      }
+
+      const viewportWidth = document.documentElement.clientWidth
+      const viewportHeight = document.documentElement.clientHeight
+      const margin = 12
+      const gap = 10
+      const anchorBox = anchor.getBoundingClientRect()
+      const tooltipBox = tooltip.getBoundingClientRect()
+      const maxLeft = Math.max(margin, viewportWidth - margin - tooltipBox.width)
+      const maxTop = Math.max(margin, viewportHeight - margin - tooltipBox.height)
+
+      let left = placement === 'above'
+        ? anchorBox.right - tooltipBox.width
+        : anchorBox.right + gap
+      let top = placement === 'above'
+        ? anchorBox.top - gap - tooltipBox.height
+        : anchorBox.top
+
+      if (placement === 'above' && top < margin) {
+        top = anchorBox.bottom + gap
+      }
+      if (placement === 'right' && left > maxLeft) {
+        left = anchorBox.left - gap - tooltipBox.width
+      }
+
+      setStyle({
+        top: Math.min(Math.max(top, margin), maxTop),
+        left: Math.min(Math.max(left, margin), maxLeft),
+        right: 'auto',
+        bottom: 'auto',
+        maxHeight: `${Math.max(0, viewportHeight - margin * 2)}px`,
+        visibility: 'visible',
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [anchorKey, anchorRef, isOpen, placement, tooltipRef])
+
+  return style
 }
 
 function getChoiceFlowKey(
@@ -518,6 +592,33 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const [activeCharacterStatId, setActiveCharacterStatId] = useState<string | null>(
     null,
   )
+  const skillTooltipAnchorRef = useRef<HTMLButtonElement | null>(null)
+  const skillTooltipRef = useRef<HTMLDivElement | null>(null)
+  const loadoutTooltipAnchorRef = useRef<HTMLButtonElement | null>(null)
+  const loadoutTooltipRef = useRef<HTMLDivElement | null>(null)
+  const characterStatTooltipAnchorRef = useRef<HTMLButtonElement | null>(null)
+  const characterStatTooltipRef = useRef<HTMLDivElement | null>(null)
+  const skillTooltipStyle = useHudTooltipPosition(
+    activeSkillId !== null,
+    activeSkillId,
+    'above',
+    skillTooltipAnchorRef,
+    skillTooltipRef,
+  )
+  const loadoutTooltipStyle = useHudTooltipPosition(
+    activeLoadoutSlot !== null,
+    activeLoadoutSlot,
+    'right',
+    loadoutTooltipAnchorRef,
+    loadoutTooltipRef,
+  )
+  const characterStatTooltipStyle = useHudTooltipPosition(
+    activeCharacterStatId !== null,
+    activeCharacterStatId,
+    'right',
+    characterStatTooltipAnchorRef,
+    characterStatTooltipRef,
+  )
   const [castPulseIds, setCastPulseIds] = useState<Record<string, number>>({})
   const previousCastCountsRef = useRef(new Map<string, number>())
   const lastCastPulseTimesRef = useRef(new Map<string, number>())
@@ -700,6 +801,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                 <button
                   className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}`}
                   type="button"
+                  ref={isActive ? skillTooltipAnchorRef : undefined}
                   aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => setActiveSkillId(skill.skillId)}
@@ -738,6 +840,8 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     className="skill-tooltip"
                     id={tooltipId}
                     role="tooltip"
+                    ref={isActive ? skillTooltipRef : undefined}
+                    style={skillTooltipStyle}
                   >
                     <strong>{skill.name}</strong>
                     <p><KeywordText text={skill.description} /></p>
@@ -912,6 +1016,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   className={`loadout-item${item ? ` rarity-${item.rarity}` : ''}`}
                   data-slot={slot}
                   type="button"
+                  ref={isActive ? loadoutTooltipAnchorRef : undefined}
                   aria-label={
                     item
                       ? `${HUD_SLOT_LABELS[slot]}: ${item.name}`
@@ -939,7 +1044,13 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   )}
                 </button>
                 {isActive ? (
-                  <div className="loadout-tooltip" id={tooltipId} role="tooltip">
+                  <div
+                    className="loadout-tooltip"
+                    id={tooltipId}
+                    role="tooltip"
+                    ref={isActive ? loadoutTooltipRef : undefined}
+                    style={loadoutTooltipStyle}
+                  >
                     <strong>{HUD_SLOT_LABELS[slot]}</strong>
                     {item ? (
                       <>
@@ -983,6 +1094,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         <button
                           className="character-stat-button"
                           type="button"
+                          ref={isActive ? characterStatTooltipAnchorRef : undefined}
                           aria-label={`${stat.label}: ${stat.value}`}
                           aria-describedby={isActive ? tooltipId : undefined}
                           onFocus={() => setActiveCharacterStatId(stat.id)}
@@ -1005,6 +1117,8 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             className="character-stat-tooltip"
                             id={tooltipId}
                             role="tooltip"
+                            ref={isActive ? characterStatTooltipRef : undefined}
+                            style={characterStatTooltipStyle}
                           >
                             <strong>{stat.label}</strong>
                             <p className="character-stat-tooltip-value">

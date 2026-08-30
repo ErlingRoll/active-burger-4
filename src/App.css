@@ -559,6 +559,12 @@
   z-index: 4;
 }
 
+.gameplay-hud:has(.skill-tooltip) .skill-hud,
+.gameplay-hud:has(.loadout-tooltip) .equipped-loadout,
+.gameplay-hud:has(.character-stat-tooltip) .character-stats {
+  z-index: 6;
+}
+
 .hud-stats {
   flex: 1 1 auto;
   display: flex;
@@ -1188,17 +1194,21 @@
 }
 
 .loadout-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 5;
   top: 0;
-  left: calc(100% + 0.6rem);
-  width: min(16rem, calc(100vw - 18rem));
+  left: 0;
+  width: min(16rem, calc(100vw - 1.5rem));
+  max-width: calc(100vw - 1.5rem);
+  max-height: calc(100vh - 1.5rem);
   padding: 0.8rem;
   color: #dbeafe;
   background: #0f172a;
   border: 1px solid #fef08a;
   border-radius: 0.6rem;
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
+  box-sizing: border-box;
+  overflow-y: auto;
   pointer-events: none;
 }
 
@@ -1332,17 +1342,21 @@
 }
 
 .character-stat-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 5;
   top: 0;
-  left: calc(100% + 0.6rem);
-  width: min(18rem, calc(100vw - 20rem));
+  left: 0;
+  width: min(18rem, calc(100vw - 1.5rem));
+  max-width: calc(100vw - 1.5rem);
+  max-height: calc(100vh - 1.5rem);
   padding: 0.8rem;
   color: #dbeafe;
   background: #0f172a;
   border: 1px solid #fef08a;
   border-radius: 0.6rem;
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
+  box-sizing: border-box;
+  overflow-y: auto;
   pointer-events: none;
 }
 
@@ -1566,12 +1580,13 @@
 }
 
 .skill-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 5;
-  bottom: calc(100% + 0.6rem);
-  right: 0;
-  width: min(23rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 12rem);
+  top: 0;
+  left: 0;
+  width: min(23rem, calc(100vw - 1.5rem));
+  max-width: calc(100vw - 1.5rem);
+  max-height: calc(100vh - 1.5rem);
   padding: 0.8rem;
   padding-bottom: 2.8rem;
   color: #dbeafe;
@@ -1579,6 +1594,7 @@
   border: 1px solid #fef08a;
   border-radius: 0.6rem;
   box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 60%);
+  box-sizing: border-box;
   overflow-y: auto;
   pointer-events: none;
 }
@@ -2859,30 +2875,9 @@
     width: min(34rem, calc(100vw - 1.5rem));
   }
 
-  .loadout-tooltip {
-    position: fixed;
-    top: auto;
-    bottom: 0.75rem;
-    left: 0.75rem;
-    width: min(16rem, calc(100vw - 1.5rem));
-  }
-
-  .character-stat-tooltip {
-    position: fixed;
-    top: auto;
-    bottom: 0.75rem;
-    left: 0.75rem;
-    width: min(18rem, calc(100vw - 1.5rem));
-  }
-
   .development-controls {
     top: 0.75rem;
     right: 0.75rem;
-  }
-
-  .skill-tooltip {
-    right: auto;
-    left: 0;
   }
 
   .upgrade-choice-list {

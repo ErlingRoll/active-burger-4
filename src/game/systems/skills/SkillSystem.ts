@@ -21,6 +21,9 @@ import {
   getSkillDamageIncreasePercent,
 } from '../../../content/upgrades/Upgrades'
 import {
+  getProjectileDefinition,
+} from '../../../content/projectiles/Projectiles'
+import {
   GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
   GLACIAL_ORB_PERMAFROST_RADIUS_BONUS,
   GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS,
@@ -60,7 +63,9 @@ import type {
   GameState,
   SkillEffectPoint,
   SkillEffectState,
+  ProjectileState,
 } from '../../state/GameState'
+import { createDamageValues } from '../../../content/stats/Damage'
 import {
   healPlayer,
   healSummon,
@@ -433,6 +438,43 @@ function findNearestLivingTarget(
   return target
 }
 
+function createGlacialOrbVisualProjectile(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  target: EnemyState | BossState,
+): ProjectileState {
+  const skillDefinition = getSkillDefinition(GLACIAL_ORB_SKILL_ID)
+  const definitionId = skillDefinition.projectileDefinitionId
+  if (!definitionId) {
+    throw new Error('Glacial Orb must define a projectile.')
+  }
+  const projectileDefinition = getProjectileDefinition(definitionId)
+  const directionX = target.x - state.player.x
+  const directionY = target.y - state.player.y
+  const distance = Math.hypot(directionX, directionY)
+  const directionLength = distance || 1
+
+  return {
+    id: allocator.createEntityId(),
+    ownerId: state.player.id,
+    definitionId: projectileDefinition.id,
+    skillId: GLACIAL_ORB_SKILL_ID,
+    targetId: target.id,
+    sourceTags: skillDefinition.tags,
+    visualOnly: true,
+    x: state.player.x,
+    y: state.player.y,
+    velocityX: directionX / directionLength * projectileDefinition.speed,
+    velocityY: directionY / directionLength * projectileDefinition.speed,
+    radius: projectileDefinition.radius,
+    damage: createDamageValues({}),
+    remainingLifetime: Math.max(
+      0.1,
+      Math.min(projectileDefinition.lifetime, distance / projectileDefinition.speed),
+    ),
+  }
+}
+
 function collectGlacialOrbDamage(
   state: GameState,
   skill: SkillState,
@@ -446,6 +488,10 @@ function collectGlacialOrbDamage(
   if (!target) {
     return []
   }
+
+  state.projectiles.push(
+    createGlacialOrbVisualProjectile(state, allocator, target),
+  )
 
   const damage = getSkillDamage(definition, skill.level)
   const damageIncreasePercent = getSkillDamageIncreasePercent(skill.skillId, skill.level)

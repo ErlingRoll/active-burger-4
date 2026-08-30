@@ -16,6 +16,8 @@ export const BASIC_ATTACK_ARROW_DEFINITION_ID: ProjectileDefinitionId =
   'basic-attack-arrow'
 export const BASIC_ATTACK_ORB_DEFINITION_ID: ProjectileDefinitionId =
   'basic-attack-orb'
+export const GLACIAL_ORB_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
+  'glacial-orb-projectile'
 
 export const PROJECTILE_DEFINITIONS = {
   [BASIC_ATTACK_ARROW_DEFINITION_ID]: {
@@ -33,6 +35,13 @@ export const PROJECTILE_DEFINITIONS = {
     guidance: 'homing',
     turnRateDegreesPerSecond: 300,
     retargetRange: 280,
+  },
+  [GLACIAL_ORB_PROJECTILE_DEFINITION_ID]: {
+    id: GLACIAL_ORB_PROJECTILE_DEFINITION_ID,
+    speed: 360,
+    radius: 9,
+    lifetime: 1,
+    guidance: 'straight',
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>
 
