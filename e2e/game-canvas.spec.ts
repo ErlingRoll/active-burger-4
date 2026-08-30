@@ -337,6 +337,16 @@ test('pauses on Escape without blocking HUD or development controls', async ({
     'paused',
   )
   await expect(page.getByRole('dialog', { name: 'Pause menu' })).toBeVisible()
+  const pauseMenu = page.getByRole('dialog', { name: 'Pause menu' })
+  await expect(pauseMenu.getByRole('button', { name: 'Forfeit' })).toBeVisible()
+  await pauseMenu.getByRole('button', { name: 'Forfeit' }).click()
+  const confirmation = page.getByRole('dialog', { name: 'Forfeit run?' })
+  await expect(confirmation).toBeVisible()
+  await expect(confirmation).toContainText(
+    'Are you sure you want to forfeit your current character and leave the dungeon?',
+  )
+  await confirmation.getByRole('button', { name: 'Cancel' }).click()
+  await expect(confirmation).toHaveCount(0)
   const pauseLayers = await page.locator('.game-renderer').evaluate((renderer) => {
     const canvas = renderer.parentElement
     const hud = canvas?.querySelector('.gameplay-hud')

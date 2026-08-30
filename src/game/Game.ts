@@ -769,6 +769,19 @@ export class Game {
     return true
   }
 
+  /** Forfeits a paused run without retaining its damage and healing history. */
+  forfeit(): boolean {
+    if (this.gameState.run.phase !== 'paused') {
+      return false
+    }
+
+    this.gameState.run.forfeited = true
+    this.gameState.run.playerCombatLog = []
+    this.gameState.player.hp = 0
+    this.transitionTo('defeat')
+    return true
+  }
+
   /** Adds a Slime at an explicit world position. */
   spawnSlime(position: WorldPosition): EntityId {
     return spawnSlime(this.gameState, this.idAllocator, position)

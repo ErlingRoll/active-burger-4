@@ -11,6 +11,10 @@ describe('run phase transitions', () => {
     expect(isValidRunPhaseTransition('paused', 'playing')).toBe(true)
   })
 
+  it('allows a paused run to end in defeat when forfeited', () => {
+    expect(isValidRunPhaseTransition('paused', 'defeat')).toBe(true)
+  })
+
   it('allows entering and leaving level-up while playing', () => {
     expect(isValidRunPhaseTransition('playing', 'level-up')).toBe(true)
     expect(isValidRunPhaseTransition('level-up', 'playing')).toBe(true)

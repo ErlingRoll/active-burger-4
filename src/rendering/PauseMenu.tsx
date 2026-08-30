@@ -9,11 +9,13 @@ import {
   type GameKeybinds,
   type KeybindId,
 } from '../input/Keybinds'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 
 interface PauseMenuProps {
   keybinds: GameKeybinds
   onKeybindsChange: (keybinds: GameKeybinds) => Promise<void>
   onResume: () => void
+  onForfeit: () => void
 }
 
 function getErrorMessage(error: unknown): string {
@@ -24,10 +26,13 @@ export function PauseMenu({
   keybinds,
   onKeybindsChange,
   onResume,
+  onForfeit,
 }: PauseMenuProps) {
   const resumeButtonRef = useRef<HTMLButtonElement>(null)
+  const forfeitButtonRef = useRef<HTMLButtonElement>(null)
   const [listeningFor, setListeningFor] = useState<KeybindId | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
 
   useEffect(() => {
     resumeButtonRef.current?.focus()
@@ -89,6 +94,21 @@ export function PauseMenu({
     })
   }
 
+  const openForfeitConfirmation = (): void => {
+    setConfirmationOpen(true)
+  }
+
+  const cancelForfeit = (): void => {
+    setConfirmationOpen(false)
+    requestAnimationFrame(() => {
+      forfeitButtonRef.current?.focus()
+    })
+  }
+
+  const confirmForfeit = (): void => {
+    onForfeit()
+  }
+
   return (
     <section
       className="pause-menu"
@@ -110,6 +130,14 @@ export function PauseMenu({
           onClick={onResume}
         >
           Resume run <span className="keybind-hint">Esc</span>
+        </button>
+        <button
+          ref={forfeitButtonRef}
+          className="pause-forfeit-button"
+          type="button"
+          onClick={openForfeitConfirmation}
+        >
+          Forfeit
         </button>
         <fieldset className="pause-keybinds">
           <legend>Keybinds</legend>
@@ -144,6 +172,15 @@ export function PauseMenu({
           </div>
           {error ? <p className="pause-keybind-error" role="alert">{error}</p> : null}
         </fieldset>
+        {confirmationOpen ? (
+          <ConfirmationDialog
+            title="Forfeit run?"
+            message="Are you sure you want to forfeit your current character and leave the dungeon?"
+            confirmLabel="Forfeit"
+            onConfirm={confirmForfeit}
+            onCancel={cancelForfeit}
+          />
+        ) : null}
       </div>
     </section>
   )

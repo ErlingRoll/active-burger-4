@@ -1200,7 +1200,7 @@ function ResultsScreen({
             <p className="skill-damage-results-empty">No skill damage was recorded.</p>
           )}
         </section>
-        {!victory ? (
+        {!victory && !result.forfeited ? (
           <section className="death-combat-log" aria-labelledby="death-combat-log-title">
             <div className="death-combat-log-heading">
               <p className="screen-kicker">Final 10 seconds</p>

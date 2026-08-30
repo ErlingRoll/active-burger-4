@@ -382,7 +382,8 @@ export function GameCanvas({
         event.target instanceof HTMLElement &&
         (event.target.closest(
           '[data-keybind-capture="true"][data-keybind-listening="true"]',
-        ) || event.target.closest('[data-keyword-term="true"]'))
+        ) || event.target.closest('[data-keyword-term="true"]') ||
+          event.target.closest('[data-confirmation-dialog="true"]'))
       ) {
         return
       }
@@ -588,6 +589,7 @@ export function GameCanvas({
           keybinds={activeKeybinds}
           onKeybindsChange={updateKeybinds}
           onResume={() => gameRef.current?.resume()}
+          onForfeit={() => gameRef.current?.forfeit()}
         />
       ) : null}
       {choiceFlow ? (

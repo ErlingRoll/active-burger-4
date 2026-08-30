@@ -19,7 +19,7 @@ const ALLOWED_RUN_PHASE_TRANSITIONS: Record<RunPhase, readonly RunPhase[]> = {
   playing: ['paused', 'level-up', 'floor-transition', 'victory', 'defeat'],
   'level-up': ['playing', 'paused'],
   'floor-transition': ['playing', 'victory'],
-  paused: ['playing', 'level-up'],
+  paused: ['playing', 'level-up', 'defeat'],
   victory: ['results'],
   defeat: ['results'],
   results: [],

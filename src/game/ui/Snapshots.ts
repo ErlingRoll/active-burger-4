@@ -1066,6 +1066,8 @@ export interface RunResultSnapshot {
   readonly xp: number
   readonly killCount: number
   readonly worldModifierIds: readonly string[]
+  /** Present when the player chose to leave the dungeon from the pause menu. */
+  readonly forfeited?: true
   /** Damage and healing applied to the player during the final ten seconds. */
   readonly playerCombatLog: readonly PlayerCombatLogSnapshot[]
   /** Cumulative post-mitigation damage totals, including skills removed during the run. */
@@ -1673,6 +1675,7 @@ export function createRunResultSnapshot(
     xp: state.player.xp,
     killCount: state.run.killCount,
     worldModifierIds: state.run.worldModifierIds ?? [],
+    ...(state.run.forfeited ? { forfeited: true as const } : {}),
     playerCombatLog: Object.freeze(
       (state.run.playerCombatLog ?? []).map((entry) => Object.freeze({ ...entry })),
     ),

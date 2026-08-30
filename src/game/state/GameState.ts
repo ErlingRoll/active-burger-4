@@ -155,6 +155,8 @@ export interface RunState {
   worldModifierIds?: readonly WorldModifierId[]
   /** Recent player damage and healing, retained to explain a defeat. */
   playerCombatLog?: PlayerCombatLogEntry[]
+  /** True when the player chose to leave the dungeon without dying. */
+  forfeited?: boolean
 }
 
 export interface PlayerCombatLogEntry {

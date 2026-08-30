@@ -400,6 +400,29 @@ describe('Game', () => {
     expect(Object.isFrozen(result)).toBe(true)
   })
 
+  it('forfeits a paused run without retaining its combat log', () => {
+    const game = createGame({ seed: 113 })
+    game.state.run.playerCombatLog = [{
+      time: 0,
+      kind: 'damage',
+      amount: 5,
+      damageType: 'physical',
+      source: 'Slime',
+      resultingHp: game.state.player.hp - 5,
+    }]
+    game.pause()
+
+    expect(game.forfeit()).toBe(true)
+    expect(game.phase).toBe('defeat')
+    expect(game.state.player.hp).toBe(0)
+    expect(game.state.run.playerCombatLog).toEqual([])
+    expect(game.getRunResultSnapshot()).toMatchObject({
+      phase: 'defeat',
+      forfeited: true,
+      playerCombatLog: [],
+    })
+  })
+
   it('does not update any simulation state after defeat', () => {
     const game = createGame({ seed: 8 })
     game.update(1)
