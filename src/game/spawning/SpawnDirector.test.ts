@@ -121,7 +121,7 @@ describe('SpawnDirector', () => {
       3,
     )
 
-    expect(earlyProbability).toBe(0.11000000000000001)
+    expect(earlyProbability).toBeCloseTo(0.08)
     expect(probabilities[0]).toBeGreaterThan(earlyProbability ?? 0)
     expect(probabilities[0]).toBeLessThanOrEqual(1)
   })

@@ -35,10 +35,10 @@ export const DEFAULT_DUNGEON_ID: DungeonDefinitionId = 'default-dungeon'
 export const DEFAULT_DUNGEON_MAX_FLOOR = 30
 export const DUNGEON_FLOOR_DURATION_SECONDS = 60
 export const BOSS_FLOOR_EVENT_DURATION_SECONDS = 120
-export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.30
+export const ORDINARY_ENEMY_FLOOR_STAT_SCALING = 0.25
 export const ORDINARY_ENEMY_LATE_FLOOR_STAT_SCALING = 0.18
 /** Ordinary damage follows the same floor curve as HP, with a base reduction. */
-export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.30
+export const ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING = 0.25
 export const ORDINARY_ENEMY_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.18
 export const ORDINARY_ENEMY_CONTACT_DAMAGE_MULTIPLIER = 0.8
 export const FLOOR_SCALING_BREAKPOINT = 5
@@ -79,11 +79,11 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemyHpMultiplier: 1,
     ordinaryEnemyContactDamageMultiplier: 1,
     ordinaryEnemySpeedMultiplier: 1,
-    spawnThreatMultiplier: 1.15,
-    eliteChanceMultiplier: 1.1,
-    abilityIntensity: 0.3,
-    abilityDamageMultiplier: 0.75,
-    abilityCooldownMultiplier: 1.25,
+    spawnThreatMultiplier: 1,
+    eliteChanceMultiplier: 0.8,
+    abilityIntensity: 0.2,
+    abilityDamageMultiplier: 0.6,
+    abilityCooldownMultiplier: 1.4,
     compositionProgress: 0,
   },
   {
@@ -91,11 +91,11 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemyHpMultiplier: 1,
     ordinaryEnemyContactDamageMultiplier: 1,
     ordinaryEnemySpeedMultiplier: 1,
-    spawnThreatMultiplier: 1.18,
-    eliteChanceMultiplier: 1.12,
-    abilityIntensity: 0.38,
-    abilityDamageMultiplier: 0.82,
-    abilityCooldownMultiplier: 1.18,
+    spawnThreatMultiplier: 1.05,
+    eliteChanceMultiplier: 0.9,
+    abilityIntensity: 0.25,
+    abilityDamageMultiplier: 0.7,
+    abilityCooldownMultiplier: 1.3,
     compositionProgress: 0.08,
   },
   {

@@ -189,17 +189,48 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Run status' })).toBeAttached()
   await expect(page.locator('.hud-stats .hud-stat')).toHaveCount(3)
+  const dungeonStats = page.locator('.dungeon-stats-top')
+  await expect(dungeonStats).toContainText('Dungeon stats')
+  await expect(dungeonStats).toContainText('Floor')
+  await expect(dungeonStats).toContainText('Essence')
+  await expect(dungeonStats).toContainText('Kills')
+  await expect(dungeonStats.locator('.dungeon-stat')).toHaveCount(3)
+  await expect(dungeonStats.locator('.dungeon-stat').nth(1).locator('dd'))
+    .toHaveText(/^\d+$/)
+  const dungeonStatBoxes = await Promise.all(
+    [0, 1, 2].map((index) =>
+      dungeonStats.locator('.dungeon-stat').nth(index).boundingBox(),
+    ),
+  )
+  if (dungeonStatBoxes.some((box) => !box)) {
+    throw new Error('Expected all dungeon stats to be visible')
+  }
+  expect(dungeonStatBoxes[1]!.y).toBeGreaterThan(dungeonStatBoxes[0]!.y)
+  expect(dungeonStatBoxes[2]!.y).toBeGreaterThan(dungeonStatBoxes[1]!.y)
   await expect(page.getByText('Dodge Lv.')).toHaveCount(0)
   await expect(page.getByText('Encounter timeline')).toHaveCount(0)
   await expect(page.getByText('Pickups')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'End Run' })).toHaveCount(0)
+  const dungeonStatsBox = await dungeonStats.boundingBox()
+  if (!dungeonStatsBox) {
+    throw new Error('Expected dungeon stats HUD to be visible')
+  }
+  expect(dungeonStatsBox.width).toBeGreaterThan(140)
+  expect(dungeonStatsBox.width).toBeLessThan(250)
+  expect(dungeonStatsBox.y).toBeLessThan(240)
+  const viewport = page.viewportSize()
+  if (!viewport) {
+    throw new Error('Expected a browser viewport')
+  }
+  expect(dungeonStatsBox.x + dungeonStatsBox.width).toBeGreaterThan(viewport.width - 40)
   const floorBox = await page.locator('.floor-hud-top').boundingBox()
   if (!floorBox) {
-    throw new Error('Expected floor HUD to be visible')
+    throw new Error('Expected central floor HUD to be visible')
   }
   expect(floorBox.width).toBeGreaterThan(200)
   expect(floorBox.width).toBeLessThan(500)
   expect(floorBox.y).toBeLessThan(240)
+  expect(Math.abs(floorBox.x + floorBox.width / 2 - viewport.width / 2)).toBeLessThan(40)
 
   await page.getByRole('button', { name: 'Development Menu' }).click()
   const developmentMenu = page.getByRole('heading', {

@@ -15,6 +15,10 @@ controls supplemental ordinary-enemy health, contact damage, movement speed,
 spawn threat, elite chance, composition pressure, and special-ability tuning.
 The existing authored dungeon stat curve remains the baseline.
 
+The first five floors use a gentler 25% early stat step. Early spawn threat,
+elite chance, and special-ability damage/frequency are also reduced before
+gradually returning to the stronger mid-game anchors.
+
 Ordinary contact damage uses the same floor multiplier as HP while retaining
 the existing 0.8 baseline reduction. Enemy special-ability damage also uses
 the HP multiplier plus its ability-specific tuning, keeping late-floor damage

@@ -31,7 +31,7 @@ describe('ordinary enemy abilities', () => {
     const events = resolveEnemyTelegraphs(game.state, allocator)
     expect(events).toMatchObject([{
       targetId: game.state.player.id,
-      damage: { physical: 10.5 },
+      damage: { physical: 8.4 },
       sourceLabel: 'Shockwave',
     }])
     const hpBefore = game.state.player.hp
@@ -75,7 +75,7 @@ describe('ordinary enemy abilities', () => {
       targetId: game.state.player.id,
       sourceLabel: 'Aimed Shot',
     }])
-    expect(events[0]?.damage.physical).toBeCloseTo(6.75)
+    expect(events[0]?.damage.physical).toBeCloseTo(5.4)
 
     const hpBefore = game.state.player.hp
     applyDamageEvents(game.state, events, neverCrit)

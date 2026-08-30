@@ -568,6 +568,7 @@ export function GameCanvas({
         <GameplayHud snapshot={snapshot} />
       ) : null}
       {snapshot ? <FloorHud snapshot={snapshot} /> : null}
+      {snapshot ? <DungeonStats snapshot={snapshot} /> : null}
       {snapshot ? (
         <BehaviorHud
           snapshot={snapshot}
@@ -1225,6 +1226,31 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           </div>
         </section>
       </section>
+    </section>
+  )
+}
+
+function DungeonStats({ snapshot }: { snapshot: GameUiSnapshot }) {
+  return (
+    <section
+      className="dungeon-stats dungeon-stats-top"
+      aria-labelledby="dungeon-stats-title"
+    >
+      <h3 id="dungeon-stats-title">Dungeon stats</h3>
+      <dl className="dungeon-stats-list">
+        <div className="dungeon-stat">
+          <dt>Floor</dt>
+          <dd>{snapshot.floor}</dd>
+        </div>
+        <div className="dungeon-stat">
+          <dt>Essence</dt>
+          <dd aria-label="Estimated Essence">{snapshot.estimatedEssence}</dd>
+        </div>
+        <div className="dungeon-stat">
+          <dt>Kills</dt>
+          <dd>{snapshot.killCount}</dd>
+        </div>
+      </dl>
     </section>
   )
 }

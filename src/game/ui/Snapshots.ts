@@ -127,6 +127,7 @@ import {
   type PendingChoiceFlow,
 } from '../choices/ChoiceFlows'
 import { getEquippedWeaponArchetype } from '../equipment/EquipmentState'
+import { calculateEssenceReward } from '../../meta/EssenceRewards'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {
@@ -137,6 +138,8 @@ export interface RunHudSnapshot {
   readonly xp: number
   readonly xpRequired: number
   readonly xpProgress: number
+  /** Essence earned if the run ended now without a victory bonus. */
+  readonly estimatedEssence: number
   readonly elapsedTime: number
   readonly killCount: number
   readonly worldModifierIds?: readonly string[]
@@ -1457,6 +1460,15 @@ export function createUiSnapshot(
         dungeon.floorDurationSeconds,
     ),
   )
+  const worldModifierRewardMultiplier = resolveWorldModifierEffects(
+    state.run.worldModifierIds,
+    SPAWN_BALANCE,
+  ).essenceRewardMultiplier
+  const estimatedEssence = calculateEssenceReward(
+    state.player.level,
+    state.run.killCount,
+    worldModifierRewardMultiplier,
+  ).projectedReward
   const completedEncounterIds = new Set(state.run.completedEncounterIds ?? [])
   const encounterTimeline = state.run.dungeonMaxFloor === undefined ||
     state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
@@ -1606,15 +1618,13 @@ export function createUiSnapshot(
     xp: state.player.xp,
     xpRequired,
     xpProgress,
+    estimatedEssence,
     elapsedTime: state.time,
     killCount: state.run.killCount,
     ...(state.run.worldModifierIds?.length
       ? {
           worldModifierIds: state.run.worldModifierIds,
-          worldModifierRewardMultiplier: resolveWorldModifierEffects(
-            state.run.worldModifierIds,
-            SPAWN_BALANCE,
-          ).essenceRewardMultiplier,
+          worldModifierRewardMultiplier,
         }
       : {}),
     floor,

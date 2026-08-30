@@ -235,6 +235,20 @@ describe('UI snapshots', () => {
     ])
   })
 
+  it('estimates current Essence from level, kills, and world modifiers', () => {
+    const game = createGame({
+      seed: 75,
+      worldModifierIds: ['swarming'],
+    })
+    game.state.player.level = 4
+    game.state.run.killCount = 25
+
+    expect(createUiSnapshot(game.state).estimatedEssence).toBe(6)
+
+    game.state.run.killCount = 30
+    expect(createUiSnapshot(game.state).estimatedEssence).toBe(7)
+  })
+
   it('projects Fiery Touch trigger stats and skill-specific cooldown ranks', () => {
     const game = createGame({ seed: 73 })
     game.state.player.skills.push({

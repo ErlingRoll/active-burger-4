@@ -736,6 +736,7 @@
   text-transform: uppercase;
 }
 
+.dungeon-stats,
 .floor-hud,
 .choice-hud {
   min-width: 9rem;
@@ -746,6 +747,14 @@
   border-radius: 0.5rem;
 }
 
+.dungeon-stats {
+  display: grid;
+  gap: 0.45rem;
+  width: 11rem;
+  max-width: calc(100% - 2rem);
+  box-sizing: border-box;
+}
+
 .floor-hud {
   display: grid;
   gap: 0.15rem;
@@ -754,11 +763,55 @@
   box-sizing: border-box;
 }
 
+.dungeon-stats h3 {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dungeon-stats-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.dungeon-stat {
+  min-width: 0;
+}
+
+.dungeon-stat dt {
+  color: #93c5fd;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dungeon-stat dd {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0;
+  color: #f8fafc;
+  font-weight: 800;
+}
+
 .choice-hud {
   flex: 0 1 9rem;
   display: grid;
   align-content: start;
   gap: 0.15rem;
+}
+
+.dungeon-stats-top {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .floor-hud-top {
@@ -3344,6 +3397,7 @@
   }
 
   .hud-stat,
+  .dungeon-stats,
   .floor-hud,
   .choice-hud,
   .stairs-hud,
@@ -3375,6 +3429,8 @@
   }
 
   .hud-stat dt,
+  .dungeon-stats h3,
+  .dungeon-stat dt,
   .projection-heading span,
   .floor-hud > span,
   .choice-hud > span:last-child,

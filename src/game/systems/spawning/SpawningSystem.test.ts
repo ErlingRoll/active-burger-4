@@ -16,9 +16,9 @@ describe('ordinary enemy floor scaling', () => {
       contactDamage: expect.closeTo(4.8, 10),
     })
     expect(second).toMatchObject({
-      maxHp: expect.closeTo(32.516, 3),
-      hp: expect.closeTo(32.516, 3),
-      contactDamage: expect.closeTo(6.243, 3),
+      maxHp: expect.closeTo(31.266, 3),
+      hp: expect.closeTo(31.266, 3),
+      contactDamage: expect.closeTo(6.003, 3),
     })
   })
 

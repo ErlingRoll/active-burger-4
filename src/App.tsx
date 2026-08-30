@@ -50,6 +50,10 @@ import {
   PLAYSTYLE_DEFINITIONS,
   type PlaystyleId,
 } from './content/playstyles/Playstyles'
+import {
+  calculateEssenceReward,
+  type EssenceRewardCalculation,
+} from './meta/EssenceRewards'
 import './App.css'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
@@ -117,13 +121,7 @@ function formatElapsedTime(seconds: number): string {
   return `${minutes}:${remainder.toString().padStart(2, '0')}`
 }
 
-interface EssenceReceipt {
-  levelReward: number
-  killReward: number
-  baseEssence: number
-  modifierMultiplier: number
-  victoryMultiplier: number
-  projectedReward: number
+interface EssenceReceipt extends EssenceRewardCalculation {
   modifiers: ReturnType<typeof getWorldModifierDefinitions>
 }
 
@@ -131,24 +129,18 @@ function createEssenceReceipt(result: RunResultSnapshot): EssenceReceipt {
   const modifiers = getWorldModifierDefinitions(
     normalizeWorldModifierIds(result.worldModifierIds),
   )
-  const levelReward = Math.max(1, result.level)
-  const killReward = Math.floor(Math.max(0, result.killCount) / 10)
-  const baseEssence = levelReward + killReward
   const modifierMultiplier = modifiers.reduce(
     (total, modifier) => total * modifier.essenceRewardMultiplier,
     1,
   )
-  const victoryMultiplier = result.outcome === 'victory' ? 1.1 : 1
-  return {
-    levelReward,
-    killReward,
-    baseEssence,
+  const calculation = calculateEssenceReward(
+    result.level,
+    result.killCount,
     modifierMultiplier,
-    victoryMultiplier,
-    projectedReward: Math.max(
-      1,
-      Math.floor(baseEssence * modifierMultiplier * victoryMultiplier),
-    ),
+    result.outcome === 'victory',
+  )
+  return {
+    ...calculation,
     modifiers,
   }
 }
