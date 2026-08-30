@@ -8,6 +8,7 @@ import {
   METEOR_ZONE_SKILL_ID,
   type BossDefinitionId,
   type BossEnrageDefinition,
+  type BossSkillId,
 } from '../../../content/bosses/Bosses'
 import { createDamageValues } from '../../../content/stats/Damage'
 import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
@@ -61,6 +62,16 @@ export function getInfernoWardenEnrageMultipliers(
 }
 
 export const getBossEnrageMultipliers = getInfernoWardenEnrageMultipliers
+
+function isBossSkillId(
+  skillId: TelegraphState['skillId'],
+): skillId is BossState['skills'][number]['skillId'] {
+  return skillId === 'ground-slam' ||
+    skillId === 'charge' ||
+    skillId === 'fire-nova' ||
+    skillId === 'flame-line' ||
+    skillId === 'meteor-zone'
+}
 
 function getBossEnrage(
   state: GameState,
@@ -125,13 +136,13 @@ function isLineTelegraph(telegraph: TelegraphState): boolean {
 }
 
 function telegraphKind(
-  skillId: TelegraphState['skillId'],
+  skillId: BossSkillId,
 ): TelegraphState['kind'] {
   return skillId
 }
 
 function telegraphDamageType(
-  skillId: TelegraphState['skillId'],
+  skillId: BossSkillId,
 ): 'physical' | 'fire' {
   return skillId === FIRE_NOVA_SKILL_ID ||
       skillId === FLAME_LINE_SKILL_ID ||
@@ -180,6 +191,7 @@ function castNextSkill(
   const telegraph: TelegraphState = {
     id: allocator.createEntityId(),
     sourceId: boss.id,
+    sourceKind: 'boss',
     skillId: skillState.skillId,
     kind: telegraphKind(skillState.skillId),
     x: origin.x,
@@ -242,8 +254,15 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
   const events: DamageEvent[] = []
   const remaining: TelegraphState[] = []
   for (const telegraph of [...(state.telegraphs ?? [])].sort((left, right) => left.id - right.id)) {
+    if (telegraph.sourceKind === 'enemy') {
+      remaining.push(telegraph)
+      continue
+    }
     if (telegraph.remainingDuration > 0) {
       remaining.push(telegraph)
+      continue
+    }
+    if (!isBossSkillId(telegraph.skillId)) {
       continue
     }
     const sourceBoss = state.bosses?.find(

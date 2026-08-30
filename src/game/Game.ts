@@ -135,6 +135,10 @@ import {
   resolveBossTelegraphs,
   updateBosses,
 } from './systems/boss/BossSystem'
+import {
+  resolveEnemyTelegraphs,
+  updateEnemyAbilities,
+} from './systems/combat/EnemyAbilitySystem'
 import { updatePlayerBehavior } from './systems/behavior/BehaviorController'
 import type { BossDefinitionId } from '../content/bosses/Bosses'
 import {
@@ -198,6 +202,7 @@ export {
   DUNGEON_FLOOR_DURATION_SECONDS,
   DUNGEON_DEFINITIONS,
   ORDINARY_ENEMY_FLOOR_STAT_SCALING,
+  getFloorDifficultyProfile,
   getDungeonDefinition,
   getFloorStatMultiplier,
   isDungeonMaxFloorUnlocked,
@@ -208,6 +213,7 @@ export type {
   DungeonDefinition,
   DungeonDefinitionId,
   DungeonMaxFloorContract,
+  FloorDifficultyProfile,
 } from '../content/dungeons/Dungeons'
 export {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -943,6 +949,7 @@ export class Game {
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
+    updateEnemyAbilities(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS, enemySpatialHash)
     resolvePlayerTarget(this.gameState, enemySpatialHash)
@@ -963,6 +970,7 @@ export class Game {
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...updateBurning(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
+      ...resolveEnemyTelegraphs(this.gameState, this.idAllocator),
     ]
     updateFrost(this.gameState, FIXED_STEP_SECONDS)
     applyDamageEvents(this.gameState, damageEvents, this.random, this.idAllocator)

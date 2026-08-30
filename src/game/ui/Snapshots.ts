@@ -287,6 +287,7 @@ export interface PickupHudSnapshot {
 export interface TelegraphHudSnapshot {
   readonly id: EntityId
   readonly sourceId: EntityId
+  readonly sourceKind?: TelegraphState['sourceKind']
   readonly skillId: TelegraphState['skillId']
   readonly kind: TelegraphState['kind']
   readonly x: number
@@ -1530,6 +1531,9 @@ export function createUiSnapshot(
     .map((telegraph) => Object.freeze({
       id: telegraph.id,
       sourceId: telegraph.sourceId,
+      ...(telegraph.sourceKind
+        ? { sourceKind: telegraph.sourceKind }
+        : {}),
       skillId: telegraph.skillId,
       kind: telegraph.kind,
       x: telegraph.x,

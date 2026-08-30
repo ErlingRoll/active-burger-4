@@ -78,6 +78,54 @@ describe('SpawnDirector', () => {
     expect(late.length).toBeGreaterThan(early.length)
   })
 
+  it('adds smooth floor pressure to threat without requiring a hard breakpoint', () => {
+    const director = new SpawnDirector(new Random(3))
+    const early = director.update(
+      { ...createState(0), run: { floor: 19 } },
+      10,
+    )
+    const laterDirector = new SpawnDirector(new Random(3))
+    const later = laterDirector.update(
+      { ...createState(0), run: { floor: 21 } },
+      10,
+    )
+
+    expect(later.length).toBeGreaterThanOrEqual(early.length)
+    expect(later.length - early.length).toBeLessThan(5)
+  })
+
+  it('raises elite pressure gradually with the floor', () => {
+    const probabilities: number[] = []
+    const random = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: (probability: number) => {
+        probabilities.push(probability)
+        return false
+      },
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    const balance = {
+      ...SPAWN_BALANCE,
+      eliteStartTimeSeconds: 0,
+    }
+
+    new SpawnDirector(random, balance).update(
+      { ...createState(0), run: { floor: 1 } },
+      3,
+    )
+    const earlyProbability = probabilities[0]
+    probabilities.length = 0
+    new SpawnDirector(random, balance).update(
+      { ...createState(0), run: { floor: 100 } },
+      3,
+    )
+
+    expect(earlyProbability).toBe(0.1)
+    expect(probabilities[0]).toBeGreaterThan(earlyProbability ?? 0)
+    expect(probabilities[0]).toBeLessThanOrEqual(1)
+  })
+
   it('continues issuing requests when many enemies are already active', () => {
     const director = new SpawnDirector(new Random(2))
 

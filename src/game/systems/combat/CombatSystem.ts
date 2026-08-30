@@ -34,6 +34,7 @@ import {
   type DamageValues,
 } from '../../../content/stats/Damage'
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
+import { getEnemyAbilityDefinition } from '../../../content/enemies/EnemyAbilities'
 import { getBossDefinition } from '../../../content/bosses/Bosses'
 import {
   KNIGHT_EARLY_FLOOR_COUNT,
@@ -892,6 +893,35 @@ export function collectProjectileDamage(
   )
   for (const projectile of projectiles) {
     if (projectile.remainingLifetime <= 0 || projectile.visualOnly) {
+      continue
+    }
+
+    if (projectile.hostile) {
+      const target = projectile.targetId === state.player.id
+        ? state.player
+        : state.summons.find(
+            (summon) => summon.id === projectile.targetId && summon.hp > 0,
+          )
+      if (!target) {
+        projectile.remainingLifetime = 0
+        continue
+      }
+      const targetRadius = target.id === state.player.id ? state.player.radius : 13
+      const collisionDistance = targetRadius + projectile.radius
+      const distanceSquared =
+        (target.x - projectile.x) ** 2 + (target.y - projectile.y) ** 2
+      if (distanceSquared <= collisionDistance * collisionDistance) {
+        damageEvents.push({
+          sourceId: projectile.ownerId,
+          targetId: target.id,
+          damage: projectile.damage,
+          criticalStrike: projectile.criticalStrike,
+          sourceLabel: projectile.sourceAbilityId
+            ? getEnemyAbilityDefinition(projectile.sourceAbilityId).name
+            : 'Enemy projectile',
+        })
+        projectile.remainingLifetime = 0
+      }
       continue
     }
 

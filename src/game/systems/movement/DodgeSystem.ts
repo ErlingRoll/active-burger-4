@@ -49,7 +49,9 @@ function telegraphDistanceSquared(
   if (!first || !last) {
     return pointDistanceSquared(playerX, playerY, telegraph.x, telegraph.y)
   }
-  return telegraph.kind === 'charge' || telegraph.kind === 'flame-line'
+  return telegraph.kind === 'charge' ||
+    telegraph.kind === 'flame-line' ||
+    telegraph.kind === 'enemy-projectile'
     ? segmentDistanceSquared(playerX, playerY, first.x, first.y, last.x, last.y)
     : pointDistanceSquared(playerX, playerY, telegraph.x, telegraph.y)
 }
@@ -92,7 +94,9 @@ export function getPlayerDodgeCandidate(
     const first = telegraph.points[0]
     const last = telegraph.points[telegraph.points.length - 1]
     const awayX = first && last &&
-      (telegraph.kind === 'charge' || telegraph.kind === 'flame-line')
+      (telegraph.kind === 'charge' ||
+        telegraph.kind === 'flame-line' ||
+        telegraph.kind === 'enemy-projectile')
       ? player.x - (first.x + last.x) / 2
       : player.x - telegraph.x
     const awayY = first && last &&

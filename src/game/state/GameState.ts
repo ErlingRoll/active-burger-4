@@ -20,6 +20,7 @@ import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
 import type { DungeonDefinitionId } from '../../content/dungeons/Dungeons'
 import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
+import type { EnemyAbilityId } from '../../content/enemies/EnemyAbilities'
 import type {
   BossDefinitionId,
   BossSkillId,
@@ -51,8 +52,17 @@ export interface EncounterState {
 export interface TelegraphState {
   id: EntityId
   sourceId: EntityId
-  skillId: BossSkillId
-  kind: 'ground-slam' | 'charge' | 'fire-nova' | 'flame-line' | 'meteor-zone'
+  targetId?: EntityId
+  sourceKind?: 'boss' | 'enemy'
+  skillId: BossSkillId | EnemyAbilityId
+  kind:
+    | 'ground-slam'
+    | 'charge'
+    | 'fire-nova'
+    | 'flame-line'
+    | 'meteor-zone'
+    | 'enemy-projectile'
+    | 'enemy-shockwave'
   x: number
   y: number
   radius: number
@@ -62,6 +72,7 @@ export interface TelegraphState {
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
   poisonApplication?: PoisonApplication
+  projectileDefinitionId?: ProjectileDefinitionId
 }
 export type Telegraph = TelegraphState
 
@@ -305,6 +316,8 @@ export interface EnemyState {
   contactDamage: number
   /** Seconds until this enemy can deal contact damage again. */
   contactCooldownRemaining?: number
+  /** Seconds until this enemy can begin its next special attack. */
+  abilityCooldownRemaining?: number
   /** Simulation time of the most recent contact attack, for rendering feedback. */
   lastMeleeAttackTime?: number
 
@@ -367,8 +380,12 @@ export interface ProjectileState {
   id: EntityId
   ownerId: EntityId
   definitionId: ProjectileDefinitionId
+  /** Hostile projectiles resolve against the player rather than enemies. */
+  hostile?: boolean
   /** Optional for backwards-compatible projectile fixtures; skill spawns set it. */
   skillId?: SkillId
+  /** Special attack that owns a hostile projectile, when applicable. */
+  sourceAbilityId?: EnemyAbilityId
   targetId?: EntityId
   sourceTags?: readonly SkillTag[]
   basicAttackWeaponArchetype?: WeaponArchetype

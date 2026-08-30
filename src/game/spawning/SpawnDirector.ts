@@ -3,6 +3,9 @@ import {
   SPAWN_BALANCE,
   type SpawnBalance,
 } from '../../content/spawning/SpawnBalance'
+import {
+  getFloorDifficultyProfile,
+} from '../../content/dungeons/Dungeons'
 import type { EnemyDefinitionId } from '../ids'
 import type { EliteModifierId } from '../../content/enemies/EliteModifiers'
 import type { RandomSource } from '../random/Random'
@@ -18,6 +21,7 @@ export interface SpawnRequest {
 export type SpawnDirectorState = Pick<GameState, 'time'> & {
   player: Pick<PlayerState, 'x' | 'y'>
   enemies: readonly Pick<EnemyState, 'id' | 'hp'>[]
+  run?: Pick<GameState['run'], 'floor'>
   encounter?: Pick<NonNullable<GameState['encounter']>, 'normalSpawnsSuspended'>
 }
 
@@ -66,8 +70,10 @@ export class SpawnDirector {
     }
     const delta = Math.max(0, deltaSeconds)
     const fastStartActive = state.time < this.fastStartDurationSeconds
+    const floorDifficulty = getFloorDifficultyProfile(state.run?.floor ?? 1)
     this.threatBudget +=
       calculateThreatPerSecond(state.time, this.balance) *
+      floorDifficulty.spawnThreatMultiplier *
       (fastStartActive ? this.fastStartThreatMultiplier : 1) *
       delta
 
@@ -76,7 +82,10 @@ export class SpawnDirector {
       if (this.threatBudget < this.minimumThreatCost(state.time)) {
         break
       }
-      this.pendingEntry ??= this.selectSpawnEntry(state.time)
+      this.pendingEntry ??= this.selectSpawnEntry(
+        state.time,
+        floorDifficulty.compositionProgress,
+      )
       const entry = this.pendingEntry
       if (!entry) {
         break
@@ -95,7 +104,10 @@ export class SpawnDirector {
           (this.balance.spawnRingOuterRadius -
             this.balance.spawnRingInnerRadius)
 
-      const eliteModifier = this.selectEliteModifier(state.time)
+      const eliteModifier = this.selectEliteModifier(
+        state.time,
+        state.run?.floor ?? 1,
+      )
       requests.push({
         definitionId: entry.definitionId,
         x: state.player.x + Math.cos(angle) * radius,
@@ -109,10 +121,17 @@ export class SpawnDirector {
 
   private selectEliteModifier(
     timeSeconds: number,
+    floorNumber: number,
   ): EliteModifierId | undefined {
+    const floorDifficulty = getFloorDifficultyProfile(floorNumber)
     if (
       timeSeconds < this.balance.eliteStartTimeSeconds ||
-      !this.random.chance(this.balance.eliteChance)
+      !this.random.chance(
+        Math.min(
+          1,
+          this.balance.eliteChance * floorDifficulty.eliteChanceMultiplier,
+        ),
+      )
     ) {
       return undefined
     }
@@ -138,7 +157,10 @@ export class SpawnDirector {
     return weightedModifiers[weightedModifiers.length - 1]?.[0]
   }
 
-  private selectSpawnEntry(timeSeconds: number) {
+  private selectSpawnEntry(
+    timeSeconds: number,
+    compositionProgress: number,
+  ) {
     const entries = this.balance.spawnEntries.filter(
       (entry) =>
         (entry.startTimeSeconds ?? 0) <= Math.max(0, timeSeconds),
@@ -156,7 +178,7 @@ export class SpawnDirector {
     const candidates =
       unintroducedEntries.length > 0 ? unintroducedEntries : entries
     const totalWeight = candidates.reduce(
-      (sum, entry) => sum + Math.max(0, entry.weight),
+      (sum, entry) => sum + this.getSpawnEntryWeight(entry, compositionProgress),
       0,
     )
     if (totalWeight <= 0) {
@@ -165,13 +187,28 @@ export class SpawnDirector {
 
     let selection = this.random.next() * totalWeight
     for (const entry of candidates) {
-      selection -= Math.max(0, entry.weight)
+      selection -= this.getSpawnEntryWeight(entry, compositionProgress)
       if (selection < 0) {
         return entry
       }
     }
 
     return candidates[candidates.length - 1]
+  }
+
+  private getSpawnEntryWeight(
+    entry: SpawnBalance['spawnEntries'][number],
+    compositionProgress: number,
+  ): number {
+    const advancedEnemy =
+      entry.definitionId === 'archer' ||
+      entry.definitionId === 'brute' ||
+      entry.definitionId === 'splitter' ||
+      entry.definitionId === 'flanker'
+    const compositionMultiplier = advancedEnemy
+      ? 1 + Math.max(0, Math.min(1, compositionProgress))
+      : 1
+    return Math.max(0, entry.weight) * compositionMultiplier
   }
 
   private minimumThreatCost(timeSeconds: number): number {

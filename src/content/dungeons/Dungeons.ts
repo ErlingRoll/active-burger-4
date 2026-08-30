@@ -48,6 +48,174 @@ export const BOSS_LATE_CONTACT_DAMAGE_FLOOR_SCALING = 0.027
 export const EARLY_BOSS_DAMAGE_MULTIPLIER = 0.7
 export const EARLY_BOSS_DAMAGE_FLOOR_COUNT = 3
 
+export interface FloorDifficultyProfile {
+  /** Additional multiplier applied after the authored ordinary-enemy curve. */
+  ordinaryEnemyHpMultiplier: number
+  /** Additional multiplier applied after the authored ordinary-enemy curve. */
+  ordinaryEnemyContactDamageMultiplier: number
+  ordinaryEnemySpeedMultiplier: number
+  spawnThreatMultiplier: number
+  eliteChanceMultiplier: number
+  /** 0..1+ intensity used to tune ordinary-enemy abilities. */
+  abilityIntensity: number
+  abilityDamageMultiplier: number
+  abilityCooldownMultiplier: number
+  /** 0..1 composition pressure toward advanced enemy types. */
+  compositionProgress: number
+}
+
+interface FloorDifficultyAnchor extends FloorDifficultyProfile {
+  floor: number
+}
+
+const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
+  {
+    floor: 1,
+    ordinaryEnemyHpMultiplier: 1,
+    ordinaryEnemyContactDamageMultiplier: 1,
+    ordinaryEnemySpeedMultiplier: 1,
+    spawnThreatMultiplier: 1,
+    eliteChanceMultiplier: 1,
+    abilityIntensity: 0.18,
+    abilityDamageMultiplier: 0.6,
+    abilityCooldownMultiplier: 1.4,
+    compositionProgress: 0,
+  },
+  {
+    floor: 5,
+    ordinaryEnemyHpMultiplier: 1,
+    ordinaryEnemyContactDamageMultiplier: 1,
+    ordinaryEnemySpeedMultiplier: 1,
+    spawnThreatMultiplier: 1.04,
+    eliteChanceMultiplier: 1.04,
+    abilityIntensity: 0.25,
+    abilityDamageMultiplier: 0.7,
+    abilityCooldownMultiplier: 1.3,
+    compositionProgress: 0.08,
+  },
+  {
+    floor: 20,
+    ordinaryEnemyHpMultiplier: 1,
+    ordinaryEnemyContactDamageMultiplier: 1.12,
+    ordinaryEnemySpeedMultiplier: 1.06,
+    spawnThreatMultiplier: 1.16,
+    eliteChanceMultiplier: 1.18,
+    abilityIntensity: 0.52,
+    abilityDamageMultiplier: 0.9,
+    abilityCooldownMultiplier: 1,
+    compositionProgress: 0.45,
+  },
+  {
+    floor: 50,
+    ordinaryEnemyHpMultiplier: 1.08,
+    ordinaryEnemyContactDamageMultiplier: 1.3,
+    ordinaryEnemySpeedMultiplier: 1.14,
+    spawnThreatMultiplier: 1.34,
+    eliteChanceMultiplier: 1.42,
+    abilityIntensity: 0.76,
+    abilityDamageMultiplier: 1.1,
+    abilityCooldownMultiplier: 0.84,
+    compositionProgress: 0.72,
+  },
+  {
+    floor: 100,
+    ordinaryEnemyHpMultiplier: 1.18,
+    ordinaryEnemyContactDamageMultiplier: 1.58,
+    ordinaryEnemySpeedMultiplier: 1.23,
+    spawnThreatMultiplier: 1.55,
+    eliteChanceMultiplier: 1.72,
+    abilityIntensity: 1,
+    abilityDamageMultiplier: 1.3,
+    abilityCooldownMultiplier: 0.72,
+    compositionProgress: 0.9,
+  },
+  {
+    floor: 1000,
+    ordinaryEnemyHpMultiplier: 1.5,
+    ordinaryEnemyContactDamageMultiplier: 2,
+    ordinaryEnemySpeedMultiplier: 1.38,
+    spawnThreatMultiplier: 2,
+    eliteChanceMultiplier: 2.15,
+    abilityIntensity: 1.2,
+    abilityDamageMultiplier: 1.6,
+    abilityCooldownMultiplier: 0.58,
+    compositionProgress: 1,
+  },
+]
+
+function interpolateFloorDifficultyValue(
+  floorNumber: number,
+  key: keyof FloorDifficultyProfile,
+): number {
+  const floor = Math.max(1, Math.floor(floorNumber))
+  const first = FLOOR_DIFFICULTY_ANCHORS[0]!
+  const last = FLOOR_DIFFICULTY_ANCHORS[FLOOR_DIFFICULTY_ANCHORS.length - 1]!
+  if (floor <= first.floor) {
+    return first[key]
+  }
+  if (floor >= last.floor) {
+    return last[key]
+  }
+
+  for (let index = 1; index < FLOOR_DIFFICULTY_ANCHORS.length; index += 1) {
+    const upper = FLOOR_DIFFICULTY_ANCHORS[index]!
+    if (floor > upper.floor) {
+      continue
+    }
+    const lower = FLOOR_DIFFICULTY_ANCHORS[index - 1]!
+    const progress = (floor - lower.floor) / (upper.floor - lower.floor)
+    // Smoothstep avoids a visible derivative change at tuning anchors while
+    // retaining explicit, reviewable values for each progression band.
+    const smoothProgress = progress * progress * (3 - 2 * progress)
+    return lower[key] + (upper[key] - lower[key]) * smoothProgress
+  }
+
+  return last[key]
+}
+
+export function getFloorDifficultyProfile(
+  floorNumber: number,
+): FloorDifficultyProfile {
+  return {
+    ordinaryEnemyHpMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'ordinaryEnemyHpMultiplier',
+    ),
+    ordinaryEnemyContactDamageMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'ordinaryEnemyContactDamageMultiplier',
+    ),
+    ordinaryEnemySpeedMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'ordinaryEnemySpeedMultiplier',
+    ),
+    spawnThreatMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'spawnThreatMultiplier',
+    ),
+    eliteChanceMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'eliteChanceMultiplier',
+    ),
+    abilityIntensity: interpolateFloorDifficultyValue(
+      floorNumber,
+      'abilityIntensity',
+    ),
+    abilityDamageMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'abilityDamageMultiplier',
+    ),
+    abilityCooldownMultiplier: interpolateFloorDifficultyValue(
+      floorNumber,
+      'abilityCooldownMultiplier',
+    ),
+    compositionProgress: interpolateFloorDifficultyValue(
+      floorNumber,
+      'compositionProgress',
+    ),
+  }
+}
+
 /** Builds boss encounters for every normal floor, ending with Inferno Warden. */
 export function createDungeonEncounterTimeline(
   maximumFloor: number,

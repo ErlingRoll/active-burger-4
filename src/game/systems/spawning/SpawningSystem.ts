@@ -29,6 +29,7 @@ import {
   getBossContactDamageMultiplier,
   getBossDamageMultiplier,
   getBossHpMultiplier,
+  getFloorDifficultyProfile,
   scaleOrdinaryEnemyStats,
 } from '../../../content/dungeons/Dungeons'
 import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
@@ -187,6 +188,7 @@ export function spawnEnemy(
       : baseXpReward
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   const floor = state.run.floor ?? 1
+  const floorDifficulty = getFloorDifficultyProfile(floor)
   const scaledStats = scaleOrdinaryEnemyStats(
     {
       maxHp: definition.maxHp,
@@ -196,6 +198,7 @@ export function spawnEnemy(
     dungeon,
   )
   const maxHp = scaledStats.maxHp *
+    floorDifficulty.ordinaryEnemyHpMultiplier *
     (modifier?.maxHpMultiplier ?? 1) *
     (effects?.ordinaryEnemyMaxHpMultiplier ?? 1)
   const enemyId = idAllocator.createEntityId()
@@ -210,9 +213,11 @@ export function spawnEnemy(
     spawnTime: state.time,
     speed: definition.speed *
       getEnemyMovementSpeedMultiplier(enemyId) *
+      floorDifficulty.ordinaryEnemySpeedMultiplier *
       (modifier?.speedMultiplier ?? 1) *
       (effects?.ordinaryEnemySpeedMultiplier ?? 1),
     contactDamage: scaledStats.contactDamage *
+      floorDifficulty.ordinaryEnemyContactDamageMultiplier *
       (effects?.ordinaryEnemyContactDamageMultiplier ?? 1),
     contactCooldownRemaining: 0,
     xpReward,
@@ -222,6 +227,7 @@ export function spawnEnemy(
       : {}),
     ...(definition.resistances ? { resistances: { ...definition.resistances } } : {}),
     ...(modifier ? { eliteModifier: modifier.id } : {}),
+    abilityCooldownRemaining: 0,
     targetId: state.player.id,
   }
 

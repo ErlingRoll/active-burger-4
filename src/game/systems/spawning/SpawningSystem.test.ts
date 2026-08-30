@@ -29,4 +29,22 @@ describe('ordinary enemy floor scaling', () => {
     expect(second?.speed).toBeCloseTo(85.5)
     expect(first?.speed).not.toBe(second?.speed)
   })
+
+  it('adds capped high-floor pressure without changing the early baseline', () => {
+    const game = createGame({ seed: 20260828 })
+    const earlyId = game.spawnEnemy('slime', { x: 0, y: 0 })
+    game.state.run.floor = 100
+    const lateId = game.spawnEnemy('slime', { x: 0, y: 0 })
+    const early = game.state.enemies.find((enemy) => enemy.id === earlyId)
+    const late = game.state.enemies.find((enemy) => enemy.id === lateId)
+
+    expect(early).toMatchObject({
+      maxHp: 20,
+      speed: expect.closeTo(84.6, 5),
+      contactDamage: 4,
+    })
+    expect(late?.maxHp).toBeGreaterThan(early?.maxHp ?? 0)
+    expect(late?.speed).toBeGreaterThan(early?.speed ?? 0)
+    expect(late?.contactDamage).toBeGreaterThan(early?.contactDamage ?? 0)
+  })
 })

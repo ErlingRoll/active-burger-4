@@ -23,6 +23,8 @@ export const RIFT_JAVELIN_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
   'rift-javelin-projectile'
 export const PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
   'phantom-arsenal-projectile'
+export const ENEMY_ARCHER_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
+  'enemy-archer-arrow'
 
 export const PROJECTILE_DEFINITIONS = {
   [BASIC_ATTACK_ARROW_DEFINITION_ID]: {
@@ -60,6 +62,13 @@ export const PROJECTILE_DEFINITIONS = {
     speed: 340,
     radius: 5,
     lifetime: 1.2,
+    guidance: 'straight',
+  },
+  [ENEMY_ARCHER_PROJECTILE_DEFINITION_ID]: {
+    id: ENEMY_ARCHER_PROJECTILE_DEFINITION_ID,
+    speed: 240,
+    radius: 7,
+    lifetime: 3,
     guidance: 'straight',
   },
 } as const satisfies Record<ProjectileDefinitionId, ProjectileDefinition>

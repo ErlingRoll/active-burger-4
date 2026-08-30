@@ -28,6 +28,10 @@ import {
   getBossSkillDefinition,
 } from '../content/bosses/Bosses'
 import {
+  getEnemyAbilityDefinition,
+  type EnemyAbilityId,
+} from '../content/enemies/EnemyAbilities'
+import {
   DEFAULT_PLAYSTYLE_ID,
   getPlaystyleDefinition,
 } from '../content/playstyles/Playstyles'
@@ -67,6 +71,34 @@ function getStatusEffectSignature(
   statuses: readonly StatusEffectBadge[],
 ): string {
   return statuses.map((status) => status.id).join('|')
+}
+
+function isEnemyAbilityId(
+  skillId: TelegraphState['skillId'],
+): skillId is EnemyAbilityId {
+  return skillId === 'archer-shot' || skillId === 'brute-shockwave'
+}
+
+function getTelegraphName(telegraph: TelegraphState): string {
+  if (isEnemyAbilityId(telegraph.skillId)) {
+    return getEnemyAbilityDefinition(telegraph.skillId).name
+  }
+  if (
+    telegraph.skillId === 'ground-slam' ||
+    telegraph.skillId === 'charge' ||
+    telegraph.skillId === 'fire-nova' ||
+    telegraph.skillId === 'flame-line' ||
+    telegraph.skillId === 'meteor-zone'
+  ) {
+    return getBossSkillDefinition(telegraph.skillId).name
+  }
+  return 'Enemy attack'
+}
+
+function isLineTelegraphKind(telegraph: TelegraphState): boolean {
+  return telegraph.kind === 'charge' ||
+    telegraph.kind === 'flame-line' ||
+    telegraph.kind === 'enemy-projectile'
 }
 
 export class PixiGame {
@@ -329,8 +361,16 @@ export class PixiGame {
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
-    const visual =
-      projectile.skillId === BASIC_ATTACK_SKILL_ID
+    const visual = projectile.sourceAbilityId
+      ? {
+          primaryColor: '#ef4444',
+          secondaryColor: '#fb7185',
+          outlineColor: '#fee2e2',
+          trailLength: 24,
+          trailWidth: 4,
+          projectileShape: 'arrow' as const,
+        }
+      : projectile.skillId === BASIC_ATTACK_SKILL_ID
         ? getBasicAttackVariant(projectile.basicAttackWeaponArchetype).visual
         : getSkillDefinition(
             projectile.skillId && isSkillId(projectile.skillId)
@@ -418,32 +458,34 @@ export class PixiGame {
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
-    const skill = getBossSkillDefinition(telegraph.skillId)
     const view = new Graphics()
-    if (telegraph.kind === 'charge') {
+    const lineTelegraph = isLineTelegraphKind(telegraph)
+    const color = telegraph.sourceKind === 'enemy' ? '#f97316' : '#fb7185'
+    const lightColor = telegraph.sourceKind === 'enemy' ? '#fed7aa' : '#fecdd3'
+    if (lineTelegraph) {
       const start = telegraph.points[0]
       if (start) {
         view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
         for (const point of telegraph.points.slice(1)) {
           view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
         }
-        view.stroke({ color: '#fb7185', width: telegraph.radius * 2, alpha: 0.22 })
+        view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
         view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
         for (const point of telegraph.points.slice(1)) {
           view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
         }
-        view.stroke({ color: '#fecdd3', width: 4, alpha: 0.9 })
+        view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
       }
     } else {
       view
         .circle(0, 0, telegraph.radius)
-        .fill({ color: '#ef4444', alpha: 0.22 })
-        .stroke({ color: '#fca5a5', width: 4, alpha: 0.95 })
+        .fill({ color, alpha: 0.22 })
+        .stroke({ color: lightColor, width: 4, alpha: 0.95 })
         .circle(0, 0, telegraph.radius * 0.72)
-        .stroke({ color: '#fecaca', width: 2, alpha: 0.8 })
+        .stroke({ color: lightColor, width: 2, alpha: 0.8 })
     }
     const label = new Text({
-      text: `${skill.name} · DODGE`,
+      text: `${getTelegraphName(telegraph)} · DODGE`,
       style: {
         fill: '#fee2e2',
         fontSize: 13,
@@ -890,7 +932,7 @@ export class PixiGame {
         ? Math.max(0, Math.min(1, 1 - telegraph.remainingDuration / telegraph.duration))
         : 1
       telegraphView.root.alpha = 0.7 + progress * 0.3
-      telegraphView.label.text = `${getBossSkillDefinition(telegraph.skillId).name} · DODGE`
+      telegraphView.label.text = `${getTelegraphName(telegraph)} · DODGE`
     }
 
     for (const [telegraphId, telegraphView] of this.telegraphViews) {

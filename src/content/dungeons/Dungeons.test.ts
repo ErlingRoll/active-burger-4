@@ -6,6 +6,7 @@ import {
   createDungeonEncounterTimeline,
   getFloorStatMultiplier,
   getBossDamageMultiplier,
+  getFloorDifficultyProfile,
   isDungeonMaxFloorUnlocked,
   resolveDungeonMaxFloor,
   scaleOrdinaryEnemyStats,
@@ -97,5 +98,30 @@ describe('default dungeon timeline foundation', () => {
     expect(getBossDamageMultiplier(1)).toBe(0.7)
     expect(getBossDamageMultiplier(3)).toBe(0.7)
     expect(getBossDamageMultiplier(4)).toBe(1)
+  })
+
+  it('ramps supplemental difficulty smoothly across the floor-20 inflection', () => {
+    const floorOne = getFloorDifficultyProfile(1)
+    const floorFive = getFloorDifficultyProfile(5)
+    const floorNineteen = getFloorDifficultyProfile(19)
+    const floorTwenty = getFloorDifficultyProfile(20)
+    const floorTwentyOne = getFloorDifficultyProfile(21)
+    const floorOneHundred = getFloorDifficultyProfile(100)
+
+    expect(floorOne.abilityIntensity).toBeGreaterThan(0)
+    expect(floorFive.ordinaryEnemySpeedMultiplier).toBe(1)
+    expect(floorTwenty.ordinaryEnemySpeedMultiplier).toBeGreaterThan(
+      floorNineteen.ordinaryEnemySpeedMultiplier,
+    )
+    expect(floorTwentyOne.ordinaryEnemySpeedMultiplier).toBeGreaterThan(
+      floorTwenty.ordinaryEnemySpeedMultiplier,
+    )
+    expect(floorTwentyOne.ordinaryEnemySpeedMultiplier -
+      floorTwenty.ordinaryEnemySpeedMultiplier).toBeLessThan(0.02)
+    expect(floorOneHundred.spawnThreatMultiplier).toBeGreaterThan(
+      floorTwenty.spawnThreatMultiplier,
+    )
+    expect(getFloorDifficultyProfile(10_000).spawnThreatMultiplier).toBe(2)
+    expect(getFloorDifficultyProfile(10_000).abilityCooldownMultiplier).toBe(0.58)
   })
 })

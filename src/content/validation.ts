@@ -1,6 +1,10 @@
 import {
   ENEMY_DEFINITIONS,
 } from './enemies/EnemyConfig'
+import {
+  ENEMY_ABILITY_DEFINITIONS,
+  type EnemyAbilityDefinition,
+} from './enemies/EnemyAbilities'
 import type { EnemyDefinition } from './enemies/Enemies'
 import {
   ELITE_MODIFIER_DEFINITIONS,
@@ -91,6 +95,7 @@ import {
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
+  enemyAbilities?: readonly EnemyAbilityDefinition[]
   eliteModifiers: readonly EliteModifierDefinition[]
   projectiles: readonly ProjectileDefinition[]
   upgrades: readonly UpgradeDefinition[]
@@ -109,6 +114,7 @@ export interface ContentCatalog {
 
 export const CURRENT_CONTENT: ContentCatalog = {
   enemies: Object.values(ENEMY_DEFINITIONS),
+  enemyAbilities: Object.values(ENEMY_ABILITY_DEFINITIONS),
   eliteModifiers: Object.values(ELITE_MODIFIER_DEFINITIONS),
   projectiles: Object.values(PROJECTILE_DEFINITIONS),
   upgrades: INITIAL_UPGRADES,
@@ -250,7 +256,7 @@ function validateFiniteNumber(
     return
   }
 
-  if (!requirement) {
+    if (!requirement) {
     return
   }
 
@@ -264,6 +270,53 @@ function validateFiniteNumber(
   if (!isValid) {
     errors.push(`${path} must be ${requirement}; received ${String(value)}.`)
   }
+}
+
+function validateEnemyAbilities(
+  errors: string[],
+  abilities: readonly EnemyAbilityDefinition[],
+  enemyIds: Set<string>,
+  projectileIds: Set<string>,
+): void {
+  validateIds(errors, 'enemyAbilities', abilities)
+  abilities.forEach((ability, index) => {
+    const path = `enemyAbilities[${index}]`
+    if (!enemyIds.has(ability.enemyDefinitionId)) {
+      errors.push(
+        `${path}.enemyDefinitionId references unknown enemy "${ability.enemyDefinitionId}".`,
+      )
+    }
+    if (ability.kind !== 'projectile' && ability.kind !== 'area') {
+      errors.push(`${path}.kind is not supported; received "${String(ability.kind)}".`)
+    }
+    if (!isDamageType(ability.damageType)) {
+      errors.push(
+        `${path}.damageType is not supported; received "${String(ability.damageType)}".`,
+      )
+    }
+    validateFiniteNumber(errors, `${path}.cooldown`, ability.cooldown, 'positive')
+    validateFiniteNumber(
+      errors,
+      `${path}.telegraphDuration`,
+      ability.telegraphDuration,
+      'positive',
+    )
+    validateFiniteNumber(errors, `${path}.damage`, ability.damage, 'non-negative')
+    validateFiniteNumber(errors, `${path}.radius`, ability.radius, 'positive')
+    validateFiniteNumber(errors, `${path}.range`, ability.range, 'non-negative')
+    if (ability.kind === 'projectile') {
+      if (
+        !ability.projectileDefinitionId ||
+        !projectileIds.has(ability.projectileDefinitionId)
+      ) {
+        errors.push(
+          `${path}.projectileDefinitionId must reference a projectile for projectile abilities.`,
+        )
+      }
+    } else if (ability.projectileDefinitionId !== undefined) {
+      errors.push(`${path}.projectileDefinitionId is only supported for projectile abilities.`)
+    }
+  })
 }
 
 function validateDamageValues(
@@ -1202,6 +1255,12 @@ export function validateContent(catalog: ContentCatalog): string[] {
     catalog.eliteModifiers ?? [],
   )
   const projectileIds = validateIds(errors, 'projectiles', catalog.projectiles)
+  validateEnemyAbilities(
+    errors,
+    catalog.enemyAbilities ?? [],
+    enemyIds,
+    projectileIds,
+  )
   const skillIds = validateIds(errors, 'skills', catalog.skills)
   const bossIds = validateIds(errors, 'bosses', catalog.bosses)
   const bossSkillIds = validateIds(errors, 'bossSkills', catalog.bossSkills)

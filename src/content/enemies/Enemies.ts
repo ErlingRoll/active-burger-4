@@ -2,6 +2,15 @@ import { ENEMY_DEFINITIONS } from './EnemyConfig'
 import type { DamageResistanceValues } from '../stats/Damage'
 
 export {
+  ARCHER_SHOT_ABILITY_ID,
+  BRUTE_SHOCKWAVE_ABILITY_ID,
+  ENEMY_ABILITY_DEFINITIONS,
+  getEnemyAbilityDefinition,
+  getEnemyAbilityForDefinition,
+} from './EnemyAbilities'
+export type { EnemyAbilityDefinition, EnemyAbilityId } from './EnemyAbilities'
+
+export {
   ELITE_MODIFIER_DEFINITIONS,
   getEliteModifierDefinition,
 } from './EliteModifiers'
