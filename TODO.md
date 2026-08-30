@@ -10,6 +10,7 @@
 - jpg image as avatar
 - rallying banner does show damage reduction???
 - fix wand shotgunning a little bit
+- banish/exile
 
 # Maybe Pile
 
