@@ -982,8 +982,8 @@ function GameDashboard({
               >
                 <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
                 <span>
-                  <strong>Prepare dungeon</strong>
-                  <small>Configure your fighter and descend into the dungeon.</small>
+                  <strong>The Dungeon</strong>
+                  <small>Descend into the dungeon. Slay increasingly stronger monsters for valuable essence.</small>
                 </span>
                 <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
               </button>
