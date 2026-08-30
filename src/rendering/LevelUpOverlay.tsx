@@ -15,11 +15,15 @@ import {
 } from '../content/rarity/Rarity'
 import {
   getUpgradeDefinition,
+  getSynergyPartnerSkillIds,
   REMOVE_SKILL_UPGRADE_ID,
   REMOVE_SYNERGY_UPGRADE_ID,
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
-import { getSkillDefinition } from '../content/skills/Skills'
+import {
+  getSkillDefinition,
+  type SkillId,
+} from '../content/skills/Skills'
 import {
   normalizeGearSetId,
   type GearSetId,
@@ -49,6 +53,7 @@ interface LevelUpOverlayProps {
   gearSets: GameUiSnapshot['gearSets']
   keybinds: GameKeybinds
   playstyleId: PlaystyleId
+  ownedSkillIds: readonly SkillId[]
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
   onSkip: () => void
 }
@@ -459,12 +464,14 @@ function UpgradeCard({
   firstButtonRef,
   onSelect,
   keybind,
+  ownedSkillIds,
 }: {
   choice: LevelUpUpgradeChoice
   index: number
   firstButtonRef: (element: HTMLButtonElement | null) => void
   onSelect: (choice: LevelUpUpgradeChoice) => void
   keybind: string | undefined
+  ownedSkillIds: readonly SkillId[]
 }) {
   const definition = getUpgradeDefinition(choice.upgradeId)
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
@@ -476,6 +483,10 @@ function UpgradeCard({
   const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
+  const synergyPartnerSkills = unlockedSkill
+    ? getSynergyPartnerSkillIds(unlockedSkill.id, ownedSkillIds)
+      .map((skillId) => getSkillDefinition(skillId))
+    : []
   const evolvedSkill = definition.branch && definition.skillId
     ? getSkillDefinition(definition.skillId)
     : undefined
@@ -576,6 +587,17 @@ function UpgradeCard({
             </span>
           </span>
         ) : null}
+        {unlockedSkill && synergyPartnerSkills.length > 0 ? (
+          <span className="upgrade-synergy-partners" aria-label="Synergies with">
+            <span className="upgrade-skill-tags-label">Synergies with</span>{' '}
+            {synergyPartnerSkills.map((skill, skillIndex) => (
+              <span key={skill.id}>
+                {skillIndex > 0 ? ', ' : ''}
+                {skill.name}
+              </span>
+            ))}
+          </span>
+        ) : null}
         {!unlockedSkill ? (
           <span className="upgrade-choice-value">
             <KeywordText
@@ -609,6 +631,7 @@ export function LevelUpOverlay({
   gearSets,
   keybinds,
   playstyleId,
+  ownedSkillIds,
   onSelect,
   onSkip,
 }: LevelUpOverlayProps) {
@@ -672,6 +695,7 @@ export function LevelUpOverlay({
                     keybinds.choiceMiddle,
                     keybinds.choiceRight,
                   ][index]}
+                  ownedSkillIds={ownedSkillIds}
                   onSelect={(selected) => onSelect(selected)}
                 />
               ))

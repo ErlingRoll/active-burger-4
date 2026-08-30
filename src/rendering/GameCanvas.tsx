@@ -600,6 +600,7 @@ export function GameCanvas({
           flow={choiceFlow}
           keybinds={activeKeybinds}
           playstyleId={runConfig?.playstyleId ?? 'knight'}
+          ownedSkillIds={snapshot?.skills.map((skill) => skill.skillId) ?? []}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
           onSelect={selectChoice}

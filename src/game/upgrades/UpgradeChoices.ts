@@ -34,7 +34,10 @@ import {
   getPlaystyleDefinition,
   isPlaystyleId,
 } from '../../content/playstyles/Playstyles'
-import { SYNERGY_OFFER_CHANCE } from '../../game-config/synergies'
+import {
+  getSynergyPartnerSkillIds,
+  SYNERGY_OFFER_CHANCE,
+} from '../../game-config/synergies'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
 
@@ -225,7 +228,14 @@ export function getSkillUnlockWeight(
     : DEFAULT_PLAYSTYLE_ID
   const affinityTags: readonly SkillTag[] =
     getPlaystyleDefinition(playstyleId).skillAffinity.tags
-  return skill.tags.some((tag) => affinityTags.includes(tag)) ? 3 : 1
+  const affinityWeight = skill.tags.some((tag) => affinityTags.includes(tag)) ? 3 : 1
+  const ownedSkillIds = state.player.skills
+    .map((candidate) => candidate.skillId)
+    .filter(isSkillId)
+  const synergyWeight = getSynergyPartnerSkillIds(upgrade.skillId, ownedSkillIds).length > 0
+    ? 2
+    : 1
+  return affinityWeight * synergyWeight
 }
 
 function isBranchCompatible(

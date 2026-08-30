@@ -18,6 +18,7 @@ import {
   REMOVE_SYNERGY_UPGRADE_ID,
   SYNERGY_OFFER_CHANCE,
   SYNERGY_UPGRADES,
+  getSynergyPartnerSkillIds,
   isSkillSynergyActive,
 } from '../../content/upgrades/Upgrades'
 
@@ -220,22 +221,42 @@ describe('upgrade choice generation', () => {
     const ranger = createGame({ seed: 461, playstyleId: 'ranger' })
     const necromancer = createGame({ seed: 462, playstyleId: 'necromancer' })
 
-    expect(getSkillUnlockWeight(getUpgrade('lancers-charge-unlock'), knight.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(1)
-    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), ranger.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), ranger.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('lancers-charge-unlock'), knight.state)).toBe(6)
+    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(2)
+    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), ranger.state)).toBe(6)
+    expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), ranger.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), necromancer.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), necromancer.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), necromancer.state)).toBe(6)
     const frostWarden = createGame({ seed: 464, playstyleId: 'frost-warden' })
     const ashenAlchemist = createGame({ seed: 465, playstyleId: 'ashen-alchemist' })
     const warShepherd = createGame({ seed: 466, playstyleId: 'war-shepherd' })
-    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), frostWarden.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), frostWarden.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), frostWarden.state)).toBe(6)
+    expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), frostWarden.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('cinder-mine-unlock'), ashenAlchemist.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('fiery-touch-unlock'), ashenAlchemist.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('fiery-touch-unlock'), ashenAlchemist.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('rallying-standard-unlock'), warShepherd.state)).toBe(3)
-    expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), warShepherd.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), warShepherd.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('whirlwind-level'), knight.state)).toBe(1)
+  })
+
+  it('finds owned skills that pair with a skill unlock', () => {
+    expect(getSynergyPartnerSkillIds(
+      'glacial-orb',
+      ['basic-attack', 'whirlwind'],
+    )).toEqual(['basic-attack'])
+    expect(getSynergyPartnerSkillIds(
+      'gravity-well',
+      ['basic-attack'],
+    )).toEqual([])
+  })
+
+  it('doubles skill unlock weight when an owned synergy partner exists', () => {
+    const game = createGame({ seed: 467 })
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(1)
+
+    applyUpgrade(game.state, 'raise-skeleton-unlock')
+
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(2)
   })
 
   it('keeps all current skills tagged and classifies Glacial Orb as a projectile area skill', () => {

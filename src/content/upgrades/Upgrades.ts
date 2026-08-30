@@ -288,6 +288,7 @@ export { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 export {
   SYNERGY_OFFER_CHANCE,
   SYNERGY_UPGRADES,
+  getSynergyPartnerSkillIds,
   getSkillSynergyEffectPercent,
   isSynergyActive,
   isSkillSynergyActive,

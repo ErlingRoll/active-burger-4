@@ -52,6 +52,22 @@ export function isSkillSynergyActive(
   return hasActiveSynergyForSkill(skillId, selectedUpgradeIds)
 }
 
+export function getSynergyPartnerSkillIds(
+  skillId: SkillId,
+  ownedSkillIds: readonly SkillId[],
+): SkillId[] {
+  const ownedSkillIdSet = new Set(ownedSkillIds)
+  return [...new Set(
+    SYNERGY_UPGRADES
+      .filter((synergy) => synergy.synergySkillIds.includes(skillId))
+      .flatMap((synergy) =>
+        synergy.synergySkillIds.filter((partnerSkillId) =>
+          partnerSkillId !== skillId && ownedSkillIdSet.has(partnerSkillId)
+        )
+      ),
+  )]
+}
+
 export function isSynergyPairEligible(
   state: Pick<UpgradeEligibilityState, 'ownedSkillIds' | 'selectedUpgradeIds'>,
   skillIds: readonly [SkillId, SkillId],
