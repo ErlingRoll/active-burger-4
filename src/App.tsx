@@ -1089,9 +1089,6 @@ function RunSetupScreen({
             Difficulty {worldModifierEffects.difficulty} · Essence reward{' '}
             {worldModifierEffects.essenceRewardMultiplier.toFixed(2)}x
           </p>
-          <p className="world-modifier-summary">
-            Additional modifiers grant diminishing reward bonuses.
-          </p>
           <div className="dashboard-choice-list">
             {getWorldModifierDefinitions(
               normalizeWorldModifierIds(Object.keys(WORLD_MODIFIER_DEFINITIONS)),

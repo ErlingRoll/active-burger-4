@@ -20,10 +20,6 @@ export interface WorldModifierDefinition {
   readonly essenceRewardMultiplier: number
 }
 
-/** Later modifiers add less reward so stacking challenges stays sustainable. */
-export const WORLD_MODIFIER_REWARD_DIMINISHING_FACTOR = 0.75
-export const WORLD_MODIFIER_MAX_REWARD_MULTIPLIER = 1.5
-
 export const WORLD_MODIFIER_DEFINITIONS: Readonly<
   Record<WorldModifierId, WorldModifierDefinition>
 > = {
@@ -116,17 +112,10 @@ export function getWorldModifierDefinitions(
 export function calculateWorldModifierRewardMultiplier(
   ids: readonly unknown[] | undefined,
 ): number {
-  return Math.min(
-    WORLD_MODIFIER_MAX_REWARD_MULTIPLIER,
-    getWorldModifierDefinitions(normalizeWorldModifierIds(ids)).reduce(
-      (total, definition, index) =>
-        total * (
-          1 +
-          (definition.essenceRewardMultiplier - 1) *
-            Math.pow(WORLD_MODIFIER_REWARD_DIMINISHING_FACTOR, index)
-        ),
-      1,
-    ),
+  return getWorldModifierDefinitions(normalizeWorldModifierIds(ids)).reduce(
+    (total, definition) =>
+      total + (definition.essenceRewardMultiplier - 1),
+    1,
   )
 }
 

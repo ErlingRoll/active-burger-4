@@ -1941,8 +1941,7 @@ Reward multiplier: 1.08x when selected alone
 
 Modifiers are applied to the run configuration before simulation begins.
 Difficulty is ordered from low to high in the selection screen. Combining
-modifiers uses diminishing reward bonuses so stacking all modifiers does not
-produce an unbounded multiplicative reward.
+modifiers adds their reward bonuses together.
 
 ---
 

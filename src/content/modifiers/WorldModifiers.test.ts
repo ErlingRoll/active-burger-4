@@ -35,18 +35,19 @@ describe('WorldModifiers', () => {
     ])
   })
 
-  it('diminishes reward bonuses when multiple modifiers are combined', () => {
+  it('adds reward bonuses when multiple modifiers are combined', () => {
     expect(calculateWorldModifierRewardMultiplier([
       'swarming',
       'elite-invasion',
-    ])).toBeCloseTo(1.265)
+    ])).toBeCloseTo(1.3)
     expect(calculateWorldModifierRewardMultiplier([
       'swarming',
       'juggernauts',
       'glass-world',
+      'shorter-minute',
       'elite-invasion',
       'fast-start',
-    ])).toBeCloseTo(1.46654327)
+    ])).toBeCloseTo(1.88)
   })
 
   it('combines authored difficulty, rewards, and deterministic run effects', () => {
@@ -56,7 +57,7 @@ describe('WorldModifiers', () => {
     )
 
     expect(effects.difficulty).toBe(15)
-    expect(effects.essenceRewardMultiplier).toBeCloseTo(1.46654327)
+    expect(effects.essenceRewardMultiplier).toBeCloseTo(1.73)
     expect(effects.playerStatMultipliers).toEqual({
       maxHp: 0.75,
       attackDamage: 1.1,
