@@ -27,9 +27,11 @@ Rendering projects the state into a gold/pink ring and a temporary Pixi Text
 label above every enemy; it does not roll or infer elite gameplay state.
 
 The Flanking modifier reuses the Flanker's intercept behavior, allowing any
-ordinary enemy to pressure the player's lateral escape route. Flanker enemies
-are excluded from this modifier during both weighted selection and entity
-creation so the modifier cannot be duplicated with their authored behavior.
+ordinary enemy to pressure the player's lateral escape route. After reaching
+the intercept point, both behaviors use regular chase movement briefly before
+attempting another flank. Flanker enemies are excluded from this modifier
+during both weighted selection and entity creation so the modifier cannot be
+duplicated with their authored behavior.
 
 ## Consequences
 

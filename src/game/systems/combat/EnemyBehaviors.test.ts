@@ -118,6 +118,54 @@ describe('enemy variety behaviors', () => {
     expect(flanking.y).not.toBe(0)
   })
 
+  it('uses regular chase movement during Flanker re-engagement cooldowns', () => {
+    const simulate = (
+      definitionId: typeof FLANKER_DEFINITION_ID | typeof SLIME_DEFINITION_ID,
+      eliteModifier?: 'flanking',
+    ) => {
+      const game = createGame({ seed: 110 })
+      const flankerId = game.spawnEnemy(
+        definitionId,
+        { x: 300, y: 0 },
+        undefined,
+        eliteModifier,
+      )
+      game.state.player.movementVelocityX = 100
+      let observedCooldown = false
+      let observedRegularMovement = false
+
+      for (let tick = 0; tick < 480; tick += 1) {
+        const enemyBefore = game.state.enemies.find((enemy) => enemy.id === flankerId)
+        const distanceBefore = enemyBefore
+          ? Math.hypot(enemyBefore.x - game.state.player.x, enemyBefore.y - game.state.player.y)
+          : Number.POSITIVE_INFINITY
+        updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+        const flanker = game.state.enemies.find((enemy) => enemy.id === flankerId)
+        if (flanker && (flanker.interceptCooldownRemaining ?? 0) > 0) {
+          observedCooldown = true
+          const distanceAfter = Math.hypot(
+            flanker.x - game.state.player.x,
+            flanker.y - game.state.player.y,
+          )
+          if (distanceAfter < distanceBefore) {
+            observedRegularMovement = true
+          }
+        }
+      }
+
+      return { observedCooldown, observedRegularMovement }
+    }
+
+    expect(simulate(FLANKER_DEFINITION_ID)).toEqual({
+      observedCooldown: true,
+      observedRegularMovement: true,
+    })
+    expect(simulate(SLIME_DEFINITION_ID, 'flanking')).toEqual({
+      observedCooldown: true,
+      observedRegularMovement: true,
+    })
+  })
+
   it('does not apply Flanking to a Flanker enemy', () => {
     const game = createGame({ seed: 109 })
     game.spawnEnemy(

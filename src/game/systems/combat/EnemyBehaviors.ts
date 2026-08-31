@@ -46,6 +46,8 @@ const ENEMY_SEPARATION_RADIUS = 72
 const ENEMY_SEPARATION_PADDING = 8
 const ENEMY_SEPARATION_STRENGTH = 0.85
 const MAX_INTERCEPT_PREDICTION_SECONDS = 1.5
+const INTERCEPT_REENGAGEMENT_COOLDOWN_SECONDS = 2.5
+const INTERCEPT_DISTANCE_EPSILON = 1e-6
 
 function getEffectiveEnemyBehavior(
   enemy: Readonly<EnemyState>,
@@ -298,12 +300,36 @@ function updateInterceptBehavior(
 ): void {
   const target = getEnemyCombatTarget(state, enemy)
   enemy.targetId = target.id
+  const interceptCooldownRemaining = Math.max(
+    0,
+    finiteValue(enemy.interceptCooldownRemaining),
+  )
+  if (interceptCooldownRemaining > 0) {
+    enemy.interceptCooldownRemaining = Math.max(
+      0,
+      interceptCooldownRemaining - Math.max(0, fixedStepSeconds),
+    )
+    moveTowardTarget(
+      state,
+      target,
+      enemy,
+      target.radius + enemy.radius,
+      fixedStepSeconds,
+      movementIndex,
+    )
+    return
+  }
+
   const interceptPoint = getInterceptPoint(state, target, enemy, behavior)
   const interceptDistance = Math.hypot(
     interceptPoint.x - enemy.x,
     interceptPoint.y - enemy.y,
   )
-  if (interceptDistance <= behavior.engagementDistance) {
+  if (
+    interceptDistance <=
+    behavior.engagementDistance + INTERCEPT_DISTANCE_EPSILON
+  ) {
+    enemy.interceptCooldownRemaining = INTERCEPT_REENGAGEMENT_COOLDOWN_SECONDS
     moveTowardTarget(
       state,
       target,

@@ -338,6 +338,8 @@ export interface EnemyState {
   contactCooldownRemaining?: number
   /** Seconds until this enemy can begin its next special attack. */
   abilityCooldownRemaining?: number
+  /** Seconds before an intercept behavior may attempt another flank. */
+  interceptCooldownRemaining?: number
   /** Simulation time of the most recent contact attack, for rendering feedback. */
   lastMeleeAttackTime?: number
 
