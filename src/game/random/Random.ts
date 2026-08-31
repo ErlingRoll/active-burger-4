@@ -21,20 +21,31 @@ export interface RandomSource {
  * cryptographically secure, which is fine for gameplay simulation, but it
  * does produce a stable, well-distributed sequence for a given seed.
  */
-function createMulberry32(seed: number): () => number {
+interface Mulberry32 {
+  (): number
+  getState(): number
+  setState(value: number): void
+}
+
+function createMulberry32(seed: number): Mulberry32 {
   let state = seed >>> 0
 
-  return function next(): number {
+  const next = function next(): number {
     state = (state + 0x6d2b79f5) >>> 0
     let t = state
     t = Math.imul(t ^ (t >>> 15), t | 1)
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
+  } as Mulberry32
+
+  next.getState = () => state
+  next.setState = (value: number) => { state = value >>> 0 }
+
+  return next
 }
 
 export class Random implements RandomSource {
-  private readonly nextRaw: () => number
+  private readonly nextRaw: Mulberry32
 
   constructor(seed: number) {
     this.nextRaw = createMulberry32(seed)
@@ -63,5 +74,15 @@ export class Random implements RandomSource {
     }
 
     return items[this.int(0, items.length - 1)] as T
+  }
+
+  /** Returns the internal PRNG state for checkpoint serialization. */
+  getInternalState(): number {
+    return this.nextRaw.getState()
+  }
+
+  /** Restores the internal PRNG state from a checkpoint. */
+  setInternalState(value: number): void {
+    this.nextRaw.setState(value)
   }
 }

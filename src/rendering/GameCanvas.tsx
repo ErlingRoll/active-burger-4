@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   createGame,
+  createGameFromCheckpoint,
   DEFAULT_TIME_SCALE,
   MAX_TIME_SCALE,
   MIN_TIME_SCALE,
@@ -17,6 +18,7 @@ import {
   type RunConfig,
   type PendingChoiceFlow,
   type RunResultSnapshot,
+  type GameCheckpoint,
 } from '../game'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -69,8 +71,11 @@ import { formatExperience } from '../ui/formatNumbers'
 import { formatCompactDamage } from '../ui/formatNumbers'
 
 interface GameCanvasProps {
-  onRunEnd: (result: RunResultSnapshot) => void
+  onRunEnd: (result: RunResultSnapshot, checkpoint: GameCheckpoint) => void
   runConfig?: RunConfig
+  initialCheckpoint?: GameCheckpoint | null
+  onFloorCheckpoint?: (checkpoint: GameCheckpoint) => Promise<void>
+  onSaveAndQuit?: () => Promise<void>
   onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
   keybinds: GameKeybinds
   onKeybindsChange?: (keybinds: GameKeybinds) => Promise<void>
@@ -252,6 +257,9 @@ function applyInitialTimeScale(game: Game): void {
 export function GameCanvas({
   onRunEnd,
   runConfig,
+  initialCheckpoint,
+  onFloorCheckpoint,
+  onSaveAndQuit,
   onBehaviorProfileChange,
   keybinds,
   onKeybindsChange,
@@ -259,11 +267,16 @@ export function GameCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
   const onRunEndRef = useRef(onRunEnd)
+  const onFloorCheckpointRef = useRef(onFloorCheckpoint)
+  const onSaveAndQuitRef = useRef(onSaveAndQuit)
   const onBehaviorProfileChangeRef = useRef(onBehaviorProfileChange)
   const initialRunConfigRef = useRef<RunConfig>(runConfig ?? { seed: 3 })
+  const initialCheckpointRef = useRef(initialCheckpoint)
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
   const [choiceFlow, setChoiceFlow] = useState<Readonly<PendingChoiceFlow> | null>(null)
+  const [floorSaveError, setFloorSaveError] = useState<string | null>(null)
+  const retryFloorSaveRef = useRef<() => void>(() => undefined)
   const choiceFlowKeyRef = useRef<string | null>(null)
   const choiceFlowRef = useRef<Readonly<PendingChoiceFlow> | null>(null)
   const [activeKeybinds, setActiveKeybinds] = useState(keybinds)
@@ -277,6 +290,14 @@ export function GameCanvas({
   }, [onRunEnd])
 
   useEffect(() => {
+    onFloorCheckpointRef.current = onFloorCheckpoint
+  }, [onFloorCheckpoint])
+
+  useEffect(() => {
+    onSaveAndQuitRef.current = onSaveAndQuit
+  }, [onSaveAndQuit])
+
+  useEffect(() => {
     onBehaviorProfileChangeRef.current = onBehaviorProfileChange
   }, [onBehaviorProfileChange])
 
@@ -287,13 +308,17 @@ export function GameCanvas({
       return
     }
 
-    const game = createGame(initialRunConfigRef.current)
+    const game = initialCheckpointRef.current
+      ? createGameFromCheckpoint(initialCheckpointRef.current)
+      : createGame(initialRunConfigRef.current)
     applyInitialTimeScale(game)
     const pixiGame = new PixiGame(game)
     let disposed = false
     let runEndNotified = false
+    let floorSaveRequested = false
     gameRef.current = game
     setGame(game)
+    setFloorSaveError(null)
 
     const publishSnapshot = (): void => {
       if (!disposed) {
@@ -343,6 +368,41 @@ export function GameCanvas({
       game.spawnStairs({ x: 0, y: 0 })
     }
 
+    const requestFloorSave = (): void => {
+      if (disposed || floorSaveRequested || game.phase !== 'floor-transition') {
+        return
+      }
+      const transition = game.state.floorTransition
+      if (!transition?.savePending) {
+        return
+      }
+      const checkpoint = game.getFloorCheckpointSnapshot()
+      const save = onFloorCheckpointRef.current
+      if (!checkpoint || !save) {
+        setFloorSaveError('Unable to save the completed floor.')
+        return
+      }
+      floorSaveRequested = true
+      setFloorSaveError(null)
+      void save(checkpoint)
+        .then(() => {
+          if (!disposed) {
+            floorSaveRequested = false
+            game.completeFloorSave()
+          }
+        })
+        .catch((error: unknown) => {
+          if (!disposed) {
+            floorSaveRequested = false
+            setFloorSaveError(
+              error instanceof Error ? error.message : 'Unable to save the completed floor.',
+            )
+            publishSnapshot()
+          }
+        })
+    }
+    retryFloorSaveRef.current = requestFloorSave
+
     const unsubscribe = game.subscribe(() => {
       if (disposed) {
         return
@@ -357,8 +417,14 @@ export function GameCanvas({
         !runEndNotified
       ) {
         runEndNotified = true
-        onRunEndRef.current(game.getRunResultSnapshot())
+        const checkpoint = game.getTerminalCheckpointSnapshot()
+        if (!checkpoint) {
+          setFloorSaveError('Unable to capture the completed dungeon run.')
+          return
+        }
+        onRunEndRef.current(game.getRunResultSnapshot(), checkpoint)
       }
+      requestFloorSave()
     })
 
     const pressedMovementKeys = new Set<string>()
@@ -510,6 +576,7 @@ export function GameCanvas({
       setGame(null)
       choiceFlowKeyRef.current = null
       choiceFlowRef.current = null
+      retryFloorSaveRef.current = () => undefined
       pixiGame.destroy()
     }
   }, [])
@@ -558,8 +625,14 @@ export function GameCanvas({
     <div
       className="game-canvas"
       data-game-phase={phase}
-      data-world-modifiers={(runConfig?.worldModifierIds ?? []).join(',')}
-      data-playstyle={runConfig?.playstyleId ?? 'knight'}
+      data-world-modifiers={(initialCheckpoint?.gameState.run.worldModifierIds ??
+        runConfig?.worldModifierIds ??
+        []).join(',')}
+      data-playstyle={
+        initialCheckpoint?.gameState.player.playstyleId ??
+        runConfig?.playstyleId ??
+        'knight'
+      }
     >
       <div
         ref={containerRef}
@@ -593,8 +666,32 @@ export function GameCanvas({
           keybinds={activeKeybinds}
           onKeybindsChange={updateKeybinds}
           onResume={() => gameRef.current?.resume()}
+          onSaveAndQuit={async () => {
+            await onSaveAndQuitRef.current?.()
+          }}
           onForfeit={() => gameRef.current?.forfeit()}
         />
+      ) : null}
+      {phase === 'floor-transition' && snapshot?.floorTransition?.savePending ? (
+        <section className="floor-save-status" role="status" aria-live="polite">
+          <p className="screen-kicker">Floor complete</p>
+          <strong>Saving Floor {snapshot.floorTransition.fromFloor}…</strong>
+          <progress aria-label="Saving floor checkpoint" />
+          {floorSaveError ? (
+            <>
+              <p className="persistence-error" role="alert">{floorSaveError}</p>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => retryFloorSaveRef.current()}
+              >
+                Retry floor save
+              </button>
+            </>
+          ) : (
+            <span>Do not close this tab until the checkpoint is saved.</span>
+          )}
+        </section>
       ) : null}
       {choiceFlow ? (
         <LevelUpOverlay
@@ -817,6 +914,8 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           <strong>
             {snapshot.floorTransition.isFinal
               ? 'Descending to results'
+              : snapshot.floorTransition.savePending
+                ? 'Saving checkpoint'
               : `Entering Floor ${snapshot.floorTransition.toFloor}`}
           </strong>
           <progress
@@ -825,7 +924,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             aria-label="Floor transition progress"
           />
           <span>
-            {snapshot.floorTransition.remainingSeconds.toFixed(1)}s remaining
+            {snapshot.floorTransition.savePending
+              ? 'Waiting for the floor checkpoint to finish'
+              : `${snapshot.floorTransition.remainingSeconds.toFixed(1)}s remaining`}
           </span>
         </section>
       ) : null}

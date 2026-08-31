@@ -19,6 +19,8 @@ export type EntityId = number
 
 export interface EntityIdAllocator {
   createEntityId(): EntityId
+  getNextId?: () => EntityId
+  setNextId?: (nextId: EntityId) => void
 }
 
 /**
@@ -33,6 +35,12 @@ export function createEntityIdAllocator(): EntityIdAllocator {
   return {
     createEntityId(): EntityId {
       return nextEntityId++
+    },
+    getNextId(): EntityId {
+      return nextEntityId
+    },
+    setNextId(id: EntityId): void {
+      nextEntityId = id
     },
   }
 }

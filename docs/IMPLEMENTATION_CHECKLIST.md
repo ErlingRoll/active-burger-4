@@ -70,14 +70,9 @@ milestones in order unless an ADR documents an exception.
 - [x] **18. World Modifiers:** selection, difficulty score, reward multiplier.
 - [x] **19. Characters:** content-driven Knight, Ranger, Necromancer, Frost Warden, Ashen Alchemist, and War Shepherd.
 - [x] **20. Polish:** onboarding, combat readability, reduced motion, responsive HUD, and results presentation.
-
-## First Playable Gate
-
-- [ ] Validate a 10-minute run with one character, one arena, three enemy
-  types, three skills, 10-15 upgrades, one elite type, one boss, and three
-  upgrade choices per level.
-- [ ] Playtest and improve the decision loop before adding meta progression or
-  broad content expansion.
+- [ ] **21. Durable Dungeon Runs:** Supabase-owned active-run locking,
+      exact deterministic floor checkpoints, Continue/Save & quit/Forfeit
+      lifecycle, terminal snapshots, and active-run store restrictions.
 
 ## Per-Feature Gate
 
@@ -86,3 +81,5 @@ milestones in order unless an ADR documents an exception.
 - [ ] Save compatibility, stable IDs, architecture boundaries, and common
   viewport behavior were reviewed.
 - [ ] No unnecessary dependency or active-simulation network call was added.
+- [ ] Durable checkpoints restore the complete simulation boundary exactly and
+  never write every simulation tick.

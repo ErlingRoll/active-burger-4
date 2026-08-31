@@ -514,6 +514,8 @@ export interface FloorTransitionState {
   fromFloor: number
   toFloor: number
   isFinal: boolean
+  /** True while the next-floor checkpoint is being persisted. */
+  savePending?: boolean
 }
 
 export interface SummonState {

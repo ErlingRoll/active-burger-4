@@ -15,6 +15,7 @@ interface PauseMenuProps {
   keybinds: GameKeybinds
   onKeybindsChange: (keybinds: GameKeybinds) => Promise<void>
   onResume: () => void
+  onSaveAndQuit: () => Promise<void>
   onForfeit: () => void
 }
 
@@ -26,12 +27,15 @@ export function PauseMenu({
   keybinds,
   onKeybindsChange,
   onResume,
+  onSaveAndQuit,
   onForfeit,
 }: PauseMenuProps) {
   const resumeButtonRef = useRef<HTMLButtonElement>(null)
   const forfeitButtonRef = useRef<HTMLButtonElement>(null)
   const [listeningFor, setListeningFor] = useState<KeybindId | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [confirmationOpen, setConfirmationOpen] = useState(false)
 
   useEffect(() => {
@@ -95,6 +99,9 @@ export function PauseMenu({
   }
 
   const openForfeitConfirmation = (): void => {
+    if (saving) {
+      return
+    }
     setConfirmationOpen(true)
   }
 
@@ -107,6 +114,21 @@ export function PauseMenu({
 
   const confirmForfeit = (): void => {
     onForfeit()
+  }
+
+  const handleSaveAndQuit = (): void => {
+    if (saving) {
+      return
+    }
+    setSaveError(null)
+    setSaving(true)
+    void onSaveAndQuit()
+      .catch((saveFailure: unknown) => {
+        setSaveError(getErrorMessage(saveFailure))
+      })
+      .finally(() => {
+        setSaving(false)
+      })
   }
 
   return (
@@ -128,17 +150,28 @@ export function PauseMenu({
           className="pause-resume-button"
           type="button"
           onClick={onResume}
+          disabled={saving}
         >
           Resume run <span className="keybind-hint">Esc</span>
+        </button>
+        <button
+          className="pause-save-button"
+          type="button"
+          onClick={handleSaveAndQuit}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save & quit'}
         </button>
         <button
           ref={forfeitButtonRef}
           className="pause-forfeit-button"
           type="button"
           onClick={openForfeitConfirmation}
+          disabled={saving}
         >
           Forfeit
         </button>
+        {saveError ? <p className="pause-save-error" role="alert">{saveError}</p> : null}
         <fieldset className="pause-keybinds">
           <legend>Keybinds</legend>
           <div className="pause-keybind-list">

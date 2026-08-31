@@ -1,3 +1,10 @@
+import type {
+  GameCheckpoint,
+} from './checkpoint/GameCheckpoint'
+import {
+  CHECKPOINT_VERSION,
+  isValidCheckpoint,
+} from './checkpoint/GameCheckpoint'
 import { createEntityIdAllocator } from './ids'
 import type {
   EnemyDefinitionId,
@@ -128,7 +135,6 @@ import {
   updateEncounter,
 } from './systems/encounter/EncounterSystem'
 import {
-  FLOOR_TRANSITION_SECONDS,
   spawnStairs,
   updateStairs,
 } from './systems/stairs/StairsSystem'
@@ -253,6 +259,7 @@ export type DevelopmentGrantResult =
 export class Game {
   readonly random: RandomSource
 
+  private readonly runConfig: RunConfig
   private readonly idAllocator: EntityIdAllocator
   private readonly gearRandom: RandomSource
   private readonly synergyRandom: RandomSource
@@ -270,6 +277,7 @@ export class Game {
 
   constructor(config: RunConfig) {
     assertValidContent()
+    this.runConfig = { ...config }
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(config.seed)
     this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
@@ -775,15 +783,18 @@ export class Game {
 
   /**
    * Advances the simulation with a fixed-timestep accumulator. Choice and
-   * paused phases do not advance; floor transitions run only their timer.
+   * paused phases do not advance; floor transitions wait for checkpoint
+   * acknowledgement before their completion tick.
    */
   update(rawDeltaSeconds: number): void {
+    const canAdvance = (): boolean =>
+      this.gameState.run.phase === 'playing' ||
+      (this.gameState.run.phase === 'floor-transition' &&
+        this.gameState.floorTransition?.savePending !== true)
     this.clock.advance(
       rawDeltaSeconds,
       this.currentTimeScale,
-      () =>
-        this.gameState.run.phase === 'playing' ||
-        this.gameState.run.phase === 'floor-transition',
+      canAdvance,
       () => this.step(),
     )
   }
@@ -1086,11 +1097,19 @@ export class Game {
     if (this.gameState.floorTransition || this.gameState.run.phase !== 'playing') {
       return
     }
+    const fromFloor = this.gameState.run.floor ?? stairs.floorNumber
+    const toFloor = fromFloor + 1
+    if (!stairs.isFinal) {
+      this.gameState.run.floor = toFloor
+      this.gameState.run.floorStartedAt = this.gameState.time
+      healPlayer(this.gameState, this.gameState.player.maxHp, 'Entering new floor')
+    }
     this.gameState.floorTransition = {
-      remainingSeconds: FLOOR_TRANSITION_SECONDS,
-      fromFloor: this.gameState.run.floor ?? stairs.floorNumber,
-      toFloor: (this.gameState.run.floor ?? stairs.floorNumber) + 1,
+      remainingSeconds: 0,
+      fromFloor,
+      toFloor,
       isFinal: stairs.isFinal,
+      savePending: !stairs.isFinal,
     }
     this.gameState.stairs = undefined
     this.transitionTo('floor-transition')
@@ -1100,6 +1119,9 @@ export class Game {
     const transition = this.gameState.floorTransition
     if (!transition) {
       this.transitionTo('playing')
+      return
+    }
+    if (transition.savePending === true) {
       return
     }
     transition.remainingSeconds -= FIXED_STEP_SECONDS
@@ -1112,9 +1134,6 @@ export class Game {
       this.transitionTo('results')
       return
     }
-    this.gameState.run.floor = transition.toFloor
-    this.gameState.run.floorStartedAt = this.gameState.time
-    healPlayer(this.gameState, this.gameState.player.maxHp, 'Entering new floor')
     this.transitionTo('playing')
   }
 
@@ -1211,10 +1230,165 @@ export class Game {
       ? undefined
       : 'Development grants are only available during an active run.'
   }
+
+  /**
+   * Serializes the complete simulation state into a versioned, JSON-safe
+   * checkpoint DTO. The checkpoint captures every mutable field needed to
+   * restore this exact Game and produce identical future behavior.
+   */
+  createCheckpoint(): GameCheckpoint {
+    return this.buildCheckpoint()
+  }
+
+  /**
+   * Returns the canonical next-floor checkpoint while the simulation is held
+   * in the persistence-gated floor transition.
+   */
+  getFloorCheckpointSnapshot(): GameCheckpoint | undefined {
+    const transition = this.gameState.floorTransition
+    if (
+      this.gameState.run.phase !== 'floor-transition' ||
+      !transition ||
+      transition.isFinal ||
+      transition.savePending !== true
+    ) {
+      return undefined
+    }
+    const checkpoint = this.buildCheckpoint()
+    checkpoint.gameState.run.phase = 'playing'
+    checkpoint.gameState.floorTransition = undefined
+    checkpoint.gameState.paused = false
+    return checkpoint
+  }
+
+  /** Releases the simulation after the next-floor checkpoint has been saved. */
+  completeFloorSave(): boolean {
+    const transition = this.gameState.floorTransition
+    if (
+      this.gameState.run.phase !== 'floor-transition' ||
+      !transition ||
+      transition.savePending !== true
+    ) {
+      return false
+    }
+    transition.savePending = false
+    this.gameState.floorTransition = undefined
+    this.transitionTo('playing')
+    return true
+  }
+
+  /**
+   * App-integration alias of {@link createCheckpoint}. Returns a JSON-safe
+   * snapshot suitable for persistence at any point during an active run.
+   */
+  getCheckpointSnapshot(): GameCheckpoint {
+    return this.buildCheckpoint()
+  }
+
+  /**
+   * Returns a checkpoint captured at a terminal phase (defeat / victory /
+   * results). Callers that only persist final run state can use this to
+   * signal intent; the payload is identical to {@link getCheckpointSnapshot}
+   * but the method returns `undefined` when the run is still in progress.
+   */
+  getTerminalCheckpointSnapshot(): GameCheckpoint | undefined {
+    const phase = this.gameState.run.phase
+    if (phase !== 'defeat' && phase !== 'victory' && phase !== 'results') {
+      return undefined
+    }
+    return this.buildCheckpoint()
+  }
+
+  private buildCheckpoint(): GameCheckpoint {
+    const random = this.random as Random
+    const gearRandom = this.gearRandom as Random
+    const synergyRandom = this.synergyRandom as Random
+
+    return {
+      version: CHECKPOINT_VERSION,
+      runConfig: { ...this.runConfig },
+      gameState: JSON.parse(JSON.stringify(this.gameState)),
+      rngState: random.getInternalState(),
+      gearRngState: gearRandom.getInternalState(),
+      synergyRngState: synergyRandom.getInternalState(),
+      spawnDirector: this.spawnDirector.getSerializableState(),
+      nextEntityId: this.idAllocator.getNextId?.() ??
+        getNextEntityIdFromState(this.gameState),
+      clockAccumulatedSeconds: this.clock.getAccumulatedSeconds(),
+      currentTimeScale: this.currentTimeScale,
+      resumePhase: this.resumePhase ?? null,
+      choiceFlows: JSON.parse(JSON.stringify(this.choiceFlows)),
+      collectedGearPickups: JSON.parse(JSON.stringify(this.collectedGearPickups)),
+    }
+  }
+
+  /**
+   * Creates a new Game from a previously serialized checkpoint, restoring
+   * every mutable field so future simulation steps produce identical results.
+   *
+   * @throws if the checkpoint version is unknown or the envelope is malformed.
+   */
+  static restoreFromCheckpoint(checkpoint: unknown): Game {
+    if (!isValidCheckpoint(checkpoint)) {
+      throw new Error(
+        'Invalid or unsupported checkpoint' +
+          (typeof checkpoint === 'object' && checkpoint !== null &&
+            'version' in checkpoint
+            ? ` (version ${(checkpoint as Record<string, unknown>).version})`
+            : '') +
+          '.',
+      )
+    }
+
+    // Create a fresh Game from the original config to build all readonly
+    // derived state (dungeon, world modifier effects, etc.).
+    const game = new Game(checkpoint.runConfig)
+
+    // Overwrite all mutable state from the checkpoint.
+    Object.assign(game.gameState, JSON.parse(JSON.stringify(checkpoint.gameState)))
+
+    ;(game.random as Random).setInternalState(checkpoint.rngState)
+    ;(game.gearRandom as Random).setInternalState(checkpoint.gearRngState)
+    ;(game.synergyRandom as Random).setInternalState(checkpoint.synergyRngState)
+
+    game.spawnDirector.restoreSerializableState(checkpoint.spawnDirector)
+    if (!game.idAllocator.setNextId) {
+      throw new Error('The game entity allocator cannot restore a checkpoint.')
+    }
+    game.idAllocator.setNextId(checkpoint.nextEntityId)
+    game.clock.setAccumulatedSeconds(checkpoint.clockAccumulatedSeconds)
+    game.currentTimeScale = checkpoint.currentTimeScale
+    game.resumePhase = checkpoint.resumePhase ?? undefined
+    game.choiceFlows = JSON.parse(JSON.stringify(checkpoint.choiceFlows))
+    game.collectedGearPickups.length = 0
+    for (const pickup of checkpoint.collectedGearPickups) {
+      game.collectedGearPickups.push(JSON.parse(JSON.stringify(pickup)))
+    }
+
+    return game
+  }
 }
 
 export function createGame(config: RunConfig): Game {
   return new Game(config)
+}
+
+/**
+ * Convenience wrapper: creates a Game from `config` and immediately returns
+ * its initial checkpoint without retaining the Game instance.
+ */
+export function createInitialGameCheckpoint(config: RunConfig): GameCheckpoint {
+  return new Game(config).createCheckpoint()
+}
+
+/**
+ * Convenience wrapper: restores a Game from a previously serialized
+ * checkpoint. Equivalent to `Game.restoreFromCheckpoint(checkpoint)`.
+ *
+ * @throws if the checkpoint version is unknown or the envelope is malformed.
+ */
+export function createGameFromCheckpoint(checkpoint: unknown): Game {
+  return Game.restoreFromCheckpoint(checkpoint)
 }
 
 function getConfiguredSkillSlotCount(player: GameState['player']): number {
@@ -1222,4 +1396,22 @@ function getConfiguredSkillSlotCount(player: GameState['player']): number {
   return typeof configuredCount === 'number' && Number.isFinite(configuredCount)
     ? Math.max(1, Math.floor(configuredCount))
     : DEFAULT_SKILL_SLOT_COUNT
+}
+
+function getNextEntityIdFromState(state: GameState): number {
+  const ids = [
+    state.player.id,
+    ...state.enemies.map((entity) => entity.id),
+    ...(state.bosses ?? []).map((entity) => entity.id),
+    ...(state.telegraphs ?? []).map((entity) => entity.id),
+    ...state.projectiles.map((entity) => entity.id),
+    ...state.pickups.map((entity) => entity.id),
+    ...state.summons.map((entity) => entity.id),
+    ...state.effects.map((entity) => entity.id),
+    ...(state.traps ?? []).map((entity) => entity.id),
+    ...(state.relays ?? []).map((entity) => entity.id),
+    ...(state.player.soulTethers ?? []).map((entity) => entity.id),
+    ...(state.stairs ? [state.stairs.id] : []),
+  ]
+  return Math.max(0, ...ids) + 1
 }

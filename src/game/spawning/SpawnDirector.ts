@@ -59,6 +59,43 @@ export class SpawnDirector {
     this.fastStartDurationSeconds = fastStartDurationSeconds
   }
 
+  /** Checkpoint serialization: returns indices into balance.spawnEntries. */
+  getSerializableState(): {
+    threatBudget: number
+    pendingEntryIndex: number | null
+    introducedEntryIndices: number[]
+  } {
+    return {
+      threatBudget: this.threatBudget,
+      pendingEntryIndex: this.pendingEntry
+        ? this.balance.spawnEntries.indexOf(this.pendingEntry)
+        : null,
+      introducedEntryIndices: [...this.introducedEntries].map(
+        (entry) => this.balance.spawnEntries.indexOf(entry),
+      ),
+    }
+  }
+
+  /** Checkpoint restore: accepts indices produced by getSerializableState(). */
+  restoreSerializableState(snapshot: {
+    threatBudget: number
+    pendingEntryIndex: number | null
+    introducedEntryIndices: number[]
+  }): void {
+    this.threatBudget = snapshot.threatBudget
+    this.pendingEntry =
+      snapshot.pendingEntryIndex !== null
+        ? this.balance.spawnEntries[snapshot.pendingEntryIndex]
+        : undefined
+    this.introducedEntries.clear()
+    for (const index of snapshot.introducedEntryIndices) {
+      const entry = this.balance.spawnEntries[index]
+      if (entry) {
+        this.introducedEntries.add(entry)
+      }
+    }
+  }
+
   /**
    * Adds this tick's threat budget and spends it on requests until the budget
    * is exhausted. A budget of less than one enemy is retained, so spawn timing

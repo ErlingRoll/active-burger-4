@@ -278,6 +278,7 @@ export interface FloorTransitionHudSnapshot {
   readonly fromFloor: number
   readonly toFloor: number
   readonly isFinal: boolean
+  readonly savePending: boolean
   readonly progress: number
 }
 
@@ -1559,11 +1560,14 @@ export function createUiSnapshot(
       fromFloor: state.floorTransition.fromFloor,
       toFloor: state.floorTransition.toFloor,
       isFinal: state.floorTransition.isFinal,
+      savePending: state.floorTransition.savePending === true,
       progress: Math.min(
         1,
         Math.max(
           0,
-          1 - state.floorTransition.remainingSeconds / FLOOR_TRANSITION_SECONDS,
+          state.floorTransition.savePending === true
+            ? 0
+            : 1 - state.floorTransition.remainingSeconds / FLOOR_TRANSITION_SECONDS,
         ),
       ),
     })

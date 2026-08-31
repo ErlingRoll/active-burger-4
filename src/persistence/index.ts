@@ -2,4 +2,4 @@ export * from './types'
 export * from './migrations'
 export * from './database'
 export * from './LocalPersistenceRepository'
-
+export * from './remote'

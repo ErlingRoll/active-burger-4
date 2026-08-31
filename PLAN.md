@@ -2249,7 +2249,6 @@ Initial database:
 ```text
 localSettings
 cachedProfile
-optionalRunSnapshot
 ```
 
 Flow:
@@ -2270,6 +2269,10 @@ locally error
 
 Completed run results are submitted directly rather than queued locally, so a
 failed submission surfaces to the player instead of silently retrying later.
+Durable dungeon recovery is an explicit exception to the active-run
+in-memory rule: Supabase stores an initial checkpoint, a checkpoint after each
+completed floor, and a terminal snapshot for victory, death, or forfeit. The
+latest completed-floor checkpoint is used for Continue.
 
 ---
 
@@ -2293,31 +2296,28 @@ The active run primarily lives in memory.
 
 ---
 
-# 60. Optional Run Recovery
+# 60. Durable Run Recovery
 
-Run recovery should be treated as a later feature.
+Run recovery uses immutable floor checkpoints rather than continuous writes.
+Save the initial floor and append a new full checkpoint only after the player
+completes a floor. Save & quit marks the run paused without writing a new
+checkpoint, so Continue always restarts from the latest completed-floor state
+and cannot be used to overwrite a bad mid-floor state.
 
-If implemented, occasionally save a compact run snapshot locally.
+Each checkpoint must include the complete deterministic simulation boundary:
+all mutable `GameState` data, pending choices, rolled equipment, random
+generator positions, spawn scheduling, entity allocation, clock state, and
+other private cursors. Restoring a checkpoint must produce the same future
+state, choices, rolls, and result as the original simulation.
 
-For example:
-
-```text
-every 30–60 seconds
-```
-
-This is only for:
-
-* browser crash;
-* accidental refresh;
-* mobile tab eviction.
-
-Do not upload recovery snapshots continuously to Supabase.
+The client must not rely on unload-time network writes. Browser crashes,
+refreshes, and mobile tab eviction recover from the latest durable checkpoint.
 
 ---
 
 # 61. Supabase Responsibilities
 
-Supabase should eventually handle:
+Supabase should handle:
 
 ```text
 authentication
@@ -2328,10 +2328,12 @@ character progression
 achievements
 account-level settings
 completed-run summaries
+durable dungeon run metadata and floor/terminal checkpoints
 leaderboards if introduced
 ```
 
-Supabase should not handle the active simulation.
+Supabase should not handle every active simulation tick. It receives only
+explicit run-boundary checkpoints and terminal snapshots.
 
 ---
 

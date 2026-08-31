@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { RunResultSnapshot, RunConfig } from './game'
+import type { RunResultSnapshot, RunConfig, GameCheckpoint } from './game'
 import {
   DEFAULT_DUNGEON_CONFIG,
+  DEFAULT_DUNGEON_ID,
+  createGameFromCheckpoint,
+  createInitialGameCheckpoint,
+  isValidCheckpoint,
   type BehaviorProfileId,
 } from './game'
 import {
@@ -11,6 +15,8 @@ import {
   type PersistenceRepository,
   type SettingsDto,
   type SettingsPatch,
+  createDungeonRunPersistenceService,
+  type ActiveDungeonRun,
 } from './persistence'
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
@@ -43,6 +49,7 @@ import {
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
+import { ConfirmationDialog } from './ui/ConfirmationDialog'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import type { GameKeybinds } from './input/Keybinds'
 import { DEFAULT_GAME_KEYBINDS } from './input/Keybinds'
@@ -58,6 +65,7 @@ import {
 import './App.css'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
+const RUN_GAME_VERSION = APP_VERSION ?? 'development'
 
 type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
@@ -100,6 +108,9 @@ interface RunRewardState {
   essenceAwarded: number | null
   error: string | null
 }
+
+type RunLoadState = 'loading' | 'ready' | 'error' | 'unavailable'
+type RunWriteState = 'idle' | 'saving' | 'saved' | 'error' | 'unavailable'
 
 const DEFAULT_CONTRACT = {
   id: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
@@ -154,6 +165,13 @@ function errorMessage(error: unknown): string {
     return error.message
   }
   return 'Unable to access local persistence.'
+}
+
+function parseGameCheckpoint(value: unknown): GameCheckpoint {
+  if (!isValidCheckpoint(value)) {
+    throw new Error('The saved dungeon checkpoint is invalid or unsupported.')
+  }
+  return value
 }
 
 function createRunSeed(): number {
@@ -263,6 +281,22 @@ function App() {
       }
     }
   }, [authenticationService])
+  const dungeonRunPersistence = useMemo(() => {
+    try {
+      return {
+        service: createDungeonRunPersistenceService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
       authenticationService.service,
@@ -294,6 +328,15 @@ function App() {
   const [metaLoadAttempt, setMetaLoadAttempt] = useState(0)
   const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
+  const [activeRun, setActiveRun] = useState<ActiveDungeonRun | null>(null)
+  const [runLoadState, setRunLoadState] = useState<RunLoadState>('loading')
+  const [runLoadError, setRunLoadError] = useState<string | null>(null)
+  const [runStartState, setRunStartState] = useState<RunWriteState>('idle')
+  const [runStartError, setRunStartError] = useState<string | null>(null)
+  const [resumeCheckpoint, setResumeCheckpoint] = useState<GameCheckpoint | null>(null)
+  const [terminalCheckpoint, setTerminalCheckpoint] = useState<GameCheckpoint | null>(null)
+  const [terminalSaveState, setTerminalSaveState] = useState<RunWriteState>('idle')
+  const [terminalSaveError, setTerminalSaveError] = useState<string | null>(null)
 
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
     const nextPath = APP_ROUTE_PATHS[nextScreen]
@@ -324,6 +367,15 @@ function App() {
       window.removeEventListener('popstate', handlePopState)
     }
   }, [])
+
+  useEffect(() => {
+    if (
+      activeRun !== null &&
+      (screen === 'run-setup' || screen === 'meta-progression')
+    ) {
+      navigateToScreen('dashboard', true)
+    }
+  }, [activeRun, navigateToScreen, screen])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -397,6 +449,51 @@ function App() {
     }
   }, [loadAttempt, repository])
 
+  useEffect(() => {
+    const accountId = authentication.account?.id
+    const service = dungeonRunPersistence.service
+    if (!accountId) {
+      setActiveRun(null)
+      setRunLoadState('ready')
+      setRunLoadError(null)
+      return
+    }
+    if (!service) {
+      setActiveRun(null)
+      setRunLoadState('unavailable')
+      setRunLoadError(
+        dungeonRunPersistence.configurationError ?? 'Dungeon run persistence is unavailable.',
+      )
+      return
+    }
+
+    let cancelled = false
+    setRunLoadState('loading')
+    setRunLoadError(null)
+    void service.loadActiveRun()
+      .then((loadedRun) => {
+        if (!cancelled) {
+          setActiveRun(loadedRun)
+          setRunLoadState('ready')
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setActiveRun(null)
+          setRunLoadState('error')
+          setRunLoadError(errorMessage(error))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    authentication.account?.id,
+    dungeonRunPersistence.configurationError,
+    dungeonRunPersistence.service,
+  ])
+
   const settings = persistence.settings
   const profile = persistence.profile
   const runConfig = useMemo<RunConfig | null>(() => {
@@ -469,16 +566,26 @@ function App() {
   }, [])
 
   const openMetaProgression = useCallback((): void => {
-    if (authentication.account) {
-      navigateToScreen('meta-progression')
+    if (!authentication.account || runLoadState !== 'ready') {
+      return
     }
-  }, [authentication.account, navigateToScreen])
+    if (activeRun !== null) {
+      showToast('Finish or forfeit your current dungeon run before opening the store.', 'error')
+      return
+    }
+    navigateToScreen('meta-progression')
+  }, [activeRun, authentication.account, navigateToScreen, runLoadState, showToast])
 
   const openRunSetup = useCallback((): void => {
-    if (authentication.account) {
-      navigateToScreen('run-setup')
+    if (!authentication.account || runLoadState !== 'ready') {
+      return
     }
-  }, [authentication.account, navigateToScreen])
+    if (activeRun !== null) {
+      showToast('Continue or forfeit your current dungeon run before starting a new one.', 'error')
+      return
+    }
+    navigateToScreen('run-setup')
+  }, [activeRun, authentication.account, navigateToScreen, runLoadState, showToast])
 
   const closeRunSetup = useCallback((): void => {
     navigateToScreen('dashboard', true)
@@ -557,6 +664,15 @@ function App() {
       ))
       setMetaLoadAttempt(0)
       setMetaLoadedAttempt(0)
+      setActiveRun(null)
+      setRunLoadState('ready')
+      setResumeCheckpoint(null)
+      setTerminalCheckpoint(null)
+      setRunStartState('idle')
+      setRunStartError(null)
+      setTerminalSaveState('idle')
+      setTerminalSaveError(null)
+      setActiveRunSubmission(null)
       navigateToScreen('dashboard', true)
       return true
     } catch (error: unknown) {
@@ -602,23 +718,124 @@ function App() {
     [persistSettings, settings],
   )
 
-  const startRun = useCallback((): void => {
+  const startRun = useCallback(async (): Promise<void> => {
+    const service = dungeonRunPersistence.service
+    if (
+      !authentication.account ||
+      !service ||
+      !runConfig ||
+      runLoadState !== 'ready' ||
+      activeRun !== null
+    ) {
+      showToast(
+        activeRun
+          ? 'Continue or forfeit your current dungeon run before starting a new one.'
+          : 'Dungeon run persistence is unavailable.',
+        'error',
+      )
+      return
+    }
+    setRunStartState('saving')
+    setRunStartError(null)
     setResult(null)
     setWriteError(null)
-    setRunSeed(createRunSeed())
-    setActiveRunSubmission({
-      runId: crypto.randomUUID(),
-      pendingResultId: crypto.randomUUID(),
-      completedAt: '',
-      level: 1,
-      killCount: 0,
-      outcome: 'defeat',
-      worldModifierIds: [],
+    const seed = createRunSeed()
+    const config: RunConfig = { ...runConfig, seed }
+    try {
+      const checkpoint = createInitialGameCheckpoint(config)
+      const created = await service.createRun({
+        runId: crypto.randomUUID(),
+        seed,
+        contractId: config.dungeonMaxFloorContractId ?? DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
+        worldModifierIds: config.worldModifierIds ?? [],
+        maxFloor: checkpoint.gameState.run.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor,
+        startedAt: new Date().toISOString(),
+        dungeonId: checkpoint.gameState.run.dungeonId ?? DEFAULT_DUNGEON_ID,
+        playstyleId: checkpoint.gameState.player.playstyleId ?? config.playstyleId ?? 'knight',
+        gameVersion: RUN_GAME_VERSION,
+        checkpoint,
+      })
+      setRunSeed(seed)
+      setActiveRun(created)
+      setResumeCheckpoint(null)
+      setTerminalCheckpoint(null)
+      setActiveRunSubmission({
+        runId: created.runId,
+        pendingResultId: created.runId,
+        completedAt: '',
+        level: checkpoint.gameState.player.level,
+        killCount: checkpoint.gameState.run.killCount,
+        outcome: 'defeat',
+        worldModifierIds: checkpoint.gameState.run.worldModifierIds ?? [],
+      })
+      setRunReward({ status: 'idle', essenceAwarded: null, error: null })
+      setRunStartState('saved')
+      setRunId((currentRunId) => currentRunId + 1)
+      navigateToScreen('gameplay', true)
+    } catch (error: unknown) {
+      setRunStartState('error')
+      setRunStartError(errorMessage(error))
+    }
+  }, [
+    activeRun,
+    authentication.account,
+    dungeonRunPersistence.service,
+    navigateToScreen,
+    runConfig,
+    runLoadState,
+    showToast,
+  ])
+
+  const continueRun = useCallback((): void => {
+    if (!activeRun) {
+      return
+    }
+    try {
+      const checkpoint = parseGameCheckpoint(activeRun.checkpoint.payload)
+      setResumeCheckpoint(checkpoint)
+      setRunSeed(activeRun.seed)
+      setActiveRunSubmission({
+        runId: activeRun.runId,
+        pendingResultId: activeRun.runId,
+        completedAt: '',
+        level: checkpoint.gameState.player.level,
+        killCount: checkpoint.gameState.run.killCount,
+        outcome: 'defeat',
+        worldModifierIds: checkpoint.gameState.run.worldModifierIds ?? [],
+      })
+      setRunReward({ status: 'idle', essenceAwarded: null, error: null })
+      setRunId((currentRunId) => currentRunId + 1)
+      navigateToScreen('gameplay', true)
+    } catch (error: unknown) {
+      showToast(`Unable to restore the saved dungeon: ${errorMessage(error)}`, 'error')
+    }
+  }, [activeRun, navigateToScreen, showToast])
+
+  const saveFloorCheckpoint = useCallback(async (checkpoint: GameCheckpoint): Promise<void> => {
+    const service = dungeonRunPersistence.service
+    const submission = activeRunSubmission
+    if (!service || !submission) {
+      throw new Error('Unable to identify the active dungeon run.')
+    }
+    const updated = await service.saveFloorCheckpoint({
+      runId: submission.runId,
+      floor: checkpoint.gameState.run.floor ?? 1,
+      checkpoint,
     })
-    setRunReward({ status: 'idle', essenceAwarded: null, error: null })
-    setRunId((currentRunId) => currentRunId + 1)
-    navigateToScreen('gameplay', true)
-  }, [navigateToScreen])
+    setActiveRun(updated)
+  }, [activeRunSubmission, dungeonRunPersistence.service])
+
+  const saveAndQuitRun = useCallback(async (): Promise<void> => {
+    const service = dungeonRunPersistence.service
+    const submission = activeRunSubmission
+    if (!service || !submission) {
+      throw new Error('Unable to identify the active dungeon run.')
+    }
+    await service.pauseRun(submission.runId)
+    setActiveRun((current) => current ? { ...current, status: 'paused' } : current)
+    setResumeCheckpoint(null)
+    navigateToScreen('dashboard', true)
+  }, [activeRunSubmission, dungeonRunPersistence.service, navigateToScreen])
 
   const submitRunReward = useCallback(async (submission: MetaRunResultInput): Promise<void> => {
     const service = metaProgressionService.service
@@ -654,7 +871,41 @@ function App() {
     }
   }, [authentication.account, metaProgressionService.service])
 
-  const handleRunEnd = useCallback((runResult: RunResultSnapshot): void => {
+  const saveTerminalRun = useCallback(async (
+    submission: MetaRunResultInput,
+    checkpoint: GameCheckpoint,
+  ): Promise<void> => {
+    const service = dungeonRunPersistence.service
+    if (!service) {
+      setTerminalSaveState('unavailable')
+      setTerminalSaveError('Dungeon run persistence is unavailable.')
+      return
+    }
+    setTerminalSaveState('saving')
+    setTerminalSaveError(null)
+    try {
+      await service.completeRun({
+        runId: submission.runId,
+        outcome: submission.outcome,
+        completedAt: submission.completedAt,
+        checkpoint,
+        level: submission.level,
+        killCount: submission.killCount,
+        worldModifierIds: submission.worldModifierIds,
+      })
+      setActiveRun(null)
+      setTerminalSaveState('saved')
+      await submitRunReward(submission)
+    } catch (error: unknown) {
+      setTerminalSaveState('error')
+      setTerminalSaveError(errorMessage(error))
+    }
+  }, [dungeonRunPersistence.service, submitRunReward])
+
+  const handleRunEnd = useCallback((
+    runResult: RunResultSnapshot,
+    checkpoint: GameCheckpoint,
+  ): void => {
     setResult(runResult)
     navigateToScreen('results', true)
     if (!activeRunSubmission) {
@@ -674,10 +925,58 @@ function App() {
       worldModifierIds: runResult.worldModifierIds,
     }
     setActiveRunSubmission(submission)
+    setTerminalCheckpoint(checkpoint)
+    void saveTerminalRun(submission, checkpoint)
+  }, [activeRunSubmission, navigateToScreen, saveTerminalRun])
+
+  const retryTerminalSave = useCallback((): void => {
+    if (activeRunSubmission && terminalCheckpoint) {
+      void saveTerminalRun(activeRunSubmission, terminalCheckpoint)
+    }
+  }, [activeRunSubmission, saveTerminalRun, terminalCheckpoint])
+
+  const forfeitActiveRun = useCallback(async (): Promise<void> => {
+    const service = dungeonRunPersistence.service
+    const currentRun = activeRun
+    if (!service || !currentRun) {
+      throw new Error('There is no active dungeon run to forfeit.')
+    }
+    const completed = await service.forfeitRun(currentRun.runId)
+    const checkpoint = parseGameCheckpoint(completed.snapshot.payload)
+    const forfeitedGame = createGameFromCheckpoint(checkpoint)
+    const forfeitedResult = forfeitedGame.getRunResultSnapshot()
+    const submission: MetaRunResultInput = {
+      runId: currentRun.runId,
+      pendingResultId: currentRun.runId,
+      completedAt: new Date().toISOString(),
+      level: forfeitedResult.level,
+      killCount: forfeitedResult.killCount,
+      outcome: 'defeat',
+      worldModifierIds: forfeitedResult.worldModifierIds,
+    }
+    setActiveRun(null)
+    setActiveRunSubmission(submission)
+    setResult(forfeitedResult)
+    setTerminalCheckpoint(checkpoint)
+    setTerminalSaveState('saved')
+    navigateToScreen('results', true)
     void submitRunReward(submission)
-  }, [activeRunSubmission, navigateToScreen, submitRunReward])
+  }, [
+    activeRun,
+    dungeonRunPersistence.service,
+    navigateToScreen,
+    submitRunReward,
+  ])
 
   const purchaseUnlock = useCallback(async (unlockId: string): Promise<void> => {
+    if (activeRun !== null) {
+      showToast('Finish or forfeit your current dungeon run before purchasing upgrades.', 'error')
+      return
+    }
+    if (runLoadState !== 'ready') {
+      showToast('Dungeon run status is still loading. Try again in a moment.', 'error')
+      return
+    }
     if (!metaProgressionService.service || !authentication.account) {
       return
     }
@@ -711,7 +1010,14 @@ function App() {
       }))
       showToast(`Unable to purchase upgrade: ${errorMessage(error)}`, 'error')
     }
-  }, [authentication.account, metaProgression.snapshot, metaProgressionService.service, showToast])
+  }, [
+    activeRun,
+    authentication.account,
+    metaProgression.snapshot,
+    metaProgressionService.service,
+    runLoadState,
+    showToast,
+  ])
 
   const returnToDashboard = useCallback((): void => {
     setResult(null)
@@ -823,8 +1129,13 @@ function App() {
           essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
           leaderboardService={essenceLeaderboard.service}
           leaderboardConfigurationError={essenceLeaderboard.configurationError}
+          activeRun={activeRun}
+          runLoadState={runLoadState}
+          runLoadError={runLoadError}
           onOpenMetaProgression={openMetaProgression}
           onOpenRunSetup={openRunSetup}
+          onContinueRun={continueRun}
+          onForfeitRun={forfeitActiveRun}
         />
       ) : null}
       {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression') &&
@@ -839,7 +1150,8 @@ function App() {
       {screen === 'run-setup' && authentication.account ? (
         <RunSetupScreen
           settings={settings}
-          writeError={writeError}
+          writeError={writeError ?? runStartError}
+          startState={runStartState}
           onStart={startRun}
           onSelectPlaystyle={selectPlaystyle}
           onToggleWorldModifier={toggleWorldModifier}
@@ -862,7 +1174,10 @@ function App() {
         <GameCanvas
           key={runId}
           runConfig={runConfig}
+          initialCheckpoint={resumeCheckpoint}
           onRunEnd={handleRunEnd}
+          onFloorCheckpoint={saveFloorCheckpoint}
+          onSaveAndQuit={saveAndQuitRun}
           onBehaviorProfileChange={selectBehaviorProfile}
           keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
           onKeybindsChange={updateKeybinds}
@@ -872,7 +1187,10 @@ function App() {
         <ResultsScreen
           result={result}
           runReward={runReward}
+          terminalSaveState={terminalSaveState}
+          terminalSaveError={terminalSaveError}
           onReturn={returnToDashboard}
+          onRetryTerminalSave={retryTerminalSave}
           onRetryReward={() => {
             if (activeRunSubmission) {
               void submitRunReward(activeRunSubmission)
@@ -923,8 +1241,13 @@ interface GameDashboardProps {
   essenceBalance: number | null
   leaderboardService: EssenceLeaderboardService | null
   leaderboardConfigurationError: string | null
+  activeRun: ActiveDungeonRun | null
+  runLoadState: RunLoadState
+  runLoadError: string | null
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
+  onContinueRun: () => void
+  onForfeitRun: () => Promise<void>
 }
 
 function GameDashboard({
@@ -932,11 +1255,46 @@ function GameDashboard({
   essenceBalance,
   leaderboardService,
   leaderboardConfigurationError,
+  activeRun,
+  runLoadState,
+  runLoadError,
   onOpenRunSetup,
   onOpenMetaProgression,
+  onContinueRun,
+  onForfeitRun,
 }: GameDashboardProps) {
+  const [forfeitConfirmationOpen, setForfeitConfirmationOpen] = useState(false)
+  const [forfeiting, setForfeiting] = useState(false)
+  const [forfeitError, setForfeitError] = useState<string | null>(null)
+  const storeBlocked = activeRun !== null || runLoadState !== 'ready'
+  const activePlaystyle = activeRun
+    ? Object.values(PLAYSTYLE_DEFINITIONS).find(
+      (playstyle) => playstyle.id === activeRun.playstyleId,
+    )
+    : undefined
+
+  const confirmForfeit = (): void => {
+    if (forfeiting) {
+      return
+    }
+    setForfeiting(true)
+    setForfeitError(null)
+    void onForfeitRun()
+      .catch((error: unknown) => {
+        setForfeitError(errorMessage(error))
+      })
+      .finally(() => {
+        setForfeiting(false)
+        setForfeitConfirmationOpen(false)
+      })
+  }
+
   return (
-    <section className="dashboard game-dashboard" aria-labelledby="game-dashboard-title">
+    <section
+      className="dashboard game-dashboard"
+      aria-labelledby="game-dashboard-title"
+      data-run-persistence-state={runLoadState}
+    >
       <div className="game-dashboard-layout">
         <div className="dashboard-panel game-dashboard-panel">
           <header className="game-dashboard-hero">
@@ -947,6 +1305,11 @@ function GameDashboard({
               </p>
             </div>
           </header>
+          {runLoadState === 'error' || runLoadState === 'unavailable' ? (
+            <p className="persistence-error" role="alert">
+              {runLoadError ?? 'Unable to load the current dungeon run.'}
+            </p>
+          ) : null}
 
           <div className="game-dashboard-overview">
             <dl className="game-dashboard-stats">
@@ -960,6 +1323,13 @@ function GameDashboard({
               className="game-dashboard-action game-dashboard-action-secondary"
               type="button"
               onClick={onOpenMetaProgression}
+              disabled={storeBlocked}
+              title={storeBlocked
+                ? activeRun
+                  ? 'Finish or forfeit your current dungeon run before opening the Essence store.'
+                  : 'Checking the current dungeon run before opening the Essence store.'
+                : undefined}
+              aria-describedby={activeRun ? 'store-blocked-help' : undefined}
             >
               <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
               <span>
@@ -970,24 +1340,71 @@ function GameDashboard({
             </button>
           </div>
 
-          <section className="game-dashboard-actions" aria-labelledby="dashboard-actions-title">
+          <section className="game-dashboard-actions" aria-labelledby="current-dungeon-title">
             <div className="game-dashboard-section-heading">
-              <h3 id="dashboard-actions-title">Game modes</h3>
+              <h3 id="current-dungeon-title">Current dungeon</h3>
             </div>
             <div className="game-dashboard-action-grid">
-              <button
-                className="game-dashboard-action game-dashboard-action-primary"
-                type="button"
-                onClick={onOpenRunSetup}
-              >
-                <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
-                <span>
-                  <strong>The Dungeon</strong>
-                  <small>Descend into the dungeon. Slay increasingly stronger monsters for valuable essence.</small>
-                </span>
-                <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-              </button>
+              {activeRun ? (
+                <div className="current-dungeon-card">
+                  <div className="current-dungeon-card-heading">
+                    <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
+                    <span>
+                      <strong>Dungeon run in progress</strong>
+                      <small>Continue your descent from the latest saved floor.</small>
+                    </span>
+                  </div>
+                  <dl className="current-dungeon-details">
+                    <div>
+                      <dt>Floor</dt>
+                      <dd>{activeRun.currentFloor} / {activeRun.maxFloor}</dd>
+                    </div>
+                    <div>
+                      <dt>Class</dt>
+                      <dd>{activePlaystyle?.name ?? activeRun.playstyleId}</dd>
+                    </div>
+                  </dl>
+                  <button
+                    className="game-dashboard-action game-dashboard-action-primary current-dungeon-continue"
+                    type="button"
+                    onClick={onContinueRun}
+                  >
+                    <span>
+                      <strong>Continue dungeon</strong>
+                      <small>Restart from the saved floor checkpoint.</small>
+                    </span>
+                    <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+                  </button>
+                  <button
+                    className="current-dungeon-forfeit"
+                    type="button"
+                    onClick={() => setForfeitConfirmationOpen(true)}
+                    disabled={forfeiting}
+                  >
+                    {forfeiting ? 'Forfeiting…' : 'Forfeit run'}
+                  </button>
+                  {forfeitError ? <p className="persistence-error" role="alert">{forfeitError}</p> : null}
+                </div>
+              ) : (
+                <button
+                  className="game-dashboard-action game-dashboard-action-primary"
+                  type="button"
+                  onClick={onOpenRunSetup}
+                >
+                  <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
+                  <span>
+                    <strong>Start a dungeon run</strong>
+                    <small>Descend into the dungeon. Slay increasingly stronger monsters for valuable essence.</small>
+                  </span>
+                  <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+                </button>
+              )}
             </div>
+            {activeRun ? (
+              <p className="current-dungeon-restriction" id="store-blocked-help">
+                Finish or forfeit your current dungeon run before accessing the Essence store.
+              </p>
+            ) : null}
           </section>
         </div>
         <aside className="dashboard-panel game-dashboard-sidebar">
@@ -998,6 +1415,15 @@ function GameDashboard({
           />
         </aside>
       </div>
+      {forfeitConfirmationOpen ? (
+        <ConfirmationDialog
+          title="Forfeit dungeon run?"
+          message="Are you sure you want to forfeit this run? It will end as a defeat and cannot be continued."
+          confirmLabel="Forfeit run"
+          onConfirm={confirmForfeit}
+          onCancel={() => setForfeitConfirmationOpen(false)}
+        />
+      ) : null}
     </section>
   )
 }
@@ -1005,7 +1431,8 @@ function GameDashboard({
 interface RunSetupScreenProps {
   settings: SettingsDto
   writeError: string | null
-  onStart: () => void
+  startState: RunWriteState
+  onStart: () => Promise<void>
   onSelectPlaystyle: (playstyleId: PlaystyleId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onBack: () => void
@@ -1014,6 +1441,7 @@ interface RunSetupScreenProps {
 function RunSetupScreen({
   settings,
   writeError,
+  startState,
   onStart,
   onSelectPlaystyle,
   onToggleWorldModifier,
@@ -1046,8 +1474,13 @@ function RunSetupScreen({
             <strong>Dungeon run</strong>
             <span>Configure your character and risk level.</span>
           </div>
-          <button className="primary-action run-dashboard-start" type="button" onClick={onStart}>
-            <span>Start Run</span>
+          <button
+            className="primary-action run-dashboard-start"
+            type="button"
+            onClick={() => { void onStart() }}
+            disabled={startState === 'saving'}
+          >
+            <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
             <span aria-hidden="true">→</span>
           </button>
         </div>
@@ -1153,14 +1586,20 @@ function AuthGateway({
 interface ResultsScreenProps {
   result: RunResultSnapshot
   runReward: RunRewardState
+  terminalSaveState: RunWriteState
+  terminalSaveError: string | null
   onReturn: () => void
+  onRetryTerminalSave: () => void
   onRetryReward: () => void
 }
 
 function ResultsScreen({
   result,
   runReward,
+  terminalSaveState,
+  terminalSaveError,
   onReturn,
+  onRetryTerminalSave,
   onRetryReward,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
@@ -1272,6 +1711,21 @@ function ResultsScreen({
             </div>
           </dl>
         </section>
+        {terminalSaveState === 'saving' ? (
+          <p className="persistence-status" role="status">
+            Saving the completed dungeon run…
+          </p>
+        ) : null}
+        {terminalSaveState === 'error' || terminalSaveState === 'unavailable' ? (
+          <>
+            <p className="persistence-error" role="alert">
+              {terminalSaveError ?? 'Unable to save the completed dungeon run.'}
+            </p>
+            <button className="secondary-action" type="button" onClick={onRetryTerminalSave}>
+              Retry run save
+            </button>
+          </>
+        ) : null}
         {runReward.status === 'error' || runReward.status === 'unavailable' ? (
           <p className="persistence-error" role="alert">{runReward.error}</p>
         ) : null}
@@ -1280,8 +1734,13 @@ function ResultsScreen({
             Retry Essence reward
           </button>
         ) : null}
-        <button className="primary-action" type="button" onClick={onReturn}>
-          Return to Dashboard
+        <button
+          className="primary-action"
+          type="button"
+          onClick={onReturn}
+          disabled={terminalSaveState !== 'saved'}
+        >
+          {terminalSaveState === 'saving' ? 'Saving run…' : 'Return to Dashboard'}
         </button>
       </div>
     </section>

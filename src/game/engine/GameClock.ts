@@ -49,4 +49,12 @@ export class FixedTimestepClock {
       this.accumulatedSeconds = 0
     }
   }
+
+  getAccumulatedSeconds(): number {
+    return this.accumulatedSeconds
+  }
+
+  setAccumulatedSeconds(value: number): void {
+    this.accumulatedSeconds = value
+  }
 }

@@ -21,8 +21,16 @@ export * from '../content/dungeons/Dungeons'
 export * from './spawning/SpawnDirector'
 export * from './upgrades/UpgradeChoices'
 export {
+  CHECKPOINT_VERSION,
+  isValidCheckpoint,
+  type GameCheckpoint,
+  type SpawnDirectorSnapshot,
+} from './checkpoint/GameCheckpoint'
+export {
   Game,
   createGame,
+  createInitialGameCheckpoint,
+  createGameFromCheckpoint,
   FIXED_STEP_SECONDS,
   MAX_FRAME_SECONDS,
   MIN_TIME_SCALE,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createGame,
+  createGameFromCheckpoint,
   DEFAULT_DUNGEON_CONFIG,
   DEFAULT_TIME_SCALE,
   FIXED_STEP_SECONDS,
@@ -602,15 +603,16 @@ describe('Game', () => {
       expect(game.getPendingChoiceFlows()).toHaveLength(0)
       expect(game.phase).toBe('floor-transition')
 
-      expect(game.state.floorTransition?.remainingSeconds).toBeCloseTo(1)
-      for (let index = 0; index < 60; index += 1) {
-        game.update(FIXED_STEP_SECONDS)
-      }
+      expect(game.state.floorTransition?.remainingSeconds).toBe(0)
+      expect(game.state.floorTransition?.savePending).toBe(true)
+      expect(game.getFloorCheckpointSnapshot()?.gameState.run.floor).toBe(2)
+      expect(game.completeFloorSave()).toBe(true)
+      game.update(FIXED_STEP_SECONDS)
       expect(game.phase).toBe('playing')
       expect(game.state.run.floor).toBe(2)
-      expect(game.state.run.floorStartedAt).toBeCloseTo(game.state.time)
+      expect(game.state.run.floorStartedAt).toBeCloseTo(FIXED_STEP_SECONDS)
       expect(game.getUiSnapshot().boss).toBeNull()
-      expect(game.getUiSnapshot().floorProgress).toBe(0)
+      expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
       game.update(FIXED_STEP_SECONDS)
       expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
   })
@@ -624,15 +626,44 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
 
     expect(game.phase).toBe('floor-transition')
-    expect(game.state.player.hp).toBe(maxHp / 2)
-
-    for (let index = 0; index < 60; index += 1) {
-      game.update(FIXED_STEP_SECONDS)
-    }
+    expect(game.state.floorTransition?.savePending).toBe(true)
+    expect(game.state.player.hp).toBe(maxHp)
+    expect(game.completeFloorSave()).toBe(true)
+    game.update(FIXED_STEP_SECONDS)
 
     expect(game.phase).toBe('playing')
     expect(game.state.run.floor).toBe(2)
     expect(game.state.player.hp).toBe(maxHp)
+  })
+
+  it('holds simulation time until the floor checkpoint is acknowledged', () => {
+    const game = createGame({ seed: 20260833 })
+    game.spawnStairs({ x: 0, y: 0 })
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('floor-transition')
+    expect(game.state.floorTransition?.savePending).toBe(true)
+    const checkpoint = game.getFloorCheckpointSnapshot()
+    expect(checkpoint?.gameState.run.phase).toBe('playing')
+    expect(checkpoint?.gameState.floorTransition).toBeUndefined()
+    if (!checkpoint) {
+      throw new Error('Expected a floor checkpoint while saving.')
+    }
+    const tickBeforeSave = game.state.tick
+    const timeBeforeSave = game.state.time
+
+    game.update(10)
+
+    expect(game.state.tick).toBe(tickBeforeSave)
+    expect(game.state.time).toBe(timeBeforeSave)
+    expect(game.completeFloorSave()).toBe(true)
+    const restored = createGameFromCheckpoint(JSON.parse(JSON.stringify(checkpoint)))
+    expect(restored.state).toEqual(game.state)
+    game.update(FIXED_STEP_SECONDS)
+    restored.update(FIXED_STEP_SECONDS)
+    expect(game.phase).toBe('playing')
+    expect(game.state.tick).toBeGreaterThan(tickBeforeSave)
+    expect(restored.state).toEqual(game.state)
   })
 
   it('activates a temporary long-range Magnet when a boss dies', () => {
