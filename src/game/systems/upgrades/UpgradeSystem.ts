@@ -222,11 +222,7 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.aegisPulseShieldDuration = 0
   }
   if (skillId === SOUL_TETHER_SKILL_ID) {
-    state.player.soulTetherTargetId = undefined
-    state.player.soulTetherRemaining = 0
-    state.player.soulTetherDamagePerSecond = 0
-    state.player.soulTetherHealingRatio = 0
-    state.player.soulTetherHasRetargeted = false
+    state.player.soulTethers = []
     state.player.soulTetherVitalityCharge = 0
   }
   if (skillId === RIFT_JAVELIN_SKILL_ID) {

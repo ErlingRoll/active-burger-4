@@ -55,6 +55,7 @@ import {
   AEGIS_PULSE_BASE_DURATION_SECONDS,
   AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
+  SOUL_TETHER_DURATION_SECONDS,
 } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
@@ -1249,11 +1250,14 @@ export function createUiSnapshot(
       (damageType) => outgoingDamage.damage[damageType] > 0,
     )
     const damagePerAttackCooldown = skeletonStats?.attackCooldown ?? cooldown
+    const damageDuration = skill.skillId === SOUL_TETHER_SKILL_ID
+      ? SOUL_TETHER_DURATION_SECONDS
+      : 1
     const estimatedSingleTargetDps =
       damageTypes.length > 0 &&
       Number.isFinite(damagePerAttackCooldown) &&
       damagePerAttackCooldown > 0
-        ? damage / damagePerAttackCooldown
+        ? damage * damageDuration / damagePerAttackCooldown
         : null
     const skillModifiers = getSkillModifierSummaries(
       playerStats,
@@ -1379,7 +1383,7 @@ export function createUiSnapshot(
           : skill.skillId === STORM_RELAY_SKILL_ID
           ? 'Primary target struck by the relay each strike interval while it is active.'
           : skill.skillId === SOUL_TETHER_SKILL_ID
-          ? 'The tethered target, sustained for the link\'s duration.'
+          ? 'Each cast sustains an independent tether; cooldown reduction allows overlapping links.'
           : skill.skillId === PHANTOM_ARSENAL_SKILL_ID
           ? 'One persistent phantom archer attacks the nearest target in range on its own cadence.'
           : 'One target sustained over the skill cooldown.',

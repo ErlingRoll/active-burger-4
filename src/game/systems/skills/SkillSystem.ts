@@ -98,6 +98,7 @@ import type {
   FrostApplication,
   TrapState,
   RelayState,
+  SoulTetherState,
 } from '../../state/GameState'
 import {
   healPlayer,
@@ -151,6 +152,32 @@ function addEffect(
         }),
   }
   state.effects.push(effect)
+}
+
+function getSoulTetherVisualPoints(
+  state: Readonly<GameState>,
+  tether: Readonly<SoulTetherState>,
+  target: Readonly<EnemyState | BossState>,
+  tethers: readonly SoulTetherState[] = state.player.soulTethers ?? [],
+): SkillEffectPoint[] {
+  const sameTargetTethers = tethers
+    .filter((candidate) => candidate.targetId === target.id)
+    .sort((left, right) => left.id - right.id)
+  const tetherIndex = sameTargetTethers.indexOf(tether)
+  const lateralOffset = (
+    tetherIndex - (sameTargetTethers.length - 1) / 2
+  ) * 10
+  const directionX = target.x - state.player.x
+  const directionY = target.y - state.player.y
+  const length = Math.hypot(directionX, directionY)
+  const perpendicularX = length > 0 ? -directionY / length : 0
+  const perpendicularY = length > 0 ? directionX / length : 1
+  const offsetX = perpendicularX * lateralOffset
+  const offsetY = perpendicularY * lateralOffset
+  return [
+    { x: state.player.x + offsetX, y: state.player.y + offsetY },
+    { x: target.x + offsetX, y: target.y + offsetY },
+  ]
 }
 
 export function updateSkillCooldowns(
@@ -1303,9 +1330,13 @@ function collectStormRelayChainDamage(
         burstMultiplier: relay.shockBurstMultiplier,
       },
     })
-    if (voltaicBond && state.player.soulTetherTargetId === target.id) {
-      state.player.soulTetherRemaining =
-        (state.player.soulTetherRemaining ?? 0) + 0.5
+    if (voltaicBond) {
+      for (const tether of state.player.soulTethers ?? []) {
+        if (tether.targetId === target.id) {
+          tether.remainingDuration += 0.5
+          tether.duration += 0.5
+        }
+      }
     }
     path.push({ x: target.x, y: target.y })
     originX = target.x
@@ -1339,9 +1370,13 @@ function collectStormRelayChainDamage(
           burstMultiplier: relay.shockBurstMultiplier,
         },
       })
-      if (voltaicBond && state.player.soulTetherTargetId === enemy.id) {
-        state.player.soulTetherRemaining =
-          (state.player.soulTetherRemaining ?? 0) + 0.5
+      if (voltaicBond) {
+        for (const tether of state.player.soulTethers ?? []) {
+          if (tether.targetId === enemy.id) {
+            tether.remainingDuration += 0.5
+            tether.duration += 0.5
+          }
+        }
       }
     }
   }
@@ -1491,18 +1526,23 @@ function collectSoulTetherCast(
     },
   )
 
-  state.player.soulTetherTargetId = target.id
-  state.player.soulTetherRemaining = SOUL_TETHER_DURATION_SECONDS
-  state.player.soulTetherDamagePerSecond = outgoingDamage.damage.chaos
-  state.player.soulTetherHealingRatio = SOUL_TETHER_BASE_HEALING_RATIO +
-    (siphon ? SOUL_TETHER_SIPHON_HEALING_BONUS : 0)
-  state.player.soulTetherHasRetargeted = false
+  const tether: SoulTetherState = {
+    id: allocator.createEntityId(),
+    targetId: target.id,
+    duration: SOUL_TETHER_DURATION_SECONDS,
+    remainingDuration: SOUL_TETHER_DURATION_SECONDS,
+    damagePerSecond: outgoingDamage.damage.chaos,
+    healingRatio: SOUL_TETHER_BASE_HEALING_RATIO +
+      (siphon ? SOUL_TETHER_SIPHON_HEALING_BONUS : 0),
+    hasRetargeted: false,
+  }
+  state.player.soulTethers = [...(state.player.soulTethers ?? []), tether]
 
   addEffect(
     state,
     allocator,
     skill.skillId,
-    [{ x: state.player.x, y: state.player.y }, { x: target.x, y: target.y }],
+    getSoulTetherVisualPoints(state, tether, target),
     6,
     definition.effectLifetime,
     'line',
@@ -1512,51 +1552,61 @@ function collectSoulTetherCast(
   return []
 }
 
-/** Ticks the active Soul Tether link, dealing chaos damage over time to its target. */
+/** Ticks each active Soul Tether link, dealing chaos damage over time to its target. */
 export function updateSoulTether(
   state: GameState,
   fixedStepSeconds: number,
   allocator: EntityIdAllocator,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
-  if ((state.player.soulTetherRemaining ?? 0) <= 0) {
-    return events
+  const elapsed = Math.max(0, fixedStepSeconds)
+  const tethers = state.player.soulTethers ?? []
+  const activeTethers: SoulTetherState[] = []
+  const ticks: Array<{
+    tether: SoulTetherState
+    target: EnemyState | BossState
+    duration: number
+  }> = []
+  for (const tether of tethers) {
+    const activeDuration = Math.min(
+      elapsed,
+      Math.max(0, tether.remainingDuration),
+    )
+    tether.remainingDuration -= elapsed
+    const target = [...state.enemies, ...(state.bosses ?? [])].find(
+      (enemy) => enemy.id === tether.targetId && enemy.hp > 0,
+    )
+    if (target && activeDuration > 0) {
+      ticks.push({ tether, target, duration: activeDuration })
+    }
+    if (target && tether.remainingDuration > 0) {
+      activeTethers.push(tether)
+    }
   }
-  state.player.soulTetherRemaining =
-    (state.player.soulTetherRemaining ?? 0) - fixedStepSeconds
-  if (state.player.soulTetherRemaining <= 0) {
-    state.player.soulTetherTargetId = undefined
-    state.player.soulTetherDamagePerSecond = 0
-    return events
-  }
-  const targetId = state.player.soulTetherTargetId
-  const target = targetId === undefined
-    ? undefined
-    : [...state.enemies, ...(state.bosses ?? [])].find(
-        (enemy) => enemy.id === targetId && enemy.hp > 0,
-      )
-  if (!target) {
-    state.player.soulTetherTargetId = undefined
-    state.player.soulTetherRemaining = 0
-    state.player.soulTetherDamagePerSecond = 0
-    return events
-  }
-  const dps = state.player.soulTetherDamagePerSecond ?? 0
-  if (dps > 0) {
+  state.player.soulTethers = activeTethers
+
+  const definition = getSkillDefinition(SOUL_TETHER_SKILL_ID)
+  for (const tick of ticks) {
+    if (tick.tether.damagePerSecond <= 0) {
+      continue
+    }
     events.push({
       sourceId: state.player.id,
       sourceSkillId: SOUL_TETHER_SKILL_ID,
+      sourceInstanceId: tick.tether.id,
+      sourceHealingRatio: tick.tether.healingRatio,
       sourceTags: ['chaos'],
-      targetId: target.id,
-      damage: createDamageValues({ chaos: dps * fixedStepSeconds }),
+      targetId: tick.target.id,
+      damage: createDamageValues({
+        chaos: tick.tether.damagePerSecond * tick.duration,
+      }),
       damageOverTime: true,
     })
-    const definition = getSkillDefinition(SOUL_TETHER_SKILL_ID)
     addEffect(
       state,
       allocator,
       SOUL_TETHER_SKILL_ID,
-      [{ x: state.player.x, y: state.player.y }, { x: target.x, y: target.y }],
+      getSoulTetherVisualPoints(state, tick.tether, tick.target, tethers),
       6,
       definition.effectLifetime,
       'line',

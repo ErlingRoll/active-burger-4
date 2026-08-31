@@ -515,7 +515,9 @@ export function updateSummons(
       const directionY = attackTarget.y - summon.y
       const tethered = state.run.selectedUpgradeIds.includes(
         'synergy-soul-tether-phantom-arsenal',
-      ) && state.player.soulTetherTargetId === attackTarget.id
+      ) && (state.player.soulTethers ?? []).some(
+        (tether) => tether.targetId === attackTarget.id,
+      )
       const projectileCount = getProjectileVolleyCount(
         skillDefinition.tags,
         playerStats.globalExtraProjectiles,

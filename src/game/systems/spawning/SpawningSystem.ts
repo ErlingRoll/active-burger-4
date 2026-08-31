@@ -143,6 +143,7 @@ export function createInitialPlayerState(
     whirlwindLeech: 0,
     increasedHealing: 0,
     dotMultiplier: 0,
+    soulTethers: [],
     skeletonMaxCountBonus: 0,
     upgradeWhirlwindLeech: 0,
     gearDropChanceMultiplier: 1,

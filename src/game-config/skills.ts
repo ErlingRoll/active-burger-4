@@ -501,7 +501,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, dealing chaos damage over time and restoring a portion of that damage as health. If the tethered enemy dies, the tether snaps to one weaker nearby enemy.`,
+    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, dealing chaos damage over time and restoring a portion of that damage as health. Tethers are independent, and each snaps to one weaker nearby enemy when its target dies.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger'],
     canProduceDirectHit: false,

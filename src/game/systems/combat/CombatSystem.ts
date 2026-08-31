@@ -80,6 +80,7 @@ import type {
   ProjectileState,
   SkillEffectPoint,
   SkillEffectState,
+  SoulTetherState,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
@@ -1390,8 +1391,8 @@ export function applyDamageEvents(
           idAllocator,
         ))
       }
-      if (enemy.hp <= 0 && state.player.soulTetherTargetId === enemy.id) {
-        pendingEvents.push(...triggerSoulTetherSnap(state, enemy))
+      if (enemy.hp <= 0) {
+        pendingEvents.push(...triggerSoulTetherSnaps(state, enemy))
       }
       continue
     }
@@ -1438,8 +1439,8 @@ export function applyDamageEvents(
           idAllocator,
         ))
       }
-      if (boss.hp <= 0 && state.player.soulTetherTargetId === boss.id) {
-        pendingEvents.push(...triggerSoulTetherSnap(state, boss))
+      if (boss.hp <= 0) {
+        pendingEvents.push(...triggerSoulTetherSnaps(state, boss))
       }
 
     }
@@ -1738,7 +1739,11 @@ function applySoulTetherHealing(
   ) {
     return
   }
-  const ratio = state.player.soulTetherHealingRatio ?? 0
+  const tethers = state.player.soulTethers ?? []
+  const tether = event.sourceInstanceId === undefined
+    ? tethers.length === 1 ? tethers[0] : undefined
+    : tethers.find((candidate) => candidate.id === event.sourceInstanceId)
+  const ratio = tether?.healingRatio ?? event.sourceHealingRatio ?? 0
   if (ratio <= 0) {
     return
   }
@@ -1752,16 +1757,37 @@ function applySoulTetherHealing(
   healPlayer(state, healing, 'Soul Tether')
 }
 
-function triggerSoulTetherSnap(
+function removeSoulTether(state: GameState, tether: SoulTetherState): void {
+  state.player.soulTethers = (state.player.soulTethers ?? []).filter(
+    (candidate) => candidate !== tether,
+  )
+}
+
+function triggerSoulTetherSnaps(
   state: GameState,
   deadEnemy: Readonly<EnemyState | BossState>,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
-  const alreadyRetargeted = state.player.soulTetherHasRetargeted ?? false
-  if (alreadyRetargeted) {
-    state.player.soulTetherTargetId = undefined
-    state.player.soulTetherRemaining = 0
-    state.player.soulTetherDamagePerSecond = 0
+  const tethers = (state.player.soulTethers ?? []).filter(
+    (tether) => tether.targetId === deadEnemy.id,
+  )
+  for (const tether of tethers) {
+    events.push(...triggerSoulTetherSnap(state, tether, deadEnemy))
+  }
+  return events
+}
+
+function triggerSoulTetherSnap(
+  state: GameState,
+  tether: SoulTetherState,
+  deadEnemy: Readonly<EnemyState | BossState>,
+): DamageEvent[] {
+  const events: DamageEvent[] = []
+  if (!(state.player.soulTethers ?? []).includes(tether)) {
+    return events
+  }
+  if (tether.hasRetargeted) {
+    removeSoulTether(state, tether)
     return events
   }
 
@@ -1780,19 +1806,19 @@ function triggerSoulTetherSnap(
     .map((candidate) => candidate.enemy)
 
   if (nearby.length === 0) {
-    state.player.soulTetherTargetId = undefined
-    state.player.soulTetherRemaining = 0
-    state.player.soulTetherDamagePerSecond = 0
+    removeSoulTether(state, tether)
     return events
   }
 
-  const burstDamage = (state.player.soulTetherDamagePerSecond ?? 0) *
+  const burstDamage = tether.damagePerSecond *
     SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT
   if (burstDamage > 0) {
     for (const enemy of nearby) {
       events.push({
         sourceId: state.player.id,
         sourceSkillId: SOUL_TETHER_SKILL_ID,
+        sourceInstanceId: tether.id,
+        sourceHealingRatio: tether.healingRatio,
         sourceLabel: 'Soul Snap',
         sourceTags: ['chaos'],
         targetId: enemy.id,
@@ -1802,10 +1828,9 @@ function triggerSoulTetherSnap(
   }
 
   const newTarget = nearby[0]!
-  state.player.soulTetherTargetId = newTarget.id
-  state.player.soulTetherDamagePerSecond =
-    (state.player.soulTetherDamagePerSecond ?? 0) * SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER
-  state.player.soulTetherHasRetargeted = true
+  tether.targetId = newTarget.id
+  tether.damagePerSecond *= SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER
+  tether.hasRetargeted = true
   return events
 }
 

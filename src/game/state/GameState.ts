@@ -265,16 +265,8 @@ export interface PlayerState {
   aegisPulseShieldRemaining?: number
   /** Total duration for the current Aegis Pulse shield. */
   aegisPulseShieldDuration?: number
-  /** Entity ID of the enemy currently linked by Soul Tether. */
-  soulTetherTargetId?: EntityId
-  /** Seconds remaining before the active Soul Tether link expires. */
-  soulTetherRemaining?: number
-  /** Chaos damage per second currently dealt through the Soul Tether link. */
-  soulTetherDamagePerSecond?: number
-  /** Fraction of Soul Tether damage restored to the player as health. */
-  soulTetherHealingRatio?: number
-  /** True once the current Soul Tether has used its single weaker retarget. */
-  soulTetherHasRetargeted?: boolean
+  /** Independent Soul Tether links currently active. */
+  soulTethers?: SoulTetherState[]
   /** Healing stored by Lifebound Pact for the next Vitality cast. */
   soulTetherVitalityCharge?: number
   /** Bonus return-leg damage primed by Phantom Arsenal. */
@@ -381,6 +373,10 @@ export interface BossState extends EnemyState {
 export interface DamageEvent {
   sourceId?: EntityId
   sourceSkillId?: SkillId
+  /** Identifies the independent effect instance that produced this event. */
+  sourceInstanceId?: EntityId
+  /** Optional healing fraction associated with the source instance. */
+  sourceHealingRatio?: number
   sourceTags?: readonly SkillTag[]
   sourceLabel?: string
   targetId: EntityId
@@ -396,6 +392,18 @@ export interface DamageEvent {
   shockApplication?: ShockApplication
   /** Creates one independent Burning stack after this hit is resolved. */
   burningApplication?: BurningApplication
+}
+
+export interface SoulTetherState {
+  id: EntityId
+  targetId: EntityId
+  /** Total duration for this link, including any synergy extensions. */
+  duration: number
+  /** Seconds remaining before this independent link expires. */
+  remainingDuration: number
+  damagePerSecond: number
+  healingRatio: number
+  hasRetargeted: boolean
 }
 
 export interface ProjectileState {

@@ -20,7 +20,12 @@ import {
   generateGearChoices,
 } from '../equipment/GearChoices'
 import { Rarity } from '../../content/rarity/Rarity'
+import { getAverageCriticalStrikeFactor } from '../../content/stats/Damage'
 import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
+import {
+  SOUL_TETHER_DURATION_SECONDS,
+} from '../../game-config/skills'
+import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
 describe('UI snapshots', () => {
   it('normalizes special gear choice order when projecting pending flows', () => {
@@ -441,6 +446,20 @@ describe('UI snapshots', () => {
     )
     expect(cinderMine?.skillModifiers.map((modifier) => modifier.id)).toContain(
       'frost-on-hit',
+    )
+    expect(soulTether).toBeDefined()
+    if (!soulTether) {
+      return
+    }
+    const playerStats = getDerivedPlayerStats(game.state.player)
+    expect(soulTether.estimatedSingleTargetDps).toBeCloseTo(
+      (soulTether.damage.chaos ?? 0) *
+        getAverageCriticalStrikeFactor({
+          chance: playerStats.critChance,
+          multiplier: playerStats.critMultiplier,
+        }) *
+        SOUL_TETHER_DURATION_SECONDS /
+        (soulTether.cooldownSeconds ?? 1),
     )
   })
 

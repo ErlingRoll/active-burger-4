@@ -270,14 +270,14 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-storm-relay-soul-tether',
     'Voltaic Bond',
-    'Storm Relay strikes against the Soul Tether target extend the tether by 0.5 seconds.',
+    'Storm Relay strikes against Soul Tether targets extend those tethers by 0.5 seconds.',
     'Storm Relay extends Soul Tether',
     [STORM_RELAY_SKILL_ID, SOUL_TETHER_SKILL_ID],
   ),
   createSynergyUpgrade(
     'synergy-soul-tether-phantom-arsenal',
     'Spectral Pact',
-    'Phantom Arsenal bolts against the Soul Tether target add a Chaos damage component.',
+    'Phantom Arsenal bolts against Soul Tether targets add a Chaos damage component.',
     'Phantom Arsenal marks the tether',
     [SOUL_TETHER_SKILL_ID, PHANTOM_ARSENAL_SKILL_ID],
   ),

@@ -24,6 +24,7 @@ import {
   CINDER_MINE_FUSE_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
+  SOUL_TETHER_DURATION_SECONDS,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
 } from '../../../game-config/skills'
 import { createGame, FIXED_STEP_SECONDS } from '../../Game'
@@ -1206,7 +1207,9 @@ describe('skill system', () => {
       const targetId = game.spawnSlime({ x: 60, y: 0 })
 
       expect(collectSkillDamage(game.state, allocator)).toEqual([])
-      expect(game.state.player.soulTetherTargetId).toBe(targetId)
+      expect(game.state.player.soulTethers).toEqual([
+        expect.objectContaining({ targetId }),
+      ])
 
       const events = updateSoulTether(game.state, 1, allocator)
       expect(events).toEqual([
@@ -1218,6 +1221,101 @@ describe('skill system', () => {
       ])
       applyDamageEvents(game.state, events)
       expect(game.state.player.hp).toBeGreaterThan(50)
+    })
+
+    it('keeps cooldown-overlapping tethers independent, including their visuals', () => {
+      const game = createGame({ seed: 94 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const targetId = game.spawnSlime({ x: 60, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.player.soulTethers).toHaveLength(2)
+      expect(game.state.player.soulTethers?.[0])
+        .not.toBe(game.state.player.soulTethers?.[1])
+      expect(game.state.effects[0]?.points).not.toEqual(
+        game.state.effects[1]?.points,
+      )
+
+      const events = updateSoulTether(game.state, 1, allocator)
+      expect(events).toHaveLength(2)
+      expect(events.map((event) => event.targetId)).toEqual([targetId, targetId])
+    })
+
+    it('tracks each tether duration independently and scales its final tick', () => {
+      const game = createGame({ seed: 96 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 60, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      const tethersAfterFirstCast = game.state.player.soulTethers ?? []
+      expect(tethersAfterFirstCast).toHaveLength(1)
+      const firstTether = tethersAfterFirstCast[0]!
+      updateSoulTether(game.state, 2, allocator)
+      expect(firstTether.remainingDuration).toBeCloseTo(
+        SOUL_TETHER_DURATION_SECONDS - 2,
+      )
+
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+      const tethersAfterSecondCast = game.state.player.soulTethers ?? []
+      expect(tethersAfterSecondCast).toHaveLength(2)
+      const secondTether = tethersAfterSecondCast[1]!
+      expect(secondTether.duration).toBe(SOUL_TETHER_DURATION_SECONDS)
+
+      const overlappingEvents = updateSoulTether(game.state, 5, allocator)
+      expect(overlappingEvents).toHaveLength(2)
+      expect(overlappingEvents[0]?.damage.chaos).toBeCloseTo(
+        firstTether.damagePerSecond * 5,
+      )
+      expect(game.state.player.soulTethers?.[0]).toBe(secondTether)
+      expect(secondTether.remainingDuration).toBeCloseTo(2)
+
+      const finalEvents = updateSoulTether(game.state, 2, allocator)
+      expect(finalEvents).toHaveLength(1)
+      expect(finalEvents[0]?.damage.chaos).toBeCloseTo(
+        secondTether.damagePerSecond * 2,
+      )
+      expect(game.state.player.soulTethers).toEqual([])
+    })
+
+    it('extends every matching tether with Voltaic Bond', () => {
+      const game = createGame({ seed: 97 })
+      game.state.player.skills = [
+        {
+          skillId: SOUL_TETHER_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: STORM_RELAY_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push('synergy-storm-relay-soul-tether')
+      game.spawnSlime({ x: 60, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills.forEach((skill) => {
+        skill.cooldownRemaining = 0
+      })
+      collectSkillDamage(game.state, allocator)
+
+      const tethers = game.state.player.soulTethers ?? []
+      expect(tethers).toHaveLength(2)
+      expect(tethers.map((tether) => tether.duration)).toEqual([8, 7.5])
+      expect(tethers.map((tether) => tether.remainingDuration)).toEqual([8, 7.5])
     })
 
     it('applies Lifebound Pact healing to Soul Tether damage', () => {
@@ -1252,7 +1350,7 @@ describe('skill system', () => {
       const primaryId = game.spawnSlime({ x: 60, y: 0 })
       const secondaryId = game.spawnSlime({ x: 90, y: 0 })
       collectSkillDamage(game.state, allocator)
-      const initialDps = game.state.player.soulTetherDamagePerSecond ?? 0
+      const initialDps = game.state.player.soulTethers?.[0]?.damagePerSecond ?? 0
 
       const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
       primary.hp = 1
@@ -1263,10 +1361,10 @@ describe('skill system', () => {
         damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
       }])
 
-      expect(game.state.player.soulTetherTargetId).toBe(secondaryId)
-      expect(game.state.player.soulTetherDamagePerSecond)
+      expect(game.state.player.soulTethers?.[0]?.targetId).toBe(secondaryId)
+      expect(game.state.player.soulTethers?.[0]?.damagePerSecond)
         .toBeCloseTo(initialDps * SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER)
-      expect(game.state.player.soulTetherHasRetargeted).toBe(true)
+      expect(game.state.player.soulTethers?.[0]?.hasRetargeted).toBe(true)
 
       const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
       secondary.hp = 1
@@ -1276,8 +1374,40 @@ describe('skill system', () => {
         targetId: secondaryId,
         damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
       }])
-      expect(game.state.player.soulTetherTargetId).toBeUndefined()
-      expect(game.state.player.soulTetherRemaining).toBe(0)
+      expect(game.state.player.soulTethers).toEqual([])
+    })
+
+    it('retargets every overlapping tether independently when a shared target dies', () => {
+      const game = createGame({ seed: 95 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const primaryId = game.spawnSlime({ x: 60, y: 0 })
+      const secondaryId = game.spawnSlime({ x: 90, y: 0 })
+      game.spawnSlime({ x: 120, y: 0 })
+      const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
+      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
+      primary.hp = 1
+      secondary.hp = 100
+      secondary.maxHp = 100
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId: primaryId,
+        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }])
+
+      expect(game.state.player.soulTethers).toHaveLength(2)
+      expect(game.state.player.soulTethers?.every(
+        (tether) => tether.targetId === secondaryId && tether.hasRetargeted,
+      )).toBe(true)
     })
   })
 
