@@ -144,6 +144,45 @@ describe('upgrade choice generation', () => {
     })).toBe(true)
   })
 
+  it('treats skeleton count and durability cards as upgrades instead of evolutions', () => {
+    const crypt = getUpgrade('raise-skeleton-max-count')
+    const guardian = getUpgrade('raise-skeleton-guardian')
+
+    expect(crypt.branch).toBeUndefined()
+    expect(crypt.summonMaxCountIncrease).toBe(1)
+    expect(guardian.branch).toBeUndefined()
+    expect(guardian.summonMaxHpIncrease).toBe(12)
+    expect(crypt.isEligible({
+      playerLevel: 2,
+      selectedUpgradeIds: [
+        'raise-skeleton-max-count',
+        'raise-skeleton-guardian',
+      ],
+      ownedSkillIds: ['raise-skeleton'],
+      skillLevels: { 'raise-skeleton': 1 },
+      skillSlotCount: 6,
+    })).toBe(true)
+  })
+
+  it('defines mutually exclusive Raise Skeleton evolutions', () => {
+    const legion = getUpgrade('raise-skeleton-legion')
+    const rot = getUpgrade('raise-skeleton-rotting-bones')
+
+    expect(legion.branch).toBe('raise-skeleton-legion')
+    expect(legion.skeletonLegion).toBe(true)
+    expect(rot.branch).toBe('raise-skeleton-rotting-bones')
+    expect(rot.skeletonRottingBones).toBe(true)
+    expect(rot.evolutionTags).toEqual(['poison', 'damage-over-time'])
+
+    const game = createGame({ seed: 468, playstyleId: 'necromancer' })
+    game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
+    const choices = generateUpgradeChoices(game.state, 5, new Random(1))
+
+    expect(choices.map((choice) => choice.upgradeId)).not.toContain(
+      'raise-skeleton-rotting-bones',
+    )
+  })
+
   it('makes Empowered Attack an Uncommon upgrade', () => {
     expect(getUpgrade('basic-attack-level').rarity).toBe(Rarity.Uncommon)
   })
@@ -161,6 +200,7 @@ describe('upgrade choice generation', () => {
       'rallying-banner-bulwark': ['duration'],
       'gravity-well-singularity': ['chill'],
       'aegis-pulse-bulwark': ['duration'],
+      'raise-skeleton-rotting-bones': ['poison', 'damage-over-time'],
     } as const
 
     for (const [upgradeId, tags] of Object.entries(expectedTags)) {

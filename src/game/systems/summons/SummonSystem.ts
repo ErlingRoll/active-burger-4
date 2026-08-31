@@ -39,6 +39,11 @@ import {
   PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
   PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS,
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
+  RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT,
+  RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
 } from '../../../game-config/skills'
 import {
   getRallyingBannerCooldownReductionPercent,
@@ -59,6 +64,33 @@ function getSummonSkill(
   skillId: SkillId,
 ): SkillState | undefined {
   return state.player.skills.find((skill) => skill.skillId === skillId)
+}
+
+function getLivingSummonCount(
+  state: Readonly<GameState>,
+  skillId: SkillId,
+): number {
+  return state.summons.filter((summon) =>
+    summon.hp > 0 && getSummonSkillId(summon) === skillId
+  ).length
+}
+
+function getSkeletonLegionAttackSpeedIncreasePercent(
+  state: Readonly<GameState>,
+): number {
+  if (!state.run.selectedUpgradeIds.includes('raise-skeleton-legion')) {
+    return 0
+  }
+  const effectiveLivingSkeletonCount = Math.max(
+    1,
+    getLivingSummonCount(state, RAISE_SKELETON_SKILL_ID),
+  )
+  return Math.min(
+    RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
+    RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT +
+      (effectiveLivingSkeletonCount - 1) *
+        RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT,
+  )
 }
 
 function getSummonCountBonus(
@@ -284,12 +316,17 @@ export function getSummonStats(
     state.run.selectedUpgradeIds.includes('phantom-arsenal-marksman')
   const attackRange = (definition.summonAttackRange ?? 70) *
     (marksman ? 1 + PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT / 100 : 1)
+  const skeletonLegionAttackSpeedIncrease =
+    skillId === RAISE_SKELETON_SKILL_ID
+      ? getSkeletonLegionAttackSpeedIncreasePercent(state)
+      : 0
   return {
     damage: getSummonDamage(state, skill),
     maxHp: getSummonMaxHp(state, skill, definition),
     attackCooldown: Math.max(
       0.1,
-      (definition.summonAttackCooldown ?? 1) *
+      (definition.summonAttackCooldown ?? 1) /
+        (1 + skeletonLegionAttackSpeedIncrease / 100) *
         (1 - Math.max(0, rallyingBannerCooldownReduction) / 100),
     ),
     attackRange,
@@ -532,14 +569,24 @@ export function updateSummons(
         { x: attackTarget.x, y: attackTarget.y },
       ],
     })
-    events.push(createPlayerDamageEventFromStats(
+    const damageEvent = createPlayerDamageEventFromStats(
       playerStats,
       summon.id,
       attackTarget.id,
       skillId,
       { physical: stats.damage },
       { sourceTags: skillDefinition.tags },
-    ))
+    )
+    if (
+      skillId === RAISE_SKELETON_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('raise-skeleton-rotting-bones')
+    ) {
+      damageEvent.poisonApplication = {
+        durationSeconds: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+        physicalChaosRatio: RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+      }
+    }
+    events.push(damageEvent)
   })
   return events
 }

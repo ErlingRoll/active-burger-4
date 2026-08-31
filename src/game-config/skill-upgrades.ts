@@ -48,6 +48,11 @@ import {
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
   PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT,
   PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
+  RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT,
+  RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
 } from './skills'
 import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
 import { Rarity } from '../content/rarity/Rarity'
@@ -121,7 +126,6 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: '+1 maximum skeleton',
     skillId: RAISE_SKELETON_SKILL_ID,
-    branch: 'raise-skeleton-horde',
     summonMaxCountIncrease: 1,
     isEligible: (state) => state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID),
   },
@@ -134,11 +138,43 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: SKELETON_MAX_HP_INCREASE,
     valueLabel: `+${SKELETON_MAX_HP_INCREASE} skeleton maximum HP`,
     skillId: RAISE_SKELETON_SKILL_ID,
-    branch: 'raise-skeleton-guardian',
     summonMaxHpIncrease: SKELETON_MAX_HP_INCREASE,
     isEligible: (state) =>
       state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('raise-skeleton-guardian'),
+  },
+  {
+    id: 'raise-skeleton-legion',
+    name: 'Grave Legion',
+    description: `Skeletons attack ${RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT}% faster. Each additional living skeleton grants another ${RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT}% attack speed, up to ${RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT}% total.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
+    valueLabel: `+${RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT}% attack speed, +${RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT}% per additional skeleton (max +${RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT}%)`,
+    skillId: RAISE_SKELETON_SKILL_ID,
+    branch: 'raise-skeleton-legion',
+    skeletonLegion: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-legion') &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-rotting-bones'),
+  },
+  {
+    id: 'raise-skeleton-rotting-bones',
+    name: 'Rotting Bones',
+    description: `Skeleton attacks apply a Poison stack lasting ${RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS} seconds, dealing ${Math.round(RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO * 100)}% of the hit's physical damage as chaos damage per second.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+    valueLabel: `Applies ${RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS}s Poison at ${Math.round(RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO * 100)}% hit damage/sec`,
+    skillId: RAISE_SKELETON_SKILL_ID,
+    branch: 'raise-skeleton-rotting-bones',
+    evolutionTags: ['poison', 'damage-over-time'],
+    skeletonRottingBones: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-legion') &&
+      !state.selectedUpgradeIds.includes('raise-skeleton-rotting-bones'),
   },
   {
     id: 'whirlwind-leech',

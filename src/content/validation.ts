@@ -992,6 +992,8 @@ function validateDefinitions(
           upgrade.increasedHealingPercent === undefined &&
           upgrade.summonMaxCountIncrease === undefined &&
           upgrade.summonMaxHpIncrease === undefined &&
+          upgrade.skeletonLegion === undefined &&
+          upgrade.skeletonRottingBones === undefined &&
           upgrade.skillCooldownReductionPercent === undefined &&
           upgrade.vitalityMaxHpHealingPercent === undefined &&
           upgrade.vitalityLowHpHealingMultiplier === undefined &&

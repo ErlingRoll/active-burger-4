@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { createGame } from '../../Game'
 import { collectSkillDamage } from '../skills/SkillSystem'
 import {
+  applyDamageEvents,
   collectEnemyContactDamage,
+  updatePoison,
 } from '../combat/CombatSystem'
 import {
   getSkeletonStats,
@@ -17,6 +19,12 @@ import {
   getFloorDifficultyProfile,
   getFloorStatMultiplier,
 } from '../../../content/dungeons/Dungeons'
+import {
+  RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
+  RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+} from '../../../game-config/skills'
 
 function createPhantomSummon(seed: number) {
   const game = createGame({ seed, playstyleId: 'ranger' })
@@ -66,6 +74,73 @@ describe('updateSummons', () => {
       sourceSkillId: 'raise-skeleton',
       sourceTags: ['physical', 'summon'],
     }])
+  })
+
+  it('scales Grave Legion attack speed with living skeletons and caps the bonus', () => {
+    const game = createGame({ seed: 20, playstyleId: 'necromancer' })
+    game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
+
+    expect(getSkeletonStats(game.state)?.attackCooldown).toBeCloseTo(
+      1 / (1 + RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT / 100),
+    )
+
+    for (let index = 0; index < 4; index += 1) {
+      game.state.summons.push({
+        id: 20_000 + index,
+        ownerId: game.state.player.id,
+        skillId: 'raise-skeleton',
+        x: 0,
+        y: 0,
+        hp: 30,
+        maxHp: 30,
+        contactCooldownRemaining: 0,
+        attackCooldownRemaining: 0,
+      })
+    }
+
+    expect(getSkeletonStats(game.state)?.attackCooldown).toBeCloseTo(
+      1 / (1 + RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT / 100),
+    )
+  })
+
+  it('applies Rotting Bones Poison to skeleton hits', () => {
+    const game = createGame({ seed: 21, playstyleId: 'necromancer' })
+    game.state.player.skills = [{
+      skillId: 'raise-skeleton',
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push('raise-skeleton-rotting-bones')
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    const allocator = createEntityIdAllocator()
+
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
+    const events = updateSummons(game.state, 1 / 60, allocator)
+
+    expect(events[0]?.poisonApplication).toEqual({
+      durationSeconds: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+      physicalChaosRatio: RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+    })
+    applyDamageEvents(game.state, events)
+
+    const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+    expect(target.poisonStacks).toEqual([{
+      remainingDuration: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+      damagePerSecond: 6 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+      sourceSkillId: 'raise-skeleton',
+    }])
+    expect(updatePoison(game.state, 1)).toEqual([expect.objectContaining({
+      targetId,
+      sourceSkillId: 'raise-skeleton',
+      damage: {
+        physical: 0,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 6 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+      },
+      damageOverTime: true,
+    })])
   })
 
   it('respawns up to the upgraded maximum and scales skeleton stats by skill level', () => {

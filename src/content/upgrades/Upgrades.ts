@@ -26,6 +26,8 @@ export type UpgradeId =
   | 'raise-skeleton-level'
   | 'raise-skeleton-max-count'
   | 'raise-skeleton-guardian'
+  | 'raise-skeleton-legion'
+  | 'raise-skeleton-rotting-bones'
   | 'whirlwind-leech'
   | 'whirlwind-frost'
   | 'whirlwind-guard'
@@ -117,8 +119,8 @@ export type UpgradeBranch =
   | 'whirlwind-guard'
   | 'chain-lightning-frost'
   | 'chain-lightning-overload'
-  | 'raise-skeleton-horde'
-  | 'raise-skeleton-guardian'
+  | 'raise-skeleton-legion'
+  | 'raise-skeleton-rotting-bones'
   | 'fiery-touch-frequency'
   | 'fiery-touch-ember'
   | 'glacial-orb-permafrost'
@@ -231,6 +233,10 @@ export interface UpgradeDefinition {
   fieryTouchDamageIncreasePercent?: number
   /** Flat max HP bonus applied to each skeleton. */
   summonMaxHpIncrease?: number
+  /** Enables bounded attack-speed scaling from additional living skeletons. */
+  skeletonLegion?: boolean
+  /** Makes skeleton hits apply the Raise Skeleton Poison evolution. */
+  skeletonRottingBones?: boolean
   /** Additional Chill stacks applied by a Glacial Orb explosion. */
   glacialOrbFrostStacks?: number
   /** Enables single-target Ice Lance mode for Glacial Orb. */

@@ -197,6 +197,11 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   if (skillId === RAISE_SKELETON_SKILL_ID) {
     state.player.skeletonMaxCountBonus = 0
     state.player.skeletonMaxHpBonus = 0
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
+      enemy.poisonStacks = enemy.poisonStacks?.filter(
+        (stack) => stack.sourceSkillId !== RAISE_SKELETON_SKILL_ID,
+      )
+    }
   }
   if (skillId === LANCERS_CHARGE_SKILL_ID) {
     state.player.lancerMomentumStacks = 0

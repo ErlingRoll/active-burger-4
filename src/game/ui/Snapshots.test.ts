@@ -494,6 +494,28 @@ describe('UI snapshots', () => {
     )
   })
 
+  it('projects Raise Skeleton evolution metadata and Grave Legion cadence', () => {
+    const game = createGame({ seed: 99, playstyleId: 'necromancer' })
+    game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
+
+    const raiseSkeleton = createUiSnapshot(game.state).skills.find(
+      (skill) => skill.skillId === RAISE_SKELETON_SKILL_ID,
+    )
+
+    expect(raiseSkeleton?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'summon-attack-speed', value: '1.05 atk/s' }),
+      ]),
+    )
+    expect(raiseSkeleton?.upgrades.find(
+      (upgrade) => upgrade.upgradeId === 'raise-skeleton-legion',
+    )).toMatchObject({
+      status: 'acquired',
+      branch: 'raise-skeleton-legion',
+      valueLabel: '+5% attack speed, +3% per additional skeleton (max +14%)',
+    })
+  })
+
   it('does not show skill unlocks or unearned Whirlwind leech', () => {
     const game = createGame({ seed: 96 })
     const whirlwind = createUiSnapshot(game.state).skills

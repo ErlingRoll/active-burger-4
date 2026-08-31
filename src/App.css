@@ -3046,10 +3046,10 @@
   text-transform: uppercase;
 }
 
-.upgrade-action-label-evolve { color: #f0abfc; }
+.upgrade-action-label-evolve { color: #f9a8d4; }
 .upgrade-action-evolved-skill { color: #fb923c; }
 .upgrade-action-label-unlock { color: #fb923c; }
-.upgrade-action-label-upgrade { color: #93c5fd; }
+.upgrade-action-label-upgrade { color: #c4b5fd; }
 .upgrade-action-label-release { color: #f87171; }
 .upgrade-action-label-synergy { color: #2dd4bf; }
 
