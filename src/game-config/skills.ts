@@ -233,7 +233,7 @@ export const SKILL_DEFINITIONS = {
   [CHAIN_LIGHTNING_SKILL_ID]: {
     id: CHAIN_LIGHTNING_SKILL_ID,
     name: 'Chain Lightning',
-    description: 'Strikes a nearby enemy, then jumps to two distinct targets.',
+    description: 'Strikes a nearby enemy, then jumps to up to four distinct targets.',
     kind: 'chain',
     tags: ['lightning', 'area'],
     canProduceDirectHit: true,
@@ -242,7 +242,7 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: {},
     maxRange: 260,
     jumpRange: 150,
-    maxTargets: 3,
+    maxTargets: 5,
     effectLifetime: 0.18,
     visual: {
       kind: 'chain',

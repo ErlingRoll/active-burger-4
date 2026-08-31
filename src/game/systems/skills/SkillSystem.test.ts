@@ -108,6 +108,23 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
   })
 
+  it('continues through a dense group instead of stopping after three targets', () => {
+    const game = createGame({ seed: 52 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    const targetIds = [80, 120, 160, 200, 240, 280].map((x) =>
+      game.spawnSlime({ x, y: 0 }),
+    )
+
+    const events = collectSkillDamage(game.state, allocator)
+
+    expect(events.map((event) => event.targetId)).toEqual(targetIds.slice(0, 5))
+    expect(game.state.effects[0]?.points).toHaveLength(6)
+  })
+
   it('applies the selected Frost and Overload Chain Lightning branch effects', () => {
     const game = createGame({ seed: 53 })
     game.state.player.skills = [{
