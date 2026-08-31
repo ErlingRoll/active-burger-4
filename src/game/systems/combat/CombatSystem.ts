@@ -128,6 +128,15 @@ function normalizeVector(x: number, y: number): Vector2 {
   return { x: x / length, y: y / length }
 }
 
+function distanceSquared(
+  leftX: number,
+  leftY: number,
+  rightX: number,
+  rightY: number,
+): number {
+  return (leftX - rightX) ** 2 + (leftY - rightY) ** 2
+}
+
 function rotateVector(vector: Vector2, angleRadians: number): Vector2 {
   const cosine = Math.cos(angleRadians)
   const sine = Math.sin(angleRadians)
@@ -470,8 +479,46 @@ function collectProjectileImpactEvents(
 
 function getBasicAttackTarget(
   state: GameState,
+  variant: ReturnType<typeof getBasicAttackVariant>,
 ): EnemyState | BossState | undefined {
-  return findLivingTarget(state, state.player.targetId)
+  const currentTarget = findLivingTarget(state, state.player.targetId)
+  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget, variant)) {
+    return currentTarget
+  }
+
+  return [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) =>
+      enemy.hp > 0 && isBasicAttackTargetInRange(state, enemy, variant)
+    )
+    .sort((left, right) =>
+      distanceSquared(state.player.x, state.player.y, left.x, left.y) -
+        distanceSquared(state.player.x, state.player.y, right.x, right.y) ||
+      left.id - right.id,
+    )[0]
+}
+
+function isBasicAttackTargetInRange(
+  state: Readonly<GameState>,
+  target: Readonly<EnemyState | BossState>,
+  variant: ReturnType<typeof getBasicAttackVariant>,
+): boolean {
+  const distance = Math.hypot(target.x - state.player.x, target.y - state.player.y)
+  if (variant.kind === 'area') {
+    const stats = getDerivedPlayerStats(state.player)
+    const range = variant.areaShape === 'circle'
+      ? stats.attackRange
+      : scaleAreaValue(stats.attackRange, stats.areaOfEffect)
+    return distance <= range + target.radius
+  }
+
+  const projectileDefinition = getProjectileDefinition(
+    variant.projectileDefinitionId ??
+      getSkillDefinition(BASIC_ATTACK_SKILL_ID).projectileDefinitionId!,
+  )
+  const projectileRange =
+    projectileDefinition.speed * projectileDefinition.lifetime +
+    projectileDefinition.radius
+  return distance <= projectileRange
 }
 
 function resolveProjectileTarget(
@@ -904,23 +951,28 @@ export function performBasicAttackIfReady(
   idAllocator: EntityIdAllocator,
 ): DamageEvent[] {
   const player = state.player
-  const target = getBasicAttackTarget(state)
   const basicAttack = player.skills.find(
     (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
   )
 
   if (
-    !target ||
     player.attackCooldownRemaining > 0 ||
     !basicAttack
   ) {
-    if (!target && player.targetId !== undefined) {
-      player.targetId = undefined
-    }
     return []
   }
 
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(player))
+  const target = getBasicAttackTarget(state, variant)
+  if (!target) {
+    if (
+      player.targetId !== undefined &&
+      !findLivingTarget(state, player.targetId)
+    ) {
+      player.targetId = undefined
+    }
+    return []
+  }
   const cooldown = createBasicAttackCooldown(getDerivedPlayerStats(player).attackSpeed)
 
   if (variant.kind === 'area') {

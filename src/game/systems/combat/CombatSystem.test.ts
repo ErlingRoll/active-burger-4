@@ -342,6 +342,35 @@ describe('performBasicAttackIfReady', () => {
     expect(gameState.bosses?.find((value) => value.id === 5)?.hp).toBeLessThan(20)
   })
 
+  it('falls back to a nearby attackable enemy when the retained target is out of melee range', () => {
+    const gameState = state(
+      [enemy(2, 160), enemy(3, 20)],
+      { projectiles: [] },
+    )
+    equipItem(gameState.player, 'iron-cleaver')
+    gameState.player.targetId = 2
+
+    const events = performBasicAttackIfReady(gameState, allocator)
+
+    expect(events.map((event) => event.targetId)).toContain(3)
+    expect(gameState.player.attackCooldownRemaining).toBeGreaterThan(0)
+  })
+
+  it('falls back to a nearby attackable enemy when the retained target is out of projectile range', () => {
+    const gameState = state(
+      [enemy(2, 700), enemy(3, 20)],
+      { projectiles: [] },
+    )
+    equipItem(gameState.player, 'starcall-wand')
+    gameState.player.targetId = 2
+
+    expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
+
+    expect(gameState.projectiles.length).toBeGreaterThan(0)
+    expect(gameState.projectiles.every((projectile) => projectile.targetId === 3)).toBe(true)
+    expect(gameState.player.attackCooldownRemaining).toBeGreaterThan(0)
+  })
+
   it('fires deterministic bow spreads without steering mid-flight', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
     equipRolledItem(
