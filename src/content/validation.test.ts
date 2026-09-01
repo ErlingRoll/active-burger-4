@@ -55,7 +55,7 @@ describe('content validation', () => {
     }
   })
 
-  it('ships a bounded unique synergy graph for all current skills', () => {
+  it('ships a unique synergy graph with at least two synergies for every skill', () => {
     const pairs = new Set<string>()
     const counts = new Map<string, number>()
 
@@ -70,8 +70,77 @@ describe('content validation', () => {
 
     for (const skill of CURRENT_CONTENT.skills) {
       expect(counts.get(skill.id)).toBeGreaterThanOrEqual(2)
-      expect(counts.get(skill.id)).toBeLessThanOrEqual(3)
     }
+  })
+
+  it('gives every skill exactly two evolution paths and one level-up path', () => {
+    for (const skill of CURRENT_CONTENT.skills) {
+      const skillUpgrades = CURRENT_CONTENT.upgrades.filter(
+        (upgrade) => upgrade.skillId === skill.id,
+      )
+      const evolutionPaths = new Set(
+        skillUpgrades
+          .map((upgrade) => upgrade.branch)
+          .filter((branch) => branch !== undefined),
+      )
+
+      expect(evolutionPaths).toHaveLength(2)
+      expect(
+        skillUpgrades.filter((upgrade) => upgrade.skillAction === 'level'),
+      ).toHaveLength(1)
+    }
+  })
+
+  it('allows more than three synergies while enforcing the minimum', () => {
+    const basicSynergy = CURRENT_CONTENT.upgrades.find((upgrade) =>
+      upgrade.synergySkillIds?.includes(BASIC_ATTACK_SKILL_ID)
+    )
+    if (!basicSynergy) {
+      throw new Error('Expected a Basic Attack synergy')
+    }
+    const extraSynergy = {
+      ...basicSynergy,
+      id: 'test-extra-synergy' as never,
+      synergySkillIds: [BASIC_ATTACK_SKILL_ID, 'soul-tether'] as const,
+      synergyEffects: [],
+    }
+
+    expect(validateContent(catalogWith({
+      upgrades: [...CURRENT_CONTENT.upgrades, extraSynergy],
+    }))).toEqual([])
+  })
+
+  it('rejects missing or duplicate skill upgrade paths', () => {
+    const missingPathErrors = validateContent(catalogWith({
+      upgrades: CURRENT_CONTENT.upgrades.filter((upgrade) =>
+        upgrade.id !== 'basic-attack-level' &&
+        upgrade.id !== 'basic-attack-precision' &&
+        !upgrade.synergySkillIds?.includes(BASIC_ATTACK_SKILL_ID)
+      ),
+    }))
+
+    expect(missingPathErrors).toEqual(expect.arrayContaining([
+      'skill "basic-attack" must have at least 2 predefined synergies; found 0.',
+      'skill "basic-attack" must have exactly 2 evolution paths; found 1.',
+      'skill "basic-attack" must have exactly 1 level-up path; found 0.',
+    ]))
+
+    const basicLevel = CURRENT_CONTENT.upgrades.find(
+      (upgrade) => upgrade.id === 'basic-attack-level',
+    )
+    if (!basicLevel) {
+      throw new Error('Expected the Basic Attack level upgrade')
+    }
+    const duplicateLevelErrors = validateContent(catalogWith({
+      upgrades: [
+        ...CURRENT_CONTENT.upgrades,
+        { ...basicLevel, id: 'test-duplicate-level' as never },
+      ],
+    }))
+
+    expect(duplicateLevelErrors).toContain(
+      'skill "basic-attack" must have exactly 1 level-up path; found 2.',
+    )
   })
 
   it('reports empty and duplicate IDs with their collection', () => {

@@ -234,6 +234,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     ],
     valueLabel: '+0.15 Basic Attack attacks/sec',
     skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-barrage',
     isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
   },
   {
@@ -249,6 +250,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     ],
     valueLabel: `+${BASIC_ATTACK_RANGE_INCREASE} Basic Attack range`,
     skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-precision',
     repeatable: true,
     isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
   },

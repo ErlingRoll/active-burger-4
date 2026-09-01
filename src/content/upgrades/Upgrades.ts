@@ -117,6 +117,8 @@ export type UpgradeBranch =
   | 'vitality-last-stand'
   | 'whirlwind-control'
   | 'whirlwind-guard'
+  | 'basic-attack-barrage'
+  | 'basic-attack-precision'
   | 'chain-lightning-frost'
   | 'chain-lightning-overload'
   | 'raise-skeleton-legion'

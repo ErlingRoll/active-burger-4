@@ -126,8 +126,8 @@ describe('upgrade choice generation', () => {
     expect(deadeye.rarity).toBe(Rarity.Rare)
     expect(barrage.repeatable).toBe(true)
     expect(deadeye.repeatable).toBe(true)
-    expect(barrage.branch).toBeUndefined()
-    expect(deadeye.branch).toBeUndefined()
+    expect(barrage.branch).toBe('basic-attack-barrage')
+    expect(deadeye.branch).toBe('basic-attack-precision')
     expect(barrage.isEligible({
       playerLevel: 2,
       selectedUpgradeIds: ['basic-attack-barrage'],

@@ -673,9 +673,62 @@ function validateSynergyDefinitions(
 
   for (const skillId of skillIds) {
     const count = synergyCountBySkill.get(skillId) ?? 0
-    if (count < 2 || count > 3) {
+    if (count < 2) {
       errors.push(
-        `skill "${skillId}" must have between 2 and 3 predefined synergies; found ${count}.`,
+        `skill "${skillId}" must have at least 2 predefined synergies; found ${count}.`,
+      )
+    }
+  }
+}
+
+function validateSkillUpgradePaths(
+  errors: string[],
+  upgrades: readonly UpgradeDefinition[],
+  skillIds: Set<string>,
+): void {
+  const levelUpCountBySkill = new Map<string, number>()
+  const evolutionBranchesBySkill = new Map<string, Set<string>>()
+
+  upgrades.forEach((upgrade, index) => {
+    if (upgrade.skillAction === 'level' && upgrade.skillId && skillIds.has(upgrade.skillId)) {
+      levelUpCountBySkill.set(
+        upgrade.skillId,
+        (levelUpCountBySkill.get(upgrade.skillId) ?? 0) + 1,
+      )
+    }
+
+    if (upgrade.branch === undefined) {
+      return
+    }
+    if (typeof upgrade.branch !== 'string' || upgrade.branch.trim() === '') {
+      errors.push(`upgrades[${index}].branch must be a non-empty string when provided.`)
+      return
+    }
+    if (!upgrade.skillId || !skillIds.has(upgrade.skillId)) {
+      errors.push(`upgrades[${index}].branch must reference a known skill.`)
+      return
+    }
+    if (upgrade.skillAction !== undefined) {
+      errors.push(`upgrades[${index}].branch must not define a skill action.`)
+    }
+
+    const branches = evolutionBranchesBySkill.get(upgrade.skillId) ?? new Set<string>()
+    branches.add(upgrade.branch)
+    evolutionBranchesBySkill.set(upgrade.skillId, branches)
+  })
+
+  for (const skillId of skillIds) {
+    const levelUpCount = levelUpCountBySkill.get(skillId) ?? 0
+    if (levelUpCount !== 1) {
+      errors.push(
+        `skill "${skillId}" must have exactly 1 level-up path; found ${levelUpCount}.`,
+      )
+    }
+
+    const evolutionPathCount = evolutionBranchesBySkill.get(skillId)?.size ?? 0
+    if (evolutionPathCount !== 2) {
+      errors.push(
+        `skill "${skillId}" must have exactly 2 evolution paths; found ${evolutionPathCount}.`,
       )
     }
   }
@@ -1058,6 +1111,7 @@ function validateDefinitions(
     }
   })
   validateSynergyDefinitions(errors, catalog.upgrades, skillIds)
+  validateSkillUpgradePaths(errors, catalog.upgrades, skillIds)
 }
 
 function validateXpBalance(errors: string[], balance: XpBalance): void {
