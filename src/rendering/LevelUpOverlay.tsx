@@ -22,6 +22,7 @@ import {
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
 import {
+  BASIC_ATTACK_SKILL_ID,
   getSkillDefinition,
   type SkillId,
 } from '../content/skills/Skills'
@@ -497,6 +498,7 @@ function UpgradeCard({
     : undefined
   const synergyPartnerSkills = unlockedSkill
     ? getSynergyPartnerSkillIds(unlockedSkill.id, ownedSkillIds)
+      .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
       .map((skillId) => getSkillDefinition(skillId))
     : []
   const evolvedSkill = definition.branch && definition.skillId

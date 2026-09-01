@@ -313,7 +313,7 @@ describe('UI snapshots', () => {
     expect(fieryTouch).toMatchObject({
       name: 'Fiery Touch',
       tags: ['fire', 'area', 'trigger'],
-      damage: expect.objectContaining({ fire: 15 }),
+      damage: expect.objectContaining({ fire: 10.8, physical: 8 }),
       cooldownSeconds: 1.8,
       cooldownProgress: 0.5,
       dpsAssumption: 'Triggers on direct player or summon hits, subject to its cooldown.',

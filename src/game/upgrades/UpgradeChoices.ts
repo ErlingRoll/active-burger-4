@@ -36,6 +36,7 @@ import {
 } from '../../content/playstyles/Playstyles'
 import {
   getSynergyPartnerSkillIds,
+  isSkillSynergyActive,
   SYNERGY_OFFER_CHANCE,
 } from '../../game-config/synergies'
 
@@ -232,7 +233,11 @@ export function getSkillUnlockWeight(
   const ownedSkillIds = state.player.skills
     .map((candidate) => candidate.skillId)
     .filter(isSkillId)
-  const synergyWeight = getSynergyPartnerSkillIds(upgrade.skillId, ownedSkillIds).length > 0
+  const synergyWeight = getSynergyPartnerSkillIds(upgrade.skillId, ownedSkillIds)
+    .some((partnerSkillId) =>
+      partnerSkillId !== BASIC_ATTACK_SKILL_ID &&
+      !isSkillSynergyActive(partnerSkillId, state.run.selectedUpgradeIds)
+    )
     ? 2
     : 1
   return affinityWeight * synergyWeight
