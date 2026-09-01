@@ -135,6 +135,8 @@ function isLineTelegraphKind(telegraph: TelegraphState): boolean {
 }
 
 export class PixiGame {
+  private static readonly MAX_IMPACT_PARTICLE_VIEWS = 48
+  private static readonly MAX_PROJECTILE_TRAIL_VIEWS = 96
   private static readonly MIN_CAMERA_SCALE = 1 / 3
   private static readonly MAX_CAMERA_SCALE = 1
   private static readonly WHEEL_ZOOM_SENSITIVITY = 0.001
@@ -145,6 +147,10 @@ export class PixiGame {
   private readonly game: Game
   private readonly app = new Application()
   private readonly camera = new Container()
+  private readonly reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
   private readonly enemyViews = new Map<EntityId, EnemyView>()
   private readonly bossViews = new Map<EntityId, BossView>()
   private readonly telegraphViews = new Map<EntityId, TelegraphView>()
@@ -922,7 +928,9 @@ export class PixiGame {
 
   private drawPickup(view: Graphics, pickup: PickupState, time: number): void {
     const radius = pickup.radius
-    const pulse = 1 + Math.sin(time * 4 + pickup.id) * 0.08
+    const pulse = this.reducedMotion
+      ? 1
+      : 1 + Math.sin(time * 4 + pickup.id) * 0.08
     view.clear()
     view.scale.set(pulse)
     if (pickup.kind === 'gear') {
@@ -2361,10 +2369,11 @@ export class PixiGame {
     time: number,
   ): void {
     const visual = getSkillDefinition(CINDER_MINE_SKILL_ID).visual
+    const animationTime = this.reducedMotion ? 0 : time
     const armed = trap.fuseRemaining <= 0
     const pulse = armed
-      ? 1 + Math.sin(time * 12 + trap.id) * 0.08
-      : 1 + Math.sin(time * 8 + trap.id) * 0.04
+      ? 1 + Math.sin(animationTime * 12 + trap.id) * 0.08
+      : 1 + Math.sin(animationTime * 8 + trap.id) * 0.04
     const mineRadius = 14 * pulse
     view.clear()
     view
@@ -2445,7 +2454,8 @@ export class PixiGame {
     time: number,
   ): void {
     const visual = getSkillDefinition(STORM_RELAY_SKILL_ID).visual
-    const pulse = 1 + Math.sin(time * 7 + relay.id) * 0.08
+    const animationTime = this.reducedMotion ? 0 : time
+    const pulse = 1 + Math.sin(animationTime * 7 + relay.id) * 0.08
     const radius = 26 * pulse
     view.clear()
     view
@@ -2466,7 +2476,7 @@ export class PixiGame {
       .stroke({ color: visual.outlineColor, width: 2 })
 
     for (let index = 0; index < 3; index += 1) {
-      const angle = time * 1.8 + (Math.PI * 2 * index) / 3
+      const angle = animationTime * 1.8 + (Math.PI * 2 * index) / 3
       const x = Math.cos(angle) * radius
       const y = Math.sin(angle) * radius
       view
@@ -2479,9 +2489,9 @@ export class PixiGame {
     }
     if (relay.spectrumForkPrimed) {
       view
-        .poly(createPolygonPoints(radius * 1.28, 6, time * 0.8))
+        .poly(createPolygonPoints(radius * 1.28, 6, animationTime * 0.8))
         .stroke({ color: '#fef08a', width: 2, alpha: 0.82 })
-        .poly(createPolygonPoints(radius * 1.05, 6, -time * 0.8))
+        .poly(createPolygonPoints(radius * 1.05, 6, -animationTime * 0.8))
         .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.72 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-rallying-banner')) {
@@ -2491,7 +2501,7 @@ export class PixiGame {
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-soul-tether')) {
       view
-        .poly(createPolygonPoints(radius * 1.18, 8, -time * 1.2))
+        .poly(createPolygonPoints(radius * 1.18, 8, -animationTime * 1.2))
         .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.62 })
     }
     this.drawEvolutionAccent(view, STORM_RELAY_SKILL_ID, radius * 0.7)
@@ -2503,7 +2513,8 @@ export class PixiGame {
     time: number,
   ): void {
     const visual = getSkillDefinition(SIGIL_OF_RUIN_SKILL_ID).visual
-    const pulse = 1 + Math.sin(time * 6 + sigil.id) * 0.12
+    const animationTime = this.reducedMotion ? 0 : time
+    const pulse = 1 + Math.sin(animationTime * 6 + sigil.id) * 0.12
     const radius = 20 * pulse
     view.clear()
     view
@@ -2514,7 +2525,7 @@ export class PixiGame {
       .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.85 })
     const spokes = 6
     for (let index = 0; index < spokes; index += 1) {
-      const angle = time * 1.5 + (Math.PI * 2 * index) / spokes
+      const angle = animationTime * 1.5 + (Math.PI * 2 * index) / spokes
       const innerRadius = radius * 0.32
       const outerRadius = radius * 0.95
       view
@@ -2552,7 +2563,7 @@ export class PixiGame {
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-prism-halo')) {
       const prismColors = ['#f97316', '#38bdf8', '#fef08a'] as const
       for (let index = 0; index < 3; index += 1) {
-        const angle = time * 0.8 + (Math.PI * 2 * index) / 3
+        const angle = animationTime * 0.8 + (Math.PI * 2 * index) / 3
         view
           .poly(createPolygonPoints(radius * 1.42, 3, angle))
           .stroke({ color: prismColors[index]!, width: 1.5, alpha: 0.78 })
@@ -2578,6 +2589,7 @@ export class PixiGame {
     time: number,
   ): void {
     const visual = getSkillDefinition(RAZORWIRE_SKILL_ID).visual
+    const animationTime = this.reducedMotion ? 0 : time
     const startX = 0
     const startY = 0
     const endX = wire.bx - wire.ax
@@ -2604,7 +2616,7 @@ export class PixiGame {
         const bx = startX + dirX * progress
         const by = startY + dirY * progress
         const side = index % 2 === 0 ? 1 : -1
-        const flick = 4 + Math.sin(time * 8 + wire.id + index) * 1.5
+        const flick = 4 + Math.sin(animationTime * 8 + wire.id + index) * 1.5
         view
           .moveTo(bx, by)
           .lineTo(bx + normalX * flick * side, by + normalY * flick * side)
@@ -2663,7 +2675,8 @@ export class PixiGame {
   private drawMirrorcastEcho(view: Graphics, time: number): void {
     const visual = getSkillDefinition(MIRRORCAST_SKILL_ID).visual
     const player = this.game.state.player
-    const drift = Math.sin(time * 2.4) * 10
+    const animationTime = this.reducedMotion ? 0 : time
+    const drift = Math.sin(animationTime * 2.4) * 10
     const offsetX = -18 + drift
     const offsetY = -6
     const radius = player.radius
@@ -2677,7 +2690,7 @@ export class PixiGame {
       .stroke({ color: visual.outlineColor, width: 1, alpha: 0.4 })
     // Facet lines suggesting a mirror shard.
     for (let index = 0; index < 4; index += 1) {
-      const angle = (Math.PI / 2) * index + time * 0.6
+      const angle = (Math.PI / 2) * index + animationTime * 0.6
       view
         .moveTo(offsetX, offsetY)
         .lineTo(
@@ -2688,9 +2701,9 @@ export class PixiGame {
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')) {
       view
-        .poly(createPolygonPoints(radius * 1.2, 4, time * 0.8))
+        .poly(createPolygonPoints(radius * 1.2, 4, animationTime * 0.8))
         .stroke({ color: '#fef08a', width: 1.5, alpha: 0.66 })
-        .poly(createPolygonPoints(radius * 0.86, 4, -time * 0.8))
+        .poly(createPolygonPoints(radius * 0.86, 4, -animationTime * 0.8))
         .stroke({ color: '#38bdf8', width: 1, alpha: 0.62 })
     }
     this.drawEvolutionAccent(view, MIRRORCAST_SKILL_ID, radius * 0.62)
@@ -2699,7 +2712,8 @@ export class PixiGame {
   private drawBloodRiteRing(view: Graphics, charges: number, time: number): void {
     const visual = getSkillDefinition(BLOOD_RITE_SKILL_ID).visual
     const player = this.game.state.player
-    const pulse = 1 + Math.sin(time * 5) * 0.06
+    const animationTime = this.reducedMotion ? 0 : time
+    const pulse = 1 + Math.sin(animationTime * 5) * 0.06
     const radius = (player.radius + 12) * pulse
     view.clear()
     // A rotating ritual ring of blood around the player.
@@ -2710,7 +2724,7 @@ export class PixiGame {
       .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.4 })
     const droplets = Math.max(3, charges * 3)
     for (let index = 0; index < droplets; index += 1) {
-      const angle = time * 1.2 + (Math.PI * 2 * index) / droplets
+      const angle = animationTime * 1.2 + (Math.PI * 2 * index) / droplets
       const dx = Math.cos(angle) * radius
       const dy = Math.sin(angle) * radius
       view
@@ -2729,14 +2743,14 @@ export class PixiGame {
       (player.aegisPulseShieldRemaining ?? 0) > 0
     ) {
       view
-        .poly(createPolygonPoints(radius * 1.28, 6, time * 0.5))
+        .poly(createPolygonPoints(radius * 1.28, 6, animationTime * 0.5))
         .stroke({ color: '#67e8f9', width: 2, alpha: 0.78 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')) {
       view
-        .poly(createPolygonPoints(radius * 1.18, 3, -time * 0.7))
+        .poly(createPolygonPoints(radius * 1.18, 3, -animationTime * 0.7))
         .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.68 })
-        .poly(createPolygonPoints(radius * 1.06, 3, time * 0.7))
+        .poly(createPolygonPoints(radius * 1.06, 3, animationTime * 0.7))
         .stroke({ color: '#f97316', width: 1.5, alpha: 0.68 })
     }
     this.drawEvolutionAccent(view, BLOOD_RITE_SKILL_ID, radius * 0.72)
@@ -2745,6 +2759,7 @@ export class PixiGame {
   private drawPrismHalo(view: Graphics, halo: Readonly<PrismHaloState>): void {
     const player = this.game.state.player
     const visual = getSkillDefinition(PRISM_HALO_SKILL_ID).visual
+    const rotation = this.reducedMotion ? 0 : halo.rotation
     const orbitRadius = player.radius + 22
     const shardColors = ['#f97316', '#38bdf8', '#a855f7'] as const
     const shardOutlines = ['#fed7aa', '#bae6fd', '#e9d5ff'] as const
@@ -2754,7 +2769,7 @@ export class PixiGame {
       .circle(0, 0, orbitRadius)
       .stroke({ color: visual.outlineColor, width: 1, alpha: 0.25 })
     for (let index = 0; index < 3; index += 1) {
-      const angle = halo.rotation + (Math.PI * 2 * index) / 3
+      const angle = rotation + (Math.PI * 2 * index) / 3
       const sx = Math.cos(angle) * orbitRadius
       const sy = Math.sin(angle) * orbitRadius
       const shardColor = shardColors[index]!
@@ -2772,17 +2787,17 @@ export class PixiGame {
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')) {
       view
-        .poly(createPolygonPoints(orbitRadius + 8, 4, halo.rotation + Math.PI / 4))
+        .poly(createPolygonPoints(orbitRadius + 8, 4, rotation + Math.PI / 4))
         .stroke({ color: '#e0f2fe', width: 1.5, alpha: 0.7 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-prism-halo')) {
       view
-        .poly(createPolygonPoints(orbitRadius + 12, 3, -halo.rotation))
+        .poly(createPolygonPoints(orbitRadius + 12, 3, -rotation))
         .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.65 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')) {
       view
-        .poly(createStarPoints(orbitRadius + 7, 6, 0.82, halo.rotation))
+        .poly(createStarPoints(orbitRadius + 7, 6, 0.82, rotation))
         .stroke({ color: '#f87171', width: 1.5, alpha: 0.62 })
     }
     this.drawEvolutionAccent(view, PRISM_HALO_SKILL_ID, orbitRadius * 0.5)
@@ -2998,7 +3013,7 @@ export class PixiGame {
     const settle = Math.min(1, progress * 1.5)
     const isShortEffect = effect.lifetime <= 1.5
     view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
-    if (effect.impactPoints?.length) {
+    if (effect.impactPoints?.length || this.reducedMotion) {
       // Impact markers use world-space target positions relative to the
       // effect origin; scaling the parent would make them drift.
       view.scale.set(1)
@@ -3025,7 +3040,7 @@ export class PixiGame {
       ? Math.max(0, Math.min(1, 1 - effect.remainingLifetime / effect.lifetime))
       : 1
     const expansion = Math.min(1, progress * 5)
-    if (effect.impactPoints?.length) {
+    if (effect.impactPoints?.length || this.reducedMotion) {
       view.scale.set(1)
       view.rotation = 0
       view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
@@ -3125,7 +3140,7 @@ export class PixiGame {
       summonView.root.position.set(summon.x, summon.y)
       summonView.body.rotation = summon.skillId === PHANTOM_ARSENAL_SKILL_ID
         ? 0
-        : state.time * 1.5
+        : this.reducedMotion ? 0 : state.time * 1.5
       const emberGuardActive =
         (summon.emberGuardCharges ?? 0) > 0 &&
         (summon.emberGuardRemaining ?? 0) > 0
@@ -3137,7 +3152,9 @@ export class PixiGame {
       const summonSynergyActive = emberGuardActive || legionActive || spectralPactActive
       summonView.guardAura.visible = summonSynergyActive
       if (summonSynergyActive) {
-        const guardRadius = 20 + Math.sin(state.time * 6 + summon.id) * 2
+        const guardRadius = 20 + (
+          this.reducedMotion ? 0 : Math.sin(state.time * 6 + summon.id) * 2
+        )
         const auraColor = emberGuardActive
           ? '#fb923c'
           : spectralPactActive
@@ -3226,7 +3243,9 @@ export class PixiGame {
         state.time,
         enemy.lastMeleeAttackTime,
       )
-      const attackIntensity = Math.sin(attackProgress * Math.PI)
+      const attackIntensity = this.reducedMotion
+        ? 0
+        : Math.sin(attackProgress * Math.PI)
       const target = enemy.targetId === state.player.id
         ? state.player
         : state.summons.find((summon) => summon.id === enemy.targetId) ?? state.player
@@ -3324,7 +3343,9 @@ export class PixiGame {
           bossStatuses,
         )
       }
-      const bossPulse = 1 + Math.sin(state.time * 3 + boss.id) * 0.025
+      const bossPulse = this.reducedMotion
+        ? 1
+        : 1 + Math.sin(state.time * 3 + boss.id) * 0.025
       bossView.root.scale.set(bossPulse)
       const renderScale = 1
       bossView.label.text = getBossDisplayLabel(boss.bossDefinitionId)
@@ -3457,12 +3478,17 @@ export class PixiGame {
         history.shift()
       }
       let trailView = this.projectileTrailViews.get(projectile.id)
-      if (!trailView) {
+      if (
+        !trailView &&
+        this.projectileTrailViews.size < PixiGame.MAX_PROJECTILE_TRAIL_VIEWS
+      ) {
         trailView = new Graphics()
         this.projectileTrailViews.set(projectile.id, trailView)
         this.projectileLayer?.addChildAt(trailView, 0)
       }
-      this.drawProjectileTrail(trailView, projectile, history)
+      if (trailView) {
+        this.drawProjectileTrail(trailView, projectile, history)
+      }
     }
 
     for (const [projectileId, view] of this.projectileViews) {
@@ -3531,7 +3557,11 @@ export class PixiGame {
         this.effectLayer?.addChild(view)
       }
       let particleView = this.effectParticleViews.get(effect.id)
-      if (effect.lifetime <= 1.5 && !particleView) {
+      if (
+        effect.lifetime <= 1.5 &&
+        !particleView &&
+        this.effectParticleViews.size < PixiGame.MAX_IMPACT_PARTICLE_VIEWS
+      ) {
         particleView = this.createImpactParticlePlaceholder(effect)
         this.effectParticleViews.set(effect.id, particleView)
         this.effectLayer?.addChild(particleView)
@@ -3684,6 +3714,7 @@ export class PixiGame {
     radius: number,
     time: number,
   ): void {
+    const animationTime = this.reducedMotion ? 0 : time
     const poisonStacks = target.poisonStacks?.length ?? 0
     const burningStacks = target.burningStacks?.length ?? 0
     const chillStacks = target.chillStacks ?? 0
@@ -3713,7 +3744,7 @@ export class PixiGame {
         .poly(createStarPoints(auraRadius, 10, 0.68, -Math.PI / 2))
         .stroke({ color: '#fb923c', width: 2 + intensity, alpha: 0.62 })
       for (let index = 0; index < Math.min(6, burningStacks + 2); index += 1) {
-        const angle = time * 1.8 + (Math.PI * 2 * index) / 6
+        const angle = animationTime * 1.8 + (Math.PI * 2 * index) / 6
         view
           .poly([
             Math.cos(angle - 0.18) * (radius + 2),
@@ -3728,7 +3759,7 @@ export class PixiGame {
     }
     if (chillStacks > 0 || frozen) {
       view
-        .poly(createPolygonPoints(auraRadius + (frozen ? 4 : 0), 6, time * 0.12))
+        .poly(createPolygonPoints(auraRadius + (frozen ? 4 : 0), 6, animationTime * 0.12))
         .stroke({ color: frozen ? '#eff6ff' : '#7dd3fc', width: frozen ? 3 : 2, alpha: 0.78 })
       for (let index = 0; index < Math.min(6, chillStacks + 2); index += 1) {
         const angle = (Math.PI * 2 * index) / 6
@@ -3746,7 +3777,7 @@ export class PixiGame {
     }
     if (shockStacks > 0) {
       for (let index = 0; index < Math.min(4, shockStacks + 1); index += 1) {
-        const angle = time * 2.5 + (Math.PI * 2 * index) / 4
+        const angle = animationTime * 2.5 + (Math.PI * 2 * index) / 4
         const inner = radius + 2
         const outer = auraRadius + 8
         view
@@ -3761,10 +3792,10 @@ export class PixiGame {
     }
     if (poisonStacks > 0) {
       view
-        .poly(createPolygonPoints(auraRadius + 3, 8, -time * 0.18))
+        .poly(createPolygonPoints(auraRadius + 3, 8, -animationTime * 0.18))
         .stroke({ color: '#84cc16', width: 2, alpha: 0.7 })
       for (let index = 0; index < Math.min(6, poisonStacks + 2); index += 1) {
-        const angle = time * 0.8 + (Math.PI * 2 * index) / 6
+        const angle = animationTime * 0.8 + (Math.PI * 2 * index) / 6
         view
           .circle(
             Math.cos(angle) * (auraRadius + 4),

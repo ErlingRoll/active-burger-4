@@ -333,6 +333,28 @@ Recommended defaults:
 
 Particle colors should match the effect's damage or mechanical identity.
 
+## Performance and reduced motion
+
+Transient rendering must remain bounded during late-game combat:
+
+- Keep impact particle views capped; do not create an unbounded particle object
+  for every damage tick.
+- Keep projectile position histories short and remove trail views with their
+  projectiles.
+- Reuse/redraw persistent views instead of recreating them each frame.
+- Remove expired effect, pickup-feedback, telegraph, and projectile views
+  promptly.
+- Prefer a small number of shaped particles over many tiny objects.
+- Keep status overlays proportional to stack count and cap their detail.
+
+When `prefers-reduced-motion: reduce` is active:
+
+- Preserve the silhouette and mechanical information.
+- Disable or minimize rotation, pulsing, and expansion.
+- Keep opacity fades short and readable.
+- Do not replace dangerous telegraphs with motion-only cues.
+- Never add screenshake, hit-stop, or time dilation.
+
 ## Enemy and boss feedback
 
 Damage feedback should be readable without being disturbing:
