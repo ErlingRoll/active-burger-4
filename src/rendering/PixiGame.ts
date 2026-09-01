@@ -24,6 +24,7 @@ import {
   PHANTOM_ARSENAL_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   RALLYING_BANNER_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   STORM_RELAY_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
@@ -502,6 +503,30 @@ export class PixiGame {
         .fill(visual.secondaryColor)
         .stroke({ color: visual.outlineColor, width: 1 })
     }
+    if (
+      projectile.skillId === RIFT_JAVELIN_SKILL_ID &&
+      (this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-lancers-charge') ||
+        this.game.state.run.selectedUpgradeIds.includes('synergy-phantom-arsenal-rift-javelin'))
+    ) {
+      view
+        .poly([
+          projectile.radius * 2.8,
+          0,
+          projectile.radius * 0.7,
+          -projectile.radius * 1.5,
+          projectile.radius * 0.7,
+          projectile.radius * 1.5,
+        ])
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.74 })
+    }
+    if (
+      projectile.skillId === PHANTOM_ARSENAL_SKILL_ID &&
+      this.game.state.run.selectedUpgradeIds.includes('synergy-soul-tether-phantom-arsenal')
+    ) {
+      view
+        .poly(createPolygonPoints(projectile.radius * 2.8, 6, Math.PI / 6))
+        .stroke({ color: '#bfdbfe', width: 1.5, alpha: 0.7 })
+    }
     return view
   }
 
@@ -541,6 +566,23 @@ export class PixiGame {
       ])
       .fill({ color: visual.secondaryColor, alpha: 0.86 })
       .stroke({ color: visual.outlineColor, width: 1 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')) {
+      view
+        .moveTo(-radius * 1.4, -radius * 0.7)
+        .lineTo(-radius * 0.7, radius * 0.4)
+        .lineTo(radius * 0.1, -radius * 0.2)
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.76 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')) {
+      view
+        .poly([radius * 0.8, 0, radius * 0.2, -radius * 0.6, -radius * 0.2, 0, radius * 0.2, radius * 0.6])
+        .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      view
+        .poly([shaftLength * 0.54, 0, shaftLength * 0.2, -radius * 1.6, shaftLength * 0.2, radius * 1.6])
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.72 })
+    }
     return view
   }
 
@@ -572,6 +614,23 @@ export class PixiGame {
       ])
       .fill({ color: visual.secondaryColor, alpha: 0.92 })
       .stroke({ color: visual.outlineColor, width: 1 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')) {
+      view
+        .moveTo(-radius * 1.45, -radius * 0.5)
+        .lineTo(-radius * 0.72, radius * 0.25)
+        .lineTo(radius * 0.05, -radius * 0.18)
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.76 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')) {
+      view
+        .poly([radius * 0.9, 0, radius * 0.2, -radius * 0.7, -radius * 0.45, 0, radius * 0.2, radius * 0.7])
+        .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      view
+        .poly(createPolygonPoints(radius * 1.48, 4, Math.PI / 4))
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.7 })
+    }
     return view
   }
 
@@ -912,6 +971,33 @@ export class PixiGame {
       .moveTo(last.x - normalX * 7, last.y - normalY * 7)
       .lineTo(last.x + normalX * 7, last.y + normalY * 7)
       .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      view
+        .moveTo(first.x, first.y)
+        .lineTo(last.x * 0.72, last.y * 0.72)
+        .stroke({ color: '#fef08a', width: 2, alpha: 0.8 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')) {
+      view
+        .moveTo(last.x * 0.42, last.y * 0.42)
+        .lineTo(last.x * 0.62 + normalX * 8, last.y * 0.62 + normalY * 8)
+        .lineTo(last.x * 0.82, last.y * 0.82)
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.76 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')) {
+      view
+        .poly([
+          last.x * 0.72,
+          last.y * 0.72 - 6,
+          last.x * 0.72 + 5,
+          last.y * 0.72,
+          last.x * 0.72,
+          last.y * 0.72 + 6,
+          last.x * 0.72 - 5,
+          last.y * 0.72,
+        ])
+        .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.72 })
+    }
     return view
   }
 
@@ -938,6 +1024,23 @@ export class PixiGame {
       .poly(createStarPoints(radius * 0.32, 6, 0.45))
       .fill({ color: '#84cc16', alpha: 0.72 })
       .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.9 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')) {
+      view
+        .poly(createPolygonPoints(radius * 0.52, 6, Math.PI / 6))
+        .stroke({ color: '#bae6fd', width: 2, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')) {
+      view
+        .moveTo(-radius * 0.6, -radius * 0.5)
+        .lineTo(-radius * 0.12, radius * 0.18)
+        .lineTo(radius * 0.42, -radius * 0.18)
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.76 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      view
+        .poly(createPolygonPoints(radius * 0.88, 4, Math.PI / 4))
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.72 })
+    }
     return view
   }
 
@@ -1002,6 +1105,21 @@ export class PixiGame {
         .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.75 })
         .stroke({ color: visual.outlineColor, width: 1, alpha: 0.75 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-fiery-touch-glacial-orb')) {
+      view
+        .poly(createPolygonPoints(radius * 0.48, 6, Math.PI / 6))
+        .stroke({ color: '#38bdf8', width: 2, alpha: 0.78 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-fiery-touch-gravity-well')) {
+      view
+        .poly(createPolygonPoints(radius * 1.08, 8, Math.PI / 8))
+        .stroke({ color: '#c4b5fd', width: 2, alpha: 0.6 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-cinder-mine-fiery-touch')) {
+      view
+        .poly(createStarPoints(radius * 0.86, 8, 0.42, Math.PI / 8))
+        .stroke({ color: '#facc15', width: 2, alpha: 0.7 })
+    }
     return view
   }
 
@@ -1025,6 +1143,15 @@ export class PixiGame {
         .moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner)
         .lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer)
         .stroke({ color: visual.outlineColor, width: 2, alpha: 0.8 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-chain-lightning-glacial-orb')) {
+      view
+        .moveTo(-radius * 0.78, 0)
+        .lineTo(-radius * 0.38, -radius * 0.18)
+        .lineTo(0, 0)
+        .lineTo(radius * 0.38, radius * 0.18)
+        .lineTo(radius * 0.78, 0)
+        .stroke({ color: '#fef08a', width: 2, alpha: 0.78 })
     }
     return view
   }
@@ -1057,6 +1184,21 @@ export class PixiGame {
       .circle(0, 0, radius * 0.2)
       .fill({ color: visual.secondaryColor, alpha: 0.78 })
       .stroke({ color: visual.outlineColor, width: 2 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
+      view
+        .poly(createPolygonPoints(radius * 0.34, 4, Math.PI / 4))
+        .stroke({ color: '#fef08a', width: 2, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-whirlwind-lancers-charge')) {
+      view
+        .poly(createStarPoints(radius * 0.92, 8, 0.62, Math.PI / 8))
+        .stroke({ color: '#fdba74', width: 2, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-whirlwind-aegis-pulse')) {
+      view
+        .poly(createPolygonPoints(radius * 0.48, 6, Math.PI / 6))
+        .stroke({ color: '#67e8f9', width: 2, alpha: 0.82 })
+    }
     return view
   }
 
@@ -1082,6 +1224,24 @@ export class PixiGame {
         .moveTo(Math.cos(angle) * start, Math.sin(angle) * start)
         .lineTo(Math.cos(angle + 0.16) * end, Math.sin(angle + 0.16) * end)
         .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.76 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-chain-lightning-gravity-well')) {
+      view
+        .poly(createPolygonPoints(radius * 1.08, 6, Math.PI / 6))
+        .stroke({ color: '#67e8f9', width: 2, alpha: 0.7 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-raise-skeleton-gravity-well')) {
+      view
+        .moveTo(-radius * 0.25, -radius * 0.74)
+        .lineTo(-radius * 0.25, radius * 0.74)
+        .moveTo(radius * 0.25, -radius * 0.74)
+        .lineTo(radius * 0.25, radius * 0.74)
+        .stroke({ color: '#e9d5ff', width: 2, alpha: 0.68 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-fiery-touch-gravity-well')) {
+      view
+        .poly(createStarPoints(radius * 1.16, 8, 0.7, Math.PI / 8))
+        .stroke({ color: '#fb923c', width: 1.5, alpha: 0.62 })
     }
     return view
   }
@@ -1111,6 +1271,27 @@ export class PixiGame {
       .moveTo(-radius * 0.28, 0)
       .lineTo(radius * 0.28, 0)
       .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-vitality-aegis-pulse')) {
+      view
+        .poly(createPolygonPoints(radius * 0.54, 6, Math.PI / 6))
+        .stroke({ color: '#86efac', width: 2, alpha: 0.78 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-whirlwind-aegis-pulse')) {
+      view
+        .poly(createStarPoints(radius * 1.1, 8, 0.82, Math.PI / 8))
+        .stroke({ color: '#fdba74', width: 1.5, alpha: 0.68 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-lancers-charge-aegis-pulse')) {
+      view
+        .poly([
+          0, -radius * 1.22,
+          radius * 0.18, -radius * 0.7,
+          0, -radius * 0.42,
+          -radius * 0.18, -radius * 0.7,
+        ])
+        .fill({ color: '#fb923c', alpha: 0.42 })
+        .stroke({ color: '#fed7aa', width: 1.5, alpha: 0.76 })
+    }
     return view
   }
 
@@ -1141,6 +1322,19 @@ export class PixiGame {
       .poly(createStarPoints(radius * 0.62, 10, 0.72))
       .fill({ color: visual.secondaryColor, alpha: 0.76 })
       .stroke({ color: visual.outlineColor, width: 2, alpha: 0.86 })
+      .moveTo(-radius * 0.72, radius * 0.42)
+      .lineTo(radius * 0.72, -radius * 0.42)
+      .stroke({
+        color: this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-cinder-mine')
+          ? '#c4b5fd'
+          : visual.outlineColor,
+        width: this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-cinder-mine')
+          ? 3
+          : 1,
+        alpha: this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-cinder-mine')
+          ? 0.72
+          : 0,
+      })
   }
 
   private createStormRelayStrikePlaceholder(effect: SkillEffectState): Graphics {
@@ -1201,6 +1395,18 @@ export class PixiGame {
         .fill({ color: visual.primaryColor, alpha: 0.8 })
         .stroke({ color: visual.outlineColor, width: 1.5 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-cinder-mine-storm-relay')) {
+      view
+        .moveTo(relativePoints[0]!.x, relativePoints[0]!.y)
+        .lineTo(relativePoints[relativePoints.length - 1]!.x, relativePoints[relativePoints.length - 1]!.y)
+        .stroke({ color: '#fb923c', width: 1.5, alpha: 0.7 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-soul-tether')) {
+      view
+        .moveTo(relativePoints[0]!.x + 5, relativePoints[0]!.y)
+        .lineTo(relativePoints[relativePoints.length - 1]!.x + 5, relativePoints[relativePoints.length - 1]!.y)
+        .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.68 })
+    }
     return view
   }
 
@@ -1243,6 +1449,13 @@ export class PixiGame {
         .poly([point.x, point.y - 6, point.x + 6, point.y, point.x, point.y + 6, point.x - 6, point.y])
         .fill({ color: visual.primaryColor, alpha: 0.85 })
         .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-chain-lightning-glacial-orb')) {
+      for (const point of relativePoints.slice(1)) {
+        view
+          .poly([point.x, point.y - 6, point.x + 4, point.y, point.x, point.y + 6, point.x - 4, point.y])
+          .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.72 })
+      }
     }
     return view
   }
@@ -1295,6 +1508,26 @@ export class PixiGame {
         .moveTo(centerX + normalX * width * 0.55, centerY + normalY * width * 0.55)
         .lineTo(centerX - normalX * width * 0.55, centerY - normalY * width * 0.55)
         .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.78 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-lancers-charge-aegis-pulse')) {
+      view
+        .poly([
+          endX + normalX * width * 0.8,
+          endY + normalY * width * 0.8,
+          spearTipX,
+          spearTipY,
+          endX - normalX * width * 0.8,
+          endY - normalY * width * 0.8,
+        ])
+        .stroke({ color: '#67e8f9', width: 2, alpha: 0.8 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-lancers-charge')) {
+      view
+        .moveTo(startX + normalX * width * 0.74, startY + normalY * width * 0.74)
+        .lineTo(endX + normalX * width * 0.34, endY + normalY * width * 0.34)
+        .moveTo(startX - normalX * width * 0.74, startY - normalY * width * 0.74)
+        .lineTo(endX - normalX * width * 0.34, endY - normalY * width * 0.34)
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.72 })
     }
     return view
   }
@@ -1776,6 +2009,32 @@ export class PixiGame {
         .fill({ color: '#f97316', alpha: 0.42 })
         .stroke({ color: '#fed7aa', width: 1, alpha: 0.78 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-soul-tether-vitality')) {
+      view
+        .moveTo(startX, startY)
+        .lineTo(endX, endY)
+        .stroke({ color: '#86efac', width: 1.5, alpha: 0.62 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-soul-tether')) {
+      view
+        .moveTo(startX, startY)
+        .lineTo(endX, endY)
+        .stroke({ color: '#67e8f9', width: 1, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-soul-tether-phantom-arsenal')) {
+      view
+        .poly([
+          endX,
+          endY - 7,
+          endX + 7,
+          endY,
+          endX,
+          endY + 7,
+          endX - 7,
+          endY,
+        ])
+        .stroke({ color: '#bfdbfe', width: 1.5, alpha: 0.72 })
+    }
     return view
   }
 
@@ -1847,6 +2106,19 @@ export class PixiGame {
         .poly(createStarPoints(trap.radius * 0.32, 8, 0.4))
         .fill({ color: visual.outlineColor, alpha: 0.72 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-cinder-mine')) {
+      view
+        .moveTo(-mineRadius * 1.12, 0)
+        .lineTo(mineRadius * 1.12, 0)
+        .stroke({ color: '#c4b5fd', width: 2, alpha: 0.68 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-cinder-mine-storm-relay')) {
+      view
+        .moveTo(-mineRadius * 0.9, -mineRadius * 0.5)
+        .lineTo(-mineRadius * 0.42, -mineRadius * 0.08)
+        .lineTo(-mineRadius * 0.12, -mineRadius * 0.34)
+        .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.76 })
+    }
   }
 
   private createStormRelayPlaceholder(relay: Readonly<RelayState>): Graphics {
@@ -1899,6 +2171,16 @@ export class PixiGame {
         .stroke({ color: '#fef08a', width: 2, alpha: 0.82 })
         .poly(createPolygonPoints(radius * 1.05, 6, -time * 0.8))
         .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.72 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-rallying-banner')) {
+      view
+        .poly(createPolygonPoints(radius * 1.42, 4, Math.PI / 4))
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.58 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-soul-tether')) {
+      view
+        .poly(createPolygonPoints(radius * 1.18, 8, -time * 1.2))
+        .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.62 })
     }
   }
 
@@ -1953,6 +2235,20 @@ export class PixiGame {
         .lineTo(0, -radius * 1.35)
         .lineTo(radius * 0.85, radius * 0.15)
         .stroke({ color: '#22d3ee', width: 1.5, alpha: 0.7 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-prism-halo')) {
+      const prismColors = ['#f97316', '#38bdf8', '#fef08a'] as const
+      for (let index = 0; index < 3; index += 1) {
+        const angle = time * 0.8 + (Math.PI * 2 * index) / 3
+        view
+          .poly(createPolygonPoints(radius * 1.42, 3, angle))
+          .stroke({ color: prismColors[index]!, width: 1.5, alpha: 0.78 })
+      }
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-blood-rite')) {
+      view
+        .poly(createStarPoints(radius * 1.34, 6, 0.35, Math.PI / 6))
+        .stroke({ color: '#f87171', width: 1.5, alpha: 0.72 })
     }
   }
 
@@ -2031,6 +2327,22 @@ export class PixiGame {
           .stroke({ color: '#7dd3fc', width: 1 })
       }
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-mirrorcast-razorwire')) {
+      const offset = 5
+      view
+          .moveTo(startX, startY + offset)
+          .lineTo(endX, endY + offset)
+          .stroke({ color: '#e0f2fe', width: 1, alpha: 0.58 })
+          .moveTo(startX, startY - offset)
+          .lineTo(endX, endY - offset)
+          .stroke({ color: '#38bdf8', width: 1, alpha: 0.58 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-razorwire-blood-rite')) {
+      view
+          .moveTo(startX, startY)
+          .lineTo(endX, endY)
+          .stroke({ color: '#c084fc', width: 1.5, alpha: 0.62 })
+    }
   }
 
   private drawMirrorcastEcho(view: Graphics, time: number): void {
@@ -2058,6 +2370,13 @@ export class PixiGame {
           offsetY + Math.sin(angle) * radius,
         )
         .stroke({ color: visual.secondaryColor, width: 1, alpha: 0.35 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')) {
+      view
+        .poly(createPolygonPoints(radius * 1.2, 4, time * 0.8))
+        .stroke({ color: '#fef08a', width: 1.5, alpha: 0.66 })
+        .poly(createPolygonPoints(radius * 0.86, 4, -time * 0.8))
+        .stroke({ color: '#38bdf8', width: 1, alpha: 0.62 })
     }
   }
 
@@ -2097,6 +2416,13 @@ export class PixiGame {
         .poly(createPolygonPoints(radius * 1.28, 6, time * 0.5))
         .stroke({ color: '#67e8f9', width: 2, alpha: 0.78 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')) {
+      view
+        .poly(createPolygonPoints(radius * 1.18, 3, -time * 0.7))
+        .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.68 })
+        .poly(createPolygonPoints(radius * 1.06, 3, time * 0.7))
+        .stroke({ color: '#f97316', width: 1.5, alpha: 0.68 })
+    }
   }
 
   private drawPrismHalo(view: Graphics, halo: Readonly<PrismHaloState>): void {
@@ -2126,6 +2452,21 @@ export class PixiGame {
           .circle(sx, sy, 9)
           .stroke({ color: outline, width: 1, alpha: 0.4 })
       }
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')) {
+      view
+        .poly(createPolygonPoints(orbitRadius + 8, 4, halo.rotation + Math.PI / 4))
+        .stroke({ color: '#e0f2fe', width: 1.5, alpha: 0.7 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-prism-halo')) {
+      view
+        .poly(createPolygonPoints(orbitRadius + 12, 3, -halo.rotation))
+        .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.65 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')) {
+      view
+        .poly(createStarPoints(orbitRadius + 7, 6, 0.82, halo.rotation))
+        .stroke({ color: '#f87171', width: 1.5, alpha: 0.62 })
     }
   }
 
@@ -2240,7 +2581,7 @@ export class PixiGame {
     const radius = Math.max(1, effect.radius)
     const poleTop = -radius * 0.62
     const poleBottom = radius * 0.38
-    return new Graphics()
+    const view = new Graphics()
       .circle(0, 0, radius)
       .fill({ color: visual.primaryColor, alpha: 0.06 })
       .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.38 })
@@ -2258,6 +2599,25 @@ export class PixiGame {
       .stroke({ color: visual.outlineColor, width: 2, alpha: 0.95 })
       .ellipse(0, poleBottom, radius * 0.12, radius * 0.06)
       .fill({ color: visual.secondaryColor, alpha: 0.85 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-banner')) {
+      view
+        .poly(createPolygonPoints(radius * 0.82, 6, Math.PI / 6))
+        .stroke({ color: '#86efac', width: 2, alpha: 0.64 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-raise-skeleton-rallying-banner')) {
+      view
+        .moveTo(-radius * 0.28, radius * 0.68)
+        .lineTo(-radius * 0.28, radius * 0.4)
+        .moveTo(radius * 0.28, radius * 0.68)
+        .lineTo(radius * 0.28, radius * 0.4)
+        .stroke({ color: '#c084fc', width: 2, alpha: 0.7 })
+    }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-storm-relay-rallying-banner')) {
+      view
+        .poly(createStarPoints(radius * 1.08, 8, 0.78, Math.PI / 8))
+        .stroke({ color: '#67e8f9', width: 1.5, alpha: 0.62 })
+    }
+    return view
   }
 
   private readonly update = (ticker: Ticker): void => {
@@ -2382,16 +2742,27 @@ export class PixiGame {
       const emberGuardActive =
         (summon.emberGuardCharges ?? 0) > 0 &&
         (summon.emberGuardRemaining ?? 0) > 0
-      summonView.guardAura.visible = emberGuardActive
-      if (emberGuardActive) {
+      const legionActive =
+        state.run.selectedUpgradeIds.includes('synergy-phantom-arsenal-raise-skeleton')
+      const spectralPactActive =
+        state.run.selectedUpgradeIds.includes('synergy-soul-tether-phantom-arsenal') &&
+        summon.skillId === PHANTOM_ARSENAL_SKILL_ID
+      const summonSynergyActive = emberGuardActive || legionActive || spectralPactActive
+      summonView.guardAura.visible = summonSynergyActive
+      if (summonSynergyActive) {
         const guardRadius = 20 + Math.sin(state.time * 6 + summon.id) * 2
+        const auraColor = emberGuardActive
+          ? '#fb923c'
+          : spectralPactActive
+            ? '#bfdbfe'
+            : '#c084fc'
         summonView.guardAura
           .clear()
           .poly(createPolygonPoints(guardRadius, 6, Math.PI / 6))
-          .stroke({ color: '#fb923c', width: 2, alpha: 0.7 })
+          .stroke({ color: auraColor, width: 2, alpha: 0.7 })
           .poly(createStarPoints(guardRadius * 0.74, 6, 0.45))
-          .fill({ color: '#f97316', alpha: 0.18 })
-          .stroke({ color: '#fed7aa', width: 1, alpha: 0.72 })
+          .fill({ color: auraColor, alpha: 0.18 })
+          .stroke({ color: '#f8fafc', width: 1, alpha: 0.72 })
       }
       this.drawHealthBar(
         summonView.hpBar,
