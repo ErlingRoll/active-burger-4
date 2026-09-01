@@ -36,6 +36,7 @@ export type {
   SkillDefinition,
   SkillId,
   SkillKind,
+  SkillResonanceEffect,
   SkillTag,
   SkillVisualPresentation,
 } from './SkillConfigs'

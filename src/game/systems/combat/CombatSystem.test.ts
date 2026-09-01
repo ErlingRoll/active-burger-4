@@ -26,7 +26,11 @@ import {
   equipRolledItem,
 } from '../../equipment/EquipmentState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
-import { createPlayerDamageProfileFromStats } from '../../combat/DamageSources'
+import {
+  createPlayerDamageProfileFromStats,
+  getBasicAttackDamageBeforeCritFromStats,
+  getAttunementDamageFromStats,
+} from '../../combat/DamageSources'
 import { createGame } from '../../Game'
 import { createDamageValues } from '../../../content/stats/Damage'
 import { Rarity } from '../../../content/rarity/Rarity'
@@ -610,10 +614,80 @@ describe('performBasicAttackIfReady', () => {
         critMultiplier: 200,
       },
       { physical: 100 },
-      { additionalIncreasedDamage: { global: 10 } },
+      { isBasicAttack: true, additionalIncreasedDamage: { global: 10 } },
     )
 
     expect(profile.damage.physical).toBe(143)
+  })
+
+  it('adds finalized Attunement after skill increases without reapplying them', () => {
+    const profile = createPlayerDamageProfileFromStats(
+      {
+        attackDamage: 15,
+        attunement: 50,
+        flatDamage: {
+          physical: 0,
+          lightning: 0,
+          fire: 0,
+          cold: 0,
+          chaos: 0,
+        },
+        increasedDamage: {
+          global: 0,
+          physical: 20,
+          elemental: 0,
+          chaos: 0,
+          projectile: 0,
+        },
+        critChance: 0,
+        critMultiplier: 200,
+      },
+      { physical: 10 },
+      { additionalIncreasedDamage: { physical: 0 } },
+    )
+
+    expect(profile.damage.physical).toBeCloseTo(21)
+    expect(profile.attunementDamage?.physical).toBe(9)
+  })
+
+  it('uses dynamic Attunement adjustments from the player state', () => {
+    const game = createGame({ seed: 20260901 })
+    game.state.player.attunementBonusPercent = 25
+
+    expect(getDerivedPlayerStats(game.state.player).attunement).toBe(80)
+  })
+
+  it('masters each final Basic Attack damage type independently and rounds up', () => {
+    const stats = {
+      attackDamage: 15,
+      attunement: 50,
+      basicAttackIsProjectile: false,
+      flatDamage: {
+        physical: 0,
+        lightning: 2,
+        fire: 5,
+        cold: 0,
+        chaos: 0,
+      },
+      increasedDamage: {
+        global: 0,
+        physical: 0,
+        elemental: 0,
+        chaos: 0,
+        projectile: 0,
+      },
+    }
+
+    expect(getBasicAttackDamageBeforeCritFromStats(stats)).toMatchObject({
+      physical: 15,
+      lightning: 2,
+      fire: 5,
+    })
+    expect(getAttunementDamageFromStats(stats)).toMatchObject({
+      physical: 8,
+      lightning: 1,
+      fire: 3,
+    })
   })
 })
 

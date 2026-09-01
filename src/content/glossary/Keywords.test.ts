@@ -48,4 +48,15 @@ describe('keyword glossary text', () => {
       { type: 'text', value: '.' },
     ])
   })
+
+  it('links Resonance and Attunement terminology to glossary definitions', () => {
+    expect(
+      splitKeywordText('Resonance empowers skills through Attunement.'),
+    ).toEqual([
+      { type: 'keyword', value: 'Resonance', keywordId: 'resonance' },
+      { type: 'text', value: ' empowers skills through ' },
+      { type: 'keyword', value: 'Attunement', keywordId: 'attunement' },
+      { type: 'text', value: '.' },
+    ])
+  })
 })

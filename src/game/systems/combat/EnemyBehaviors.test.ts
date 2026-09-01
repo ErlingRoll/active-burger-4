@@ -16,12 +16,20 @@ import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 describe('enemy variety behaviors', () => {
   it('makes Runner faster and less durable than Brute', () => {
     const game = createGame({ seed: 101 })
-    game.spawnEnemy(RUNNER_DEFINITION_ID, { x: 100, y: 0 })
-    game.spawnEnemy(BRUTE_DEFINITION_ID, { x: 100, y: 0 })
+    game.spawnEnemy(RUNNER_DEFINITION_ID, { x: 200, y: 0 })
+    game.spawnEnemy(BRUTE_DEFINITION_ID, { x: 200, y: 0 })
 
     game.update(FIXED_STEP_SECONDS)
 
-    const [runner, brute] = game.state.enemies
+    const runner = game.state.enemies.find(
+      (enemy) => enemy.definitionId === RUNNER_DEFINITION_ID,
+    )
+    const brute = game.state.enemies.find(
+      (enemy) => enemy.definitionId === BRUTE_DEFINITION_ID,
+    )
+    if (!runner || !brute) {
+      throw new Error('Expected Runner and Brute to survive the setup tick')
+    }
     expect(runner.speed).toBeGreaterThan(brute.speed)
     expect(runner.maxHp).toBeLessThan(brute.maxHp)
     expect(runner.x).toBeLessThan(brute.x)

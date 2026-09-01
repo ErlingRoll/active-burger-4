@@ -311,7 +311,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'basic-attack-level',
     name: 'Empowered Attack',
-    description: `Increase Basic Attack damage by ${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    description: `Increase Basic Attack damage by ${BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT}%. This also increases Attunement damage.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,

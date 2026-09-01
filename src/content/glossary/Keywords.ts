@@ -8,6 +8,8 @@ export type KeywordId =
   | 'shock'
   | 'overload'
   | 'momentum'
+  | 'resonance'
+  | 'attunement'
   | 'primed'
   | 'synergy-charge'
   | 'shield'
@@ -95,6 +97,20 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     summary: 'Stacks that empower Lancer\'s Charge.',
     details:
       'Lancer\'s Charge gains increased damage from Momentum stacks. Momentum caps at 3 stacks and decays after 4 seconds without another Charge or Momentum-generating effect.',
+  },
+  resonance: {
+    id: 'resonance',
+    label: 'Resonance',
+    summary: 'A charged skill effect created by Basic Attacks.',
+    details:
+      'Successful Basic Attacks build Resonance. When the requirement is reached, the next successful skill consumes the charge and triggers that skill\'s Resonance effect.',
+  },
+  attunement: {
+    id: 'attunement',
+    label: 'Attunement',
+    summary: 'Converts part of Basic Attack damage into skill damage.',
+    details:
+      'Attunement adds a percentage of the final pre-critical Basic Attack damage to skills and summons. Each damage type is preserved and rounded up independently.',
   },
   primed: {
     id: 'primed',
@@ -242,6 +258,8 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'shock', text: 'shocked' },
   { id: 'overload', text: 'overload' },
   { id: 'momentum', text: 'momentum' },
+  { id: 'resonance', text: 'resonance' },
+  { id: 'attunement', text: 'attunement' },
   { id: 'primed', text: 'prime' },
   { id: 'primed', text: 'primes' },
   { id: 'primed', text: 'primed' },

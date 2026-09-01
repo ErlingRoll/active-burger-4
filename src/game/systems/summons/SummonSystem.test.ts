@@ -61,7 +61,7 @@ describe('updateSummons', () => {
       sourceId: game.state.summons[0]!.id,
       targetId,
       damage: {
-        physical: 6,
+        physical: 12,
         lightning: 0,
         fire: 0,
         cold: 0,
@@ -126,7 +126,7 @@ describe('updateSummons', () => {
     const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
     expect(target.poisonStacks).toEqual([{
       remainingDuration: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
-      damagePerSecond: 6 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+      damagePerSecond: 12 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
       sourceSkillId: 'raise-skeleton',
     }])
     expect(updatePoison(game.state, 1)).toEqual([expect.objectContaining({
@@ -137,7 +137,7 @@ describe('updateSummons', () => {
         lightning: 0,
         fire: 0,
         cold: 0,
-        chaos: 6 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+        chaos: 12 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
       },
       damageOverTime: true,
     })])

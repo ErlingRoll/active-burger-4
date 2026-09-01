@@ -56,6 +56,54 @@ const allocator = {
 }
 
 describe('skill system', () => {
+  it('adds Attunement to skill damage without changing Basic Attack damage', () => {
+    const game = createGame({ seed: 49 })
+    game.state.player.skills = [{
+      skillId: WHIRLWIND_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+
+    const [event] = collectSkillDamage(game.state, allocator)
+
+    expect(event?.targetId).toBe(targetId)
+    expect(event?.damage.physical).toBeCloseTo(16)
+  })
+
+  it('scales Attunement from the upgraded Basic Attack profile', () => {
+    const game = createGame({ seed: 47 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 2, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    game.spawnSlime({ x: 40, y: 0 })
+
+    const [event] = collectSkillDamage(game.state, allocator)
+
+    expect(event?.damage.physical).toBeCloseTo(17)
+  })
+
+  it('consumes Resonance and applies the skill-specific effect on the next skill cast', () => {
+    const game = createGame({ seed: 48 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    game.state.player.targetId = targetId
+
+    for (let attack = 0; attack < (game.state.player.resonance ?? 5); attack += 1) {
+      game.state.player.attackCooldownRemaining = 0
+      performBasicAttackIfReady(game.state, allocator)
+    }
+
+    collectSkillDamage(game.state, allocator)
+
+    expect(game.state.player.resonanceAttackCount).toBe(0)
+    expect(game.state.player.attackCooldownRemaining).toBe(0)
+  })
+
   it('resolves Whirlwind hits by stable EntityId order and respects cooldown', () => {
     const game = createGame({ seed: 50 })
     game.state.player.skills = [{
@@ -68,7 +116,9 @@ describe('skill system', () => {
 
     const events = collectSkillDamage(game.state, allocator)
     expect(events.map((event) => event.targetId)).toEqual([firstId, secondId])
-    expect(events.every((event) => event.damage.physical === 8)).toBe(true)
+    expect(events.every((event) =>
+      Math.abs(event.damage.physical - 16) < 0.001
+    )).toBe(true)
     expect(game.state.effects[0]?.points).toEqual([{ x: 0, y: 0 }])
     expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(2.5)
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
@@ -199,7 +249,7 @@ describe('skill system', () => {
     const events = collectSkillDamage(game.state, allocator)
 
     expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)?.damage.physical)
-      .toBeCloseTo(8.64)
+      .toBeCloseTo(16.64)
     expect(events.find((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)?.damage.lightning)
       .toBeCloseTo(8.72)
   })
@@ -301,11 +351,12 @@ describe('skill system', () => {
       expect.objectContaining({
         targetId,
         damage: expect.objectContaining({
-          physical: 8,
-          lightning: 6,
+          lightning: 4,
         }),
       }),
     ])
+    expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)
+      ?.damage.physical).toBeCloseTo(16)
     expect(events.filter((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)).toEqual([
       expect.objectContaining({
         targetId,
@@ -317,7 +368,7 @@ describe('skill system', () => {
     const chainEvent = events.find(
       (event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID,
     )
-    expect(chainEvent?.damage.lightning).toBeCloseTo(15.6)
+    expect(chainEvent?.damage.lightning).toBeCloseTo(13.6)
   })
 
   it('applies weapon cooldown reduction to non-projectile skills', () => {
@@ -542,7 +593,9 @@ describe('skill system', () => {
 
       expect(events.map((event) => event.targetId).sort((a, b) => a - b))
         .toEqual([targetId, inCorridorId].sort((a, b) => a - b))
-      expect(events.every((event) => event.damage.physical === 11)).toBe(true)
+      expect(events.every((event) =>
+        Math.abs(event.damage.physical - 19) < 0.001
+      )).toBe(true)
       expect(events.some((event) => event.targetId === outsideId)).toBe(false)
       expect(game.state.player.x).toBeGreaterThan(0)
       expect(game.state.player.lancerMomentumStacks).toBe(1)
@@ -563,7 +616,7 @@ describe('skill system', () => {
 
       game.state.player.skills[0]!.cooldownRemaining = 0
       const [secondEvent] = collectSkillDamage(game.state, allocator)
-      expect(secondEvent?.damage.physical).toBeCloseTo(11.66)
+      expect(secondEvent?.damage.physical).toBeCloseTo(19.66)
       expect(game.state.player.lancerMomentumStacks).toBe(2)
 
       updateSkillCooldowns(game.state, 4)
@@ -583,7 +636,7 @@ describe('skill system', () => {
 
       const [event] = collectSkillDamage(game.state, allocator)
 
-      expect(event?.damage.physical).toBeCloseTo(13.75)
+      expect(event?.damage.physical).toBeCloseTo(21.75)
     })
 
     it('gives Impaler more range at the cost of reduced damage', () => {
@@ -606,7 +659,7 @@ describe('skill system', () => {
       withImpaler.spawnSlime({ x: 190, y: 0 })
 
       const [event] = collectSkillDamage(withImpaler.state, allocator)
-      expect(event?.damage.physical).toBeCloseTo(9.35)
+      expect(event?.damage.physical).toBeCloseTo(17.35)
     })
   })
 
@@ -890,7 +943,7 @@ describe('skill system', () => {
 
       expect(event).toEqual(expect.objectContaining({
         targetId,
-        damage: expect.objectContaining({ physical: 6 }),
+        damage: expect.objectContaining({ physical: 14 }),
       }))
       expect(game.state.player.aegisPulseShieldAmount).toBe(14)
       expect(game.state.player.aegisPulseShieldRemaining).toBe(4)
@@ -992,12 +1045,12 @@ describe('skill system', () => {
         updateProjectiles(game.state, 1 / 60)
         outboundEvents = collectProjectileDamage(game.state, undefined, allocator)
       }
-      expect(outboundEvents[0]?.damage.physical).toBeCloseTo(16)
+      expect(outboundEvents[0]?.damage.physical).toBeCloseTo(24)
 
       projectile.returning = true
       projectile.pierceHitTargetIds = []
       const inboundEvents = collectProjectileDamage(game.state, undefined, allocator)
-      expect(inboundEvents[0]?.damage.physical).toBeCloseTo(16 * 1.4)
+      expect(inboundEvents[0]?.damage.physical).toBeCloseTo(24 * 1.4)
     })
 
     it('applies a Poison stack from Barbed Javelin hits', () => {
@@ -1114,7 +1167,7 @@ describe('skill system', () => {
       }])
 
       expect(target.burningStacks).toEqual([])
-      expect(target.hp).toBeCloseTo(77)
+      expect(target.hp).toBeCloseTo(69)
       expect(game.state.player.skills.find(
         (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
       )?.cooldownRemaining).toBeGreaterThan(0)

@@ -19,6 +19,8 @@ import { Rarity } from '../../../content/rarity/Rarity'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
 import {
   BASIC_ATTACK_SKILL_ID,
+  DEFAULT_RESONANCE_ATTACKS,
+  DEFAULT_ATTUNEMENT_PERCENT,
   DEFAULT_SKILL_SLOT_COUNT,
 } from '../../../game-config/skills'
 import {
@@ -139,6 +141,10 @@ export function createInitialPlayerState(
     attackDamage,
     attackSpeed,
     attackCooldownRemaining: 0,
+    resonance: baseStats.resonance ?? DEFAULT_RESONANCE_ATTACKS,
+    attunement: baseStats.attunement ?? DEFAULT_ATTUNEMENT_PERCENT,
+    attunementBonusPercent: 0,
+    resonanceAttackCount: 0,
     meleeLeech: 0,
     whirlwindLeech: 0,
     increasedHealing: 0,

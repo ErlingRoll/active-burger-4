@@ -43,6 +43,7 @@ import {
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
   type SkillId,
+  type SkillResonanceEffect,
   type SkillTag,
 } from '../../content/skills/Skills'
 import {
@@ -89,8 +90,15 @@ import {
   normalizeGearSetId,
   type GearSetId,
 } from '../../game-config/gear-sets'
-import { createPlayerDamageProfileFromStats } from '../combat/DamageSources'
+import {
+  createPlayerDamageProfileFromStats,
+  getAttunementSourceAdditionalIncreasedDamage,
+} from '../combat/DamageSources'
 import { getSkeletonStats, getPhantomArsenalStats } from '../systems/summons/SummonSystem'
+import {
+  ATTUNEMENT_DESCRIPTION,
+  RESONANCE_DESCRIPTION,
+} from '../../content/stats/Stats'
 import {
   addDamageValues,
   DAMAGE_INCREASE_TYPES,
@@ -177,10 +185,14 @@ export interface SkillHudSnapshot {
   /** Cumulative post-mitigation damage dealt by this skill during the run. */
   readonly totalDamageDealt: number
   readonly description: string
+  readonly resonanceEffect: SkillResonanceEffect | null
   readonly tags: readonly SkillTag[]
-  /** Damage after flat and increased gear modifiers, before critical strikes and resistance. */
+  /** Native skill and Attunement damage before critical strikes and resistance. */
   readonly damage: DamageValues
   readonly damageTypes: readonly DamageType[]
+  /** Typed Attunement contribution after the Basic Attack profile is finalized. */
+  readonly attunementDamage: DamageValues
+  readonly attunementDamageTypes: readonly DamageType[]
   /** Cooldown for non-Basic-Attack skills after cooldown reduction. */
   readonly cooldownSeconds: number | null
   /** Fraction of the current cooldown that remains, from zero to one. */
@@ -460,6 +472,7 @@ function createSkillModifierSummary(
 }
 
 function getSkillModifierSummaries(
+  state: Readonly<GameState>,
   playerStats: ReturnType<typeof getDerivedPlayerStats>,
   skillId: SkillId,
   skillLevel: number,
@@ -660,7 +673,11 @@ function getSkillModifierSummaries(
       const skeletonDamage = createPlayerDamageProfileFromStats(
         playerStats,
         { physical: definition.summonBaseDamage ?? 0 },
-        { additionalIncreasedDamage: { global: levelIncrease } },
+        {
+          additionalIncreasedDamage: { global: levelIncrease },
+          attunementSourceAdditionalIncreasedDamage:
+            getAttunementSourceAdditionalIncreasedDamage(state),
+        },
       ).damage.physical
       addSummary(
         'summon-damage',
@@ -978,6 +995,20 @@ function createCharacterStatsSnapshot(
     : 'Whirlwind, sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
   const offenceStats = [
     createCharacterStatSnapshot(
+      'resonance',
+      'Resonance',
+      formatStatNumber(playerStats.resonance),
+      RESONANCE_DESCRIPTION,
+      'All non-Basic-Attack skills.',
+    ),
+    createCharacterStatSnapshot(
+      'attunement',
+      'Attunement',
+      formatUnsignedPercent(playerStats.attunement),
+      ATTUNEMENT_DESCRIPTION,
+      'All non-Basic-Attack skills and summons.',
+    ),
+    createCharacterStatSnapshot(
       'cooldown-reduction',
       'Cooldown reduction',
       formatUnsignedPercent(playerStats.cooldownReduction),
@@ -1027,8 +1058,8 @@ function createCharacterStatsSnapshot(
           `flat-damage-${damageType}`,
           DAMAGE_TYPE_LABELS[damageType],
           formatSignedFlatValue(playerStats.flatDamage[damageType]),
-          `Adds flat ${damageType} damage to every player hit before increased damage and critical strikes.`,
-          'All player damage sources.',
+          `Adds flat ${damageType} damage to Basic Attack damage before increases and critical strikes. Attunement can convert part of it into skill damage.`,
+          'Basic Attack and, through Attunement, skills and summons.',
         )]
   )
   const increasedDamageStats = DAMAGE_INCREASE_TYPES.flatMap((increaseType) => {
@@ -1235,6 +1266,7 @@ export function createUiSnapshot(
           playerStats,
           baseDamage,
           {
+            isBasicAttack,
             isProjectile: skillTags.includes('projectile'),
             additionalIncreasedDamage: {
               global: getSkillDamageIncreasePercent(
@@ -1243,12 +1275,18 @@ export function createUiSnapshot(
                 state.run.selectedUpgradeIds,
               ),
             },
+            attunementSourceAdditionalIncreasedDamage:
+              getAttunementSourceAdditionalIncreasedDamage(state),
           },
         )
     const damage = sumDamageValues(outgoingDamage.damage) *
       getAverageCriticalStrikeFactor(outgoingDamage.criticalStrike)
     const damageTypes = (Object.keys(outgoingDamage.damage) as DamageType[]).filter(
       (damageType) => outgoingDamage.damage[damageType] > 0,
+    )
+    const attunementDamage = outgoingDamage.attunementDamage ?? createDamageValues()
+    const attunementDamageTypes = DAMAGE_TYPES.filter(
+      (damageType) => attunementDamage[damageType] > 0,
     )
     const damagePerAttackCooldown = skeletonStats?.attackCooldown ?? cooldown
     const damageDuration = skill.skillId === SOUL_TETHER_SKILL_ID
@@ -1261,6 +1299,7 @@ export function createUiSnapshot(
         ? damage * damageDuration / damagePerAttackCooldown
         : null
     const skillModifiers = getSkillModifierSummaries(
+      state,
       playerStats,
       skill.skillId,
       skill.level,
@@ -1344,9 +1383,12 @@ export function createUiSnapshot(
         : 0,
       totalDamageDealt: state.run.skillDamageDealt?.[skill.skillId] ?? 0,
       description: isBasicAttack ? basicAttackVariant.description : definition.description,
+      resonanceEffect: isBasicAttack ? null : definition.resonanceEffect ?? null,
       tags: Object.freeze([...skillTags]),
       damage: outgoingDamage.damage,
       damageTypes: Object.freeze(damageTypes),
+      attunementDamage,
+      attunementDamageTypes: Object.freeze(attunementDamageTypes),
       cooldownSeconds: isBasicAttack ? null : cooldown,
       cooldownProgress,
       attacksPerSecond: isBasicAttack ? 1 / cooldown : null,

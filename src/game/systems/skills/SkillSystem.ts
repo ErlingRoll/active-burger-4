@@ -47,6 +47,7 @@ import {
   RALLYING_BANNER_EFFECT_RADIUS,
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
   RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+  RALLYING_BANNER_RESONANCE_DURATION_BONUS_SECONDS,
   GRAVITY_WELL_BASE_PULL_DISTANCE,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
   GRAVITY_WELL_SINGULARITY_RADIUS_BONUS,
@@ -75,6 +76,10 @@ import {
   SOUL_TETHER_DURATION_SECONDS,
   SOUL_TETHER_BASE_HEALING_RATIO,
   SOUL_TETHER_SIPHON_HEALING_BONUS,
+  AEGIS_PULSE_RESONANCE_SHIELD_MULTIPLIER,
+  RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT,
+  SOUL_TETHER_RESONANCE_DAMAGE_MULTIPLIER,
+  PHANTOM_ARSENAL_RESONANCE_DURATION_BONUS_SECONDS,
 } from '../../../game-config/skills'
 import {
   createDamageValues,
@@ -84,6 +89,7 @@ import type { EntityIdAllocator } from '../../ids'
 import type { RandomSource } from '../../random/Random'
 import {
   createPlayerDamageEventFromStats,
+  getAttunementSourceAdditionalIncreasedDamage,
   createPlayerDamageProfileFromStats,
 } from '../../combat/DamageSources'
 import type {
@@ -114,6 +120,10 @@ import {
   summonSkeletonIfReady,
   summonPhantomIfReady,
 } from '../summons/SummonSystem'
+import {
+  consumeSkillResonance,
+  isSkillResonant,
+} from '../../combat/Resonance'
 import { clampPlayerPosition } from '../../../game-config/arena'
 
 function scaleAreaValue(value: number, areaOfEffect: number): number {
@@ -271,6 +281,46 @@ function markSkillUsed(skill: SkillState): void {
   skill.castCount = (skill.castCount ?? 0) + 1
 }
 
+function applySkillResonanceEffect(
+  state: GameState,
+  skillId: SkillId,
+): void {
+  if (skillId === WHIRLWIND_SKILL_ID) {
+    state.player.attackCooldownRemaining = 0
+    return
+  }
+  if (skillId === RAISE_SKELETON_SKILL_ID) {
+    for (const summon of state.summons) {
+      if (
+        summon.hp > 0 &&
+        (summon.skillId ?? RAISE_SKELETON_SKILL_ID) === RAISE_SKELETON_SKILL_ID
+      ) {
+        summon.hp = summon.maxHp
+      }
+    }
+    return
+  }
+  if (skillId === LANCERS_CHARGE_SKILL_ID) {
+    state.player.lancerMomentumStacks = Math.min(
+      LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+      Math.max(0, state.player.lancerMomentumStacks ?? 0) + 1,
+    )
+    state.player.lancerMomentumDecayRemaining = LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
+    return
+  }
+  if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
+    for (const summon of state.summons) {
+      if (
+        summon.hp > 0 &&
+        (summon.skillId ?? RAISE_SKELETON_SKILL_ID) === PHANTOM_ARSENAL_SKILL_ID &&
+        summon.expiryRemaining !== undefined
+      ) {
+        summon.expiryRemaining += PHANTOM_ARSENAL_RESONANCE_DURATION_BONUS_SECONDS
+      }
+    }
+  }
+}
+
 function collectWhirlwindDamage(
   state: GameState,
   skill: SkillState,
@@ -311,6 +361,8 @@ function collectWhirlwindDamage(
             state.run.selectedUpgradeIds,
           ),
         },
+        attunementSourceAdditionalIncreasedDamage:
+          getAttunementSourceAdditionalIncreasedDamage(state),
       },
     )
     if (state.run.selectedUpgradeIds.includes('whirlwind-frost')) {
@@ -379,7 +431,8 @@ function collectChainLightningDamage(
   const maxRange = definition.maxRange ?? 0
   const jumpRange = definition.jumpRange ?? 0
   const maxTargets = (definition.maxTargets ?? 1) +
-    Math.max(0, Math.floor(state.player.chainLightningBonusTargets ?? 0))
+    Math.max(0, Math.floor(state.player.chainLightningBonusTargets ?? 0)) +
+    (isSkillResonant(state) ? 1 : 0)
   const playerStats = getDerivedPlayerStats(state.player)
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
@@ -433,6 +486,8 @@ function collectChainLightningDamage(
             state.run.selectedUpgradeIds,
           ),
         },
+        attunementSourceAdditionalIncreasedDamage:
+          getAttunementSourceAdditionalIncreasedDamage(state),
       },
     )
     const stormfrost = state.run.selectedUpgradeIds.includes(
@@ -506,6 +561,9 @@ function collectVitalityHealing(
     ? state.player.soulTetherVitalityCharge ?? 0
     : 0
   healing += storedCharge
+  if (isSkillResonant(state)) {
+    healing *= 2
+  }
   state.player.soulTetherVitalityCharge = 0
   healPlayer(
     state,
@@ -672,10 +730,13 @@ function collectGlacialOrbDamage(
       additionalIncreasedDamage: {
         global: damageIncreasePercent + iceLanceBonus,
       },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const impactFrostApplication: FrostApplication = {
-    stacks: permafrost ? 1 + GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS : 1,
+    stacks: (permafrost ? 1 + GLACIAL_ORB_PERMAFROST_EXTRA_CHILL_STACKS : 1) +
+      (isSkillResonant(state) ? 1 : 0),
     durationSeconds: 4,
     freezeThreshold: 3,
     freezeDurationSeconds: 1,
@@ -809,6 +870,8 @@ function collectLancersChargeDamage(
       {
         sourceTags: definition.tags,
         additionalIncreasedDamage: { global: damageIncreasePercent },
+        attunementSourceAdditionalIncreasedDamage:
+          getAttunementSourceAdditionalIncreasedDamage(state),
       },
     ),
   )
@@ -848,7 +911,8 @@ function collectRallyingBannerEffect(
   healPlayer(state, healing, definition.name, random)
 
   const duration = RALLYING_BANNER_BASE_DURATION_SECONDS +
-    (bulwark ? RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS : 0)
+    (bulwark ? RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS : 0) +
+    (isSkillResonant(state) ? RALLYING_BANNER_RESONANCE_DURATION_BONUS_SECONDS : 0)
   if (
     state.run.selectedUpgradeIds.includes(
       'synergy-raise-skeleton-rallying-banner',
@@ -893,7 +957,9 @@ function collectGravityWellDamage(
   )
   const pullDistance = eventHorizon
     ? 0
-    : GRAVITY_WELL_BASE_PULL_DISTANCE + (singularity ? GRAVITY_WELL_SINGULARITY_PULL_BONUS : 0)
+    : (GRAVITY_WELL_BASE_PULL_DISTANCE +
+        (singularity ? GRAVITY_WELL_SINGULARITY_PULL_BONUS : 0)) *
+      (isSkillResonant(state) ? 2 : 1)
   const anchorsToSkeletons = state.run.selectedUpgradeIds.includes(
     'synergy-raise-skeleton-gravity-well',
   )
@@ -948,6 +1014,8 @@ function collectGravityWellDamage(
       {
         sourceTags: definition.tags,
         additionalIncreasedDamage: { global: damageIncreasePercent },
+        attunementSourceAdditionalIncreasedDamage:
+          getAttunementSourceAdditionalIncreasedDamage(state),
       },
     )
     if (singularity) {
@@ -1015,12 +1083,16 @@ function collectAegisPulseDamage(
         {
           sourceTags: definition.tags,
           additionalIncreasedDamage: { global: damageIncreasePercent },
+          attunementSourceAdditionalIncreasedDamage:
+            getAttunementSourceAdditionalIncreasedDamage(state),
         },
       ),
     )
 
-  const shieldAmount = getSkillShieldAmount(definition, skill.level) +
+  const shieldAmount = (
+    getSkillShieldAmount(definition, skill.level) +
     (bulwark ? AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS : 0)
+  ) * (isSkillResonant(state) ? AEGIS_PULSE_RESONANCE_SHIELD_MULTIPLIER : 1)
   const shieldDuration = AEGIS_PULSE_BASE_DURATION_SECONDS +
     (bulwark ? AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS : 0)
   state.player.aegisPulseShieldAmount = shieldAmount
@@ -1069,6 +1141,8 @@ function collectRiftJavelinDamage(
       isProjectile: true,
       sourceTags: definition.tags,
       additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const projectileDefinitionId = definition.projectileDefinitionId
@@ -1091,8 +1165,10 @@ function collectRiftJavelinDamage(
     0,
     state.player.riftJavelinReturnBonusPercent ?? 0,
   )
-  const returnDamageBonus = (homeward ? RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT : 0) +
-    primedReturnBonus
+  const returnDamageBonus =
+    (homeward ? RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT : 0) +
+    primedReturnBonus +
+    (isSkillResonant(state) ? RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT : 0)
 
   state.projectiles.push(
     ...spreadAngles.map((spreadAngle) => {
@@ -1157,6 +1233,8 @@ function placeCinderMineIfReady(
     {
       sourceTags: definition.tags,
       additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const radius = scaleAreaValue(
@@ -1180,7 +1258,7 @@ function placeCinderMineIfReady(
     x: state.player.x,
     y: state.player.y,
     radius,
-    fuseRemaining: CINDER_MINE_FUSE_SECONDS,
+    fuseRemaining: isSkillResonant(state) ? 0 : CINDER_MINE_FUSE_SECONDS,
     damage: mineDamage,
     criticalStrike: outgoingDamage.criticalStrike,
     burningApplication,
@@ -1422,6 +1500,8 @@ function collectStormRelayCast(
     {
       sourceTags: definition.tags,
       additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
 
@@ -1444,7 +1524,8 @@ function collectStormRelayCast(
     criticalStrike: outgoingDamage.criticalStrike,
     maxRange: definition.maxRange ?? 0,
     jumpRange: definition.jumpRange ?? 0,
-    maxTargets: definition.maxTargets ?? 1,
+    maxTargets: (definition.maxTargets ?? 1) +
+      (isSkillResonant(state) ? 1 : 0),
     shockStacks: overcharge ? STORM_RELAY_OVERCHARGE_SHOCK_STACKS : 1,
     shockDurationSeconds: 4,
     shockThreshold: 3,
@@ -1523,6 +1604,8 @@ function collectSoulTetherCast(
     {
       sourceTags: definition.tags,
       additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
 
@@ -1531,7 +1614,8 @@ function collectSoulTetherCast(
     targetId: target.id,
     duration: SOUL_TETHER_DURATION_SECONDS,
     remainingDuration: SOUL_TETHER_DURATION_SECONDS,
-    damagePerSecond: outgoingDamage.damage.chaos,
+    damagePerSecond: outgoingDamage.damage.chaos *
+      (isSkillResonant(state) ? SOUL_TETHER_RESONANCE_DAMAGE_MULTIPLIER : 1),
     healingRatio: SOUL_TETHER_BASE_HEALING_RATIO +
       (siphon ? SOUL_TETHER_SIPHON_HEALING_BONUS : 0),
     hasRetargeted: false,
@@ -1633,6 +1717,8 @@ export function collectSkillDamage(
     if (skill.cooldownRemaining > 0) {
       continue
     }
+    const castCountBefore = skill.castCount ?? 0
+    const resonant = isSkillResonant(state)
     if (skill.skillId === WHIRLWIND_SKILL_ID) {
       events.push(...collectWhirlwindDamage(state, skill, allocator))
     } else if (skill.skillId === CHAIN_LIGHTNING_SKILL_ID) {
@@ -1683,6 +1769,10 @@ export function collectSkillDamage(
         )
         markSkillUsed(skill)
       }
+    }
+    if ((skill.castCount ?? 0) > castCountBefore && resonant) {
+      applySkillResonanceEffect(state, skill.skillId)
+      consumeSkillResonance(state)
     }
   }
 

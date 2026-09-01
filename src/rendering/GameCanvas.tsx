@@ -67,6 +67,11 @@ import { PixiGame } from './PixiGame'
 import { GearSetFormation } from './GearSetFormation'
 import { ImplicitModifierList } from './ImplicitModifierList'
 import { KeywordText } from './KeywordTooltip'
+import {
+  closeAllTooltips,
+  registerTooltipCloser,
+  tooltipClassName,
+} from './TooltipShell'
 import { formatExperience } from '../ui/formatNumbers'
 import { formatCompactDamage } from '../ui/formatNumbers'
 
@@ -740,6 +745,38 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const loadoutTooltipRef = useRef<HTMLDivElement | null>(null)
   const characterStatTooltipAnchorRef = useRef<HTMLButtonElement | null>(null)
   const characterStatTooltipRef = useRef<HTMLDivElement | null>(null)
+  const tooltipCloseTimeoutRef = useRef<number | null>(null)
+  const cancelTooltipClose = (): void => {
+    if (tooltipCloseTimeoutRef.current !== null) {
+      window.clearTimeout(tooltipCloseTimeoutRef.current)
+      tooltipCloseTimeoutRef.current = null
+    }
+  }
+  const scheduleTooltipClose = (close: () => void): void => {
+    cancelTooltipClose()
+    tooltipCloseTimeoutRef.current = window.setTimeout(() => {
+      tooltipCloseTimeoutRef.current = null
+      close()
+    }, 120)
+  }
+  useEffect(() => registerTooltipCloser(() => {
+    const hasOpenTooltip =
+      activeSkillId !== null ||
+      activeLoadoutSlot !== null ||
+      activeCharacterStatId !== null
+    if (!hasOpenTooltip) {
+      return false
+    }
+    cancelTooltipClose()
+    setActiveSkillId(null)
+    setActiveLoadoutSlot(null)
+    setActiveCharacterStatId(null)
+    return true
+  }), [
+    activeCharacterStatId,
+    activeLoadoutSlot,
+    activeSkillId,
+  ])
   const skillTooltipStyle = useHudTooltipPosition(
     activeSkillId !== null,
     activeSkillId,
@@ -950,10 +987,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   ref={isActive ? skillTooltipAnchorRef : undefined}
                   aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
                   aria-describedby={isActive ? tooltipId : undefined}
-                  onFocus={() => setActiveSkillId(skill.skillId)}
-                  onBlur={() => setActiveSkillId(null)}
-                  onMouseEnter={() => setActiveSkillId(skill.skillId)}
-                  onMouseLeave={() => setActiveSkillId(null)}
+                  onFocus={() => {
+                    cancelTooltipClose()
+                    closeAllTooltips()
+                    setActiveSkillId(skill.skillId)
+                  }}
+                  onBlur={() => scheduleTooltipClose(() => setActiveSkillId(null))}
+                  onMouseEnter={() => {
+                    cancelTooltipClose()
+                    closeAllTooltips()
+                    setActiveSkillId(skill.skillId)
+                  }}
+                  onMouseLeave={() => scheduleTooltipClose(() => setActiveSkillId(null))}
                 >
                   {(castPulseIds[skill.skillId] ?? 0) > 0 ? (
                     <span
@@ -984,14 +1029,26 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                 {isActive ? (
                   createPortal(
                     <div
-                    className="skill-tooltip"
+                    className={tooltipClassName('skill-tooltip')}
                     id={tooltipId}
                     role="tooltip"
                     ref={skillTooltipRef}
                     style={skillTooltipStyle}
+                    onMouseEnter={cancelTooltipClose}
+                    onMouseLeave={() => scheduleTooltipClose(() => setActiveSkillId(null))}
+                    onFocus={cancelTooltipClose}
+                    onBlur={() => scheduleTooltipClose(() => setActiveSkillId(null))}
                   >
                     <strong>{skill.name}</strong>
                     <p><KeywordText text={skill.description} /></p>
+                    {skill.resonanceEffect ? (
+                      <section className="skill-resonance-section" aria-label="Resonance effect">
+                        <p className="skill-upgrade-heading">
+                          <KeywordText text="Resonance" />: {skill.resonanceEffect.name}
+                        </p>
+                        <p><KeywordText text={skill.resonanceEffect.description} /></p>
+                      </section>
+                    ) : null}
                     <section className="skill-tags-section" aria-label="Skill tags">
                       <p className="skill-upgrade-heading">Skill tags</p>
                       <ul className="skill-tag-list">
@@ -1013,6 +1070,25 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             </li>
                           ))}
                         </ul>
+                      </section>
+                    ) : null}
+                    {skill.skillId !== BASIC_ATTACK_SKILL_ID ? (
+                      <section className="skill-attunement-breakdown" aria-label="Attunement added damage">
+                        <p className="skill-upgrade-heading">
+                          <KeywordText text="Attunement added damage" />
+                        </p>
+                        {skill.attunementDamageTypes.length > 0 ? (
+                          <ul className="skill-upgrade-list">
+                            {skill.attunementDamageTypes.map((damageType) => (
+                              <li key={damageType}>
+                                <span>{damageType}</span>
+                                <span>{Math.round(skill.attunementDamage[damageType])}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="skill-cadence">None</p>
+                        )}
                       </section>
                     ) : null}
                     {skill.totalDamageDealt > 0 ? (
@@ -1197,10 +1273,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       : `${HUD_SLOT_LABELS[slot]} slot empty`
                   }
                   aria-describedby={isActive ? tooltipId : undefined}
-                  onFocus={() => setActiveLoadoutSlot(slot)}
-                  onBlur={() => setActiveLoadoutSlot(null)}
-                  onMouseEnter={() => setActiveLoadoutSlot(slot)}
-                  onMouseLeave={() => setActiveLoadoutSlot(null)}
+                  onFocus={() => {
+                    cancelTooltipClose()
+                    closeAllTooltips()
+                    setActiveLoadoutSlot(slot)
+                  }}
+                  onBlur={() => scheduleTooltipClose(() => setActiveLoadoutSlot(null))}
+                  onMouseEnter={() => {
+                    cancelTooltipClose()
+                    closeAllTooltips()
+                    setActiveLoadoutSlot(slot)
+                  }}
+                  onMouseLeave={() => scheduleTooltipClose(() => setActiveLoadoutSlot(null))}
                 >
                   <span className="loadout-slot">{HUD_SLOT_LABELS[slot]}</span>
                   {item ? (
@@ -1219,11 +1303,15 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                 </button>
                 {isActive ? (
                   <div
-                    className="loadout-tooltip"
+                    className={tooltipClassName('loadout-tooltip')}
                     id={tooltipId}
                     role="tooltip"
                     ref={isActive ? loadoutTooltipRef : undefined}
                     style={loadoutTooltipStyle}
+                    onMouseEnter={cancelTooltipClose}
+                    onMouseLeave={() => scheduleTooltipClose(() => setActiveLoadoutSlot(null))}
+                    onFocus={cancelTooltipClose}
+                    onBlur={() => scheduleTooltipClose(() => setActiveLoadoutSlot(null))}
                   >
                     <strong>{HUD_SLOT_LABELS[slot]}</strong>
                     {item ? (
@@ -1272,10 +1360,18 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                           ref={isActive ? characterStatTooltipAnchorRef : undefined}
                           aria-label={`${stat.label}: ${stat.value}`}
                           aria-describedby={isActive ? tooltipId : undefined}
-                          onFocus={() => setActiveCharacterStatId(stat.id)}
-                          onBlur={() => setActiveCharacterStatId(null)}
-                          onMouseEnter={() => setActiveCharacterStatId(stat.id)}
-                          onMouseLeave={() => setActiveCharacterStatId(null)}
+                          onFocus={() => {
+                            cancelTooltipClose()
+                            closeAllTooltips()
+                            setActiveCharacterStatId(stat.id)
+                          }}
+                          onBlur={() => scheduleTooltipClose(() => setActiveCharacterStatId(null))}
+                          onMouseEnter={() => {
+                            cancelTooltipClose()
+                            closeAllTooltips()
+                            setActiveCharacterStatId(stat.id)
+                          }}
+                          onMouseLeave={() => scheduleTooltipClose(() => setActiveCharacterStatId(null))}
                         >
                           <span className="character-stat-label">{stat.label}</span>
                           <span className="character-stat-value">
@@ -1289,11 +1385,15 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </button>
                         {isActive ? (
                           <div
-                            className="character-stat-tooltip"
+                            className={tooltipClassName('character-stat-tooltip')}
                             id={tooltipId}
                             role="tooltip"
                             ref={isActive ? characterStatTooltipRef : undefined}
                             style={characterStatTooltipStyle}
+                            onMouseEnter={cancelTooltipClose}
+                            onMouseLeave={() => scheduleTooltipClose(() => setActiveCharacterStatId(null))}
+                            onFocus={cancelTooltipClose}
+                            onBlur={() => scheduleTooltipClose(() => setActiveCharacterStatId(null))}
                           >
                             <strong>{stat.label}</strong>
                             <p className="character-stat-tooltip-value">

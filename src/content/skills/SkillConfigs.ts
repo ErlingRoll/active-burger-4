@@ -38,6 +38,12 @@ export type SkillTag =
 
 export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
 
+export interface SkillResonanceEffect {
+  id: string
+  name: string
+  description: string
+}
+
 /**
  * Rendering metadata owned by skill content. The renderer uses this contract
  * to project effects without knowing individual skill IDs.
@@ -86,6 +92,8 @@ export interface SkillDefinition {
   spreadDegrees?: number
   effectLifetime: number
   visual: SkillVisualPresentation
+  /** The one additional effect produced when this skill consumes Resonance. */
+  resonanceEffect?: SkillResonanceEffect
 }
 
 export interface BasicAttackVariantDefinition {

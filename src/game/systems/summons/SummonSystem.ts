@@ -15,6 +15,7 @@ import { getSkillDamageIncreasePercent } from '../../../content/upgrades/Upgrade
 import {
   createPlayerDamageEventFromStats,
   createPlayerDamageProfileFromStats,
+  getAttunementSourceAdditionalIncreasedDamage,
 } from '../../combat/DamageSources'
 import {
   createProjectileSpreadAngles,
@@ -509,6 +510,8 @@ export function updateSummons(
         {
           isProjectile: true,
           sourceTags: skillDefinition.tags,
+          attunementSourceAdditionalIncreasedDamage:
+            getAttunementSourceAdditionalIncreasedDamage(state),
         },
       )
       const directionX = attackTarget.x - summon.x
@@ -577,7 +580,11 @@ export function updateSummons(
       attackTarget.id,
       skillId,
       { physical: stats.damage },
-      { sourceTags: skillDefinition.tags },
+      {
+        sourceTags: skillDefinition.tags,
+        attunementSourceAdditionalIncreasedDamage:
+          getAttunementSourceAdditionalIncreasedDamage(state),
+      },
     )
     if (
       skillId === RAISE_SKELETON_SKILL_ID &&

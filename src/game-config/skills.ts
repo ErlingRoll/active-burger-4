@@ -29,6 +29,8 @@ export const STORM_RELAY_SKILL_ID: SkillId = 'storm-relay'
 export const SOUL_TETHER_SKILL_ID: SkillId = 'soul-tether'
 export const PHANTOM_ARSENAL_SKILL_ID: SkillId = 'phantom-arsenal'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
+export const DEFAULT_RESONANCE_ATTACKS = 5
+export const DEFAULT_ATTUNEMENT_PERCENT = 50
 export const SKILL_REMOVAL_CHANCE = 0.05
 export const FROST_MAX_CHILL_STACKS = 3
 export const FROST_DEFAULT_DURATION_SECONDS = 4
@@ -50,6 +52,7 @@ export const RALLYING_BANNER_BASE_DURATION_SECONDS = 6
 export const RALLYING_BANNER_HEAL_INTERVAL_SECONDS = 1
 export const RALLYING_BANNER_EFFECT_RADIUS = 96
 export const RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS = 12
+export const RALLYING_BANNER_RESONANCE_DURATION_BONUS_SECONDS = 4
 export const RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT = 10
 export const RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT = 15
 export const RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS = 4
@@ -63,6 +66,10 @@ export const AEGIS_PULSE_SHIELD_AMOUNT_PER_LEVEL = 6
 export const AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS = 12
 export const AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS = 2
 export const AEGIS_PULSE_REPRISAL_RATIO = 0.5
+export const AEGIS_PULSE_RESONANCE_SHIELD_MULTIPLIER = 1.5
+export const RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT = 50
+export const SOUL_TETHER_RESONANCE_DAMAGE_MULTIPLIER = 2
+export const PHANTOM_ARSENAL_RESONANCE_DURATION_BONUS_SECONDS = 4
 
 export const RIFT_JAVELIN_MAX_RANGE = 260
 export const RIFT_JAVELIN_BARBED_DURATION_SECONDS = 3
@@ -199,6 +206,7 @@ export const SKILL_DEFINITIONS = {
     damagePerLevel: {},
     projectileDefinitionId: BASIC_ATTACK_ORB_DEFINITION_ID,
     effectLifetime: 0.12,
+    resonanceEffect: undefined,
     visual: {
       kind: 'projectile',
       icon: '✦',
@@ -229,6 +237,11 @@ export const SKILL_DEFINITIONS = {
       secondaryColor: '#c4b5fd',
       outlineColor: '#ede9fe',
     },
+    resonanceEffect: {
+      id: 'whirlwind-reset-attack',
+      name: 'Cyclonic Reset',
+      description: 'Resets Basic Attack immediately.',
+    },
   },
   [CHAIN_LIGHTNING_SKILL_ID]: {
     id: CHAIN_LIGHTNING_SKILL_ID,
@@ -252,6 +265,11 @@ export const SKILL_DEFINITIONS = {
       outlineColor: '#cffafe',
       nodeRadius: 10,
     },
+    resonanceEffect: {
+      id: 'chain-lightning-extra-jump',
+      name: 'Arc Overload',
+      description: 'Chains to one additional enemy.',
+    },
   },
   [VITALITY_SKILL_ID]: {
     id: VITALITY_SKILL_ID,
@@ -272,6 +290,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#22c55e',
       secondaryColor: '#86efac',
       outlineColor: '#dcfce7',
+    },
+    resonanceEffect: {
+      id: 'vitality-double-heal',
+      name: 'Surging Vitality',
+      description: 'Doubles this cast’s healing.',
     },
   },
   [RAISE_SKELETON_SKILL_ID]: {
@@ -299,6 +322,11 @@ export const SKILL_DEFINITIONS = {
       secondaryColor: '#e9d5ff',
       outlineColor: '#f5f3ff',
     },
+    resonanceEffect: {
+      id: 'raise-skeleton-reanimate',
+      name: 'Reanimation',
+      description: 'Restores all living Skeletons to full health.',
+    },
   },
   [FIERY_TOUCH_SKILL_ID]: {
     id: FIERY_TOUCH_SKILL_ID,
@@ -318,6 +346,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#f97316',
       secondaryColor: '#facc15',
       outlineColor: '#fff7ed',
+    },
+    resonanceEffect: {
+      id: 'fiery-touch-inferno',
+      name: 'Inferno Trigger',
+      description: 'Expands the trigger radius by 50%.',
     },
   },
   [GLACIAL_ORB_SKILL_ID]: {
@@ -345,6 +378,11 @@ export const SKILL_DEFINITIONS = {
       trailWidth: 5,
       projectileShape: 'orb',
     },
+    resonanceEffect: {
+      id: 'glacial-orb-deep-freeze',
+      name: 'Deep Freeze',
+      description: 'Applies one additional Chill stack on impact.',
+    },
   },
   [LANCERS_CHARGE_SKILL_ID]: {
     id: LANCERS_CHARGE_SKILL_ID,
@@ -365,6 +403,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#fb923c',
       secondaryColor: '#fdba74',
       outlineColor: '#ffedd5',
+    },
+    resonanceEffect: {
+      id: 'lancers-charge-momentum',
+      name: 'Relentless Momentum',
+      description: 'Grants one additional Momentum stack after the charge.',
     },
   },
   [RALLYING_BANNER_SKILL_ID]: {
@@ -387,6 +430,11 @@ export const SKILL_DEFINITIONS = {
       secondaryColor: '#fde68a',
       outlineColor: '#fef9c3',
     },
+    resonanceEffect: {
+      id: 'rallying-banner-rally',
+      name: 'Grand Rally',
+      description: 'Extends the banner duration by 4 seconds.',
+    },
   },
   [GRAVITY_WELL_SKILL_ID]: {
     id: GRAVITY_WELL_SKILL_ID,
@@ -406,6 +454,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#7c3aed',
       secondaryColor: '#c4b5fd',
       outlineColor: '#ede9fe',
+    },
+    resonanceEffect: {
+      id: 'gravity-well-crush',
+      name: 'Crushing Gravity',
+      description: 'Doubles the pull distance of this cast.',
     },
   },
   [AEGIS_PULSE_SKILL_ID]: {
@@ -428,6 +481,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#0ea5e9',
       secondaryColor: '#bae6fd',
       outlineColor: '#e0f2fe',
+    },
+    resonanceEffect: {
+      id: 'aegis-pulse-fortify',
+      name: 'Fortified Pulse',
+      description: 'Increases the new shield by 50%.',
     },
   },
   [RIFT_JAVELIN_SKILL_ID]: {
@@ -454,6 +512,11 @@ export const SKILL_DEFINITIONS = {
       trailWidth: 4,
       projectileShape: 'arrow',
     },
+    resonanceEffect: {
+      id: 'rift-javelin-return',
+      name: 'Rift Echo',
+      description: 'The returning javelin deals 50% more damage.',
+    },
   },
   [CINDER_MINE_SKILL_ID]: {
     id: CINDER_MINE_SKILL_ID,
@@ -473,6 +536,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#ea580c',
       secondaryColor: '#fdba74',
       outlineColor: '#ffedd5',
+    },
+    resonanceEffect: {
+      id: 'cinder-mine-quick-fuse',
+      name: 'Quick Fuse',
+      description: 'The first mine arms immediately.',
     },
   },
   [STORM_RELAY_SKILL_ID]: {
@@ -497,6 +565,11 @@ export const SKILL_DEFINITIONS = {
       outlineColor: '#e0f2fe',
       nodeRadius: 9,
     },
+    resonanceEffect: {
+      id: 'storm-relay-chain',
+      name: 'Thunderhead',
+      description: 'The relay chains to one additional enemy.',
+    },
   },
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
@@ -516,6 +589,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#a855f7',
       secondaryColor: '#f0abfc',
       outlineColor: '#fae8ff',
+    },
+    resonanceEffect: {
+      id: 'soul-tether-amplify',
+      name: 'Soul Surge',
+      description: 'Doubles tether damage for its duration.',
     },
   },
   [PHANTOM_ARSENAL_SKILL_ID]: {
@@ -543,6 +621,11 @@ export const SKILL_DEFINITIONS = {
       primaryColor: '#60a5fa',
       secondaryColor: '#bfdbfe',
       outlineColor: '#eff6ff',
+    },
+    resonanceEffect: {
+      id: 'phantom-arsenal-echo',
+      name: 'Spectral Echo',
+      description: 'Extends all Phantom Arsenal archer durations by 4 seconds.',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

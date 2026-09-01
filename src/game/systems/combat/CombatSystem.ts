@@ -50,8 +50,10 @@ import {
   createEnemySpatialHash,
   findNearestEnemy,
 } from '../../combat/Targeting'
+import { isSkillResonant, consumeSkillResonance, recordBasicAttackForResonance } from '../../combat/Resonance'
 import {
   createMonsterDamageEvent,
+  getAttunementSourceAdditionalIncreasedDamage,
   createPlayerDamageProfileFromStats,
 } from '../../combat/DamageSources'
 import {
@@ -173,6 +175,7 @@ function setBasicAttackCooldown(
   if (basicAttack) {
     basicAttack.cooldownRemaining = cooldown
     basicAttack.castCount = (basicAttack.castCount ?? 0) + 1
+    recordBasicAttackForResonance(state)
   }
 }
 
@@ -242,6 +245,7 @@ function collectFieryTouchTriggerEvents(
 
   const definition = getSkillDefinition(FIERY_TOUCH_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
+  const resonant = isSkillResonant(state)
   const cooldownReduction = playerStats.cooldownReduction +
     getSkillCooldownReductionPercent(
       FIERY_TOUCH_SKILL_ID,
@@ -251,7 +255,8 @@ function collectFieryTouchTriggerEvents(
     'synergy-fiery-touch-gravity-well',
   ) && state.player.fieryTouchGravityPrimed === true
   const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect) *
-    (gravityPrimed ? 1.5 : 1)
+    (gravityPrimed ? 1.5 : 1) *
+    (resonant ? 1.5 : 1)
   const thermalShock = state.run.selectedUpgradeIds.includes(
     'synergy-fiery-touch-glacial-orb',
   )
@@ -266,6 +271,8 @@ function collectFieryTouchTriggerEvents(
       additionalIncreasedDamage: {
         global: state.player.fieryTouchDamageIncreasePercent ?? 0,
       },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]
@@ -324,6 +331,12 @@ function collectFieryTouchTriggerEvents(
     definition.cooldown,
     cooldownReduction,
   )
+  if (events.length > 0) {
+    skill.castCount = (skill.castCount ?? 0) + 1
+    if (resonant) {
+      consumeSkillResonance(state)
+    }
+  }
   if (idAllocator) {
     state.effects.push({
       id: idAllocator.createEntityId(),
@@ -590,6 +603,7 @@ function createBasicAttackProjectileState(
     {
       isProjectile: true,
       sourceTags: [...variant.tags],
+      isBasicAttack: true,
       additionalIncreasedDamage: {
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,
@@ -709,6 +723,7 @@ function collectSwordBasicAttackDamage(
     baseDamage,
     {
       sourceTags: [...variant.tags],
+      isBasicAttack: true,
       additionalIncreasedDamage: {
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,
@@ -789,6 +804,7 @@ function collectStaffBasicAttackDamage(
     baseDamage,
     {
       sourceTags: [...variant.tags],
+      isBasicAttack: true,
       additionalIncreasedDamage: {
         global: getSkillDamageIncreasePercent(
           BASIC_ATTACK_SKILL_ID,

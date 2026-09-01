@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { RunResultSnapshot, RunConfig, GameCheckpoint } from './game'
 import {
   DEFAULT_DUNGEON_CONFIG,
@@ -39,6 +40,8 @@ import {
 } from './leaderboard/EssenceLeaderboardService'
 import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
 import { GameCanvas } from './rendering/GameCanvas'
+import { KeywordText } from './rendering/KeywordTooltip'
+import { tooltipClassName } from './rendering/TooltipShell'
 import {
   calculateWorldModifierRewardMultiplier,
   getWorldModifierDefinitions,
@@ -51,8 +54,16 @@ import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
+import {
+  ATTUNEMENT_DESCRIPTION,
+  RESONANCE_DESCRIPTION,
+} from './content/stats/Stats'
 import type { GameKeybinds } from './input/Keybinds'
 import { DEFAULT_GAME_KEYBINDS } from './input/Keybinds'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  getSkillDefinition,
+} from './content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from './game-config/skills'
 import {
   PLAYSTYLE_DEFINITIONS,
@@ -76,6 +87,15 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'meta-progression': '/store',
   gameplay: '/',
   results: '/',
+}
+
+const PLAYSTYLE_ICONS: Record<PlaystyleId, string> = {
+  knight: '🛡',
+  ranger: '🏹',
+  necromancer: '☠',
+  'frost-warden': '❄',
+  'ashen-alchemist': '🔥',
+  'war-shepherd': '🚩',
 }
 
 function getScreenForPath(pathname: string): AppScreen {
@@ -1494,19 +1514,85 @@ function RunSetupScreen({
           <div className="dashboard-choice-list">
             {Object.values(PLAYSTYLE_DEFINITIONS).map((playstyle) => {
               const selected = settings.selectedPlaystyleId === playstyle.id
+              const startingSkillId = playstyle.startingSkillIds.find(
+                (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
+              ) ?? BASIC_ATTACK_SKILL_ID
+              const startingSkill = getSkillDefinition(startingSkillId)
+              const accentColor = `#${playstyle.visual.fillColor.toString(16).padStart(6, '0')}`
+              const outlineColor = `#${playstyle.visual.outlineColor.toString(16).padStart(6, '0')}`
               return (
                 <button
-                  className={`dashboard-choice${selected ? ' selected' : ''}`}
+                  className={`dashboard-choice playstyle-card${selected ? ' selected' : ''}`}
                   type="button"
                   aria-pressed={selected}
+                  data-playstyle={playstyle.id}
+                  style={{
+                    '--playstyle-accent': accentColor,
+                    '--playstyle-outline': outlineColor,
+                  } as CSSProperties}
                   key={playstyle.id}
                   onClick={() => onSelectPlaystyle(playstyle.id)}
                 >
-                  <strong>{playstyle.name}</strong>
-                  <span>{playstyle.description}</span>
-                  <small className="playstyle-affinity">
-                    Skill affinity: {playstyle.skillAffinity.label}
-                  </small>
+                  <span className="playstyle-card-sheen" aria-hidden="true" />
+                  <span className="playstyle-card-header">
+                    <span className="playstyle-card-emblem" aria-hidden="true">
+                      {PLAYSTYLE_ICONS[playstyle.id]}
+                    </span>
+                    <span className="playstyle-card-title">
+                      <small>Playstyle</small>
+                      <strong>{playstyle.name}</strong>
+                    </span>
+                  </span>
+                  <span className="playstyle-card-body">
+                    <span className="playstyle-card-section">
+                      <small className="playstyle-card-label">Affinities</small>
+                      <span className="playstyle-affinity-pills" aria-label={`${playstyle.skillAffinity.label} skill affinities`}>
+                        {playstyle.skillAffinity.tags.map((tag) => (
+                          <span className="playstyle-affinity-pill" key={tag}>
+                            {tag}
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                    <span className="playstyle-card-details">
+                      <span
+                        className="playstyle-card-detail playstyle-card-detail-skill"
+                        tabIndex={0}
+                        aria-label={`Starting skill: ${startingSkill.name}. ${startingSkill.description}`}
+                        aria-describedby={`playstyle-${playstyle.id}-starting-skill-tooltip`}
+                      >
+                        <small>Starting skill</small>
+                        <strong>
+                          <span aria-hidden="true">{startingSkill.visual.icon}</span>
+                          {startingSkill.name}
+                        </strong>
+                        <span
+                          className={tooltipClassName('playstyle-card-tooltip')}
+                          id={`playstyle-${playstyle.id}-starting-skill-tooltip`}
+                          role="tooltip"
+                        >
+                          <KeywordText text={startingSkill.description} />
+                        </span>
+                      </span>
+                      <span
+                        className="playstyle-card-detail"
+                        tabIndex={0}
+                        aria-label={`Resonance: ${RESONANCE_DESCRIPTION}`}
+                      >
+                        <small><KeywordText text="Resonance" /></small>
+                        <strong>{playstyle.baseStats.resonance} attacks</strong>
+                      </span>
+                      <span
+                        className="playstyle-card-detail"
+                        tabIndex={0}
+                        aria-label={`Attunement: ${ATTUNEMENT_DESCRIPTION}`}
+                      >
+                        <small><KeywordText text="Attunement" /></small>
+                        <strong>{playstyle.baseStats.attunement}%</strong>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="playstyle-card-flavor">{playstyle.description}</span>
                 </button>
               )
             })}
@@ -1535,8 +1621,9 @@ function RunSetupScreen({
                   key={modifier.id}
                   onClick={() => onToggleWorldModifier(modifier.id)}
                 >
-                  <strong>{modifier.name} · +{modifier.difficulty}</strong>
-                  <span>{modifier.description} Reward {modifier.essenceRewardMultiplier.toFixed(2)}x alone</span>
+                  <strong>{modifier.name}</strong>
+                  <span>Reward {modifier.essenceRewardMultiplier.toFixed(2)}x</span>
+                  <span>{modifier.description}</span>
                 </button>
               )
             })}

@@ -902,7 +902,7 @@ export function doesGearModifierAffectSkill(
   const definition = getGearModifierDefinition(modifier.id)
   const tags = new Set(context.tags ?? [])
   if (definition.kind === 'flat-damage') {
-    return skillId !== VITALITY_SKILL_ID
+    return skillId === BASIC_ATTACK_SKILL_ID
   }
   if (definition.kind === 'critical-strike') {
     return true

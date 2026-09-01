@@ -38,6 +38,7 @@ import type {
 } from '../game/ui/Snapshots'
 import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
 import { GearSetFormation } from './GearSetFormation'
+import { tooltipClassName } from './TooltipShell'
 import { ImplicitModifierList } from './ImplicitModifierList'
 import {
   formatKeybind,
@@ -219,7 +220,7 @@ function GearComparison({
   const emptySlot = !equipped
 
   return (
-    <div id={id} className="gear-comparison" role="tooltip">
+    <div id={id} className={tooltipClassName('gear-comparison')} role="tooltip">
       <strong>Full comparison</strong>
       <div className="comparison-columns">
         <section>
@@ -599,8 +600,8 @@ function UpgradeCard({
           </span>
         ) : null}
         {unlockedSkill && synergyPartnerSkills.length > 0 ? (
-          <span className="upgrade-synergy-partners" aria-label="Synergies with">
-            <span className="upgrade-skill-tags-label">Synergies with</span>{' '}
+          <span className="upgrade-synergy-partners" aria-label="Synergies:">
+            <span className="upgrade-skill-tags-label">Synergies:</span>{' '}
             {synergyPartnerSkills.map((skill, skillIndex) => (
               <span key={skill.id}>
                 {skillIndex > 0 ? ', ' : ''}

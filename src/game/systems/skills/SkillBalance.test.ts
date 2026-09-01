@@ -136,7 +136,7 @@ describe('new skill combination balance', () => {
       damage: { physical: 1, lightning: 0, fire: 0, cold: 0, chaos: 0 },
     }])
 
-    expect(target.hp).toBeCloseTo(77)
+    expect(target.hp).toBeCloseTo(69)
     expect(target.burningStacks).toEqual([])
   })
 

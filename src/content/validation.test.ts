@@ -6,6 +6,11 @@ import {
   type ContentCatalog,
 } from './validation'
 import { SYNERGY_UPGRADES } from './upgrades/Upgrades'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  SKILL_DEFINITIONS,
+} from './skills/Skills'
+import { PLAYSTYLE_DEFINITIONS } from '../game-config/classes'
 
 function catalogWith(
   overrides: Partial<ContentCatalog>,
@@ -17,6 +22,37 @@ describe('content validation', () => {
   it('accepts all current content definitions and balance configuration', () => {
     expect(validateContent(CURRENT_CONTENT)).toEqual([])
     expect(() => assertValidContent()).not.toThrow()
+  })
+
+  it('gives every non-basic skill exactly one described resonance effect', () => {
+    for (const skill of Object.values(SKILL_DEFINITIONS)) {
+      if (skill.id === BASIC_ATTACK_SKILL_ID) {
+        expect(skill.resonanceEffect).toBeUndefined()
+        continue
+      }
+      expect(skill.resonanceEffect).toEqual(expect.objectContaining({
+        id: expect.any(String),
+        name: expect.any(String),
+        description: expect.any(String),
+      }))
+      expect(skill.resonanceEffect?.description.trim()).not.toBe('')
+    }
+  })
+
+  it('gives every playable class Resonance and Attunement stats', () => {
+    const expectedStats = {
+      knight: { resonance: 5, attunement: 55 },
+      ranger: { resonance: 6, attunement: 53 },
+      necromancer: { resonance: 5, attunement: 65 },
+      'frost-warden': { resonance: 6, attunement: 68 },
+      'ashen-alchemist': { resonance: 4, attunement: 72 },
+      'war-shepherd': { resonance: 4, attunement: 62 },
+    } as const
+    for (const playstyle of Object.values(PLAYSTYLE_DEFINITIONS)) {
+      expect(playstyle.baseStats.resonance).toBeGreaterThan(0)
+      expect(playstyle.baseStats.attunement).toBeGreaterThanOrEqual(0)
+      expect(playstyle.baseStats).toMatchObject(expectedStats[playstyle.id])
+    }
   })
 
   it('ships a bounded unique synergy graph for all current skills', () => {

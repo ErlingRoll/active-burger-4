@@ -224,6 +224,14 @@ export interface PlayerState {
   attackDamage: number
   attackSpeed: number
   attackCooldownRemaining: number
+  /** Successful Basic Attacks required to empower the next skill cast. */
+  resonance?: number
+  /** Percentage of final Basic Attack damage converted into skill damage. */
+  attunement?: number
+  /** Additive Attunement adjustment that can change during a run. */
+  attunementBonusPercent?: number
+  /** Successful Basic Attacks banked toward the next resonant skill cast. */
+  resonanceAttackCount?: number
   /** Additive fraction of actual gear-based melee damage restored as health. */
   meleeLeech?: number
   /** Additive fraction of actual Whirlwind damage restored as health. */

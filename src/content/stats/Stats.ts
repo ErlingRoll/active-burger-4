@@ -17,9 +17,20 @@ export const STAT_KEYS = [
   'attackRange',
 ] as const satisfies readonly StatKey[]
 
+export const ATTUNEMENT_DESCRIPTION =
+  'Attunement adds this percentage of your final pre-crit Basic Attack damage to skills and summons, preserving each damage type and rounding each component up.'
+export const RESONANCE_DESCRIPTION =
+  'Resonance is the number of successful Basic Attacks needed to empower the next skill cast.'
+
 export type StatValues = { [K in StatKey]: number }
 /** Character-authored stats; attack range is supplied by the equipped weapon. */
-export type CharacterStatValues = Omit<StatValues, 'attackRange'>
+/** Character-authored combat stats that are not derived from equipment. */
+export type CharacterStatValues = Omit<StatValues, 'attackRange'> & {
+  /** Successful Basic Attacks required to empower the next skill cast. */
+  resonance?: number
+  /** Percentage of final Basic Attack damage converted into skill damage. */
+  attunement?: number
+}
 
 export interface StatModifier {
   stat: StatKey

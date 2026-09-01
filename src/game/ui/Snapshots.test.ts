@@ -20,7 +20,10 @@ import {
   generateGearChoices,
 } from '../equipment/GearChoices'
 import { Rarity } from '../../content/rarity/Rarity'
-import { getAverageCriticalStrikeFactor } from '../../content/stats/Damage'
+import {
+  getAverageCriticalStrikeFactor,
+  sumDamageValues,
+} from '../../content/stats/Damage'
 import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
 import {
   SOUL_TETHER_DURATION_SECONDS,
@@ -91,8 +94,10 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[0]?.damage).toMatchObject({ physical: 14 })
     expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
     expect(snapshot.skills[0]?.estimatedSingleTargetDps).toBeCloseTo(14.7)
-    expect(snapshot.skills[1]?.estimatedSingleTargetDps).toBeCloseTo(3.36)
-    expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(3.052)
+    expect(snapshot.skills[1]?.estimatedSingleTargetDps).toBeCloseTo(6.72)
+    expect(snapshot.skills[2]?.estimatedSingleTargetDps).toBeCloseTo(5.852)
+    expect(snapshot.skills[1]?.attunementDamage).toMatchObject({ physical: 8 })
+    expect(snapshot.skills[1]?.attunementDamageTypes).toEqual(['physical'])
     expect(snapshot.skills[0]?.attacksPerSecond).toBeCloseTo(1)
     expect(snapshot.skills[0]?.cooldownSeconds).toBeNull()
     expect(snapshot.skills[0]?.cooldownProgress).toBe(0)
@@ -453,7 +458,7 @@ describe('UI snapshots', () => {
     }
     const playerStats = getDerivedPlayerStats(game.state.player)
     expect(soulTether.estimatedSingleTargetDps).toBeCloseTo(
-      (soulTether.damage.chaos ?? 0) *
+      sumDamageValues(soulTether.damage) *
         getAverageCriticalStrikeFactor({
           chance: playerStats.critChance,
           multiplier: playerStats.critMultiplier,
@@ -490,16 +495,16 @@ describe('UI snapshots', () => {
     )
     expect(raiseSkeleton?.skillModifiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'summon-damage', value: '6' }),
+        expect.objectContaining({ id: 'summon-damage', value: '12' }),
         expect.objectContaining({ id: 'summon-max-hp', value: '30' }),
         expect.objectContaining({ id: 'summon-attack-speed', value: '1 atk/s' }),
         expect.objectContaining({ id: 'summon-max-count', value: '1' }),
       ]),
     )
     expect(raiseSkeleton?.damage).toMatchObject({
-      physical: 6,
+      physical: 12,
     })
-    expect(raiseSkeleton?.estimatedSingleTargetDps).toBeCloseTo(6.3)
+    expect(raiseSkeleton?.estimatedSingleTargetDps).toBeCloseTo(12.6)
     expect(raiseSkeleton?.dpsAssumption).toBe(
       'One persistent skeleton attacks the nearest target in range once per second.',
     )

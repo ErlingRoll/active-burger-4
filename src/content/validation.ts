@@ -27,6 +27,7 @@ import {
   type UpgradeDefinition,
 } from './upgrades/Upgrades'
 import {
+  BASIC_ATTACK_SKILL_ID,
   SKILL_DEFINITIONS,
   type SkillDefinition,
 } from './skills/Skills'
@@ -688,6 +689,21 @@ function validateDefinitions(
   enemyIds: Set<string>,
 ): void {
   catalog.skills.forEach((skill, index) => {
+    if (skill.id === BASIC_ATTACK_SKILL_ID) {
+      if (skill.resonanceEffect !== undefined) {
+        errors.push(`skills[${index}].resonanceEffect must be omitted for Basic Attack.`)
+      }
+    } else if (
+      !skill.resonanceEffect ||
+      typeof skill.resonanceEffect.id !== 'string' ||
+      skill.resonanceEffect.id.trim() === '' ||
+      typeof skill.resonanceEffect.name !== 'string' ||
+      skill.resonanceEffect.name.trim() === '' ||
+      typeof skill.resonanceEffect.description !== 'string' ||
+      skill.resonanceEffect.description.trim() === ''
+    ) {
+      errors.push(`skills[${index}].resonanceEffect must define one described effect.`)
+    }
     if (!VALID_SKILL_KINDS.has(skill.kind)) {
       errors.push(`skills[${index}].kind is not supported; received "${String(skill.kind)}".`)
     }

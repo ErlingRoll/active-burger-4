@@ -37,8 +37,14 @@ import {
 } from '../../game-config/gear-sets'
 import { getBasicAttackVariant } from '../../content/skills/Skills'
 import type { PlayerState } from '../state/GameState'
+import {
+  DEFAULT_RESONANCE_ATTACKS,
+} from '../../game-config/skills'
 
 export interface PlayerStats extends StatValues {
+  resonance: number
+  attunement: number
+  basicAttackIsProjectile: boolean
   flatDamage: DamageValues
   increasedDamage: DamageIncreaseValues
   resistances: DamageResistanceValues
@@ -65,7 +71,24 @@ function directPlayerStats(player: Readonly<PlayerState>): CharacterStatValues {
     movementSpeed: player.movementSpeed,
     attackDamage: player.attackDamage,
     attackSpeed: player.attackSpeed,
+    resonance: player.resonance,
+    attunement: player.attunement,
   }
+}
+
+function getBasicAttackIsProjectile(
+  player: Readonly<PlayerState>,
+  itemDefinitions: readonly ItemDefinition[],
+): boolean {
+  const equippedWeapon = player.equipment?.weapon
+  if (!equippedWeapon) {
+    return getBasicAttackVariant().tags.includes('projectile')
+  }
+  const definition = itemDefinitions.find(
+    (candidate) => candidate.id === equippedWeapon.itemId,
+  ) ?? getItemDefinition(equippedWeapon.itemId)
+  return definition.slot === EquipmentSlot.Weapon &&
+    getBasicAttackVariant(definition.weaponArchetype).tags.includes('projectile')
 }
 
 function getEquippedWeaponAttackRange(
@@ -322,6 +345,16 @@ export function getDerivedPlayerStats(
   )
   return {
     ...scalarStats,
+    resonance: Math.max(
+      1,
+      Math.floor(base.resonance ?? player.resonance ?? DEFAULT_RESONANCE_ATTACKS),
+    ),
+    attunement: Math.max(
+      0,
+      (base.attunement ?? player.attunement ?? 0) +
+        (player.attunementBonusPercent ?? 0),
+    ),
+    basicAttackIsProjectile: getBasicAttackIsProjectile(player, itemDefinitions),
     flatDamage: gearEffects.flatDamage,
     increasedDamage: gearEffects.increasedDamage,
     resistances: gearEffects.resistances,
