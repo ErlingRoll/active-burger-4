@@ -413,6 +413,18 @@ export class PixiGame {
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
+    if (
+      !projectile.sourceAbilityId &&
+      projectile.skillId === BASIC_ATTACK_SKILL_ID
+    ) {
+      const variant = getBasicAttackVariant(projectile.basicAttackWeaponArchetype)
+      if (variant.id === 'bow') {
+        return this.createBowBasicProjectile(projectile, variant.visual)
+      }
+      if (variant.id === 'wand') {
+        return this.createWandBasicProjectile(projectile, variant.visual)
+      }
+    }
     const visual = projectile.sourceAbilityId
       ? {
           primaryColor: '#ef4444',
@@ -458,6 +470,76 @@ export class PixiGame {
         .fill(visual.secondaryColor)
         .stroke({ color: visual.outlineColor, width: 1 })
     }
+    return view
+  }
+
+  private createBowBasicProjectile(
+    projectile: ProjectileState,
+    visual: ReturnType<typeof getBasicAttackVariant>['visual'],
+  ): Graphics {
+    const radius = projectile.radius
+    const trailLength = visual.trailLength ?? radius * 4
+    const shaftLength = radius * 4.2
+    const view = new Graphics()
+      .moveTo(-trailLength, 0)
+      .lineTo(radius * 0.2, 0)
+      .stroke({ color: visual.secondaryColor, width: visual.trailWidth ?? 2, alpha: 0.72 })
+      .moveTo(-shaftLength * 0.5, 0)
+      .lineTo(shaftLength * 0.5, 0)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.94 })
+      .poly([
+        shaftLength * 0.5,
+        0,
+        shaftLength * 0.12,
+        -radius * 1.2,
+        shaftLength * 0.12,
+        radius * 1.2,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.92 })
+      .stroke({ color: visual.outlineColor, width: 1.5 })
+      .poly([
+        -shaftLength * 0.5,
+        0,
+        -shaftLength * 0.95,
+        -radius * 1.15,
+        -shaftLength * 0.7,
+        0,
+        -shaftLength * 0.95,
+        radius * 1.15,
+      ])
+      .fill({ color: visual.secondaryColor, alpha: 0.86 })
+      .stroke({ color: visual.outlineColor, width: 1 })
+    return view
+  }
+
+  private createWandBasicProjectile(
+    projectile: ProjectileState,
+    visual: ReturnType<typeof getBasicAttackVariant>['visual'],
+  ): Graphics {
+    const radius = projectile.radius
+    const trailLength = visual.trailLength ?? radius * 3
+    const view = new Graphics()
+      .moveTo(-trailLength, 0)
+      .lineTo(-radius * 0.3, 0)
+      .stroke({ color: visual.secondaryColor, width: visual.trailWidth ?? 4, alpha: 0.56 })
+      .poly([
+        radius * 2.25, 0,
+        radius * 0.75, -radius * 1.25,
+        -radius * 0.9, -radius * 0.75,
+        -radius * 1.3, 0,
+        -radius * 0.9, radius * 0.75,
+        radius * 0.75, radius * 1.25,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.88 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+      .poly([
+        radius * 1.3, 0,
+        0, -radius * 0.5,
+        -radius * 0.65, 0,
+        0, radius * 0.5,
+      ])
+      .fill({ color: visual.secondaryColor, alpha: 0.92 })
+      .stroke({ color: visual.outlineColor, width: 1 })
     return view
   }
 
@@ -662,6 +744,14 @@ export class PixiGame {
         return this.createBoneBoltPlaceholder(effect)
       }
     }
+    if (effect.skillId === BASIC_ATTACK_SKILL_ID) {
+      if (effect.shape === 'arc') {
+        return this.createSwordSwingPlaceholder(effect)
+      }
+      if (effect.shape === undefined) {
+        return this.createStaffImpactPlaceholder(effect)
+      }
+    }
     const visual =
       effect.skillId === BASIC_ATTACK_SKILL_ID
         ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
@@ -752,6 +842,66 @@ export class PixiGame {
         .stroke({ color: visual.outlineColor, width: 2 })
     }
 
+    return view
+  }
+
+  private createSwordSwingPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getBasicAttackVariant('sword').visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const view = new Graphics()
+    if (points.length < 2) {
+      return view
+    }
+    const relativePoints = points.map((point) => ({
+      x: point.x - effect.x,
+      y: point.y - effect.y,
+    }))
+    const path = relativePoints.flatMap((point) => [point.x, point.y])
+    view
+      .poly(path)
+      .fill({ color: visual.primaryColor, alpha: 0.16 })
+      .stroke({ color: visual.outlineColor, width: 7, alpha: 0.22 })
+      .poly(path)
+      .stroke({ color: visual.secondaryColor, width: 3, alpha: 0.92 })
+    const first = relativePoints[0]!
+    const last = relativePoints[relativePoints.length - 1]!
+    const directionX = last.x - first.x
+    const directionY = last.y - first.y
+    const length = Math.hypot(directionX, directionY) || 1
+    const normalX = -directionY / length
+    const normalY = directionX / length
+    view
+      .moveTo(last.x - normalX * 7, last.y - normalY * 7)
+      .lineTo(last.x + normalX * 7, last.y + normalY * 7)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+    return view
+  }
+
+  private createStaffImpactPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getBasicAttackVariant('staff').visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 8, Math.PI / 8))
+      .fill({ color: visual.primaryColor, alpha: 0.12 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.78 })
+      .poly(createPolygonPoints(radius * 0.72, 6, Math.PI / 6))
+      .fill({ color: visual.primaryColor, alpha: 0.24 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6
+      const inner = radius * 0.26
+      const outer = radius * 0.9
+      view
+        .moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner)
+        .lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer)
+        .stroke({ color: index % 2 === 0 ? '#84cc16' : visual.secondaryColor, width: 2, alpha: 0.78 })
+    }
+    view
+      .poly(createStarPoints(radius * 0.32, 6, 0.45))
+      .fill({ color: '#84cc16', alpha: 0.72 })
+      .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.9 })
     return view
   }
 
