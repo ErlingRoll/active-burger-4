@@ -114,6 +114,11 @@ import {
   updateCinderMineTraps,
   updateStormRelay,
   updateSoulTether,
+  updateRuinSigils,
+  updateRazorwires,
+  updatePrismHalo,
+  updateMirrorcast,
+  updateBloodDebt,
 } from './systems/skills/SkillSystem'
 import { healPlayer } from './combat/PlayerCombatLog'
 import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
@@ -982,6 +987,8 @@ export class Game {
     )
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
+    updateRuinSigils(this.gameState, FIXED_STEP_SECONDS)
+    updateBloodDebt(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
     updateEnemyAbilities(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
@@ -1002,6 +1009,9 @@ export class Game {
       ...updateCinderMineTraps(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
       ...updateStormRelay(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
       ...updateSoulTether(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updateRazorwires(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updatePrismHalo(this.gameState, FIXED_STEP_SECONDS, this.idAllocator),
+      ...updateMirrorcast(this.gameState, FIXED_STEP_SECONDS, this.idAllocator, this.random),
       ...updatePoison(this.gameState, FIXED_STEP_SECONDS),
       ...updateBurning(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
@@ -1411,7 +1421,9 @@ function getNextEntityIdFromState(state: GameState): number {
     ...state.effects.map((entity) => entity.id),
     ...(state.traps ?? []).map((entity) => entity.id),
     ...(state.relays ?? []).map((entity) => entity.id),
+    ...(state.wires ?? []).map((entity) => entity.id),
     ...(state.player.soulTethers ?? []).map((entity) => entity.id),
+    ...(state.player.ruinSigils ?? []).map((entity) => entity.id),
     ...(state.stairs ? [state.stairs.id] : []),
   ]
   return Math.max(0, ...ids) + 1

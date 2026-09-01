@@ -28,6 +28,11 @@ export const CINDER_MINE_SKILL_ID: SkillId = 'cinder-mine'
 export const STORM_RELAY_SKILL_ID: SkillId = 'storm-relay'
 export const SOUL_TETHER_SKILL_ID: SkillId = 'soul-tether'
 export const PHANTOM_ARSENAL_SKILL_ID: SkillId = 'phantom-arsenal'
+export const SIGIL_OF_RUIN_SKILL_ID: SkillId = 'sigil-of-ruin'
+export const MIRRORCAST_SKILL_ID: SkillId = 'mirrorcast'
+export const RAZORWIRE_SKILL_ID: SkillId = 'razorwire'
+export const BLOOD_RITE_SKILL_ID: SkillId = 'blood-rite'
+export const PRISM_HALO_SKILL_ID: SkillId = 'prism-halo'
 export const DEFAULT_SKILL_SLOT_COUNT = 5
 export const DEFAULT_RESONANCE_ATTACKS = 5
 export const DEFAULT_ATTUNEMENT_PERCENT = 50
@@ -109,6 +114,97 @@ export const PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS = 1
 export const PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT = 20
 export const PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT = 50
 export const PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT = 30
+
+// Sigil of Ruin: a Ruin Sigil is placed on the nearest enemy. It gains at most
+// one charge per distinct damage source category (Basic Attack, skill, summon,
+// DoT) and detonates for chaos damage based on the capped damage dealt while
+// marked once it reaches its charge threshold.
+export const SIGIL_OF_RUIN_MAX_RANGE = 300
+export const SIGIL_OF_RUIN_DURATION_SECONDS = 5
+export const SIGIL_OF_RUIN_DETONATION_CHARGES = 3
+export const SIGIL_OF_RUIN_RESONANCE_STARTING_CHARGES = 2
+export const SIGIL_OF_RUIN_STORED_DAMAGE_CAP = 150
+export const SIGIL_OF_RUIN_DETONATION_DAMAGE_RATIO = 0.75
+export const SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD = 0.35
+export const SIGIL_OF_RUIN_EXECUTION_DAMAGE_MULTIPLIER = 1.6
+export const SIGIL_OF_RUIN_CONTAGIOUS_STORED_CAP_MULTIPLIER = 0.5
+export const SIGIL_OF_RUIN_SPREAD_MAX_TARGETS = 3
+export const SIGIL_OF_RUIN_SPREAD_RADIUS = 140
+
+// Mirrorcast: arms an echo that copies the next non-Basic skill cast after a
+// short delay at reduced effectiveness. Copies never arm another echo, so the
+// skill can never nest into itself.
+export const MIRRORCAST_CAPTURE_WINDOW_SECONDS = 6
+export const MIRRORCAST_COPY_DELAY_SECONDS = 0.6
+export const MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS = 1.2
+export const MIRRORCAST_BASE_EFFECTIVENESS = 0.5
+export const MIRRORCAST_RESONANCE_EFFECTIVENESS = 0.7
+export const MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS = 0.35
+export const MIRRORCAST_DEFERRED_EFFECTIVENESS = 0.65
+export const MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT = 2
+export const MIRRORCAST_COPY_MAX_RANGE = 320
+
+// Razorwire: throws two anchors around the nearest enemy and connects them with
+// a persistent wire. Crossing the wire deals physical damage and applies a brief
+// slow, gated by a per-enemy crossing cooldown so there is no per-tick damage.
+export const RAZORWIRE_DURATION_SECONDS = 8
+export const RAZORWIRE_MAX_RANGE = 240
+export const RAZORWIRE_WIRE_LENGTH = 160
+export const RAZORWIRE_CROSSING_COOLDOWN_SECONDS = 0.9
+export const RAZORWIRE_SLOW_CHILL_STACKS = 1
+export const RAZORWIRE_SLOW_DURATION_SECONDS = 1.5
+export const RAZORWIRE_CROSSING_MARGIN = 18
+export const RAZORWIRE_TRIPWIRE_COUNT = 3
+export const RAZORWIRE_TRIPWIRE_LENGTH = 96
+export const RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER = 0.55
+export const RAZORWIRE_GUILLOTINE_LENGTH = 240
+export const RAZORWIRE_GUILLOTINE_MARGIN = 9
+export const RAZORWIRE_GUILLOTINE_TENSION_CAP = 3
+export const RAZORWIRE_GUILLOTINE_SNAP_DAMAGE_MULTIPLIER = 2.6
+
+// Blood Rite: sacrifices a bounded portion of current HP (never lethal) to store
+// Blood Debt. The next skill consumes the debt for a bounded, type-appropriate
+// bonus. It emits a small chaos pulse on cast.
+export const BLOOD_RITE_PULSE_RADIUS = 96
+export const BLOOD_RITE_SACRIFICE_FRACTION = 0.15
+export const BLOOD_RITE_MIN_HP_AFTER = 1
+export const BLOOD_RITE_DEBT_DURATION_SECONDS = 8
+export const BLOOD_RITE_BASE_POTENCY = 12
+export const BLOOD_RITE_POTENCY_PER_SACRIFICED_HP = 0.8
+export const BLOOD_RITE_MAX_POTENCY = 60
+export const BLOOD_RITE_RESONANCE_POTENCY_MULTIPLIER = 1.5
+export const BLOOD_RITE_SANGUINE_HEAL_RATIO = 0.4
+export const BLOOD_RITE_CRIMSON_CHARGES = 2
+export const BLOOD_RITE_CRIMSON_POTENCY_MULTIPLIER = 0.6
+export const BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS = 2
+
+// Prism Halo: three orbiting shards fire Fire, Cold, and Lightning in rotation
+// at nearby enemies, applying the matching element status. Resonance fires all
+// three at once and distributes Attunement a single time per volley.
+export const PRISM_HALO_DURATION_SECONDS = 8
+export const PRISM_HALO_RANGE = 220
+export const PRISM_HALO_FIRE_INTERVAL_SECONDS = 0.7
+export const PRISM_HALO_SHARD_COUNT = 3
+export const PRISM_HALO_ORBIT_RADIUS = 46
+export const PRISM_HALO_ORBIT_ANGULAR_SPEED = 2.4
+export const PRISM_HALO_BURNING_DURATION_SECONDS = 3
+export const PRISM_HALO_BURNING_FIRE_DAMAGE_RATIO = 0.35
+export const PRISM_HALO_CHILL_STACKS = 1
+export const PRISM_HALO_CHILL_DURATION_SECONDS = 4
+export const PRISM_HALO_SHOCK_STACKS = 1
+export const PRISM_HALO_SHOCK_DURATION_SECONDS = 4
+export const PRISM_HALO_CONVERGENCE_WINDOW_SECONDS = 2.5
+export const PRISM_HALO_CONVERGENCE_BURST_MULTIPLIER = 1.4
+export const PRISM_HALO_REFRACTION_MAX_SPLITS = 2
+export const PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER = 0.45
+export const PRISM_HALO_REFRACTION_SPLIT_RADIUS = 120
+
+// Synergy tuning shared by the new skills' interaction hooks (new skills only
+// synergize with one another so existing skills keep their 3 synergy partners).
+export const SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO = 0.25
+export const MIRRORCAST_WIRE_DURATION_BONUS_SECONDS = 2
+export const RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE = 8
+export const BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS = 2
 
 export const BASIC_ATTACK_VARIANTS = {
   sword: {
@@ -626,6 +722,131 @@ export const SKILL_DEFINITIONS = {
       id: 'phantom-arsenal-echo',
       name: 'Spectral Echo',
       description: 'Extends all Phantom Arsenal archer durations by 4 seconds.',
+    },
+  },
+  [SIGIL_OF_RUIN_SKILL_ID]: {
+    id: SIGIL_OF_RUIN_SKILL_ID,
+    name: 'Sigil of Ruin',
+    description: `Brands the nearest enemy with a Ruin Sigil for ${SIGIL_OF_RUIN_DURATION_SECONDS} seconds. The sigil gains one charge for each distinct damage source category that strikes the target, and at ${SIGIL_OF_RUIN_DETONATION_CHARGES} charges it detonates for chaos damage based on the capped damage dealt while marked.`,
+    kind: 'utility',
+    tags: ['chaos', 'trigger'],
+    canProduceDirectHit: true,
+    cooldown: 4.5,
+    baseDamage: { chaos: 6 },
+    damagePerLevel: {},
+    maxRange: SIGIL_OF_RUIN_MAX_RANGE,
+    effectLifetime: 0.2,
+    visual: {
+      kind: 'utility',
+      icon: '⛧',
+      primaryColor: '#a21caf',
+      secondaryColor: '#f0abfc',
+      outlineColor: '#fae8ff',
+    },
+    resonanceEffect: {
+      id: 'sigil-of-ruin-overcharge',
+      name: 'Cursed Brand',
+      description: `The Ruin Sigil starts with ${SIGIL_OF_RUIN_RESONANCE_STARTING_CHARGES} charges and its detonation spreads 1-charge sigils to nearby enemies.`,
+    },
+  },
+  [MIRRORCAST_SKILL_ID]: {
+    id: MIRRORCAST_SKILL_ID,
+    name: 'Mirrorcast',
+    description: `Weaves a fragile Echo. The next non-Basic skill you cast is copied after a short delay at reduced effectiveness, without resetting the original cooldown. Mirrorcast can never copy itself.`,
+    kind: 'utility',
+    tags: ['trigger'],
+    canProduceDirectHit: true,
+    cooldown: 7,
+    baseDamage: {},
+    damagePerLevel: {},
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '❖',
+      primaryColor: '#38bdf8',
+      secondaryColor: '#e0f2fe',
+      outlineColor: '#f0f9ff',
+    },
+    resonanceEffect: {
+      id: 'mirrorcast-true-image',
+      name: 'True Image',
+      description: 'The Echo copies at higher effectiveness and preserves an additional secondary effect.',
+    },
+  },
+  [RAZORWIRE_SKILL_ID]: {
+    id: RAZORWIRE_SKILL_ID,
+    name: 'Razorwire',
+    description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown.`,
+    kind: 'area',
+    tags: ['physical', 'area'],
+    canProduceDirectHit: true,
+    cooldown: 6,
+    baseDamage: { physical: 14 },
+    damagePerLevel: {},
+    radius: RAZORWIRE_WIRE_LENGTH / 2,
+    maxRange: RAZORWIRE_MAX_RANGE,
+    effectLifetime: 0.2,
+    visual: {
+      kind: 'area',
+      icon: '⛓',
+      primaryColor: '#94a3b8',
+      secondaryColor: '#e2e8f0',
+      outlineColor: '#f8fafc',
+    },
+    resonanceEffect: {
+      id: 'razorwire-lattice',
+      name: 'Razor Lattice',
+      description: 'Strings a second crossing Wire to form a lattice around the target.',
+    },
+  },
+  [BLOOD_RITE_SKILL_ID]: {
+    id: BLOOD_RITE_SKILL_ID,
+    name: 'Blood Rite',
+    description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus.`,
+    kind: 'utility',
+    tags: ['chaos'],
+    canProduceDirectHit: true,
+    cooldown: 8,
+    baseDamage: { chaos: 8 },
+    damagePerLevel: {},
+    radius: BLOOD_RITE_PULSE_RADIUS,
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '🩸',
+      primaryColor: '#b91c1c',
+      secondaryColor: '#f87171',
+      outlineColor: '#fee2e2',
+    },
+    resonanceEffect: {
+      id: 'blood-rite-free-offering',
+      name: 'Free Offering',
+      description: 'Blood Rite costs no HP and stores a larger Blood Debt.',
+    },
+  },
+  [PRISM_HALO_SKILL_ID]: {
+    id: PRISM_HALO_SKILL_ID,
+    name: 'Prism Halo',
+    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Burning, Chill, and Shock.`,
+    kind: 'utility',
+    tags: ['fire', 'cold', 'lightning', 'duration'],
+    canProduceDirectHit: true,
+    cooldown: 7.5,
+    baseDamage: { fire: 7 },
+    damagePerLevel: {},
+    maxRange: PRISM_HALO_RANGE,
+    effectLifetime: 0.18,
+    visual: {
+      kind: 'utility',
+      icon: '🔆',
+      primaryColor: '#f97316',
+      secondaryColor: '#38bdf8',
+      outlineColor: '#fef9c3',
+    },
+    resonanceEffect: {
+      id: 'prism-halo-full-spectrum',
+      name: 'Full Spectrum',
+      description: 'All three shards fire simultaneously, distributing Attunement once per volley.',
     },
   },
 } as const satisfies Record<SkillId, SkillDefinition>

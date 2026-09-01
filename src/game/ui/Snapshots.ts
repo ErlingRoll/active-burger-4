@@ -42,6 +42,11 @@ import {
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
   type SkillId,
   type SkillResonanceEffect,
   type SkillTag,
@@ -1433,6 +1438,16 @@ export function createUiSnapshot(
           ? 'Each cast sustains an independent tether; cooldown reduction allows overlapping links.'
           : skill.skillId === PHANTOM_ARSENAL_SKILL_ID
           ? 'One persistent phantom archer attacks the nearest target in range on its own cadence.'
+          : skill.skillId === SIGIL_OF_RUIN_SKILL_ID
+          ? 'Marks the nearest enemy; detonation damage scales with the capped damage dealt while marked.'
+          : skill.skillId === MIRRORCAST_SKILL_ID
+          ? 'Copies the next non-Basic skill cast after a short delay at reduced effectiveness.'
+          : skill.skillId === RAZORWIRE_SKILL_ID
+          ? 'One enemy crossing the wire per crossing cooldown, sustained while the wire persists.'
+          : skill.skillId === BLOOD_RITE_SKILL_ID
+          ? 'Chaos pulse on cast; the stored Blood Debt empowers your next skill.'
+          : skill.skillId === PRISM_HALO_SKILL_ID
+          ? 'Rotating shards strike the nearest enemy each fire interval while the halo persists.'
           : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
         ? (

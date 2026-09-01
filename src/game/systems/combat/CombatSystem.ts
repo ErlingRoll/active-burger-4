@@ -12,6 +12,7 @@ import {
   PHANTOM_ARSENAL_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
   getEffectiveSkillCooldown,
   getBasicAttackVariant,
   getSkillDefinition,
@@ -83,6 +84,8 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
   SoulTetherState,
+  RuinSigilState,
+  RuinSigilSourceCategory,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
@@ -108,6 +111,16 @@ import {
   SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT,
   SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
+  SIGIL_OF_RUIN_DETONATION_CHARGES,
+  SIGIL_OF_RUIN_DETONATION_DAMAGE_RATIO,
+  SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD,
+  SIGIL_OF_RUIN_EXECUTION_DAMAGE_MULTIPLIER,
+  SIGIL_OF_RUIN_SPREAD_MAX_TARGETS,
+  SIGIL_OF_RUIN_SPREAD_RADIUS,
+  SIGIL_OF_RUIN_CONTAGIOUS_STORED_CAP_MULTIPLIER,
+  SIGIL_OF_RUIN_STORED_DAMAGE_CAP,
+  SIGIL_OF_RUIN_DURATION_SECONDS,
+  SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -1399,6 +1412,7 @@ export function applyDamageEvents(
       applyBurningApplication(state, enemy, enemyEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
+      applyRuinSigilDamage(state, event, enemy, actualDamage, pendingEvents, idAllocator)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1447,6 +1461,7 @@ export function applyDamageEvents(
       applyBurningApplication(state, boss, bossEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
+      applyRuinSigilDamage(state, event, boss, actualDamage, pendingEvents, idAllocator)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1771,6 +1786,203 @@ function applySoulTetherHealing(
     )
   }
   healPlayer(state, healing, 'Soul Tether')
+}
+
+/**
+ * Determines the Ruin Sigil source category for a player-owned damage event, or
+ * undefined when the event should not charge a sigil.
+ */
+function getRuinSigilSourceCategory(
+  state: Readonly<GameState>,
+  event: Readonly<DamageEvent>,
+): RuinSigilSourceCategory | undefined {
+  if (event.sourceSkillId === SIGIL_OF_RUIN_SKILL_ID) {
+    return undefined
+  }
+  if (event.damageOverTime) {
+    return event.sourceId === state.player.id ||
+      (event.sourceSkillId !== undefined && event.sourceInstanceId !== undefined)
+      ? 'dot'
+      : event.sourceId !== undefined &&
+          state.summons.some((summon) => summon.id === event.sourceId)
+        ? 'dot'
+        : undefined
+  }
+  if (event.sourceSkillId === BASIC_ATTACK_SKILL_ID) {
+    return 'basic-attack'
+  }
+  if (
+    event.sourceId !== undefined &&
+    state.summons.some((summon) => summon.id === event.sourceId)
+  ) {
+    return 'summon'
+  }
+  if (event.sourceId === state.player.id) {
+    return 'skill'
+  }
+  return undefined
+}
+
+/**
+ * Accumulates capped damage on a Ruin Sigil, grants one charge per distinct
+ * source category, and detonates when it reaches its charge threshold.
+ */
+function applyRuinSigilDamage(
+  state: GameState,
+  event: Readonly<DamageEvent>,
+  target: EnemyState | BossState,
+  actualDamage: number,
+  pendingEvents: DamageEvent[],
+  idAllocator?: EntityIdAllocator,
+): void {
+  const sigils = state.player.ruinSigils
+  if (!sigils || sigils.length === 0) {
+    return
+  }
+  const sigil = sigils.find((candidate) => candidate.targetId === target.id)
+  if (!sigil) {
+    return
+  }
+  if (actualDamage > 0) {
+    sigil.storedDamage = Math.min(
+      sigil.storedDamageCap,
+      sigil.storedDamage + actualDamage,
+    )
+    const category = getRuinSigilSourceCategory(state, event)
+    if (
+      category !== undefined &&
+      !sigil.chargedCategories.includes(category) &&
+      sigil.charges < SIGIL_OF_RUIN_DETONATION_CHARGES
+    ) {
+      sigil.chargedCategories.push(category)
+      sigil.charges += 1
+    }
+  }
+  if (sigil.charges < SIGIL_OF_RUIN_DETONATION_CHARGES) {
+    return
+  }
+  const executionProtocol = state.run.selectedUpgradeIds.includes(
+    'sigil-of-ruin-execution-protocol',
+  )
+  if (executionProtocol) {
+    sigil.armed = true
+    if (target.hp / Math.max(1, target.maxHp) > SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD) {
+      return
+    }
+  }
+  detonateRuinSigil(state, sigil, target, pendingEvents, executionProtocol, idAllocator)
+}
+
+function detonateRuinSigil(
+  state: GameState,
+  sigil: RuinSigilState,
+  target: EnemyState | BossState,
+  pendingEvents: DamageEvent[],
+  executionProtocol: boolean,
+  idAllocator?: EntityIdAllocator,
+): void {
+  state.player.ruinSigils = (state.player.ruinSigils ?? []).filter(
+    (candidate) => candidate !== sigil,
+  )
+  const contagious = state.run.selectedUpgradeIds.includes(
+    'sigil-of-ruin-contagious-script',
+  )
+  const burst = Math.min(sigil.storedDamage, sigil.storedDamageCap) *
+    SIGIL_OF_RUIN_DETONATION_DAMAGE_RATIO *
+    sigil.detonationDamageMultiplier *
+    (executionProtocol ? SIGIL_OF_RUIN_EXECUTION_DAMAGE_MULTIPLIER : 1)
+  const prismaticRuin = state.run.selectedUpgradeIds.includes(
+    'synergy-sigil-of-ruin-prism-halo',
+  )
+  const sanguineRuin = state.run.selectedUpgradeIds.includes(
+    'synergy-sigil-of-ruin-blood-rite',
+  )
+  const detonationTargets: Array<EnemyState | BossState> = [target]
+  if (burst > 0) {
+    for (const enemy of detonationTargets) {
+      pendingEvents.push({
+        sourceId: state.player.id,
+        sourceSkillId: SIGIL_OF_RUIN_SKILL_ID,
+        sourceLabel: 'Ruin Detonation',
+        sourceTags: prismaticRuin ? ['chaos', 'fire'] : ['chaos'],
+        targetId: enemy.id,
+        // Prismatic Ruin retypes part of the burst to fire so Burning can land.
+        damage: prismaticRuin
+          ? createDamageValues({ chaos: burst * 0.6, fire: burst * 0.4 })
+          : createDamageValues({ chaos: burst }),
+        ...(prismaticRuin
+          ? {
+              burningApplication: { durationSeconds: 3, fireDamageRatio: 0.35 },
+              frostApplication: { stacks: 1, durationSeconds: 4 },
+              shockApplication: {
+                stacks: 1,
+                durationSeconds: 4,
+                threshold: 3,
+                burstMultiplier: 1.5,
+              },
+            }
+          : {}),
+      })
+    }
+    if (sanguineRuin) {
+      healPlayer(state, burst * SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO, 'Sanguine Ruin')
+    }
+  }
+  if ((sigil.spreadOnDetonate || contagious) && sigil.canSpread) {
+    const spreadCap = contagious
+      ? SIGIL_OF_RUIN_STORED_DAMAGE_CAP * SIGIL_OF_RUIN_CONTAGIOUS_STORED_CAP_MULTIPLIER
+      : SIGIL_OF_RUIN_STORED_DAMAGE_CAP
+    const spreadCharges = sigil.spreadOnDetonate ? 1 : 0
+    state.player.ruinSigils ??= []
+    const existingTargetIds = new Set(
+      state.player.ruinSigils.map((candidate) => candidate.targetId),
+    )
+    existingTargetIds.add(target.id)
+    const spreadTargets = getEnemiesWithin(
+      state,
+      target.x,
+      target.y,
+      SIGIL_OF_RUIN_SPREAD_RADIUS,
+      existingTargetIds,
+    ).slice(0, SIGIL_OF_RUIN_SPREAD_MAX_TARGETS)
+    for (const enemy of spreadTargets) {
+      state.player.ruinSigils.push({
+        id: idAllocator?.createEntityId() ??
+          (enemy.id * 1_000_000 + Math.floor(state.time * 1000) % 1_000_000),
+        targetId: enemy.id,
+        remainingDuration: SIGIL_OF_RUIN_DURATION_SECONDS,
+        charges: spreadCharges,
+        chargedCategories: [],
+        storedDamage: 0,
+        storedDamageCap: spreadCap,
+        detonationDamageMultiplier: sigil.detonationDamageMultiplier,
+        armed: false,
+        spreadOnDetonate: false,
+        canSpread: false,
+      })
+    }
+  }
+}
+
+function getEnemiesWithin(
+  state: Readonly<GameState>,
+  x: number,
+  y: number,
+  radius: number,
+  excludeIds: ReadonlySet<number>,
+): Array<EnemyState | BossState> {
+  const radiusSquared = radius * radius
+  return [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0 && !excludeIds.has(enemy.id))
+    .map((enemy) => ({
+      enemy,
+      distanceSquared: (enemy.x - x) ** 2 + (enemy.y - y) ** 2,
+    }))
+    .filter((candidate) => candidate.distanceSquared <= radiusSquared)
+    .sort((left, right) =>
+      left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
+    )
+    .map((candidate) => candidate.enemy)
 }
 
 function removeSoulTether(state: GameState, tether: SoulTetherState): void {

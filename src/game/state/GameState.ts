@@ -277,6 +277,16 @@ export interface PlayerState {
   soulTetherVitalityCharge?: number
   /** Bonus return-leg damage primed by Phantom Arsenal. */
   riftJavelinReturnBonusPercent?: number
+  /** Active Ruin Sigils branded on enemies by Sigil of Ruin. */
+  ruinSigils?: RuinSigilState[]
+  /** Pending Mirrorcast Echo that copies the next non-Basic skill cast. */
+  mirrorcast?: MirrorcastState
+  /** Stored Blood Debt waiting to empower the next skill cast. */
+  bloodDebt?: BloodDebtState
+  /** Active Prism Halo firing rotating elemental shards. */
+  prismHalo?: PrismHaloState
+  /** Chromatic Convergence element tracking per enemy for Prism Halo. */
+  prismConvergence?: PrismConvergenceState[]
   /** Repeatable Phantom Arsenal upgrade count. */
   phantomMaxCountBonus?: number
   phantomMaxHpBonus?: number
@@ -412,6 +422,107 @@ export interface SoulTetherState {
   damagePerSecond: number
   healingRatio: number
   hasRetargeted: boolean
+}
+
+/** A distinct damage source category that can charge a Ruin Sigil once. */
+export type RuinSigilSourceCategory = 'basic-attack' | 'skill' | 'summon' | 'dot'
+
+/** A Ruin Sigil brand placed by Sigil of Ruin. */
+export interface RuinSigilState {
+  id: EntityId
+  targetId: EntityId
+  remainingDuration: number
+  charges: number
+  /** Source categories that have already contributed a charge. */
+  chargedCategories: RuinSigilSourceCategory[]
+  /** Capped cumulative damage dealt to the target while marked. */
+  storedDamage: number
+  storedDamageCap: number
+  /** Precomputed (1 + level damage increase) applied to the detonation burst. */
+  detonationDamageMultiplier: number
+  /** True once fully charged while Execution Protocol waits for the HP threshold. */
+  armed: boolean
+  /** True when detonation should spread 1-charge sigils (from Resonance). */
+  spreadOnDetonate: boolean
+  /** Spread sigils cannot spread again, which bounds the chain reaction. */
+  canSpread: boolean
+}
+
+/** A scheduled Mirrorcast copy of a captured skill cast. */
+export interface MirrorcastCopyState {
+  skillId: SkillId
+  level: number
+  delayRemaining: number
+  effectiveness: number
+  targetId?: EntityId
+  retargetOnKill: boolean
+  preserveSecondary: boolean
+}
+
+/** The pending Mirrorcast Echo state. */
+export interface MirrorcastState {
+  status: 'armed' | 'pending'
+  captureRemaining: number
+  echoCount: number
+  effectiveness: number
+  preserveSecondary: boolean
+  deferred: boolean
+  copies: MirrorcastCopyState[]
+}
+
+/** Blood Debt stored by Blood Rite, consumed by the next skill cast. */
+export interface BloodDebtState {
+  charges: number
+  potency: number
+  sacrificedHealth: number
+  remainingDuration: number
+  sanguinePact: boolean
+}
+
+/** A persistent Razorwire strung between two anchors. */
+export interface WireState {
+  id: EntityId
+  ownerId: EntityId
+  skillId: SkillId
+  ax: number
+  ay: number
+  bx: number
+  by: number
+  remainingDuration: number
+  damage: DamageValues
+  criticalStrike?: CriticalStrikeStats
+  slowChillStacks: number
+  slowDurationSeconds: number
+  crossingCooldownSeconds: number
+  crossingMargin: number
+  /** Per-enemy remaining crossing cooldowns so crossings do not deal per-tick damage. */
+  crossingCooldowns: Array<{ enemyId: EntityId; remaining: number }>
+  /** Last known signed side of each enemy relative to the wire, to detect crossings. */
+  enemySides: Array<{ enemyId: EntityId; side: number }>
+  guillotine: boolean
+  tensionCap: number
+  snapDamageMultiplier: number
+  /** Per-enemy Guillotine Line Tension that snaps at the cap. */
+  tension: Array<{ enemyId: EntityId; value: number }>
+}
+
+/** An active Prism Halo firing rotating elemental shards. */
+export interface PrismHaloState {
+  ownerId: EntityId
+  remainingDuration: number
+  fireCooldownRemaining: number
+  nextElementIndex: number
+  firesAllElements: boolean
+  rotation: number
+}
+
+/** Chromatic Convergence element tracking for a single enemy. */
+export interface PrismConvergenceState {
+  enemyId: EntityId
+  fire: boolean
+  cold: boolean
+  lightning: boolean
+  remaining: number
 }
 
 export interface ProjectileState {
@@ -670,6 +781,8 @@ export interface GameState {
   traps?: TrapState[]
   /** Persistent, periodically striking structures (e.g. Storm Relay). */
   relays?: RelayState[]
+  /** Persistent Razorwires strung between anchors. */
+  wires?: WireState[]
 
   time: number
   tick: number

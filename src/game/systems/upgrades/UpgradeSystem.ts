@@ -22,6 +22,10 @@ import {
   CINDER_MINE_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../../../game-config/skills'
 import type { UpgradeId } from '../../../content/upgrades/Upgrades'
@@ -250,11 +254,25 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.phantomMaxHpBonus = 0
     state.player.riftJavelinReturnBonusPercent = 0
   }
+  if (skillId === SIGIL_OF_RUIN_SKILL_ID) {
+    state.player.ruinSigils = []
+  }
+  if (skillId === MIRRORCAST_SKILL_ID) {
+    state.player.mirrorcast = undefined
+  }
+  if (skillId === BLOOD_RITE_SKILL_ID) {
+    state.player.bloodDebt = undefined
+  }
+  if (skillId === PRISM_HALO_SKILL_ID) {
+    state.player.prismHalo = undefined
+    state.player.prismConvergence = []
+  }
   state.summons = state.summons.filter(
     (summon) => (summon.skillId ?? RAISE_SKELETON_SKILL_ID) !== skillId,
   )
   state.traps = (state.traps ?? []).filter((trap) => trap.skillId !== skillId)
   state.relays = (state.relays ?? []).filter((relay) => relay.skillId !== skillId)
+  state.wires = (state.wires ?? []).filter((wire) => wire.skillId !== skillId)
   refreshPlayerDerivedStats(state.player)
   refreshMeleeLeech(state.player)
 }

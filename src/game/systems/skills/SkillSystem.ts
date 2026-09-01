@@ -20,6 +20,11 @@ import {
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from '../../../content/skills/Skills'
 import {
   getSkillCooldownReductionPercent,
@@ -80,10 +85,72 @@ import {
   RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT,
   SOUL_TETHER_RESONANCE_DAMAGE_MULTIPLIER,
   PHANTOM_ARSENAL_RESONANCE_DURATION_BONUS_SECONDS,
+  SIGIL_OF_RUIN_MAX_RANGE,
+  SIGIL_OF_RUIN_DURATION_SECONDS,
+  SIGIL_OF_RUIN_RESONANCE_STARTING_CHARGES,
+  SIGIL_OF_RUIN_STORED_DAMAGE_CAP,
+  MIRRORCAST_CAPTURE_WINDOW_SECONDS,
+  MIRRORCAST_COPY_DELAY_SECONDS,
+  MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS,
+  MIRRORCAST_BASE_EFFECTIVENESS,
+  MIRRORCAST_RESONANCE_EFFECTIVENESS,
+  MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS,
+  MIRRORCAST_DEFERRED_EFFECTIVENESS,
+  MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT,
+  MIRRORCAST_COPY_MAX_RANGE,
+  RAZORWIRE_DURATION_SECONDS,
+  RAZORWIRE_MAX_RANGE,
+  RAZORWIRE_WIRE_LENGTH,
+  RAZORWIRE_CROSSING_COOLDOWN_SECONDS,
+  RAZORWIRE_SLOW_CHILL_STACKS,
+  RAZORWIRE_SLOW_DURATION_SECONDS,
+  RAZORWIRE_CROSSING_MARGIN,
+  RAZORWIRE_TRIPWIRE_COUNT,
+  RAZORWIRE_TRIPWIRE_LENGTH,
+  RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
+  RAZORWIRE_GUILLOTINE_LENGTH,
+  RAZORWIRE_GUILLOTINE_MARGIN,
+  RAZORWIRE_GUILLOTINE_TENSION_CAP,
+  RAZORWIRE_GUILLOTINE_SNAP_DAMAGE_MULTIPLIER,
+  BLOOD_RITE_PULSE_RADIUS,
+  BLOOD_RITE_SACRIFICE_FRACTION,
+  BLOOD_RITE_MIN_HP_AFTER,
+  BLOOD_RITE_DEBT_DURATION_SECONDS,
+  BLOOD_RITE_BASE_POTENCY,
+  BLOOD_RITE_POTENCY_PER_SACRIFICED_HP,
+  BLOOD_RITE_MAX_POTENCY,
+  BLOOD_RITE_RESONANCE_POTENCY_MULTIPLIER,
+  BLOOD_RITE_SANGUINE_HEAL_RATIO,
+  BLOOD_RITE_CRIMSON_CHARGES,
+  BLOOD_RITE_CRIMSON_POTENCY_MULTIPLIER,
+  BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
+  PRISM_HALO_DURATION_SECONDS,
+  PRISM_HALO_RANGE,
+  PRISM_HALO_FIRE_INTERVAL_SECONDS,
+  PRISM_HALO_ORBIT_RADIUS,
+  PRISM_HALO_ORBIT_ANGULAR_SPEED,
+  PRISM_HALO_BURNING_DURATION_SECONDS,
+  PRISM_HALO_BURNING_FIRE_DAMAGE_RATIO,
+  PRISM_HALO_CHILL_STACKS,
+  PRISM_HALO_CHILL_DURATION_SECONDS,
+  PRISM_HALO_SHOCK_STACKS,
+  PRISM_HALO_SHOCK_DURATION_SECONDS,
+  PRISM_HALO_CONVERGENCE_WINDOW_SECONDS,
+  PRISM_HALO_CONVERGENCE_BURST_MULTIPLIER,
+  PRISM_HALO_REFRACTION_MAX_SPLITS,
+  PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER,
+  PRISM_HALO_REFRACTION_SPLIT_RADIUS,
+  MIRRORCAST_WIRE_DURATION_BONUS_SECONDS,
+  RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE,
+  BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS,
 } from '../../../game-config/skills'
 import {
   createDamageValues,
   scaleDamageValues,
+  addDamageValues,
+  sumDamageValues,
+  DAMAGE_TYPES,
+  type DamageValues,
 } from '../../../content/stats/Damage'
 import type { EntityIdAllocator } from '../../ids'
 import type { RandomSource } from '../../random/Random'
@@ -105,6 +172,8 @@ import type {
   TrapState,
   RelayState,
   SoulTetherState,
+  MirrorcastCopyState,
+  WireState,
 } from '../../state/GameState'
 import {
   healPlayer,
@@ -1699,6 +1768,1106 @@ export function updateSoulTether(
   return events
 }
 
+// ---------------------------------------------------------------------------
+// Sigil of Ruin, Mirrorcast, Razorwire, Blood Rite, and Prism Halo
+// ---------------------------------------------------------------------------
+
+function findNearbyLivingEnemies(
+  state: Readonly<GameState>,
+  x: number,
+  y: number,
+  radius: number,
+  excludeIds: ReadonlySet<number>,
+): Array<EnemyState | BossState> {
+  const radiusSquared = radius * radius
+  return [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0 && !excludeIds.has(enemy.id))
+    .map((enemy) => ({
+      enemy,
+      distanceSquared: (enemy.x - x) ** 2 + (enemy.y - y) ** 2,
+    }))
+    .filter((candidate) => candidate.distanceSquared <= radiusSquared)
+    .sort((left, right) =>
+      left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
+    )
+    .map((candidate) => candidate.enemy)
+}
+
+function stripAttunementDamage(
+  damage: Readonly<DamageValues>,
+  attunement: Readonly<DamageValues> | undefined,
+): DamageValues {
+  if (!attunement) {
+    return { ...damage }
+  }
+  const stripped = { ...damage }
+  for (const damageType of DAMAGE_TYPES) {
+    stripped[damageType] = Math.max(0, stripped[damageType] - attunement[damageType])
+  }
+  return stripped
+}
+
+function collectSigilOfRuinCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(SIGIL_OF_RUIN_SKILL_ID)
+  const target = findNearestLivingTarget(state, definition.maxRange ?? SIGIL_OF_RUIN_MAX_RANGE)
+  if (!target) {
+    return []
+  }
+  const resonant = isSkillResonant(state, skill.skillId)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const detonationDamageMultiplier = 1 + damageIncreasePercent / 100
+  const startingCharges = resonant ? SIGIL_OF_RUIN_RESONANCE_STARTING_CHARGES : 0
+  state.player.ruinSigils ??= []
+  const existing = state.player.ruinSigils.find(
+    (sigil) => sigil.targetId === target.id,
+  )
+  if (existing) {
+    existing.remainingDuration = SIGIL_OF_RUIN_DURATION_SECONDS
+    existing.detonationDamageMultiplier = detonationDamageMultiplier
+    existing.charges = Math.max(existing.charges, startingCharges)
+    existing.spreadOnDetonate = existing.spreadOnDetonate || resonant
+  } else {
+    state.player.ruinSigils.push({
+      id: allocator.createEntityId(),
+      targetId: target.id,
+      remainingDuration: SIGIL_OF_RUIN_DURATION_SECONDS,
+      charges: startingCharges,
+      chargedCategories: [],
+      storedDamage: 0,
+      storedDamageCap: SIGIL_OF_RUIN_STORED_DAMAGE_CAP,
+      detonationDamageMultiplier,
+      armed: false,
+      spreadOnDetonate: resonant,
+      canSpread: true,
+    })
+  }
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: target.x, y: target.y }],
+    18,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
+/** Ticks Ruin Sigil durations and expires marks whose timer has elapsed. */
+export function updateRuinSigils(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const sigils = state.player.ruinSigils
+  if (!sigils || sigils.length === 0) {
+    return
+  }
+  const livingIds = new Set(
+    [...state.enemies, ...(state.bosses ?? [])]
+      .filter((enemy) => enemy.hp > 0)
+      .map((enemy) => enemy.id),
+  )
+  state.player.ruinSigils = sigils.filter((sigil) => {
+    sigil.remainingDuration -= fixedStepSeconds
+    return sigil.remainingDuration > 0 && livingIds.has(sigil.targetId)
+  })
+}
+
+function classifySkillEffect(
+  definition: ReturnType<typeof getSkillDefinition>,
+): 'shield' | 'healing' | 'damage' | 'utility' {
+  if ((definition.shieldBaseAmount ?? 0) > 0) {
+    return 'shield'
+  }
+  if ((definition.baseHealing ?? 0) > 0) {
+    return 'healing'
+  }
+  const dealsDamage = definition.canProduceDirectHit &&
+    (sumDamageValues(definition.baseDamage) > 0 ||
+      definition.tags.some((tag) =>
+        tag === 'physical' ||
+        tag === 'fire' ||
+        tag === 'cold' ||
+        tag === 'lightning' ||
+        tag === 'chaos',
+      ))
+  return dealsDamage ? 'damage' : 'utility'
+}
+
+function grantMirrorWardShield(state: GameState, amount: number): void {
+  if (amount <= 0) {
+    return
+  }
+  const currentMax = state.player.aegisPulseShieldMaxAmount ?? 0
+  const newMax = Math.max(currentMax, amount)
+  state.player.aegisPulseShieldMaxAmount = newMax
+  state.player.aegisPulseShieldAmount = Math.min(
+    newMax,
+    (state.player.aegisPulseShieldAmount ?? 0) + amount,
+  )
+  state.player.aegisPulseShieldDuration = AEGIS_PULSE_BASE_DURATION_SECONDS
+  state.player.aegisPulseShieldRemaining = Math.max(
+    state.player.aegisPulseShieldRemaining ?? 0,
+    AEGIS_PULSE_BASE_DURATION_SECONDS,
+  )
+}
+
+function castMirrorcast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(MIRRORCAST_SKILL_ID)
+  const resonant = isSkillResonant(state, skill.skillId)
+  const doubleExposure = state.run.selectedUpgradeIds.includes('mirrorcast-double-exposure')
+  const deferred = state.run.selectedUpgradeIds.includes('mirrorcast-deferred-echo')
+  const echoCount = doubleExposure ? MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT : 1
+  let effectiveness = doubleExposure
+    ? MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS
+    : deferred
+      ? MIRRORCAST_DEFERRED_EFFECTIVENESS
+      : MIRRORCAST_BASE_EFFECTIVENESS
+  if (resonant) {
+    effectiveness = Math.max(effectiveness, MIRRORCAST_RESONANCE_EFFECTIVENESS)
+  }
+  const levelBonus = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  ) / 100
+  effectiveness *= 1 + levelBonus
+  state.player.mirrorcast = {
+    status: 'armed',
+    captureRemaining: MIRRORCAST_CAPTURE_WINDOW_SECONDS,
+    echoCount,
+    effectiveness,
+    preserveSecondary: resonant,
+    deferred,
+    copies: [],
+  }
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    20,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
+/** Captures the just-cast skill into an armed Mirrorcast Echo, if any. */
+function captureMirrorcastIfArmed(state: GameState, castSkill: SkillState): void {
+  const mirrorcast = state.player.mirrorcast
+  if (
+    !mirrorcast ||
+    mirrorcast.status !== 'armed' ||
+    castSkill.skillId === MIRRORCAST_SKILL_ID ||
+    castSkill.skillId === BASIC_ATTACK_SKILL_ID
+  ) {
+    return
+  }
+  const target = findNearestLivingTarget(state, MIRRORCAST_COPY_MAX_RANGE)
+  const baseDelay = mirrorcast.deferred
+    ? MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS
+    : MIRRORCAST_COPY_DELAY_SECONDS
+  const copies: MirrorcastCopyState[] = []
+  for (let index = 0; index < mirrorcast.echoCount; index += 1) {
+    copies.push({
+      skillId: castSkill.skillId,
+      level: castSkill.level,
+      delayRemaining: baseDelay * (1 + index * 0.5),
+      effectiveness: mirrorcast.effectiveness,
+      targetId: target?.id,
+      retargetOnKill: mirrorcast.deferred,
+      preserveSecondary: mirrorcast.preserveSecondary,
+    })
+  }
+  mirrorcast.copies = copies
+  mirrorcast.status = 'pending'
+}
+
+function getElementStatusApplications(
+  tags: readonly string[],
+  preserveSecondary: boolean,
+): Pick<DamageEvent, 'frostApplication' | 'shockApplication' | 'burningApplication'> {
+  if (!preserveSecondary) {
+    return {}
+  }
+  if (tags.includes('cold')) {
+    return { frostApplication: { stacks: 1, durationSeconds: 4 } }
+  }
+  if (tags.includes('lightning')) {
+    return {
+      shockApplication: {
+        stacks: 1,
+        durationSeconds: 4,
+        threshold: 3,
+        burstMultiplier: 1.5,
+      },
+    }
+  }
+  if (tags.includes('fire')) {
+    return {
+      burningApplication: { durationSeconds: 3, fireDamageRatio: 0.35 },
+    }
+  }
+  return {}
+}
+
+function executeMirrorcastCopy(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  copy: MirrorcastCopyState,
+  random?: Pick<RandomSource, 'next'>,
+): DamageEvent[] {
+  const definition = getSkillDefinition(copy.skillId)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const events: DamageEvent[] = []
+  const mirrorWire = state.run.selectedUpgradeIds.includes('synergy-mirrorcast-razorwire')
+  const prismaticEcho = state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')
+  const category = classifySkillEffect(definition)
+
+  if (mirrorWire) {
+    for (const wire of state.wires ?? []) {
+      wire.remainingDuration += MIRRORCAST_WIRE_DURATION_BONUS_SECONDS
+    }
+  }
+  if (prismaticEcho && state.player.prismHalo) {
+    const prismTarget = findNearestLivingTarget(state, PRISM_HALO_RANGE)
+    if (prismTarget) {
+      const element = PRISM_ELEMENTS[state.player.prismHalo.nextElementIndex % PRISM_ELEMENTS.length]!
+      state.player.prismHalo.nextElementIndex =
+        (state.player.prismHalo.nextElementIndex + 1) % PRISM_ELEMENTS.length
+      events.push(...firePrismShard(state, allocator, prismTarget, element, false))
+    }
+  }
+
+  if (category === 'healing') {
+    const healing = getSkillHealing(definition, copy.level) * copy.effectiveness *
+      (1 + playerStats.increasedHealing / 100)
+    if (healing > 0) {
+      healPlayer(state, healing, `${definition.name} (Echo)`, random)
+    }
+  } else if (category === 'shield') {
+    const shield = getSkillShieldAmount(definition, copy.level) * copy.effectiveness
+    grantMirrorWardShield(state, shield)
+  } else if (category === 'damage') {
+    let target = copy.targetId !== undefined
+      ? [...state.enemies, ...(state.bosses ?? [])].find(
+          (enemy) => enemy.id === copy.targetId && enemy.hp > 0,
+        )
+      : undefined
+    if (!target && (copy.retargetOnKill || copy.targetId === undefined)) {
+      target = findNearestLivingTarget(state, MIRRORCAST_COPY_MAX_RANGE)
+    }
+    if (target) {
+      const damageIncreasePercent = getSkillDamageIncreasePercent(
+        copy.skillId,
+        copy.level,
+        state.run.selectedUpgradeIds,
+      )
+      const profile = createPlayerDamageProfileFromStats(
+        playerStats,
+        getSkillDamage(definition, copy.level),
+        {
+          sourceTags: definition.tags,
+          additionalIncreasedDamage: { global: damageIncreasePercent },
+          attunementSourceAdditionalIncreasedDamage:
+            getAttunementSourceAdditionalIncreasedDamage(state),
+        },
+      )
+      const copyDamage = scaleDamageValues(profile.damage, copy.effectiveness)
+      const statusApplications = getElementStatusApplications(
+        definition.tags,
+        copy.preserveSecondary,
+      )
+      const targets = copy.preserveSecondary && (definition.radius ?? 0) > 0
+        ? [target, ...findNearbyLivingEnemies(
+            state,
+            target.x,
+            target.y,
+            definition.radius ?? 0,
+            new Set([target.id]),
+          )]
+        : [target]
+      for (const enemy of targets) {
+        events.push({
+          sourceId: state.player.id,
+          sourceSkillId: MIRRORCAST_SKILL_ID,
+          sourceLabel: 'Mirrorcast',
+          sourceTags: definition.tags,
+          targetId: enemy.id,
+          damage: copyDamage,
+          criticalStrike: profile.criticalStrike,
+          ...statusApplications,
+        })
+      }
+      addEffect(
+        state,
+        allocator,
+        MIRRORCAST_SKILL_ID,
+        [
+          { x: state.player.x, y: state.player.y },
+          { x: target.x, y: target.y },
+        ],
+        8,
+        getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
+        'line',
+      )
+    }
+  } else {
+    addEffect(
+      state,
+      allocator,
+      MIRRORCAST_SKILL_ID,
+      [{ x: state.player.x, y: state.player.y }],
+      18,
+      getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
+    )
+  }
+  return events
+}
+
+/** Ticks the Mirrorcast Echo: disarms on window expiry or runs due copies. */
+export function updateMirrorcast(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
+): DamageEvent[] {
+  const mirrorcast = state.player.mirrorcast
+  if (!mirrorcast) {
+    return []
+  }
+  if (mirrorcast.status === 'armed') {
+    mirrorcast.captureRemaining -= fixedStepSeconds
+    if (mirrorcast.captureRemaining <= 0) {
+      state.player.mirrorcast = undefined
+    }
+    return []
+  }
+  const events: DamageEvent[] = []
+  const remaining: MirrorcastCopyState[] = []
+  for (const copy of mirrorcast.copies) {
+    copy.delayRemaining -= fixedStepSeconds
+    if (copy.delayRemaining > 0) {
+      remaining.push(copy)
+      continue
+    }
+    events.push(...executeMirrorcastCopy(state, allocator, copy, random))
+  }
+  if (remaining.length === 0) {
+    state.player.mirrorcast = undefined
+  } else {
+    mirrorcast.copies = remaining
+  }
+  return events
+}
+
+function createRazorwire(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  centerX: number,
+  centerY: number,
+  directionAngle: number,
+  length: number,
+  margin: number,
+  damage: DamageValues,
+  criticalStrike: DamageEvent['criticalStrike'],
+  guillotine: boolean,
+): void {
+  const halfLength = length / 2
+  const offsetX = Math.cos(directionAngle) * halfLength
+  const offsetY = Math.sin(directionAngle) * halfLength
+  state.wires ??= []
+  state.wires.push({
+    id: allocator.createEntityId(),
+    ownerId: state.player.id,
+    skillId: RAZORWIRE_SKILL_ID,
+    ax: centerX - offsetX,
+    ay: centerY - offsetY,
+    bx: centerX + offsetX,
+    by: centerY + offsetY,
+    remainingDuration: RAZORWIRE_DURATION_SECONDS,
+    damage,
+    criticalStrike,
+    slowChillStacks: RAZORWIRE_SLOW_CHILL_STACKS,
+    slowDurationSeconds: RAZORWIRE_SLOW_DURATION_SECONDS,
+    crossingCooldownSeconds: RAZORWIRE_CROSSING_COOLDOWN_SECONDS,
+    crossingMargin: margin,
+    crossingCooldowns: [],
+    enemySides: [],
+    guillotine,
+    tensionCap: RAZORWIRE_GUILLOTINE_TENSION_CAP,
+    snapDamageMultiplier: RAZORWIRE_GUILLOTINE_SNAP_DAMAGE_MULTIPLIER,
+    tension: [],
+  })
+}
+
+function collectRazorwireCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(RAZORWIRE_SKILL_ID)
+  const target = findNearestLivingTarget(state, definition.maxRange ?? RAZORWIRE_MAX_RANGE)
+  if (!target) {
+    return []
+  }
+  const playerStats = getDerivedPlayerStats(state.player)
+  const tripwire = state.run.selectedUpgradeIds.includes('razorwire-tripwire-network')
+  const guillotine = state.run.selectedUpgradeIds.includes('razorwire-guillotine-line')
+  const resonant = isSkillResonant(state, skill.skillId)
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    getSkillDamage(definition, skill.level),
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
+    },
+  )
+  const toTargetAngle = Math.atan2(
+    target.y - state.player.y,
+    target.x - state.player.x,
+  )
+  const perpendicularAngle = toTargetAngle + Math.PI / 2
+  if (tripwire) {
+    const tripwireDamage = scaleDamageValues(
+      outgoingDamage.damage,
+      RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
+    )
+    for (let index = 0; index < RAZORWIRE_TRIPWIRE_COUNT; index += 1) {
+      const angle = perpendicularAngle + (Math.PI * index) / RAZORWIRE_TRIPWIRE_COUNT
+      createRazorwire(
+        state,
+        allocator,
+        target.x,
+        target.y,
+        angle,
+        RAZORWIRE_TRIPWIRE_LENGTH,
+        RAZORWIRE_CROSSING_MARGIN,
+        tripwireDamage,
+        outgoingDamage.criticalStrike,
+        false,
+      )
+    }
+  } else if (guillotine) {
+    createRazorwire(
+      state,
+      allocator,
+      target.x,
+      target.y,
+      perpendicularAngle,
+      RAZORWIRE_GUILLOTINE_LENGTH,
+      RAZORWIRE_GUILLOTINE_MARGIN,
+      outgoingDamage.damage,
+      outgoingDamage.criticalStrike,
+      true,
+    )
+  } else {
+    createRazorwire(
+      state,
+      allocator,
+      target.x,
+      target.y,
+      perpendicularAngle,
+      RAZORWIRE_WIRE_LENGTH,
+      RAZORWIRE_CROSSING_MARGIN,
+      outgoingDamage.damage,
+      outgoingDamage.criticalStrike,
+      false,
+    )
+    if (resonant) {
+      createRazorwire(
+        state,
+        allocator,
+        target.x,
+        target.y,
+        toTargetAngle,
+        RAZORWIRE_WIRE_LENGTH,
+        RAZORWIRE_CROSSING_MARGIN,
+        outgoingDamage.damage,
+        outgoingDamage.criticalStrike,
+        false,
+      )
+    }
+  }
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: target.x, y: target.y }],
+    definition.radius ?? 24,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
+function getWireSide(wire: Readonly<WireState>, x: number, y: number): number {
+  const dirX = wire.bx - wire.ax
+  const dirY = wire.by - wire.ay
+  const cross = dirX * (y - wire.ay) - dirY * (x - wire.ax)
+  return Math.sign(cross)
+}
+
+function isWithinWireSpan(
+  wire: Readonly<WireState>,
+  x: number,
+  y: number,
+): boolean {
+  const dirX = wire.bx - wire.ax
+  const dirY = wire.by - wire.ay
+  const lengthSquared = dirX * dirX + dirY * dirY
+  if (lengthSquared <= 0) {
+    return false
+  }
+  const projection = ((x - wire.ax) * dirX + (y - wire.ay) * dirY) / lengthSquared
+  const marginFraction = wire.crossingMargin / Math.sqrt(lengthSquared)
+  return projection >= -marginFraction && projection <= 1 + marginFraction
+}
+
+/** Resolves Razorwire crossings deterministically and expires ended wires. */
+export function updateRazorwires(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const wires = state.wires
+  if (!wires || wires.length === 0) {
+    return []
+  }
+  const events: DamageEvent[] = []
+  const livingEnemies = [...state.enemies, ...(state.bosses ?? [])].filter(
+    (enemy) => enemy.hp > 0,
+  )
+  const livingIds = new Set(livingEnemies.map((enemy) => enemy.id))
+  const bloodwire = state.run.selectedUpgradeIds.includes('synergy-razorwire-blood-rite') &&
+    (state.player.bloodDebt?.charges ?? 0) > 0
+  const remaining: WireState[] = []
+  for (const wire of [...wires].sort((left, right) => left.id - right.id)) {
+    wire.remainingDuration -= fixedStepSeconds
+    if (wire.remainingDuration <= 0) {
+      continue
+    }
+    for (const cooldown of wire.crossingCooldowns) {
+      cooldown.remaining = Math.max(0, cooldown.remaining - fixedStepSeconds)
+    }
+    for (const enemy of [...livingEnemies].sort((left, right) => left.id - right.id)) {
+      const side = getWireSide(wire, enemy.x, enemy.y)
+      const sideEntry = wire.enemySides.find((entry) => entry.enemyId === enemy.id)
+      const previousSide = sideEntry?.side ?? 0
+      const crossed = previousSide !== 0 &&
+        side !== 0 &&
+        side !== previousSide &&
+        isWithinWireSpan(wire, enemy.x, enemy.y)
+      if (sideEntry) {
+        sideEntry.side = side
+      } else {
+        wire.enemySides.push({ enemyId: enemy.id, side })
+      }
+      if (!crossed) {
+        continue
+      }
+      const cooldownEntry = wire.crossingCooldowns.find(
+        (entry) => entry.enemyId === enemy.id,
+      )
+      if (cooldownEntry && cooldownEntry.remaining > 0) {
+        continue
+      }
+      if (cooldownEntry) {
+        cooldownEntry.remaining = wire.crossingCooldownSeconds
+      } else {
+        wire.crossingCooldowns.push({
+          enemyId: enemy.id,
+          remaining: wire.crossingCooldownSeconds,
+        })
+      }
+      let crossingDamage = wire.damage
+      if (wire.guillotine) {
+        const tensionEntry = wire.tension.find((entry) => entry.enemyId === enemy.id)
+        const nextValue = (tensionEntry?.value ?? 0) + 1
+        if (nextValue >= wire.tensionCap) {
+          crossingDamage = scaleDamageValues(wire.damage, wire.snapDamageMultiplier)
+          if (tensionEntry) {
+            tensionEntry.value = 0
+          }
+        } else if (tensionEntry) {
+          tensionEntry.value = nextValue
+        } else {
+          wire.tension.push({ enemyId: enemy.id, value: nextValue })
+        }
+      }
+      const chillStacks = wire.slowChillStacks
+      const crossingEventDamage = bloodwire
+        ? addDamageValues(crossingDamage, { chaos: RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE })
+        : crossingDamage
+      events.push({
+        sourceId: state.player.id,
+        sourceSkillId: RAZORWIRE_SKILL_ID,
+        sourceTags: getSkillDefinition(RAZORWIRE_SKILL_ID).tags,
+        targetId: enemy.id,
+        damage: crossingEventDamage,
+        criticalStrike: wire.criticalStrike,
+        frostApplication: {
+          stacks: chillStacks,
+          durationSeconds: wire.slowDurationSeconds,
+        },
+      })
+      addEffect(
+        state,
+        allocator,
+        RAZORWIRE_SKILL_ID,
+        [{ x: enemy.x, y: enemy.y }],
+        10,
+        getSkillDefinition(RAZORWIRE_SKILL_ID).effectLifetime,
+      )
+    }
+    wire.crossingCooldowns = wire.crossingCooldowns.filter(
+      (entry) => livingIds.has(entry.enemyId) && entry.remaining > 0,
+    )
+    wire.enemySides = wire.enemySides.filter((entry) => livingIds.has(entry.enemyId))
+    wire.tension = wire.tension.filter((entry) => livingIds.has(entry.enemyId))
+    remaining.push(wire)
+  }
+  state.wires = remaining
+  return events
+}
+
+function collectBloodRiteCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(BLOOD_RITE_SKILL_ID)
+  const playerStats = getDerivedPlayerStats(state.player)
+  const resonant = isSkillResonant(state, skill.skillId)
+  const crimson = state.run.selectedUpgradeIds.includes('blood-rite-crimson-debt')
+  const sanguine = state.run.selectedUpgradeIds.includes('blood-rite-sanguine-pact')
+  const prismOffering = state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')
+
+  const notionalSacrifice = Math.max(
+    0,
+    Math.min(
+      state.player.hp * BLOOD_RITE_SACRIFICE_FRACTION,
+      state.player.hp - BLOOD_RITE_MIN_HP_AFTER,
+    ),
+  )
+  const sacrifice = resonant ? 0 : notionalSacrifice
+  if (sacrifice > 0) {
+    state.player.hp = Math.max(BLOOD_RITE_MIN_HP_AFTER, state.player.hp - sacrifice)
+  }
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    skill.skillId,
+    skill.level,
+    state.run.selectedUpgradeIds,
+  )
+  // Resonance forgoes the HP cost but still stores a larger debt: potency is
+  // sized from the sacrifice the ritual would have demanded, then amplified.
+  let potency = Math.min(
+    BLOOD_RITE_MAX_POTENCY,
+    BLOOD_RITE_BASE_POTENCY + notionalSacrifice * BLOOD_RITE_POTENCY_PER_SACRIFICED_HP,
+  ) * (1 + damageIncreasePercent / 100)
+  if (resonant) {
+    potency *= BLOOD_RITE_RESONANCE_POTENCY_MULTIPLIER
+  }
+  const charges = crimson ? BLOOD_RITE_CRIMSON_CHARGES : 1
+  const perChargePotency = crimson
+    ? potency * BLOOD_RITE_CRIMSON_POTENCY_MULTIPLIER
+    : potency
+  state.player.bloodDebt = {
+    charges,
+    potency: perChargePotency,
+    sacrificedHealth: sacrifice,
+    remainingDuration: BLOOD_RITE_DEBT_DURATION_SECONDS,
+    sanguinePact: sanguine,
+  }
+  if (prismOffering && state.player.prismHalo) {
+    state.player.prismHalo.remainingDuration += BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS
+  }
+
+  const pulseRadius = scaleAreaValue(
+    definition.radius ?? BLOOD_RITE_PULSE_RADIUS,
+    playerStats.areaOfEffect,
+  )
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    getSkillDamage(definition, skill.level),
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
+    },
+  )
+  const events: DamageEvent[] = []
+  for (const enemy of findNearbyLivingEnemies(
+    state,
+    state.player.x,
+    state.player.y,
+    pulseRadius,
+    new Set(),
+  )) {
+    events.push({
+      sourceId: state.player.id,
+      sourceSkillId: BLOOD_RITE_SKILL_ID,
+      sourceTags: definition.tags,
+      targetId: enemy.id,
+      damage: outgoingDamage.damage,
+      criticalStrike: outgoingDamage.criticalStrike,
+    })
+  }
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    pulseRadius,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return events
+}
+
+/** Consumes one Blood Debt charge to empower the skill that was just cast. */
+function consumeBloodDebtForCast(
+  state: GameState,
+  castSkill: SkillState,
+): DamageEvent[] {
+  const debt = state.player.bloodDebt
+  if (
+    !debt ||
+    debt.charges <= 0 ||
+    castSkill.skillId === BLOOD_RITE_SKILL_ID ||
+    castSkill.skillId === BASIC_ATTACK_SKILL_ID
+  ) {
+    return []
+  }
+  const definition = getSkillDefinition(castSkill.skillId)
+  const category = classifySkillEffect(definition)
+  const potency = debt.potency
+  const events: DamageEvent[] = []
+  if (category === 'healing') {
+    healPlayer(state, potency, 'Blood Debt')
+  } else if (category === 'shield') {
+    grantMirrorWardShield(state, potency)
+  } else if (category === 'damage') {
+    const target = findNearestLivingTarget(state, SIGIL_OF_RUIN_MAX_RANGE)
+    if (target) {
+      events.push({
+        sourceId: state.player.id,
+        sourceSkillId: BLOOD_RITE_SKILL_ID,
+        sourceLabel: 'Blood Debt',
+        sourceTags: ['chaos'],
+        targetId: target.id,
+        damage: createDamageValues({ chaos: potency }),
+      })
+      if (debt.sanguinePact) {
+        healPlayer(state, potency * BLOOD_RITE_SANGUINE_HEAL_RATIO, 'Sanguine Pact')
+      }
+    }
+  } else {
+    for (const tether of state.player.soulTethers ?? []) {
+      tether.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    }
+    for (const relay of state.relays ?? []) {
+      relay.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    }
+    for (const wire of state.wires ?? []) {
+      wire.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    }
+    if (state.player.prismHalo) {
+      state.player.prismHalo.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    }
+  }
+  debt.charges -= 1
+  if (debt.charges <= 0) {
+    state.player.bloodDebt = undefined
+  }
+  return events
+}
+
+/** Ticks Blood Debt expiry. */
+export function updateBloodDebt(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const debt = state.player.bloodDebt
+  if (!debt) {
+    return
+  }
+  debt.remainingDuration -= fixedStepSeconds
+  if (debt.remainingDuration <= 0 || debt.charges <= 0) {
+    state.player.bloodDebt = undefined
+  }
+}
+
+const PRISM_ELEMENTS = ['fire', 'cold', 'lightning'] as const
+type PrismElement = (typeof PRISM_ELEMENTS)[number]
+
+function getPrismStatusApplications(
+  element: PrismElement,
+): Pick<DamageEvent, 'frostApplication' | 'shockApplication' | 'burningApplication'> {
+  if (element === 'cold') {
+    return {
+      frostApplication: {
+        stacks: PRISM_HALO_CHILL_STACKS,
+        durationSeconds: PRISM_HALO_CHILL_DURATION_SECONDS,
+      },
+    }
+  }
+  if (element === 'lightning') {
+    return {
+      shockApplication: {
+        stacks: PRISM_HALO_SHOCK_STACKS,
+        durationSeconds: PRISM_HALO_SHOCK_DURATION_SECONDS,
+        threshold: 3,
+        burstMultiplier: 1.5,
+      },
+    }
+  }
+  return {
+    burningApplication: {
+      durationSeconds: PRISM_HALO_BURNING_DURATION_SECONDS,
+      fireDamageRatio: PRISM_HALO_BURNING_FIRE_DAMAGE_RATIO,
+    },
+  }
+}
+
+function updatePrismConvergence(
+  state: GameState,
+  target: Readonly<EnemyState | BossState>,
+  element: PrismElement,
+  primaryDamage: Readonly<DamageValues>,
+  criticalStrike: DamageEvent['criticalStrike'],
+): DamageEvent[] {
+  if (!state.run.selectedUpgradeIds.includes('prism-halo-chromatic-convergence')) {
+    return []
+  }
+  state.player.prismConvergence ??= []
+  let mark = state.player.prismConvergence.find((entry) => entry.enemyId === target.id)
+  if (!mark) {
+    mark = {
+      enemyId: target.id,
+      fire: false,
+      cold: false,
+      lightning: false,
+      remaining: PRISM_HALO_CONVERGENCE_WINDOW_SECONDS,
+    }
+    state.player.prismConvergence.push(mark)
+  }
+  mark[element] = true
+  mark.remaining = PRISM_HALO_CONVERGENCE_WINDOW_SECONDS
+  if (!mark.fire || !mark.cold || !mark.lightning) {
+    return []
+  }
+  mark.fire = false
+  mark.cold = false
+  mark.lightning = false
+  // The Prism Burst recombines the shard's magnitude across all three elements.
+  const perElement = (sumDamageValues(primaryDamage) / 3) *
+    PRISM_HALO_CONVERGENCE_BURST_MULTIPLIER
+  return [{
+    sourceId: state.player.id,
+    sourceSkillId: PRISM_HALO_SKILL_ID,
+    sourceLabel: 'Prism Burst',
+    sourceTags: ['fire', 'cold', 'lightning'],
+    targetId: target.id,
+    damage: createDamageValues({
+      fire: perElement,
+      cold: perElement,
+      lightning: perElement,
+    }),
+    criticalStrike,
+  }]
+}
+
+function firePrismShard(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  target: EnemyState | BossState,
+  element: PrismElement,
+  applyAttunement: boolean,
+): DamageEvent[] {
+  const definition = getSkillDefinition(PRISM_HALO_SKILL_ID)
+  const skill = state.player.skills.find((candidate) => candidate.skillId === PRISM_HALO_SKILL_ID)
+  const level = skill?.level ?? 1
+  const playerStats = getDerivedPlayerStats(state.player)
+  const magnitude = sumDamageValues(getSkillDamage(definition, level))
+  const damageIncreasePercent = getSkillDamageIncreasePercent(
+    PRISM_HALO_SKILL_ID,
+    level,
+    state.run.selectedUpgradeIds,
+  )
+  const profile = createPlayerDamageProfileFromStats(
+    playerStats,
+    { [element]: magnitude },
+    {
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: { global: damageIncreasePercent },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
+    },
+  )
+  const shardDamage = applyAttunement
+    ? profile.damage
+    : stripAttunementDamage(profile.damage, profile.attunementDamage)
+  const statusApplications = getPrismStatusApplications(element)
+  const events: DamageEvent[] = [{
+    sourceId: state.player.id,
+    sourceSkillId: PRISM_HALO_SKILL_ID,
+    sourceTags: definition.tags,
+    targetId: target.id,
+    damage: shardDamage,
+    criticalStrike: profile.criticalStrike,
+    ...statusApplications,
+  }]
+
+  if (state.run.selectedUpgradeIds.includes('prism-halo-refraction')) {
+    const splitDamage = scaleDamageValues(shardDamage, PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER)
+    const splits = findNearbyLivingEnemies(
+      state,
+      target.x,
+      target.y,
+      PRISM_HALO_REFRACTION_SPLIT_RADIUS,
+      new Set([target.id]),
+    ).slice(0, PRISM_HALO_REFRACTION_MAX_SPLITS)
+    for (const enemy of splits) {
+      events.push({
+        sourceId: state.player.id,
+        sourceSkillId: PRISM_HALO_SKILL_ID,
+        sourceLabel: 'Refraction',
+        sourceTags: definition.tags,
+        targetId: enemy.id,
+        damage: splitDamage,
+        criticalStrike: profile.criticalStrike,
+        ...statusApplications,
+      })
+      addEffect(
+        state,
+        allocator,
+        PRISM_HALO_SKILL_ID,
+        [
+          { x: target.x, y: target.y },
+          { x: enemy.x, y: enemy.y },
+        ],
+        5,
+        definition.effectLifetime,
+        'line',
+      )
+    }
+  }
+
+  events.push(...updatePrismConvergence(state, target, element, shardDamage, profile.criticalStrike))
+  return events
+}
+
+/** Ticks the Prism Halo: advances rotation and fires shards on the interval. */
+export function updatePrismHalo(
+  state: GameState,
+  fixedStepSeconds: number,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const halo = state.player.prismHalo
+  if (state.player.prismConvergence) {
+    state.player.prismConvergence = state.player.prismConvergence.filter((mark) => {
+      mark.remaining -= fixedStepSeconds
+      return mark.remaining > 0
+    })
+  }
+  if (!halo) {
+    return []
+  }
+  halo.remainingDuration -= fixedStepSeconds
+  halo.rotation += PRISM_HALO_ORBIT_ANGULAR_SPEED * fixedStepSeconds
+  if (halo.remainingDuration <= 0) {
+    state.player.prismHalo = undefined
+    return []
+  }
+  halo.fireCooldownRemaining -= fixedStepSeconds
+  if (halo.fireCooldownRemaining > 0) {
+    return []
+  }
+  const definition = getSkillDefinition(PRISM_HALO_SKILL_ID)
+  const target = findNearestLivingTarget(state, definition.maxRange ?? PRISM_HALO_RANGE)
+  if (!target) {
+    return []
+  }
+  halo.fireCooldownRemaining = PRISM_HALO_FIRE_INTERVAL_SECONDS
+  const events: DamageEvent[] = []
+  if (halo.firesAllElements) {
+    for (let index = 0; index < PRISM_ELEMENTS.length; index += 1) {
+      events.push(...firePrismShard(state, allocator, target, PRISM_ELEMENTS[index]!, index === 0))
+    }
+  } else {
+    const element = PRISM_ELEMENTS[halo.nextElementIndex % PRISM_ELEMENTS.length]!
+    halo.nextElementIndex = (halo.nextElementIndex + 1) % PRISM_ELEMENTS.length
+    events.push(...firePrismShard(state, allocator, target, element, true))
+  }
+  addEffect(
+    state,
+    allocator,
+    PRISM_HALO_SKILL_ID,
+    [
+      { x: state.player.x, y: state.player.y },
+      { x: target.x, y: target.y },
+    ],
+    6,
+    definition.effectLifetime,
+    'line',
+  )
+  return events
+}
+
+function collectPrismHaloCast(
+  state: GameState,
+  skill: SkillState,
+  allocator: EntityIdAllocator,
+): DamageEvent[] {
+  const definition = getSkillDefinition(PRISM_HALO_SKILL_ID)
+  const resonant = isSkillResonant(state, skill.skillId)
+  state.player.prismHalo = {
+    ownerId: state.player.id,
+    remainingDuration: PRISM_HALO_DURATION_SECONDS,
+    fireCooldownRemaining: 0,
+    nextElementIndex: 0,
+    firesAllElements: resonant,
+    rotation: 0,
+  }
+  addEffect(
+    state,
+    allocator,
+    skill.skillId,
+    [{ x: state.player.x, y: state.player.y }],
+    PRISM_HALO_ORBIT_RADIUS,
+    definition.effectLifetime,
+  )
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
+}
+
 /**
  * Resolves ready non-projectile skills in stable skill order. Damage is queued
  * for the same deterministic damage pass as projectiles.
@@ -1756,6 +2925,16 @@ export function collectSkillDamage(
       events.push(...collectStormRelayCast(state, skill, allocator))
     } else if (skill.skillId === SOUL_TETHER_SKILL_ID) {
       events.push(...collectSoulTetherCast(state, skill, allocator))
+    } else if (skill.skillId === SIGIL_OF_RUIN_SKILL_ID) {
+      events.push(...collectSigilOfRuinCast(state, skill, allocator))
+    } else if (skill.skillId === MIRRORCAST_SKILL_ID) {
+      events.push(...castMirrorcast(state, skill, allocator))
+    } else if (skill.skillId === RAZORWIRE_SKILL_ID) {
+      events.push(...collectRazorwireCast(state, skill, allocator))
+    } else if (skill.skillId === BLOOD_RITE_SKILL_ID) {
+      events.push(...collectBloodRiteCast(state, skill, allocator))
+    } else if (skill.skillId === PRISM_HALO_SKILL_ID) {
+      events.push(...collectPrismHaloCast(state, skill, allocator))
     } else if (skill.skillId === PHANTOM_ARSENAL_SKILL_ID) {
       if (summonPhantomIfReady(state, allocator)) {
         const definition = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID)
@@ -1770,9 +2949,15 @@ export function collectSkillDamage(
         markSkillUsed(skill)
       }
     }
-    if ((skill.castCount ?? 0) > castCountBefore && resonant) {
-      applySkillResonanceEffect(state, skill.skillId)
-      consumeSkillResonance(state, skill.skillId)
+    if ((skill.castCount ?? 0) > castCountBefore) {
+      // Blood Debt and Mirrorcast react to any skill that actually cast this
+      // tick, but never to Basic Attack (handled elsewhere) or their own casts.
+      events.push(...consumeBloodDebtForCast(state, skill))
+      captureMirrorcastIfArmed(state, skill)
+      if (resonant) {
+        applySkillResonanceEffect(state, skill.skillId)
+        consumeSkillResonance(state, skill.skillId)
+      }
     }
   }
 

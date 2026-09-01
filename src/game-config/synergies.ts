@@ -23,6 +23,11 @@ import {
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from './skills'
 
 export const SYNERGY_OFFER_CHANCE = 0.1
@@ -287,5 +292,47 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     'Phantom Arsenal hits prime the next Rift Javelin return for bonus damage.',
     'Phantom Arsenal primes Rift Javelin',
     [PHANTOM_ARSENAL_SKILL_ID, RIFT_JAVELIN_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-sigil-of-ruin-prism-halo',
+    'Prismatic Ruin',
+    'A Ruin Sigil detonation also applies Burning, Chill, and Shock to every enemy it hits.',
+    'Ruin detonation applies all elements',
+    [SIGIL_OF_RUIN_SKILL_ID, PRISM_HALO_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-sigil-of-ruin-blood-rite',
+    'Sanguine Ruin',
+    'A Ruin Sigil detonation restores health equal to part of its burst damage.',
+    'Ruin detonation heals you',
+    [SIGIL_OF_RUIN_SKILL_ID, BLOOD_RITE_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-mirrorcast-razorwire',
+    'Mirror Wire',
+    'Each Echo copy extends the duration of every active Razorwire.',
+    'Echo copies sustain Razorwires',
+    [MIRRORCAST_SKILL_ID, RAZORWIRE_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-mirrorcast-prism-halo',
+    'Prismatic Echo',
+    'Each Echo copy fires an extra Prism shard volley while a Prism Halo is active.',
+    'Echo copies fire a Prism volley',
+    [MIRRORCAST_SKILL_ID, PRISM_HALO_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-razorwire-blood-rite',
+    'Bloodwire',
+    'While Blood Debt is active, Razorwire crossings deal bonus chaos damage.',
+    'Wire crossings add chaos with Blood Debt',
+    [RAZORWIRE_SKILL_ID, BLOOD_RITE_SKILL_ID],
+  ),
+  createSynergyUpgrade(
+    'synergy-blood-rite-prism-halo',
+    'Prism Offering',
+    'Blood Rite\'s pulse extends an active Prism Halo\'s duration.',
+    'Blood Rite sustains Prism Halo',
+    [BLOOD_RITE_SKILL_ID, PRISM_HALO_SKILL_ID],
   ),
 ]

@@ -19,9 +19,15 @@ import {
   RALLYING_BANNER_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   STORM_RELAY_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from '../content/skills/Skills'
 import type {
   BossState,
+  EnemyState,
   RelayState,
   SkillEffectState,
   ProjectileState,
@@ -29,6 +35,9 @@ import type {
   TelegraphState,
   TrapState,
   StairsState,
+  WireState,
+  RuinSigilState,
+  PrismHaloState,
 } from '../game/state/GameState'
 import {
   getBossDefinition,
@@ -127,6 +136,11 @@ export class PixiGame {
   private readonly effectViews = new Map<EntityId, Graphics>()
   private readonly trapViews = new Map<EntityId, Graphics>()
   private readonly relayViews = new Map<EntityId, Graphics>()
+  private readonly wireViews = new Map<EntityId, Graphics>()
+  private readonly ruinSigilViews = new Map<EntityId, Graphics>()
+  private mirrorcastView: Graphics | undefined
+  private bloodRiteView: Graphics | undefined
+  private prismHaloView: Graphics | undefined
   private readonly summonViews = new Map<EntityId, SummonView>()
   private readonly stairsViews = new Map<EntityId, StairsView>()
   private enemyLayer: Container | undefined
@@ -832,6 +846,307 @@ export class PixiGame {
     }
   }
 
+  private drawRuinSigil(
+    view: Graphics,
+    sigil: Readonly<RuinSigilState>,
+    time: number,
+  ): void {
+    const visual = getSkillDefinition(SIGIL_OF_RUIN_SKILL_ID).visual
+    const pulse = 1 + Math.sin(time * 6 + sigil.id) * 0.12
+    const radius = 20 * pulse
+    view.clear()
+    view
+      .circle(0, 0, radius)
+      .fill({ color: visual.primaryColor, alpha: 0.16 })
+      .stroke({ color: visual.primaryColor, width: 2, alpha: 0.75 })
+      .circle(0, 0, radius * 0.66)
+      .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.85 })
+    const spokes = 6
+    for (let index = 0; index < spokes; index += 1) {
+      const angle = time * 1.5 + (Math.PI * 2 * index) / spokes
+      const innerRadius = radius * 0.32
+      const outerRadius = radius * 0.95
+      view
+        .moveTo(Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius)
+        .lineTo(Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius)
+        .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.7 })
+    }
+    // Charge pips arranged along the top of the sigil.
+    for (let index = 0; index < 3; index += 1) {
+      const filled = index < sigil.charges
+      const pipX = (index - 1) * 8
+      const pipY = -radius - 8
+      view
+        .circle(pipX, pipY, 3)
+        .fill({
+          color: filled ? visual.outlineColor : visual.primaryColor,
+          alpha: filled ? 0.95 : 0.3,
+        })
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.8 })
+    }
+    if (sigil.armed) {
+      view
+        .circle(0, 0, radius * 1.2)
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.5 })
+    }
+  }
+
+  private createWirePlaceholder(wire: Readonly<WireState>): Graphics {
+    const view = new Graphics()
+    this.drawRazorwire(view, wire, 0)
+    return view
+  }
+
+  private drawRazorwire(
+    view: Graphics,
+    wire: Readonly<WireState>,
+    time: number,
+  ): void {
+    const visual = getSkillDefinition(RAZORWIRE_SKILL_ID).visual
+    const startX = 0
+    const startY = 0
+    const endX = wire.bx - wire.ax
+    const endY = wire.by - wire.ay
+    view.clear()
+    // The taut wire between anchors, with a shimmering highlight pass.
+    view
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.primaryColor, width: 3, alpha: 0.75 })
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.secondaryColor, width: 1, alpha: 0.9 })
+    // Barbs jutting from the wire at regular intervals.
+    const dirX = endX - startX
+    const dirY = endY - startY
+    const length = Math.hypot(dirX, dirY)
+    if (length > 0) {
+      const normalX = -dirY / length
+      const normalY = dirX / length
+      const barbCount = Math.max(2, Math.floor(length / 22))
+      for (let index = 1; index < barbCount; index += 1) {
+        const progress = index / barbCount
+        const bx = startX + dirX * progress
+        const by = startY + dirY * progress
+        const side = index % 2 === 0 ? 1 : -1
+        const flick = 4 + Math.sin(time * 8 + wire.id + index) * 1.5
+        view
+          .moveTo(bx, by)
+          .lineTo(bx + normalX * flick * side, by + normalY * flick * side)
+          .stroke({ color: visual.outlineColor, width: 1, alpha: 0.7 })
+      }
+    }
+    // Two solid anchor posts.
+    for (const [ax, ay] of [[startX, startY], [endX, endY]] as const) {
+      view
+        .circle(ax, ay, 6)
+        .fill({ color: visual.primaryColor, alpha: 0.95 })
+        .stroke({ color: visual.outlineColor, width: 2 })
+        .circle(ax, ay, 2.5)
+        .fill(visual.secondaryColor)
+    }
+    if (wire.guillotine) {
+      view
+        .moveTo(startX, startY)
+        .lineTo(endX, endY)
+        .stroke({ color: visual.outlineColor, width: 6, alpha: 0.12 })
+    }
+  }
+
+  private drawMirrorcastEcho(view: Graphics, time: number): void {
+    const visual = getSkillDefinition(MIRRORCAST_SKILL_ID).visual
+    const player = this.game.state.player
+    const drift = Math.sin(time * 2.4) * 10
+    const offsetX = -18 + drift
+    const offsetY = -6
+    const radius = player.radius
+    view.clear()
+    // A translucent afterimage of the player silhouette, offset and shimmering.
+    view
+      .circle(offsetX, offsetY, radius)
+      .fill({ color: visual.primaryColor, alpha: 0.16 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.45 })
+      .circle(offsetX, offsetY, radius * 0.6)
+      .stroke({ color: visual.outlineColor, width: 1, alpha: 0.4 })
+    // Facet lines suggesting a mirror shard.
+    for (let index = 0; index < 4; index += 1) {
+      const angle = (Math.PI / 2) * index + time * 0.6
+      view
+        .moveTo(offsetX, offsetY)
+        .lineTo(
+          offsetX + Math.cos(angle) * radius,
+          offsetY + Math.sin(angle) * radius,
+        )
+        .stroke({ color: visual.secondaryColor, width: 1, alpha: 0.35 })
+    }
+  }
+
+  private drawBloodRiteRing(view: Graphics, charges: number, time: number): void {
+    const visual = getSkillDefinition(BLOOD_RITE_SKILL_ID).visual
+    const player = this.game.state.player
+    const pulse = 1 + Math.sin(time * 5) * 0.06
+    const radius = (player.radius + 12) * pulse
+    view.clear()
+    // A rotating ritual ring of blood around the player.
+    view
+      .circle(0, 0, radius)
+      .stroke({ color: visual.primaryColor, width: 3, alpha: 0.55 })
+      .circle(0, 0, radius * 0.82)
+      .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.4 })
+    const droplets = Math.max(3, charges * 3)
+    for (let index = 0; index < droplets; index += 1) {
+      const angle = time * 1.2 + (Math.PI * 2 * index) / droplets
+      const dx = Math.cos(angle) * radius
+      const dy = Math.sin(angle) * radius
+      view
+        .circle(dx, dy, 3)
+        .fill({ color: visual.primaryColor, alpha: 0.85 })
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.6 })
+    }
+    // Charge glyphs at the center.
+    for (let index = 0; index < charges; index += 1) {
+      view
+        .circle((index - (charges - 1) / 2) * 7, 0, 2.5)
+        .fill({ color: visual.outlineColor, alpha: 0.9 })
+    }
+  }
+
+  private drawPrismHalo(view: Graphics, halo: Readonly<PrismHaloState>): void {
+    const player = this.game.state.player
+    const visual = getSkillDefinition(PRISM_HALO_SKILL_ID).visual
+    const orbitRadius = player.radius + 22
+    const shardColors = ['#f97316', '#38bdf8', '#a855f7'] as const
+    const shardOutlines = ['#fed7aa', '#bae6fd', '#e9d5ff'] as const
+    view.clear()
+    // Faint halo ring.
+    view
+      .circle(0, 0, orbitRadius)
+      .stroke({ color: visual.outlineColor, width: 1, alpha: 0.25 })
+    for (let index = 0; index < 3; index += 1) {
+      const angle = halo.rotation + (Math.PI * 2 * index) / 3
+      const sx = Math.cos(angle) * orbitRadius
+      const sy = Math.sin(angle) * orbitRadius
+      const shardColor = shardColors[index]!
+      const outline = shardOutlines[index]!
+      // Diamond-shaped elemental shard.
+      view
+        .poly([sx, sy - 7, sx + 5, sy, sx, sy + 7, sx - 5, sy])
+        .fill({ color: shardColor, alpha: halo.firesAllElements ? 0.95 : 0.85 })
+        .stroke({ color: outline, width: 1.5 })
+      if (halo.firesAllElements) {
+        view
+          .circle(sx, sy, 9)
+          .stroke({ color: outline, width: 1, alpha: 0.4 })
+      }
+    }
+  }
+
+  private renderRazorwires(state: Game['state']): void {
+    const activeWireIds = new Set<EntityId>()
+    for (const wire of state.wires ?? []) {
+      activeWireIds.add(wire.id)
+      let view = this.wireViews.get(wire.id)
+      if (!view) {
+        view = this.createWirePlaceholder(wire)
+        this.wireViews.set(wire.id, view)
+        this.skillObjectLayer?.addChild(view)
+      }
+      view.position.set(wire.ax, wire.ay)
+      this.drawRazorwire(view, wire, state.time)
+    }
+    for (const [wireId, view] of this.wireViews) {
+      if (activeWireIds.has(wireId)) {
+        continue
+      }
+      view.removeFromParent()
+      view.destroy()
+      this.wireViews.delete(wireId)
+    }
+  }
+
+  private renderRuinSigils(state: Game['state']): void {
+    const activeSigilIds = new Set<EntityId>()
+    const sigils = state.player.ruinSigils ?? []
+    for (const sigil of sigils) {
+      const target: EnemyState | BossState | undefined =
+        state.enemies.find((enemy) => enemy.id === sigil.targetId && enemy.hp > 0) ??
+        state.bosses?.find((boss) => boss.id === sigil.targetId && boss.hp > 0)
+      if (!target) {
+        continue
+      }
+      activeSigilIds.add(sigil.id)
+      let view = this.ruinSigilViews.get(sigil.id)
+      if (!view) {
+        view = new Graphics()
+        this.ruinSigilViews.set(sigil.id, view)
+        this.skillObjectLayer?.addChild(view)
+      }
+      view.position.set(target.x, target.y - target.radius - 10)
+      this.drawRuinSigil(view, sigil, state.time)
+    }
+    for (const [sigilId, view] of this.ruinSigilViews) {
+      if (activeSigilIds.has(sigilId)) {
+        continue
+      }
+      view.removeFromParent()
+      view.destroy()
+      this.ruinSigilViews.delete(sigilId)
+    }
+  }
+
+  private renderMirrorcast(state: Game['state']): void {
+    if (!state.player.mirrorcast) {
+      if (this.mirrorcastView) {
+        this.mirrorcastView.removeFromParent()
+        this.mirrorcastView.destroy()
+        this.mirrorcastView = undefined
+      }
+      return
+    }
+    if (!this.mirrorcastView) {
+      this.mirrorcastView = new Graphics()
+      this.skillObjectLayer?.addChild(this.mirrorcastView)
+    }
+    this.mirrorcastView.position.set(state.player.x, state.player.y)
+    this.drawMirrorcastEcho(this.mirrorcastView, state.time)
+  }
+
+  private renderBloodRite(state: Game['state']): void {
+    const debt = state.player.bloodDebt
+    if (!debt) {
+      if (this.bloodRiteView) {
+        this.bloodRiteView.removeFromParent()
+        this.bloodRiteView.destroy()
+        this.bloodRiteView = undefined
+      }
+      return
+    }
+    if (!this.bloodRiteView) {
+      this.bloodRiteView = new Graphics()
+      this.skillObjectLayer?.addChild(this.bloodRiteView)
+    }
+    this.bloodRiteView.position.set(state.player.x, state.player.y)
+    this.drawBloodRiteRing(this.bloodRiteView, debt.charges, state.time)
+  }
+
+  private renderPrismHalo(state: Game['state']): void {
+    const halo = state.player.prismHalo
+    if (!halo) {
+      if (this.prismHaloView) {
+        this.prismHaloView.removeFromParent()
+        this.prismHaloView.destroy()
+        this.prismHaloView = undefined
+      }
+      return
+    }
+    if (!this.prismHaloView) {
+      this.prismHaloView = new Graphics()
+      this.skillObjectLayer?.addChild(this.prismHaloView)
+    }
+    this.prismHaloView.position.set(state.player.x, state.player.y)
+    this.drawPrismHalo(this.prismHaloView, halo)
+  }
+
   private createRallyingFlagPlaceholder(effect: SkillEffectState): Graphics {
     const visual = getSkillDefinition(RALLYING_BANNER_SKILL_ID).visual
     const radius = Math.max(1, effect.radius)
@@ -1130,6 +1445,12 @@ export class PixiGame {
       view.destroy()
       this.relayViews.delete(relayId)
     }
+
+    this.renderRazorwires(state)
+    this.renderRuinSigils(state)
+    this.renderMirrorcast(state)
+    this.renderBloodRite(state)
+    this.renderPrismHalo(state)
 
     const activeTelegraphIds = new Set<EntityId>()
     for (const telegraph of state.telegraphs ?? []) {
@@ -1461,6 +1782,23 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const view of this.wireViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    for (const view of this.ruinSigilViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    this.mirrorcastView?.removeFromParent()
+    this.mirrorcastView?.destroy()
+    this.mirrorcastView = undefined
+    this.bloodRiteView?.removeFromParent()
+    this.bloodRiteView?.destroy()
+    this.bloodRiteView = undefined
+    this.prismHaloView?.removeFromParent()
+    this.prismHaloView?.destroy()
+    this.prismHaloView = undefined
     for (const { root } of this.summonViews.values()) {
       root.removeFromParent()
       root.destroy({ children: true })
@@ -1477,6 +1815,8 @@ export class PixiGame {
     this.effectViews.clear()
     this.trapViews.clear()
     this.relayViews.clear()
+    this.wireViews.clear()
+    this.ruinSigilViews.clear()
     this.summonViews.clear()
     this.stairsViews.clear()
     this.enemyLayer = undefined

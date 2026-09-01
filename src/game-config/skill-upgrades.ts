@@ -48,6 +48,20 @@ import {
   PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT,
   PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT,
   PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT,
+  SIGIL_OF_RUIN_SKILL_ID,
+  SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD,
+  MIRRORCAST_SKILL_ID,
+  MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT,
+  RAZORWIRE_SKILL_ID,
+  RAZORWIRE_TRIPWIRE_COUNT,
+  RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
+  RAZORWIRE_GUILLOTINE_TENSION_CAP,
+  BLOOD_RITE_SKILL_ID,
+  BLOOD_RITE_CRIMSON_CHARGES,
+  BLOOD_RITE_SANGUINE_HEAL_RATIO,
+  PRISM_HALO_SKILL_ID,
+  PRISM_HALO_REFRACTION_MAX_SPLITS,
+  PRISM_HALO_CONVERGENCE_WINDOW_SECONDS,
   RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
   RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT,
   RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
@@ -87,6 +101,11 @@ const CINDER_MINE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const STORM_RELAY_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const SOUL_TETHER_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const PHANTOM_ARSENAL_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const SIGIL_OF_RUIN_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const MIRRORCAST_LEVEL_EFFECTIVENESS_INCREASE_PERCENT = 8
+const RAZORWIRE_LEVEL_DAMAGE_INCREASE_PERCENT = 8
+const BLOOD_RITE_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const PRISM_HALO_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 
 export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
@@ -1104,6 +1123,316 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('phantom-arsenal-marksman') &&
       !state.selectedUpgradeIds.includes('phantom-arsenal-volley'),
+  },
+  {
+    id: 'sigil-of-ruin-unlock',
+    name: 'Sigil of Ruin',
+    description: 'Unlock a chaos brand that charges from different damage sources and detonates.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: SIGIL_OF_RUIN_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(SIGIL_OF_RUIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('sigil-of-ruin-unlock'),
+  },
+  {
+    id: 'sigil-of-ruin-level',
+    name: 'Deepening Ruin',
+    description: `Increase Sigil of Ruin detonation damage by ${SIGIL_OF_RUIN_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${SIGIL_OF_RUIN_LEVEL_DAMAGE_INCREASE_PERCENT}% Ruin detonation damage`,
+    skillId: SIGIL_OF_RUIN_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: SIGIL_OF_RUIN_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[SIGIL_OF_RUIN_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'sigil-of-ruin-contagious-script',
+    name: 'Contagious Script',
+    description: 'A Ruin Sigil detonation spreads weaker sigils to nearby enemies.',
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'Detonation spreads weaker sigils',
+    skillId: SIGIL_OF_RUIN_SKILL_ID,
+    branch: 'sigil-of-ruin-contagious-script',
+    evolutionTags: ['ruin-sigil', 'chaos-damage'],
+    sigilOfRuinContagiousScript: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(SIGIL_OF_RUIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('sigil-of-ruin-contagious-script') &&
+      !state.selectedUpgradeIds.includes('sigil-of-ruin-execution-protocol'),
+  },
+  {
+    id: 'sigil-of-ruin-execution-protocol',
+    name: 'Execution Protocol',
+    description: `A fully charged Ruin Sigil waits until the target drops below ${Math.round(SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD * 100)}% HP, then detonates for a stronger finish.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'Delays detonation for a stronger execute',
+    skillId: SIGIL_OF_RUIN_SKILL_ID,
+    branch: 'sigil-of-ruin-execution-protocol',
+    evolutionTags: ['ruin-sigil'],
+    sigilOfRuinExecutionProtocol: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(SIGIL_OF_RUIN_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('sigil-of-ruin-execution-protocol') &&
+      !state.selectedUpgradeIds.includes('sigil-of-ruin-contagious-script'),
+  },
+  {
+    id: 'mirrorcast-unlock',
+    name: 'Mirrorcast',
+    description: 'Unlock an Echo that copies your next non-Basic skill at reduced effectiveness.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: MIRRORCAST_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(MIRRORCAST_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('mirrorcast-unlock'),
+  },
+  {
+    id: 'mirrorcast-level',
+    name: 'Sharper Reflection',
+    description: `Increase the effectiveness of Mirrorcast copies by ${MIRRORCAST_LEVEL_EFFECTIVENESS_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${MIRRORCAST_LEVEL_EFFECTIVENESS_INCREASE_PERCENT}% copy effectiveness`,
+    skillId: MIRRORCAST_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: MIRRORCAST_LEVEL_EFFECTIVENESS_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[MIRRORCAST_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'mirrorcast-double-exposure',
+    name: 'Double Exposure',
+    description: `Mirrorcast arms ${MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT} Echoes instead of one, each copying at reduced effectiveness.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT} weaker Echoes per cast`,
+    skillId: MIRRORCAST_SKILL_ID,
+    branch: 'mirrorcast-double-exposure',
+    evolutionTags: ['echo'],
+    mirrorcastDoubleExposure: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(MIRRORCAST_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('mirrorcast-double-exposure') &&
+      !state.selectedUpgradeIds.includes('mirrorcast-deferred-echo'),
+  },
+  {
+    id: 'mirrorcast-deferred-echo',
+    name: 'Deferred Echo',
+    description: 'The Echo copies later but more accurately, and retargets onto a new enemy if its target dies first.',
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'Delayed, more accurate copy that retargets on kill',
+    skillId: MIRRORCAST_SKILL_ID,
+    branch: 'mirrorcast-deferred-echo',
+    evolutionTags: ['echo'],
+    mirrorcastDeferredEcho: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(MIRRORCAST_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('mirrorcast-deferred-echo') &&
+      !state.selectedUpgradeIds.includes('mirrorcast-double-exposure'),
+  },
+  {
+    id: 'razorwire-unlock',
+    name: 'Razorwire',
+    description: 'Unlock a persistent wire that damages and slows enemies who cross it.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: RAZORWIRE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(RAZORWIRE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('razorwire-unlock'),
+  },
+  {
+    id: 'razorwire-level',
+    name: 'Honed Edges',
+    description: `Increase Razorwire crossing damage by ${RAZORWIRE_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${RAZORWIRE_LEVEL_DAMAGE_INCREASE_PERCENT}% Razorwire damage`,
+    skillId: RAZORWIRE_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: RAZORWIRE_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[RAZORWIRE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'razorwire-tripwire-network',
+    name: 'Tripwire Network',
+    description: `Razorwire deploys ${RAZORWIRE_TRIPWIRE_COUNT} shorter wires around the target, each dealing ${Math.round((1 - RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER) * 100)}% less damage.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${RAZORWIRE_TRIPWIRE_COUNT} shorter wires, less damage each`,
+    skillId: RAZORWIRE_SKILL_ID,
+    branch: 'razorwire-tripwire-network',
+    evolutionTags: ['wire'],
+    razorwireTripwireNetwork: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RAZORWIRE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('razorwire-tripwire-network') &&
+      !state.selectedUpgradeIds.includes('razorwire-guillotine-line'),
+  },
+  {
+    id: 'razorwire-guillotine-line',
+    name: 'Guillotine Line',
+    description: `Razorwire strings one longer, narrower wire that builds Tension on each crossing and snaps for a heavy burst at ${RAZORWIRE_GUILLOTINE_TENSION_CAP} Tension.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Builds Tension, snaps at ${RAZORWIRE_GUILLOTINE_TENSION_CAP}`,
+    skillId: RAZORWIRE_SKILL_ID,
+    branch: 'razorwire-guillotine-line',
+    evolutionTags: ['wire', 'tension'],
+    razorwireGuillotineLine: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(RAZORWIRE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('razorwire-guillotine-line') &&
+      !state.selectedUpgradeIds.includes('razorwire-tripwire-network'),
+  },
+  {
+    id: 'blood-rite-unlock',
+    name: 'Blood Rite',
+    description: 'Unlock a ritual that sacrifices HP to store Blood Debt for your next skill.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: BLOOD_RITE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(BLOOD_RITE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('blood-rite-unlock'),
+  },
+  {
+    id: 'blood-rite-level',
+    name: 'Deeper Sacrifice',
+    description: `Increase Blood Rite pulse and Blood Debt damage by ${BLOOD_RITE_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${BLOOD_RITE_LEVEL_DAMAGE_INCREASE_PERCENT}% Blood Rite damage`,
+    skillId: BLOOD_RITE_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: BLOOD_RITE_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[BLOOD_RITE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'blood-rite-sanguine-pact',
+    name: 'Sanguine Pact',
+    description: `Part of the damage empowered by Blood Debt heals you for ${Math.round(BLOOD_RITE_SANGUINE_HEAL_RATIO * 100)}% of the bonus.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Empowered damage heals ${Math.round(BLOOD_RITE_SANGUINE_HEAL_RATIO * 100)}%`,
+    skillId: BLOOD_RITE_SKILL_ID,
+    branch: 'blood-rite-sanguine-pact',
+    evolutionTags: ['blood-debt', 'leech'],
+    bloodRiteSanguinePact: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BLOOD_RITE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('blood-rite-sanguine-pact') &&
+      !state.selectedUpgradeIds.includes('blood-rite-crimson-debt'),
+  },
+  {
+    id: 'blood-rite-crimson-debt',
+    name: 'Crimson Debt',
+    description: `Blood Rite stores ${BLOOD_RITE_CRIMSON_CHARGES} smaller Blood Debt charges instead of one.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${BLOOD_RITE_CRIMSON_CHARGES} smaller Blood Debt charges`,
+    skillId: BLOOD_RITE_SKILL_ID,
+    branch: 'blood-rite-crimson-debt',
+    evolutionTags: ['blood-debt'],
+    bloodRiteCrimsonDebt: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BLOOD_RITE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('blood-rite-crimson-debt') &&
+      !state.selectedUpgradeIds.includes('blood-rite-sanguine-pact'),
+  },
+  {
+    id: 'prism-halo-unlock',
+    name: 'Prism Halo',
+    description: 'Unlock three orbiting shards that fire Fire, Cold, and Lightning at nearby enemies.',
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: PRISM_HALO_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(PRISM_HALO_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('prism-halo-unlock'),
+  },
+  {
+    id: 'prism-halo-level',
+    name: 'Focused Facets',
+    description: `Increase Prism Halo shard damage by ${PRISM_HALO_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${PRISM_HALO_LEVEL_DAMAGE_INCREASE_PERCENT}% Prism Halo damage`,
+    skillId: PRISM_HALO_SKILL_ID,
+    skillAction: 'level',
+    skillDamageIncreasePercent: PRISM_HALO_LEVEL_DAMAGE_INCREASE_PERCENT,
+    isEligible: (state) => (state.skillLevels[PRISM_HALO_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'prism-halo-chromatic-convergence',
+    name: 'Chromatic Convergence',
+    description: `Landing Fire, Cold, and Lightning on the same enemy within ${PRISM_HALO_CONVERGENCE_WINDOW_SECONDS} seconds triggers a Prism Burst.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: 'All three elements trigger Prism Burst',
+    skillId: PRISM_HALO_SKILL_ID,
+    branch: 'prism-halo-chromatic-convergence',
+    evolutionTags: ['prism', 'convergence'],
+    prismHaloChromaticConvergence: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(PRISM_HALO_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('prism-halo-chromatic-convergence') &&
+      !state.selectedUpgradeIds.includes('prism-halo-refraction'),
+  },
+  {
+    id: 'prism-halo-refraction',
+    name: 'Refraction',
+    description: `Each Prism shard impact splits into up to ${PRISM_HALO_REFRACTION_MAX_SPLITS} reduced projectiles that strike nearby enemies.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Impacts split into ${PRISM_HALO_REFRACTION_MAX_SPLITS} shards`,
+    skillId: PRISM_HALO_SKILL_ID,
+    branch: 'prism-halo-refraction',
+    evolutionTags: ['prism'],
+    prismHaloRefraction: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(PRISM_HALO_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('prism-halo-refraction') &&
+      !state.selectedUpgradeIds.includes('prism-halo-chromatic-convergence'),
   },
   ...SYNERGY_UPGRADES,
 ]

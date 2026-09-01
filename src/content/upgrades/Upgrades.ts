@@ -79,6 +79,26 @@ export type UpgradeId =
   | 'phantom-arsenal-level'
   | 'phantom-arsenal-volley'
   | 'phantom-arsenal-marksman'
+  | 'sigil-of-ruin-unlock'
+  | 'sigil-of-ruin-level'
+  | 'sigil-of-ruin-contagious-script'
+  | 'sigil-of-ruin-execution-protocol'
+  | 'mirrorcast-unlock'
+  | 'mirrorcast-level'
+  | 'mirrorcast-double-exposure'
+  | 'mirrorcast-deferred-echo'
+  | 'razorwire-unlock'
+  | 'razorwire-level'
+  | 'razorwire-tripwire-network'
+  | 'razorwire-guillotine-line'
+  | 'blood-rite-unlock'
+  | 'blood-rite-level'
+  | 'blood-rite-sanguine-pact'
+  | 'blood-rite-crimson-debt'
+  | 'prism-halo-unlock'
+  | 'prism-halo-level'
+  | 'prism-halo-chromatic-convergence'
+  | 'prism-halo-refraction'
   | 'synergy-basic-attack-whirlwind'
   | 'synergy-basic-attack-chain-lightning'
   | 'synergy-basic-attack-glacial-orb'
@@ -103,6 +123,12 @@ export type UpgradeId =
   | 'synergy-storm-relay-soul-tether'
   | 'synergy-soul-tether-phantom-arsenal'
   | 'synergy-phantom-arsenal-rift-javelin'
+  | 'synergy-sigil-of-ruin-prism-halo'
+  | 'synergy-sigil-of-ruin-blood-rite'
+  | 'synergy-mirrorcast-razorwire'
+  | 'synergy-mirrorcast-prism-halo'
+  | 'synergy-razorwire-blood-rite'
+  | 'synergy-blood-rite-prism-halo'
   | typeof REMOVE_SKILL_UPGRADE_ID
   | typeof REMOVE_SYNERGY_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
@@ -145,6 +171,16 @@ export type UpgradeBranch =
   | 'soul-tether-requiem'
   | 'phantom-arsenal-volley'
   | 'phantom-arsenal-marksman'
+  | 'sigil-of-ruin-contagious-script'
+  | 'sigil-of-ruin-execution-protocol'
+  | 'mirrorcast-double-exposure'
+  | 'mirrorcast-deferred-echo'
+  | 'razorwire-tripwire-network'
+  | 'razorwire-guillotine-line'
+  | 'blood-rite-sanguine-pact'
+  | 'blood-rite-crimson-debt'
+  | 'prism-halo-chromatic-convergence'
+  | 'prism-halo-refraction'
 
 export interface UpgradeChoice {
   upgradeId: Exclude<
@@ -281,6 +317,26 @@ export interface UpgradeDefinition {
   phantomArsenalVolley?: boolean
   /** Grants Phantom Arsenal more range and damage at a single active summon. */
   phantomArsenalMarksman?: boolean
+  /** Sigil of Ruin detonation spreads weaker sigils to nearby enemies. */
+  sigilOfRuinContagiousScript?: boolean
+  /** Sigil of Ruin waits for the target below 35% HP for a stronger finish. */
+  sigilOfRuinExecutionProtocol?: boolean
+  /** Mirrorcast arms two weaker Echoes instead of one. */
+  mirrorcastDoubleExposure?: boolean
+  /** Mirrorcast copies later but more accurately and retargets on kill. */
+  mirrorcastDeferredEcho?: boolean
+  /** Razorwire deploys several shorter wires with reduced per-wire damage. */
+  razorwireTripwireNetwork?: boolean
+  /** Razorwire strings one longer, narrower wire that builds and snaps Tension. */
+  razorwireGuillotineLine?: boolean
+  /** Part of Blood Rite empowered damage heals the player. */
+  bloodRiteSanguinePact?: boolean
+  /** Blood Rite stores two smaller Blood Debt charges. */
+  bloodRiteCrimsonDebt?: boolean
+  /** Prism Halo hitting a target with all three elements triggers Prism Burst. */
+  prismHaloChromaticConvergence?: boolean
+  /** Prism Halo impacts split into capped, reduced projectiles. */
+  prismHaloRefraction?: boolean
   /** The two equipped skills required for this synergy card. */
   synergySkillIds?: readonly [SkillId, SkillId]
   /** Per-skill bonuses granted while this synergy is selected. */

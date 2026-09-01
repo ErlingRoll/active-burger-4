@@ -20,6 +20,11 @@ export type SkillId =
   | 'storm-relay'
   | 'soul-tether'
   | 'phantom-arsenal'
+  | 'sigil-of-ruin'
+  | 'mirrorcast'
+  | 'razorwire'
+  | 'blood-rite'
+  | 'prism-halo'
 
 export type SkillTag =
   | 'physical'
@@ -137,6 +142,11 @@ export {
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  SIGIL_OF_RUIN_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from '../../game-config/skills'
 
 export function getBasicAttackVariant(

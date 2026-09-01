@@ -26,6 +26,13 @@ export type KeywordId =
   | 'physical-damage'
   | 'elemental-damage'
   | 'chaos-damage'
+  | 'ruin-sigil'
+  | 'echo'
+  | 'wire'
+  | 'tension'
+  | 'blood-debt'
+  | 'prism'
+  | 'convergence'
 
 export interface KeywordDefinition {
   id: KeywordId
@@ -224,6 +231,55 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     details:
       'Chaos damage is reduced by chaos resistance and is separate from physical and elemental damage.',
   },
+  'ruin-sigil': {
+    id: 'ruin-sigil',
+    label: 'Ruin Sigil',
+    summary: 'A chaos brand that charges and detonates.',
+    details:
+      'A Ruin Sigil gains at most one charge for each distinct damage source category that hits the marked enemy: Basic Attack, skill, summon, and damage over time. At 3 charges it detonates for chaos damage based on the capped damage dealt while the enemy was marked.',
+  },
+  echo: {
+    id: 'echo',
+    label: 'Echo',
+    summary: 'A delayed copy of a skill cast.',
+    details:
+      'Mirrorcast arms an Echo that copies your next non-Basic skill cast after a short delay at reduced effectiveness. The copy never resets the original cooldown and can never copy Mirrorcast itself, so Echoes never nest.',
+  },
+  wire: {
+    id: 'wire',
+    label: 'Wire',
+    summary: 'A persistent line that damages crossings.',
+    details:
+      'A Razorwire connects two anchors. An enemy that crosses the Wire takes physical damage and is briefly Chilled, limited by a short per-enemy crossing cooldown so standing on it deals no per-tick damage.',
+  },
+  tension: {
+    id: 'tension',
+    label: 'Tension',
+    summary: 'Guillotine Line stacks that snap at a cap.',
+    details:
+      'The Guillotine Line builds one Tension stack on a target each time it crosses the Wire. When Tension reaches its cap the Wire snaps for a heavy physical burst and the target\'s Tension resets.',
+  },
+  'blood-debt': {
+    id: 'blood-debt',
+    label: 'Blood Debt',
+    summary: 'Stored power spent by your next skill.',
+    details:
+      'Blood Rite sacrifices current HP to store Blood Debt. Your next skill consumes it for a bounded bonus: damage skills gain chaos, healing skills restore sacrificed health, shields gain shield, and utility skills gain duration. Blood Debt expires if unused.',
+  },
+  prism: {
+    id: 'prism',
+    label: 'Prism',
+    summary: 'Orbiting shards that fire the three elements.',
+    details:
+      'A Prism Halo orbits three shards that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Burning, Chill, and Shock. Resonance fires all three at once and distributes Attunement a single time per volley.',
+  },
+  convergence: {
+    id: 'convergence',
+    label: 'Convergence',
+    summary: 'All three Prism elements on one target.',
+    details:
+      'Chromatic Convergence tracks Prism elements on each enemy within a short window. When Fire, Cold, and Lightning all land on the same target it triggers a Prism Burst for bonus damage and clears the tracked elements.',
+  },
 }
 
 interface KeywordAlias {
@@ -271,6 +327,18 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'resistance', text: 'resistance' },
   { id: 'stack', text: 'stacks' },
   { id: 'stack', text: 'stack' },
+  { id: 'ruin-sigil', text: 'ruin sigil' },
+  { id: 'ruin-sigil', text: 'ruin sigils' },
+  { id: 'ruin-sigil', text: 'sigil' },
+  { id: 'ruin-sigil', text: 'sigils' },
+  { id: 'echo', text: 'echo' },
+  { id: 'echo', text: 'echoes' },
+  { id: 'wire', text: 'wire' },
+  { id: 'wire', text: 'wires' },
+  { id: 'tension', text: 'tension' },
+  { id: 'blood-debt', text: 'blood debt' },
+  { id: 'prism', text: 'prism' },
+  { id: 'convergence', text: 'convergence' },
   { id: 'damage-over-time', text: 'dot' },
   { id: 'area-of-effect', text: 'aoe' },
   { id: 'critical-strike', text: 'crit' },

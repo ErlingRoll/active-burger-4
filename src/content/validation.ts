@@ -1093,6 +1093,16 @@ function validateDefinitions(
           upgrade.soulTetherRequiem === undefined &&
           upgrade.phantomArsenalVolley === undefined &&
           upgrade.phantomArsenalMarksman === undefined &&
+          upgrade.sigilOfRuinContagiousScript === undefined &&
+          upgrade.sigilOfRuinExecutionProtocol === undefined &&
+          upgrade.mirrorcastDoubleExposure === undefined &&
+          upgrade.mirrorcastDeferredEcho === undefined &&
+          upgrade.razorwireTripwireNetwork === undefined &&
+          upgrade.razorwireGuillotineLine === undefined &&
+          upgrade.bloodRiteSanguinePact === undefined &&
+          upgrade.bloodRiteCrimsonDebt === undefined &&
+          upgrade.prismHaloChromaticConvergence === undefined &&
+          upgrade.prismHaloRefraction === undefined &&
           upgrade.synergySkillIds === undefined &&
           upgrade.synergyEffects === undefined &&
           upgrade.modifiers === undefined))
