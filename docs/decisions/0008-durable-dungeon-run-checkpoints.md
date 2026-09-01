@@ -20,6 +20,20 @@ choice flows, rolled equipment, random-generator positions, spawn scheduling,
 entity allocation, clock state, and private cursors. Continue restores the
 latest completed checkpoint exactly.
 
+Floor transitions preserve run progression: collected XP remains on the player,
+gear choices are applied or remain queued, and uncollected ground pickups remain
+in the serialized pickup list. The floor reset clears combat entities and
+temporary effects, but does not clear pickups. The next-floor checkpoint is
+normalized to a playable state and therefore reloads on the new floor with
+those pickups still available.
+
+Save & quit is intentionally checkpoint-based rather than a live snapshot. If
+the player quits while skill or gear choices are queued, the queue is preserved
+only when it was part of the latest completed checkpoint (for example, an
+initial starting-level queue). Choices, XP, equipment, and ground pickups
+acquired after that checkpoint are not persisted and are absent when the run is
+continued.
+
 Supabase RPCs enforce one incomplete run per profile, owner access, stale and
 duplicate write behavior, terminal idempotency, and purchase blocking while a
 run is incomplete. The client never relies on an unload-time network write.

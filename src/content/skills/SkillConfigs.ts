@@ -73,6 +73,8 @@ export interface SkillDefinition {
   tags: readonly SkillTag[]
   /** Whether this skill or its owned summons can produce direct-hit effects. */
   canProduceDirectHit: boolean
+  /** Whether an armed Mirrorcast should capture and copy this skill. */
+  mirrorcastEligible: boolean
   cooldown: number
   baseDamage: PartialDamageValues
   baseHealing?: number

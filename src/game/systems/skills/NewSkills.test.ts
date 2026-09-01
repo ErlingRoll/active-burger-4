@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest'
 import {
   BASIC_ATTACK_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
+  VITALITY_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
+  GRAVITY_WELL_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
+  RIFT_JAVELIN_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+  STORM_RELAY_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
   RAZORWIRE_SKILL_ID,
@@ -274,7 +285,7 @@ describe('Mirrorcast', () => {
     collectSkillDamage(game.state, allocator)
   }
 
-  it('copies the next non-Basic skill after a delay at reduced effectiveness', () => {
+  it('replays the next eligible skill after a delay at reduced effectiveness', () => {
     const game = createGame({ seed: 80 })
     setSkills(game, [MIRRORCAST_SKILL_ID, GLACIAL_ORB_SKILL_ID])
     const targetId = game.spawnSlime({ x: 40, y: 0 })
@@ -285,10 +296,11 @@ describe('Mirrorcast', () => {
     expect(game.state.player.mirrorcast?.copies).toHaveLength(1)
     expect(game.state.player.mirrorcast?.copies[0]?.effectiveness).toBeCloseTo(MIRRORCAST_BASE_EFFECTIVENESS)
 
-    const events = updateMirrorcast(game.state, MIRRORCAST_COPY_DELAY_SECONDS, createAllocator())
-    const copy = events.find((event) => event.sourceSkillId === MIRRORCAST_SKILL_ID)
+    updateMirrorcast(game.state, MIRRORCAST_COPY_DELAY_SECONDS, createAllocator())
+    const copy = game.state.projectiles.at(-1)
     expect(copy).toBeDefined()
-    // Glacial Orb base cold is 9; the copy deals half.
+    expect(copy?.skillId).toBe(GLACIAL_ORB_SKILL_ID)
+    // Glacial Orb base cold is 9; the copied projectile deals half.
     expect(copy?.damage.cold).toBeCloseTo(9 * MIRRORCAST_BASE_EFFECTIVENESS)
     expect(game.state.player.mirrorcast).toBeUndefined()
   })
@@ -317,6 +329,23 @@ describe('Mirrorcast', () => {
     expect(cooldownAfterCast).toBeGreaterThan(0)
   })
 
+  it('copies Razorwire into a second wire at reduced damage', () => {
+    const game = createGame({ seed: 82 })
+    setSkills(game, [MIRRORCAST_SKILL_ID, RAZORWIRE_SKILL_ID])
+    game.spawnSlime({ x: 40, y: 0 })
+
+    armAndCapture(game, RAZORWIRE_SKILL_ID)
+    const originalWire = game.state.wires?.[0]
+    updateMirrorcast(game.state, MIRRORCAST_COPY_DELAY_SECONDS, createAllocator())
+    const echoWire = game.state.wires?.[1]
+
+    expect(originalWire).toBeDefined()
+    expect(echoWire).toBeDefined()
+    expect(echoWire?.damage.physical).toBeCloseTo(
+      (originalWire?.damage.physical ?? 0) * MIRRORCAST_BASE_EFFECTIVENESS,
+    )
+  })
+
   it('Double Exposure arms two weaker echoes', () => {
     const game = createGame({ seed: 83 })
     setSkills(game, [MIRRORCAST_SKILL_ID, GLACIAL_ORB_SKILL_ID])
@@ -342,9 +371,8 @@ describe('Mirrorcast', () => {
 
     // Kill the captured target; the deferred copy should retarget onto the backup.
     findEnemy(game.state, targetId).hp = 0
-    const events = updateMirrorcast(game.state, MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS, createAllocator())
-    const copy = events.find((event) => event.sourceSkillId === MIRRORCAST_SKILL_ID)
-    expect(copy?.targetId).toBe(backupId)
+    updateMirrorcast(game.state, MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS, createAllocator())
+    expect(game.state.projectiles.at(-1)?.targetId).toBe(backupId)
   })
 
   it('disarms the echo when the capture window expires unused', () => {
@@ -354,6 +382,120 @@ describe('Mirrorcast', () => {
     collectSkillDamage(game.state, createAllocator())
     updateMirrorcast(game.state, MIRRORCAST_CAPTURE_WINDOW_SECONDS + 1, createAllocator())
     expect(game.state.player.mirrorcast).toBeUndefined()
+  })
+
+  it('does not consume an armed Echo on summon-only skills', () => {
+    for (const summonSkillId of ['raise-skeleton', 'phantom-arsenal'] as const) {
+      const game = createGame({ seed: 86 })
+      setSkills(game, [MIRRORCAST_SKILL_ID, summonSkillId])
+      game.spawnSlime({ x: 40, y: 0 })
+
+      collectSkillDamage(game.state, createAllocator())
+
+      expect(game.state.player.mirrorcast?.status).toBe('armed')
+      expect(game.state.player.mirrorcast?.copies).toHaveLength(0)
+    }
+  })
+
+  it('does not offer hit-triggered Fiery Touch as an Echo target', () => {
+    expect(SKILL_DEFINITIONS[FIERY_TOUCH_SKILL_ID].mirrorcastEligible).toBe(false)
+  })
+
+  it.each([
+    [WHIRLWIND_SKILL_ID, 'an area hit'],
+    [CHAIN_LIGHTNING_SKILL_ID, 'a chain'],
+    [VITALITY_SKILL_ID, 'a heal'],
+    [GLACIAL_ORB_SKILL_ID, 'a projectile'],
+    [LANCERS_CHARGE_SKILL_ID, 'a charge'],
+    [RALLYING_BANNER_SKILL_ID, 'a banner'],
+    [GRAVITY_WELL_SKILL_ID, 'a pull'],
+    [AEGIS_PULSE_SKILL_ID, 'a shield pulse'],
+    [RIFT_JAVELIN_SKILL_ID, 'a returning projectile'],
+    [CINDER_MINE_SKILL_ID, 'a mine'],
+    [STORM_RELAY_SKILL_ID, 'a relay'],
+    [SOUL_TETHER_SKILL_ID, 'a tether'],
+    [SIGIL_OF_RUIN_SKILL_ID, 'a sigil'],
+    [RAZORWIRE_SKILL_ID, 'a wire'],
+    [BLOOD_RITE_SKILL_ID, 'a blood debt'],
+    [PRISM_HALO_SKILL_ID, 'a halo'],
+  ] satisfies ReadonlyArray<readonly [SkillId, string]>)(
+    'replays %s as %s instead of degrading it to a generic hit',
+    (skillId) => {
+      const game = createGame({ seed: 88 })
+      setSkills(game, [MIRRORCAST_SKILL_ID, skillId])
+      game.state.player.hp = 1
+      game.spawnSlime({ x: 40, y: 0 })
+
+      armAndCapture(game, skillId)
+      const sourceSkill = game.state.player.skills.find(
+        (skill) => skill.skillId === skillId,
+      )!
+      const sourceCooldown = sourceSkill.cooldownRemaining
+      const events = updateMirrorcast(
+        game.state,
+        MIRRORCAST_COPY_DELAY_SECONDS,
+        createAllocator(),
+      )
+      expect(sourceSkill.cooldownRemaining).toBe(sourceCooldown)
+
+      if (skillId === GLACIAL_ORB_SKILL_ID || skillId === RIFT_JAVELIN_SKILL_ID) {
+        expect(game.state.projectiles).toHaveLength(2)
+      } else if (skillId === CINDER_MINE_SKILL_ID) {
+        expect(game.state.traps).toHaveLength(2)
+      } else if (skillId === STORM_RELAY_SKILL_ID) {
+        expect(game.state.relays).toHaveLength(2)
+      } else if (skillId === SOUL_TETHER_SKILL_ID) {
+        expect(game.state.player.soulTethers).toHaveLength(2)
+      } else if (skillId === RAZORWIRE_SKILL_ID) {
+        expect(game.state.wires).toHaveLength(2)
+      } else if (skillId === PRISM_HALO_SKILL_ID) {
+        expect(game.state.player.prismHalo?.effectiveness).toBeCloseTo(
+          MIRRORCAST_BASE_EFFECTIVENESS,
+        )
+      } else if (skillId === RALLYING_BANNER_SKILL_ID) {
+        expect(game.state.effects.filter(
+          (effect) => effect.skillId === RALLYING_BANNER_SKILL_ID,
+        )).toHaveLength(2)
+      } else if (skillId === SIGIL_OF_RUIN_SKILL_ID) {
+        expect(game.state.effects.filter(
+          (effect) => effect.skillId === SIGIL_OF_RUIN_SKILL_ID,
+        )).toHaveLength(2)
+      } else if (skillId === VITALITY_SKILL_ID) {
+        expect(game.state.player.hp).toBeGreaterThan(7)
+      } else {
+        expect(events.some(
+          (event) => event.sourceSkillId === MIRRORCAST_SKILL_ID,
+        )).toBe(true)
+      }
+    },
+  )
+
+  it('waits for the selected focus skill and ignores other eligible casts', () => {
+    const game = createGame({ seed: 87 })
+    setSkills(game, [MIRRORCAST_SKILL_ID, GLACIAL_ORB_SKILL_ID, WHIRLWIND_SKILL_ID])
+    game.spawnSlime({ x: 40, y: 0 })
+    const mirror = game.state.player.skills.find((skill) => skill.skillId === MIRRORCAST_SKILL_ID)!
+    const glacial = game.state.player.skills.find((skill) => skill.skillId === GLACIAL_ORB_SKILL_ID)!
+    const whirlwind = game.state.player.skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)!
+
+    expect(game.setMirrorcastTargetSkill(GLACIAL_ORB_SKILL_ID)).toBe(true)
+    glacial.cooldownRemaining = 99
+    collectSkillDamage(game.state, createAllocator())
+    expect(game.state.player.mirrorcast?.status).toBe('armed')
+
+    glacial.cooldownRemaining = 99
+    mirror.cooldownRemaining = 99
+    whirlwind.cooldownRemaining = 0
+    collectSkillDamage(game.state, createAllocator())
+    expect(game.state.player.mirrorcast?.status).toBe('armed')
+    expect(game.state.player.mirrorcast?.copies).toHaveLength(0)
+
+    glacial.cooldownRemaining = 0
+    collectSkillDamage(game.state, createAllocator())
+    expect(game.state.player.mirrorcast?.copies[0]?.skillId).toBe(GLACIAL_ORB_SKILL_ID)
+
+    expect(game.setMirrorcastTargetSkill(null)).toBe(true)
+    expect(game.state.player.mirrorcastTargetSkillId).toBeUndefined()
   })
 })
 

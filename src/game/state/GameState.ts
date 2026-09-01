@@ -301,6 +301,8 @@ export interface PlayerState {
   ruinSigils?: RuinSigilState[]
   /** Pending Mirrorcast Echo that copies the next non-Basic skill cast. */
   mirrorcast?: MirrorcastState
+  /** Optional skill selected for Mirrorcast to capture instead of any eligible skill. */
+  mirrorcastTargetSkillId?: SkillId
   /** Stored Blood Debt waiting to empower the next skill cast. */
   bloodDebt?: BloodDebtState
   /** Active Prism Halo firing rotating elemental shards. */
@@ -552,6 +554,8 @@ export interface PrismHaloState {
   nextElementIndex: number
   firesAllElements: boolean
   rotation: number
+  /** Mirrorcast Echoes retain the Halo behavior at reduced damage. */
+  effectiveness?: number
 }
 
 /** Chromatic Convergence element tracking for a single enemy. */

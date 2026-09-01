@@ -449,7 +449,7 @@ describe('skill system', () => {
 
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
 
-    expect(game.state.player.hp).toBe(game.state.player.maxHp - 12)
+    expect(game.state.player.hp).toBe(game.state.player.maxHp - 9)
     expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(4.3)
     expect(game.state.effects[0]?.skillId).toBe(VITALITY_SKILL_ID)
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
@@ -1888,6 +1888,28 @@ describe('skill system', () => {
       expect(firedProjectile).toBe(true)
       expect(game.state.projectiles[0]?.targetId).toBe(targetId)
       expect(game.state.projectiles[0]?.damage.physical).toBeGreaterThan(0)
+    })
+
+    it('does not refresh an archer when recast at the summon cap', () => {
+      const game = createGame({ seed: 96 })
+      game.state.player.skills = [{
+        skillId: PHANTOM_ARSENAL_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+
+      collectSkillDamage(game.state, allocator)
+      const summon = game.state.summons[0]!
+      const summonId = summon.id
+      const remainingDuration = summon.expiryRemaining
+      const summonSkill = game.state.player.skills[0]!
+
+      summonSkill.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.summons).toHaveLength(1)
+      expect(game.state.summons[0]?.id).toBe(summonId)
+      expect(game.state.summons[0]?.expiryRemaining).toBe(remainingDuration)
     })
 
     it('fires a spread volley for global extra projectiles', () => {

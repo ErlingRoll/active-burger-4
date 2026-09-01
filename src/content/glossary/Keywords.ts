@@ -243,7 +243,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Echo',
     summary: 'A delayed copy of a skill cast.',
     details:
-      'Mirrorcast arms an Echo that copies your next non-Basic skill cast after a short delay at 50% effectiveness. The copy never resets the original cooldown and can never copy Mirrorcast itself, so Echoes never nest.',
+      'Mirrorcast arms an Echo that copies your next mirrorable non-Basic skill cast after a short delay at 50% effectiveness. After unlocking it, open an eligible skill tooltip and choose Focus Echo to make Mirrorcast wait for that skill; choose Clear Echo Focus to return to automatic capture. Summon-only skills are not consumed by the Echo. The copy never resets the original cooldown and can never copy Mirrorcast itself, so Echoes never nest.',
   },
   wire: {
     id: 'wire',

@@ -1910,6 +1910,46 @@
   border-top: 1px solid #334155;
 }
 
+.skill-mirrorcast-section {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(56 189 248 / 35%);
+}
+
+.skill-mirrorcast-section p {
+  margin-top: 0.35rem;
+}
+
+.skill-mirrorcast-status {
+  color: #bae6fd;
+}
+
+.skill-mirrorcast-focus-button {
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #38bdf8;
+  border-radius: 0.35rem;
+  color: #e0f2fe;
+  background: rgb(14 116 144 / 35%);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.skill-mirrorcast-focus-button:hover,
+.skill-mirrorcast-focus-button:focus-visible,
+.skill-mirrorcast-focus-button.active {
+  color: #082f49;
+  background: #7dd3fc;
+}
+
+.skill-card-mirrorcast-target {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgb(56 189 248 / 55%), 0 0 1rem rgb(14 165 233 / 30%);
+}
+
 .skill-attunement-breakdown {
   margin-top: 0.55rem;
   padding-top: 0.45rem;

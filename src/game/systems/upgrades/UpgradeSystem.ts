@@ -176,6 +176,12 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     (modifier) => !removedUpgradeSources.has(modifier.sourceId),
   )
   state.player.skills.splice(skillIndex, 1)
+  if (
+    state.player.mirrorcastTargetSkillId === skillId ||
+    skillId === MIRRORCAST_SKILL_ID
+  ) {
+    state.player.mirrorcastTargetSkillId = undefined
+  }
   if (skillId === WHIRLWIND_SKILL_ID) {
     state.player.upgradeWhirlwindLeech = 0
     state.player.whirlwindGuardRemaining = 0

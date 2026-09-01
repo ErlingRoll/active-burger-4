@@ -50,7 +50,9 @@ import {
   BASIC_ATTACK_SKILL_ID,
   isSkillId,
   RALLYING_BANNER_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
   SKILL_DEFINITIONS,
+  type SkillId,
 } from '../content/skills/Skills'
 import {
   ALL_GEAR_SET_DEFINITIONS,
@@ -711,7 +713,12 @@ export function GameCanvas({
         />
       ) : null}
       {snapshot ? (
-        <GameplayHud snapshot={snapshot} />
+        <GameplayHud
+          snapshot={snapshot}
+          onSetMirrorcastTarget={(skillId) => {
+            gameRef.current?.setMirrorcastTargetSkill(skillId)
+          }}
+        />
       ) : null}
       {snapshot ? <FloorHud snapshot={snapshot} /> : null}
       {snapshot ? <DungeonStats snapshot={snapshot} /> : null}
@@ -789,9 +796,13 @@ export function GameCanvas({
 
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
+  onSetMirrorcastTarget: (skillId: SkillId | null) => void
 }
 
-function GameplayHud({ snapshot }: GameplayHudProps) {
+function GameplayHud({
+  snapshot,
+  onSetMirrorcastTarget,
+}: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
   const orderedSkills = [...snapshot.skills].sort((left, right) =>
@@ -804,6 +815,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
   const emptySkillSlotCount = Math.max(
     0,
     snapshot.skillSlotCount - orderedSkills.length,
+  )
+  const mirrorcastOwned = snapshot.skills.some(
+    (skill) => skill.skillId === MIRRORCAST_SKILL_ID,
   )
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
   const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlotType | null>(
@@ -1049,6 +1063,11 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           {orderedSkills.map((skill) => {
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
+            const mirrorcastTargeted = snapshot.mirrorcastTargetSkillId === skill.skillId
+            const canFocusMirrorcast =
+              mirrorcastOwned &&
+              skill.skillId !== MIRRORCAST_SKILL_ID &&
+              SKILL_DEFINITIONS[skill.skillId].mirrorcastEligible
             const evolvedUpgrade = skill.upgrades.find((upgrade) =>
               upgrade.status === 'acquired' && upgrade.branch !== undefined,
             )
@@ -1058,7 +1077,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}`}
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
                   aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
@@ -1124,6 +1143,43 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       </span>
                     ) : null}
                     <p><KeywordText text={skill.description} /></p>
+                    {skill.skillId === MIRRORCAST_SKILL_ID ? (
+                      <section className="skill-mirrorcast-section" aria-label="Mirrorcast focus instructions">
+                        <p className="skill-upgrade-heading">Echo focus</p>
+                        <p>
+                          By default, Mirrorcast copies the next eligible skill.
+                          Open another eligible skill's tooltip and choose
+                          <strong> Focus Echo</strong> to make it wait for that skill.
+                          Choose <strong>Clear Echo Focus</strong> to return to automatic capture.
+                        </p>
+                        <p className="skill-mirrorcast-status">
+                          {snapshot.mirrorcastTargetSkillId
+                            ? `Focused on ${snapshot.skills.find((candidate) =>
+                              candidate.skillId === snapshot.mirrorcastTargetSkillId,
+                            )?.name ?? snapshot.mirrorcastTargetSkillId}.`
+                            : 'Currently capturing the next eligible skill.'}
+                        </p>
+                      </section>
+                    ) : null}
+                    {canFocusMirrorcast ? (
+                      <section className="skill-mirrorcast-section" aria-label="Mirrorcast focus control">
+                        <button
+                          className={`skill-mirrorcast-focus-button${mirrorcastTargeted ? ' active' : ''}`}
+                          type="button"
+                          aria-pressed={mirrorcastTargeted}
+                          onClick={() => onSetMirrorcastTarget(
+                            mirrorcastTargeted ? null : skill.skillId,
+                          )}
+                        >
+                          {mirrorcastTargeted ? 'Clear Echo Focus' : 'Focus Echo'}
+                        </button>
+                        <p>
+                          {mirrorcastTargeted
+                            ? 'Mirrorcast will wait for this skill while focused.'
+                            : 'Choose this to make Mirrorcast wait for this skill.'}
+                        </p>
+                      </section>
+                    ) : null}
                     {skill.resonanceEffect ? (
                       <section className="skill-resonance-section" aria-label="Resonance effect">
                         <p className="skill-upgrade-heading">

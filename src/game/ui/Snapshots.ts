@@ -387,6 +387,7 @@ interface PointSnapshot {
 
 export interface GameUiSnapshot extends RunHudSnapshot {
   readonly skillSlotCount: number
+  readonly mirrorcastTargetSkillId: SkillId | null
   readonly skills: readonly SkillHudSnapshot[]
   readonly equipment: Readonly<
     Partial<Record<EquipmentSlot, EquippedItemSnapshot>>
@@ -1953,6 +1954,7 @@ export function createUiSnapshot(
     floorElapsedTime,
     floorDurationSeconds,
     skillSlotCount: eligibilityState.skillSlotCount,
+    mirrorcastTargetSkillId: state.player.mirrorcastTargetSkillId ?? null,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),
     gearSets,

@@ -153,7 +153,6 @@ import {
   MENDING_RETURN_MAX_HEAL_PERCENT,
   FROSTLINE_DAMAGE_RATIO,
   FROSTLINE_CROSSING_COOLDOWN_SECONDS,
-  PARALLAX_TEMPEST_DAMAGE_RATIO,
 } from '../../../game-config/skills'
 import {
   createDamageValues,
@@ -2041,7 +2040,10 @@ function captureMirrorcastIfArmed(state: GameState, castSkill: SkillState): void
     !mirrorcast ||
     mirrorcast.status !== 'armed' ||
     castSkill.skillId === MIRRORCAST_SKILL_ID ||
-    castSkill.skillId === BASIC_ATTACK_SKILL_ID
+    castSkill.skillId === BASIC_ATTACK_SKILL_ID ||
+    !getSkillDefinition(castSkill.skillId).mirrorcastEligible ||
+    (state.player.mirrorcastTargetSkillId !== undefined &&
+      state.player.mirrorcastTargetSkillId !== castSkill.skillId)
   ) {
     return
   }
@@ -2065,46 +2067,15 @@ function captureMirrorcastIfArmed(state: GameState, castSkill: SkillState): void
   mirrorcast.status = 'pending'
 }
 
-function getElementStatusApplications(
-  tags: readonly string[],
-  preserveSecondary: boolean,
-): Pick<DamageEvent, 'frostApplication' | 'shockApplication' | 'burningApplication'> {
-  if (!preserveSecondary) {
-    return {}
-  }
-  if (tags.includes('cold')) {
-    return { frostApplication: { stacks: 1, durationSeconds: 4 } }
-  }
-  if (tags.includes('lightning')) {
-    return {
-      shockApplication: {
-        stacks: 1,
-        durationSeconds: 4,
-        threshold: 3,
-        burstMultiplier: 1.5,
-      },
-    }
-  }
-  if (tags.includes('fire')) {
-    return {
-      burningApplication: { durationSeconds: 3, fireDamageRatio: 0.35 },
-    }
-  }
-  return {}
-}
-
 function executeMirrorcastCopy(
   state: GameState,
   allocator: EntityIdAllocator,
   copy: MirrorcastCopyState,
   random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
-  const definition = getSkillDefinition(copy.skillId)
-  const playerStats = getDerivedPlayerStats(state.player)
   const events: DamageEvent[] = []
   const mirrorWire = state.run.selectedUpgradeIds.includes('synergy-mirrorcast-razorwire')
   const prismaticEcho = state.run.selectedUpgradeIds.includes('synergy-mirrorcast-prism-halo')
-  const category = classifySkillEffect(definition)
 
   if (mirrorWire) {
     const newestWire = (state.wires ?? [])
@@ -2128,124 +2099,7 @@ function executeMirrorcastCopy(
     }
   }
 
-  if (category === 'healing') {
-    const healing = getSkillHealing(definition, copy.level) * copy.effectiveness *
-      (1 + playerStats.increasedHealing / 100)
-    if (healing > 0) {
-      healPlayer(state, healing, `${definition.name} (Echo)`, random)
-    }
-  } else if (category === 'shield') {
-    const shield = getSkillShieldAmount(definition, copy.level) * copy.effectiveness
-    grantMirrorWardShield(state, shield)
-  } else if (category === 'damage') {
-    let target = copy.targetId !== undefined
-      ? [...state.enemies, ...(state.bosses ?? [])].find(
-          (enemy) => enemy.id === copy.targetId && enemy.hp > 0,
-        )
-      : undefined
-    if (!target && (copy.retargetOnKill || copy.targetId === undefined)) {
-      target = findNearestLivingTarget(state, MIRRORCAST_COPY_MAX_RANGE)
-    }
-    if (target) {
-      const damageIncreasePercent = getSkillDamageIncreasePercent(
-        copy.skillId,
-        copy.level,
-        state.run.selectedUpgradeIds,
-      )
-      const profile = createPlayerDamageProfileFromStats(
-        playerStats,
-        getSkillDamage(definition, copy.level),
-        {
-          sourceTags: definition.tags,
-          additionalIncreasedDamage: { global: damageIncreasePercent },
-          attunementSourceAdditionalIncreasedDamage:
-            getAttunementSourceAdditionalIncreasedDamage(state),
-        },
-      )
-      const copyDamage = scaleDamageValues(profile.damage, copy.effectiveness)
-      const statusApplications = getElementStatusApplications(
-        definition.tags,
-        copy.preserveSecondary,
-      )
-      const targets = copy.preserveSecondary && (definition.radius ?? 0) > 0
-        ? [target, ...findNearbyLivingEnemies(
-            state,
-            target.x,
-            target.y,
-            definition.radius ?? 0,
-            new Set([target.id]),
-          )]
-        : [target]
-      for (const enemy of targets) {
-        events.push({
-          sourceId: state.player.id,
-          sourceSkillId: MIRRORCAST_SKILL_ID,
-          sourceLabel: 'Mirrorcast',
-          sourceTags: definition.tags,
-          targetId: enemy.id,
-          damage: copyDamage,
-          criticalStrike: profile.criticalStrike,
-          ...statusApplications,
-        })
-      }
-      if (
-        copy.skillId === WHIRLWIND_SKILL_ID &&
-        state.run.selectedUpgradeIds.includes('synergy-whirlwind-mirrorcast')
-      ) {
-        const mirroredTarget = findNearbyLivingEnemies(
-          state,
-          target.x,
-          target.y,
-          definition.radius ?? 0,
-          new Set(targets.map((candidate) => candidate.id)),
-        )[0]
-        if (mirroredTarget) {
-          events.push({
-            sourceId: state.player.id,
-            sourceSkillId: MIRRORCAST_SKILL_ID,
-            sourceLabel: 'Parallax Tempest',
-            sourceTags: definition.tags,
-            targetId: mirroredTarget.id,
-            damage: scaleDamageValues(copyDamage, PARALLAX_TEMPEST_DAMAGE_RATIO),
-            criticalStrike: profile.criticalStrike,
-          })
-          addEffect(
-            state,
-            allocator,
-            MIRRORCAST_SKILL_ID,
-            [
-              { x: state.player.x, y: state.player.y },
-              { x: mirroredTarget.x, y: mirroredTarget.y },
-            ],
-            10,
-            getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
-            'line',
-          )
-        }
-      }
-      addEffect(
-        state,
-        allocator,
-        MIRRORCAST_SKILL_ID,
-        [
-          { x: state.player.x, y: state.player.y },
-          { x: target.x, y: target.y },
-        ],
-        8,
-        getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
-        'line',
-      )
-    }
-  } else {
-    addEffect(
-      state,
-      allocator,
-      MIRRORCAST_SKILL_ID,
-      [{ x: state.player.x, y: state.player.y }],
-      18,
-      getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
-    )
-  }
+  events.push(...executeMirrorcastSkillEffect(state, allocator, copy, random))
   return events
 }
 
@@ -2283,6 +2137,119 @@ export function updateMirrorcast(
     mirrorcast.copies = remaining
   }
   return events
+}
+
+/**
+ * Replays a cast through its normal implementation using an isolated skill
+ * state, then scales only output created by the Echo. This keeps cooldowns,
+ * cast counts, and resonance on the source skill unchanged.
+ */
+function executeMirrorcastSkillEffect(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  copy: MirrorcastCopyState,
+  random?: Pick<RandomSource, 'next'>,
+): DamageEvent[] {
+  const echoSkill: SkillState = {
+    skillId: copy.skillId,
+    level: copy.level,
+    cooldownRemaining: 0,
+  }
+  const hpBefore = state.player.hp
+  const effectsStart = state.effects.length
+  const projectilesStart = state.projectiles.length
+  const trapsStart = state.traps?.length ?? 0
+  const relaysStart = state.relays?.length ?? 0
+  const tethersStart = state.player.soulTethers?.length ?? 0
+  const wiresStart = state.wires?.length ?? 0
+  const sigilsStart = state.player.ruinSigils?.length ?? 0
+  let events: DamageEvent[] = []
+
+  if (copy.skillId === WHIRLWIND_SKILL_ID) {
+    events = collectWhirlwindDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === CHAIN_LIGHTNING_SKILL_ID) {
+    events = collectChainLightningDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === VITALITY_SKILL_ID) {
+    events = collectVitalityHealing(state, echoSkill, allocator, random)
+  } else if (copy.skillId === GLACIAL_ORB_SKILL_ID) {
+    events = collectGlacialOrbDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === LANCERS_CHARGE_SKILL_ID) {
+    events = collectLancersChargeDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === RALLYING_BANNER_SKILL_ID) {
+    events = collectRallyingBannerEffect(state, echoSkill, allocator, random)
+  } else if (copy.skillId === GRAVITY_WELL_SKILL_ID) {
+    events = collectGravityWellDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === AEGIS_PULSE_SKILL_ID) {
+    events = collectAegisPulseDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === RIFT_JAVELIN_SKILL_ID) {
+    events = collectRiftJavelinDamage(state, echoSkill, allocator)
+  } else if (copy.skillId === CINDER_MINE_SKILL_ID) {
+    placeCinderMineIfReady(state, echoSkill, allocator)
+  } else if (copy.skillId === STORM_RELAY_SKILL_ID) {
+    events = collectStormRelayCast(state, echoSkill, allocator)
+  } else if (copy.skillId === SOUL_TETHER_SKILL_ID) {
+    events = collectSoulTetherCast(state, echoSkill, allocator)
+  } else if (copy.skillId === SIGIL_OF_RUIN_SKILL_ID) {
+    events = collectSigilOfRuinCast(state, echoSkill, allocator)
+  } else if (copy.skillId === RAZORWIRE_SKILL_ID) {
+    events = collectRazorwireCast(state, echoSkill, allocator)
+  } else if (copy.skillId === BLOOD_RITE_SKILL_ID) {
+    events = collectBloodRiteCast(state, echoSkill, allocator)
+  } else if (copy.skillId === PRISM_HALO_SKILL_ID) {
+    events = collectPrismHaloCast(state, echoSkill, allocator)
+  } else {
+    throw new Error(`Mirrorcast cannot execute unsupported skill "${copy.skillId}".`)
+  }
+
+  state.player.hp = Math.min(
+    state.player.maxHp,
+    Math.max(0, hpBefore + (state.player.hp - hpBefore) * copy.effectiveness),
+  )
+  for (const effect of state.effects.slice(effectsStart)) {
+    if (effect.periodicHealingAmount !== undefined) {
+      effect.periodicHealingAmount *= copy.effectiveness
+    }
+  }
+  for (const projectile of state.projectiles.slice(projectilesStart)) {
+    projectile.damage = scaleDamageValues(projectile.damage, copy.effectiveness)
+  }
+  for (const trap of (state.traps ?? []).slice(trapsStart)) {
+    trap.damage = scaleDamageValues(trap.damage, copy.effectiveness)
+  }
+  for (const relay of (state.relays ?? []).slice(relaysStart)) {
+    relay.damage = scaleDamageValues(relay.damage, copy.effectiveness)
+  }
+  for (const tether of (state.player.soulTethers ?? []).slice(tethersStart)) {
+    tether.damagePerSecond *= copy.effectiveness
+  }
+  for (const wire of (state.wires ?? []).slice(wiresStart)) {
+    wire.damage = scaleDamageValues(wire.damage, copy.effectiveness)
+  }
+  for (const sigil of (state.player.ruinSigils ?? []).slice(sigilsStart)) {
+    sigil.detonationDamageMultiplier *= copy.effectiveness
+  }
+  if (copy.skillId === AEGIS_PULSE_SKILL_ID) {
+    state.player.aegisPulseShieldAmount =
+      (state.player.aegisPulseShieldAmount ?? 0) * copy.effectiveness
+    state.player.aegisPulseShieldMaxAmount =
+      (state.player.aegisPulseShieldMaxAmount ?? 0) * copy.effectiveness
+  }
+  if (copy.skillId === BLOOD_RITE_SKILL_ID && state.player.bloodDebt) {
+    state.player.bloodDebt.potency *= copy.effectiveness
+    state.player.bloodDebt.sacrificedHealth *= copy.effectiveness
+  }
+  if (copy.skillId === PRISM_HALO_SKILL_ID && state.player.prismHalo) {
+    state.player.prismHalo.effectiveness = copy.effectiveness
+  }
+
+  return events.map((event) => ({
+    ...event,
+    sourceSkillId: MIRRORCAST_SKILL_ID,
+    sourceLabel: event.sourceLabel
+      ? `${event.sourceLabel} (Echo)`
+      : 'Mirrorcast',
+    damage: scaleDamageValues(event.damage, copy.effectiveness),
+  }))
 }
 
 function createRazorwire(
@@ -2325,6 +2292,84 @@ function createRazorwire(
   })
 }
 
+function createRazorwirePattern(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  target: EnemyState | BossState,
+  damage: DamageValues,
+  criticalStrike: DamageEvent['criticalStrike'],
+  resonant: boolean,
+): void {
+  const tripwire = state.run.selectedUpgradeIds.includes('razorwire-tripwire-network')
+  const guillotine = state.run.selectedUpgradeIds.includes('razorwire-guillotine-line')
+  const toTargetAngle = Math.atan2(
+    target.y - state.player.y,
+    target.x - state.player.x,
+  )
+  const perpendicularAngle = toTargetAngle + Math.PI / 2
+  if (tripwire) {
+    const tripwireDamage = scaleDamageValues(
+      damage,
+      RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
+    )
+    for (let index = 0; index < RAZORWIRE_TRIPWIRE_COUNT; index += 1) {
+      const angle = perpendicularAngle + (Math.PI * index) / RAZORWIRE_TRIPWIRE_COUNT
+      createRazorwire(
+        state,
+        allocator,
+        target.x,
+        target.y,
+        angle,
+        RAZORWIRE_TRIPWIRE_LENGTH,
+        RAZORWIRE_CROSSING_MARGIN,
+        tripwireDamage,
+        criticalStrike,
+        false,
+      )
+    }
+  } else if (guillotine) {
+    createRazorwire(
+      state,
+      allocator,
+      target.x,
+      target.y,
+      perpendicularAngle,
+      RAZORWIRE_GUILLOTINE_LENGTH,
+      RAZORWIRE_GUILLOTINE_MARGIN,
+      damage,
+      criticalStrike,
+      true,
+    )
+  } else {
+    createRazorwire(
+      state,
+      allocator,
+      target.x,
+      target.y,
+      perpendicularAngle,
+      RAZORWIRE_WIRE_LENGTH,
+      RAZORWIRE_CROSSING_MARGIN,
+      damage,
+      criticalStrike,
+      false,
+    )
+    if (resonant) {
+      createRazorwire(
+        state,
+        allocator,
+        target.x,
+        target.y,
+        toTargetAngle,
+        RAZORWIRE_WIRE_LENGTH,
+        RAZORWIRE_CROSSING_MARGIN,
+        damage,
+        criticalStrike,
+        false,
+      )
+    }
+  }
+}
+
 function collectRazorwireCast(
   state: GameState,
   skill: SkillState,
@@ -2336,8 +2381,6 @@ function collectRazorwireCast(
     return []
   }
   const playerStats = getDerivedPlayerStats(state.player)
-  const tripwire = state.run.selectedUpgradeIds.includes('razorwire-tripwire-network')
-  const guillotine = state.run.selectedUpgradeIds.includes('razorwire-guillotine-line')
   const resonant = isSkillResonant(state, skill.skillId)
   const damageIncreasePercent = getSkillDamageIncreasePercent(
     skill.skillId,
@@ -2354,72 +2397,14 @@ function collectRazorwireCast(
         getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
-  const toTargetAngle = Math.atan2(
-    target.y - state.player.y,
-    target.x - state.player.x,
+  createRazorwirePattern(
+    state,
+    allocator,
+    target,
+    outgoingDamage.damage,
+    outgoingDamage.criticalStrike,
+    resonant,
   )
-  const perpendicularAngle = toTargetAngle + Math.PI / 2
-  if (tripwire) {
-    const tripwireDamage = scaleDamageValues(
-      outgoingDamage.damage,
-      RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
-    )
-    for (let index = 0; index < RAZORWIRE_TRIPWIRE_COUNT; index += 1) {
-      const angle = perpendicularAngle + (Math.PI * index) / RAZORWIRE_TRIPWIRE_COUNT
-      createRazorwire(
-        state,
-        allocator,
-        target.x,
-        target.y,
-        angle,
-        RAZORWIRE_TRIPWIRE_LENGTH,
-        RAZORWIRE_CROSSING_MARGIN,
-        tripwireDamage,
-        outgoingDamage.criticalStrike,
-        false,
-      )
-    }
-  } else if (guillotine) {
-    createRazorwire(
-      state,
-      allocator,
-      target.x,
-      target.y,
-      perpendicularAngle,
-      RAZORWIRE_GUILLOTINE_LENGTH,
-      RAZORWIRE_GUILLOTINE_MARGIN,
-      outgoingDamage.damage,
-      outgoingDamage.criticalStrike,
-      true,
-    )
-  } else {
-    createRazorwire(
-      state,
-      allocator,
-      target.x,
-      target.y,
-      perpendicularAngle,
-      RAZORWIRE_WIRE_LENGTH,
-      RAZORWIRE_CROSSING_MARGIN,
-      outgoingDamage.damage,
-      outgoingDamage.criticalStrike,
-      false,
-    )
-    if (resonant) {
-      createRazorwire(
-        state,
-        allocator,
-        target.x,
-        target.y,
-        toTargetAngle,
-        RAZORWIRE_WIRE_LENGTH,
-        RAZORWIRE_CROSSING_MARGIN,
-        outgoingDamage.damage,
-        outgoingDamage.criticalStrike,
-        false,
-      )
-    }
-  }
   addEffect(
     state,
     allocator,
@@ -2895,19 +2880,24 @@ function firePrismShard(
   const shardDamage = applyAttunement
     ? profile.damage
     : stripAttunementDamage(profile.damage, profile.attunementDamage)
+  const effectiveness = state.player.prismHalo?.effectiveness ?? 1
+  const effectiveShardDamage = scaleDamageValues(shardDamage, effectiveness)
   const statusApplications = getPrismStatusApplications(element)
   const events: DamageEvent[] = [{
     sourceId: state.player.id,
     sourceSkillId: PRISM_HALO_SKILL_ID,
     sourceTags: definition.tags,
     targetId: target.id,
-    damage: shardDamage,
+    damage: effectiveShardDamage,
     criticalStrike: profile.criticalStrike,
     ...statusApplications,
   }]
 
   if (state.run.selectedUpgradeIds.includes('prism-halo-refraction')) {
-    const splitDamage = scaleDamageValues(shardDamage, PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER)
+    const splitDamage = scaleDamageValues(
+      effectiveShardDamage,
+      PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER,
+    )
     const splits = findNearbyLivingEnemies(
       state,
       target.x,
@@ -2942,7 +2932,15 @@ function firePrismShard(
 
   }
 
-  events.push(...updatePrismConvergence(state, target, element, shardDamage, profile.criticalStrike))
+  events.push(
+    ...updatePrismConvergence(
+      state,
+      target,
+      element,
+      effectiveShardDamage,
+      profile.criticalStrike,
+    ),
+  )
   return events
 }
 

@@ -924,6 +924,8 @@ function App() {
     if (!service || !submission) {
       throw new Error('Unable to identify the active dungeon run.')
     }
+    // Save & quit changes only the durable run status. The latest completed
+    // floor checkpoint remains authoritative by design.
     await service.pauseRun(submission.runId)
     setActiveRun((current) => current ? { ...current, status: 'paused' } : current)
     setResumeCheckpoint(null)

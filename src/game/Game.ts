@@ -132,7 +132,11 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
-import type { SkillId } from '../content/skills/Skills'
+import {
+  getSkillDefinition,
+  MIRRORCAST_SKILL_ID,
+  type SkillId,
+} from '../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 import {
   completeBossEncounter,
@@ -468,6 +472,34 @@ export class Game {
 
   toggleFreeMovement(): boolean {
     return this.setFreeMovementEnabled(!this.freeMovementEnabled)
+  }
+
+  /**
+   * Sets or clears the skill that an armed Mirrorcast should wait for.
+   * Targeting is deliberately persistent for the current run.
+   */
+  setMirrorcastTargetSkill(skillId: SkillId | null): boolean {
+    if (skillId === null) {
+      if (this.gameState.player.mirrorcastTargetSkillId === undefined) {
+        return true
+      }
+      this.gameState.player.mirrorcastTargetSkillId = undefined
+      this.notifyStateChanged()
+      return true
+    }
+    if (
+      !this.gameState.player.skills.some((skill) => skill.skillId === MIRRORCAST_SKILL_ID) ||
+      !this.gameState.player.skills.some((skill) => skill.skillId === skillId) ||
+      !getSkillDefinition(skillId).mirrorcastEligible
+    ) {
+      return false
+    }
+    if (this.gameState.player.mirrorcastTargetSkillId === skillId) {
+      return true
+    }
+    this.gameState.player.mirrorcastTargetSkillId = skillId
+    this.notifyStateChanged()
+    return true
   }
 
   setFreeMovementDirection(directionX: number, directionY: number): void {

@@ -185,10 +185,10 @@ describe('UI snapshots', () => {
     const aegis = skills.find((skill) => skill.skillId === AEGIS_PULSE_SKILL_ID)
     const whirlwind = skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)
 
-    expect(vitality?.healingPerCast).toBeCloseTo(22)
+    expect(vitality?.healingPerCast).toBeCloseTo(28)
     expect(vitality?.skillModifiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'healing-per-cast', value: '22' }),
+        expect.objectContaining({ id: 'healing-per-cast', value: '28' }),
       ]),
     )
     expect(aegis).toMatchObject({
@@ -418,11 +418,11 @@ describe('UI snapshots', () => {
       (group) => group.id === 'defence',
     )
 
-    expect(vitality?.healingPerCast).toBeCloseTo(8.32)
+    expect(vitality?.healingPerCast).toBeCloseTo(11.44)
     expect(vitality?.estimatedSingleTargetDps).toBeNull()
     expect(vitality?.skillModifiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'healing-per-cast', value: '8.32' }),
+        expect.objectContaining({ id: 'healing-per-cast', value: '11.44' }),
         expect.objectContaining({ id: 'increased-healing', value: '4%' }),
       ]),
     )

@@ -150,7 +150,9 @@ export function PauseMenu({
         <h2 id="pause-menu-title">Pause menu</h2>
         <p className="pause-instructions">
           Change a binding, then press the new key to use it immediately.
-          Press Escape to cancel a rebind.
+          Press Escape to cancel a rebind. Save &amp; quit resumes from the
+          latest completed floor checkpoint, so choices and pickups acquired
+          after that checkpoint will not be restored.
         </p>
         <button
           ref={resumeButtonRef}

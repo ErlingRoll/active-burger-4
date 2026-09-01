@@ -20,6 +20,7 @@ import {
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
   RALLYING_BANNER_BASE_DURATION_SECONDS,
   RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
+  VITALITY_HEALING_PER_LEVEL,
   GRAVITY_WELL_SKILL_ID,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
   GRAVITY_WELL_SINGULARITY_RADIUS_BONUS,
@@ -88,7 +89,6 @@ const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
 const FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT = 5
-const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
 const RAISE_SKELETON_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const MAGNET_COLLECTION_RANGE_INCREASE_PERCENT = 20
@@ -439,14 +439,14 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'vitality-level',
     name: 'Greater Vitality',
-    description: `Increase Vitality healing by ${VITALITY_HEALING_INCREASE_PER_LEVEL} HP per cast.`,
+    description: `Increase Vitality healing by ${VITALITY_HEALING_PER_LEVEL} HP per cast.`,
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
-    valueLabel: `+${VITALITY_HEALING_INCREASE_PER_LEVEL} HP per Vitality cast`,
+    valueLabel: `+${VITALITY_HEALING_PER_LEVEL} HP per Vitality cast`,
     skillId: VITALITY_SKILL_ID,
     skillAction: 'level',
-    skillHealingIncreaseAmount: VITALITY_HEALING_INCREASE_PER_LEVEL,
+    skillHealingIncreaseAmount: VITALITY_HEALING_PER_LEVEL,
     isEligible: (state) => (state.skillLevels[VITALITY_SKILL_ID] ?? 0) >= 1,
   },
   {
@@ -1201,7 +1201,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'mirrorcast-unlock',
     name: 'Mirrorcast',
-    description: `Unlock an Echo that copies your next non-Basic skill at ${Math.round(MIRRORCAST_BASE_EFFECTIVENESS * 100)}% effectiveness.`,
+    description: `Unlock an Echo that copies your next eligible non-Basic skill at ${Math.round(MIRRORCAST_BASE_EFFECTIVENESS * 100)}% effectiveness. After unlocking, open any eligible skill's tooltip and choose Focus Echo to make Mirrorcast wait for that skill instead.`,
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,

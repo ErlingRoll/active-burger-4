@@ -651,7 +651,9 @@ describe('Game', () => {
 
       expect(game.state.floorTransition?.remainingSeconds).toBe(0)
       expect(game.state.floorTransition?.savePending).toBe(true)
-      expect(game.getFloorCheckpointSnapshot()?.gameState.run.floor).toBe(2)
+      const checkpoint = game.getFloorCheckpointSnapshot()
+      expect(checkpoint?.gameState.run.floor).toBe(2)
+      expect(checkpoint?.gameState.pickups).toEqual(game.state.pickups)
       expect(game.completeFloorSave()).toBe(true)
       game.update(FIXED_STEP_SECONDS)
       expect(game.phase).toBe('playing')
@@ -661,6 +663,9 @@ describe('Game', () => {
       expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
       game.update(FIXED_STEP_SECONDS)
       expect(game.getUiSnapshot().floorProgress).toBeGreaterThan(0)
+      const restored = createGameFromCheckpoint(JSON.parse(JSON.stringify(checkpoint)))
+      expect(restored.state.run.floor).toBe(2)
+      expect(restored.state.pickups).toEqual(checkpoint?.gameState.pickups)
   })
 
   it('heals the player to max HP when entering a new floor', () => {
