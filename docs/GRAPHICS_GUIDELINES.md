@@ -36,6 +36,9 @@ The game favors a refined action-roguelike look:
   That language belongs to Soul Tether's link visual and must remain unique.
 - Do not make every explosion a circle. Choose a shape that reflects the skill:
   flames, shards, blades, shields, sigils, crystals, or singularity geometry.
+- Enemy and boss attacks must never rely on player elemental colors alone.
+  Hostile telegraphs use the dedicated deep-crimson danger palette, dark hazard
+  rims, pale warning edges, and a visible `DANGER`/`DODGE` label.
 - Do not add screenshake, camera jolts, hit-stop, or time-dilation effects.
   Major events may use restrained glow, expansion, particles, and hit flashes.
 - Do not put visual-only state into `GameState` unless it is needed for a
@@ -189,6 +192,40 @@ This inventory is the baseline to match when adding new content.
   - Lightning uses pale gold.
   - Resonant all-element volleys use parallel multi-color facets.
 
+## Synergy visual coverage matrix
+
+Basic Attack is a universal Synergy partner. It is listed here for completeness
+but should not be repeated in unlock-card text. The second column lists every
+current Synergy partner; the third column identifies the visual cue that should
+remain visible when the interaction is selected.
+
+| Skill | Synergy partners | Required visual cue |
+| --- | --- | --- |
+| Basic Attack | Whirlwind, Chain Lightning, Glacial Orb, Vitality, Raise Skeleton, Fiery Touch, Lancer's Charge, Rallying Banner, Gravity Well, Aegis Pulse, Rift Javelin, Cinder Mine, Storm Relay, Soul Tether, Phantom Arsenal, Sigil of Ruin, Mirrorcast, Razorwire, Blood Rite, Prism Halo | Weapon-specific silhouette plus selected elemental/Whirlwind accent |
+| Whirlwind | Basic Attack, Lancer's Charge, Aegis Pulse, Mirrorcast | Momentum chevrons, shield frame, and mirror accents |
+| Chain Lightning | Basic Attack, Glacial Orb, Gravity Well, Sigil of Ruin | Frost terminals, circuit accents, and Sigil conductivity |
+| Vitality | Basic Attack, Rallying Banner, Aegis Pulse, Soul Tether, Rift Javelin | Life glyph, banner frame, tether flow, and return-heal accent |
+| Raise Skeleton | Basic Attack, Rallying Banner, Gravity Well, Phantom Arsenal, Cinder Mine | Bone ritual, banner marks, skeleton aura, and Ember Guard |
+| Fiery Touch | Basic Attack, Glacial Orb, Gravity Well, Cinder Mine, Soul Tether | Cold core, chaos ring, Wildfire ring, and tether flare |
+| Glacial Orb | Basic Attack, Chain Lightning, Fiery Touch, Razorwire | Faceted frost bloom, electric frost marks, and crystalized wire |
+| Lancer's Charge | Basic Attack, Whirlwind, Aegis Pulse, Rift Javelin, Rallying Banner | Momentum bands, shield crest, spear accents, and banner refresh cue |
+| Rallying Banner | Basic Attack, Vitality, Raise Skeleton, Storm Relay, Lancer's Charge | Life ring, bone marks, electric perimeter, and charge accent |
+| Gravity Well | Basic Attack, Chain Lightning, Raise Skeleton, Fiery Touch, Phantom Arsenal | Circuit ring, bone anchors, flame perimeter, and Echo Well state |
+| Aegis Pulse | Basic Attack, Whirlwind, Vitality, Lancer's Charge, Blood Rite | Blade perimeter, life frame, spear crest, and Crimson Bulwark |
+| Rift Javelin | Basic Attack, Lancer's Charge, Cinder Mine, Phantom Arsenal, Vitality | Momentum/ghost bands and Mending Return trail |
+| Cinder Mine | Basic Attack, Fiery Touch, Rift Javelin, Storm Relay, Raise Skeleton | Ignition ring, dimensional slash, conductivity, and Ember Legion state |
+| Storm Relay | Basic Attack, Rallying Banner, Cinder Mine, Soul Tether, Prism Halo | Shield frame, conductivity, tether current, and spectrum-charged totem |
+| Soul Tether | Basic Attack, Vitality, Storm Relay, Phantom Arsenal, Fiery Touch | Life flow, electric current, phantom endpoint, and Scorching Lifeline flare |
+| Phantom Arsenal | Basic Attack, Raise Skeleton, Soul Tether, Rift Javelin, Gravity Well | Legion aura, phantom tether mark, ghost trail, and Echo Well projectile |
+| Sigil of Ruin | Basic Attack, Prism Halo, Blood Rite, Chain Lightning | Prismatic frame, blood frame, and conductive charge glyph |
+| Mirrorcast | Basic Attack, Razorwire, Prism Halo, Whirlwind | Mirror shards, parallel wire, prism frame, and Parallax detailing |
+| Razorwire | Basic Attack, Mirrorcast, Blood Rite, Glacial Orb | Mirror strands, chaos edge, blood accents, and Frostline crystals |
+| Blood Rite | Basic Attack, Sigil of Ruin, Razorwire, Prism Halo, Aegis Pulse | Sigil/blood geometry, chaos wire, prism ritual, and shield ring |
+| Prism Halo | Basic Attack, Sigil of Ruin, Mirrorcast, Blood Rite, Storm Relay | Prismatic frame, mirror frame, blood frame, and Aurora Relay state |
+
+When a Synergy changes only a cooldown, duration, or numeric resource, use an
+accent on the owning object rather than inventing a separate persistent object.
+
 ## Current non-skill visual inventory
 
 - **Player:** a simple high-contrast body derived from the selected playstyle,
@@ -213,6 +250,29 @@ This inventory is the baseline to match when adding new content.
   with combat effects.
 - **World UI:** labels, health bars, shield bars, and status icons are
   intentionally high-contrast and should not be covered by particles.
+
+## Enemy and boss attack visual matrix
+
+Enemy attacks use a dedicated deep-crimson danger palette and must be distinct
+by silhouette. Hostile projectile bodies should remain readable above ordinary
+effects. Player Fire, Physical, and Chaos colors must not be reused as the only
+hostile identifier.
+
+| Attack | Source | Damage type | Telegraph/projectile treatment |
+| --- | --- | --- | --- |
+| Aimed Shot | Archer | Physical | Long directional line with an arrowhead; hostile projectile uses shaft, head, and fletching |
+| Shockwave | Brute | Physical | Spiked radial shockwave with an inner polygon and radial spokes |
+| Ground Slam | Stone Golem | Physical | Large spiked radial impact with concentric warning geometry |
+| Charge | Stone Golem | Physical | Directional corridor with an arrowhead showing travel direction |
+| Fire Nova | Inferno Warden | Fire | Flame starburst with a secondary inner burst |
+| Flame Line | Inferno Warden | Fire | Jagged directional flame corridor with a pointed leading edge |
+| Meteor Zones | Inferno Warden | Fire | Rotated diamond landing zone with crosshair and inner marker |
+
+Enemy attack visuals must communicate the warning before the attack resolves.
+Use deep crimson cores (`#b91c1c` for ordinary enemies and `#be123c` for
+bosses), a dark hazard rim (`#450a0a`), pale warning edges, the `DANGER` and
+`DODGE` label, and the telegraph layer. This language is intentionally
+different from player Fire, Cold, Lightning, Physical, and Chaos effects.
 
 ## Projectiles and trails
 

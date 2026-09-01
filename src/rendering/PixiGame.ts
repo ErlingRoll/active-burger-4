@@ -438,6 +438,9 @@ export class PixiGame {
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
+    if (projectile.sourceAbilityId === 'archer-shot') {
+      return this.createEnemyArrowProjectile(projectile)
+    }
     if (
       !projectile.sourceAbilityId &&
       projectile.skillId === BASIC_ATTACK_SKILL_ID
@@ -528,6 +531,40 @@ export class PixiGame {
         .stroke({ color: '#bfdbfe', width: 1.5, alpha: 0.7 })
     }
     return view
+  }
+
+  private createEnemyArrowProjectile(projectile: ProjectileState): Graphics {
+    const radius = projectile.radius
+    const shaftLength = radius * 4.8
+    return new Graphics()
+      .moveTo(-shaftLength * 0.9, 0)
+      .lineTo(shaftLength * 0.5, 0)
+      .stroke({ color: '#450a0a', width: 7, alpha: 0.82 })
+      .moveTo(-shaftLength * 0.9, 0)
+      .lineTo(shaftLength * 0.5, 0)
+      .stroke({ color: '#fecdd3', width: 2, alpha: 0.92 })
+      .poly([
+        shaftLength * 0.9,
+        0,
+        shaftLength * 0.4,
+        -radius * 1.4,
+        shaftLength * 0.4,
+        radius * 1.4,
+      ])
+      .fill({ color: '#dc2626', alpha: 0.94 })
+      .stroke({ color: '#fee2e2', width: 1.5 })
+      .poly([
+        -shaftLength * 0.9,
+        0,
+        -shaftLength * 1.25,
+        -radius * 1.1,
+        -shaftLength * 0.98,
+        0,
+        -shaftLength * 1.25,
+        radius * 1.1,
+      ])
+      .fill({ color: '#fb7185', alpha: 0.78 })
+      .stroke({ color: '#fecdd3', width: 1 })
   }
 
   private createBowBasicProjectile(
@@ -687,34 +724,11 @@ export class PixiGame {
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
-    const view = new Graphics()
-    const lineTelegraph = isLineTelegraphKind(telegraph)
-    const color = telegraph.sourceKind === 'enemy' ? '#f97316' : '#fb7185'
-    const lightColor = telegraph.sourceKind === 'enemy' ? '#fed7aa' : '#fecdd3'
-    if (lineTelegraph) {
-      const start = telegraph.points[0]
-      if (start) {
-        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
-        for (const point of telegraph.points.slice(1)) {
-          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-        }
-        view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
-        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
-        for (const point of telegraph.points.slice(1)) {
-          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-        }
-        view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
-      }
-    } else {
-      view
-        .circle(0, 0, telegraph.radius)
-        .fill({ color, alpha: 0.22 })
-        .stroke({ color: lightColor, width: 4, alpha: 0.95 })
-        .circle(0, 0, telegraph.radius * 0.72)
-        .stroke({ color: lightColor, width: 2, alpha: 0.8 })
-    }
+    const color = telegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
+    const lightColor = '#fecaca'
+    const view = this.createTelegraphGraphic(telegraph, color, lightColor)
     const label = new Text({
-      text: `${getTelegraphName(telegraph)} · DODGE`,
+      text: `DANGER · ${getTelegraphName(telegraph)} · DODGE`,
       style: {
         fill: '#fee2e2',
         fontSize: 13,
@@ -727,6 +741,116 @@ export class PixiGame {
     const root = new Container()
     root.addChild(view, label)
     return { root, label }
+  }
+
+  private createTelegraphGraphic(
+    telegraph: TelegraphState,
+    color: string,
+    lightColor: string,
+  ): Graphics {
+    if (telegraph.kind === 'ground-slam' || telegraph.kind === 'enemy-shockwave') {
+      const radius = telegraph.radius
+      const spikeCount = telegraph.kind === 'ground-slam' ? 12 : 10
+      const view = new Graphics()
+        .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
+        .stroke({ color: '#450a0a', width: 10, alpha: 0.8 })
+        .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
+        .fill({ color, alpha: 0.16 })
+        .stroke({ color: lightColor, width: 3, alpha: 0.92 })
+        .poly(createPolygonPoints(radius * 0.72, 8, Math.PI / 8))
+        .stroke({ color: lightColor, width: 2, alpha: 0.78 })
+      for (let index = 0; index < spikeCount; index += 1) {
+        const angle = (Math.PI * 2 * index) / spikeCount
+        view
+          .moveTo(
+            Math.cos(angle) * radius * 0.52,
+            Math.sin(angle) * radius * 0.52,
+          )
+          .lineTo(
+            Math.cos(angle) * radius * 0.9,
+            Math.sin(angle) * radius * 0.9,
+          )
+          .stroke({ color: lightColor, width: 1.5, alpha: 0.58 })
+      }
+      return view
+    }
+    if (telegraph.kind === 'fire-nova') {
+      return new Graphics()
+        .poly(createStarPoints(telegraph.radius, 16, 0.52, -Math.PI / 2))
+        .stroke({ color: '#450a0a', width: 10, alpha: 0.82 })
+        .poly(createStarPoints(telegraph.radius, 16, 0.52, -Math.PI / 2))
+        .fill({ color, alpha: 0.22 })
+        .stroke({ color: lightColor, width: 3, alpha: 0.94 })
+        .poly(createStarPoints(telegraph.radius * 0.64, 10, 0.58))
+        .fill({ color: '#facc15', alpha: 0.18 })
+        .stroke({ color: '#fff7ed', width: 2, alpha: 0.84 })
+    }
+    if (telegraph.kind === 'meteor-zone') {
+      const radius = telegraph.radius
+      return new Graphics()
+        .poly(createPolygonPoints(radius, 4, Math.PI / 4))
+        .stroke({ color: '#450a0a', width: 10, alpha: 0.82 })
+        .poly(createPolygonPoints(radius, 4, Math.PI / 4))
+        .fill({ color, alpha: 0.18 })
+        .stroke({ color: lightColor, width: 3, alpha: 0.92 })
+        .poly(createPolygonPoints(radius * 0.62, 4, 0))
+        .stroke({ color: '#fef08a', width: 2, alpha: 0.86 })
+        .moveTo(-radius * 0.95, 0)
+        .lineTo(radius * 0.95, 0)
+        .moveTo(0, -radius * 0.95)
+        .lineTo(0, radius * 0.95)
+        .stroke({ color: lightColor, width: 1.5, alpha: 0.72 })
+    }
+    if (isLineTelegraphKind(telegraph)) {
+      const start = telegraph.points[0]
+      const view = new Graphics()
+      if (start) {
+        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
+        for (const point of telegraph.points.slice(1)) {
+          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+        }
+        view
+          .stroke({ color: '#450a0a', width: telegraph.radius * 2 + 10, alpha: 0.82 })
+          .moveTo(start.x - telegraph.x, start.y - telegraph.y)
+        for (const point of telegraph.points.slice(1)) {
+          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+        }
+        view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
+        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
+        for (const point of telegraph.points.slice(1)) {
+          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+        }
+        view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
+        const end = telegraph.points[telegraph.points.length - 1]
+        if (end) {
+          const endX = end.x - telegraph.x
+          const endY = end.y - telegraph.y
+          const previous = telegraph.points[telegraph.points.length - 2] ?? start
+          const directionX = end.x - previous.x
+          const directionY = end.y - previous.y
+          const length = Math.hypot(directionX, directionY) || 1
+          const normalX = -directionY / length
+          const normalY = directionX / length
+          const arrowSize = Math.max(10, telegraph.radius * 0.8)
+          view
+            .poly([
+              endX,
+              endY,
+              endX - directionX / length * arrowSize + normalX * arrowSize * 0.6,
+              endY - directionY / length * arrowSize + normalY * arrowSize * 0.6,
+              endX - directionX / length * arrowSize - normalX * arrowSize * 0.6,
+              endY - directionY / length * arrowSize - normalY * arrowSize * 0.6,
+            ])
+            .fill(lightColor)
+            .stroke({ color, width: 1 })
+        }
+      }
+      return view
+    }
+    return new Graphics()
+      .poly(createStarPoints(telegraph.radius, 12, 0.78))
+      .fill({ color, alpha: 0.22 })
+      .stroke({ color: lightColor, width: 3, alpha: 0.9 })
   }
 
   private createStairsPlaceholder(stairs: StairsState): StairsView {
@@ -3047,6 +3171,7 @@ export class PixiGame {
         ? Math.max(0, Math.min(1, 1 - telegraph.remainingDuration / telegraph.duration))
         : 1
       telegraphView.root.alpha = 0.7 + progress * 0.3
+      telegraphView.root.scale.set(0.88 + progress * 0.12)
       telegraphView.label.text = `${getTelegraphName(telegraph)} · DODGE`
     }
 
