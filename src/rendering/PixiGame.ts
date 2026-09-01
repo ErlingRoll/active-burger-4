@@ -61,6 +61,7 @@ import {
   DEFAULT_PLAYSTYLE_ID,
   getPlaystyleDefinition,
 } from '../content/playstyles/Playstyles'
+import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { ARENA_BOUNDS } from '../game-config/arena'
 
 const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
@@ -372,6 +373,11 @@ export class PixiGame {
     const hpBar = new Graphics()
     const guardAura = new Graphics()
     guardAura.visible = false
+    this.drawEvolutionAccent(
+      body,
+      summon.skillId ?? RAISE_SKELETON_SKILL_ID,
+      8,
+    )
     const root = new Container()
     root.addChild(guardAura, body, hpBar)
     return { root, body, hpBar, guardAura }
@@ -530,6 +536,13 @@ export class PixiGame {
         .poly(createPolygonPoints(projectile.radius * 2.8, 6, Math.PI / 6))
         .stroke({ color: '#bfdbfe', width: 1.5, alpha: 0.7 })
     }
+    if (projectile.skillId) {
+      this.drawEvolutionAccent(
+        view,
+        projectile.skillId,
+        Math.max(3, projectile.radius * 2.2),
+      )
+    }
     return view
   }
 
@@ -620,6 +633,7 @@ export class PixiGame {
         .poly([shaftLength * 0.54, 0, shaftLength * 0.2, -radius * 1.6, shaftLength * 0.2, radius * 1.6])
         .stroke({ color: '#fef08a', width: 1.5, alpha: 0.72 })
     }
+    this.drawEvolutionAccent(view, BASIC_ATTACK_SKILL_ID, radius * 2.2)
     return view
   }
 
@@ -668,6 +682,7 @@ export class PixiGame {
         .poly(createPolygonPoints(radius * 1.48, 4, Math.PI / 4))
         .stroke({ color: '#fef08a', width: 1.5, alpha: 0.7 })
     }
+    this.drawEvolutionAccent(view, BASIC_ATTACK_SKILL_ID, radius * 2.2)
     return view
   }
 
@@ -918,57 +933,57 @@ export class PixiGame {
 
   private createEffectPlaceholder(effect: SkillEffectState): Graphics {
     if (effect.skillId === RALLYING_BANNER_SKILL_ID) {
-      return this.createRallyingFlagPlaceholder(effect)
+      return this.decorateEvolutionEffect(effect, this.createRallyingFlagPlaceholder(effect))
     }
     if (
       effect.skillId === PRISM_HALO_SKILL_ID &&
       effect.prismBeamElement !== undefined
     ) {
-      return this.createPrismBeamPlaceholder(effect)
+      return this.decorateEvolutionEffect(effect, this.createPrismBeamPlaceholder(effect))
     }
     if (effect.skillId === SOUL_TETHER_SKILL_ID && effect.shape === 'line') {
-      return this.createSoulTetherPlaceholder(effect)
+      return this.decorateEvolutionEffect(effect, this.createSoulTetherPlaceholder(effect))
     }
     if (effect.skillId === STORM_RELAY_SKILL_ID && effect.shape === undefined) {
-      return this.createStormRelayStrikePlaceholder(effect)
+      return this.decorateEvolutionEffect(effect, this.createStormRelayStrikePlaceholder(effect))
     }
     if (effect.shape === undefined) {
       if (effect.skillId === VITALITY_SKILL_ID) {
-        return this.createVitalityPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createVitalityPlaceholder(effect))
       }
       if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
-        return this.createSkeletonRitualPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createSkeletonRitualPlaceholder(effect))
       }
       if (effect.skillId === BLOOD_RITE_SKILL_ID) {
-        return this.createBloodPulsePlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createBloodPulsePlaceholder(effect))
       }
       if (effect.skillId === SIGIL_OF_RUIN_SKILL_ID) {
-        return this.createSigilCastPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createSigilCastPlaceholder(effect))
       }
       if (effect.skillId === MIRRORCAST_SKILL_ID) {
-        return this.createMirrorcastCastPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createMirrorcastCastPlaceholder(effect))
       }
       if (effect.skillId === PHANTOM_ARSENAL_SKILL_ID) {
-        return this.createPhantomSummonPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createPhantomSummonPlaceholder(effect))
       }
     }
     if (effect.shape === 'line') {
       if (effect.skillId === LANCERS_CHARGE_SKILL_ID) {
-        return this.createLancersChargePlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createLancersChargePlaceholder(effect))
       }
       if (effect.skillId === MIRRORCAST_SKILL_ID) {
-        return this.createMirrorcastLinkPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createMirrorcastLinkPlaceholder(effect))
       }
       if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
-        return this.createBoneBoltPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createBoneBoltPlaceholder(effect))
       }
     }
     if (effect.skillId === BASIC_ATTACK_SKILL_ID) {
       if (effect.shape === 'arc') {
-        return this.createSwordSwingPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createSwordSwingPlaceholder(effect))
       }
       if (effect.shape === undefined) {
-        return this.createStaffImpactPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createStaffImpactPlaceholder(effect))
       }
     }
     const visual =
@@ -1027,10 +1042,10 @@ export class PixiGame {
         }
       }
     } else if (visual.kind === 'area') {
-      return this.createSkillBurstPlaceholder(effect, visual)
+      return this.decorateEvolutionEffect(effect, this.createSkillBurstPlaceholder(effect, visual))
     } else if (visual.kind === 'chain') {
       if (effect.skillId === CHAIN_LIGHTNING_SKILL_ID) {
-        return this.createChainLightningPlaceholder(effect)
+        return this.decorateEvolutionEffect(effect, this.createChainLightningPlaceholder(effect))
       }
       const points = effect.points.length > 0
         ? effect.points
@@ -1061,7 +1076,82 @@ export class PixiGame {
         .stroke({ color: visual.outlineColor, width: 2 })
     }
 
+    return this.decorateEvolutionEffect(effect, view)
+  }
+
+  private decorateEvolutionEffect(
+    effect: SkillEffectState,
+    view: Graphics,
+  ): Graphics {
+    this.drawEvolutionAccent(view, effect.skillId, Math.max(8, effect.radius * 0.28))
     return view
+  }
+
+  private drawEvolutionAccent(
+    view: Graphics,
+    skillId: SkillEffectState['skillId'],
+    radius: number,
+  ): void {
+    const branch = this.game.state.run.selectedUpgradeIds
+      .map((upgradeId) => getUpgradeDefinition(upgradeId))
+      .find((upgrade) => upgrade.skillId === skillId && upgrade.branch !== undefined)
+      ?.branch
+    if (!branch) {
+      return
+    }
+    const isCold = branch.includes('frost') || branch.includes('permafrost') ||
+      branch.includes('ice-lance')
+    const isFire = branch.includes('ember') || branch.includes('inferno') ||
+      branch.includes('cinder')
+    const isLightning = branch.includes('overload') || branch.includes('overcharge') ||
+      branch.includes('conduit') || branch.includes('precision')
+    const isDefense = branch.includes('guard') || branch.includes('bulwark') ||
+      branch.includes('last-stand') || branch.includes('commander') ||
+      branch.includes('reprisal')
+    const isSummon = branch.includes('legion') || branch.includes('rotting') ||
+      branch.includes('requiem') || branch.includes('volley') ||
+      branch.includes('marksman')
+    const isMirror = branch.includes('echo') || branch.includes('exposure') ||
+      branch.includes('refraction') || branch.includes('horizon') ||
+      branch.includes('convergence')
+    const color = isCold
+      ? '#bae6fd'
+      : isFire
+        ? '#fdba74'
+        : isLightning
+          ? '#fef08a'
+          : isDefense
+            ? '#67e8f9'
+            : isSummon
+              ? '#c084fc'
+              : isMirror
+                ? '#e0f2fe'
+                : '#fef08a'
+    const markerRadius = Math.max(4, Math.min(18, radius))
+    if (isDefense) {
+      view
+        .poly(createPolygonPoints(markerRadius, 6, Math.PI / 6))
+        .stroke({ color, width: 2, alpha: 0.82 })
+      return
+    }
+    if (isCold || isMirror) {
+      view
+        .poly(createPolygonPoints(markerRadius, 4, Math.PI / 4))
+        .stroke({ color, width: 1.8, alpha: 0.82 })
+      return
+    }
+    if (isLightning) {
+      view
+        .moveTo(-markerRadius, -markerRadius * 0.6)
+        .lineTo(-markerRadius * 0.25, markerRadius * 0.25)
+        .lineTo(markerRadius * 0.2, -markerRadius * 0.25)
+        .lineTo(markerRadius, markerRadius * 0.6)
+        .stroke({ color, width: 1.8, alpha: 0.84 })
+      return
+    }
+    view
+      .poly(createStarPoints(markerRadius, isFire || isSummon ? 6 : 8, 0.42))
+      .stroke({ color, width: 1.8, alpha: 0.82 })
   }
 
   private createSwordSwingPlaceholder(effect: SkillEffectState): Graphics {
@@ -2275,6 +2365,7 @@ export class PixiGame {
         .lineTo(-mineRadius * 0.12, -mineRadius * 0.34)
         .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.76 })
     }
+    this.drawEvolutionAccent(view, CINDER_MINE_SKILL_ID, mineRadius * 0.7)
   }
 
   private createStormRelayPlaceholder(relay: Readonly<RelayState>): Graphics {
@@ -2338,6 +2429,7 @@ export class PixiGame {
         .poly(createPolygonPoints(radius * 1.18, 8, -time * 1.2))
         .stroke({ color: '#f0abfc', width: 1.5, alpha: 0.62 })
     }
+    this.drawEvolutionAccent(view, STORM_RELAY_SKILL_ID, radius * 0.7)
   }
 
   private drawRuinSigil(
@@ -2406,6 +2498,7 @@ export class PixiGame {
         .poly(createStarPoints(radius * 1.34, 6, 0.35, Math.PI / 6))
         .stroke({ color: '#f87171', width: 1.5, alpha: 0.72 })
     }
+    this.drawEvolutionAccent(view, SIGIL_OF_RUIN_SKILL_ID, radius * 0.7)
   }
 
   private createWirePlaceholder(wire: Readonly<WireState>): Graphics {
@@ -2499,6 +2592,7 @@ export class PixiGame {
           .lineTo(endX, endY)
           .stroke({ color: '#c084fc', width: 1.5, alpha: 0.62 })
     }
+    this.drawEvolutionAccent(view, RAZORWIRE_SKILL_ID, Math.max(6, length * 0.06))
   }
 
   private drawMirrorcastEcho(view: Graphics, time: number): void {
@@ -2534,6 +2628,7 @@ export class PixiGame {
         .poly(createPolygonPoints(radius * 0.86, 4, -time * 0.8))
         .stroke({ color: '#38bdf8', width: 1, alpha: 0.62 })
     }
+    this.drawEvolutionAccent(view, MIRRORCAST_SKILL_ID, radius * 0.62)
   }
 
   private drawBloodRiteRing(view: Graphics, charges: number, time: number): void {
@@ -2579,6 +2674,7 @@ export class PixiGame {
         .poly(createPolygonPoints(radius * 1.06, 3, time * 0.7))
         .stroke({ color: '#f97316', width: 1.5, alpha: 0.68 })
     }
+    this.drawEvolutionAccent(view, BLOOD_RITE_SKILL_ID, radius * 0.72)
   }
 
   private drawPrismHalo(view: Graphics, halo: Readonly<PrismHaloState>): void {
@@ -2624,6 +2720,7 @@ export class PixiGame {
         .poly(createStarPoints(orbitRadius + 7, 6, 0.82, halo.rotation))
         .stroke({ color: '#f87171', width: 1.5, alpha: 0.62 })
     }
+    this.drawEvolutionAccent(view, PRISM_HALO_SKILL_ID, orbitRadius * 0.5)
   }
 
   private renderRazorwires(state: Game['state']): void {

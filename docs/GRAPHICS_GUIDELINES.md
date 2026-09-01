@@ -192,6 +192,37 @@ This inventory is the baseline to match when adding new content.
   - Lightning uses pale gold.
   - Resonant all-element volleys use parallel multi-color facets.
 
+## Evolution visual coverage matrix
+
+Every evolution branch must visibly transform its parent skill. The shared
+evolution accent decorator provides a branch-colored glyph; dedicated skill
+renderers should add a stronger shape or motion change when the branch changes
+the skill's behavior.
+
+| Skill | Evolution branches | Visual distinction |
+| --- | --- | --- |
+| Basic Attack | Barrage, Precision | Repeating cadence mark vs. target-focused gold mark |
+| Whirlwind | Rime Cyclone, Whirlwind Guard | Cold facets vs. cyan shield edge |
+| Chain Lightning | Freezing Conduit, Overload | Frost terminals vs. heavy charged arcs |
+| Vitality | Renewal, Last Stand | Life ring vs. defensive hex mark |
+| Raise Skeleton | Grave Legion, Rotting Bones | Legion aura vs. poison/rotting glyph |
+| Fiery Touch | Rapid Ignition, Emberstorm | Faster ember streak vs. larger ember crown |
+| Glacial Orb | Permafrost, Ice Lance | Crystal bloom vs. focused lance geometry |
+| Lancer's Charge | Vanguard, Impaler | Momentum bands vs. wider spear corridor |
+| Rallying Banner | Commander, Bulwark | Command chevrons vs. shield perimeter |
+| Gravity Well | Singularity, Event Horizon | Nested pull rings vs. compressed dark core |
+| Aegis Pulse | Bulwark, Reprisal | Large shield frame vs. retaliatory edge |
+| Rift Javelin | Barbed Javelin, Homeward Edge | Barbs/poison accents vs. bright return trail |
+| Cinder Mine | Inferno Charge, Cluster Charges | Hotter flame crown vs. linked mine geometry |
+| Storm Relay | Overcharge, Conduit | Electrical crown vs. permanent circuit ring |
+| Soul Tether | Siphon, Requiem Chain | Green healing flow vs. snap-chain accents |
+| Phantom Arsenal | Volley, Marksman | Multiple ghost markers vs. focused spectral sight |
+| Sigil of Ruin | Contagious Script, Execution Protocol | Spreading glyph marks vs. armed execution ring |
+| Mirrorcast | Double Exposure, Deferred Echo | Multiple mirror facets vs. delayed afterimage |
+| Razorwire | Tripwire Network, Guillotine Line | Crossed short wires vs. long tension blade |
+| Blood Rite | Sanguine Pact, Crimson Debt | Healing inner ring vs. separated charge marks |
+| Prism Halo | Chromatic Convergence, Refraction | Full-spectrum frame vs. split crystal facets |
+
 ## Synergy visual coverage matrix
 
 Basic Attack is a universal Synergy partner. It is listed here for completeness
