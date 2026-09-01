@@ -50,7 +50,7 @@ import {
   KNIGHT_EARLY_FLOOR_COUNT,
   KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT,
 } from '../../../game-config/classes'
-import type { EntityIdAllocator } from '../../ids'
+import type { EntityId, EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
   findNearestEnemy,
@@ -1096,16 +1096,18 @@ function canProjectileChain(
 
 function findChainLightningTarget(
   projectile: ProjectileState,
-  hitTarget: Readonly<EnemyState | BossState>,
+  originX: number,
+  originY: number,
+  excludeTargetId: EntityId | undefined,
   enemies: ReturnType<typeof createEnemySpatialHash>,
 ): EnemyState | BossState | undefined {
   const chainRange = projectile.chainRange ?? 0
   const candidates = enemies
-    .queryRadius(hitTarget.x, hitTarget.y, chainRange)
-    .filter((enemy) => enemy.id !== hitTarget.id)
+    .queryRadius(originX, originY, chainRange)
+    .filter((enemy) => enemy.id !== excludeTargetId)
     .map((enemy) => ({
       enemy,
-      distanceSquared: distanceSquared(hitTarget.x, hitTarget.y, enemy.x, enemy.y),
+      distanceSquared: distanceSquared(originX, originY, enemy.x, enemy.y),
     }))
     .filter((candidate) => candidate.distanceSquared <= chainRange * chainRange)
     .sort((left, right) =>
@@ -1157,6 +1159,20 @@ function relaunchProjectileTowardTarget(
   projectile.chainOriginX = hitTarget.x
   projectile.chainOriginY = hitTarget.y
   projectile.remainingChains = Math.max(0, (projectile.remainingChains ?? 0) - 1)
+  projectile.velocityX = direction.x * definition.speed
+  projectile.velocityY = direction.y * definition.speed
+}
+
+function retargetChainLightningProjectile(
+  projectile: ProjectileState,
+  nextTarget: Readonly<EnemyState | BossState>,
+): void {
+  const definition = getProjectileDefinition(projectile.definitionId)
+  const direction = normalizeVector(
+    nextTarget.x - projectile.x,
+    nextTarget.y - projectile.y,
+  )
+  projectile.targetId = nextTarget.id
   projectile.velocityX = direction.x * definition.speed
   projectile.velocityY = direction.y * definition.speed
 }
@@ -1515,6 +1531,27 @@ export function updateProjectiles(
   let enemySpatialHash = undefined
   for (const projectile of state.projectiles) {
     const definition = getProjectileDefinition(projectile.definitionId)
+    if (
+      projectile.skillId === CHAIN_LIGHTNING_SKILL_ID &&
+      projectile.lastHitTargetId !== undefined &&
+      canProjectileChain(state, projectile) &&
+      !findLivingTarget(state, projectile.targetId)
+    ) {
+      enemySpatialHash ??= createEnemySpatialHash(state)
+      const nextTarget = findChainLightningTarget(
+        projectile,
+        projectile.chainOriginX ?? projectile.x,
+        projectile.chainOriginY ?? projectile.y,
+        projectile.lastHitTargetId,
+        enemySpatialHash,
+      )
+      if (nextTarget) {
+        retargetChainLightningProjectile(projectile, nextTarget)
+      } else {
+        projectile.remainingLifetime = 0
+        continue
+      }
+    }
     if (definition.guidance === 'homing') {
       const currentHomingDelay = projectile.homingDelayRemaining ?? 0
       const homingDelayRemaining =
@@ -1701,7 +1738,13 @@ export function collectProjectileDamage(
       }
       if (canProjectileChain(state, projectile)) {
         const nextTarget = projectile.skillId === CHAIN_LIGHTNING_SKILL_ID
-          ? findChainLightningTarget(projectile, hitEnemy, enemies)
+          ? findChainLightningTarget(
+              projectile,
+              hitEnemy.x,
+              hitEnemy.y,
+              hitEnemy.id,
+              enemies,
+            )
           : findNearestEnemy(
               {
                 originX: hitEnemy.x,

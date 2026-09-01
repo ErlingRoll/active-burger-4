@@ -251,6 +251,45 @@ describe('skill system', () => {
     expect(game.state.projectiles[0]?.remainingChains).toBe(7)
   })
 
+  it('retargets a Chain Lightning hop when another projectile kills its target', () => {
+    const game = createGame({ seed: 522 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    const firstId = game.spawnSlime({ x: 100, y: 0 })
+    const secondId = game.spawnSlime({ x: 180, y: 0 })
+    const thirdId = game.spawnSlime({ x: 190, y: 0 })
+
+    collectSkillDamage(game.state, allocator)
+    const projectile = game.state.projectiles[0]
+    if (!projectile) {
+      throw new Error('Expected Chain Lightning projectile to be created')
+    }
+    projectile.x = 100
+    projectile.y = 0
+    collectProjectileDamage(game.state)
+    expect(projectile.lastHitTargetId).toBe(firstId)
+
+    const defeatedTargetId = projectile.targetId
+    const survivingTargetId = [secondId, thirdId].find(
+      (targetId) => targetId !== defeatedTargetId,
+    )
+    const defeatedTarget = game.state.enemies.find(
+      (enemy) => enemy.id === defeatedTargetId,
+    )
+    if (!defeatedTarget || !survivingTargetId) {
+      throw new Error('Expected Chain Lightning to select one nearby target')
+    }
+    defeatedTarget.hp = 0
+
+    updateProjectiles(game.state, FIXED_STEP_SECONDS)
+
+    expect(projectile.targetId).toBe(survivingTargetId)
+    expect(projectile.remainingChains).toBe(4)
+  })
+
   it('applies the selected Frost and Overload Chain Lightning branch effects', () => {
     const game = createGame({ seed: 53 })
     game.state.player.skills = [{
