@@ -373,7 +373,7 @@ export interface UpgradeDefinition {
   mirrorcastDeferredEcho?: boolean
   /** Critical Spellstrike uses a 0.7-second base cooldown. */
   criticalSpellstrikeRapidInvocation?: boolean
-  /** Critical Spellstrike starts at 80% replay effectiveness. */
+  /** Critical Spellstrike starts at 80% trigger effectiveness. */
   criticalSpellstrikeOverwhelming?: boolean
   /** Razorwire deploys several shorter wires with reduced per-wire damage. */
   razorwireTripwireNetwork?: boolean
