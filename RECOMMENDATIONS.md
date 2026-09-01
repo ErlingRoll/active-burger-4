@@ -1,5 +1,10 @@
 
 
+> **Historical design notes:** This document contains recommendations captured
+> before the current Synergy, balance, and visual systems were implemented.
+> Treat the current code, [PLAN.md](PLAN.md), and
+> [docs/GRAPHICS_GUIDELINES.md](docs/GRAPHICS_GUIDELINES.md) as authoritative.
+
 The most important thing is to **fix multiplicative runaway scaling before adding more content**. Otherwise every new skill or modifier will either be irrelevant or become another abuse case.
 
 # Design rules I would adopt

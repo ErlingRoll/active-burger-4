@@ -54,7 +54,8 @@ milestones in order unless an ADR documents an exception.
 - [x] **10. Performance:** spatial hash, debug counts, spawn commands, and
   measured profiling.
 - [x] **11. Gear:** deterministic drops, equipment choices, rarity, and stat
-  modifiers. Event-triggered passives and conditional synergies remain deferred.
+  modifiers, with event-triggered and conditional Synergy hooks implemented
+  separately in the combat and skill systems.
 - [x] **12. Elites:** selection, Hasted/Giant, visuals, rewards.
 - [x] **13. Boss:** deterministic 3:00 encounter, Ground Slam/Charge telegraphs,
       autonomous Dodge, health/status UI, deterministic reward, Development Menu spawn,
@@ -72,7 +73,8 @@ milestones in order unless an ADR documents an exception.
 - [x] **17. Meta Progression:** Essence wallet, ten-level XP multiplier upgrades,
       and three-rank starting-level upgrades with pre-run level-up choices.
 - [x] **18. World Modifiers:** selection, difficulty score, reward multiplier.
-- [x] **19. Characters:** content-driven Knight, Ranger, Necromancer, Frost Warden, Ashen Alchemist, and War Shepherd.
+- [x] **19. Characters:** content-driven Knight, Ranger, Necromancer, Frost
+      Warden, Ashen Alchemist, War Shepherd, Riftwalker, and Bloodweaver.
 - [x] **20. Polish:** onboarding, combat readability, reduced motion, responsive HUD, and results presentation.
 - [ ] **21. Durable Dungeon Runs:** Supabase-owned active-run locking,
       exact deterministic floor checkpoints, Continue/Save & quit/Forfeit
