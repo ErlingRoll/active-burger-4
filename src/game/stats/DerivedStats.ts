@@ -57,6 +57,8 @@ export interface PlayerStats extends StatValues {
   /** Extra projectiles granted by weapon-local Basic Attack modifiers. */
   basicAttackExtraProjectiles: number
   projectileChains: number
+  /** Maximum active summons granted to each summon skill. */
+  summonMaxCountBonus: number
   meleeLeech: number
   whirlwindLeech: number
   increasedHealing: number
@@ -144,6 +146,7 @@ interface AggregatedGearEffects {
   globalExtraProjectiles: number
   basicAttackExtraProjectiles: number
   projectileChains: number
+  summonMaxCountBonus: number
   meleeLeech: number
   whirlwindLeech: number
   dotMultiplier: number
@@ -198,6 +201,7 @@ function aggregateGearEffects(
     globalExtraProjectiles: 0,
     basicAttackExtraProjectiles: 0,
     projectileChains: 0,
+    summonMaxCountBonus: 0,
     meleeLeech: 0,
     whirlwindLeech: Math.max(
       0,
@@ -277,6 +281,11 @@ function aggregateGearEffects(
 
     if (definition.kind === 'projectile-chains') {
       effects.projectileChains += modifier.value
+      continue
+    }
+
+    if (definition.kind === 'summon-count') {
+      effects.summonMaxCountBonus += modifier.value
       continue
     }
 
@@ -365,6 +374,7 @@ export function getDerivedPlayerStats(
     globalExtraProjectiles: gearEffects.globalExtraProjectiles,
     basicAttackExtraProjectiles: gearEffects.basicAttackExtraProjectiles,
     projectileChains: gearEffects.projectileChains,
+    summonMaxCountBonus: Math.max(0, gearEffects.summonMaxCountBonus),
     meleeLeech: gearEffects.meleeLeech,
     whirlwindLeech: gearEffects.whirlwindLeech,
     increasedHealing: Math.max(0, player.increasedHealing ?? 0),

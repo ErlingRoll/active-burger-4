@@ -105,6 +105,7 @@ function getSkeletonLegionAttackSpeedIncreasePercent(
 function getSummonCountBonus(
   state: Readonly<GameState>,
   skillId: SkillId,
+  summonMaxCountBonus: number,
 ): number {
   const hasLivingOtherSummon = state.summons.some((summon) =>
     summon.hp > 0 &&
@@ -126,11 +127,13 @@ function getSummonCountBonus(
     const volley = state.run.selectedUpgradeIds.includes('phantom-arsenal-volley')
     return (state.player.phantomMaxCountBonus ?? 0) +
       (volley ? PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS : 0) +
-      legionBonus
+      legionBonus +
+      summonMaxCountBonus
   }
   return (state.player.skeletonMaxCountBonus ?? 0) +
     legionBonus +
-    graveRallyBonus
+    graveRallyBonus +
+    summonMaxCountBonus
 }
 
 function getSummonMaxHpBonus(
@@ -318,6 +321,7 @@ export function getSummonStats(
     return undefined
   }
   const definition = getSkillDefinition(skillId)
+  const playerStats = getDerivedPlayerStats(state.player)
   const rallyingBannerCooldownReduction =
     getRallyingBannerCooldownReductionPercent(state)
   const isPhantom = skillId === PHANTOM_ARSENAL_SKILL_ID
@@ -343,7 +347,14 @@ export function getSummonStats(
       1,
       Math.floor(
         (definition.summonBaseMaxCount ?? 1) +
-          Math.max(0, getSummonCountBonus(state, skillId)),
+          Math.max(
+            0,
+            getSummonCountBonus(
+              state,
+              skillId,
+              playerStats.summonMaxCountBonus,
+            ),
+          ),
       ),
     ),
     ranged: isPhantom,

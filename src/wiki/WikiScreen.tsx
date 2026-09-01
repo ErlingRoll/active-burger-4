@@ -361,7 +361,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                       <SkillIcon skillId={skill.id} size={34} />
                       <div><h3>{skill.name}</h3><p>{skill.kind} · {skill.tags.join(' · ')}</p></div>
                     </header>
-                    <p>{skill.description}</p>
+                    <p><KeywordText text={skill.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
                     <div className="wiki-stat-line">
                       <span>Cooldown <strong>{formatNumber(skill.cooldown)}s</strong></span>
                       <span>At 20% CDR <strong>{formatNumber(getEffectiveSkillCooldown(skill.cooldown, 20))}s</strong></span>
@@ -371,8 +371,8 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                     {skill.baseHealing !== undefined ? <p>Healing at level 1 / 5: <strong>{getSkillHealing(skill, 1)} / {getSkillHealing(skill, 5)}</strong></p> : null}
                     {skill.shieldBaseAmount !== undefined ? <p>Shield at level 1 / 5: <strong>{getSkillShieldAmount(skill, 1)} / {getSkillShieldAmount(skill, 5)}</strong></p> : null}
                     <p className="wiki-muted">Base damage: {Object.entries(skill.baseDamage).filter(([, value]) => value !== undefined).map(([type, value]) => `${formatNumber(value ?? 0)} ${type}`).join(' · ') || 'none'}</p>
-                    {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> {skill.resonanceEffect.description}</p> : null}
-                    {upgrades.length > 0 ? <details><summary>Upgrades and branches ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.branch ? ' · Evolve' : ''}: {upgrade.description} <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
+                    {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> <KeywordText text={skill.resonanceEffect.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p> : null}
+                    {upgrades.length > 0 ? <details><summary>Upgrades and branches ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.branch ? ' · Evolve' : ''}: <KeywordText text={upgrade.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
                   </section>
                 )
               })}
@@ -390,8 +390,8 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   <p className="screen-kicker">Legendary pair</p>
                   <h3>{synergy.name}</h3>
                   <p>{synergy.synergySkillIds.map((skillId) => <a className="wiki-inline-link" key={skillId} href={`#skill-${skillId}`}>{SKILL_DEFINITIONS[skillId].name}</a>)}</p>
-                  <p>{synergy.description}</p>
-                  <p className="wiki-muted">{synergy.valueLabel}</p>
+                  <p><KeywordText text={synergy.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
+                  <p className="wiki-muted"><KeywordText text={synergy.valueLabel} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
                 </section>
               ))}
             </div>

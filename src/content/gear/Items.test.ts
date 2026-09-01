@@ -143,6 +143,23 @@ describe('initial gear content', () => {
       4: { min: 1, max: 1 },
       5: { min: 1, max: 1 },
     })
+    expect(getGearModifierDefinition('max-summons').tiers).toEqual({
+      1: { min: 1, max: 1 },
+      2: { min: 1, max: 1 },
+      3: { min: 1, max: 1 },
+      4: { min: 2, max: 2 },
+      5: { min: 3, max: 3 },
+    })
+    expect(
+      getAvailableGearModifiersForItem(getItemDefinition('ritual-staff')).some(
+        (modifier) => modifier.id === 'max-summons',
+      ),
+    ).toBe(true)
+    expect(
+      getAvailableGearModifiersForItem(getItemDefinition('starcall-wand')).some(
+        (modifier) => modifier.id === 'max-summons',
+      ),
+    ).toBe(false)
     expect(
       getAvailableGearModifiersForSlot('weapon').some(
         (modifier) => modifier.id === 'crit-chance',
@@ -357,6 +374,11 @@ describe('initial gear content', () => {
       tier: 5,
       value: 2,
     })).toBe('T5 +2 projectile chains')
+    expect(formatGearModifier({
+      id: 'max-summons',
+      tier: 5,
+      value: 3,
+    })).toBe('T5 +3 maximum summons')
   })
 
   it('resolves definitions at the content-to-game boundary', () => {

@@ -29,6 +29,7 @@ import {
 } from './upgrades/Upgrades'
 import {
   BASIC_ATTACK_SKILL_ID,
+  BASIC_ATTACK_VARIANTS,
   SKILL_DEFINITIONS,
   type SkillDefinition,
 } from './skills/Skills'
@@ -826,6 +827,18 @@ function validateDefinitions(
   projectileIds: Set<string>,
   enemyIds: Set<string>,
 ): void {
+  const iconOwners = new Map<string, string>()
+  for (const [weaponArchetype, variant] of Object.entries(BASIC_ATTACK_VARIANTS)) {
+    const previousOwner = iconOwners.get(variant.visual.icon)
+    if (previousOwner) {
+      errors.push(
+        `basic attack variant "${weaponArchetype}" reuses visual.icon "${variant.visual.icon}" already used by ${previousOwner}.`,
+      )
+    } else {
+      iconOwners.set(variant.visual.icon, `basic attack variant "${weaponArchetype}"`)
+    }
+  }
+
   catalog.skills.forEach((skill, index) => {
     if (skill.id === BASIC_ATTACK_SKILL_ID) {
       if (skill.resonanceEffect !== undefined) {
@@ -858,6 +871,15 @@ function validateDefinitions(
       skill.visual.icon.trim() === ''
     ) {
       errors.push(`skills[${index}].visual.icon must be a non-empty string.`)
+    } else {
+      const previousOwner = iconOwners.get(skill.visual.icon)
+      if (previousOwner) {
+        errors.push(
+          `skills[${index}].visual.icon "${skill.visual.icon}" is already used by ${previousOwner}.`,
+        )
+      } else {
+        iconOwners.set(skill.visual.icon, `skill "${skill.id}"`)
+      }
     }
     for (const property of ['primaryColor', 'secondaryColor', 'outlineColor'] as const) {
       if (

@@ -341,7 +341,7 @@ export const BASIC_ATTACK_VARIANTS = {
     effectLifetime: 0.16,
     visual: {
       kind: 'area',
-      icon: '✦',
+      icon: '✣',
       primaryColor: '#a855f7',
       secondaryColor: '#d8b4fe',
       outlineColor: '#f3e8ff',
@@ -365,7 +365,7 @@ export const SKILL_DEFINITIONS = {
     resonanceEffect: undefined,
     visual: {
       kind: 'projectile',
-      icon: '✦',
+      icon: '◈',
       primaryColor: '#22d3ee',
       secondaryColor: '#a855f7',
       outlineColor: '#e0f2fe',

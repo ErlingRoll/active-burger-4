@@ -36,6 +36,7 @@ export type GearModifierId =
   | 'melee-leech'
   | 'basic-attack-extra-projectiles'
   | 'projectile-chains'
+  | 'max-summons'
   | 'flat-physical-damage'
   | 'flat-lightning-damage'
   | 'flat-fire-damage'
@@ -124,6 +125,11 @@ interface GearProjectileChainsModifierDefinition
   kind: 'projectile-chains'
 }
 
+interface GearSummonCountModifierDefinition
+  extends GearModifierDefinitionBase {
+  kind: 'summon-count'
+}
+
 interface GearDotMultiplierModifierDefinition
   extends GearModifierDefinitionBase {
   kind: 'dot-multiplier'
@@ -145,6 +151,7 @@ export type GearModifierDefinition =
   | GearMeleeLeechModifierDefinition
   | GearBasicAttackExtraProjectilesModifierDefinition
   | GearProjectileChainsModifierDefinition
+  | GearSummonCountModifierDefinition
   | GearDotMultiplierModifierDefinition
   | GearFrostApplicationModifierDefinition
 
@@ -392,6 +399,22 @@ export const GEAR_MODIFIER_DEFINITIONS = {
       { min: 3, max: 3 },
       { min: 2, max: 2 },
       { min: 2, max: 2 },
+    ),
+  },
+  'max-summons': {
+    id: 'max-summons',
+    kind: 'summon-count',
+    label: 'maximum summons',
+    valueType: 'flat',
+    availableSlots: [EquipmentSlot.Weapon],
+    availableWeaponArchetypes: ['staff'],
+    sortOrder: 66,
+    tiers: defineTiers(
+      { min: 1, max: 1 },
+      { min: 1, max: 1 },
+      { min: 1, max: 1 },
+      { min: 2, max: 2 },
+      { min: 3, max: 3 },
     ),
   },
   'flat-physical-damage': {
@@ -860,6 +883,9 @@ function formatGearModifierMagnitude(
   if (definition.kind === 'projectile-chains') {
     return `${magnitude} projectile chain${magnitude === 1 ? '' : 's'}`
   }
+  if (definition.kind === 'summon-count') {
+    return `${magnitude} maximum summon${magnitude === 1 ? '' : 's'}`
+  }
   return definition.valueType === 'percent'
     ? `${magnitude}% ${definition.label}`
     : `${magnitude} ${definition.label}`
@@ -925,6 +951,9 @@ export function doesGearModifierAffectSkill(
   }
   if (definition.kind === 'projectile-chains') {
     return tags.has('projectile')
+  }
+  if (definition.kind === 'summon-count') {
+    return tags.has('summon')
   }
   if (definition.kind === 'dot-multiplier') {
     return tags.has('dot')

@@ -561,7 +561,7 @@ describe('UI snapshots', () => {
     expect(raiseSkeleton?.dpsAssumption).toBe(
       'One persistent skeleton attacks the nearest target in range once per second.',
     )
-    expect(basicAttack?.icon).toBe('✦')
+    expect(basicAttack?.icon).toBe('✣')
     expect(raiseSkeleton?.icon).toBe('☠')
     expect(basicAttack?.icon).not.toBe(raiseSkeleton?.icon)
     expect(offence?.stats).toEqual(

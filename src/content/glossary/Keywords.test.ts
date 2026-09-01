@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import {
+  LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+  LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
+  LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK,
+  LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK,
+} from '../../game-config/skills'
 import { KEYWORD_DEFINITIONS, splitKeywordText } from './Keywords'
 
 describe('keyword glossary text', () => {
@@ -47,6 +53,12 @@ describe('keyword glossary text', () => {
       { type: 'keyword', value: 'Synergy Charge', keywordId: 'synergy-charge' },
       { type: 'text', value: '.' },
     ])
+  })
+
+  it('documents Momentum bonuses, cap, and decay from live skill settings', () => {
+    expect(KEYWORD_DEFINITIONS.momentum.details).toBe(
+      `Each Lancer's Charge grants one stack after it resolves. Each stack adds ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% increased damage to later Charges (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard). Momentum caps at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks, and any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
+    )
   })
 
   it('links Resonance and Attunement terminology to glossary definitions', () => {

@@ -42,11 +42,19 @@ export function SkillIcon({
       )
       break
     case 'chain-lightning':
-    case 'storm-relay':
       shape = (
         <>
           <path {...strokeProps} d="m13 2-8 11h6l-1 9 9-13h-6z" />
           <path {...strokeProps} d="M3 18h3M18 6h3" />
+        </>
+      )
+      break
+    case 'storm-relay':
+      shape = (
+        <>
+          <path {...strokeProps} d="M7 20V6l5-3 5 3v14" />
+          <path {...strokeProps} d="M4 20h16M4 10h3M17 10h3" />
+          <path {...strokeProps} d="m12 5 2 4-3 4 2 2" />
         </>
       )
       break
@@ -83,6 +91,14 @@ export function SkillIcon({
       )
       break
     case 'lancers-charge':
+      shape = (
+        <>
+          <path {...strokeProps} d="M3 20h7l4-4 3 3 4-4" />
+          <path {...strokeProps} d="m14 11 6 0-1 6" />
+          <path {...strokeProps} d="M6 16 3 13M8 21l-2-2" />
+        </>
+      )
+      break
     case 'rift-javelin':
       shape = (
         <>

@@ -8,6 +8,7 @@ import {
 import { SYNERGY_UPGRADES } from './upgrades/Upgrades'
 import {
   BASIC_ATTACK_SKILL_ID,
+  BASIC_ATTACK_VARIANTS,
   SKILL_DEFINITIONS,
 } from './skills/Skills'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
@@ -37,6 +38,15 @@ describe('content validation', () => {
       }))
       expect(skill.resonanceEffect?.description.trim()).not.toBe('')
     }
+  })
+
+  it('keeps skill and weapon visual icons unique', () => {
+    const icons = [
+      ...Object.values(SKILL_DEFINITIONS).map((skill) => skill.visual.icon),
+      ...Object.values(BASIC_ATTACK_VARIANTS).map((variant) => variant.visual.icon),
+    ]
+
+    expect(new Set(icons).size).toBe(icons.length)
   })
 
   it('gives every playable class Resonance and Attunement stats', () => {

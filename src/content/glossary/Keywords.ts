@@ -1,3 +1,10 @@
+import {
+  LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+  LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
+  LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK,
+  LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK,
+} from '../../game-config/skills'
+
 export type KeywordId =
   | 'poison'
   | 'burning'
@@ -103,7 +110,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Momentum',
     summary: 'Stacks that empower Lancer\'s Charge.',
     details:
-      'Lancer\'s Charge gains increased damage from Momentum stacks. Momentum caps at 3 stacks and decays after 4 seconds without another Charge or Momentum-generating effect.',
+      `Each Lancer's Charge grants one stack after it resolves. Each stack adds ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% increased damage to later Charges (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard). Momentum caps at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks, and any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
   },
   resonance: {
     id: 'resonance',

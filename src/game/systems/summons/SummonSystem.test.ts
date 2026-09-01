@@ -6,13 +6,17 @@ import {
   collectEnemyContactDamage,
   updatePoison,
 } from '../combat/CombatSystem'
+import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
   getSkeletonStats,
+  getPhantomArsenalStats,
   removeDeadSummons,
   updateSummons,
 } from './SummonSystem'
 import { createEntityIdAllocator } from '../../ids'
 import { applyUpgrade } from '../upgrades/UpgradeSystem'
+import { equipRolledItem } from '../../equipment/EquipmentState'
+import { Rarity } from '../../../content/rarity/Rarity'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 import { PHANTOM_ARSENAL_SKILL_ID } from '../../../content/skills/Skills'
 import {
@@ -230,6 +234,21 @@ describe('updateSummons', () => {
     raiseSkeleton.cooldownRemaining = 0
     collectSkillDamage(game.state, allocator)
     expect(game.state.summons).toHaveLength(2)
+  })
+
+  it('applies staff maximum summons to each summon skill independently', () => {
+    const game = createGame({ seed: 22, characterClassId: 'necromancer' })
+    equipRolledItem(game.state.player, 'ritual-staff', Rarity.Common, [
+      createGearModifier('ritual-staff', 'max-summons', 5, 3),
+    ])
+    game.state.player.skills.push({
+      skillId: PHANTOM_ARSENAL_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+
+    expect(getSkeletonStats(game.state)?.maximum).toBe(4)
+    expect(getPhantomArsenalStats(game.state)?.maximum).toBe(4)
   })
 
   it('wanders around the player in distinct deterministic swarm paths without targets', () => {
