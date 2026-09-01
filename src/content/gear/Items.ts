@@ -1,6 +1,5 @@
 import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
 import {
-  createGearModifier,
   type GearModifier,
 } from './ModifierPools'
 import {
@@ -144,9 +143,7 @@ export const ITEM_DEFINITIONS = {
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
-    modifiers: [
-      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
-    ],
+    modifiers: [],
   },
   'hunters-bow': {
     id: 'hunters-bow',
@@ -154,9 +151,7 @@ export const ITEM_DEFINITIONS = {
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
-    modifiers: [
-      createGearModifier('hunters-bow', 'attack-speed', 5, 4),
-    ],
+    modifiers: [],
     implicitModifiers: [BOW_PRECISION_IMPLICIT_MODIFIER],
   },
   'starcall-wand': {
@@ -165,9 +160,7 @@ export const ITEM_DEFINITIONS = {
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
-    modifiers: [
-      createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 5, 1),
-    ],
+    modifiers: [],
   },
   'ritual-staff': {
     id: 'ritual-staff',
@@ -175,44 +168,42 @@ export const ITEM_DEFINITIONS = {
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
-    modifiers: [
-      createGearModifier('ritual-staff', 'dot-multiplier', 5, 5),
-    ],
+    modifiers: [],
   },
   helmet: {
     id: 'helmet',
     name: 'Helmet',
     rarity: Rarity.Common,
     slot: EquipmentSlot.Helmet,
-    modifiers: [createGearModifier('helmet', 'max-hp', 1, 56)],
+    modifiers: [],
   },
   armor: {
     id: 'armor',
     name: 'Armor',
     rarity: Rarity.Common,
     slot: EquipmentSlot.Armor,
-    modifiers: [createGearModifier('armor', 'max-hp', 1, 56)],
+    modifiers: [],
   },
   boots: {
     id: 'boots',
     name: 'Boots',
     rarity: Rarity.Common,
     slot: EquipmentSlot.Boots,
-    modifiers: [createGearModifier('boots', 'movement-speed', 1, 16)],
+    modifiers: [],
   },
   ring: {
     id: 'ring',
     name: 'Ring',
     rarity: Rarity.Common,
     slot: EquipmentSlot.Ring,
-    modifiers: [createGearModifier('ring', 'flat-lightning-damage', 1, 9)],
+    modifiers: [],
   },
   amulet: {
     id: 'amulet',
     name: 'Amulet',
     rarity: Rarity.Common,
     slot: EquipmentSlot.Amulet,
-    modifiers: [createGearModifier('amulet', 'max-hp', 1, 56)],
+    modifiers: [],
   },
 } as const satisfies Record<string, ItemDefinition>
 

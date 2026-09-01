@@ -35,10 +35,10 @@ import {
 } from './EquipmentState'
 import { GEAR_XP_BLESSING_CHANCE } from '../../game-config/gear'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  getPlaystyleDefinition,
-  isPlaystyleId,
-} from '../../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  getCharacterClassDefinition,
+  isCharacterClassId,
+} from '../../content/classes/CharacterClasses'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.1
@@ -133,11 +133,11 @@ function rollChoiceFromTemplate(
 function getStartingWeaponArchetype(
   state: Readonly<GameState>,
 ): ItemDefinition['weaponArchetype'] | undefined {
-  const playstyleId = isPlaystyleId(state.player.playstyleId)
-    ? state.player.playstyleId
-    : DEFAULT_PLAYSTYLE_ID
+  const characterClassId = isCharacterClassId(state.player.characterClassId)
+    ? state.player.characterClassId
+    : DEFAULT_CHARACTER_CLASS_ID
   const startingWeapon = getItemDefinition(
-    getPlaystyleDefinition(playstyleId).startingWeaponItemId,
+    getCharacterClassDefinition(characterClassId).startingWeaponItemId,
   )
   return startingWeapon.slot === EquipmentSlot.Weapon
     ? startingWeapon.weaponArchetype

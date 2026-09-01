@@ -30,10 +30,10 @@ import {
   Rarity,
 } from '../../content/rarity/Rarity'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  getPlaystyleDefinition,
-  isPlaystyleId,
-} from '../../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  getCharacterClassDefinition,
+  isCharacterClassId,
+} from '../../content/classes/CharacterClasses'
 import {
   getSynergyPartnerSkillIds,
   isSkillSynergyActive,
@@ -224,11 +224,11 @@ export function getSkillUnlockWeight(
     return 1
   }
   const skill = getSkillDefinition(upgrade.skillId)
-  const playstyleId = isPlaystyleId(state.player.playstyleId)
-    ? state.player.playstyleId
-    : DEFAULT_PLAYSTYLE_ID
+  const characterClassId = isCharacterClassId(state.player.characterClassId)
+    ? state.player.characterClassId
+    : DEFAULT_CHARACTER_CLASS_ID
   const affinityTags: readonly SkillTag[] =
-    getPlaystyleDefinition(playstyleId).skillAffinity.tags
+    getCharacterClassDefinition(characterClassId).skillAffinity.tags
   const affinityWeight = skill.tags.some((tag) => affinityTags.includes(tag)) ? 3 : 1
   const ownedSkillIds = state.player.skills
     .map((candidate) => candidate.skillId)

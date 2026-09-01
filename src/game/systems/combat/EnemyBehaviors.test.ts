@@ -247,7 +247,7 @@ describe('enemy variety behaviors', () => {
   })
 
   it('prioritizes a closer living skeleton over the player', () => {
-    const game = createGame({ seed: 104, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 104, characterClassId: 'necromancer' })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)
     const summon = game.state.summons[0]

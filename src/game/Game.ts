@@ -23,9 +23,9 @@ import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { HEALING_POTION_MAX_HP_FRACTION } from '../content/progression/HealingPotions'
 import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  isPlaystyleId,
-} from '../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  isCharacterClassId,
+} from '../content/classes/CharacterClasses'
 import {
   removeDeadSummons,
   updateSummons,
@@ -264,6 +264,33 @@ export type DevelopmentGrantResult =
   | { ok: true; changed: boolean }
   | { ok: false; error: string }
 
+type LegacyClassRunConfig = RunConfig & { playstyleId?: unknown }
+type LegacyClassPlayerState = GameState['player'] & { playstyleId?: unknown }
+
+function normalizeRunConfig(config: RunConfig): RunConfig {
+  const { playstyleId: legacyCharacterClassId, ...currentConfig } =
+    config as LegacyClassRunConfig
+  const characterClassId = currentConfig.characterClassId ?? legacyCharacterClassId
+  return {
+    ...currentConfig,
+    characterClassId: isCharacterClassId(characterClassId)
+      ? characterClassId
+      : DEFAULT_CHARACTER_CLASS_ID,
+  }
+}
+
+function normalizeCheckpointState(state: GameState): GameState {
+  const normalizedState = JSON.parse(JSON.stringify(state)) as GameState
+  const player = normalizedState.player as LegacyClassPlayerState
+  if (!isCharacterClassId(player.characterClassId)) {
+    player.characterClassId = isCharacterClassId(player.playstyleId)
+      ? player.playstyleId
+      : DEFAULT_CHARACTER_CLASS_ID
+  }
+  delete player.playstyleId
+  return normalizedState
+}
+
 /**
  * Renderer-independent game simulation facade. The run owns its state, seeded
  * random source, entity IDs, and system update order; domain responsibilities
@@ -290,23 +317,24 @@ export class Game {
 
   constructor(config: RunConfig) {
     assertValidContent()
-    this.runConfig = { ...config }
+    const runConfig = normalizeRunConfig(config)
+    this.runConfig = runConfig
     this.idAllocator = createEntityIdAllocator()
-    this.random = new Random(config.seed)
-    this.gearRandom = new Random(config.seed ^ 0x9e3779b9)
-    this.synergyRandom = new Random(config.seed ^ 0x85ebca6b)
+    this.random = new Random(runConfig.seed)
+    this.gearRandom = new Random(runConfig.seed ^ 0x9e3779b9)
+    this.synergyRandom = new Random(runConfig.seed ^ 0x85ebca6b)
     this.worldModifierEffects = resolveWorldModifierEffects(
-      config.worldModifierIds,
+      runConfig.worldModifierIds,
       SPAWN_BALANCE,
     )
-    this.xpMultiplier = getXpMultiplierForLevel(config.xpMultiplierLevel ?? 0)
+    this.xpMultiplier = getXpMultiplierForLevel(runConfig.xpMultiplierLevel ?? 0)
     this.spawnDirector = new SpawnDirector(
       this.random,
       this.worldModifierEffects.spawnBalance,
       this.worldModifierEffects.fastStartThreatMultiplier,
       this.worldModifierEffects.fastStartDurationSeconds,
     )
-    const baseDungeon = getDungeonDefinition(config.dungeonId ?? DEFAULT_DUNGEON_ID)
+    const baseDungeon = getDungeonDefinition(runConfig.dungeonId ?? DEFAULT_DUNGEON_ID)
     const dungeon = this.worldModifierEffects.floorDurationMultiplier === 1
       ? baseDungeon
       : {
@@ -317,12 +345,12 @@ export class Game {
         }
     const contractMaxFloor = resolveDungeonMaxFloor(
       dungeon,
-      config.dungeonMaxFloorContractId,
-      new Set(config.unlockedDungeonMaxFloorIds ?? []),
+      runConfig.dungeonMaxFloorContractId,
+      new Set(runConfig.unlockedDungeonMaxFloorIds ?? []),
     )
-    const dungeonMaxFloorBonus = typeof config.dungeonMaxFloorBonus === 'number' &&
-      Number.isFinite(config.dungeonMaxFloorBonus)
-      ? Math.max(0, Math.floor(config.dungeonMaxFloorBonus))
+    const dungeonMaxFloorBonus = typeof runConfig.dungeonMaxFloorBonus === 'number' &&
+      Number.isFinite(runConfig.dungeonMaxFloorBonus)
+      ? Math.max(0, Math.floor(runConfig.dungeonMaxFloorBonus))
       : 0
     const dungeonMaxFloor = contractMaxFloor + dungeonMaxFloorBonus
     this.dungeon = dungeonMaxFloor === dungeon.defaultMaxFloor
@@ -337,10 +365,10 @@ export class Game {
     this.gameState = {
       run: {
         phase: 'loading',
-        seed: config.seed,
+        seed: runConfig.seed,
         dungeonId: this.dungeon.id,
-        ...(config.dungeonMaxFloorContractId
-          ? { dungeonMaxFloorContractId: config.dungeonMaxFloorContractId }
+        ...(runConfig.dungeonMaxFloorContractId
+          ? { dungeonMaxFloorContractId: runConfig.dungeonMaxFloorContractId }
           : {}),
         dungeonMaxFloor,
         floor: 1,
@@ -349,7 +377,7 @@ export class Game {
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
-        rerollsRemaining: getConfiguredRerollCount(config.rerollCount),
+        rerollsRemaining: getConfiguredRerollCount(runConfig.rerollCount),
         skillDamageDealt: {},
         playerCombatLog: [],
         gearDropGenerated: false,
@@ -361,9 +389,9 @@ export class Game {
       player: createInitialPlayerState(
         this.idAllocator.createEntityId(),
         this.worldModifierEffects,
-        isPlaystyleId(config.playstyleId) ? config.playstyleId : DEFAULT_PLAYSTYLE_ID,
-        config.startingLevel,
-        config.skillSlotCount,
+        runConfig.characterClassId,
+        runConfig.startingLevel,
+        runConfig.skillSlotCount,
       ),
       enemies: [],
       bosses: [],
@@ -383,9 +411,9 @@ export class Game {
     refreshPlayerDerivedStats(this.gameState.player)
     this.gameState.player.hp = this.gameState.player.maxHp
     this.gameState.player.behaviorController!.freeMode =
-      config.freeMovementEnabled ?? true
-    if (isBehaviorProfileId(config.behaviorProfileId)) {
-      this.gameState.player.behaviorController!.profileId = config.behaviorProfileId
+      runConfig.freeMovementEnabled ?? true
+    if (isBehaviorProfileId(runConfig.behaviorProfileId)) {
+      this.gameState.player.behaviorController!.profileId = runConfig.behaviorProfileId
     }
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.
@@ -1460,7 +1488,7 @@ export class Game {
     const game = new Game(checkpoint.runConfig)
 
     // Overwrite all mutable state from the checkpoint.
-    Object.assign(game.gameState, JSON.parse(JSON.stringify(checkpoint.gameState)))
+    Object.assign(game.gameState, normalizeCheckpointState(checkpoint.gameState))
 
     ;(game.random as Random).setInternalState(checkpoint.rngState)
     ;(game.gearRandom as Random).setInternalState(checkpoint.gearRngState)

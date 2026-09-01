@@ -27,7 +27,7 @@ import {
 } from '../../../game-config/skills'
 
 function createPhantomSummon(seed: number) {
-  const game = createGame({ seed, playstyleId: 'ranger' })
+  const game = createGame({ seed, characterClassId: 'ranger' })
   const allocator = createEntityIdAllocator()
   game.state.player.skills.push({
     skillId: PHANTOM_ARSENAL_SKILL_ID,
@@ -44,7 +44,7 @@ function createPhantomSummon(seed: number) {
 
 describe('updateSummons', () => {
   it('has the Necromancer starter skeleton attack the nearest in-range enemy deterministically', () => {
-    const game = createGame({ seed: 11, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 11, characterClassId: 'necromancer' })
     const targetId = game.spawnSlime({ x: 40, y: 20 })
 
     const allocator = createEntityIdAllocator()
@@ -77,7 +77,7 @@ describe('updateSummons', () => {
   })
 
   it('scales Grave Legion attack speed with living skeletons and caps the bonus', () => {
-    const game = createGame({ seed: 20, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 20, characterClassId: 'necromancer' })
     game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
 
     expect(getSkeletonStats(game.state)?.attackCooldown).toBeCloseTo(
@@ -104,7 +104,7 @@ describe('updateSummons', () => {
   })
 
   it('applies Rotting Bones Poison to skeleton hits', () => {
-    const game = createGame({ seed: 21, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 21, characterClassId: 'necromancer' })
     game.state.player.skills = [{
       skillId: 'raise-skeleton',
       level: 1,
@@ -145,7 +145,7 @@ describe('updateSummons', () => {
   })
 
   it('respawns up to the upgraded maximum and scales skeleton stats by skill level', () => {
-    const game = createGame({ seed: 12, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 12, characterClassId: 'necromancer' })
     const allocator = createEntityIdAllocator()
     applyUpgrade(game.state, 'raise-skeleton-level')
     applyUpgrade(game.state, 'raise-skeleton-max-count')
@@ -177,7 +177,7 @@ describe('updateSummons', () => {
   })
 
   it('scales persistent skeleton durability with the ordinary enemy HP curve', () => {
-    const game = createGame({ seed: 18, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 18, characterClassId: 'necromancer' })
     game.state.run.floor = 20
 
     const expectedMaxHp = 30 *
@@ -188,7 +188,7 @@ describe('updateSummons', () => {
   })
 
   it('does not emit a duplicate contact hit for a skeleton', () => {
-    const game = createGame({ seed: 19, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 19, characterClassId: 'necromancer' })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)
     const summon = game.state.summons[0]!
@@ -206,7 +206,7 @@ describe('updateSummons', () => {
   })
 
   it('keeps one skeleton by default and only raises the cap through repeatable upgrades', () => {
-    const game = createGame({ seed: 15, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 15, characterClassId: 'necromancer' })
     const allocator = createEntityIdAllocator()
 
     collectSkillDamage(game.state, allocator)
@@ -233,7 +233,7 @@ describe('updateSummons', () => {
   })
 
   it('wanders around the player in distinct deterministic swarm paths without targets', () => {
-    const game = createGame({ seed: 13, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 13, characterClassId: 'necromancer' })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)
     const raiseSkeleton = game.state.player.skills.find(
@@ -283,7 +283,7 @@ describe('updateSummons', () => {
   })
 
   it('charges an enemy detected outside attack range before attacking it', () => {
-    const game = createGame({ seed: 14, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 14, characterClassId: 'necromancer' })
     const targetId = game.spawnSlime({ x: 240, y: 0 })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)
@@ -308,7 +308,7 @@ describe('updateSummons', () => {
   })
 
   it('charges an enemy within the expanded 560-unit aggro range', () => {
-    const game = createGame({ seed: 16, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 16, characterClassId: 'necromancer' })
     const targetId = game.spawnSlime({ x: 500, y: 0 })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)
@@ -359,7 +359,7 @@ describe('updateSummons', () => {
   })
 
   it('ignores enemies outside the play area and keeps summons inside it', () => {
-    const game = createGame({ seed: 17, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 17, characterClassId: 'necromancer' })
     const outsideEnemyId = game.spawnSlime({ x: 1_501, y: 0 })
     const allocator = createEntityIdAllocator()
     collectSkillDamage(game.state, allocator)

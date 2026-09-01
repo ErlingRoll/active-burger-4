@@ -151,8 +151,8 @@ export function AdminReportsScreen({
                             </dd>
                           </div>
                           <div>
-                            <dt>Playstyle</dt>
-                            <dd>{report.dungeon.playstyleId}</dd>
+                            <dt>Class</dt>
+                            <dd>{report.dungeon.characterClassId}</dd>
                           </div>
                           {report.dungeon.runId ? (
                             <div>

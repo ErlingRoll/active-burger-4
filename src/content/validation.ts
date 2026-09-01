@@ -48,7 +48,6 @@ import {
   type GearSetDefinition,
 } from '../game-config/gear-sets'
 import {
-  getGearModifierCountForRarity,
   getGearModifierDefinition,
   isGearModifierAvailableForItem,
   isGearModifierId,
@@ -1071,16 +1070,10 @@ function validateDefinitions(
     } else if (item.weaponArchetype !== undefined) {
       errors.push(`items[${index}].weaponArchetype is only supported on weapon items.`)
     }
-    if (!Array.isArray(item.modifiers) || item.modifiers.length === 0) {
-      errors.push(`items[${index}].modifiers must contain at least one modifier.`)
-    }
-    if (isRarity(item.rarity) && Array.isArray(item.modifiers)) {
-      const expectedCount = getGearModifierCountForRarity(item.rarity)
-      if (item.modifiers.length !== expectedCount) {
-        errors.push(
-          `items[${index}].modifiers must contain exactly ${expectedCount} modifiers for ${item.rarity} rarity.`,
-        )
-      }
+    if (!Array.isArray(item.modifiers)) {
+      errors.push(`items[${index}].modifiers must be an array.`)
+    } else if (item.modifiers.length > 0) {
+      errors.push(`items[${index}].modifiers must be empty; item modifiers are rolled at runtime.`)
     }
     validateGearModifiers(
       errors,

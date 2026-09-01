@@ -4,9 +4,9 @@ import {
 } from '../content/behaviors/BehaviorProfiles'
 import { normalizeWorldModifierIds } from '../content/modifiers/WorldModifiers'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  isPlaystyleId,
-} from '../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  isCharacterClassId,
+} from '../content/classes/CharacterClasses'
 import {
   DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   PERSISTENCE_SCHEMA_VERSION,
@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   selectedBehaviorProfileId: DEFAULT_BEHAVIOR_PROFILE_ID,
   selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   selectedWorldModifierIds: [],
-  selectedPlaystyleId: DEFAULT_PLAYSTYLE_ID,
+  selectedCharacterClassId: DEFAULT_CHARACTER_CLASS_ID,
   keybinds: { ...DEFAULT_GAME_KEYBINDS },
 })
 
@@ -71,9 +71,11 @@ export function migrateSettings(value: unknown): SettingsDto {
         ? candidate.selectedWorldModifierIds
         : [],
     ),
-    selectedPlaystyleId: isPlaystyleId(candidate.selectedPlaystyleId)
-      ? candidate.selectedPlaystyleId
-      : DEFAULT_PLAYSTYLE_ID,
+    selectedCharacterClassId: isCharacterClassId(
+      candidate.selectedCharacterClassId ?? candidate.selectedPlaystyleId,
+    )
+      ? (candidate.selectedCharacterClassId ?? candidate.selectedPlaystyleId) as SettingsDto['selectedCharacterClassId']
+      : DEFAULT_CHARACTER_CLASS_ID,
     keybinds: normalizeGameKeybinds(candidate.keybinds),
   }
 }

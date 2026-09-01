@@ -5,8 +5,8 @@ import {
   INITIAL_ITEMS,
 } from '../../content/gear/Items'
 import {
-  PLAYSTYLE_DEFINITIONS,
-  PLAYSTYLE_IDS,
+  CHARACTER_CLASS_DEFINITIONS,
+  CHARACTER_CLASS_IDS,
 } from '../../game-config/classes'
 import { createGame } from '../Game'
 import { Random } from '../random/Random'
@@ -153,10 +153,10 @@ describe('gear choices', () => {
   })
 
   it('weights the starting weapon type twice as heavily as other weapon types', () => {
-    for (const playstyleId of PLAYSTYLE_IDS) {
-      const game = createGame({ seed: 408, playstyleId })
+    for (const characterClassId of CHARACTER_CLASS_IDS) {
+      const game = createGame({ seed: 408, characterClassId })
       const startingWeapon = getItemDefinition(
-        PLAYSTYLE_DEFINITIONS[playstyleId].startingWeaponItemId,
+        CHARACTER_CLASS_DEFINITIONS[characterClassId].startingWeaponItemId,
       )
       const archetypes = Array.from({ length: 5 }, (_, weaponRoll) => {
         let slotRollPending = true
@@ -298,6 +298,9 @@ describe('gear choices', () => {
     Object.values(game.state.player.equipment ?? {}).forEach((item) => {
       item.rarity = Rarity.Common
     })
+    equipRolledItem(game.state.player, 'iron-cleaver', Rarity.Common, [
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+    ])
 
     const specialChoices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
       next: () => 0,
@@ -413,7 +416,9 @@ describe('gear choices', () => {
 
   it('offers and applies a one-tier equipped-item modifier upgrade with a persistent roll', () => {
     const game = createGame({ seed: 401 })
-    equipItem(game.state.player, 'iron-cleaver')
+    equipRolledItem(game.state.player, 'iron-cleaver', Rarity.Common, [
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+    ])
     const choices = generateGearChoices(game.state, 3, new Random(401))
     const upgrade = choices.find(
       (choice) => choice.type === 'upgrade-equipped-item',

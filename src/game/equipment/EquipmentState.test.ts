@@ -8,6 +8,7 @@ import {
 } from './EquipmentState'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
 import { Rarity } from '../../content/rarity/Rarity'
+import { createGearModifier } from '../../content/gear/ModifierPools'
 
 describe('equipment melee leech', () => {
   it('tracks gear melee leech separately from Whirlwind upgrade leech', () => {
@@ -15,7 +16,9 @@ describe('equipment melee leech', () => {
     applyUpgrade(game.state, 'whirlwind-unlock')
     applyUpgrade(game.state, 'whirlwind-leech')
 
-    equipItem(game.state.player, 'iron-cleaver')
+    equipRolledItem(game.state.player, 'iron-cleaver', Rarity.Common, [
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+    ])
     expect(game.state.player.meleeLeech).toBe(0.02)
     expect(game.state.player.whirlwindLeech).toBe(0.04)
 
@@ -24,7 +27,9 @@ describe('equipment melee leech', () => {
     expect(game.state.player.meleeLeech).toBe(0)
     expect(game.state.player.whirlwindLeech).toBe(0.02)
 
-    equipItem(game.state.player, 'iron-cleaver')
+    equipRolledItem(game.state.player, 'iron-cleaver', Rarity.Common, [
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+    ])
     expect(game.state.player.meleeLeech).toBe(0.02)
     expect(game.state.player.whirlwindLeech).toBe(0.04)
   })
@@ -32,7 +37,7 @@ describe('equipment melee leech', () => {
 
 describe('equipment attack range', () => {
   it('uses the equipped weapon range after swapping archetypes', () => {
-    const game = createGame({ seed: 75, playstyleId: 'knight' })
+    const game = createGame({ seed: 75, characterClassId: 'knight' })
 
     expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
 

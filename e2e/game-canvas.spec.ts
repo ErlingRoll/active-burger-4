@@ -197,7 +197,7 @@ test('selects and persists a character before starting a run', async ({ page }) 
   await page.reload()
   await expect(ranger).toHaveAttribute('aria-pressed', 'true')
   await startRun(page)
-  await expect(page.locator('.game-canvas')).toHaveAttribute('data-playstyle', 'ranger')
+  await expect(page.locator('.game-canvas')).toHaveAttribute('data-character-class', 'ranger')
 })
 
 test('starts a run without showing the in-run character guide', async ({ page }) => {

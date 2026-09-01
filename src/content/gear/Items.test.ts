@@ -9,7 +9,6 @@ import {
 } from './Items'
 import {
   formatGearModifier,
-  GEAR_RARITY_MODIFIER_COUNTS,
   getGearModifierDefinition,
   getAvailableGearModifiersForItem,
   getAvailableGearModifiersForSlot,
@@ -37,7 +36,7 @@ import {
 } from '../../game-config/gear-sets'
 
 describe('initial gear content', () => {
-  it('covers each equipment slot with stable IDs, default rarities, and valid authored rolls', () => {
+  it('covers each equipment slot with stable IDs and no authored base modifiers', () => {
     expect(new Set(INITIAL_ITEMS.map((item) => item.slot))).toEqual(
       new Set(EQUIPMENT_SLOTS),
     )
@@ -57,12 +56,7 @@ describe('initial gear content', () => {
     )
     expect(INITIAL_ITEMS.every((item) => isItemId(item.id))).toBe(true)
     expect(validateGearModifierDefinitions()).toEqual([])
-    expect(
-      INITIAL_ITEMS.every((item) =>
-        item.modifiers.length === GEAR_RARITY_MODIFIER_COUNTS[item.rarity] &&
-        new Set(item.modifiers.map((modifier) => modifier.id)).size === item.modifiers.length,
-      ),
-    ).toBe(true)
+    expect(INITIAL_ITEMS.every((item) => item.modifiers.length === 0)).toBe(true)
     expect(
       INITIAL_ITEMS.every((item) =>
         item.modifiers.every((modifier) =>

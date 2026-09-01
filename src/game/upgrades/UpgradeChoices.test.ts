@@ -173,7 +173,7 @@ describe('upgrade choice generation', () => {
     expect(rot.skeletonRottingBones).toBe(true)
     expect(rot.evolutionTags).toEqual(['poison', 'damage-over-time'])
 
-    const game = createGame({ seed: 468, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 468, characterClassId: 'necromancer' })
     game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
     const choices = generateUpgradeChoices(game.state, 5, new Random(1))
 
@@ -255,10 +255,10 @@ describe('upgrade choice generation', () => {
     })
   })
 
-  it('weights skill unlocks toward each playstyle affinity without biasing rank upgrades', () => {
-    const knight = createGame({ seed: 460, playstyleId: 'knight' })
-    const ranger = createGame({ seed: 461, playstyleId: 'ranger' })
-    const necromancer = createGame({ seed: 462, playstyleId: 'necromancer' })
+  it('weights skill unlocks toward each class affinity without biasing rank upgrades', () => {
+    const knight = createGame({ seed: 460, characterClassId: 'knight' })
+    const ranger = createGame({ seed: 461, characterClassId: 'ranger' })
+    const necromancer = createGame({ seed: 462, characterClassId: 'necromancer' })
 
     expect(getSkillUnlockWeight(getUpgrade('lancers-charge-unlock'), knight.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(1)
@@ -266,9 +266,9 @@ describe('upgrade choice generation', () => {
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), ranger.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), necromancer.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), necromancer.state)).toBe(6)
-    const frostWarden = createGame({ seed: 464, playstyleId: 'frost-warden' })
-    const ashenAlchemist = createGame({ seed: 465, playstyleId: 'ashen-alchemist' })
-    const warShepherd = createGame({ seed: 466, playstyleId: 'war-shepherd' })
+    const frostWarden = createGame({ seed: 464, characterClassId: 'frost-warden' })
+    const ashenAlchemist = createGame({ seed: 465, characterClassId: 'ashen-alchemist' })
+    const warShepherd = createGame({ seed: 466, characterClassId: 'war-shepherd' })
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), frostWarden.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), frostWarden.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('cinder-mine-unlock'), ashenAlchemist.state)).toBe(3)
@@ -299,7 +299,7 @@ describe('upgrade choice generation', () => {
   })
 
   it('ignores owned partners that already have an active Synergy', () => {
-    const game = createGame({ seed: 468, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 468, characterClassId: 'necromancer' })
     game.state.run.selectedUpgradeIds.push('synergy-basic-attack-raise-skeleton')
 
     expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(3)
@@ -328,7 +328,7 @@ describe('upgrade choice generation', () => {
   })
 
   it('selects unique weighted choices when every eligible upgrade shares one rarity', () => {
-    const game = createGame({ seed: 463, playstyleId: 'knight' })
+    const game = createGame({ seed: 463, characterClassId: 'knight' })
     game.state.player.skills = []
     game.state.run.selectedUpgradeIds = INITIAL_UPGRADES
       .filter((upgrade) => upgrade.rarity !== Rarity.Common)

@@ -15,7 +15,7 @@ export interface DungeonRunMetadata {
   status: DungeonRunStatus
   seed: number
   dungeonId: string
-  playstyleId: string
+  characterClassId: string
   currentFloor: number
   maxFloor: number
   gameVersion: string
@@ -42,7 +42,7 @@ export interface CreateDungeonRunInput {
   maxFloor: number
   startedAt: string
   dungeonId: string
-  playstyleId: string
+  characterClassId: string
   gameVersion: string
   checkpoint: unknown
 }
@@ -95,7 +95,7 @@ interface DungeonRunRow {
   world_modifier_ids: string[]
   seed: number
   dungeon_id: string
-  playstyle_id: string
+  class_id: string
   game_version: string
   max_floor: number
   current_floor: number
@@ -161,7 +161,7 @@ function isDungeonRunRow(value: unknown): value is DungeonRunRow {
     typeof value.seed === 'number' &&
     Number.isSafeInteger(value.seed) &&
     typeof value.dungeon_id === 'string' &&
-    typeof value.playstyle_id === 'string' &&
+    typeof value.class_id === 'string' &&
     typeof value.game_version === 'string' &&
     Number.isInteger(value.max_floor) &&
     typeof value.max_floor === 'number' &&
@@ -189,7 +189,7 @@ function toMetadata(row: DungeonRunRow): DungeonRunMetadata {
     status: row.status,
     seed: row.seed,
     dungeonId: row.dungeon_id,
-    playstyleId: row.playstyle_id,
+    characterClassId: row.class_id,
     currentFloor: row.current_floor,
     maxFloor: row.max_floor,
     gameVersion: row.game_version,
@@ -276,7 +276,7 @@ export function createDungeonRunPersistenceService(
     const runResponse = await client
       .from('dungeon_runs')
       .select(
-        'id, status, contract_id, world_modifier_ids, seed, dungeon_id, playstyle_id, game_version, max_floor, current_floor, started_at, updated_at',
+        'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
       )
       .in('status', ['active', 'paused'])
       .maybeSingle()
@@ -340,7 +340,7 @@ export function createDungeonRunPersistenceService(
         p_max_floor: input.maxFloor,
         p_started_at: input.startedAt,
         p_dungeon_id: input.dungeonId,
-        p_playstyle_id: input.playstyleId,
+        p_class_id: input.characterClassId,
         p_game_version: input.gameVersion,
         p_initial_payload: input.checkpoint,
       })
@@ -369,7 +369,7 @@ export function createDungeonRunPersistenceService(
         getClient()
           .from('dungeon_runs')
           .select(
-            'id, status, contract_id, world_modifier_ids, seed, dungeon_id, playstyle_id, game_version, max_floor, current_floor, started_at, updated_at',
+            'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
           )
           .eq('id', input.runId)
           .single(),
@@ -413,7 +413,7 @@ export function createDungeonRunPersistenceService(
       const rowResponse = await getClient()
         .from('dungeon_runs')
         .select(
-          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, playstyle_id, game_version, max_floor, current_floor, started_at, updated_at',
+          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
         )
         .eq('id', input.runId)
         .single()
@@ -447,7 +447,7 @@ export function createDungeonRunPersistenceService(
       const rowResponse = await getClient()
         .from('dungeon_runs')
         .select(
-          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, playstyle_id, game_version, max_floor, current_floor, started_at, updated_at',
+          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
         )
         .eq('id', runId)
         .single()

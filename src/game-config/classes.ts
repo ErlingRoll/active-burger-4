@@ -10,10 +10,10 @@ import {
   BLOOD_RITE_SKILL_ID,
 } from './skills'
 import type { ItemId } from '../content/gear/Items'
-import type { PlaystyleDefinition } from '../content/playstyles/Playstyles'
+import type { CharacterClassDefinition } from '../content/classes/CharacterClasses'
 import type { CharacterStatValues } from '../content/stats/Stats'
 
-export type PlaystyleId =
+export type CharacterClassId =
   | 'knight'
   | 'ranger'
   | 'necromancer'
@@ -23,7 +23,7 @@ export type PlaystyleId =
   | 'riftwalker'
   | 'bloodweaver'
 
-export const PLAYSTYLE_IDS = [
+export const CHARACTER_CLASS_IDS = [
   'knight',
   'ranger',
   'necromancer',
@@ -32,11 +32,11 @@ export const PLAYSTYLE_IDS = [
   'war-shepherd',
   'riftwalker',
   'bloodweaver',
-] as const satisfies readonly PlaystyleId[]
+] as const satisfies readonly CharacterClassId[]
 export const KNIGHT_EARLY_FLOOR_COUNT = 2
 export const KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT = 20
 
-export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefinition>> = {
+export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, CharacterClassDefinition>> = {
   knight: {
     id: 'knight',
     name: 'Knight',
@@ -151,4 +151,4 @@ export const PLAYSTYLE_DEFINITIONS: Readonly<Record<PlaystyleId, PlaystyleDefini
   },
 }
 
-export const DEFAULT_PLAYSTYLE_ID: PlaystyleId = 'knight'
+export const DEFAULT_CHARACTER_CLASS_ID: CharacterClassId = 'knight'

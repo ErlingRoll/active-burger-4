@@ -682,7 +682,7 @@ export function GameCanvas({
     dungeonName: game?.dungeon.name ?? 'Unknown dungeon',
     currentFloor: game?.state.run.floor ?? snapshot?.floor ?? 1,
     maxFloor: game?.state.run.dungeonMaxFloor ?? game?.dungeon.defaultMaxFloor ?? 1,
-    playstyleId: game?.state.player.playstyleId ?? runConfig?.playstyleId ?? 'knight',
+    characterClassId: game?.state.player.characterClassId ?? runConfig?.characterClassId ?? 'knight',
     worldModifierIds: game?.state.run.worldModifierIds ?? runConfig?.worldModifierIds ?? [],
     runId: reportBugRunId,
   }
@@ -694,9 +694,9 @@ export function GameCanvas({
       data-world-modifiers={(initialCheckpoint?.gameState.run.worldModifierIds ??
         runConfig?.worldModifierIds ??
         []).join(',')}
-      data-playstyle={
-        initialCheckpoint?.gameState.player.playstyleId ??
-        runConfig?.playstyleId ??
+      data-character-class={
+        initialCheckpoint?.gameState.player.characterClassId ??
+        runConfig?.characterClassId ??
         'knight'
       }
     >
@@ -784,7 +784,7 @@ export function GameCanvas({
         <LevelUpOverlay
           flow={choiceFlow}
           keybinds={activeKeybinds}
-          playstyleId={runConfig?.playstyleId ?? 'knight'}
+          characterClassId={runConfig?.characterClassId ?? 'knight'}
           ownedSkillIds={snapshot?.skills.map((skill) => skill.skillId) ?? []}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}

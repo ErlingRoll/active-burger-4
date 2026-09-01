@@ -1,9 +1,9 @@
 import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
 import type { WorldModifierId } from '../content/modifiers/WorldModifiers'
-import type { PlaystyleId } from '../content/playstyles/Playstyles'
+import type { CharacterClassId } from '../content/classes/CharacterClasses'
 import type { GameKeybinds } from '../input/Keybinds'
 
-export const PERSISTENCE_SCHEMA_VERSION = 3
+export const PERSISTENCE_SCHEMA_VERSION = 4
 
 /** The implicit contract represented by the default dungeon run. */
 export const DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID = 'default-dungeon-10-floor'
@@ -15,7 +15,7 @@ export interface SettingsDto {
   selectedBehaviorProfileId: BehaviorProfileId
   selectedDungeonMaxFloorContractId: DungeonMaxFloorContractId
   selectedWorldModifierIds: WorldModifierId[]
-  selectedPlaystyleId: PlaystyleId
+  selectedCharacterClassId: CharacterClassId
   keybinds: GameKeybinds
 }
 

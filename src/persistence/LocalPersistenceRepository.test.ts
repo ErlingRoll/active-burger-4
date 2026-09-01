@@ -44,11 +44,11 @@ function memoryStore(): PersistenceStore {
 describe('local persistence schema', () => {
   it('provides migration-safe defaults', () => {
     expect(DEFAULT_SETTINGS).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       selectedBehaviorProfileId: 'balanced',
       selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
       selectedWorldModifierIds: [],
-      selectedPlaystyleId: 'knight',
+      selectedCharacterClassId: 'knight',
       keybinds: {
         behaviorAggressive: 'a',
         behaviorBalanced: 's',
@@ -60,7 +60,7 @@ describe('local persistence schema', () => {
       },
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       unlockedDungeonMaxFloorIds: [DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID],
     })
     expect(migrateSettings(undefined)).toEqual(DEFAULT_SETTINGS)
@@ -86,7 +86,7 @@ describe('local persistence schema', () => {
         ],
       }),
     ).toEqual({
-      schemaVersion: 3,
+      schemaVersion: 4,
       unlockedDungeonMaxFloorIds: [
         DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
         'future-contract',
@@ -123,6 +123,7 @@ describe('local persistence schema', () => {
       choiceMiddle: '2',
       choiceRight: '3',
     })
+
     expect(migrateSettings({
       keybinds: {
         choiceLeft: 'j',
@@ -135,6 +136,15 @@ describe('local persistence schema', () => {
       choiceMiddle: 'k',
       choiceRight: 'l',
       skipChoice: 'x',
+    })
+  })
+
+  it('migrates the legacy selected playstyle setting to a character class', () => {
+    expect(migrateSettings({
+      selectedPlaystyleId: 'ranger',
+    })).toMatchObject({
+      schemaVersion: 4,
+      selectedCharacterClassId: 'ranger',
     })
   })
 

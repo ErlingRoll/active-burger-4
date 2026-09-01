@@ -1925,7 +1925,7 @@ function getIncomingPlayerDamageFactor(state: GameState): number {
   const player = state.player
   let reduction = 0
   if (
-    player.playstyleId === 'knight' &&
+    player.characterClassId === 'knight' &&
     (state.run.floor ?? 1) >= 1 &&
     (state.run.floor ?? 1) <= KNIGHT_EARLY_FLOOR_COUNT
   ) {

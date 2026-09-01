@@ -1,2 +1,7 @@
 [context.production.environment]
 VITE_AUTH_REDIRECT_URL = "https://activeburger.com"
+
+[[redirects]]
+from = "/wiki"
+to = "/index.html"
+status = 200

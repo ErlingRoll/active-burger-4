@@ -64,9 +64,9 @@ import {
   type EnemyAbilityId,
 } from '../content/enemies/EnemyAbilities'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  getPlaystyleDefinition,
-} from '../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  getCharacterClassDefinition,
+} from '../content/classes/CharacterClasses'
 import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { ARENA_BOUNDS } from '../game-config/arena'
 
@@ -402,26 +402,26 @@ export class PixiGame {
   }
 
   private createPlayerPlaceholder(): PlayerView {
-    const playstyle = getPlaystyleDefinition(
-      this.game.state.player.playstyleId ?? DEFAULT_PLAYSTYLE_ID,
+    const characterClass = getCharacterClassDefinition(
+      this.game.state.player.characterClassId ?? DEFAULT_CHARACTER_CLASS_ID,
     )
     const body = new Graphics()
-    if (playstyle.id === 'riftwalker') {
+    if (characterClass.id === 'riftwalker') {
       body
         .poly(createPolygonPoints(24, 6, Math.PI / 6))
-        .fill(playstyle.visual.fillColor)
-        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+        .fill(characterClass.visual.fillColor)
+        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
         .poly(createPolygonPoints(14, 4, Math.PI / 4))
         .fill({ color: 0x312e81, alpha: 0.9 })
         .stroke({ color: 0xc4b5fd, width: 2 })
         .moveTo(-11, 11)
         .lineTo(11, -11)
         .stroke({ color: 0xf5f3ff, width: 2 })
-    } else if (playstyle.id === 'bloodweaver') {
+    } else if (characterClass.id === 'bloodweaver') {
       body
         .poly(createStarPoints(24, 8, 0.7, -Math.PI / 2))
-        .fill(playstyle.visual.fillColor)
-        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+        .fill(characterClass.visual.fillColor)
+        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
         .poly(createPolygonPoints(15, 6, Math.PI / 6))
         .fill({ color: 0x450a0a, alpha: 0.9 })
         .stroke({ color: 0xf87171, width: 2 })
@@ -431,8 +431,8 @@ export class PixiGame {
     } else {
       body
         .circle(0, 0, 24)
-        .fill(playstyle.visual.fillColor)
-        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+        .fill(characterClass.visual.fillColor)
+        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
     }
     const hpBar = new Graphics()
     const shieldBar = new Graphics()

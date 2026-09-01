@@ -12,7 +12,7 @@ export interface BugReportDungeonContext {
   dungeonName: string
   currentFloor: number
   maxFloor: number
-  playstyleId: string
+  characterClassId: string
   worldModifierIds: readonly string[]
   runId?: string
 }
@@ -61,12 +61,39 @@ interface BugReportRow {
   image_data: string | null
   image_name: string | null
   image_type: string | null
-  dungeon_info: BugReportDungeonContext
+  dungeon_info: unknown
   floor_snapshot_id: number | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function parseDungeonContext(value: unknown): BugReportDungeonContext | null {
+  if (!isRecord(value) ||
+    typeof value.dungeonId !== 'string' ||
+    typeof value.dungeonName !== 'string' ||
+    typeof value.currentFloor !== 'number' ||
+    !Number.isInteger(value.currentFloor) ||
+    typeof value.maxFloor !== 'number' ||
+    !Number.isInteger(value.maxFloor) ||
+    !Array.isArray(value.worldModifierIds) ||
+    !value.worldModifierIds.every((id) => typeof id === 'string')) {
+    return null
+  }
+  const characterClassId = value.characterClassId ?? value.playstyleId
+  if (typeof characterClassId !== 'string') {
+    return null
+  }
+  return {
+    dungeonId: value.dungeonId,
+    dungeonName: value.dungeonName,
+    currentFloor: value.currentFloor,
+    maxFloor: value.maxFloor,
+    characterClassId,
+    worldModifierIds: value.worldModifierIds,
+    ...(typeof value.runId === 'string' ? { runId: value.runId } : {}),
+  }
 }
 
 function isBugReportRow(value: unknown): value is BugReportRow {
@@ -80,16 +107,7 @@ function isBugReportRow(value: unknown): value is BugReportRow {
     (value.image_data === null || typeof value.image_data === 'string') &&
     (value.image_name === null || typeof value.image_name === 'string') &&
     (value.image_type === null || typeof value.image_type === 'string') &&
-    isRecord(value.dungeon_info) &&
-    typeof value.dungeon_info.dungeonId === 'string' &&
-    typeof value.dungeon_info.dungeonName === 'string' &&
-    typeof value.dungeon_info.currentFloor === 'number' &&
-    Number.isInteger(value.dungeon_info.currentFloor) &&
-    typeof value.dungeon_info.maxFloor === 'number' &&
-    Number.isInteger(value.dungeon_info.maxFloor) &&
-    typeof value.dungeon_info.playstyleId === 'string' &&
-    Array.isArray(value.dungeon_info.worldModifierIds) &&
-    value.dungeon_info.worldModifierIds.every((id) => typeof id === 'string')
+    parseDungeonContext(value.dungeon_info) !== null
     && (value.floor_snapshot_id === null ||
       (typeof value.floor_snapshot_id === 'number' && Number.isSafeInteger(value.floor_snapshot_id)))
 }
@@ -162,7 +180,7 @@ export function createBugReportService(
         imageData: row.image_data,
         imageName: row.image_name,
         imageType: row.image_type,
-        dungeon: row.dungeon_info,
+        dungeon: parseDungeonContext(row.dungeon_info)!,
         savedFloorId: row.floor_snapshot_id,
       }))
     },

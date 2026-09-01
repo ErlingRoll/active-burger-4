@@ -59,6 +59,25 @@ describe('GameCheckpoint', () => {
       expect(restored.timeScale).toBe(game.timeScale)
     })
 
+    it('restores legacy character-class fields and writes the current checkpoint shape', () => {
+      const checkpoint = createGame({ seed: 101, characterClassId: 'ranger' }).createCheckpoint()
+      const legacyRunConfig = checkpoint.runConfig as unknown as Record<string, unknown>
+      const legacyPlayer = checkpoint.gameState.player as unknown as Record<string, unknown>
+      legacyRunConfig.playstyleId = legacyRunConfig.characterClassId
+      legacyPlayer.playstyleId = legacyPlayer.characterClassId
+      delete legacyRunConfig.characterClassId
+      delete legacyPlayer.characterClassId
+
+      const restored = Game.restoreFromCheckpoint(checkpoint)
+
+      expect(restored.state.player.characterClassId).toBe('ranger')
+      expect(restored.createCheckpoint().runConfig).toMatchObject({
+        characterClassId: 'ranger',
+      })
+      expect(restored.createCheckpoint().runConfig).not.toHaveProperty('playstyleId')
+      expect(restored.createCheckpoint().gameState.player).not.toHaveProperty('playstyleId')
+    })
+
     it('preserves all three RNG positions after simulation', () => {
       const game = createGame({ seed: 77 })
       advanceTicks(game, 300) // 5 seconds – enough for spawns

@@ -48,16 +48,16 @@ import {
 } from '../input/Keybinds'
 import { KeywordText } from './KeywordTooltip'
 import {
-  getPlaystyleDefinition,
-  type PlaystyleId,
-} from '../content/playstyles/Playstyles'
+  getCharacterClassDefinition,
+  type CharacterClassId,
+} from '../content/classes/CharacterClasses'
 
 interface LevelUpOverlayProps {
   flow: Readonly<PendingChoiceFlow>
   equipment: GameUiSnapshot['equipment']
   gearSets: GameUiSnapshot['gearSets']
   keybinds: GameKeybinds
-  playstyleId: PlaystyleId
+  characterClassId: CharacterClassId
   ownedSkillIds: readonly SkillId[]
   rerollsRemaining: number
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
@@ -656,7 +656,7 @@ export function LevelUpOverlay({
   equipment,
   gearSets,
   keybinds,
-  playstyleId,
+  characterClassId,
   ownedSkillIds,
   rerollsRemaining,
   onSelect,
@@ -667,7 +667,7 @@ export function LevelUpOverlay({
   const firstButtonRef = useRef<HTMLButtonElement>(null)
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
-  const playstyle = getPlaystyleDefinition(playstyleId)
+  const characterClass = getCharacterClassDefinition(characterClassId)
   const canReroll = rerollsRemaining > 0
 
   useEffect(() => {
@@ -703,8 +703,8 @@ export function LevelUpOverlay({
         </p>
         {!isGearFlow ? (
           <p className="skill-affinity-note">
-            <strong>{playstyle.name} skill affinity:</strong>{' '}
-            {playstyle.skillAffinity.description}
+            <strong>{characterClass.name} skill affinity:</strong>{' '}
+            {characterClass.skillAffinity.description}
           </p>
         ) : null}
         <div className="upgrade-choice-list">

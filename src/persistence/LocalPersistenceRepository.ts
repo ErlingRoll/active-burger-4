@@ -21,7 +21,7 @@ export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
   selectedDungeonMaxFloorContractId?: string
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
-  selectedPlaystyleId?: SettingsDto['selectedPlaystyleId']
+  selectedCharacterClassId?: SettingsDto['selectedCharacterClassId']
   keybinds?: SettingsDto['keybinds']
 }
 

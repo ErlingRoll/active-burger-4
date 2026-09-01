@@ -171,6 +171,14 @@ export function PauseMenu({
         >
           {saving ? 'Saving…' : 'Save & quit'}
         </button>
+        <a
+          className="pause-wiki-link"
+          href="/wiki"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open wiki in new tab <span aria-hidden="true">↗</span>
+        </a>
         <button
           ref={forfeitButtonRef}
           className="pause-forfeit-button"

@@ -28,7 +28,7 @@ snapshot.
 skills:             21
 skill evolutions:   42 branches (2 branches per skill)
 synergies:          57
-playstyles/classes: 8
+classes: 8
 enemy abilities:    2 current enemy ability types
 boss attack types:  5
 ```
@@ -2742,7 +2742,7 @@ interface CharacterDefinition {
 ```
 
 This architecture is now implemented through the data-driven
-`PlaystyleDefinition` registry. The current roster contains eight classes;
+class registry. The current roster contains eight classes;
 the single-character guidance above is retained only as the original
 vertical-slice sequencing rule.
 
@@ -3376,6 +3376,18 @@ Before installing a package, determine whether existing code or platform APIs al
 An AI agent should not install a package merely because it is convenient.
 
 Dependencies require justification.
+
+---
+
+## AI Rule: Keep the In-App Wiki Accurate
+
+When changing a player-visible mechanic, numeric balance value, formula,
+terminology, content definition, or application navigation, determine whether
+the public `/wiki` reference must change too.
+
+Prefer deriving wiki tables, examples, and charts from the same definitions and
+pure helpers used by the game. Do not leave duplicated values in the wiki stale
+after changing their gameplay source.
 
 ---
 
@@ -4026,7 +4038,7 @@ Players can deliberately make runs harder for increased rewards.
 
 # 118. Milestone 19 — Multiple Characters (Complete)
 
-The original milestone required at least three playstyles. The current
+The original milestone required at least three classes. The current
 implementation provides eight data-driven classes:
 
 Example:

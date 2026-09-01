@@ -42,6 +42,9 @@ describe('UI snapshots', () => {
     Object.values(game.state.player.equipment ?? {}).forEach((item) => {
       item.rarity = Rarity.Common
     })
+    equipRolledItem(game.state.player, 'iron-cleaver', Rarity.Common, [
+      createGearModifier('iron-cleaver', 'melee-leech', 4, 2),
+    ])
     const choices = generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, {
       next: () => 0,
       int: (min: number) => min,
@@ -519,7 +522,7 @@ describe('UI snapshots', () => {
   })
 
   it('shows staff DoT and Raise Skeleton modifiers in skill snapshots', () => {
-    const game = createGame({ seed: 98, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 98, characterClassId: 'necromancer' })
     equipRolledItem(
       game.state.player,
       'swiftstride-boots',
@@ -596,7 +599,7 @@ describe('UI snapshots', () => {
   })
 
   it('projects Raise Skeleton evolution metadata and Grave Legion cadence', () => {
-    const game = createGame({ seed: 99, playstyleId: 'necromancer' })
+    const game = createGame({ seed: 99, characterClassId: 'necromancer' })
     game.state.run.selectedUpgradeIds.push('raise-skeleton-legion')
 
     const raiseSkeleton = createUiSnapshot(game.state).skills.find(

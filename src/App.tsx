@@ -48,6 +48,7 @@ import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
 import { GameCanvas } from './rendering/GameCanvas'
 import { KeywordText } from './rendering/KeywordTooltip'
 import { SkillIcon } from './rendering/SkillIcon'
+import { WikiScreen } from './wiki/WikiScreen'
 import { tooltipClassName } from './rendering/TooltipShell'
 import {
   calculateWorldModifierRewardMultiplier,
@@ -83,9 +84,9 @@ import {
 } from './content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from './game-config/skills'
 import {
-  PLAYSTYLE_DEFINITIONS,
-  type PlaystyleId,
-} from './content/playstyles/Playstyles'
+  CHARACTER_CLASS_DEFINITIONS,
+  type CharacterClassId,
+} from './content/classes/CharacterClasses'
 import {
   calculateEssenceReward,
   type EssenceRewardCalculation,
@@ -103,6 +104,7 @@ type AppScreen =
   | 'results'
   | 'admin'
   | 'nickname-moderation'
+  | 'wiki'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 
 const APP_ROUTE_PATHS: Record<AppScreen, string> = {
@@ -113,9 +115,10 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   results: '/',
   admin: '/admin',
   'nickname-moderation': '/admin/nicknames',
+  wiki: '/wiki',
 }
 
-const PLAYSTYLE_ICONS: Record<PlaystyleId, string> = {
+const CHARACTER_CLASS_ICONS: Record<CharacterClassId, string> = {
   knight: '🛡',
   ranger: '🏹',
   necromancer: '☠',
@@ -139,6 +142,9 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   if (normalizedPath === APP_ROUTE_PATHS['nickname-moderation']) {
     return 'nickname-moderation'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS.wiki) {
+    return 'wiki'
   }
   return 'dashboard'
 }
@@ -651,7 +657,7 @@ function App() {
     return {
       seed: runSeed,
       behaviorProfileId: settings.selectedBehaviorProfileId,
-      playstyleId: settings.selectedPlaystyleId,
+      characterClassId: settings.selectedCharacterClassId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
       startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
       skillSlotCount: metaProgression.snapshot?.skillSlotCount ?? DEFAULT_SKILL_SLOT_COUNT,
@@ -923,9 +929,9 @@ function App() {
     navigateToScreen,
   ])
 
-  const selectPlaystyle = useCallback(
-    (playstyleId: PlaystyleId): void => {
-      void persistSettings({ selectedPlaystyleId: playstyleId }).catch(() => {
+  const selectCharacterClass = useCallback(
+    (characterClassId: CharacterClassId): void => {
+      void persistSettings({ selectedCharacterClassId: characterClassId }).catch(() => {
         // persistSettings already exposes this error in the UI.
       })
     },
@@ -984,7 +990,7 @@ function App() {
         maxFloor: checkpoint.gameState.run.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor,
         startedAt: new Date().toISOString(),
         dungeonId: checkpoint.gameState.run.dungeonId ?? DEFAULT_DUNGEON_ID,
-        playstyleId: checkpoint.gameState.player.playstyleId ?? config.playstyleId ?? 'knight',
+        characterClassId: checkpoint.gameState.player.characterClassId ?? config.characterClassId ?? 'knight',
         gameVersion: RUN_GAME_VERSION,
         checkpoint,
       })
@@ -1519,6 +1525,25 @@ function App() {
     screen,
   ])
 
+  if (screen === 'wiki') {
+    return (
+      <main className="app-shell">
+        <AppHeader
+          authentication={authentication}
+          nickname={nickname}
+          onRequestNicknameChange={requestNicknameChange}
+          onSignOut={signOut}
+          onOpenAdmin={openAdmin}
+          onOpenNicknameModeration={openNicknameModeration}
+        />
+        <WikiScreen
+          appVersion={APP_VERSION}
+          onReturnToApp={() => navigateToScreen('dashboard')}
+        />
+      </main>
+    )
+  }
+
   if (persistence.loadState === 'loading') {
     return (
       <main className="app-shell">
@@ -1659,7 +1684,7 @@ function App() {
           writeError={writeError ?? runStartError}
           startState={runStartState}
           onStart={startRun}
-          onSelectPlaystyle={selectPlaystyle}
+          onSelectCharacterClass={selectCharacterClass}
           onToggleWorldModifier={toggleWorldModifier}
           onBack={closeRunSetup}
         />
@@ -1735,6 +1760,9 @@ function AppHeader({
         <h1>Active Burger</h1>
         <p className="app-version">Version: {APP_VERSION}</p>
       </div>
+      <nav className="app-navigation" aria-label="Primary navigation">
+        <a className="app-wiki-link" href="/wiki">Wiki</a>
+      </nav>
       {authentication.account ? (
         <div className="app-account">
           <span className="app-account-label">Signed in</span>
@@ -1801,9 +1829,9 @@ function GameDashboard({
   const [forfeiting, setForfeiting] = useState(false)
   const [forfeitError, setForfeitError] = useState<string | null>(null)
   const storeBlocked = activeRun !== null || runLoadState !== 'ready'
-  const activePlaystyle = activeRun
-    ? Object.values(PLAYSTYLE_DEFINITIONS).find(
-      (playstyle) => playstyle.id === activeRun.playstyleId,
+  const activeCharacterClass = activeRun
+    ? Object.values(CHARACTER_CLASS_DEFINITIONS).find(
+      (characterClass) => characterClass.id === activeRun.characterClassId,
     )
     : undefined
 
@@ -1895,7 +1923,7 @@ function GameDashboard({
                     </div>
                     <div>
                       <dt>Class</dt>
-                      <dd>{activePlaystyle?.name ?? activeRun.playstyleId}</dd>
+                      <dd>{activeCharacterClass?.name ?? activeRun.characterClassId}</dd>
                     </div>
                   </dl>
                   <button
@@ -1967,7 +1995,7 @@ interface RunSetupScreenProps {
   writeError: string | null
   startState: RunWriteState
   onStart: () => Promise<void>
-  onSelectPlaystyle: (playstyleId: PlaystyleId) => void
+  onSelectCharacterClass: (characterClassId: CharacterClassId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onBack: () => void
 }
@@ -1977,7 +2005,7 @@ function RunSetupScreen({
   writeError,
   startState,
   onStart,
-  onSelectPlaystyle,
+  onSelectCharacterClass,
   onToggleWorldModifier,
   onBack,
 }: RunSetupScreenProps) {
@@ -2026,54 +2054,54 @@ function RunSetupScreen({
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
           <div className="dashboard-choice-list">
-            {Object.values(PLAYSTYLE_DEFINITIONS).map((playstyle) => {
-              const selected = settings.selectedPlaystyleId === playstyle.id
-              const startingSkillId = playstyle.startingSkillIds.find(
+            {Object.values(CHARACTER_CLASS_DEFINITIONS).map((characterClass) => {
+              const selected = settings.selectedCharacterClassId === characterClass.id
+              const startingSkillId = characterClass.startingSkillIds.find(
                 (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
               ) ?? BASIC_ATTACK_SKILL_ID
               const startingSkill = getSkillDefinition(startingSkillId)
-              const accentColor = `#${playstyle.visual.fillColor.toString(16).padStart(6, '0')}`
-              const outlineColor = `#${playstyle.visual.outlineColor.toString(16).padStart(6, '0')}`
+              const accentColor = `#${characterClass.visual.fillColor.toString(16).padStart(6, '0')}`
+              const outlineColor = `#${characterClass.visual.outlineColor.toString(16).padStart(6, '0')}`
               return (
                 <button
-                  className={`dashboard-choice playstyle-card${selected ? ' selected' : ''}`}
+                  className={`dashboard-choice character-class-card${selected ? ' selected' : ''}`}
                   type="button"
                   aria-pressed={selected}
-                  data-playstyle={playstyle.id}
+                  data-character-class={characterClass.id}
                   style={{
-                    '--playstyle-accent': accentColor,
-                    '--playstyle-outline': outlineColor,
+                    '--character-class-accent': accentColor,
+                    '--character-class-outline': outlineColor,
                   } as CSSProperties}
-                  key={playstyle.id}
-                  onClick={() => onSelectPlaystyle(playstyle.id)}
+                  key={characterClass.id}
+                  onClick={() => onSelectCharacterClass(characterClass.id)}
                 >
-                  <span className="playstyle-card-sheen" aria-hidden="true" />
-                  <span className="playstyle-card-header">
-                    <span className="playstyle-card-emblem" aria-hidden="true">
-                      {PLAYSTYLE_ICONS[playstyle.id]}
+                  <span className="character-class-card-sheen" aria-hidden="true" />
+                  <span className="character-class-card-header">
+                    <span className="character-class-card-emblem" aria-hidden="true">
+                      {CHARACTER_CLASS_ICONS[characterClass.id]}
                     </span>
-                    <span className="playstyle-card-title">
-                      <small>Playstyle</small>
-                      <strong>{playstyle.name}</strong>
+                    <span className="character-class-card-title">
+                      <small>Class</small>
+                      <strong>{characterClass.name}</strong>
                     </span>
                   </span>
-                  <span className="playstyle-card-body">
-                    <span className="playstyle-card-section">
-                      <small className="playstyle-card-label">Affinities</small>
-                      <span className="playstyle-affinity-pills" aria-label={`${playstyle.skillAffinity.label} skill affinities`}>
-                        {playstyle.skillAffinity.tags.map((tag) => (
-                          <span className="playstyle-affinity-pill" key={tag}>
+                  <span className="character-class-card-body">
+                    <span className="character-class-card-section">
+                      <small className="character-class-card-label">Affinities</small>
+                      <span className="character-class-affinity-pills" aria-label={`${characterClass.skillAffinity.label} skill affinities`}>
+                        {characterClass.skillAffinity.tags.map((tag) => (
+                          <span className="character-class-affinity-pill" key={tag}>
                             {tag}
                           </span>
                         ))}
                       </span>
                     </span>
-                    <span className="playstyle-card-details">
+                    <span className="character-class-card-details">
                       <span
-                        className="playstyle-card-detail playstyle-card-detail-skill"
+                        className="character-class-card-detail character-class-card-detail-skill"
                         tabIndex={0}
                         aria-label={`Starting skill: ${startingSkill.name}. ${startingSkill.description}`}
-                        aria-describedby={`playstyle-${playstyle.id}-starting-skill-tooltip`}
+                        aria-describedby={`character-class-${characterClass.id}-starting-skill-tooltip`}
                       >
                         <small>Starting skill</small>
                         <strong>
@@ -2081,32 +2109,32 @@ function RunSetupScreen({
                           {startingSkill.name}
                         </strong>
                         <span
-                          className={tooltipClassName('playstyle-card-tooltip')}
-                          id={`playstyle-${playstyle.id}-starting-skill-tooltip`}
+                          className={tooltipClassName('character-class-card-tooltip')}
+                          id={`character-class-${characterClass.id}-starting-skill-tooltip`}
                           role="tooltip"
                         >
                           <KeywordText text={startingSkill.description} />
                         </span>
                       </span>
                       <span
-                        className="playstyle-card-detail"
+                        className="character-class-card-detail"
                         tabIndex={0}
                         aria-label={`Resonance: ${RESONANCE_DESCRIPTION}`}
                       >
                         <small><KeywordText text="Resonance" /></small>
-                        <strong>{playstyle.baseStats.resonance} attacks</strong>
+                        <strong>{characterClass.baseStats.resonance} attacks</strong>
                       </span>
                       <span
-                        className="playstyle-card-detail"
+                        className="character-class-card-detail"
                         tabIndex={0}
                         aria-label={`Attunement: ${ATTUNEMENT_DESCRIPTION}`}
                       >
                         <small><KeywordText text="Attunement" /></small>
-                        <strong>{playstyle.baseStats.attunement}%</strong>
+                        <strong>{characterClass.baseStats.attunement}%</strong>
                       </span>
                     </span>
                   </span>
-                  <span className="playstyle-card-flavor">{playstyle.description}</span>
+                  <span className="character-class-card-flavor">{characterClass.description}</span>
                 </button>
               )
             })}

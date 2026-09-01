@@ -192,7 +192,7 @@ describe('collectProjectileDamage', () => {
 
   describe('Necromancer staff poison', () => {
     it('hits every enemy in the target-centered area and scales its radius with area of effect', () => {
-      const game = createGame({ seed: 90, playstyleId: 'necromancer' })
+      const game = createGame({ seed: 90, characterClassId: 'necromancer' })
       const targetId = game.spawnSlime({ x: 120, y: 0 })
       const outerId = game.spawnSlime({ x: 185, y: 0 })
 
@@ -214,7 +214,7 @@ describe('collectProjectileDamage', () => {
     })
 
     it('applies independent poison stacks with critical scaling and chaos resistance', () => {
-      const game = createGame({ seed: 91, playstyleId: 'necromancer' })
+      const game = createGame({ seed: 91, characterClassId: 'necromancer' })
       const targetId = game.spawnSlime({ x: 80, y: 0 })
       const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
       target.hp = 1_000
@@ -1273,7 +1273,7 @@ describe('collectEnemyContactDamage', () => {
       applyDamageEvents(knight.state, damage, neverCrit)
       expect(knight.state.player.hp).toBe(110)
 
-      const ranger = createGame({ seed: 20260830, playstyleId: 'ranger' })
+      const ranger = createGame({ seed: 20260830, characterClassId: 'ranger' })
       applyDamageEvents(ranger.state, damage, neverCrit)
       expect(ranger.state.player.hp).toBe(45)
     })

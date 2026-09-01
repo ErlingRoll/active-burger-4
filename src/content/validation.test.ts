@@ -10,7 +10,7 @@ import {
   BASIC_ATTACK_SKILL_ID,
   SKILL_DEFINITIONS,
 } from './skills/Skills'
-import { PLAYSTYLE_DEFINITIONS } from '../game-config/classes'
+import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 
 function catalogWith(
   overrides: Partial<ContentCatalog>,
@@ -50,10 +50,10 @@ describe('content validation', () => {
       riftwalker: { resonance: 6, attunement: 58 },
       bloodweaver: { resonance: 5, attunement: 74 },
     } as const
-    for (const playstyle of Object.values(PLAYSTYLE_DEFINITIONS)) {
-      expect(playstyle.baseStats.resonance).toBeGreaterThan(0)
-      expect(playstyle.baseStats.attunement).toBeGreaterThanOrEqual(0)
-      expect(playstyle.baseStats).toMatchObject(expectedStats[playstyle.id])
+    for (const characterClass of Object.values(CHARACTER_CLASS_DEFINITIONS)) {
+      expect(characterClass.baseStats.resonance).toBeGreaterThan(0)
+      expect(characterClass.baseStats.attunement).toBeGreaterThanOrEqual(0)
+      expect(characterClass.baseStats).toMatchObject(expectedStats[characterClass.id])
     }
   })
 
@@ -520,7 +520,7 @@ describe('content validation', () => {
     )
   })
 
-  it('validates stable item IDs, non-empty modifiers, and item-owned sources', () => {
+  it('validates stable item IDs, empty base modifiers, and item-owned sources', () => {
     const errors = validateContent(
       catalogWith({
         items: [
@@ -550,7 +550,7 @@ describe('content validation', () => {
     expect(errors).toEqual(
       expect.arrayContaining([
         'items[0].id must use lowercase ASCII letters, numbers, and hyphens; received "Iron Cleaver".',
-        'items[0].modifiers must contain at least one modifier.',
+        'items[1].modifiers must be empty; item modifiers are rolled at runtime.',
         'items[1].modifiers[0].sourceId must start with "item:iron-cleaver:"; received "upgrade:wrong-source".',
         'items contains duplicate id "iron-cleaver".',
       ]),

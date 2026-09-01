@@ -30,7 +30,7 @@ import type {
 } from '../../content/bosses/Bosses'
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
-import type { PlaystyleId } from '../../content/playstyles/Playstyles'
+import type { CharacterClassId } from '../../content/classes/CharacterClasses'
 import type { Rarity } from '../../content/rarity/Rarity'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
@@ -157,7 +157,7 @@ export interface RunConfig {
   rerollCount?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
-  playstyleId?: PlaystyleId
+  characterClassId?: CharacterClassId
 }
 
 export interface RunState {
@@ -205,7 +205,7 @@ export interface PlayerCombatLogEntry {
  */
 export interface PlayerState {
   id: EntityId
-  playstyleId?: PlaystyleId
+  characterClassId?: CharacterClassId
 
   x: number
   y: number

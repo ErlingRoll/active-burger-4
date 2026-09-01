@@ -259,7 +259,7 @@ accent on the owning object rather than inventing a separate persistent object.
 
 ## Current non-skill visual inventory
 
-- **Player:** a simple high-contrast body derived from the selected playstyle,
+- **Player:** a simple high-contrast body derived from the selected class,
   with health and shield bars kept separate from the body.
 - **Riftwalker:** violet six-sided body, dark dimensional core, and bright
   diagonal rift slash.

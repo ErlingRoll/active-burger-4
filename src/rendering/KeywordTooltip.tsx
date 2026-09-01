@@ -17,12 +17,14 @@ function KeywordPopover({
   keywordId,
   tooltipId,
   style,
+  glossaryHref,
   onMouseEnter,
   onMouseLeave,
 }: {
   keywordId: KeywordId
   tooltipId: string
   style: CSSProperties
+  glossaryHref?: string
   onMouseEnter: () => void
   onMouseLeave: () => void
 }) {
@@ -39,11 +41,20 @@ function KeywordPopover({
       <strong>{definition.label}</strong>
       <span>{definition.summary}</span>
       <span>{definition.details}</span>
+      {glossaryHref ? <a className="keyword-tooltip-link" href={glossaryHref}>Open glossary</a> : null}
     </span>
   )
 }
 
-export function KeywordTerm({ keywordId, value }: { keywordId: KeywordId; value: string }) {
+export function KeywordTerm({
+  keywordId,
+  value,
+  glossaryHref,
+}: {
+  keywordId: KeywordId
+  value: string
+  glossaryHref?: string
+}) {
   const definition = KEYWORD_DEFINITIONS[keywordId]
   const tooltipId = useId()
   const [open, setOpen] = useState(false)
@@ -142,6 +153,7 @@ export function KeywordTerm({ keywordId, value }: { keywordId: KeywordId; value:
           keywordId={keywordId}
           tooltipId={tooltipId}
           style={tooltipStyle}
+          glossaryHref={glossaryHref}
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         />,
@@ -151,7 +163,13 @@ export function KeywordTerm({ keywordId, value }: { keywordId: KeywordId; value:
   )
 }
 
-export function KeywordText({ text }: { text: string }) {
+export function KeywordText({
+  text,
+  glossaryHref,
+}: {
+  text: string
+  glossaryHref?: (keywordId: KeywordId) => string
+}) {
   return (
     <>
       {splitKeywordText(text).map((segment, index) =>
@@ -160,6 +178,7 @@ export function KeywordText({ text }: { text: string }) {
             key={`${segment.keywordId}-${index}`}
             keywordId={segment.keywordId}
             value={segment.value}
+            glossaryHref={glossaryHref?.(segment.keywordId)}
           />
         ) : (
           <span key={`text-${index}`}>{segment.value}</span>

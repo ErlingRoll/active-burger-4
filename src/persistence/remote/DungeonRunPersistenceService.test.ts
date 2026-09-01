@@ -11,7 +11,7 @@ const activeRow = {
   world_modifier_ids: ['fast-start'],
   seed: 42,
   dungeon_id: 'default-dungeon',
-  playstyle_id: 'ranger',
+  class_id: 'ranger',
   game_version: 'test',
   max_floor: 30,
   current_floor: 2,
@@ -76,7 +76,7 @@ describe('DungeonRunPersistenceService', () => {
       status: 'active',
       seed: 42,
       dungeonId: 'default-dungeon',
-      playstyleId: 'ranger',
+      characterClassId: 'ranger',
       currentFloor: 2,
       maxFloor: 30,
       gameVersion: 'test',
@@ -112,7 +112,7 @@ describe('DungeonRunPersistenceService', () => {
       maxFloor: 30,
       startedAt: activeRow.started_at,
       dungeonId: activeRow.dungeon_id,
-      playstyleId: activeRow.playstyle_id,
+      characterClassId: activeRow.class_id,
       gameVersion: activeRow.game_version,
       checkpoint,
     })
@@ -121,7 +121,7 @@ describe('DungeonRunPersistenceService', () => {
       p_run_id: 'run-1',
       p_initial_payload: checkpoint,
       p_dungeon_id: 'default-dungeon',
-      p_playstyle_id: 'ranger',
+      p_class_id: 'ranger',
     }))
   })
 
@@ -204,7 +204,7 @@ describe('DungeonRunPersistenceService', () => {
     const service = createService(fakeClient({
       run: {
         ...activeRow,
-        playstyle_id: 42,
+        class_id: 42,
       },
       snapshot: checkpointRow,
     }))

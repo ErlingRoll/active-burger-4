@@ -39,10 +39,10 @@ import {
 } from '../../../content/dungeons/Dungeons'
 import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
 import {
-  DEFAULT_PLAYSTYLE_ID,
-  getPlaystyleDefinition,
-  type PlaystyleId,
-} from '../../../content/playstyles/Playstyles'
+  DEFAULT_CHARACTER_CLASS_ID,
+  getCharacterClassDefinition,
+  type CharacterClassId,
+} from '../../../content/classes/CharacterClasses'
 import type {
   EnemyDefinitionId,
   EntityId,
@@ -88,11 +88,11 @@ function getEnemyMovementSpeedMultiplier(entityId: EntityId): number {
 export function createInitialPlayerState(
   id: EntityId,
   effects?: Pick<WorldModifierEffects, 'playerStatMultipliers'>,
-  playstyleId: PlaystyleId = DEFAULT_PLAYSTYLE_ID,
+  characterClassId: CharacterClassId = DEFAULT_CHARACTER_CLASS_ID,
   startingLevel = 1,
   skillSlotCount = DEFAULT_SKILL_SLOT_COUNT,
 ): PlayerState {
-  const playstyle = getPlaystyleDefinition(playstyleId)
+  const characterClass = getCharacterClassDefinition(characterClassId)
   const playerStatMultipliers = effects?.playerStatMultipliers ?? {}
   const normalizedSkillSlotCount =
     typeof skillSlotCount === 'number' && Number.isFinite(skillSlotCount)
@@ -100,7 +100,7 @@ export function createInitialPlayerState(
       : DEFAULT_SKILL_SLOT_COUNT
   const startingSkillIds = [
     BASIC_ATTACK_SKILL_ID,
-    ...playstyle.startingSkillIds.filter(
+    ...characterClass.startingSkillIds.filter(
       (skillId) => skillId !== BASIC_ATTACK_SKILL_ID,
     ),
   ]
@@ -120,7 +120,7 @@ export function createInitialPlayerState(
         }]
       : []
   })
-  const baseStats = { ...playstyle.baseStats }
+  const baseStats = { ...characterClass.baseStats }
   const maxHp = (baseStats.maxHp + getLevelMaxHpBonus(initialLevel)) *
     getStatMultiplier('maxHp')
   const movementSpeed = baseStats.movementSpeed * getStatMultiplier('movementSpeed')
@@ -128,7 +128,7 @@ export function createInitialPlayerState(
   const attackSpeed = baseStats.attackSpeed * getStatMultiplier('attackSpeed')
   return {
     id,
-    playstyleId,
+    characterClassId,
     x: 0,
     y: 0,
     radius: 16,
@@ -162,7 +162,7 @@ export function createInitialPlayerState(
     baseStats,
     statModifiers,
     equipment: {
-      weapon: createEquippedItem(getItemDefinition(playstyle.startingWeaponItemId)),
+      weapon: createEquippedItem(getItemDefinition(characterClass.startingWeaponItemId)),
     },
     targetId: undefined,
     dodge: {
