@@ -167,7 +167,7 @@ function getSummonDamage(
   return damage
 }
 
-function getSkeletonFloorMaxHpMultiplier(state: Readonly<GameState>): number {
+function getSummonFloorMaxHpMultiplier(state: Readonly<GameState>): number {
   const floor = state.run.floor ?? 1
   return getFloorStatMultiplier(floor) *
     getFloorDifficultyProfile(floor).ordinaryEnemyHpMultiplier
@@ -180,8 +180,9 @@ function getSummonMaxHp(
 ): number {
   const authoredMaxHp = (definition.summonBaseMaxHp ?? 10) +
     (definition.summonMaxHpPerLevel ?? 0) * Math.max(0, skill.level - 1)
-  const floorMultiplier = skill.skillId === RAISE_SKELETON_SKILL_ID
-    ? getSkeletonFloorMaxHpMultiplier(state)
+  const floorMultiplier = skill.skillId === RAISE_SKELETON_SKILL_ID ||
+    skill.skillId === PHANTOM_ARSENAL_SKILL_ID
+    ? getSummonFloorMaxHpMultiplier(state)
     : 1
   return authoredMaxHp * floorMultiplier +
     getSummonMaxHpBonus(state, skill.skillId)

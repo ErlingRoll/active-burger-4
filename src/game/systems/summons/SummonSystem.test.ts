@@ -19,6 +19,7 @@ import { equipRolledItem } from '../../equipment/EquipmentState'
 import { Rarity } from '../../../content/rarity/Rarity'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 import { PHANTOM_ARSENAL_SKILL_ID } from '../../../content/skills/Skills'
+import { createDamageValues } from '../../../content/stats/Damage'
 import {
   getFloorDifficultyProfile,
   getFloorStatMultiplier,
@@ -189,6 +190,25 @@ describe('updateSummons', () => {
       getFloorDifficultyProfile(20).ordinaryEnemyHpMultiplier
 
     expect(getSkeletonStats(game.state)?.maxHp).toBeCloseTo(expectedMaxHp)
+  })
+
+  it('gives Phantom Arsenal enough base HP to survive an ordinary hit and scales it by floor', () => {
+    const { game, summon } = createPhantomSummon(22)
+
+    expect(getPhantomArsenalStats(game.state)?.maxHp).toBe(20)
+    summon.id = 99
+    applyDamageEvents(game.state, [{
+      targetId: summon.id,
+      damage: createDamageValues({ physical: 9 }),
+    }])
+    expect(summon.hp).toBe(11)
+
+    game.state.run.floor = 20
+    expect(getPhantomArsenalStats(game.state)?.maxHp).toBeCloseTo(
+      20 *
+        getFloorStatMultiplier(20) *
+        getFloorDifficultyProfile(20).ordinaryEnemyHpMultiplier,
+    )
   })
 
   it('does not emit a duplicate contact hit for a skeleton', () => {
