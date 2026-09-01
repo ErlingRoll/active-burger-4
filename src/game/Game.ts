@@ -970,7 +970,7 @@ export class Game {
     return true
   }
 
-  /** Forfeits a paused run without retaining its damage and healing history. */
+  /** Forfeits a paused run while retaining its damage and healing history. */
   forfeit(): boolean {
     if (this.gameState.run.phase !== 'paused') {
       return false
@@ -978,8 +978,6 @@ export class Game {
 
     this.gameState.run.forfeited = true
     this.gameState.run.playerCombatLog = []
-    this.gameState.run.skillDamageDealt = {}
-    this.gameState.run.skillHealingDone = {}
     this.gameState.player.hp = 0
     this.transitionTo('defeat')
     return true

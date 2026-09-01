@@ -201,7 +201,7 @@ the skill's behavior.
 
 | Skill | Evolution branches | Visual distinction |
 | --- | --- | --- |
-| Basic Attack | Barrage, Precision | Repeating cadence mark vs. target-focused gold mark |
+| Basic Attack | Stormbound, Flamebound, Frostbound, Riftbound | Lightning, fire, cold, or chaos conversion accent |
 | Whirlwind | Rime Cyclone, Whirlwind Guard | Cold facets vs. cyan shield edge |
 | Chain Lightning | Freezing Conduit, Overload | Frost terminals vs. heavy charged arcs |
 | Vitality | Renewal, Last Stand | Life ring vs. defensive hex mark |

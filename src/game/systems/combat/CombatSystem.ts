@@ -990,6 +990,8 @@ function createBasicAttackProjectileState(
           state.run.selectedUpgradeIds,
         ),
       },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const localExtraProjectiles = Math.min(
@@ -1113,6 +1115,8 @@ function collectSwordBasicAttackDamage(
           state.run.selectedUpgradeIds,
         ),
       },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]
@@ -1201,6 +1205,8 @@ function collectStaffBasicAttackDamage(
           state.run.selectedUpgradeIds,
         ),
       },
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
   const events = [...state.enemies, ...(state.bosses ?? [])]

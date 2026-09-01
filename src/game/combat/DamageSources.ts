@@ -3,7 +3,10 @@ import type {
   SkillTag,
 } from '../../content/skills/Skills'
 import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
-import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
+import {
+  getBasicAttackDamageConversionType,
+  getSkillDamageIncreasePercent,
+} from '../../content/upgrades/Upgrades'
 import {
   DEFAULT_MONSTER_CRITICAL_STRIKE,
   DEFAULT_PLAYER_CRITICAL_STRIKE,
@@ -16,6 +19,7 @@ import {
   createDamageValues,
   type CriticalStrikeStats,
   type DamageIncreaseType,
+  type DamageType,
   type DamageValues,
   type PartialDamageValues,
 } from '../../content/stats/Damage'
@@ -43,6 +47,14 @@ export interface ResolvedOutgoingDamage {
   poisonApplication?: DamageEvent['poisonApplication']
 }
 
+export const BASIC_ATTACK_DAMAGE_CONVERSION_RATIO = 0.7
+
+type BasicAttackDamageConversionType = Exclude<DamageType, 'physical'>
+
+type AttunementSourceDamageContext = Partial<Record<DamageIncreaseType, number>> & {
+  basicAttackDamageConversionType?: BasicAttackDamageConversionType
+}
+
 /**
  * Player damage pipeline:
  * 1. Basic Attacks add flat damage, then apply increased damage.
@@ -55,7 +67,7 @@ export interface ResolvedOutgoingDamage {
 
 export function getAttunementSourceAdditionalIncreasedDamage(
   state: Readonly<GameState>,
-): Partial<Record<DamageIncreaseType, number>> {
+): AttunementSourceDamageContext {
   const basicAttack = state.player.skills.find(
     (skill) => skill.skillId === BASIC_ATTACK_SKILL_ID,
   )
@@ -63,6 +75,9 @@ export function getAttunementSourceAdditionalIncreasedDamage(
     global: getSkillDamageIncreasePercent(
       BASIC_ATTACK_SKILL_ID,
       basicAttack?.level ?? 1,
+      state.run.selectedUpgradeIds,
+    ),
+    basicAttackDamageConversionType: getBasicAttackDamageConversionType(
       state.run.selectedUpgradeIds,
     ),
   }
@@ -74,7 +89,22 @@ export interface PlayerDamageProfileContext {
   isBasicAttack?: boolean
   sourceTags?: readonly SkillTag[]
   additionalIncreasedDamage?: Partial<Record<DamageIncreaseType, number>>
-  attunementSourceAdditionalIncreasedDamage?: Partial<Record<DamageIncreaseType, number>>
+  attunementSourceAdditionalIncreasedDamage?: AttunementSourceDamageContext
+}
+
+function convertBasicAttackPhysicalDamage(
+  damage: Readonly<DamageValues>,
+  damageType: BasicAttackDamageConversionType | undefined,
+): DamageValues {
+  if (!damageType) {
+    return createDamageValues(damage)
+  }
+  const convertedDamage = damage.physical * BASIC_ATTACK_DAMAGE_CONVERSION_RATIO
+  return {
+    ...damage,
+    physical: damage.physical - convertedDamage,
+    [damageType]: damage[damageType] + convertedDamage,
+  }
 }
 
 export function getBasicAttackDamageBeforeCritFromStats(
@@ -82,19 +112,23 @@ export function getBasicAttackDamageBeforeCritFromStats(
     PlayerStats,
     'flatDamage' | 'increasedDamage'
   > & Partial<Pick<PlayerStats, 'attackDamage' | 'basicAttackIsProjectile'>>,
-  additionalIncreasedDamage: Partial<Record<DamageIncreaseType, number>> = {},
+  additionalIncreasedDamage: AttunementSourceDamageContext = {},
+  basicAttackDamageConversionType?: BasicAttackDamageConversionType,
 ): DamageValues {
   const increasedDamage = createDamageIncreaseValues(stats.increasedDamage)
   for (const increaseType of DAMAGE_INCREASE_TYPES) {
     increasedDamage[increaseType] += additionalIncreasedDamage[increaseType] ?? 0
   }
-  return applyIncreasedDamage(
+  return convertBasicAttackPhysicalDamage(
+    applyIncreasedDamage(
     applyFlatDamage(
       { physical: stats.attackDamage ?? 0 },
       stats.flatDamage,
     ),
     increasedDamage,
     { isProjectile: stats.basicAttackIsProjectile },
+    ),
+    basicAttackDamageConversionType,
   )
 }
 
@@ -103,11 +137,12 @@ export function getAttunementDamageFromStats(
     PlayerStats,
     'flatDamage' | 'increasedDamage'
   > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile'>>,
-  additionalIncreasedDamage: Partial<Record<DamageIncreaseType, number>> = {},
+  additionalIncreasedDamage: AttunementSourceDamageContext = {},
 ): DamageValues {
   const basicAttackDamage = getBasicAttackDamageBeforeCritFromStats(
     stats,
     additionalIncreasedDamage,
+    additionalIncreasedDamage.basicAttackDamageConversionType,
   )
   const masteredDamage = createDamageValues()
   const attunementPercent = Math.max(0, stats.attunement ?? 0) / 100
@@ -146,8 +181,14 @@ export function createPlayerDamageProfileFromStats(
     increasedDamage,
     { isProjectile: context.isProjectile },
   )
+  const damage = context.isBasicAttack
+    ? convertBasicAttackPhysicalDamage(
+        nativeDamage,
+        context.attunementSourceAdditionalIncreasedDamage?.basicAttackDamageConversionType,
+      )
+    : addDamageValues(nativeDamage, attunementDamage)
   return {
-    damage: addDamageValues(nativeDamage, attunementDamage),
+    damage,
     criticalStrike: {
       chance: stats.critChance,
       multiplier: stats.critMultiplier,

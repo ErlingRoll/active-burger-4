@@ -31,6 +31,7 @@ import {
   createPlayerDamageProfileFromStats,
   getBasicAttackDamageBeforeCritFromStats,
   getAttunementDamageFromStats,
+  getAttunementSourceAdditionalIncreasedDamage,
 } from '../../combat/DamageSources'
 import { createGame } from '../../Game'
 import { createDamageValues } from '../../../content/stats/Damage'
@@ -771,6 +772,77 @@ describe('performBasicAttackIfReady', () => {
       physical: 8,
       lightning: 1,
       fire: 3,
+    })
+  })
+
+  it('converts 70% of final Basic Attack physical damage and preserves it for Attunement', () => {
+    const stats = {
+      attackDamage: 15,
+      attunement: 50,
+      basicAttackIsProjectile: false,
+      flatDamage: {
+        physical: 5,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+      increasedDamage: {
+        global: 0,
+        physical: 50,
+        elemental: 0,
+        chaos: 0,
+        projectile: 0,
+      },
+    }
+    const conversionContext = {
+      basicAttackDamageConversionType: 'chaos' as const,
+    }
+
+    expect(getBasicAttackDamageBeforeCritFromStats(
+      stats,
+      conversionContext,
+      conversionContext.basicAttackDamageConversionType,
+    )).toEqual({
+      physical: 9,
+      lightning: 0,
+      fire: 0,
+      cold: 0,
+      chaos: 21,
+    })
+    expect(getAttunementDamageFromStats(stats, conversionContext)).toEqual({
+      physical: 5,
+      lightning: 0,
+      fire: 0,
+      cold: 0,
+      chaos: 11,
+    })
+  })
+
+  it('applies the selected Basic Attack evolution to attacks and Attunement', () => {
+    const gameState = state([enemy(2, 120)], { projectiles: [] })
+    gameState.player.attunement = 50
+    gameState.run.selectedUpgradeIds = ['basic-attack-lightning-attunement']
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+
+    expect(gameState.projectiles[0]?.damage).toEqual({
+      physical: 3,
+      lightning: 7,
+      fire: 0,
+      cold: 0,
+      chaos: 0,
+    })
+    expect(getAttunementDamageFromStats(
+      getDerivedPlayerStats(gameState.player),
+      getAttunementSourceAdditionalIncreasedDamage(gameState),
+    )).toEqual({
+      physical: 2,
+      lightning: 4,
+      fire: 0,
+      cold: 0,
+      chaos: 0,
     })
   })
 })

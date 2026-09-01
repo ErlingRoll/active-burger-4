@@ -1,6 +1,7 @@
 import type { StatModifier, StatKey } from '../stats/Stats'
 import type { SkillId } from '../skills/Skills'
 import type { KeywordId } from '../glossary/Keywords'
+import type { DamageType } from '../stats/Damage'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
 import { Rarity, type Rarity as RarityValue } from '../rarity/Rarity'
 import {
@@ -36,8 +37,10 @@ export type UpgradeId =
   | 'chain-lightning-overload'
   | 'vitality-renewal'
   | 'vitality-last-stand'
-  | 'basic-attack-barrage'
-  | 'basic-attack-precision'
+  | 'basic-attack-lightning-attunement'
+  | 'basic-attack-fire-attunement'
+  | 'basic-attack-cold-attunement'
+  | 'basic-attack-chaos-attunement'
   | 'fiery-touch-ember'
   | 'glacial-orb-unlock'
   | 'glacial-orb-level'
@@ -170,8 +173,10 @@ export type UpgradeBranch =
   | 'vitality-last-stand'
   | 'whirlwind-control'
   | 'whirlwind-guard'
-  | 'basic-attack-barrage'
-  | 'basic-attack-precision'
+  | 'basic-attack-lightning-attunement'
+  | 'basic-attack-fire-attunement'
+  | 'basic-attack-cold-attunement'
+  | 'basic-attack-chaos-attunement'
   | 'chain-lightning-frost'
   | 'chain-lightning-overload'
   | 'raise-skeleton-legion'
@@ -296,6 +301,8 @@ export interface UpgradeDefinition {
   chainLightningOverload?: boolean
   /** Percentage bonus applied only to Fiery Touch damage. */
   fieryTouchDamageIncreasePercent?: number
+  /** Converts finalized Basic Attack physical damage to this non-physical type. */
+  basicAttackDamageConversionType?: Exclude<DamageType, 'physical'>
   /** Flat max HP bonus applied to each skeleton. */
   summonMaxHpIncrease?: number
   /** Enables bounded attack-speed scaling from additional living skeletons. */
@@ -430,6 +437,15 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
   }
 
   return definition
+}
+
+export function getBasicAttackDamageConversionType(
+  selectedUpgradeIds: readonly UpgradeId[],
+): Exclude<DamageType, 'physical'> | undefined {
+  return INITIAL_UPGRADES.find((upgrade) =>
+    selectedUpgradeIds.includes(upgrade.id) &&
+    upgrade.basicAttackDamageConversionType !== undefined
+  )?.basicAttackDamageConversionType
 }
 
 export function getUpgradeModifiers(

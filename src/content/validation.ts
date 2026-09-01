@@ -812,9 +812,10 @@ function validateSkillUpgradePaths(
     }
 
     const evolutionPathCount = evolutionBranchesBySkill.get(skillId)?.size ?? 0
-    if (evolutionPathCount !== 2) {
+    const expectedEvolutionPathCount = skillId === BASIC_ATTACK_SKILL_ID ? 4 : 2
+    if (evolutionPathCount !== expectedEvolutionPathCount) {
       errors.push(
-        `skill "${skillId}" must have exactly 2 evolution paths; found ${evolutionPathCount}.`,
+        `skill "${skillId}" must have exactly ${expectedEvolutionPathCount} evolution paths; found ${evolutionPathCount}.`,
       )
     }
   }
@@ -1169,6 +1170,7 @@ function validateDefinitions(
           upgrade.vitalityLowHpDamageReductionPercent === undefined &&
           upgrade.whirlwindFrostStacks === undefined &&
           upgrade.whirlwindGuardDamageReductionPercent === undefined &&
+          upgrade.basicAttackDamageConversionType === undefined &&
           upgrade.chainLightningFrost === undefined &&
           upgrade.chainLightningOverload === undefined &&
           upgrade.fieryTouchDamageIncreasePercent === undefined &&
@@ -1217,6 +1219,14 @@ function validateDefinitions(
         `upgrades[${index}].skillCooldownReductionPercent`,
         upgrade.skillCooldownReductionPercent,
         'positive',
+      )
+    }
+    if (
+      upgrade.basicAttackDamageConversionType !== undefined &&
+      upgrade.skillId !== BASIC_ATTACK_SKILL_ID
+    ) {
+      errors.push(
+        `upgrades[${index}].basicAttackDamageConversionType must be a non-physical damage type on Basic Attack.`,
       )
     }
   })

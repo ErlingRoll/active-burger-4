@@ -1291,11 +1291,13 @@ export class PixiGame {
       return
     }
     const isCold = branch.includes('frost') || branch.includes('permafrost') ||
-      branch.includes('ice-lance')
+      branch.includes('ice-lance') || branch.includes('cold-attunement')
     const isFire = branch.includes('ember') || branch.includes('inferno') ||
-      branch.includes('cinder')
+      branch.includes('cinder') || branch.includes('fire-attunement')
     const isLightning = branch.includes('overload') || branch.includes('overcharge') ||
-      branch.includes('conduit') || branch.includes('precision')
+      branch.includes('conduit') || branch.includes('precision') ||
+      branch.includes('lightning-attunement')
+    const isChaos = branch.includes('chaos-attunement')
     const isDefense = branch.includes('guard') || branch.includes('bulwark') ||
       branch.includes('last-stand') || branch.includes('commander') ||
       branch.includes('reprisal')
@@ -1311,13 +1313,15 @@ export class PixiGame {
         ? '#fdba74'
         : isLightning
           ? '#fef08a'
-          : isDefense
-            ? '#67e8f9'
-            : isSummon
-              ? '#c084fc'
-              : isMirror
-                ? '#e0f2fe'
-                : '#fef08a'
+          : isChaos
+            ? '#c084fc'
+            : isDefense
+              ? '#67e8f9'
+              : isSummon
+                ? '#c084fc'
+                : isMirror
+                  ? '#e0f2fe'
+                  : '#fef08a'
     const markerRadius = Math.max(4, Math.min(18, radius))
     if (isDefense) {
       view

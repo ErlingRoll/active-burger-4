@@ -373,20 +373,18 @@ describe('UI snapshots', () => {
     expect(upgrade?.valueLabel).toBe('+20% Basic Attack damage')
   })
 
-  it('shows the accumulated value for repeated Barrage upgrades', () => {
+  it('shows the selected Basic Attack damage conversion evolution', () => {
     const game = createGame({ seed: 95 })
-    game.state.run.selectedUpgradeIds.push(
-      'basic-attack-barrage',
-      'basic-attack-barrage',
-      'basic-attack-barrage',
-    )
+    game.state.run.selectedUpgradeIds.push('basic-attack-lightning-attunement')
 
     const upgrade = createUiSnapshot(game.state).skills
       .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
-      ?.upgrades.find((candidate) => candidate.upgradeId === 'basic-attack-barrage')
+      ?.upgrades.find((candidate) =>
+        candidate.upgradeId === 'basic-attack-lightning-attunement'
+      )
 
-    expect(upgrade?.valueLabel).toBe('+0.45 Basic Attack attacks/sec')
-    expect(upgrade?.status).toBe('available')
+    expect(upgrade?.valueLabel).toBe('Convert 70% physical to Lightning')
+    expect(upgrade?.status).toBe('acquired')
   })
 
   it('projects current Attunement bonuses by positive damage type', () => {

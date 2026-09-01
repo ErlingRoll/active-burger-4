@@ -116,31 +116,32 @@ describe('upgrade choice generation', () => {
     expect(ids).not.toContain('whirlwind-unlock')
   })
 
-  it('keeps repeatable Basic Attack upgrades available after they are selected', () => {
-    expect(INITIAL_UPGRADES.some((upgrade) => upgrade.name === 'Rapid Fire')).toBe(false)
+  it('defines four non-repeatable Basic Attack damage conversion evolutions', () => {
+    const evolutions = [
+     getUpgrade('basic-attack-lightning-attunement'),
+     getUpgrade('basic-attack-fire-attunement'),
+     getUpgrade('basic-attack-cold-attunement'),
+     getUpgrade('basic-attack-chaos-attunement'),
+    ]
 
-    const barrage = getUpgrade('basic-attack-barrage')
-    const deadeye = getUpgrade('basic-attack-precision')
-    expect(barrage.rarity).toBe(Rarity.Rare)
-    expect(deadeye.rarity).toBe(Rarity.Rare)
-    expect(barrage.repeatable).toBe(true)
-    expect(deadeye.repeatable).toBe(true)
-    expect(barrage.branch).toBe('basic-attack-barrage')
-    expect(deadeye.branch).toBe('basic-attack-precision')
-    expect(barrage.isEligible({
-      playerLevel: 2,
-      selectedUpgradeIds: ['basic-attack-barrage'],
-      ownedSkillIds: [BASIC_ATTACK_SKILL_ID],
-      skillLevels: { [BASIC_ATTACK_SKILL_ID]: 1 },
-      skillSlotCount: 6,
-    })).toBe(true)
-    expect(deadeye.isEligible({
-     playerLevel: 2,
-     selectedUpgradeIds: ['basic-attack-precision'],
-     ownedSkillIds: [BASIC_ATTACK_SKILL_ID],
-     skillLevels: { [BASIC_ATTACK_SKILL_ID]: 1 },
-     skillSlotCount: 6,
-    })).toBe(true)
+    expect(evolutions.map((upgrade) => upgrade.rarity)).toEqual([
+     Rarity.Rare,
+     Rarity.Rare,
+     Rarity.Rare,
+     Rarity.Rare,
+    ])
+    expect(evolutions.map((upgrade) => upgrade.basicAttackDamageConversionType)).toEqual([
+     'lightning',
+     'fire',
+     'cold',
+     'chaos',
+    ])
+    expect(evolutions.map((upgrade) => upgrade.branch)).toEqual([
+     'basic-attack-lightning-attunement',
+     'basic-attack-fire-attunement',
+     'basic-attack-cold-attunement',
+     'basic-attack-chaos-attunement',
+    ])
   })
 
   it('treats skeleton count and durability cards as upgrades instead of evolutions', () => {

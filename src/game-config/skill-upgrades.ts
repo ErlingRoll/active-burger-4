@@ -97,7 +97,7 @@ const VITALITY_LOW_HP_HEALING_MULTIPLIER = 2
 const VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT = 20
 const WHIRLWIND_FROST_STACKS = 1
 const WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT = 15
-const BASIC_ATTACK_RANGE_INCREASE = 30
+const BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT = 70
 const FIERY_TOUCH_DAMAGE_INCREASE_PERCENT = 25
 const SKELETON_MAX_HP_INCREASE = 12
 const GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT = 8
@@ -251,38 +251,68 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('whirlwind-guard'),
   },
   {
-    id: 'basic-attack-barrage',
-    name: 'Barrage',
-    description: 'Basic Attack fires 0.15 attacks per second faster.',
+    id: 'basic-attack-lightning-attunement',
+    name: 'Stormbound Attack',
+    description: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% of Basic Attack's final physical damage to Lightning damage. Attunement preserves the converted damage type.`,
     category: 'skill',
     rarity: Rarity.Rare,
-    stat: 'attackSpeed',
-    amount: 0.15,
-    repeatable: true,
-    modifiers: [
-      { stat: 'attackSpeed', operation: 'add', value: 0.15, sourceId: 'upgrade:basic-attack-barrage' },
-    ],
-    valueLabel: '+0.15 Basic Attack attacks/sec',
+    amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
+    valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Lightning`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-barrage',
-    isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
+    branch: 'basic-attack-lightning-attunement',
+    evolutionTags: ['elemental-damage'],
+    basicAttackDamageConversionType: 'lightning',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-lightning-attunement'),
   },
   {
-    id: 'basic-attack-precision',
-    name: 'Deadeye',
-    description: `Basic Attack gains ${BASIC_ATTACK_RANGE_INCREASE} attack range for safer positioning.`,
+    id: 'basic-attack-fire-attunement',
+    name: 'Flamebound Attack',
+    description: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% of Basic Attack's final physical damage to Fire damage. Attunement preserves the converted damage type.`,
     category: 'skill',
     rarity: Rarity.Rare,
-    stat: 'attackRange',
-    amount: BASIC_ATTACK_RANGE_INCREASE,
-    modifiers: [
-      { stat: 'attackRange', operation: 'add', value: BASIC_ATTACK_RANGE_INCREASE, sourceId: 'upgrade:basic-attack-precision' },
-    ],
-    valueLabel: `+${BASIC_ATTACK_RANGE_INCREASE} Basic Attack range`,
+    amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
+    valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Fire`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-precision',
-    repeatable: true,
-    isEligible: (state) => state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID),
+    branch: 'basic-attack-fire-attunement',
+    evolutionTags: ['elemental-damage'],
+    basicAttackDamageConversionType: 'fire',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-fire-attunement'),
+  },
+  {
+    id: 'basic-attack-cold-attunement',
+    name: 'Frostbound Attack',
+    description: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% of Basic Attack's final physical damage to Cold damage. Attunement preserves the converted damage type.`,
+    category: 'skill',
+    rarity: Rarity.Rare,
+    amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
+    valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Cold`,
+    skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-cold-attunement',
+    evolutionTags: ['elemental-damage'],
+    basicAttackDamageConversionType: 'cold',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-cold-attunement'),
+  },
+  {
+    id: 'basic-attack-chaos-attunement',
+    name: 'Riftbound Attack',
+    description: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% of Basic Attack's final physical damage to Chaos damage. Attunement preserves the converted damage type.`,
+    category: 'skill',
+    rarity: Rarity.Rare,
+    amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
+    valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Chaos`,
+    skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-chaos-attunement',
+    evolutionTags: ['chaos-damage'],
+    basicAttackDamageConversionType: 'chaos',
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-chaos-attunement'),
   },
   {
     id: 'magnet',

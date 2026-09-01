@@ -516,7 +516,7 @@ describe('Game', () => {
     expect(Object.isFrozen(result)).toBe(true)
   })
 
-  it('forfeits a paused run without retaining its combat history', () => {
+  it('forfeits a paused run while retaining skill damage and healing totals', () => {
     const game = createGame({ seed: 113 })
     game.state.run.playerCombatLog = [{
       time: 0,
@@ -534,12 +534,18 @@ describe('Game', () => {
     expect(game.phase).toBe('defeat')
     expect(game.state.player.hp).toBe(0)
     expect(game.state.run.playerCombatLog).toEqual([])
-    expect(game.state.run.skillDamageDealt).toEqual({})
-    expect(game.state.run.skillHealingDone).toEqual({})
+    expect(game.state.run.skillDamageDealt).toEqual({ [BASIC_ATTACK_SKILL_ID]: 5 })
+    expect(game.state.run.skillHealingDone).toEqual({ [BASIC_ATTACK_SKILL_ID]: 3 })
     expect(game.getRunResultSnapshot()).toMatchObject({
       phase: 'defeat',
       forfeited: true,
       playerCombatLog: [],
+      skillDamage: [
+        { skillId: BASIC_ATTACK_SKILL_ID, name: 'Basic Attack', damage: 5 },
+      ],
+      skillHealing: [
+        { skillId: BASIC_ATTACK_SKILL_ID, name: 'Basic Attack', healing: 3 },
+      ],
     })
   })
 

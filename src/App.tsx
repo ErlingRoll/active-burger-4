@@ -2381,7 +2381,7 @@ function ResultsScreen({
               ).toFixed(2)}</dd>
             </div>
             <div className="essence-receipt-total">
-              <dt>Projected Essence</dt>
+              <dt>Essence</dt>
               <dd>{essenceReceipt.projectedReward}</dd>
             </div>
           </dl>

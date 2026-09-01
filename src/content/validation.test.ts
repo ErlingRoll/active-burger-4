@@ -94,7 +94,7 @@ describe('content validation', () => {
     )
   })
 
-  it('gives every skill exactly two evolution paths and one level-up path', () => {
+  it('gives Basic Attack four conversion evolutions and every other skill two evolutions', () => {
     for (const skill of CURRENT_CONTENT.skills) {
       const skillUpgrades = CURRENT_CONTENT.upgrades.filter(
         (upgrade) => upgrade.skillId === skill.id,
@@ -105,7 +105,9 @@ describe('content validation', () => {
           .filter((branch) => branch !== undefined),
       )
 
-      expect(evolutionPaths).toHaveLength(2)
+      expect(evolutionPaths).toHaveLength(
+        skill.id === BASIC_ATTACK_SKILL_ID ? 4 : 2,
+      )
       expect(
         skillUpgrades.filter((upgrade) => upgrade.skillAction === 'level'),
       ).toHaveLength(1)
@@ -135,14 +137,16 @@ describe('content validation', () => {
     const missingPathErrors = validateContent(catalogWith({
       upgrades: CURRENT_CONTENT.upgrades.filter((upgrade) =>
         upgrade.id !== 'basic-attack-level' &&
-        upgrade.id !== 'basic-attack-precision' &&
+        upgrade.id !== 'basic-attack-lightning-attunement' &&
+        upgrade.id !== 'basic-attack-fire-attunement' &&
+        upgrade.id !== 'basic-attack-cold-attunement' &&
         !upgrade.synergySkillIds?.includes(BASIC_ATTACK_SKILL_ID)
       ),
     }))
 
     expect(missingPathErrors).toEqual(expect.arrayContaining([
       'skill "basic-attack" must have at least 2 predefined synergies; found 0.',
-      'skill "basic-attack" must have exactly 2 evolution paths; found 1.',
+      'skill "basic-attack" must have exactly 4 evolution paths; found 1.',
       'skill "basic-attack" must have exactly 1 level-up path; found 0.',
     ]))
 
