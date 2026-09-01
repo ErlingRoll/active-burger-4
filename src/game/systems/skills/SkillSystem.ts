@@ -1640,7 +1640,7 @@ function collectStormRelayCast(
     },
   )
 
-  state.relays = (state.relays ?? []).filter((relay) => relay.skillId !== skill.skillId)
+  state.relays ??= []
   const relay: RelayState = {
     id: allocator.createEntityId(),
     ownerId: state.player.id,

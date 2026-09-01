@@ -22,6 +22,7 @@ import {
   RALLYING_BANNER_EFFECT_RADIUS,
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
   CINDER_MINE_FUSE_SECONDS,
+  STORM_RELAY_BASE_DURATION_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
   SOUL_TETHER_DURATION_SECONDS,
@@ -1241,6 +1242,32 @@ describe('skill system', () => {
       const finalTick = updateStormRelay(game.state, 30, allocator)
       expect(finalTick).toEqual([])
       expect(game.state.relays).toEqual([])
+    })
+
+    it('keeps overlapping relays independent when recast before expiration', () => {
+      const game = createGame({ seed: 90 })
+      game.state.player.skills = [{
+        skillId: STORM_RELAY_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      updateStormRelay(game.state, 0.5, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.relays).toHaveLength(2)
+      expect(game.state.relays?.map((relay) => relay.remainingDuration))
+        .toEqual([
+          STORM_RELAY_BASE_DURATION_SECONDS - 0.5,
+          STORM_RELAY_BASE_DURATION_SECONDS,
+        ])
+
+      updateStormRelay(game.state, STORM_RELAY_BASE_DURATION_SECONDS - 0.5, allocator)
+      expect(game.state.relays).toHaveLength(1)
+      expect(game.state.relays?.[0]?.remainingDuration).toBeCloseTo(0.5)
     })
 
     it('gives Overcharge a faster strike interval and extra Shock stacks', () => {

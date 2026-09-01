@@ -13,13 +13,13 @@ describe('ordinary enemy floor scaling', () => {
     const first = game.state.enemies.find((enemy) => enemy.id === firstId)
     const second = game.state.enemies.find((enemy) => enemy.id === secondId)
     expect(first).toMatchObject({
-      maxHp: 25,
-      hp: 25,
+      maxHp: 50,
+      hp: 50,
       contactDamage: expect.closeTo(4.8, 10),
     })
     expect(second).toMatchObject({
-      maxHp: expect.closeTo(31.266, 3),
-      hp: expect.closeTo(31.266, 3),
+      maxHp: expect.closeTo(62.531, 3),
+      hp: expect.closeTo(62.531, 3),
       contactDamage: expect.closeTo(6.003, 3),
     })
   })
@@ -45,7 +45,7 @@ describe('ordinary enemy floor scaling', () => {
     const late = game.state.enemies.find((enemy) => enemy.id === lateId)
 
     expect(early).toMatchObject({
-      maxHp: 25,
+      maxHp: 50,
       speed: expect.closeTo(84.6, 5),
       contactDamage: expect.closeTo(4.8, 10),
     })
@@ -57,12 +57,12 @@ describe('ordinary enemy floor scaling', () => {
   it('uses tougher authored baselines for every ordinary mob role', () => {
     const game = createGame({ seed: 20260829 })
     const definitions = [
-      ['slime', 25, 4.8],
-      ['runner', 13, 4],
-      ['brute', 105, 9.6],
-      ['archer', 30, 7.2],
-      ['splitter', 52, 6.4],
-      ['flanker', 23, 4.8],
+      ['slime', 50, 4.8],
+      ['runner', 26, 4],
+      ['brute', 210, 9.6],
+      ['archer', 60, 7.2],
+      ['splitter', 104, 6.4],
+      ['flanker', 46, 4.8],
     ] as const
 
     for (const [definitionId, maxHp, contactDamage] of definitions) {

@@ -19,6 +19,10 @@ The first five floors use a gentler 25% early stat step. Early spawn threat,
 elite chance, and special-ability damage/frequency are also reduced before
 gradually returning to the stronger mid-game anchors.
 
+Ordinary mob authored HP was later doubled to make individual enemies less
+squishy without changing their role-specific contact damage, floor multipliers,
+or boss durability.
+
 Ordinary contact damage uses the same floor multiplier as HP while retaining
 the existing 0.8 baseline reduction. Enemy special-ability damage also uses
 the HP multiplier plus its ability-specific tuning, keeping late-floor damage

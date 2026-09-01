@@ -67,6 +67,7 @@ describe('ordinary enemy abilities', () => {
     if (!projectile) {
       throw new Error('Expected Archer projectile')
     }
+    expect(Math.hypot(projectile.velocityX, projectile.velocityY)).toBe(480)
     projectile.x = game.state.player.x
     projectile.y = game.state.player.y
     const events = collectProjectileDamage(game.state)

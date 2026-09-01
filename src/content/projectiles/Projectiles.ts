@@ -66,7 +66,7 @@ export const PROJECTILE_DEFINITIONS = {
   },
   [ENEMY_ARCHER_PROJECTILE_DEFINITION_ID]: {
     id: ENEMY_ARCHER_PROJECTILE_DEFINITION_ID,
-    speed: 240,
+    speed: 480,
     radius: 7,
     lifetime: 3,
     guidance: 'straight',

@@ -578,8 +578,8 @@ describe('Game', () => {
       x: 100,
       y: 25,
       radius: 18,
-      hp: 25,
-      maxHp: 25,
+      hp: 50,
+      maxHp: 50,
       contactDamage: expect.closeTo(4.8, 10),
       xpReward: 4,
       targetId: game.state.player.id,
@@ -853,7 +853,7 @@ describe('Game', () => {
     expect(game.state.player.equipment?.weapon).toMatchObject({ itemId: 'knight-training-sword' })
     expect(game.state.projectiles).toHaveLength(0)
     expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
-    expect(game.state.enemies[0]?.hp).toBeLessThan(20)
+    expect(game.state.enemies[0]?.hp).toBeLessThan(50)
     expect(game.state.effects[0]).toMatchObject({
       shape: 'arc',
       basicAttackWeaponArchetype: 'sword',
