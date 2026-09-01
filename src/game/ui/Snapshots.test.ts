@@ -108,6 +108,15 @@ describe('UI snapshots', () => {
     expect(snapshot.skills[0]?.dpsAssumption).toContain('attack cadence')
     expect(snapshot.skills[1]?.dpsAssumption).toContain('Whirlwind range')
     expect(snapshot.skills[2]?.dpsAssumption).toContain('Primary target')
+    expect(snapshot.skills[2]?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'chain-lightning-chains',
+          label: 'Chains',
+          value: '5',
+        }),
+      ]),
+    )
 
     const basicUpgrades = snapshot.skills[0]?.upgrades ?? []
     expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-attack-level'))
@@ -143,6 +152,28 @@ describe('UI snapshots', () => {
       .toBe(true)
     expect(skills.find((skill) => skill.skillId === CHAIN_LIGHTNING_SKILL_ID)?.resonanceReady)
       .toBe(false)
+  })
+
+  it('includes Chain Lightning chain bonuses in the skill modifier summary', () => {
+    const game = createGame({ seed: 72 })
+    const resonanceRequirement = game.state.player.resonance ?? 5
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+      resonanceAttackCount: resonanceRequirement,
+    }]
+    game.state.player.chainLightningChainBonus = 2
+    game.state.player.chainLightningBonusTargets = 2
+
+    expect(createUiSnapshot(game.state).skills[0]?.skillModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'chain-lightning-chains',
+          value: '10',
+        }),
+      ]),
+    )
   })
 
   it('projects Rallying Banner healing and active defensive values', () => {

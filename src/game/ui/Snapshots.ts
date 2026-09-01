@@ -468,6 +468,7 @@ export type SkillModifierSummaryId =
   | 'increased-healing'
   | 'dot-multiplier'
   | 'frost-on-hit'
+  | 'chain-lightning-chains'
   | 'summon-damage'
   | 'summon-max-hp'
   | 'summon-attack-speed'
@@ -605,6 +606,21 @@ function getSkillModifierSummaries(
       )
     }
   } else {
+    if (skillId === CHAIN_LIGHTNING_SKILL_ID) {
+      const chainCount = Math.max(
+        0,
+        (definition.maxTargets ?? 1) - 1 +
+          Math.max(0, Math.floor(state.player.chainLightningChainBonus ?? 0)) +
+          Math.max(0, Math.floor(state.player.chainLightningBonusTargets ?? 0)) +
+          (isSkillResonant(state, skillId) ? 1 : 0),
+      )
+      addSummary(
+        'chain-lightning-chains',
+        'Chains',
+        chainCount,
+        formatStatNumber(chainCount),
+      )
+    }
     if (skillId === RALLYING_BANNER_SKILL_ID) {
       const duration = RALLYING_BANNER_BASE_DURATION_SECONDS +
         (selectedUpgradeIds.includes('rallying-banner-bulwark')
@@ -1048,8 +1064,8 @@ function createCharacterStatsSnapshot(
     ? `Currently applies to your ${titleCase(basicAttackVariant.id)} Basic Attack variant.`
     : 'Sword Basic Attack is not projectile-tagged, so this is currently inactive unless you swap weapons.'
   const areaApplicability = basicAttackVariant.id === 'sword'
-    ? 'Whirlwind, your sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
-    : 'Whirlwind, sword Basic Attack reach and arc, and the range of chained Basic Attack projectiles. It does not currently change Chain Lightning.'
+    ? 'Whirlwind, your sword Basic Attack reach and arc, and the chain range of Basic Attack and Chain Lightning projectiles.'
+    : 'Whirlwind, sword Basic Attack reach and arc, and the chain range of Basic Attack and Chain Lightning projectiles.'
   const offenceStats = [
     createCharacterStatSnapshot(
       'resonance',

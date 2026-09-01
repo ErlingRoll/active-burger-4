@@ -546,117 +546,111 @@ function collectChainLightningDamage(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const definition = getSkillDefinition(CHAIN_LIGHTNING_SKILL_ID)
-  const maxRange = definition.maxRange ?? 0
-  const jumpRange = definition.jumpRange ?? 0
+  const target = findNearestLivingTarget(state, definition.maxRange ?? 0)
+  if (!target) {
+    return []
+  }
+
   const maxTargets = (definition.maxTargets ?? 1) +
+    Math.max(0, Math.floor(state.player.chainLightningChainBonus ?? 0)) +
     Math.max(0, Math.floor(state.player.chainLightningBonusTargets ?? 0)) +
     (isSkillResonant(state, skill.skillId) ? 1 : 0)
   const playerStats = getDerivedPlayerStats(state.player)
   const damage = getSkillDamage(definition, skill.level)
-  const events: DamageEvent[] = []
-  const visited = new Set<number>()
-  let originX = state.player.x
-  let originY = state.player.y
-  const path: SkillEffectPoint[] = [{ x: originX, y: originY }]
-
-  for (let jump = 0; jump < maxTargets; jump += 1) {
-    let target = undefined
-    let targetDistanceSquared = Number.POSITIVE_INFINITY
-    const range = jump === 0 ? maxRange : jumpRange
-    const rangeSquared = range * range
-    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]) {
-      if (enemy.hp <= 0 || visited.has(enemy.id)) {
-        continue
-      }
-      const offsetX = enemy.x - originX
-      const offsetY = enemy.y - originY
-      const distanceSquared = offsetX * offsetX + offsetY * offsetY
-      if (
-        distanceSquared > rangeSquared ||
-        distanceSquared > targetDistanceSquared ||
-        (distanceSquared === targetDistanceSquared &&
-          target !== undefined &&
-          enemy.id > target.id)
-      ) {
-        continue
-      }
-      target = enemy
-      targetDistanceSquared = distanceSquared
-    }
-
-    if (!target) {
-      break
-    }
-
-    visited.add(target.id)
-    const event = createPlayerDamageEventFromStats(
-      playerStats,
-      state.player.id,
-      target.id,
-      skill.skillId,
-      damage,
-      {
-        sourceTags: definition.tags,
-        additionalIncreasedDamage: {
-          global: getSkillDamageIncreasePercent(
-            skill.skillId,
-            skill.level,
-            state.run.selectedUpgradeIds,
-          ),
-        },
-        attunementSourceAdditionalIncreasedDamage:
-          getAttunementSourceAdditionalIncreasedDamage(state),
+  const outgoingDamage = createPlayerDamageProfileFromStats(
+    playerStats,
+    damage,
+    {
+      isProjectile: true,
+      sourceTags: definition.tags,
+      additionalIncreasedDamage: {
+        global: getSkillDamageIncreasePercent(
+          skill.skillId,
+          skill.level,
+          state.run.selectedUpgradeIds,
+        ),
       },
-    )
-    const stormfrost = state.run.selectedUpgradeIds.includes(
-      'synergy-chain-lightning-glacial-orb',
-    )
-    const targetWasChilled = (target.chillStacks ?? 0) > 0 ||
-      (target.frozenRemainingDuration ?? 0) > 0
-    if (
-      state.run.selectedUpgradeIds.includes('chain-lightning-frost') ||
-      stormfrost
-    ) {
-      event.frostApplication = {
-        stacks: 1,
-        durationSeconds: 4,
-        freezeThreshold: 3,
-        freezeDurationSeconds: 1,
-      }
-    }
-    const overload = state.run.selectedUpgradeIds.includes(
-      'chain-lightning-overload',
-    )
-    if (overload || (stormfrost && targetWasChilled)) {
-      event.shockApplication = {
-        stacks: (overload ? 1 : 0) + (stormfrost && targetWasChilled ? 1 : 0),
-        durationSeconds: 4,
-        threshold: 3,
-        burstMultiplier: 1.5,
-      }
-    }
-    events.push(event)
-    path.push({ x: target.x, y: target.y })
-    originX = target.x
-    originY = target.y
+      attunementSourceAdditionalIncreasedDamage:
+        getAttunementSourceAdditionalIncreasedDamage(state),
+    },
+  )
+  const projectileDefinitionId = definition.projectileDefinitionId
+  if (!projectileDefinitionId) {
+    throw new Error('Chain Lightning must define a projectile.')
   }
-
-  if (events.length > 0) {
-    state.player.chainLightningBonusTargets = 0
-    addEffect(
-      state,
-      allocator,
-      skill.skillId,
-      path,
-      16,
-      definition.effectLifetime,
-    )
-    skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
-    markSkillUsed(skill)
-  }
-  return events
+  const projectileDefinition = getProjectileDefinition(projectileDefinitionId)
+  const frost = state.run.selectedUpgradeIds.includes('chain-lightning-frost') ||
+    state.run.selectedUpgradeIds.includes('synergy-chain-lightning-glacial-orb')
+  const overload = state.run.selectedUpgradeIds.includes('chain-lightning-overload')
+  const projectileCount = getProjectileVolleyCount(
+    definition.tags,
+    playerStats.globalExtraProjectiles,
+  )
+  const directionAngle = Math.atan2(
+    target.y - state.player.y,
+    target.x - state.player.x,
+  )
+  const spreadAngles = createProjectileSpreadAngles(
+    projectileCount,
+    definition.spreadDegrees ?? 0,
+  )
+  const chainRange = scaleAreaValue(definition.jumpRange ?? 0, playerStats.areaOfEffect)
+  state.projectiles.push(
+    ...spreadAngles.map((spreadAngle, projectileIndex) => {
+      const angle = directionAngle + spreadAngle
+      return {
+        id: allocator.createEntityId(),
+        ownerId: state.player.id,
+        definitionId: projectileDefinition.id,
+        skillId: skill.skillId,
+        targetId: target.id,
+        sourceTags: definition.tags,
+        remainingChains: Math.max(0, maxTargets - 1),
+        chainRange,
+        chainTargetSelectionState: Math.floor(
+          (random?.next() ?? ((projectileIndex + 1) / (projectileCount + 1))) *
+            0x1_0000_0000,
+        ) >>> 0,
+        chainOriginX: state.player.x,
+        chainOriginY: state.player.y,
+        ...(frost
+          ? {
+              impactFrostApplication: {
+                stacks: 1,
+                durationSeconds: 4,
+                freezeThreshold: 3,
+                freezeDurationSeconds: 1,
+              },
+            }
+          : {}),
+        ...(overload
+          ? {
+              impactShockApplication: {
+                stacks: 1,
+                durationSeconds: 4,
+                threshold: 3,
+                burstMultiplier: 1.5,
+              },
+            }
+          : {}),
+        x: state.player.x,
+        y: state.player.y,
+        velocityX: Math.cos(angle) * projectileDefinition.speed,
+        velocityY: Math.sin(angle) * projectileDefinition.speed,
+        radius: projectileDefinition.radius,
+        damage: outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+        remainingLifetime: projectileDefinition.lifetime,
+      }
+    }),
+  )
+  state.player.chainLightningBonusTargets = 0
+  skill.cooldownRemaining = getSkillCooldown(state, skill, definition.cooldown)
+  markSkillUsed(skill)
+  return []
 }
 
 function collectVitalityHealing(
@@ -2224,7 +2218,7 @@ function executeMirrorcastSkillEffect(
   if (copy.skillId === WHIRLWIND_SKILL_ID) {
     events = collectWhirlwindDamage(state, echoSkill, allocator)
   } else if (copy.skillId === CHAIN_LIGHTNING_SKILL_ID) {
-    events = collectChainLightningDamage(state, echoSkill, allocator)
+    events = collectChainLightningDamage(state, echoSkill, allocator, random)
   } else if (copy.skillId === VITALITY_SKILL_ID) {
     events = collectVitalityHealing(state, echoSkill, allocator, random)
   } else if (copy.skillId === GLACIAL_ORB_SKILL_ID) {
@@ -3230,7 +3224,7 @@ export function collectSkillDamage(
     if (skill.skillId === WHIRLWIND_SKILL_ID) {
       events.push(...collectWhirlwindDamage(state, skill, allocator))
     } else if (skill.skillId === CHAIN_LIGHTNING_SKILL_ID) {
-      events.push(...collectChainLightningDamage(state, skill, allocator))
+      events.push(...collectChainLightningDamage(state, skill, allocator, random))
     } else if (skill.skillId === VITALITY_SKILL_ID) {
       events.push(...collectVitalityHealing(state, skill, allocator, random))
     } else if (skill.skillId === GLACIAL_ORB_SKILL_ID) {

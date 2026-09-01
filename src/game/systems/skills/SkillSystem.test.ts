@@ -142,7 +142,9 @@ describe('skill system', () => {
     const events = collectSkillDamage(game.state, allocator)
 
     expect(events.some((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)).toBe(true)
-    expect(events.some((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)).toBe(true)
+    expect(game.state.projectiles.some(
+      (projectile) => projectile.skillId === CHAIN_LIGHTNING_SKILL_ID,
+    )).toBe(true)
     expect(isSkillResonant(game.state, WHIRLWIND_SKILL_ID)).toBe(false)
     expect(isSkillResonant(game.state, CHAIN_LIGHTNING_SKILL_ID)).toBe(false)
   })
@@ -170,7 +172,7 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator).length).toBe(2)
   })
 
-  it('chains to distinct valid enemies by distance, then EntityId', () => {
+  it('launches Chain Lightning with travel time and relaunches it through nearby enemies', () => {
     const game = createGame({ seed: 51 })
     game.state.player.skills = [{
       skillId: CHAIN_LIGHTNING_SKILL_ID,
@@ -183,26 +185,40 @@ describe('skill system', () => {
     const outOfRangeId = game.spawnSlime({ x: 500, y: 0 })
 
     const events = collectSkillDamage(game.state, allocator)
-    expect(events.map((event) => event.targetId)).toEqual([
-      firstId,
-      secondId,
-      thirdId,
+    expect(events).toEqual([])
+    expect(game.state.effects).toEqual([])
+    expect(game.state.projectiles).toHaveLength(1)
+    const projectile = game.state.projectiles[0]
+    if (!projectile) {
+      throw new Error('Expected Chain Lightning projectile to be created')
+    }
+    expect(projectile.remainingChains).toBe(5)
+    expect(projectile.chainRange).toBe(225)
+    expect(projectile.targetId).toBe(firstId)
+
+    projectile.x = 100
+    projectile.y = 0
+    const firstImpact = collectProjectileDamage(game.state, undefined, allocator)
+    expect(firstImpact).toEqual([
+      expect.objectContaining({
+        targetId: firstId,
+        damage: expect.objectContaining({ lightning: 8 }),
+      }),
     ])
-    expect(new Set(events.map((event) => event.targetId)).size).toBe(3)
-    expect(events.every((event) => event.targetId !== outOfRangeId)).toBe(true)
-    expect(events.every((event) => event.damage.lightning === 8)).toBe(true)
+    expect([secondId, thirdId]).toContain(projectile.targetId)
+    expect(projectile.lastHitTargetId).toBe(firstId)
     expect(game.state.effects[0]?.points).toEqual([
       { x: 0, y: 0 },
       { x: 100, y: 0 },
-      { x: 200, y: 0 },
-      { x: 220, y: 0 },
     ])
     expect(game.state.player.skills.at(-1)?.cooldownRemaining).toBe(3)
 
     expect(collectSkillDamage(game.state, allocator)).toEqual([])
+    expect(outOfRangeId).not.toBe(projectile.targetId)
+    expect([secondId, thirdId]).toContain(projectile.targetId)
   })
 
-  it('continues through a dense group instead of stopping after three targets', () => {
+  it('gives every Chain Lightning projectile the full shared chain budget', () => {
     const game = createGame({ seed: 52 })
     game.state.player.skills = [{
       skillId: CHAIN_LIGHTNING_SKILL_ID,
@@ -215,8 +231,24 @@ describe('skill system', () => {
 
     const events = collectSkillDamage(game.state, allocator)
 
-    expect(events.map((event) => event.targetId)).toEqual(targetIds.slice(0, 5))
-    expect(game.state.effects[0]?.points).toHaveLength(6)
+    expect(events).toEqual([])
+    expect(game.state.projectiles).toHaveLength(1)
+    expect(game.state.projectiles[0]?.remainingChains).toBe(5)
+    expect(game.state.projectiles[0]?.targetId).toBe(targetIds[0])
+  })
+
+  it('adds permanent Chain Lightning chain ranks to every projectile', () => {
+    const game = createGame({ seed: 521 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.player.chainLightningChainBonus = 2
+    game.spawnSlime({ x: 80, y: 0 })
+
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
+    expect(game.state.projectiles[0]?.remainingChains).toBe(7)
   })
 
   it('applies the selected Frost and Overload Chain Lightning branch effects', () => {
@@ -232,7 +264,13 @@ describe('skill system', () => {
     )
     game.spawnSlime({ x: 100, y: 0 })
 
-    const [event] = collectSkillDamage(game.state, allocator)
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
+    const projectile = game.state.projectiles[0]
+    if (!projectile) {
+      throw new Error('Expected Chain Lightning projectile to be created')
+    }
+    projectile.x = 100
+    const [event] = collectProjectileDamage(game.state)
 
     expect(event?.frostApplication).toMatchObject({ stacks: 1 })
     expect(event?.shockApplication).toMatchObject({ threshold: 3 })
@@ -293,7 +331,15 @@ describe('skill system', () => {
 
     expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)?.damage.physical)
       .toBeCloseTo(16.64)
-    expect(events.find((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)?.damage.lightning)
+    const chainProjectile = game.state.projectiles.find(
+      (projectile) => projectile.skillId === CHAIN_LIGHTNING_SKILL_ID,
+    )
+    if (!chainProjectile) {
+      throw new Error('Expected Chain Lightning projectile to be created')
+    }
+    chainProjectile.x = 80
+    const [chainEvent] = collectProjectileDamage(game.state)
+    expect(chainEvent?.damage.lightning)
       .toBeCloseTo(8.72)
   })
 
@@ -364,11 +410,10 @@ describe('skill system', () => {
       { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
     ]
 
-    const events = collectSkillDamage(game.state, allocator)
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
 
-    expect(events.filter(
-      (event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID,
-    )).toHaveLength(4)
+    expect(game.state.projectiles).toHaveLength(1)
+    expect(game.state.projectiles[0]?.remainingChains).toBe(6)
   })
 
   it('applies flat and increased player damage modifiers to every player skill', () => {
@@ -400,18 +445,109 @@ describe('skill system', () => {
     ])
     expect(events.find((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)
       ?.damage.physical).toBeCloseTo(16)
-    expect(events.filter((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)).toEqual([
+    const chainProjectile = game.state.projectiles.find(
+      (projectile) => projectile.skillId === CHAIN_LIGHTNING_SKILL_ID,
+    )
+    if (!chainProjectile) {
+      throw new Error('Expected Chain Lightning projectile to be created')
+    }
+    chainProjectile.x = 80
+    const [chainEvent] = collectProjectileDamage(game.state)
+    expect(chainEvent).toEqual(
       expect.objectContaining({
         targetId,
         damage: expect.objectContaining({
           lightning: expect.any(Number),
         }),
       }),
-    ])
-    const chainEvent = events.find(
-      (event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID,
     )
     expect(chainEvent?.damage.lightning).toBeCloseTo(13.6)
+  })
+
+  it('fires a Chain Lightning volley from global extra projectile bonuses', () => {
+    const game = createGame({ seed: 61 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    equipRolledItem(
+      game.state.player,
+      'starcall-wand',
+      Rarity.Rare,
+      [],
+      undefined,
+      'splintering',
+    )
+    equipRolledItem(
+      game.state.player,
+      'helmet',
+      Rarity.Rare,
+      [],
+      undefined,
+      'splintering',
+    )
+    game.spawnSlime({ x: 120, y: 0 })
+
+    expect(collectSkillDamage(game.state, allocator)).toEqual([])
+    expect(game.state.projectiles).toHaveLength(2)
+    expect(game.state.projectiles.every(
+      (projectile) =>
+        projectile.skillId === CHAIN_LIGHTNING_SKILL_ID &&
+        projectile.remainingChains === 5,
+    )).toBe(true)
+  })
+
+  it('varies Chain Lightning volley relaunch targets among nearby enemies', () => {
+    const game = createGame({ seed: 62 })
+    game.state.player.skills = [{
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    equipRolledItem(
+      game.state.player,
+      'starcall-wand',
+      Rarity.Rare,
+      [],
+      undefined,
+      'splintering',
+    )
+    equipRolledItem(
+      game.state.player,
+      'helmet',
+      Rarity.Rare,
+      [],
+      undefined,
+      'splintering',
+    )
+    const firstId = game.spawnSlime({ x: 100, y: 0 })
+    const secondId = game.spawnSlime({ x: 180, y: 0 })
+    const thirdId = game.spawnSlime({ x: 180, y: 20 })
+
+    expect(collectSkillDamage(game.state, allocator, {
+      next: (() => {
+        const values = [0.2, 0.1]
+        return () => values.shift() ?? 0
+      })(),
+    })).toEqual([])
+    const projectiles = game.state.projectiles
+    expect(projectiles).toHaveLength(2)
+    for (const projectile of projectiles) {
+      projectile.x = 100
+      projectile.y = 0
+    }
+
+    collectProjectileDamage(game.state)
+
+    expect(projectiles.map((projectile) => projectile.lastHitTargetId)).toEqual([
+      firstId,
+      firstId,
+    ])
+    expect(projectiles.map((projectile) => projectile.targetId)).toEqual([
+      secondId,
+      thirdId,
+    ])
   })
 
   it('applies weapon cooldown reduction to non-projectile skills', () => {

@@ -443,7 +443,11 @@ describe('Mirrorcast', () => {
       )
       expect(sourceSkill.cooldownRemaining).toBe(sourceCooldown)
 
-      if (skillId === GLACIAL_ORB_SKILL_ID || skillId === RIFT_JAVELIN_SKILL_ID) {
+      if (
+        skillId === CHAIN_LIGHTNING_SKILL_ID ||
+        skillId === GLACIAL_ORB_SKILL_ID ||
+        skillId === RIFT_JAVELIN_SKILL_ID
+      ) {
         expect(game.state.projectiles).toHaveLength(2)
       } else if (skillId === CINDER_MINE_SKILL_ID) {
         expect(game.state.traps).toHaveLength(2)

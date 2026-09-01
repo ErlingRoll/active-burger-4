@@ -164,6 +164,27 @@ describe('upgrade choice generation', () => {
     })).toBe(true)
   })
 
+  it('defines Forked Current as a repeatable non-evolution Chain Lightning upgrade', () => {
+    const forkedCurrent = getUpgrade('chain-lightning-extra-chain')
+
+    expect(forkedCurrent).toMatchObject({
+      skillId: 'chain-lightning',
+      repeatable: true,
+      chainLightningChainIncrease: 1,
+    })
+    expect(forkedCurrent.branch).toBeUndefined()
+    expect(forkedCurrent.isEligible({
+      playerLevel: 2,
+      selectedUpgradeIds: [
+        'chain-lightning-extra-chain',
+        'chain-lightning-extra-chain',
+      ],
+      ownedSkillIds: ['chain-lightning'],
+      skillLevels: { 'chain-lightning': 1 },
+      skillSlotCount: 6,
+    })).toBe(true)
+  })
+
   it('defines mutually exclusive Raise Skeleton evolutions', () => {
     const legion = getUpgrade('raise-skeleton-legion')
     const rot = getUpgrade('raise-skeleton-rotting-bones')

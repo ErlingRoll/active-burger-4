@@ -17,6 +17,7 @@ export type UpgradeId =
   | 'basic-attack-level'
   | 'whirlwind-level'
   | 'chain-lightning-level'
+  | 'chain-lightning-extra-chain'
   | 'fiery-touch-unlock'
   | 'fiery-touch-level'
   | 'fiery-touch-cooldown-reduction'
@@ -306,6 +307,8 @@ export interface UpgradeDefinition {
   whirlwindGuardDamageReductionPercent?: number
   /** Enables Frost application on Chain Lightning hits. */
   chainLightningFrost?: boolean
+  /** Additional Chain Lightning jumps granted per acquired rank. */
+  chainLightningChainIncrease?: number
   /** Enables Shock stacking and overload detonations. */
   chainLightningOverload?: boolean
   /** Percentage bonus applied only to Fiery Touch damage. */

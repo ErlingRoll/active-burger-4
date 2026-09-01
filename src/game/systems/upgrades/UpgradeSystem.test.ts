@@ -115,6 +115,23 @@ describe('skill upgrades', () => {
     expect(game.state.player.pickupCollectionRangeMultiplier).toBeCloseTo(1.4)
   })
 
+  it('adds repeatable Chain Lightning chain ranks and clears them when removed', () => {
+    const game = createGame({ seed: 641 })
+    applyUpgrade(game.state, 'chain-lightning-unlock')
+    applyUpgrade(game.state, 'chain-lightning-extra-chain')
+    applyUpgrade(game.state, 'chain-lightning-extra-chain')
+    game.state.run.selectedUpgradeIds.push(
+      'chain-lightning-extra-chain',
+      'chain-lightning-extra-chain',
+    )
+
+    expect(game.state.player.chainLightningChainBonus).toBe(2)
+
+    applyUpgrade(game.state, 'remove-skill', CHAIN_LIGHTNING_SKILL_ID)
+
+    expect(game.state.player.chainLightningChainBonus).toBe(0)
+  })
+
   it('removes a skill and clears all upgrades acquired for that skill', () => {
     const game = createGame({ seed: 65 })
     applyUpgrade(game.state, 'whirlwind-level')

@@ -194,6 +194,7 @@ function getTelegraphRenderState(
 export class PixiGame {
   private static readonly MAX_IMPACT_PARTICLE_VIEWS = 48
   private static readonly MAX_PROJECTILE_TRAIL_VIEWS = 96
+  private static readonly CHAIN_LIGHTNING_TRAIL_HISTORY_LENGTH = 60
   private static readonly MIN_CAMERA_SCALE = 1 / 3
   private static readonly MAX_CAMERA_SCALE = 1
   private static readonly WHEEL_ZOOM_SENSITIVITY = 0.001
@@ -731,6 +732,17 @@ export class PixiGame {
         .fill(visual.secondaryColor)
         .stroke({ color: visual.outlineColor, width: 1 })
     }
+    if (projectile.skillId === CHAIN_LIGHTNING_SKILL_ID) {
+      const boltLength = projectile.radius * 3.5
+      view
+        .moveTo(-boltLength, -projectile.radius * 0.2)
+        .lineTo(-projectile.radius * 0.8, -projectile.radius * 0.7)
+        .lineTo(-projectile.radius * 0.25, projectile.radius * 0.25)
+        .lineTo(projectile.radius * 1.6, 0)
+        .stroke({ color: '#ffffff', width: 2, alpha: 0.94 })
+        .circle(0, 0, projectile.radius * 2.6)
+        .stroke({ color: '#67e8f9', width: 1.5, alpha: 0.55 })
+    }
     if (
       projectile.skillId === RIFT_JAVELIN_SKILL_ID &&
       (this.game.state.run.selectedUpgradeIds.includes('synergy-rift-javelin-lancers-charge') ||
@@ -1234,6 +1246,9 @@ export class PixiGame {
     if (effect.skillId === STORM_RELAY_SKILL_ID && effect.shape === undefined) {
       return this.decorateEvolutionEffect(effect, this.createStormRelayStrikePlaceholder(effect))
     }
+    if (effect.skillId === CHAIN_LIGHTNING_SKILL_ID && effect.points.length > 1) {
+      return this.decorateEvolutionEffect(effect, this.createChainLightningPlaceholder(effect))
+    }
     if (effect.shape === undefined) {
       if (effect.skillId === VITALITY_SKILL_ID) {
         return this.decorateEvolutionEffect(effect, this.createVitalityPlaceholder(effect))
@@ -1331,9 +1346,6 @@ export class PixiGame {
     } else if (visual.kind === 'area') {
       return this.decorateEvolutionEffect(effect, this.createSkillBurstPlaceholder(effect, visual))
     } else if (visual.kind === 'chain') {
-      if (effect.skillId === CHAIN_LIGHTNING_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createChainLightningPlaceholder(effect))
-      }
       const points = effect.points.length > 0
         ? effect.points
         : [{ x: effect.x, y: effect.y }]
@@ -1945,7 +1957,12 @@ export class PixiGame {
       x: point.x - effect.x,
       y: point.y - effect.y,
     }))
-    const drawArc = (width: number, color: string, alpha: number): void => {
+    const drawArc = (
+      width: number,
+      color: string,
+      alpha: number,
+      amplitude: number,
+    ): void => {
       const origin = relativePoints[0]
       if (!origin) {
         return
@@ -1957,7 +1974,7 @@ export class PixiGame {
         const segmentX = point.x - previous.x
         const segmentY = point.y - previous.y
         const segmentLength = Math.hypot(segmentX, segmentY) || 1
-        const offset = index % 2 === 0 ? 7 : -7
+        const offset = (index + effect.id) % 2 === 0 ? amplitude : -amplitude
         view
           .lineTo(
             (previous.x + point.x) / 2 - (segmentY / segmentLength) * offset,
@@ -1967,13 +1984,25 @@ export class PixiGame {
       }
       view.stroke({ color, width, alpha })
     }
-    drawArc(10, visual.outlineColor, 0.16)
-    drawArc(3, visual.secondaryColor, 0.92)
+    drawArc(14, visual.outlineColor, 0.14, 10)
+    drawArc(6, visual.primaryColor, 0.34, 6)
+    drawArc(2.5, '#ffffff', 0.96, 4)
     for (const point of relativePoints.slice(1)) {
       view
         .poly([point.x, point.y - 6, point.x + 6, point.y, point.x, point.y + 6, point.x - 6, point.y])
         .fill({ color: visual.primaryColor, alpha: 0.85 })
         .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+    for (let index = 1; index < relativePoints.length; index += 1) {
+      const previous = relativePoints[index - 1]!
+      const point = relativePoints[index]!
+      const midpointX = (previous.x + point.x) / 2
+      const midpointY = (previous.y + point.y) / 2
+      view
+        .circle(midpointX, midpointY, 4)
+        .fill({ color: '#ffffff', alpha: 0.8 })
+        .circle(midpointX, midpointY, 9)
+        .stroke({ color: visual.secondaryColor, width: 1.5, alpha: 0.48 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-chain-lightning-glacial-orb')) {
       for (const point of relativePoints.slice(1)) {
@@ -3206,6 +3235,60 @@ export class PixiGame {
         : projectile.skillId && isSkillId(projectile.skillId)
           ? getSkillDefinition(projectile.skillId).visual
           : getSkillDefinition(BASIC_ATTACK_SKILL_ID).visual
+    if (projectile.skillId === CHAIN_LIGHTNING_SKILL_ID) {
+      const drawElectricalSegment = (
+        previous: RenderPoint,
+        point: RenderPoint,
+        index: number,
+        color: string,
+        maximumWidth: number,
+        alpha: number,
+        zigZagAmplitude: number,
+      ): void => {
+        const segmentX = point.x - previous.x
+        const segmentY = point.y - previous.y
+        const segmentLength = Math.hypot(segmentX, segmentY) || 1
+        const amplitude = Math.min(zigZagAmplitude, segmentLength * 0.38)
+        const direction = (index + projectile.id) % 2 === 0 ? 1 : -1
+        const progress = index / (history.length - 1)
+        view
+          .moveTo(previous.x, previous.y)
+          .lineTo(
+            (previous.x + point.x) / 2 - (segmentY / segmentLength) * amplitude * direction,
+            (previous.y + point.y) / 2 + (segmentX / segmentLength) * amplitude * direction,
+          )
+          .lineTo(point.x, point.y)
+          .stroke({
+            color,
+            width: Math.max(1, maximumWidth * (0.35 + progress * 0.65)),
+            alpha: alpha * (0.08 + progress * 0.92),
+          })
+      }
+      for (let index = 1; index < history.length; index += 1) {
+        const previous = history[index - 1]!
+        const point = history[index]!
+        drawElectricalSegment(
+          previous,
+          point,
+          index,
+          '#0891b2',
+          projectile.radius * 4.4,
+          0.12,
+          5,
+        )
+        drawElectricalSegment(
+          previous,
+          point,
+          index,
+          visual.primaryColor,
+          projectile.radius * 2,
+          0.38,
+          4,
+        )
+        drawElectricalSegment(previous, point, index, '#fefce8', 2.2, 0.92, 3)
+      }
+      return
+    }
     for (let index = 1; index < history.length; index += 1) {
       const previous = history[index - 1]!
       const point = history[index]!
@@ -3734,7 +3817,11 @@ export class PixiGame {
         this.projectilePositionHistory.set(projectile.id, history)
       }
       history.push({ x: projectile.x, y: projectile.y })
-      if (history.length > 6) {
+      const maximumHistoryLength =
+        projectile.skillId === CHAIN_LIGHTNING_SKILL_ID
+          ? PixiGame.CHAIN_LIGHTNING_TRAIL_HISTORY_LENGTH
+          : 6
+      if (history.length > maximumHistoryLength) {
         history.shift()
       }
       let trailView = this.projectileTrailViews.get(projectile.id)

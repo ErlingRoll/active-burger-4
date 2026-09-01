@@ -92,6 +92,7 @@ import { SYNERGY_UPGRADES } from './synergies'
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
+const CHAIN_LIGHTNING_CHAIN_INCREASE = 1
 const FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT = 5
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
@@ -413,6 +414,19 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     skillAction: 'level',
     skillDamageIncreasePercent: CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[CHAIN_LIGHTNING_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'chain-lightning-extra-chain',
+    name: 'Forked Current',
+    description: `Chain Lightning chains to ${CHAIN_LIGHTNING_CHAIN_INCREASE} additional enemy. This upgrade is repeatable.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: CHAIN_LIGHTNING_CHAIN_INCREASE,
+    repeatable: true,
+    valueLabel: `+${CHAIN_LIGHTNING_CHAIN_INCREASE} Chain Lightning chain`,
+    skillId: CHAIN_LIGHTNING_SKILL_ID,
+    chainLightningChainIncrease: CHAIN_LIGHTNING_CHAIN_INCREASE,
+    isEligible: (state) => state.ownedSkillIds.includes(CHAIN_LIGHTNING_SKILL_ID),
   },
   {
     id: 'fiery-touch-unlock',

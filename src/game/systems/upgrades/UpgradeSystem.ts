@@ -119,6 +119,11 @@ export function applyUpgrade(
       )
     }
   }
+  if (definition.chainLightningChainIncrease) {
+    player.chainLightningChainBonus =
+      (player.chainLightningChainBonus ?? 0) +
+      definition.chainLightningChainIncrease
+  }
   if (definition.pickupCollectionRangeIncreasePercent) {
     const currentMultiplier = player.pickupCollectionRangeMultiplier
     player.pickupCollectionRangeMultiplier =
@@ -287,6 +292,9 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   if (skillId === GRAVITY_WELL_SKILL_ID) {
     state.player.chainLightningBonusTargets = 0
     state.player.fieryTouchGravityPrimed = false
+  }
+  if (skillId === CHAIN_LIGHTNING_SKILL_ID) {
+    state.player.chainLightningChainBonus = 0
   }
   if (skillId === PHANTOM_ARSENAL_SKILL_ID) {
     state.player.phantomMaxCountBonus = 0

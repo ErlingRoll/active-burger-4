@@ -154,6 +154,7 @@ export function createInitialPlayerState(
     ruinSigils: [],
     prismConvergence: [],
     skeletonMaxCountBonus: 0,
+    chainLightningChainBonus: 0,
     upgradeWhirlwindLeech: 0,
     gearDropChanceMultiplier: 1,
     gearRarityFloor: Rarity.Common,

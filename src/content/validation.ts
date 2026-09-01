@@ -1133,6 +1133,14 @@ function validateDefinitions(
         'positive',
       )
     }
+    if (upgrade.chainLightningChainIncrease !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].chainLightningChainIncrease`,
+        upgrade.chainLightningChainIncrease,
+        'positive',
+      )
+    }
     if (
       upgrade.category === 'passive' &&
       (upgrade.stat === undefined || !VALID_UPGRADE_STATS.has(upgrade.stat)) &&
@@ -1173,6 +1181,7 @@ function validateDefinitions(
           upgrade.whirlwindGuardDamageReductionPercent === undefined &&
           upgrade.basicAttackDamageConversionType === undefined &&
           upgrade.chainLightningFrost === undefined &&
+          upgrade.chainLightningChainIncrease === undefined &&
           upgrade.chainLightningOverload === undefined &&
           upgrade.fieryTouchDamageIncreasePercent === undefined &&
           upgrade.glacialOrbFrostStacks === undefined &&

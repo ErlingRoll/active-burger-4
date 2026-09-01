@@ -20,6 +20,8 @@ export const BASIC_ATTACK_ORB_DEFINITION_ID: ProjectileDefinitionId =
   'basic-attack-orb'
 export const GLACIAL_ORB_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
   'glacial-orb-projectile'
+export const CHAIN_LIGHTNING_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
+  'chain-lightning-projectile'
 export const RIFT_JAVELIN_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
   'rift-javelin-projectile'
 export const PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID: ProjectileDefinitionId =
@@ -50,6 +52,13 @@ export const PROJECTILE_DEFINITIONS = {
     speed: 360,
     radius: 9,
     lifetime: 1,
+    guidance: 'straight',
+  },
+  [CHAIN_LIGHTNING_PROJECTILE_DEFINITION_ID]: {
+    id: CHAIN_LIGHTNING_PROJECTILE_DEFINITION_ID,
+    speed: 690,
+    radius: 7,
+    lifetime: 2.2,
     guidance: 'straight',
   },
   [RIFT_JAVELIN_PROJECTILE_DEFINITION_ID]: {

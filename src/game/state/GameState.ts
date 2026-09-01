@@ -263,6 +263,8 @@ export interface PlayerState {
   whirlwindGuardRemaining?: number
   whirlwindGuardDamageReductionPercent?: number
   fieryTouchDamageIncreasePercent?: number
+  /** Repeatable Chain Lightning upgrade count. */
+  chainLightningChainBonus?: number
   /** Extra Chain Lightning targets primed by a Gravity Well synergy. */
   chainLightningBonusTargets?: number
   /** True when Gravity Well has primed the next Fiery Touch trigger. */
@@ -618,6 +620,11 @@ export interface ProjectileState {
   impactPoisonApplication?: PoisonApplication
   remainingChains?: number
   chainRange?: number
+  /** Per-projectile deterministic state for Chain Lightning's varied relaunch targets. */
+  chainTargetSelectionState?: number
+  /** Starting position of the current chain flight for impact presentation. */
+  chainOriginX?: number
+  chainOriginY?: number
   lastHitTargetId?: EntityId
   /** Marks a projectile that does not despawn on hit and keeps traveling. */
   piercing?: boolean

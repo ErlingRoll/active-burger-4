@@ -789,8 +789,28 @@ function createProjectileImpactEffect(
   x: number,
   y: number,
 ): void {
+  if (!allocator) {
+    return
+  }
+
+  if (projectile.skillId === CHAIN_LIGHTNING_SKILL_ID) {
+    const definition = getSkillDefinition(CHAIN_LIGHTNING_SKILL_ID)
+    const originX = projectile.chainOriginX ?? state.player.x
+    const originY = projectile.chainOriginY ?? state.player.y
+    state.effects.push({
+      id: allocator.createEntityId(),
+      skillId: CHAIN_LIGHTNING_SKILL_ID,
+      x: originX,
+      y: originY,
+      radius: 16,
+      lifetime: definition.effectLifetime,
+      remainingLifetime: definition.effectLifetime,
+      points: [{ x: originX, y: originY }, { x, y }],
+    })
+    return
+  }
+
   if (
-    !allocator ||
     projectile.skillId !== GLACIAL_ORB_SKILL_ID ||
     projectile.impactEffectRadius === undefined
   ) {
@@ -827,6 +847,22 @@ function collectProjectileImpactEvents(
   hitEnemy: EnemyState | BossState,
   enemies: ReturnType<typeof createEnemySpatialHash>,
 ): DamageEvent[] {
+  const getShockApplicationForTarget = (
+    target: Readonly<EnemyState | BossState>,
+  ) => {
+    const stormfrostShock = projectile.skillId === CHAIN_LIGHTNING_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('synergy-chain-lightning-glacial-orb') &&
+      ((target.chillStacks ?? 0) > 0 || (target.frozenRemainingDuration ?? 0) > 0)
+    if (!stormfrostShock) {
+      return projectile.impactShockApplication
+    }
+    return {
+      stacks: (projectile.impactShockApplication?.stacks ?? 0) + 1,
+      durationSeconds: projectile.impactShockApplication?.durationSeconds ?? 4,
+      threshold: projectile.impactShockApplication?.threshold ?? 3,
+      burstMultiplier: projectile.impactShockApplication?.burstMultiplier ?? 1.5,
+    }
+  }
   const getDamageForTarget = (targetId: number): DamageValues => {
     let damage = projectile.returning && projectile.returnDamageMultiplier !== undefined
       ? scaleDamageValues(projectile.damage, projectile.returnDamageMultiplier)
@@ -854,7 +890,7 @@ function collectProjectileImpactEvents(
         : {}),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
-      shockApplication: projectile.impactShockApplication,
+      shockApplication: getShockApplicationForTarget(hitEnemy),
       poisonApplication: projectile.impactPoisonApplication,
     }]
   }
@@ -883,7 +919,7 @@ function collectProjectileImpactEvents(
         : {}),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
-      shockApplication: projectile.impactShockApplication,
+      shockApplication: getShockApplicationForTarget(enemy),
       poisonApplication: projectile.impactPoisonApplication,
     }))
 }
@@ -1058,6 +1094,52 @@ function canProjectileChain(
     (projectile.chainRange ?? 0) > 0
 }
 
+function findChainLightningTarget(
+  projectile: ProjectileState,
+  hitTarget: Readonly<EnemyState | BossState>,
+  enemies: ReturnType<typeof createEnemySpatialHash>,
+): EnemyState | BossState | undefined {
+  const chainRange = projectile.chainRange ?? 0
+  const candidates = enemies
+    .queryRadius(hitTarget.x, hitTarget.y, chainRange)
+    .filter((enemy) => enemy.id !== hitTarget.id)
+    .map((enemy) => ({
+      enemy,
+      distanceSquared: distanceSquared(hitTarget.x, hitTarget.y, enemy.x, enemy.y),
+    }))
+    .filter((candidate) => candidate.distanceSquared <= chainRange * chainRange)
+    .sort((left, right) =>
+      left.distanceSquared - right.distanceSquared ||
+      left.enemy.id - right.enemy.id
+    )
+  const nearest = candidates[0]
+  if (!nearest) {
+    return undefined
+  }
+
+  const selectionState = projectile.chainTargetSelectionState
+  if (selectionState === undefined) {
+    return nearest.enemy
+  }
+
+  // Keep the bolt local to the nearest link while allowing volley bolts to
+  // split across similarly close targets instead of tracing identical paths.
+  const selectionRadiusSquared = Math.max(
+    nearest.distanceSquared * 1.3,
+    (Math.sqrt(nearest.distanceSquared) + 24) ** 2,
+  )
+  const nearbyCandidates = candidates
+    .filter((candidate) => candidate.distanceSquared <= selectionRadiusSquared)
+    .slice(0, 3)
+  const nextSelectionState = (
+    Math.imul(selectionState, 1_664_525) + 1_013_904_223
+  ) >>> 0
+  projectile.chainTargetSelectionState = nextSelectionState
+  return nearbyCandidates[
+    Math.floor((nextSelectionState / 0x1_0000_0000) * nearbyCandidates.length)
+  ]!.enemy
+}
+
 function relaunchProjectileTowardTarget(
   projectile: ProjectileState,
   hitTarget: Readonly<EnemyState | BossState>,
@@ -1072,6 +1154,8 @@ function relaunchProjectileTowardTarget(
   projectile.y = hitTarget.y
   projectile.targetId = nextTarget.id
   projectile.lastHitTargetId = hitTarget.id
+  projectile.chainOriginX = hitTarget.x
+  projectile.chainOriginY = hitTarget.y
   projectile.remainingChains = Math.max(0, (projectile.remainingChains ?? 0) - 1)
   projectile.velocityX = direction.x * definition.speed
   projectile.velocityY = direction.y * definition.speed
@@ -1616,16 +1700,18 @@ export function collectProjectileDamage(
         continue
       }
       if (canProjectileChain(state, projectile)) {
-        const nextTarget = findNearestEnemy(
-          {
-            originX: hitEnemy.x,
-            originY: hitEnemy.y,
-            maxRange: projectile.chainRange ?? 0,
-            excludeTargetId: hitEnemy.id,
-          },
-          state,
-          enemies,
-        )
+        const nextTarget = projectile.skillId === CHAIN_LIGHTNING_SKILL_ID
+          ? findChainLightningTarget(projectile, hitEnemy, enemies)
+          : findNearestEnemy(
+              {
+                originX: hitEnemy.x,
+                originY: hitEnemy.y,
+                maxRange: projectile.chainRange ?? 0,
+                excludeTargetId: hitEnemy.id,
+              },
+              state,
+              enemies,
+            )
         if (nextTarget) {
           relaunchProjectileTowardTarget(projectile, hitEnemy, nextTarget)
           continue
