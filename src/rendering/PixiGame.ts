@@ -49,6 +49,7 @@ import type {
   RuinSigilState,
   PrismHaloState,
   HitVisualElement,
+  PickupState,
 } from '../game/state/GameState'
 import {
   getBossDefinition,
@@ -151,6 +152,8 @@ export class PixiGame {
   private readonly projectileTrailViews = new Map<EntityId, Graphics>()
   private readonly projectilePositionHistory = new Map<EntityId, RenderPoint[]>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
+  private readonly pickupData = new Map<EntityId, PickupState>()
+  private readonly pickupFeedbackViews = new Map<EntityId, PickupFeedbackView>()
   private readonly effectViews = new Map<EntityId, Graphics>()
   private readonly effectParticleViews = new Map<EntityId, Graphics>()
   private readonly trapViews = new Map<EntityId, Graphics>()
@@ -169,6 +172,7 @@ export class PixiGame {
   private projectileLayer: Container | undefined
   private pickupLayer: Container | undefined
   private effectLayer: Container | undefined
+  private worldUiLayer: Container | undefined
   private summonLayer: Container | undefined
   private stairsLayer: Container | undefined
   private playerView: PlayerView | undefined
@@ -240,6 +244,7 @@ export class PixiGame {
     const effects = new Container()
     this.effectLayer = effects
     const worldUi = new Container()
+    this.worldUiLayer = worldUi
 
     ground.zIndex = 0
     decorations.zIndex = 10
@@ -909,33 +914,86 @@ export class PixiGame {
     return { root, label }
   }
 
-  private createPickupPlaceholder(pickup: {
-    radius: number
-    kind?: 'xp' | 'gear' | 'healing-potion'
-  }): Graphics {
+  private createPickupPlaceholder(pickup: PickupState): Graphics {
+    const view = new Graphics()
+    this.drawPickup(view, pickup, 0)
+    return view
+  }
+
+  private drawPickup(view: Graphics, pickup: PickupState, time: number): void {
+    const radius = pickup.radius
+    const pulse = 1 + Math.sin(time * 4 + pickup.id) * 0.08
+    view.clear()
+    view.scale.set(pulse)
     if (pickup.kind === 'gear') {
-      const radius = pickup.radius
-      return new Graphics()
+      view
         .poly([0, -radius, radius, 0, 0, radius, -radius, 0])
-        .fill('#f59e0b')
+        .fill({ color: '#f59e0b', alpha: 0.92 })
         .stroke({ color: '#fef3c7', width: 3 })
-        .circle(0, 0, radius * 0.35)
-        .fill('#7c3aed')
+        .poly([0, -radius * 0.54, radius * 0.54, 0, 0, radius * 0.54, -radius * 0.54, 0])
+        .fill({ color: '#7c3aed', alpha: 0.9 })
+        .stroke({ color: '#ede9fe', width: 1.5 })
+        .moveTo(-radius * 0.68, 0)
+        .lineTo(0, radius * 0.68)
+        .lineTo(radius * 0.68, 0)
+        .stroke({ color: '#fde68a', width: 1, alpha: 0.76 })
+      return
     }
     if (pickup.kind === 'healing-potion') {
-      const radius = pickup.radius
-      return new Graphics()
-        .rect(-radius * 0.55, -radius * 0.25, radius * 1.1, radius * 1.05)
-        .fill('#dc2626')
+      view
+        .rect(-radius * 0.55, -radius * 0.2, radius * 1.1, radius * 0.95)
+        .fill({ color: '#dc2626', alpha: 0.94 })
         .stroke({ color: '#fecaca', width: 2 })
-        .rect(-radius * 0.28, -radius * 0.7, radius * 0.56, radius * 0.45)
+        .rect(-radius * 0.28, -radius * 0.72, radius * 0.56, radius * 0.48)
         .fill('#fee2e2')
+        .stroke({ color: '#fecaca', width: 1 })
+        .moveTo(-radius * 0.38, radius * 0.02)
+        .lineTo(radius * 0.38, radius * 0.02)
+        .stroke({ color: '#fca5a5', width: 1.5, alpha: 0.86 })
+      return
     }
-
-    return new Graphics()
-      .circle(0, 0, pickup.radius)
-      .fill('#22c55e')
+    view
+      .poly(createPolygonPoints(radius * 0.9, 6, Math.PI / 6))
+      .fill({ color: '#22c55e', alpha: 0.9 })
       .stroke({ color: '#bbf7d0', width: 2 })
+      .poly(createStarPoints(radius * 0.5, 6, 0.38))
+      .fill({ color: '#dcfce7', alpha: 0.78 })
+      .stroke({ color: '#f0fdf4', width: 1 })
+  }
+
+  private createPickupFeedback(
+    pickup: PickupState,
+    x: number,
+    y: number,
+    time: number,
+  ): void {
+    if (!this.worldUiLayer) {
+      return
+    }
+    const isExperience = pickup.kind === 'xp'
+    const isGear = pickup.kind === 'gear'
+    const text = new Text({
+      text: isExperience
+        ? `+${pickup.kind === 'xp' ? pickup.xpAmount : 0} XP`
+        : isGear
+          ? 'GEAR FOUND'
+          : 'HEALED',
+      style: {
+        fill: isExperience ? '#86efac' : isGear ? '#fbbf24' : '#fca5a5',
+        fontSize: 12,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
+        stroke: { color: '#0f172a', width: 4 },
+      },
+    })
+    text.anchor.set(0.5, 1)
+    text.position.set(x, y)
+    this.worldUiLayer.addChild(text)
+    this.pickupFeedbackViews.set(pickup.id, {
+      text,
+      createdAt: time,
+      startY: y,
+    })
   }
 
   private createEffectPlaceholder(effect: SkillEffectState): Graphics {
@@ -3434,6 +3492,8 @@ export class PixiGame {
       }
 
       view.position.set(pickup.x, pickup.y)
+      this.pickupData.set(pickup.id, pickup)
+      this.drawPickup(view, pickup, state.time)
     }
 
     for (const [pickupId, view] of this.pickupViews) {
@@ -3441,9 +3501,24 @@ export class PixiGame {
         continue
       }
 
+      const pickup = this.pickupData.get(pickupId)
+      if (pickup) {
+        this.createPickupFeedback(pickup, view.position.x, view.position.y, state.time)
+      }
       view.removeFromParent()
       view.destroy()
       this.pickupViews.delete(pickupId)
+      this.pickupData.delete(pickupId)
+    }
+    for (const [pickupId, feedback] of this.pickupFeedbackViews) {
+      const progress = Math.max(0, Math.min(1, (state.time - feedback.createdAt) / 0.9))
+      feedback.text.position.y = feedback.startY - progress * 24
+      feedback.text.alpha = 1 - progress
+      if (progress >= 1) {
+        feedback.text.removeFromParent()
+        feedback.text.destroy()
+        this.pickupFeedbackViews.delete(pickupId)
+      }
     }
 
     const activeEffectIds = new Set<EntityId>()
@@ -3816,6 +3891,10 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const feedback of this.pickupFeedbackViews.values()) {
+      feedback.text.removeFromParent()
+      feedback.text.destroy()
+    }
     for (const view of this.effectViews.values()) {
       view.removeFromParent()
       view.destroy()
@@ -3864,6 +3943,8 @@ export class PixiGame {
     this.projectileTrailViews.clear()
     this.projectilePositionHistory.clear()
     this.pickupViews.clear()
+    this.pickupData.clear()
+    this.pickupFeedbackViews.clear()
     this.effectViews.clear()
     this.effectParticleViews.clear()
     this.trapViews.clear()
@@ -3879,6 +3960,7 @@ export class PixiGame {
     this.projectileLayer = undefined
     this.pickupLayer = undefined
     this.effectLayer = undefined
+    this.worldUiLayer = undefined
     this.summonLayer = undefined
     this.stairsLayer = undefined
     this.playerView = undefined
@@ -4076,6 +4158,12 @@ interface TelegraphView {
 interface StairsView {
   root: Container
   label: Text
+}
+
+interface PickupFeedbackView {
+  text: Text
+  createdAt: number
+  startY: number
 }
 
 interface RenderPoint {

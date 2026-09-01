@@ -977,16 +977,19 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
           {orderedSkills.map((skill) => {
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
+            const evolvedUpgrade = skill.upgrades.find((upgrade) =>
+              upgrade.status === 'acquired' && upgrade.branch !== undefined,
+            )
             const totalDamageLabel = skill.totalDamageDealt > 0
               ? `, total damage ${formatCompactDamage(skill.totalDamageDealt)}`
               : ''
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}`}
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
-                  aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
+                  aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => {
                     cancelTooltipClose()
@@ -1020,7 +1023,9 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                   <span className="skill-icon">
                     <SkillIcon skillId={skill.skillId} />
                   </span>
-                  <span className="skill-card-name">{skill.name}</span>
+                  <span className={`skill-card-name${evolvedUpgrade ? ' skill-card-name-evolved' : ''}`}>
+                    {skill.name}
+                  </span>
                   <span className="skill-card-level">Lv. {skill.level}</span>
                   <span className="skill-card-dps">
                     <span>DPS</span>
@@ -1041,6 +1046,11 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                     onBlur={() => scheduleTooltipClose(() => setActiveSkillId(null))}
                   >
                     <strong>{skill.name}</strong>
+                    {evolvedUpgrade ? (
+                      <span className="skill-tooltip-evolved-badge">
+                        EVOLVED
+                      </span>
+                    ) : null}
                     <p><KeywordText text={skill.description} /></p>
                     {skill.resonanceEffect ? (
                       <section className="skill-resonance-section" aria-label="Resonance effect">
@@ -1167,7 +1177,7 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                             )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>
-                                <strong>Evolve: {upgrade.name}</strong>
+                                <strong>{upgrade.name}</strong>
                                 <span>{upgrade.valueLabel}</span>
                                 {upgrade.evolutionTags && upgrade.evolutionTags.length > 0 ? (
                                   <span className="skill-tag-list" aria-label="Evolution tags">

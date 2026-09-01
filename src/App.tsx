@@ -1720,7 +1720,10 @@ function ResultsScreen({
             <ul>
               {result.skillDamage.map((skill) => (
                 <li key={skill.skillId}>
-                  <span>{skill.name}</span>
+                  <span className="results-skill-name">
+                    <SkillIcon skillId={skill.skillId} size={18} />
+                    {skill.name}
+                  </span>
                   <strong>{formatCompactDamage(skill.damage)}</strong>
                 </li>
               ))}

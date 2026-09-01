@@ -1618,6 +1618,35 @@
   outline-offset: 2px;
 }
 
+.skill-card-evolved {
+  border-color: rgb(244 114 182 / 78%);
+  box-shadow:
+    0 0 0.8rem rgb(244 114 182 / 24%),
+    inset 0 0 0.6rem rgb(244 114 182 / 12%);
+}
+
+.skill-card-name-evolved {
+  color: #fbcfe8;
+  text-shadow: 0 0 0.45rem rgb(244 114 182 / 45%);
+  font-weight: 800;
+}
+
+.skill-tooltip-evolved-badge {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 2;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid rgb(251 207 232 / 78%);
+  border-radius: 0.25rem;
+  color: #fbcfe8;
+  background: rgb(131 24 67 / 72%);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
 .skill-card-empty {
   color: #94a3b8;
   background: rgb(15 23 42 / 45%);
@@ -1716,7 +1745,9 @@
   line-height: 1;
 }
 
-.skill-tooltip strong {
+.skill-tooltip > strong {
+  display: block;
+  padding-right: 5rem;
   color: #f8fafc;
   font-size: 1rem;
 }
@@ -2530,6 +2561,12 @@
 
 .skill-damage-results strong {
   color: #fef08a;
+}
+
+.results-skill-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .skill-damage-results-empty {
