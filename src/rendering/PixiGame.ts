@@ -78,6 +78,7 @@ function getEnemyStatusEffects(
   chillStacks = 0,
   frozenRemainingDuration = 0,
   shockStacks = 0,
+  burningStackCount = 0,
 ): StatusEffectBadge[] {
   const statuses: StatusEffectBadge[] = []
   if (poisonStackCount > 0) {
@@ -91,6 +92,9 @@ function getEnemyStatusEffects(
   }
   if (shockStacks > 0) {
     statuses.push({ id: 'shock' })
+  }
+  if (burningStackCount > 0) {
+    statuses.push({ id: 'burning' })
   }
   return statuses
 }
@@ -3136,31 +3140,16 @@ export class PixiGame {
         hitPulse,
       )
       const poisonStackCount = enemy.poisonStacks?.length ?? 0
+      const burningStackCount = enemy.burningStacks?.length ?? 0
       const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
       const enemyBarWidth = Math.max(28, enemy.radius * renderScale * 1.8)
-      enemyView.poisonAura.visible = poisonStackCount > 0
-      if (poisonStackCount > 0) {
-        const auraRadius = enemy.radius + 5 + Math.min(poisonStackCount, 8) * 1.5
-        enemyView.poisonAura
-          .clear()
-          .circle(0, 0, auraRadius)
-          .stroke({
-            color: '#c084fc',
-            width: 3,
-            alpha: 0.55,
-          })
-          .circle(0, 0, auraRadius * 0.82)
-          .stroke({
-            color: '#a855f7',
-            width: 2,
-            alpha: 0.8,
-          })
-      }
+      this.drawStatusAura(enemyView.poisonAura, enemy, enemy.radius, state.time)
       const enemyStatuses = getEnemyStatusEffects(
         poisonStackCount,
         enemy.chillStacks,
         enemy.frozenRemainingDuration,
         enemy.shockStacks,
+        burningStackCount,
       )
       const enemyStatusSignature = getStatusEffectSignature(enemyStatuses)
       if (enemyView.statusEffectSignature !== enemyStatusSignature) {
@@ -3258,21 +3247,15 @@ export class PixiGame {
         bossHitPulse,
       )
       const poisonStackCount = boss.poisonStacks?.length ?? 0
+      const burningStackCount = boss.burningStacks?.length ?? 0
       const bossBarWidth = boss.radius * 2.5
-      bossView.poisonAura.visible = poisonStackCount > 0
-      if (poisonStackCount > 0) {
-        bossView.poisonAura
-          .clear()
-          .circle(0, 0, boss.radius + 8 + Math.min(poisonStackCount, 8) * 2)
-          .stroke({ color: '#c084fc', width: 4, alpha: 0.65 })
-          .circle(0, 0, boss.radius * 0.82)
-          .stroke({ color: '#a855f7', width: 3, alpha: 0.85 })
-      }
+      this.drawStatusAura(bossView.poisonAura, boss, boss.radius, state.time)
       const bossStatuses = getEnemyStatusEffects(
         poisonStackCount,
         boss.chillStacks,
         boss.frozenRemainingDuration,
         boss.shockStacks,
+        burningStackCount,
       )
       const bossStatusSignature = getStatusEffectSignature(bossStatuses)
       if (bossView.statusEffectSignature !== bossStatusSignature) {
@@ -3620,6 +3603,104 @@ export class PixiGame {
       .stroke({ color: '#cffafe', width: 1 })
   }
 
+  private drawStatusAura(
+    view: Graphics,
+    target: Readonly<EnemyState | BossState>,
+    radius: number,
+    time: number,
+  ): void {
+    const poisonStacks = target.poisonStacks?.length ?? 0
+    const burningStacks = target.burningStacks?.length ?? 0
+    const chillStacks = target.chillStacks ?? 0
+    const frozen = (target.frozenRemainingDuration ?? 0) > 0
+    const shockStacks = target.shockStacks ?? 0
+    const hasStatus = poisonStacks > 0 || burningStacks > 0 ||
+      chillStacks > 0 || frozen || shockStacks > 0
+    view.visible = hasStatus
+    if (!hasStatus) {
+      view.clear()
+      return
+    }
+    view.clear()
+    const intensity = Math.min(
+      1,
+      Math.max(
+        poisonStacks,
+        burningStacks,
+        chillStacks,
+        shockStacks,
+        frozen ? 3 : 0,
+      ) / 3,
+    )
+    const auraRadius = radius + 5 + intensity * 7
+    if (burningStacks > 0) {
+      view
+        .poly(createStarPoints(auraRadius, 10, 0.68, -Math.PI / 2))
+        .stroke({ color: '#fb923c', width: 2 + intensity, alpha: 0.62 })
+      for (let index = 0; index < Math.min(6, burningStacks + 2); index += 1) {
+        const angle = time * 1.8 + (Math.PI * 2 * index) / 6
+        view
+          .poly([
+            Math.cos(angle - 0.18) * (radius + 2),
+            Math.sin(angle - 0.18) * (radius + 2),
+            Math.cos(angle) * (auraRadius + 6 + (index % 2) * 3),
+            Math.sin(angle) * (auraRadius + 6 + (index % 2) * 3),
+            Math.cos(angle + 0.18) * (radius + 2),
+            Math.sin(angle + 0.18) * (radius + 2),
+          ])
+          .fill({ color: '#f97316', alpha: 0.46 })
+      }
+    }
+    if (chillStacks > 0 || frozen) {
+      view
+        .poly(createPolygonPoints(auraRadius + (frozen ? 4 : 0), 6, time * 0.12))
+        .stroke({ color: frozen ? '#eff6ff' : '#7dd3fc', width: frozen ? 3 : 2, alpha: 0.78 })
+      for (let index = 0; index < Math.min(6, chillStacks + 2); index += 1) {
+        const angle = (Math.PI * 2 * index) / 6
+        view
+          .poly([
+            Math.cos(angle) * (radius + 2),
+            Math.sin(angle) * (radius + 2),
+            Math.cos(angle) * (auraRadius + 5),
+            Math.sin(angle) * (auraRadius + 5),
+            Math.cos(angle + 0.12) * (radius + 2),
+            Math.sin(angle + 0.12) * (radius + 2),
+          ])
+          .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.68 })
+      }
+    }
+    if (shockStacks > 0) {
+      for (let index = 0; index < Math.min(4, shockStacks + 1); index += 1) {
+        const angle = time * 2.5 + (Math.PI * 2 * index) / 4
+        const inner = radius + 2
+        const outer = auraRadius + 8
+        view
+          .moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner)
+          .lineTo(
+            Math.cos(angle + 0.18) * (inner + (outer - inner) * 0.5),
+            Math.sin(angle + 0.18) * (inner + (outer - inner) * 0.5),
+          )
+          .lineTo(Math.cos(angle - 0.06) * outer, Math.sin(angle - 0.06) * outer)
+          .stroke({ color: '#fef08a', width: 2, alpha: 0.78 })
+      }
+    }
+    if (poisonStacks > 0) {
+      view
+        .poly(createPolygonPoints(auraRadius + 3, 8, -time * 0.18))
+        .stroke({ color: '#84cc16', width: 2, alpha: 0.7 })
+      for (let index = 0; index < Math.min(6, poisonStacks + 2); index += 1) {
+        const angle = time * 0.8 + (Math.PI * 2 * index) / 6
+        view
+          .circle(
+            Math.cos(angle) * (auraRadius + 4),
+            Math.sin(angle) * (auraRadius + 4),
+            2 + (index % 2),
+          )
+          .fill({ color: '#a3e635', alpha: 0.62 })
+      }
+    }
+  }
+
   private drawStatusEffects(
     view: Container,
     barWidth: number,
@@ -3674,6 +3755,18 @@ export class PixiGame {
            4,
           ])
           .fill('#facc15')
+      } else if (status.id === 'burning') {
+        icon
+          .poly([
+            STATUS_EFFECT_ICON_SIZE / 2,
+            0,
+            STATUS_EFFECT_ICON_SIZE - 1,
+            STATUS_EFFECT_ICON_SIZE,
+            1,
+            STATUS_EFFECT_ICON_SIZE,
+          ])
+          .fill('#f97316')
+          .stroke({ color: '#fed7aa', width: 1 })
       }
       icon.position.set(offsetX, 0)
       view.addChild(icon)

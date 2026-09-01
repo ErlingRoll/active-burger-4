@@ -346,6 +346,25 @@ Damage feedback should be readable without being disturbing:
 Avoid camera motion, time manipulation, gore escalation, or effects that make
 the player lose track of the arena.
 
+## Status-effect visual language
+
+Status effects must be visible on the affected enemy or boss, not only in the
+status bar:
+
+| Status | World overlay | Stack/threshold behavior |
+| --- | --- | --- |
+| Burning | Orange flame corona and rising ember shards | More stacks increase the corona intensity and shard count |
+| Chill | Rotating pale-blue crystal rim and ice facets | More stacks add facets; Frozen uses a brighter, thicker crystal rim |
+| Frozen | Bright crystalline shell/rim | Use reduced motion and a clear threshold state |
+| Shock | Yellow branching electrical arcs | More stacks add branches; keep the enemy silhouette readable |
+| Poison | Green octagonal rim and drifting motes | More stacks increase rim intensity and mote count |
+| Chaos | Use the source skill's violet geometry | Do not add a generic status cloud if no persistent Chaos state exists |
+
+Status overlays are renderer projections of existing status state. They must
+not create gameplay entities, alter durations, or obscure health bars and
+telegraphs. Status icons remain as a compact secondary explanation, including
+the Burning icon added for the world overlay.
+
 ## Persistent object standards
 
 Persistent objects need an idle state and a mechanical state:
