@@ -310,6 +310,23 @@ describe('upgrade choice generation', () => {
     expect(SKILL_DEFINITIONS['glacial-orb'].tags).toEqual(['cold', 'projectile', 'area'])
   })
 
+  it('marks every duration-extendable skill with the duration tag', () => {
+    const durationExtendableSkillIds = [
+      'rallying-banner',
+      'aegis-pulse',
+      'storm-relay',
+      'soul-tether',
+      'phantom-arsenal',
+      'razorwire',
+      'blood-rite',
+      'prism-halo',
+    ] as const
+
+    for (const skillId of durationExtendableSkillIds) {
+      expect(SKILL_DEFINITIONS[skillId].tags).toContain('duration')
+    }
+  })
+
   it('selects unique weighted choices when every eligible upgrade shares one rarity', () => {
     const game = createGame({ seed: 463, playstyleId: 'knight' })
     game.state.player.skills = []
