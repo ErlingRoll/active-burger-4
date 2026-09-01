@@ -1085,40 +1085,60 @@ export class PixiGame {
       .poly(path)
       .stroke({ color: visual.secondaryColor, width: 3, alpha: 0.92 })
     const first = relativePoints[0]!
-    const last = relativePoints[relativePoints.length - 1]!
-    const directionX = last.x - first.x
-    const directionY = last.y - first.y
+    const arcPoints = relativePoints.slice(1)
+    const fallbackImpact = effect.impactPoint
+      ? {
+          x: effect.impactPoint.x - effect.x,
+          y: effect.impactPoint.y - effect.y,
+        }
+      : arcPoints[Math.floor(arcPoints.length / 2)] ?? first
+    const impactPoints = effect.impactPoints?.length
+      ? effect.impactPoints.map((point) => ({
+          x: point.x - effect.x,
+          y: point.y - effect.y,
+        }))
+      : [fallbackImpact]
+    const impact = impactPoints[0] ?? fallbackImpact
+    const directionX = impact.x - first.x
+    const directionY = impact.y - first.y
     const length = Math.hypot(directionX, directionY) || 1
     const normalX = -directionY / length
     const normalY = directionX / length
-    view
-      .moveTo(last.x - normalX * 7, last.y - normalY * 7)
-      .lineTo(last.x + normalX * 7, last.y + normalY * 7)
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+    for (const point of impactPoints) {
+      const pointDirectionX = point.x - first.x
+      const pointDirectionY = point.y - first.y
+      const pointLength = Math.hypot(pointDirectionX, pointDirectionY) || 1
+      const pointNormalX = -pointDirectionY / pointLength
+      const pointNormalY = pointDirectionX / pointLength
+      view
+        .moveTo(point.x - pointNormalX * 7, point.y - pointNormalY * 7)
+        .lineTo(point.x + pointNormalX * 7, point.y + pointNormalY * 7)
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+    }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
       view
         .moveTo(first.x, first.y)
-        .lineTo(last.x * 0.72, last.y * 0.72)
+        .lineTo(impact.x * 0.72, impact.y * 0.72)
         .stroke({ color: '#fef08a', width: 2, alpha: 0.8 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')) {
       view
-        .moveTo(last.x * 0.42, last.y * 0.42)
-        .lineTo(last.x * 0.62 + normalX * 8, last.y * 0.62 + normalY * 8)
-        .lineTo(last.x * 0.82, last.y * 0.82)
+        .moveTo(impact.x * 0.42, impact.y * 0.42)
+        .lineTo(impact.x * 0.62 + normalX * 8, impact.y * 0.62 + normalY * 8)
+        .lineTo(impact.x * 0.82, impact.y * 0.82)
         .stroke({ color: '#fef08a', width: 1.5, alpha: 0.76 })
     }
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-glacial-orb')) {
       view
         .poly([
-          last.x * 0.72,
-          last.y * 0.72 - 6,
-          last.x * 0.72 + 5,
-          last.y * 0.72,
-          last.x * 0.72,
-          last.y * 0.72 + 6,
-          last.x * 0.72 - 5,
-          last.y * 0.72,
+          impact.x * 0.72,
+          impact.y * 0.72 - 6,
+          impact.x * 0.72 + 5,
+          impact.y * 0.72,
+          impact.x * 0.72,
+          impact.y * 0.72 + 6,
+          impact.x * 0.72 - 5,
+          impact.y * 0.72,
         ])
         .stroke({ color: '#bae6fd', width: 1.5, alpha: 0.72 })
     }
@@ -1888,28 +1908,40 @@ export class PixiGame {
     const points = effect.points.length > 0
       ? effect.points
       : [{ x: effect.x, y: effect.y }]
-    const impact = points[points.length - 1] ?? points[0]
-    const impactX = (impact?.x ?? effect.x) - effect.x
-    const impactY = (impact?.y ?? effect.y) - effect.y
+    const arcPoints = effect.shape === 'arc' ? points.slice(1) : points
+    const fallbackImpact = effect.impactPoint ?? arcPoints[Math.floor(arcPoints.length / 2)] ??
+      arcPoints[arcPoints.length - 1] ??
+      points[0]
+    const impactPoints = effect.impactPoints?.length
+      ? effect.impactPoints
+      : fallbackImpact
+        ? [fallbackImpact]
+        : []
     const radius = Math.max(8, Math.min(46, effect.radius * 0.28))
     const view = new Graphics()
-    for (let index = 0; index < 9; index += 1) {
-      const angle = (Math.PI * 2 * index) / 9 + (effect.id % 7) * 0.11
-      const distance = radius * (0.72 + (index % 3) * 0.18)
-      const size = 2 + (index % 2)
-      const x = impactX + Math.cos(angle) * distance
-      const y = impactY + Math.sin(angle) * distance
-      view
-        .poly([
-          x + Math.cos(angle) * size * 2.6,
-          y + Math.sin(angle) * size * 2.6,
-          x + Math.cos(angle + 2.1) * size,
-          y + Math.sin(angle + 2.1) * size,
-          x + Math.cos(angle - 2.1) * size,
-          y + Math.sin(angle - 2.1) * size,
-        ])
-        .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.85 })
-        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.72 })
+    for (const [pointIndex, impact] of impactPoints.entries()) {
+      const impactX = impact.x - effect.x
+      const impactY = impact.y - effect.y
+      const particleCount = impactPoints.length > 1 ? 6 : 9
+      for (let index = 0; index < particleCount; index += 1) {
+        const angle = (Math.PI * 2 * index) / particleCount +
+          (effect.id % 7) * 0.11 + pointIndex * 0.19
+        const distance = radius * (0.72 + (index % 3) * 0.18)
+        const size = 2 + (index % 2)
+        const x = impactX + Math.cos(angle) * distance
+        const y = impactY + Math.sin(angle) * distance
+        view
+          .poly([
+            x + Math.cos(angle) * size * 2.6,
+            y + Math.sin(angle) * size * 2.6,
+            x + Math.cos(angle + 2.1) * size,
+            y + Math.sin(angle + 2.1) * size,
+            x + Math.cos(angle - 2.1) * size,
+            y + Math.sin(angle - 2.1) * size,
+          ])
+          .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.85 })
+          .stroke({ color: visual.outlineColor, width: 1, alpha: 0.72 })
+      }
     }
     return view
   }
@@ -2804,6 +2836,13 @@ export class PixiGame {
     const settle = Math.min(1, progress * 1.5)
     const isShortEffect = effect.lifetime <= 1.5
     view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
+    if (effect.impactPoints?.length) {
+      // Impact markers use world-space target positions relative to the
+      // effect origin; scaling the parent would make them drift.
+      view.scale.set(1)
+      view.rotation = 0
+      return
+    }
     if (isShortEffect) {
       view.scale.set(0.72 + burst * 0.38 - settle * 0.08)
       if (effect.shape !== 'line') {
@@ -2824,6 +2863,12 @@ export class PixiGame {
       ? Math.max(0, Math.min(1, 1 - effect.remainingLifetime / effect.lifetime))
       : 1
     const expansion = Math.min(1, progress * 5)
+    if (effect.impactPoints?.length) {
+      view.scale.set(1)
+      view.rotation = 0
+      view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
+      return
+    }
     view.scale.set(0.28 + expansion * 1.1)
     view.rotation = time * (1.2 + (effect.id % 3) * 0.35)
     view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))

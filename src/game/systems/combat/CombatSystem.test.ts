@@ -340,7 +340,13 @@ describe('performBasicAttackIfReady', () => {
       skillId: BASIC_ATTACK_SKILL_ID,
       shape: 'arc',
       basicAttackWeaponArchetype: 'sword',
+      impactPoint: { x: 35, y: 0 },
     })
+    expect(gameState.effects[0]?.impactPoints).toEqual([
+      { x: 35, y: 0 },
+      { x: 32, y: 16 },
+      { x: 28, y: -12 },
+    ])
     applyDamageEvents(gameState, events, neverCrit)
     expect(gameState.enemies.find((value) => value.id === 2)?.hp).toBeLessThan(20)
     expect(gameState.enemies.find((value) => value.id === 4)?.hp).toBe(20)

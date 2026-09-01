@@ -1111,6 +1111,13 @@ function collectSwordBasicAttackDamage(
       lifetime: variant.effectLifetime,
       remainingLifetime: variant.effectLifetime,
       points: buildArcEffectPoints(player.x, player.y, facingAngle, range, arcRadians),
+      impactPoint: { x: target.x, y: target.y },
+      impactPoints: events.flatMap((event) => {
+        const hitTarget = [...state.enemies, ...(state.bosses ?? [])].find(
+          (enemy) => enemy.id === event.targetId,
+        )
+        return hitTarget ? [{ x: hitTarget.x, y: hitTarget.y }] : []
+      }),
     })
   }
   return events

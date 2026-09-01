@@ -788,6 +788,10 @@ export interface SkillEffectState {
   /** Elemental identity for Prism Halo's player-to-target beam effects. */
   prismBeamElement?: 'fire' | 'cold' | 'lightning' | 'all'
   basicAttackWeaponArchetype?: WeaponArchetype
+  /** Actual selected target position for directional arc impact visuals. */
+  impactPoint?: SkillEffectPoint
+  /** All enemy positions hit by a directional arc visual. */
+  impactPoints?: readonly SkillEffectPoint[]
   x: number
   y: number
   radius: number
