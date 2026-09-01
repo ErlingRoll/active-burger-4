@@ -308,7 +308,12 @@ describe('upgrade choice generation', () => {
 
   it('keeps all current skills tagged and classifies Glacial Orb as a projectile area skill', () => {
     expect(Object.values(SKILL_DEFINITIONS).every((skill) => skill.tags.length > 0)).toBe(true)
-    expect(SKILL_DEFINITIONS['glacial-orb'].tags).toEqual(['cold', 'projectile', 'area'])
+    expect(SKILL_DEFINITIONS['glacial-orb'].tags).toEqual([
+      'cold',
+      'projectile',
+      'area',
+      'triggerable',
+    ])
   })
 
   it('marks every duration-extendable skill with the duration tag', () => {
