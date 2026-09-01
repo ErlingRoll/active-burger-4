@@ -1847,7 +1847,7 @@ describe('skill system', () => {
       expect(game.state.player.soulTethers).toEqual([])
     })
 
-    it('Requiem Chain applies three links and allows recursive chain multiplication', () => {
+    it('Requiem Chain applies the snap burst to three distinct nearby enemies', () => {
       const game = createGame({ seed: 99 })
       game.state.player.skills = [{
         skillId: SOUL_TETHER_SKILL_ID,
@@ -1897,25 +1897,6 @@ describe('skill system', () => {
         return target.hp < target.maxHp
       })).toBe(true)
       expect(game.state.enemies.find((enemy) => enemy.id === secondaryIds[3])!.hp).toBe(100)
-
-      const firstRetarget = game.state.enemies.find((enemy) => enemy.id === secondaryIds[0])!
-      firstRetarget.hp = 1
-      applyDamageEvents(game.state, [{
-        sourceId: game.state.player.id,
-        sourceSkillId: SOUL_TETHER_SKILL_ID,
-        targetId: secondaryIds[0]!,
-        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
-      }], undefined, {
-        createEntityId: () => nextTetherId++,
-      })
-
-      expect(game.state.player.soulTethers?.map((tether) => tether.targetId)).toEqual([
-        secondaryIds[1],
-        secondaryIds[1],
-        secondaryIds[2],
-        secondaryIds[2],
-        secondaryIds[3],
-      ])
     })
 
     it('snaps during dead-enemy cleanup when the death was not a damage event', () => {

@@ -2684,7 +2684,7 @@ function triggerSoulTetherSnap(
     return events
   }
   const requiem = state.run.selectedUpgradeIds.includes('soul-tether-requiem')
-  if (tether.hasRetargeted && !requiem) {
+  if (tether.hasRetargeted) {
     removeSoulTether(state, tether)
     return events
   }
@@ -2737,7 +2737,7 @@ function triggerSoulTetherSnap(
   const newTarget = nearby[0]!
   tether.targetId = newTarget.id
   tether.damagePerSecond *= SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER
-  tether.hasRetargeted = !requiem
+  tether.hasRetargeted = true
   if (requiem && nearby.length > 1) {
     const additionalTethers = nearby.slice(1).map((enemy) => ({
       ...tether,
