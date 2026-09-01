@@ -82,6 +82,7 @@ import {
   SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
   SOUL_TETHER_BASE_HEALING_RATIO,
   SOUL_TETHER_SIPHON_HEALING_BONUS,
+  SOUL_TETHER_TARGET_DISTANCE_JITTER_PERCENT,
   AEGIS_PULSE_RESONANCE_SHIELD_MULTIPLIER,
   RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT,
   SOUL_TETHER_RESONANCE_DAMAGE_MULTIPLIER,
@@ -748,6 +749,36 @@ function findNearestLivingTarget(
     }
   }
   return target
+}
+
+function findSlightlyRandomSoulTetherTarget(
+  state: GameState,
+  maxRange: number,
+  random?: Pick<RandomSource, 'next'>,
+): EnemyState | BossState | undefined {
+  const maxRangeSquared = maxRange * maxRange
+  return [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0)
+    .map((enemy) => {
+      const offsetX = enemy.x - state.player.x
+      const offsetY = enemy.y - state.player.y
+      const distanceSquared = offsetX * offsetX + offsetY * offsetY
+      return { enemy, distanceSquared }
+    })
+    .filter((candidate) => candidate.distanceSquared <= maxRangeSquared)
+    .map((candidate) => {
+      const jitter = random
+        ? 1 + (random.next() * 2 - 1) * SOUL_TETHER_TARGET_DISTANCE_JITTER_PERCENT
+        : 1
+      return {
+        ...candidate,
+        selectionDistanceSquared: candidate.distanceSquared * jitter,
+      }
+    })
+    .sort((left, right) =>
+      left.selectionDistanceSquared - right.selectionDistanceSquared ||
+      left.enemy.id - right.enemy.id,
+    )[0]?.enemy
 }
 
 function createGlacialOrbProjectile(
@@ -1727,11 +1758,16 @@ function collectSoulTetherCast(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const definition = getSkillDefinition(SOUL_TETHER_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
   const siphon = state.run.selectedUpgradeIds.includes('soul-tether-siphon')
-  const target = findNearestLivingTarget(state, definition.maxRange ?? Number.POSITIVE_INFINITY)
+  const target = findSlightlyRandomSoulTetherTarget(
+    state,
+    definition.maxRange ?? Number.POSITIVE_INFINITY,
+    random,
+  )
   if (!target) {
     return []
   }
@@ -2201,7 +2237,7 @@ function executeMirrorcastSkillEffect(
   } else if (copy.skillId === STORM_RELAY_SKILL_ID) {
     events = collectStormRelayCast(state, echoSkill, allocator)
   } else if (copy.skillId === SOUL_TETHER_SKILL_ID) {
-    events = collectSoulTetherCast(state, echoSkill, allocator)
+    events = collectSoulTetherCast(state, echoSkill, allocator, random)
   } else if (copy.skillId === SIGIL_OF_RUIN_SKILL_ID) {
     events = collectSigilOfRuinCast(state, echoSkill, allocator)
   } else if (copy.skillId === RAZORWIRE_SKILL_ID) {
@@ -3135,7 +3171,7 @@ export function collectSkillDamage(
     } else if (skill.skillId === STORM_RELAY_SKILL_ID) {
       events.push(...collectStormRelayCast(state, skill, allocator))
     } else if (skill.skillId === SOUL_TETHER_SKILL_ID) {
-      events.push(...collectSoulTetherCast(state, skill, allocator))
+      events.push(...collectSoulTetherCast(state, skill, allocator, random))
     } else if (skill.skillId === SIGIL_OF_RUIN_SKILL_ID) {
       events.push(...collectSigilOfRuinCast(state, skill, allocator))
     } else if (skill.skillId === MIRRORCAST_SKILL_ID) {

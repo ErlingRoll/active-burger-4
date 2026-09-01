@@ -125,6 +125,7 @@ import {
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT,
   SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
+  SOUL_TETHER_TARGET_DISTANCE_JITTER_PERCENT,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
   SIGIL_OF_RUIN_DETONATION_CHARGES,
   SIGIL_OF_RUIN_DETONATION_DAMAGE_RATIO,
@@ -1880,7 +1881,7 @@ export function applyDamageEvents(
       }
       if (enemy.hp <= 0) {
         scheduleVolatileExplosion(state, enemy, idAllocator)
-        pendingEvents.push(...triggerSoulTetherSnaps(state, enemy))
+        pendingEvents.push(...triggerSoulTetherSnaps(state, enemy, idAllocator, rng))
       }
       continue
     }
@@ -1938,7 +1939,7 @@ export function applyDamageEvents(
         ))
       }
       if (boss.hp <= 0) {
-        pendingEvents.push(...triggerSoulTetherSnaps(state, boss))
+        pendingEvents.push(...triggerSoulTetherSnaps(state, boss, idAllocator, rng))
       }
 
     }
@@ -2658,13 +2659,15 @@ function removeSoulTether(state: GameState, tether: SoulTetherState): void {
 function triggerSoulTetherSnaps(
   state: GameState,
   deadEnemy: Readonly<EnemyState | BossState>,
+  idAllocator?: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
   const tethers = (state.player.soulTethers ?? []).filter(
     (tether) => tether.targetId === deadEnemy.id,
   )
   for (const tether of tethers) {
-    events.push(...triggerSoulTetherSnap(state, tether, deadEnemy))
+    events.push(...triggerSoulTetherSnap(state, tether, deadEnemy, idAllocator, random))
   }
   return events
 }
@@ -2673,26 +2676,38 @@ function triggerSoulTetherSnap(
   state: GameState,
   tether: SoulTetherState,
   deadEnemy: Readonly<EnemyState | BossState>,
+  idAllocator?: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
 ): DamageEvent[] {
   const events: DamageEvent[] = []
   if (!(state.player.soulTethers ?? []).includes(tether)) {
     return events
   }
-  if (tether.hasRetargeted) {
+  const requiem = state.run.selectedUpgradeIds.includes('soul-tether-requiem')
+  if (tether.hasRetargeted && !requiem) {
     removeSoulTether(state, tether)
     return events
   }
 
-  const requiem = state.run.selectedUpgradeIds.includes('soul-tether-requiem')
   const burstTargetCount = requiem ? SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT : 1
   const nearby = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0 && enemy.id !== deadEnemy.id)
-    .map((enemy) => ({
-      enemy,
-      distanceSquared: (enemy.x - deadEnemy.x) ** 2 + (enemy.y - deadEnemy.y) ** 2,
-    }))
+    .map((enemy) => {
+      const distanceSquared = (enemy.x - deadEnemy.x) ** 2 +
+        (enemy.y - deadEnemy.y) ** 2
+      return {
+        enemy,
+        distanceSquared,
+        selectionDistanceSquared: distanceSquared * (
+          random
+            ? 1 + (random.next() * 2 - 1) * SOUL_TETHER_TARGET_DISTANCE_JITTER_PERCENT
+            : 1
+        ),
+      }
+    })
     .sort((left, right) =>
-      left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
+      left.selectionDistanceSquared - right.selectionDistanceSquared ||
+      left.enemy.id - right.enemy.id,
     )
     .slice(0, burstTargetCount)
     .map((candidate) => candidate.enemy)
@@ -2722,7 +2737,19 @@ function triggerSoulTetherSnap(
   const newTarget = nearby[0]!
   tether.targetId = newTarget.id
   tether.damagePerSecond *= SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER
-  tether.hasRetargeted = true
+  tether.hasRetargeted = !requiem
+  if (requiem && nearby.length > 1) {
+    const additionalTethers = nearby.slice(1).map((enemy) => ({
+      ...tether,
+      id: idAllocator?.createEntityId() ??
+        (enemy.id * 1_000_000 + Math.floor(state.time * 1000) % 1_000_000),
+      targetId: enemy.id,
+    }))
+    state.player.soulTethers = [
+      ...(state.player.soulTethers ?? []),
+      ...additionalTethers,
+    ]
+  }
   return events
 }
 
@@ -2736,7 +2763,7 @@ export function resolveDeadSoulTetherSnaps(
     ...(state.bosses ?? []),
   ].filter((target) => target.hp <= 0)
   const snapEvents = deadTargets.flatMap((target) =>
-    triggerSoulTetherSnaps(state, target),
+    triggerSoulTetherSnaps(state, target, idAllocator, random),
   )
   if (snapEvents.length > 0) {
     applyDamageEvents(state, snapEvents, random, idAllocator)

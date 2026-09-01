@@ -1630,6 +1630,25 @@ describe('skill system', () => {
       expect(game.state.player.hp).toBeGreaterThan(50)
     })
 
+    it('slightly randomizes Soul Tether acquisition among nearby enemies', () => {
+      const game = createGame({ seed: 20260901 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const nearestId = game.spawnSlime({ x: 60, y: 0 })
+      const nearbyId = game.spawnSlime({ x: 62, y: 0 })
+      const randomValues = [0.999, 0]
+
+      collectSkillDamage(game.state, allocator, {
+        next: () => randomValues.shift() ?? 0,
+      })
+
+      expect(game.state.player.soulTethers?.[0]?.targetId).toBe(nearbyId)
+      expect(game.state.player.soulTethers?.[0]?.targetId).not.toBe(nearestId)
+    })
+
     it('applies DoT multiplier to Soul Tether ticks', () => {
       const game = createGame({ seed: 20260901 })
       game.state.player.skills = [{
@@ -1826,6 +1845,77 @@ describe('skill system', () => {
         damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
       }])
       expect(game.state.player.soulTethers).toEqual([])
+    })
+
+    it('Requiem Chain applies three links and allows recursive chain multiplication', () => {
+      const game = createGame({ seed: 99 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push('soul-tether-requiem')
+      const primaryId = game.spawnSlime({ x: 60, y: 0 })
+      const secondaryIds = [
+        game.spawnSlime({ x: 90, y: 0 }),
+        game.spawnSlime({ x: 120, y: 0 }),
+        game.spawnSlime({ x: 150, y: 0 }),
+        game.spawnSlime({ x: 180, y: 0 }),
+      ]
+      collectSkillDamage(game.state, allocator)
+
+      const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
+      for (const id of secondaryIds) {
+        const target = game.state.enemies.find((enemy) => enemy.id === id)!
+        target.hp = 100
+        target.maxHp = 100
+      }
+      primary.hp = 1
+
+      let nextTetherId = 10_001
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId: primaryId,
+        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }], undefined, {
+        createEntityId: () => nextTetherId++,
+      })
+
+      expect(game.state.player.soulTethers?.map((tether) => tether.targetId)).toEqual(
+        secondaryIds.slice(0, 3),
+      )
+      expect(secondaryIds.slice(0, 3).map((id) =>
+        game.state.enemies.find((enemy) => enemy.id === id)!.hp,
+      )).toEqual([
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+      ])
+      expect(secondaryIds.slice(0, 3).every((id) => {
+        const target = game.state.enemies.find((enemy) => enemy.id === id)!
+        return target.hp < target.maxHp
+      })).toBe(true)
+      expect(game.state.enemies.find((enemy) => enemy.id === secondaryIds[3])!.hp).toBe(100)
+
+      const firstRetarget = game.state.enemies.find((enemy) => enemy.id === secondaryIds[0])!
+      firstRetarget.hp = 1
+      applyDamageEvents(game.state, [{
+        sourceId: game.state.player.id,
+        sourceSkillId: SOUL_TETHER_SKILL_ID,
+        targetId: secondaryIds[0]!,
+        damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+      }], undefined, {
+        createEntityId: () => nextTetherId++,
+      })
+
+      expect(game.state.player.soulTethers?.map((tether) => tether.targetId)).toEqual([
+        secondaryIds[1],
+        secondaryIds[1],
+        secondaryIds[2],
+        secondaryIds[2],
+        secondaryIds[3],
+      ])
     })
 
     it('snaps during dead-enemy cleanup when the death was not a damage event', () => {

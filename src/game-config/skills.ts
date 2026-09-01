@@ -104,6 +104,7 @@ export const SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS =
   SOUL_TETHER_DURATION_SECONDS * 2
 export const SOUL_TETHER_BASE_HEALING_RATIO = 0.05
 export const SOUL_TETHER_SIPHON_HEALING_BONUS = 0.05
+export const SOUL_TETHER_TARGET_DISTANCE_JITTER_PERCENT = 0.15
 export const SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER = 0.5
 export const SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT = 3.5
 export const SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT = 3
@@ -731,7 +732,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies. Duration extensions affect only the newest tether on a target and cap at ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    description: `Each cast latches onto a nearby enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, favoring enemies closer to you. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies. Duration extensions affect only the newest tether on a target and cap at ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger', 'duration'],
     canProduceDirectHit: false,

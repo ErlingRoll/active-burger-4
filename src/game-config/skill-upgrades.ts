@@ -1018,7 +1018,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'soul-tether-unlock',
     name: 'Soul Tether',
-    description: 'Unlock a chaos link to the nearest enemy that damages it over time and restores some of that damage as health.',
+    description: 'Unlock a chaos link to a nearby enemy that favors closer targets, damages it over time, and restores some of that damage as health.',
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
