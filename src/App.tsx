@@ -118,17 +118,6 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   wiki: '/wiki',
 }
 
-const CHARACTER_CLASS_ICONS: Record<CharacterClassId, string> = {
-  knight: '🛡',
-  ranger: '🏹',
-  necromancer: '☠',
-  'frost-warden': '❄',
-  'ashen-alchemist': '🔥',
-  'war-shepherd': '🚩',
-  riftwalker: '✧',
-  bloodweaver: '🩸',
-}
-
 function getScreenForPath(pathname: string): AppScreen {
   const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   if (normalizedPath === APP_ROUTE_PATHS['run-setup']) {
@@ -2093,7 +2082,7 @@ function RunSetupScreen({
                   <span className="character-class-card-sheen" aria-hidden="true" />
                   <span className="character-class-card-header">
                     <span className="character-class-card-emblem" aria-hidden="true">
-                      {CHARACTER_CLASS_ICONS[characterClass.id]}
+                      {characterClass.visual.icon}
                     </span>
                     <span className="character-class-card-title">
                       <small>Class</small>

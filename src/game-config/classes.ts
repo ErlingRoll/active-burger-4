@@ -49,7 +49,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Melee and defensive',
       description: 'Melee and defensive skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0x60a5fa, outlineColor: 0xdbeafe },
+    visual: { silhouette: 'armored-knight', icon: '🛡', fillColor: 0x60a5fa, outlineColor: 0xdbeafe },
   },
   ranger: {
     id: 'ranger',
@@ -63,7 +63,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Projectile and lightning',
       description: 'Projectile and lightning skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0x4ade80, outlineColor: 0xdcfce7 },
+    visual: { silhouette: 'ranger', icon: '🏹', fillColor: 0x4ade80, outlineColor: 0xdcfce7 },
   },
   necromancer: {
     id: 'necromancer',
@@ -77,7 +77,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Summon, chaos, and damage over time',
       description: 'Summon, chaos, and damage-over-time skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0xc084fc, outlineColor: 0xf3e8ff },
+    visual: { silhouette: 'necromancer', icon: '☠', fillColor: 0xc084fc, outlineColor: 0xf3e8ff },
   },
   'frost-warden': {
     id: 'frost-warden',
@@ -91,7 +91,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Cold, projectile, and area',
       description: 'Cold, projectile, and area skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0x38bdf8, outlineColor: 0xe0f2fe },
+    visual: { silhouette: 'frost-warden', icon: '❄', fillColor: 0x38bdf8, outlineColor: 0xe0f2fe },
   },
   'ashen-alchemist': {
     id: 'ashen-alchemist',
@@ -105,7 +105,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Fire, damage over time, and area',
       description: 'Fire, damage-over-time, and area skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0xf97316, outlineColor: 0xffedd5 },
+    visual: { silhouette: 'ashen-alchemist', icon: '🔥', fillColor: 0xf97316, outlineColor: 0xffedd5 },
   },
   'war-shepherd': {
     id: 'war-shepherd',
@@ -119,7 +119,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Defensive, duration, and summon',
       description: 'Defensive, duration, and summon skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0xfacc15, outlineColor: 0xfef9c3 },
+    visual: { silhouette: 'war-shepherd', icon: '🚩', fillColor: 0xfacc15, outlineColor: 0xfef9c3 },
   },
   riftwalker: {
     id: 'riftwalker',
@@ -133,7 +133,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Spatial, physical, and projectile',
       description: 'Spatial, physical, projectile, and trigger skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0x7c3aed, outlineColor: 0xe9d5ff },
+    visual: { silhouette: 'riftwalker', icon: '✧', fillColor: 0x7c3aed, outlineColor: 0xe9d5ff },
   },
   bloodweaver: {
     id: 'bloodweaver',
@@ -147,7 +147,7 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
       label: 'Chaos, sacrifice, and sustain',
       description: 'Chaos, damage-over-time, trigger, defensive, and area skill unlocks are more likely to appear.',
     },
-    visual: { fillColor: 0x991b1b, outlineColor: 0xfecaca },
+    visual: { silhouette: 'bloodweaver', icon: '🩸', fillColor: 0x991b1b, outlineColor: 0xfecaca },
   },
 }
 

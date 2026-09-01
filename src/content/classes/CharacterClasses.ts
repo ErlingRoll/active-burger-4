@@ -21,10 +21,22 @@ export interface CharacterClassDefinition {
     readonly description: string
   }
   readonly visual: {
+    readonly silhouette: CharacterClassSilhouette
+    readonly icon: string
     readonly fillColor: number
     readonly outlineColor: number
   }
 }
+
+export type CharacterClassSilhouette =
+  | 'armored-knight'
+  | 'ranger'
+  | 'necromancer'
+  | 'frost-warden'
+  | 'ashen-alchemist'
+  | 'war-shepherd'
+  | 'riftwalker'
+  | 'bloodweaver'
 
 export { DEFAULT_CHARACTER_CLASS_ID } from '../../game-config/classes'
 export { CHARACTER_CLASS_DEFINITIONS, CHARACTER_CLASS_IDS } from '../../game-config/classes'

@@ -42,4 +42,19 @@ describe('Classes', () => {
       }
     }
   })
+
+  it('gives every class a unique visual design', () => {
+    const silhouettes = new Set<string>()
+    const icons = new Set<string>()
+
+    for (const characterClassId of CHARACTER_CLASS_IDS) {
+      const visual = getCharacterClassDefinition(characterClassId).visual
+      expect(visual.silhouette).not.toBe('')
+      expect(visual.icon.trim()).not.toBe('')
+      expect(silhouettes.has(visual.silhouette)).toBe(false)
+      expect(icons.has(visual.icon)).toBe(false)
+      silhouettes.add(visual.silhouette)
+      icons.add(visual.icon)
+    }
+  })
 })

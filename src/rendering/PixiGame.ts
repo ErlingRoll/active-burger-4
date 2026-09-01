@@ -419,33 +419,129 @@ export class PixiGame {
       this.game.state.player.characterClassId ?? DEFAULT_CHARACTER_CLASS_ID,
     )
     const body = new Graphics()
-    if (characterClass.id === 'riftwalker') {
-      body
-        .poly(createPolygonPoints(24, 6, Math.PI / 6))
-        .fill(characterClass.visual.fillColor)
-        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
-        .poly(createPolygonPoints(14, 4, Math.PI / 4))
-        .fill({ color: 0x312e81, alpha: 0.9 })
-        .stroke({ color: 0xc4b5fd, width: 2 })
-        .moveTo(-11, 11)
-        .lineTo(11, -11)
-        .stroke({ color: 0xf5f3ff, width: 2 })
-    } else if (characterClass.id === 'bloodweaver') {
-      body
-        .poly(createStarPoints(24, 8, 0.7, -Math.PI / 2))
-        .fill(characterClass.visual.fillColor)
-        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
-        .poly(createPolygonPoints(15, 6, Math.PI / 6))
-        .fill({ color: 0x450a0a, alpha: 0.9 })
-        .stroke({ color: 0xf87171, width: 2 })
-        .poly([0, -10, 7, 2, 0, 11, -7, 2])
-        .fill({ color: 0xef4444, alpha: 0.85 })
-        .stroke({ color: 0xfecaca, width: 1.5 })
-    } else {
-      body
-        .circle(0, 0, 24)
-        .fill(characterClass.visual.fillColor)
-        .stroke({ color: characterClass.visual.outlineColor, width: 3 })
+    const { fillColor, outlineColor, silhouette } = characterClass.visual
+
+    switch (silhouette) {
+      case 'armored-knight':
+        body
+          .poly([-18, -22, 18, -22, 22, -4, 14, 17, 0, 25, -14, 17, -22, -4])
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .poly([-10, -12, 10, -12, 13, 3, 0, 15, -13, 3])
+          .fill({ color: 0x1e3a8a, alpha: 0.92 })
+          .stroke({ color: 0xbfdbfe, width: 2 })
+          .moveTo(0, -8)
+          .lineTo(0, 10)
+          .moveTo(-6, 1)
+          .lineTo(6, 1)
+          .stroke({ color: 0xf8fafc, width: 2 })
+        break
+      case 'ranger':
+        body
+          .poly([-17, 18, -13, -12, 0, -24, 13, -12, 17, 18])
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .circle(0, -6, 8)
+          .fill({ color: 0x14532d, alpha: 0.9 })
+          .stroke({ color: 0xbbf7d0, width: 1.5 })
+          .moveTo(-18, -19)
+          .quadraticCurveTo(-31, 0, -18, 19)
+          .moveTo(-18, -19)
+          .lineTo(-18, 19)
+          .moveTo(-24, 0)
+          .lineTo(18, -10)
+          .lineTo(12, -14)
+          .moveTo(18, -10)
+          .lineTo(11, -5)
+          .stroke({ color: 0xfef3c7, width: 2 })
+        break
+      case 'necromancer':
+        body
+          .poly([-19, 21, -14, -13, 0, -25, 14, -13, 19, 21])
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .circle(0, -6, 9)
+          .fill({ color: 0x3b0764, alpha: 0.94 })
+          .stroke({ color: 0xddd6fe, width: 1.5 })
+          .circle(-3, -7, 1.8)
+          .circle(3, -7, 1.8)
+          .fill(0xfaf5ff)
+          .moveTo(16, -21)
+          .lineTo(16, 18)
+          .circle(16, -22, 5)
+          .fill({ color: 0xddd6fe, alpha: 0.9 })
+          .stroke({ color: 0xf5f3ff, width: 1.5 })
+        break
+      case 'frost-warden':
+        body
+          .poly(createStarPoints(25, 6, 0.58, -Math.PI / 2))
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .poly(createPolygonPoints(11, 6, Math.PI / 6))
+          .fill({ color: 0x0c4a6e, alpha: 0.9 })
+          .stroke({ color: 0xbae6fd, width: 1.5 })
+          .moveTo(0, -20)
+          .lineTo(0, 20)
+          .moveTo(-17, -10)
+          .lineTo(17, 10)
+          .moveTo(-17, 10)
+          .lineTo(17, -10)
+          .stroke({ color: 0xf0f9ff, width: 2 })
+        break
+      case 'ashen-alchemist':
+        body
+          .poly([-9, -24, 9, -24, 9, -12, 21, 6, 13, 23, -13, 23, -21, 6, -9, -12])
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .rect(-11, -25, 22, 7)
+          .fill(0x7c2d12)
+          .stroke({ color: 0xfed7aa, width: 1.5 })
+          .circle(0, 8, 8)
+          .fill({ color: 0xfef3c7, alpha: 0.7 })
+          .circle(-15, -3, 3)
+          .circle(15, 13, 2)
+          .fill({ color: 0xfef08a, alpha: 0.85 })
+        break
+      case 'war-shepherd':
+        body
+          .poly(createPolygonPoints(24, 6, Math.PI / 6))
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .poly([-10, -14, 10, -14, 10, 17, -10, 17])
+          .fill({ color: 0x713f12, alpha: 0.9 })
+          .stroke({ color: 0xfef3c7, width: 1.5 })
+          .moveTo(-16, -24)
+          .lineTo(-16, 18)
+          .lineTo(-2, 13)
+          .lineTo(-2, -16)
+          .lineTo(-16, -20)
+          .fill({ color: 0xef4444, alpha: 0.9 })
+          .stroke({ color: 0xfef2f2, width: 1.5 })
+        break
+      case 'riftwalker':
+        body
+          .poly(createPolygonPoints(24, 6, Math.PI / 6))
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .poly(createPolygonPoints(14, 4, Math.PI / 4))
+          .fill({ color: 0x312e81, alpha: 0.9 })
+          .stroke({ color: 0xc4b5fd, width: 2 })
+          .moveTo(-11, 11)
+          .lineTo(11, -11)
+          .stroke({ color: 0xf5f3ff, width: 2 })
+        break
+      case 'bloodweaver':
+        body
+          .poly(createStarPoints(24, 8, 0.7, -Math.PI / 2))
+          .fill(fillColor)
+          .stroke({ color: outlineColor, width: 3 })
+          .poly(createPolygonPoints(15, 6, Math.PI / 6))
+          .fill({ color: 0x450a0a, alpha: 0.9 })
+          .stroke({ color: 0xf87171, width: 2 })
+          .poly([0, -10, 7, 2, 0, 11, -7, 2])
+          .fill({ color: 0xef4444, alpha: 0.85 })
+          .stroke({ color: 0xfecaca, width: 1.5 })
+        break
     }
     const hpBar = new Graphics()
     const shieldBar = new Graphics()
