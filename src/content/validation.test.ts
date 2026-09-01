@@ -70,7 +70,16 @@ describe('content validation', () => {
 
     for (const skill of CURRENT_CONTENT.skills) {
       expect(counts.get(skill.id)).toBeGreaterThanOrEqual(2)
+      if (skill.id !== BASIC_ATTACK_SKILL_ID) {
+        expect(SYNERGY_UPGRADES.some((synergy) =>
+          synergy.synergySkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+          synergy.synergySkillIds.includes(skill.id)
+        )).toBe(true)
+      }
     }
+    expect(counts.get(BASIC_ATTACK_SKILL_ID)).toBe(
+      CURRENT_CONTENT.skills.length - 1,
+    )
   })
 
   it('gives every skill exactly two evolution paths and one level-up path', () => {
@@ -101,7 +110,7 @@ describe('content validation', () => {
     const extraSynergy = {
       ...basicSynergy,
       id: 'test-extra-synergy' as never,
-      synergySkillIds: [BASIC_ATTACK_SKILL_ID, 'soul-tether'] as const,
+      synergySkillIds: ['gravity-well', 'soul-tether'] as const,
       synergyEffects: [],
     }
 

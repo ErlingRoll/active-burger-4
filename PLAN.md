@@ -4085,6 +4085,59 @@ They are valuable for balancing.
 
 ---
 
+## 124.1 High-Frequency Trigger Safeguards
+
+Basic Attack attack speed can become very high in late-game builds. Any
+on-hit, per-projectile, or per-target interaction must therefore be reviewed
+against its **trigger frequency**, not only its value per trigger.
+
+Use these rules for Basic Attack Synergies, gear effects, and future
+event-driven mechanics:
+
+| Effect type | Required safeguard |
+| --- | --- |
+| Healing or leech | Use a hit threshold, internal cooldown, or explicit healing-per-second cap |
+| Skill cooldown reduction | Use an internal cooldown; never reduce below zero |
+| Shield restoration | Use an internal cooldown and cap at the current shield maximum |
+| Buff or resource duration | Use an internal cooldown and an absolute duration cap |
+| Stored damage or charges | Preserve the existing storage/charge cap and avoid duplicate accounting |
+| Pull, knockback, or control | Use an internal cooldown and bounded movement per trigger |
+| Summon acceleration | Reduce cooldown in bounded steps; do not create extra summons per hit |
+| One-time state transitions | Make the transition idempotent (for example, arming a mine only once) |
+| Status applications | Reuse the status stack and duration caps; do not create uncapped stacks |
+
+Balance values belong in content/configuration constants, not inside combat
+branches. Current Basic Attack Synergy tuning is centralized in
+[game-config/skills.ts](src/game-config/skills.ts), and the shared runtime
+guard is `consumeBasicAttackSynergyTrigger` in
+[CombatSystem.ts](src/game/systems/combat/CombatSystem.ts).
+
+When a mechanic is intentionally thresholded, document all of the following in
+its card description and tests:
+
+- what counts as a hit;
+- whether multi-projectile volleys count once or once per target;
+- the threshold or internal cooldown;
+- the maximum stored value or duration;
+- whether damage-over-time events are excluded.
+
+Every high-frequency interaction needs an endgame-rate stress test. The test
+should simulate at least 100 immediate Basic Attack hits and verify that:
+
+- healing and leech remain within their intended rate;
+- cooldowns do not become negative or reset continuously;
+- shields and durations respect their caps;
+- stored damage and charges respect their caps;
+- repeated state transitions do not duplicate effects.
+
+The current stress coverage is in
+[SkillBalance.test.ts](src/game/systems/skills/SkillBalance.test.ts). Basic
+Attack Synergies remain mutually exclusive because they all include Basic
+Attack; owning many pair definitions does not allow their effects to stack
+simultaneously.
+
+---
+
 # 125. Upgrade History
 
 Record choices during a run.

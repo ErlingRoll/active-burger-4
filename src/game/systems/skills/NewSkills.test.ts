@@ -656,21 +656,21 @@ describe('new skill synergies', () => {
     PRISM_HALO_SKILL_ID,
   ]
 
-  it('pairs new skills only with each other so existing skills keep three synergies', () => {
+  it('gives every new skill a Basic Attack synergy without a maximum count', () => {
     const newSkillSet = new Set<SkillId>(newSkillIds)
     const newSynergies = SYNERGY_UPGRADES.filter((synergy) =>
       synergy.synergySkillIds.some((skillId) => newSkillSet.has(skillId)),
     )
     expect(newSynergies.length).toBeGreaterThanOrEqual(newSkillIds.length)
-    for (const synergy of newSynergies) {
-      expect(synergy.synergySkillIds.every((skillId) => newSkillSet.has(skillId))).toBe(true)
-    }
     for (const skillId of newSkillIds) {
       const count = SYNERGY_UPGRADES.filter((synergy) =>
         synergy.synergySkillIds.includes(skillId),
       ).length
       expect(count).toBeGreaterThanOrEqual(2)
-      expect(count).toBeLessThanOrEqual(3)
+      expect(SYNERGY_UPGRADES.some((synergy) =>
+        synergy.synergySkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+        synergy.synergySkillIds.includes(skillId)
+      )).toBe(true)
     }
   })
 

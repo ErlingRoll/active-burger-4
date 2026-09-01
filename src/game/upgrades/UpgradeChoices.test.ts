@@ -56,7 +56,7 @@ describe('upgrade choice generation', () => {
     ).toBe(true)
   })
 
-  it('defines two or three unique legendary synergies for every skill', () => {
+  it('defines at least two unique legendary synergies for every skill', () => {
     const counts = new Map<string, number>()
     const pairs = new Set<string>()
 
@@ -72,7 +72,6 @@ describe('upgrade choice generation', () => {
 
     for (const skill of Object.keys(SKILL_DEFINITIONS)) {
       expect(counts.get(skill)).toBeGreaterThanOrEqual(2)
-      expect(counts.get(skill)).toBeLessThanOrEqual(3)
     }
   })
 
@@ -265,16 +264,16 @@ describe('upgrade choice generation', () => {
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(2)
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), ranger.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), ranger.state)).toBe(6)
-    expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), necromancer.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), necromancer.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), necromancer.state)).toBe(6)
     const frostWarden = createGame({ seed: 464, playstyleId: 'frost-warden' })
     const ashenAlchemist = createGame({ seed: 465, playstyleId: 'ashen-alchemist' })
     const warShepherd = createGame({ seed: 466, playstyleId: 'war-shepherd' })
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), frostWarden.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), frostWarden.state)).toBe(6)
-    expect(getSkillUnlockWeight(getUpgrade('cinder-mine-unlock'), ashenAlchemist.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('cinder-mine-unlock'), ashenAlchemist.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('fiery-touch-unlock'), ashenAlchemist.state)).toBe(6)
-    expect(getSkillUnlockWeight(getUpgrade('rallying-banner-unlock'), warShepherd.state)).toBe(3)
+    expect(getSkillUnlockWeight(getUpgrade('rallying-banner-unlock'), warShepherd.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), warShepherd.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('whirlwind-level'), knight.state)).toBe(1)
   })
@@ -287,12 +286,12 @@ describe('upgrade choice generation', () => {
     expect(getSynergyPartnerSkillIds(
       'gravity-well',
       ['basic-attack'],
-    )).toEqual([])
+    )).toEqual(['basic-attack'])
   })
 
-  it('doubles skill unlock weight when an owned synergy partner exists', () => {
+  it('doubles skill unlock weight when Basic Attack is an owned synergy partner', () => {
     const game = createGame({ seed: 467 })
-    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(1)
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(2)
 
     applyUpgrade(game.state, 'raise-skeleton-unlock')
 

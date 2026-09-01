@@ -22,7 +22,7 @@ import {
 } from '../../../content/skills/Skills'
 import { SYNERGY_UPGRADES } from '../../../game-config/synergies'
 import { createGame } from '../../Game'
-import { applyDamageEvents } from '../combat/CombatSystem'
+import { applyDamageEvents, updateFrost } from '../combat/CombatSystem'
 import { collectSkillDamage } from './SkillSystem'
 
 const allocator = {
@@ -197,5 +197,35 @@ describe('new skill combination balance', () => {
         effect.shieldIncreasePercent === undefined
       )
     )).toBe(true)
+  })
+
+  it('caps per-hit Basic Attack Synergy triggers under extreme attack speed', () => {
+    const game = createGame({ seed: 97 })
+    game.state.player.skills = [
+      { skillId: 'basic-attack', level: 1, cooldownRemaining: 0 },
+      { skillId: FIERY_TOUCH_SKILL_ID, level: 1, cooldownRemaining: 5 },
+    ]
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-fiery-touch')
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+    target.hp = 10_000
+    target.maxHp = 10_000
+
+    const basicHits = Array.from({ length: 100 }, () => ({
+      sourceId: game.state.player.id,
+      sourceSkillId: 'basic-attack' as const,
+      targetId,
+      damage: { physical: 1, lightning: 0, fire: 0, cold: 0, chaos: 0 },
+    }))
+    applyDamageEvents(game.state, basicHits)
+
+    const fieryTouch = game.state.player.skills.find(
+      (skill) => skill.skillId === FIERY_TOUCH_SKILL_ID,
+    )!
+    expect(fieryTouch.cooldownRemaining).toBeCloseTo(4.85)
+
+    updateFrost(game.state, 0.3)
+    applyDamageEvents(game.state, [basicHits[0]!])
+    expect(fieryTouch.cooldownRemaining).toBeCloseTo(4.7)
   })
 })

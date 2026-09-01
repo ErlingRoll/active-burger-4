@@ -228,6 +228,10 @@ export interface PlayerState {
   resonance?: number
   /** Percentage of final Basic Attack damage converted into skill damage. */
   attunement?: number
+  /** Bounded hit counter used by Basic Attack Synergy interactions. */
+  basicAttackSynergyHitCount?: number
+  /** Internal cooldown shared by the currently active Basic Attack Synergy. */
+  basicAttackSynergyTriggerCooldownRemaining?: number
   /** Additive Attunement adjustment that can change during a run. */
   attunementBonusPercent?: number
   /** Additive fraction of actual gear-based melee damage restored as health. */

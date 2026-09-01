@@ -27,6 +27,8 @@ milestones in order unless an ADR documents an exception.
 - [ ] Follow the [graphics guidelines](GRAPHICS_GUIDELINES.md) for every new
   skill, projectile, effect, persistent object, and HUD icon.
 - [ ] Put balance values in content data, not engine systems.
+- [ ] Apply the [high-frequency trigger safeguards](../PLAN.md#1241-high-frequency-trigger-safeguards)
+  to every on-hit, per-projectile, and per-target mechanic.
 - [ ] Add focused tests for deterministic rules and run applicable validation.
 - [ ] Record material architecture changes in `docs/decisions/`.
 

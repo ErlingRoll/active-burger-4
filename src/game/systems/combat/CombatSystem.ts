@@ -25,6 +25,7 @@ import {
 import {
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
+  type UpgradeId,
 } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
@@ -122,6 +123,38 @@ import {
   SIGIL_OF_RUIN_STORED_DAMAGE_CAP,
   SIGIL_OF_RUIN_DURATION_SECONDS,
   SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO,
+  BLOOD_RITE_DEBT_DURATION_SECONDS,
+  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+  BASIC_ATTACK_VITALITY_HIT_INTERVAL,
+  BASIC_ATTACK_VITALITY_HEAL_AMOUNT,
+  BASIC_ATTACK_VITALITY_TRIGGER_COOLDOWN_SECONDS,
+  BASIC_ATTACK_LANCER_HIT_INTERVAL,
+  BASIC_ATTACK_LANCER_TRIGGER_COOLDOWN_SECONDS,
+  BASIC_ATTACK_RAISE_SKELETON_COOLDOWN_REDUCTION_SECONDS,
+  BASIC_ATTACK_FIERY_TOUCH_COOLDOWN_REDUCTION_SECONDS,
+  BASIC_ATTACK_PHANTOM_COOLDOWN_REDUCTION_SECONDS,
+  BASIC_ATTACK_COOLDOWN_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_BANNER_EXTENSION_SECONDS,
+  BASIC_ATTACK_BANNER_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_GRAVITY_PULL_DISTANCE,
+  BASIC_ATTACK_GRAVITY_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_AEGIS_RESTORE_RATIO,
+  BASIC_ATTACK_AEGIS_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_RIFT_HIT_INTERVAL,
+  BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT,
+  BASIC_ATTACK_CINDER_ARM_RANGE,
+  BASIC_ATTACK_SOUL_HEALING_RATIO,
+  BASIC_ATTACK_SOUL_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_SIGIL_STORED_DAMAGE_RATIO,
+  BASIC_ATTACK_SIGIL_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_MIRROR_REFRESH_SECONDS,
+  BASIC_ATTACK_MIRROR_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_RAZOR_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_BLOOD_EXTENSION_SECONDS,
+  BASIC_ATTACK_BLOOD_MAX_DURATION_BONUS_SECONDS,
+  BASIC_ATTACK_BLOOD_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_PRISM_TRIGGER_INTERVAL_SECONDS,
+  BASIC_ATTACK_PRISM_COOLDOWN_REDUCTION_SECONDS,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -231,7 +264,8 @@ function getBasicAttackSynergyApplications(
           },
         }
       : {}),
-    ...(state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning')
+    ...(state.run.selectedUpgradeIds.includes('synergy-basic-attack-chain-lightning') ||
+      state.run.selectedUpgradeIds.includes('synergy-basic-attack-storm-relay')
       ? {
           shockApplication: {
             stacks: 1,
@@ -242,6 +276,239 @@ function getBasicAttackSynergyApplications(
         }
       : {}),
   }
+}
+
+function applyBasicAttackSynergyHooks(
+  state: GameState,
+  target: EnemyState | BossState,
+  event: Readonly<DamageEvent>,
+  actualDamage: number,
+): void {
+  if (
+    event.sourceSkillId !== BASIC_ATTACK_SKILL_ID ||
+    event.damageOverTime ||
+    event.sourceId !== state.player.id ||
+    actualDamage <= 0
+  ) {
+    return
+  }
+
+  const selected = state.run.selectedUpgradeIds
+  const hitCount = (state.player.basicAttackSynergyHitCount ?? 0) + 1
+  state.player.basicAttackSynergyHitCount = hitCount % 60
+
+  if (
+    selected.includes('synergy-basic-attack-vitality') &&
+    hitCount % BASIC_ATTACK_VITALITY_HIT_INTERVAL === 0 &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_VITALITY_TRIGGER_COOLDOWN_SECONDS)
+  ) {
+    healPlayer(state, BASIC_ATTACK_VITALITY_HEAL_AMOUNT, 'Vital Spark')
+  }
+  if (
+    selected.includes('synergy-basic-attack-lancers-charge') &&
+    hitCount % BASIC_ATTACK_LANCER_HIT_INTERVAL === 0 &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_LANCER_TRIGGER_COOLDOWN_SECONDS)
+  ) {
+    state.player.lancerMomentumStacks = Math.min(
+      LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+      (state.player.lancerMomentumStacks ?? 0) + 1,
+    )
+    state.player.lancerMomentumDecayRemaining = LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
+  }
+
+  const cooldownReductions: readonly [UpgradeId, number][] = [
+    ['synergy-basic-attack-raise-skeleton', BASIC_ATTACK_RAISE_SKELETON_COOLDOWN_REDUCTION_SECONDS],
+    ['synergy-basic-attack-fiery-touch', BASIC_ATTACK_FIERY_TOUCH_COOLDOWN_REDUCTION_SECONDS],
+    ['synergy-basic-attack-phantom-arsenal', BASIC_ATTACK_PHANTOM_COOLDOWN_REDUCTION_SECONDS],
+  ]
+  for (const [synergyId, reduction] of cooldownReductions) {
+    if (!selected.includes(synergyId)) {
+      continue
+    }
+    const skillId = synergyId === 'synergy-basic-attack-raise-skeleton'
+      ? 'raise-skeleton'
+      : synergyId === 'synergy-basic-attack-fiery-touch'
+        ? 'fiery-touch'
+        : 'phantom-arsenal'
+    const skill = state.player.skills.find((candidate) => candidate.skillId === skillId)
+    if (skill && consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_COOLDOWN_TRIGGER_INTERVAL_SECONDS)) {
+      skill.cooldownRemaining = Math.max(0, skill.cooldownRemaining - reduction)
+    }
+  }
+
+  if (
+    selected.includes('synergy-basic-attack-rallying-banner') &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_BANNER_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    for (const effect of getRallyingBannerEffects(state)) {
+      const extension = Math.min(
+        BASIC_ATTACK_BANNER_EXTENSION_SECONDS,
+        Math.max(0, RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - effect.remainingLifetime),
+      )
+      effect.remainingLifetime += extension
+      effect.lifetime += extension
+    }
+  }
+  if (
+    selected.includes('synergy-basic-attack-gravity-well') &&
+    target.hp > 0 &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_GRAVITY_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    const distance = Math.hypot(target.x - state.player.x, target.y - state.player.y)
+    if (distance > 0.0001) {
+      const pull = Math.min(
+        BASIC_ATTACK_GRAVITY_PULL_DISTANCE,
+        Math.max(0, distance - target.radius - state.player.radius - 4),
+      )
+      target.x -= ((target.x - state.player.x) / distance) * pull
+      target.y -= ((target.y - state.player.y) / distance) * pull
+    }
+  }
+  if (
+    selected.includes('synergy-basic-attack-aegis-pulse') &&
+    (state.player.aegisPulseShieldRemaining ?? 0) > 0 &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_AEGIS_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    state.player.aegisPulseShieldAmount = Math.min(
+      state.player.aegisPulseShieldMaxAmount ?? 0,
+      (state.player.aegisPulseShieldAmount ?? 0) +
+        (state.player.aegisPulseShieldMaxAmount ?? 0) * BASIC_ATTACK_AEGIS_RESTORE_RATIO,
+    )
+  }
+  if (
+    selected.includes('synergy-basic-attack-rift-javelin') &&
+    hitCount % BASIC_ATTACK_RIFT_HIT_INTERVAL === 0
+  ) {
+    state.player.riftJavelinReturnBonusPercent = Math.max(
+      state.player.riftJavelinReturnBonusPercent ?? 0,
+      BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT,
+    )
+  }
+  if (selected.includes('synergy-basic-attack-cinder-mine')) {
+    const nearestMine = state.traps
+      ?.filter((trap) => trap.fuseRemaining > 0)
+      .map((trap) => ({
+        trap,
+        distance: Math.hypot(trap.x - target.x, trap.y - target.y),
+      }))
+      .filter(({ distance }) => distance <= BASIC_ATTACK_CINDER_ARM_RANGE)
+      .sort((left, right) => left.distance - right.distance)[0]
+    if (nearestMine) {
+      nearestMine.trap.fuseRemaining = 0
+    }
+  }
+  if (
+    selected.includes('synergy-basic-attack-soul-tether') &&
+    state.player.soulTethers?.some((tether) => tether.targetId === target.id) &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_SOUL_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    healPlayer(state, actualDamage * BASIC_ATTACK_SOUL_HEALING_RATIO, 'Lifeline Rounds')
+  }
+  if (
+    selected.includes('synergy-basic-attack-sigil-of-ruin') &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_SIGIL_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    const sigil = state.player.ruinSigils?.find((candidate) => candidate.targetId === target.id)
+    if (sigil) {
+      sigil.storedDamage = Math.min(
+        sigil.storedDamageCap,
+        sigil.storedDamage + actualDamage * BASIC_ATTACK_SIGIL_STORED_DAMAGE_RATIO,
+      )
+    }
+  }
+  if (
+    selected.includes('synergy-basic-attack-mirrorcast') &&
+    state.player.mirrorcast?.status === 'armed' &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_MIRROR_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    state.player.mirrorcast.captureRemaining = Math.min(
+      6,
+      state.player.mirrorcast.captureRemaining + BASIC_ATTACK_MIRROR_REFRESH_SECONDS,
+    )
+  }
+  if (
+    selected.includes('synergy-basic-attack-razorwire') &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_RAZOR_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    for (const wire of state.wires ?? []) {
+      const distance = distanceToSegment(
+        target.x,
+        target.y,
+        wire.ax,
+        wire.ay,
+        wire.bx,
+        wire.by,
+      )
+      if (distance > wire.crossingMargin + target.radius) {
+        continue
+      }
+      const tension = wire.tension.find((entry) => entry.enemyId === target.id)
+      if (tension) {
+        tension.value = Math.min(wire.tensionCap, tension.value + 1)
+      } else {
+        wire.tension.push({ enemyId: target.id, value: 1 })
+      }
+    }
+  }
+  if (
+    selected.includes('synergy-basic-attack-blood-rite') &&
+    state.player.bloodDebt &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_BLOOD_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    state.player.bloodDebt.remainingDuration = Math.min(
+      BLOOD_RITE_DEBT_DURATION_SECONDS + BASIC_ATTACK_BLOOD_MAX_DURATION_BONUS_SECONDS,
+      state.player.bloodDebt.remainingDuration + BASIC_ATTACK_BLOOD_EXTENSION_SECONDS,
+    )
+  }
+  if (
+    selected.includes('synergy-basic-attack-prism-halo') &&
+    state.player.prismHalo &&
+    consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_PRISM_TRIGGER_INTERVAL_SECONDS)
+  ) {
+    state.player.prismHalo.fireCooldownRemaining = Math.max(
+      0,
+      state.player.prismHalo.fireCooldownRemaining - BASIC_ATTACK_PRISM_COOLDOWN_REDUCTION_SECONDS,
+    )
+  }
+}
+
+function consumeBasicAttackSynergyTrigger(
+  state: GameState,
+  cooldownSeconds: number,
+): boolean {
+  if ((state.player.basicAttackSynergyTriggerCooldownRemaining ?? 0) > 0) {
+    return false
+  }
+  state.player.basicAttackSynergyTriggerCooldownRemaining = cooldownSeconds
+  return true
+}
+
+function distanceToSegment(
+  pointX: number,
+  pointY: number,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+): number {
+  const directionX = endX - startX
+  const directionY = endY - startY
+  const lengthSquared = directionX * directionX + directionY * directionY
+  if (lengthSquared <= 0) {
+    return Math.hypot(pointX - startX, pointY - startY)
+  }
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      ((pointX - startX) * directionX + (pointY - startY) * directionY) /
+        lengthSquared,
+    ),
+  )
+  return Math.hypot(
+    pointX - (startX + directionX * progress),
+    pointY - (startY + directionY * progress),
+  )
 }
 
 function collectFieryTouchTriggerEvents(
@@ -1430,6 +1697,7 @@ export function applyDamageEvents(
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
       applyRuinSigilDamage(state, event, enemy, actualDamage, pendingEvents, idAllocator)
+      applyBasicAttackSynergyHooks(state, enemy, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1479,6 +1747,7 @@ export function applyDamageEvents(
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
       applyRuinSigilDamage(state, event, boss, actualDamage, pendingEvents, idAllocator)
+      applyBasicAttackSynergyHooks(state, boss, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1628,6 +1897,10 @@ export function updateFrost(
   state.player.whirlwindGuardRemaining = Math.max(
     0,
     (state.player.whirlwindGuardRemaining ?? 0) - elapsed,
+  )
+  state.player.basicAttackSynergyTriggerCooldownRemaining = Math.max(
+    0,
+    (state.player.basicAttackSynergyTriggerCooldownRemaining ?? 0) - elapsed,
   )
   if (getRallyingBannerEffects(state).length === 0) {
     state.player.rallyingBannerRemaining = Math.max(
