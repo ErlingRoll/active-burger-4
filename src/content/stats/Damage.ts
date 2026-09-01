@@ -185,6 +185,21 @@ export function scaleDamageValues(
   return scaled
 }
 
+/**
+ * Applies the player's percentage increase to a periodic damage payload.
+ * Ownership is resolved by the combat system; this helper only performs the
+ * damage calculation so estimates and resolved events use the same formula.
+ */
+export function applyDotMultiplier(
+  values: Readonly<PartialDamageValues>,
+  dotMultiplier: number,
+): DamageValues {
+  return scaleDamageValues(
+    values,
+    1 + Math.max(0, Number.isFinite(dotMultiplier) ? dotMultiplier : 0) / 100,
+  )
+}
+
 export function sumDamageValues(values: Readonly<PartialDamageValues>): number {
   const normalized = createDamageValues(values)
   return DAMAGE_TYPES.reduce(

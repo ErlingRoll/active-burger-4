@@ -20,10 +20,6 @@ import {
   generateGearChoices,
 } from '../equipment/GearChoices'
 import { Rarity } from '../../content/rarity/Rarity'
-import {
-  getAverageCriticalStrikeFactor,
-  sumDamageValues,
-} from '../../content/stats/Damage'
 import { createRunResultSnapshot, createUiSnapshot } from './Snapshots'
 import {
   SOUL_TETHER_DURATION_SECONDS,
@@ -483,14 +479,13 @@ describe('UI snapshots', () => {
     }
     const playerStats = getDerivedPlayerStats(game.state.player)
     expect(soulTether.estimatedSingleTargetDps).toBeCloseTo(
-      sumDamageValues(soulTether.damage) *
-        getAverageCriticalStrikeFactor({
-          chance: playerStats.critChance,
-          multiplier: playerStats.critMultiplier,
-        }) *
+      soulTether.damage.chaos *
+        (1 + playerStats.dotMultiplier / 100) *
         SOUL_TETHER_DURATION_SECONDS /
         (soulTether.cooldownSeconds ?? 1),
     )
+    expect(soulTether.damageTypes).toEqual(['chaos'])
+    expect(soulTether.dpsAssumption).toContain('Chaos damage only')
   })
 
   it('shows staff DoT and Raise Skeleton modifiers in skill snapshots', () => {
@@ -541,6 +536,33 @@ describe('UI snapshots', () => {
         expect.objectContaining({ id: 'dot-multiplier', value: '20%' }),
       ]),
     )
+  })
+
+  it('estimates Soul Tether using Chaos-only DoT damage and the DoT multiplier', () => {
+    const game = createGame({ seed: 20260901 })
+    game.state.player.skills = [{
+      skillId: SOUL_TETHER_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    equipRolledItem(
+      game.state.player,
+      'swiftstride-boots',
+      Rarity.Common,
+      [createGearModifier('swiftstride-boots', 'dot-multiplier', 1, 20)],
+    )
+
+    const soulTether = createUiSnapshot(game.state).skills[0]!
+
+    expect(soulTether.damageTypes).toEqual(['chaos'])
+    expect(soulTether.attunementDamageTypes).toEqual([])
+    expect(soulTether.estimatedSingleTargetDps).toBeCloseTo(
+      soulTether.damage.chaos *
+        1.2 *
+        SOUL_TETHER_DURATION_SECONDS /
+        (soulTether.cooldownSeconds ?? 1),
+    )
+    expect(soulTether.dpsAssumption).toContain('Chaos damage only')
   })
 
   it('projects Raise Skeleton evolution metadata and Grave Legion cadence', () => {

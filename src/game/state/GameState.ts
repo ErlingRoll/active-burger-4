@@ -400,7 +400,7 @@ export interface DamageEvent {
   targetId: EntityId
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
-  /** Marks periodic damage so it cannot trigger hit-only effects such as leech. */
+  /** Marks periodic damage for DoT scaling and excludes hit-only effects such as leech. */
   damageOverTime?: boolean
   /** Creates one independent poison stack after this hit is resolved. */
   poisonApplication?: PoisonApplication
@@ -419,6 +419,7 @@ export interface SoulTetherState {
   duration: number
   /** Seconds remaining before this independent link expires. */
   remainingDuration: number
+  /** Raw Chaos damage per second; DoT multiplier is applied when it ticks. */
   damagePerSecond: number
   healingRatio: number
   hasRetargeted: boolean
@@ -668,9 +669,12 @@ export interface SummonState {
 
 export interface PoisonStackState {
   remainingDuration: number
+  /** Raw Chaos damage per second before the DoT multiplier is resolved. */
   damagePerSecond: number
   /** Skill that applied the poison, when it came from player-owned damage. */
   sourceSkillId?: SkillId
+  /** Non-player source entity, such as a player-owned summon. */
+  sourceId?: EntityId
 }
 
 export interface PoisonApplication {
@@ -694,9 +698,12 @@ export interface ShockApplication {
 
 export interface BurningStackState {
   remainingDuration: number
+  /** Raw Fire damage per second before the DoT multiplier is resolved. */
   damagePerSecond: number
   /** Skill that applied the Burning stack, when it came from player-owned damage. */
   sourceSkillId?: SkillId
+  /** Non-player source entity, such as a player-owned summon. */
+  sourceId?: EntityId
 }
 
 export interface BurningApplication {
@@ -749,6 +756,8 @@ export interface SkillEffectState {
   id: EntityId
   skillId: SkillId
   shape?: 'arc' | 'line'
+  /** Elemental identity for Prism Halo's player-to-target beam effects. */
+  prismBeamElement?: 'fire' | 'cold' | 'lightning' | 'all'
   basicAttackWeaponArchetype?: WeaponArchetype
   x: number
   y: number

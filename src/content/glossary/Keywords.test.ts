@@ -4,7 +4,7 @@ import { KEYWORD_DEFINITIONS, splitKeywordText } from './Keywords'
 describe('keyword glossary text', () => {
   it('keeps Poison details generic across applying skills and modifiers', () => {
     expect(KEYWORD_DEFINITIONS.poison.details).toBe(
-      'Each application creates a separate stack. Its damage and duration come from the source skill or modifier.',
+      'Each application creates a separate stack of Chaos damage over time. Its damage and duration come from the source skill or modifier; player-owned stacks are increased by DoT multiplier.',
     )
   })
 
@@ -57,6 +57,21 @@ describe('keyword glossary text', () => {
       { type: 'text', value: ' empowers skills through ' },
       { type: 'keyword', value: 'Attunement', keywordId: 'attunement' },
       { type: 'text', value: '.' },
+    ])
+  })
+
+  it('explains named triggered effects without treating skill themes as keywords', () => {
+    expect(
+      splitKeywordText('Three elements trigger a Prism Burst.'),
+    ).toEqual([
+      { type: 'text', value: 'Three elements trigger a ' },
+      { type: 'keyword', value: 'Prism Burst', keywordId: 'prism-burst' },
+      { type: 'text', value: '.' },
+    ])
+    expect(
+      splitKeywordText('Prism Halo fires elemental shards.'),
+    ).toEqual([
+      { type: 'text', value: 'Prism Halo fires elemental shards.' },
     ])
   })
 })

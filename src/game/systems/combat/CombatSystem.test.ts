@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BASIC_ATTACK_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
+  SOUL_TETHER_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import { PLAYER_PROJECTILE_CHAIN_RANGE } from '../../../content/projectiles/Projectiles'
@@ -692,6 +693,30 @@ describe('performBasicAttackIfReady', () => {
 })
 
 describe('applyDamageEvents', () => {
+  it('applies DoT multiplier to player-owned periodic damage exactly once', () => {
+    const game = createGame({ seed: 20260901 })
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+    target.hp = 1_000
+    target.maxHp = 1_000
+    equipRolledItem(
+      game.state.player,
+      'swiftstride-boots',
+      Rarity.Common,
+      [createGearModifier('swiftstride-boots', 'dot-multiplier', 1, 20)],
+    )
+
+    applyDamageEvents(game.state, [{
+      sourceId: game.state.player.id,
+      sourceSkillId: SOUL_TETHER_SKILL_ID,
+      targetId,
+      damage: createDamageValues({ chaos: 10 }),
+      damageOverTime: true,
+    }], neverCrit)
+
+    expect(target.hp).toBeCloseTo(988)
+  })
+
   it('triggers Fiery Touch once per direct player hit and scales its area', () => {
     const gameState = state([enemy(2, 20), enemy(3, 90)])
     gameState.player.skills.push({

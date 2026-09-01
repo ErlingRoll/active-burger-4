@@ -18,7 +18,7 @@ export const STAT_KEYS = [
 ] as const satisfies readonly StatKey[]
 
 export const ATTUNEMENT_DESCRIPTION =
-  'Attunement adds this percentage of your final pre-crit Basic Attack damage to skills and summons, preserving each damage type and rounding each component up.'
+  'Attunement adds this percentage of your final pre-crit Basic Attack damage to skills and summons, preserving each applicable damage type and rounding each component up. A skill or effect that is authored as one damage type remains that type.'
 export const RESONANCE_DESCRIPTION =
   'Successful Basic Attacks charge each skill independently. Skills with a golden border will proc Resonance on their next cast.'
 

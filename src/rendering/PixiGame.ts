@@ -11,11 +11,18 @@ import {
 } from '../content/enemies/EliteModifiers'
 import {
   BASIC_ATTACK_SKILL_ID,
+  AEGIS_PULSE_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
   CINDER_MINE_SKILL_ID,
+  FIERY_TOUCH_SKILL_ID,
   getBasicAttackVariant,
   getSkillDefinition,
+  GLACIAL_ORB_SKILL_ID,
   isSkillId,
+  GRAVITY_WELL_SKILL_ID,
+  LANCERS_CHARGE_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
   RALLYING_BANNER_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   STORM_RELAY_SKILL_ID,
@@ -24,6 +31,8 @@ import {
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
+  VITALITY_SKILL_ID,
+  WHIRLWIND_SKILL_ID,
 } from '../content/skills/Skills'
 import type {
   BossState,
@@ -610,8 +619,48 @@ export class PixiGame {
     if (effect.skillId === RALLYING_BANNER_SKILL_ID) {
       return this.createRallyingFlagPlaceholder(effect)
     }
+    if (
+      effect.skillId === PRISM_HALO_SKILL_ID &&
+      effect.prismBeamElement !== undefined
+    ) {
+      return this.createPrismBeamPlaceholder(effect)
+    }
     if (effect.skillId === SOUL_TETHER_SKILL_ID && effect.shape === 'line') {
       return this.createSoulTetherPlaceholder(effect)
+    }
+    if (effect.skillId === STORM_RELAY_SKILL_ID && effect.shape === undefined) {
+      return this.createStormRelayStrikePlaceholder(effect)
+    }
+    if (effect.shape === undefined) {
+      if (effect.skillId === VITALITY_SKILL_ID) {
+        return this.createVitalityPlaceholder(effect)
+      }
+      if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
+        return this.createSkeletonRitualPlaceholder(effect)
+      }
+      if (effect.skillId === BLOOD_RITE_SKILL_ID) {
+        return this.createBloodPulsePlaceholder(effect)
+      }
+      if (effect.skillId === SIGIL_OF_RUIN_SKILL_ID) {
+        return this.createSigilCastPlaceholder(effect)
+      }
+      if (effect.skillId === MIRRORCAST_SKILL_ID) {
+        return this.createMirrorcastCastPlaceholder(effect)
+      }
+      if (effect.skillId === PHANTOM_ARSENAL_SKILL_ID) {
+        return this.createPhantomSummonPlaceholder(effect)
+      }
+    }
+    if (effect.shape === 'line') {
+      if (effect.skillId === LANCERS_CHARGE_SKILL_ID) {
+        return this.createLancersChargePlaceholder(effect)
+      }
+      if (effect.skillId === MIRRORCAST_SKILL_ID) {
+        return this.createMirrorcastLinkPlaceholder(effect)
+      }
+      if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
+        return this.createBoneBoltPlaceholder(effect)
+      }
     }
     const visual =
       effect.skillId === BASIC_ATTACK_SKILL_ID
@@ -669,13 +718,11 @@ export class PixiGame {
         }
       }
     } else if (visual.kind === 'area') {
-      view
-        .circle(0, 0, effect.radius)
-        .fill(visual.primaryColor)
-        .stroke({ color: visual.outlineColor, width: 4 })
-        .circle(0, 0, effect.radius * 0.72)
-        .stroke({ color: visual.secondaryColor, width: 3 })
+      return this.createSkillBurstPlaceholder(effect, visual)
     } else if (visual.kind === 'chain') {
+      if (effect.skillId === CHAIN_LIGHTNING_SKILL_ID) {
+        return this.createChainLightningPlaceholder(effect)
+      }
       const points = effect.points.length > 0
         ? effect.points
         : [{ x: effect.x, y: effect.y }]
@@ -703,6 +750,741 @@ export class PixiGame {
         .circle(0, 0, effect.radius * 0.6)
         .fill(visual.primaryColor)
         .stroke({ color: visual.outlineColor, width: 2 })
+    }
+
+    return view
+  }
+
+  private createSkillBurstPlaceholder(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    if (effect.skillId === FIERY_TOUCH_SKILL_ID) {
+      return this.createFieryTouchBurst(effect, visual)
+    }
+    if (effect.skillId === GLACIAL_ORB_SKILL_ID) {
+      return this.createGlacialOrbBurst(effect, visual)
+    }
+    if (effect.skillId === WHIRLWIND_SKILL_ID) {
+      return this.createWhirlwindBurst(effect, visual)
+    }
+    if (effect.skillId === GRAVITY_WELL_SKILL_ID) {
+      return this.createGravityWellBurst(effect, visual)
+    }
+    if (effect.skillId === AEGIS_PULSE_SKILL_ID) {
+      return this.createAegisPulseBurst(effect, visual)
+    }
+    if (effect.skillId === CINDER_MINE_SKILL_ID) {
+      return this.createCinderMineBurst(effect, visual)
+    }
+
+    const radius = Math.max(1, effect.radius)
+    return new Graphics()
+      .poly(createStarPoints(radius, 12, 0.8))
+      .fill({ color: visual.primaryColor, alpha: 0.28 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.9 })
+      .poly(createStarPoints(radius * 0.7, 12, 0.7))
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.85 })
+  }
+
+  private createFieryTouchBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+    view
+      .poly(createStarPoints(radius, 14, 0.58))
+      .fill({ color: visual.primaryColor, alpha: 0.62 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.92 })
+      .poly(createStarPoints(radius * 0.67, 10, 0.64))
+      .fill({ color: visual.secondaryColor, alpha: 0.58 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.82 })
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (Math.PI * 2 * index) / 8 - Math.PI / 2
+      const inner = radius * 0.34
+      const outer = radius * (0.72 + (index % 2) * 0.12)
+      view
+        .poly([
+          Math.cos(angle - 0.16) * inner,
+          Math.sin(angle - 0.16) * inner,
+          Math.cos(angle) * outer,
+          Math.sin(angle) * outer,
+          Math.cos(angle + 0.16) * inner,
+          Math.sin(angle + 0.16) * inner,
+        ])
+        .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.75 })
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.75 })
+    }
+    return view
+  }
+
+  private createGlacialOrbBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createStarPoints(radius, 12, 0.72, Math.PI / 12))
+      .fill({ color: visual.primaryColor, alpha: 0.28 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.9 })
+      .poly(createStarPoints(radius * 0.54, 6, 0.82, Math.PI / 6))
+      .fill({ color: visual.secondaryColor, alpha: 0.72 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6
+      const inner = radius * 0.3
+      const outer = radius * 0.9
+      view
+        .moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner)
+        .lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer)
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.8 })
+    }
+    return view
+  }
+
+  private createWhirlwindBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+    for (let index = 0; index < 4; index += 1) {
+      const angle = (Math.PI * 2 * index) / 4 + 0.28
+      const inner = radius * 0.18
+      const outer = radius * (0.78 + (index % 2) * 0.12)
+      view
+        .poly([
+          Math.cos(angle - 0.3) * inner,
+          Math.sin(angle - 0.3) * inner,
+          Math.cos(angle - 0.08) * outer,
+          Math.sin(angle - 0.08) * outer,
+          Math.cos(angle + 0.22) * outer * 0.82,
+          Math.sin(angle + 0.22) * outer * 0.82,
+          Math.cos(angle + 0.42) * inner,
+          Math.sin(angle + 0.42) * inner,
+        ])
+        .fill({ color: index % 2 === 0 ? visual.primaryColor : visual.secondaryColor, alpha: 0.42 })
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.85 })
+    }
+    view
+      .circle(0, 0, radius * 0.2)
+      .fill({ color: visual.secondaryColor, alpha: 0.78 })
+      .stroke({ color: visual.outlineColor, width: 2 })
+    return view
+  }
+
+  private createGravityWellBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 9, Math.PI / 2))
+      .fill({ color: visual.primaryColor, alpha: 0.22 })
+      .stroke({ color: visual.secondaryColor, width: 3, alpha: 0.8 })
+      .poly(createPolygonPoints(radius * 0.66, 8, Math.PI / 8))
+      .fill({ color: '#1e1b4b', alpha: 0.64 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.72 })
+      .poly(createPolygonPoints(radius * 0.28, 6, 0))
+      .fill({ color: visual.outlineColor, alpha: 0.42 })
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6
+      const start = radius * 0.86
+      const end = radius * 0.58
+      view
+        .moveTo(Math.cos(angle) * start, Math.sin(angle) * start)
+        .lineTo(Math.cos(angle + 0.16) * end, Math.sin(angle + 0.16) * end)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.76 })
+    }
+    return view
+  }
+
+  private createAegisPulseBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const shieldPoints = [
+      0, -radius * 0.84,
+      radius * 0.62, -radius * 0.4,
+      radius * 0.48, radius * 0.48,
+      0, radius * 0.84,
+      -radius * 0.48, radius * 0.48,
+      -radius * 0.62, -radius * 0.4,
+    ]
+    const view = new Graphics()
+      .poly(createStarPoints(radius, 12, 0.86))
+      .fill({ color: visual.primaryColor, alpha: 0.18 })
+      .stroke({ color: visual.secondaryColor, width: 3, alpha: 0.78 })
+      .poly(shieldPoints)
+      .fill({ color: visual.primaryColor, alpha: 0.48 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.95 })
+      .moveTo(0, -radius * 0.48)
+      .lineTo(0, radius * 0.52)
+      .moveTo(-radius * 0.28, 0)
+      .lineTo(radius * 0.28, 0)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+    return view
+  }
+
+  private createCinderMineBurst(
+    effect: SkillEffectState,
+    visual: ReturnType<typeof getSkillDefinition>['visual'],
+  ): Graphics {
+    const radius = Math.max(1, effect.radius)
+    const definition = getSkillDefinition(CINDER_MINE_SKILL_ID)
+    const arming = effect.lifetime > definition.effectLifetime * 2
+    if (arming) {
+      return new Graphics()
+        .poly(createPolygonPoints(radius, 8, Math.PI / 8))
+        .fill({ color: visual.primaryColor, alpha: 0.08 })
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.55 })
+        .poly(createPolygonPoints(radius * 0.52, 8, 0))
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.78 })
+        .moveTo(-radius * 0.72, 0)
+        .lineTo(radius * 0.72, 0)
+        .moveTo(0, -radius * 0.72)
+        .lineTo(0, radius * 0.72)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.6 })
+    }
+    return new Graphics()
+      .poly(createStarPoints(radius, 18, 0.5))
+      .fill({ color: visual.primaryColor, alpha: 0.58 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.9 })
+      .poly(createStarPoints(radius * 0.62, 10, 0.72))
+      .fill({ color: visual.secondaryColor, alpha: 0.76 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.86 })
+  }
+
+  private createStormRelayStrikePlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(STORM_RELAY_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const view = new Graphics()
+    const origin = points[0]
+    if (!origin) {
+      return view
+    }
+
+    const relativePoints = points.map((point) => ({
+      x: point.x - effect.x,
+      y: point.y - effect.y,
+    }))
+    view.moveTo(relativePoints[0]!.x, relativePoints[0]!.y)
+    for (let index = 1; index < relativePoints.length; index += 1) {
+      const point = relativePoints[index]!
+      const previous = relativePoints[index - 1]!
+      const midX = (previous.x + point.x) / 2
+      const midY = (previous.y + point.y) / 2
+      const segmentX = point.x - previous.x
+      const segmentY = point.y - previous.y
+      const segmentLength = Math.hypot(segmentX, segmentY) || 1
+      const offset = index % 2 === 0 ? 9 : -9
+      view
+        .lineTo(
+          midX - (segmentY / segmentLength) * offset,
+          midY + (segmentX / segmentLength) * offset,
+        )
+        .lineTo(point.x, point.y)
+    }
+    view
+      .stroke({ color: visual.outlineColor, width: 11, alpha: 0.14 })
+      .moveTo(relativePoints[0]!.x, relativePoints[0]!.y)
+    for (let index = 1; index < relativePoints.length; index += 1) {
+      const point = relativePoints[index]!
+      const previous = relativePoints[index - 1]!
+      const midX = (previous.x + point.x) / 2
+      const midY = (previous.y + point.y) / 2
+      const segmentX = point.x - previous.x
+      const segmentY = point.y - previous.y
+      const segmentLength = Math.hypot(segmentX, segmentY) || 1
+      const offset = index % 2 === 0 ? 9 : -9
+      view
+        .lineTo(
+          midX - (segmentY / segmentLength) * offset,
+          midY + (segmentX / segmentLength) * offset,
+        )
+        .lineTo(point.x, point.y)
+    }
+    view.stroke({ color: visual.secondaryColor, width: 3, alpha: 0.95 })
+    for (const point of relativePoints.slice(1)) {
+      view
+        .poly([point.x, point.y - 7, point.x + 7, point.y, point.x, point.y + 7, point.x - 7, point.y])
+        .fill({ color: visual.primaryColor, alpha: 0.8 })
+        .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+    return view
+  }
+
+  private createChainLightningPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(CHAIN_LIGHTNING_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const view = new Graphics()
+    const relativePoints = points.map((point) => ({
+      x: point.x - effect.x,
+      y: point.y - effect.y,
+    }))
+    const drawArc = (width: number, color: string, alpha: number): void => {
+      const origin = relativePoints[0]
+      if (!origin) {
+        return
+      }
+      view.moveTo(origin.x, origin.y)
+      for (let index = 1; index < relativePoints.length; index += 1) {
+        const previous = relativePoints[index - 1]!
+        const point = relativePoints[index]!
+        const segmentX = point.x - previous.x
+        const segmentY = point.y - previous.y
+        const segmentLength = Math.hypot(segmentX, segmentY) || 1
+        const offset = index % 2 === 0 ? 7 : -7
+        view
+          .lineTo(
+            (previous.x + point.x) / 2 - (segmentY / segmentLength) * offset,
+            (previous.y + point.y) / 2 + (segmentX / segmentLength) * offset,
+          )
+          .lineTo(point.x, point.y)
+      }
+      view.stroke({ color, width, alpha })
+    }
+    drawArc(10, visual.outlineColor, 0.16)
+    drawArc(3, visual.secondaryColor, 0.92)
+    for (const point of relativePoints.slice(1)) {
+      view
+        .poly([point.x, point.y - 6, point.x + 6, point.y, point.x, point.y + 6, point.x - 6, point.y])
+        .fill({ color: visual.primaryColor, alpha: 0.85 })
+        .stroke({ color: visual.outlineColor, width: 1.5 })
+    }
+    return view
+  }
+
+  private createLancersChargePlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(LANCERS_CHARGE_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const start = points[0]
+    const end = points[points.length - 1]
+    const view = new Graphics()
+    if (!start || !end) {
+      return view
+    }
+    const endX = end.x - effect.x
+    const endY = end.y - effect.y
+    const directionX = endX - (start.x - effect.x)
+    const directionY = endY - (start.y - effect.y)
+    const length = Math.hypot(directionX, directionY) || 1
+    const forwardX = directionX / length
+    const forwardY = directionY / length
+    const normalX = -forwardY
+    const normalY = forwardX
+    const width = Math.max(8, effect.radius)
+    const startX = start.x - effect.x
+    const startY = start.y - effect.y
+    const spearTipX = endX + forwardX * width * 0.72
+    const spearTipY = endY + forwardY * width * 0.72
+    view
+      .poly([
+        startX + normalX * width,
+        startY + normalY * width,
+        endX + normalX * width * 0.62,
+        endY + normalY * width * 0.62,
+        spearTipX,
+        spearTipY,
+        endX - normalX * width * 0.62,
+        endY - normalY * width * 0.62,
+        startX - normalX * width,
+        startY - normalY * width,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.28 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.9 })
+    for (let index = 1; index < 4; index += 1) {
+      const progress = index / 4
+      const centerX = startX + directionX * progress
+      const centerY = startY + directionY * progress
+      view
+        .moveTo(centerX + normalX * width * 0.55, centerY + normalY * width * 0.55)
+        .lineTo(centerX - normalX * width * 0.55, centerY - normalY * width * 0.55)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.78 })
+    }
+    return view
+  }
+
+  private createMirrorcastLinkPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(MIRRORCAST_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const start = points[0]
+    const end = points[points.length - 1]
+    const view = new Graphics()
+    if (!start || !end) {
+      return view
+    }
+    const startX = start.x - effect.x
+    const startY = start.y - effect.y
+    const endX = end.x - effect.x
+    const endY = end.y - effect.y
+    const directionX = endX - startX
+    const directionY = endY - startY
+    const length = Math.hypot(directionX, directionY) || 1
+    const normalX = -directionY / length
+    const normalY = directionX / length
+    view
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.primaryColor, width: 9, alpha: 0.12 })
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.78 })
+    const shardCount = Math.max(2, Math.min(5, Math.floor(length / 42)))
+    for (let index = 1; index <= shardCount; index += 1) {
+      const progress = index / (shardCount + 1)
+      const centerX = startX + directionX * progress
+      const centerY = startY + directionY * progress
+      const size = 7 + (index % 2) * 2
+      view
+        .poly([
+          centerX + normalX * size,
+          centerY + normalY * size,
+          centerX + directionX / length * size,
+          centerY + directionY / length * size,
+          centerX - normalX * size,
+          centerY - normalY * size,
+          centerX - directionX / length * size,
+          centerY - directionY / length * size,
+        ])
+        .fill({ color: visual.primaryColor, alpha: 0.34 })
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.85 })
+    }
+    return view
+  }
+
+  private createBoneBoltPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(RAISE_SKELETON_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const start = points[0]
+    const end = points[points.length - 1]
+    const view = new Graphics()
+    if (!start || !end) {
+      return view
+    }
+    const startX = start.x - effect.x
+    const startY = start.y - effect.y
+    const endX = end.x - effect.x
+    const endY = end.y - effect.y
+    const directionX = endX - startX
+    const directionY = endY - startY
+    const length = Math.hypot(directionX, directionY) || 1
+    const normalX = -directionY / length
+    const normalY = directionX / length
+    view
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.primaryColor, width: 7, alpha: 0.16 })
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.9 })
+    const boneCount = Math.max(2, Math.min(6, Math.floor(length / 30)))
+    for (let index = 1; index <= boneCount; index += 1) {
+      const progress = index / (boneCount + 1)
+      const centerX = startX + directionX * progress
+      const centerY = startY + directionY * progress
+      view
+        .moveTo(centerX - normalX * 5, centerY - normalY * 5)
+        .lineTo(centerX + normalX * 5, centerY + normalY * 5)
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.85 })
+    }
+    return view
+  }
+
+  private createVitalityPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(VITALITY_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 8, Math.PI / 8))
+      .fill({ color: visual.primaryColor, alpha: 0.12 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.7 })
+      .poly([
+        0, -radius * 0.52,
+        radius * 0.4, -radius * 0.18,
+        0, radius * 0.66,
+        -radius * 0.4, -radius * 0.18,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.62 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+      .moveTo(0, -radius * 0.36)
+      .lineTo(0, radius * 0.42)
+      .moveTo(-radius * 0.25, 0)
+      .lineTo(radius * 0.25, 0)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+    for (let index = 0; index < 4; index += 1) {
+      const angle = (Math.PI / 2) * index
+      const x = Math.cos(angle) * radius * 0.82
+      const y = Math.sin(angle) * radius * 0.82
+      view
+        .poly([
+          x,
+          y - 5,
+          x + Math.cos(angle) * 8,
+          y + Math.sin(angle) * 8,
+          x + Math.sin(angle) * 5,
+          y - Math.cos(angle) * 5,
+        ])
+        .fill({ color: visual.secondaryColor, alpha: 0.68 })
+    }
+    return view
+  }
+
+  private createSkeletonRitualPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(RAISE_SKELETON_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    return new Graphics()
+      .poly(createPolygonPoints(radius, 8, Math.PI / 8))
+      .fill({ color: visual.primaryColor, alpha: 0.1 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.76 })
+      .poly([
+        -radius * 0.3, -radius * 0.18,
+        -radius * 0.3, radius * 0.24,
+        -radius * 0.12, radius * 0.4,
+        radius * 0.12, radius * 0.4,
+        radius * 0.3, radius * 0.24,
+        radius * 0.3, -radius * 0.18,
+        radius * 0.12, -radius * 0.4,
+        -radius * 0.12, -radius * 0.4,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.65 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
+      .circle(-radius * 0.12, -radius * 0.1, 2.5)
+      .fill(visual.outlineColor)
+      .circle(radius * 0.12, -radius * 0.1, 2.5)
+      .fill(visual.outlineColor)
+      .moveTo(-radius * 0.2, radius * 0.18)
+      .lineTo(radius * 0.2, radius * 0.18)
+      .stroke({ color: visual.outlineColor, width: 2 })
+  }
+
+  private createBloodPulsePlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(BLOOD_RITE_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createStarPoints(radius, 16, 0.5))
+      .fill({ color: visual.primaryColor, alpha: 0.26 })
+      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.88 })
+      .poly(createPolygonPoints(radius * 0.58, 8, Math.PI / 8))
+      .fill({ color: visual.secondaryColor, alpha: 0.38 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.8 })
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (Math.PI * 2 * index) / 8
+      view
+        .moveTo(Math.cos(angle) * radius * 0.26, Math.sin(angle) * radius * 0.26)
+        .lineTo(Math.cos(angle) * radius * 0.82, Math.sin(angle) * radius * 0.82)
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.58 })
+    }
+    return view
+  }
+
+  private createSigilCastPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(SIGIL_OF_RUIN_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 6, -Math.PI / 2))
+      .fill({ color: visual.primaryColor, alpha: 0.2 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.82 })
+      .poly(createPolygonPoints(radius * 0.62, 3, -Math.PI / 2))
+      .fill({ color: visual.secondaryColor, alpha: 0.18 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.86 })
+    for (let index = 0; index < 3; index += 1) {
+      const angle = (Math.PI * 2 * index) / 3 - Math.PI / 2
+      view
+        .moveTo(Math.cos(angle) * radius * 0.18, Math.sin(angle) * radius * 0.18)
+        .lineTo(Math.cos(angle) * radius * 0.82, Math.sin(angle) * radius * 0.82)
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.72 })
+    }
+    return view
+  }
+
+  private createMirrorcastCastPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(MIRRORCAST_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 4, Math.PI / 4))
+      .fill({ color: visual.primaryColor, alpha: 0.18 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+      .poly(createPolygonPoints(radius * 0.54, 4, 0))
+      .fill({ color: visual.secondaryColor, alpha: 0.34 })
+      .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.82 })
+    for (let index = 0; index < 4; index += 1) {
+      const angle = (Math.PI / 2) * index + Math.PI / 4
+      view
+        .moveTo(Math.cos(angle) * radius * 0.65, Math.sin(angle) * radius * 0.65)
+        .lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.72 })
+    }
+    return view
+  }
+
+  private createPhantomSummonPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID).visual
+    const radius = Math.max(1, effect.radius)
+    const view = new Graphics()
+      .poly(createPolygonPoints(radius, 6, -Math.PI / 2))
+      .fill({ color: visual.primaryColor, alpha: 0.12 })
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.72 })
+      .poly([
+        -radius * 0.42, radius * 0.26,
+        -radius * 0.22, -radius * 0.38,
+        0, -radius * 0.62,
+        radius * 0.22, -radius * 0.38,
+        radius * 0.42, radius * 0.26,
+        radius * 0.18, radius * 0.52,
+        -radius * 0.18, radius * 0.52,
+      ])
+      .fill({ color: visual.primaryColor, alpha: 0.5 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.88 })
+      .moveTo(-radius * 0.2, -radius * 0.06)
+      .lineTo(radius * 0.2, -radius * 0.06)
+      .moveTo(0, -radius * 0.24)
+      .lineTo(0, radius * 0.3)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.82 })
+    return view
+  }
+
+  private createPrismBeamPlaceholder(effect: SkillEffectState): Graphics {
+    const visual = getSkillDefinition(PRISM_HALO_SKILL_ID).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const start = points[0]
+    const end = points[points.length - 1]
+    const view = new Graphics()
+    if (!start || !end) {
+      return view
+    }
+
+    const startX = start.x - effect.x
+    const startY = start.y - effect.y
+    const endX = end.x - effect.x
+    const endY = end.y - effect.y
+    const length = Math.hypot(endX - startX, endY - startY)
+    if (length <= 0) {
+      return view
+    }
+
+    const directionX = (endX - startX) / length
+    const directionY = (endY - startY) / length
+    const perpendicularX = -directionY
+    const perpendicularY = directionX
+    const beamColors = effect.prismBeamElement === 'all'
+      ? (['#f97316', '#38bdf8', '#fef08a'] as const)
+      : effect.prismBeamElement === 'fire'
+        ? (['#f97316'] as const)
+        : effect.prismBeamElement === 'cold'
+          ? (['#38bdf8'] as const)
+          : (['#fef08a'] as const)
+
+    const facetCount = Math.max(3, Math.min(8, Math.floor(length / 46)))
+    const facetHalfWidth = effect.prismBeamElement === 'all' ? 9 : 7
+
+    // Prism Halo is built from angular facets and a refracting core, not a
+    // tether-like line with circular nodes.
+    view
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.outlineColor, width: 24, alpha: 0.12 })
+      .moveTo(startX, startY)
+      .lineTo(endX, endY)
+      .stroke({ color: visual.primaryColor, width: 13, alpha: 0.16 })
+
+    for (let index = 0; index < facetCount; index += 1) {
+      const startProgress = index / facetCount
+      const endProgress = (index + 1) / facetCount
+      const centerProgress = (startProgress + endProgress) / 2
+      const facetStartX = startX + (endX - startX) * startProgress
+      const facetStartY = startY + (endY - startY) * startProgress
+      const facetEndX = startX + (endX - startX) * endProgress
+      const facetEndY = startY + (endY - startY) * endProgress
+      const centerX = startX + (endX - startX) * centerProgress
+      const centerY = startY + (endY - startY) * centerProgress
+      const width = facetHalfWidth * (index % 2 === 0 ? 1 : 0.72)
+      const color = beamColors[index % beamColors.length]!
+      const leftStartX = facetStartX + perpendicularX * width
+      const leftStartY = facetStartY + perpendicularY * width
+      const rightStartX = facetStartX - perpendicularX * width
+      const rightStartY = facetStartY - perpendicularY * width
+      const leftEndX = facetEndX + perpendicularX * width
+      const leftEndY = facetEndY + perpendicularY * width
+      const rightEndX = facetEndX - perpendicularX * width
+      const rightEndY = facetEndY - perpendicularY * width
+
+      view
+        .poly([
+          leftStartX, leftStartY,
+          centerX, centerY - perpendicularY * width * 0.68,
+          leftEndX, leftEndY,
+          rightEndX, rightEndY,
+          centerX, centerY + perpendicularY * width * 0.68,
+          rightStartX, rightStartY,
+        ])
+        .fill({ color, alpha: effect.prismBeamElement === 'all' ? 0.52 : 0.62 })
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.82 })
+        .moveTo(leftStartX, leftStartY)
+        .lineTo(rightEndX, rightEndY)
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.55 })
+    }
+
+    const corePoints: number[] = [startX, startY]
+    for (let index = 1; index < facetCount; index += 1) {
+      const progress = index / facetCount
+      const offset = index % 2 === 0 ? -2.5 : 2.5
+      corePoints.push(
+        startX + (endX - startX) * progress + perpendicularX * offset,
+        startY + (endY - startY) * progress + perpendicularY * offset,
+      )
+    }
+    corePoints.push(endX, endY)
+    view
+      .poly(corePoints)
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.95 })
+
+    const crestLength = Math.min(24, Math.max(12, length * 0.1))
+    const crestX = endX - directionX * crestLength
+    const crestY = endY - directionY * crestLength
+    view
+      .moveTo(crestX + perpendicularX * 10, crestY + perpendicularY * 10)
+      .lineTo(endX, endY)
+      .lineTo(crestX - perpendicularX * 10, crestY - perpendicularY * 10)
+      .lineTo(
+        crestX - directionX * crestLength * 0.34,
+        crestY - directionY * crestLength * 0.34,
+      )
+      .closePath()
+      .fill({ color: beamColors[beamColors.length - 1]!, alpha: 0.7 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
+
+    const apertureSize = effect.prismBeamElement === 'all' ? 15 : 12
+    for (let endpointIndex = 0; endpointIndex < 2; endpointIndex += 1) {
+      const point = endpointIndex === 0 ? start : end
+      const pointX = point.x - effect.x
+      const pointY = point.y - effect.y
+      const aperturePoints: number[] = []
+      for (let index = 0; index < 6; index += 1) {
+        const angle = Math.atan2(directionY, directionX) +
+          (Math.PI / 3) * index
+        aperturePoints.push(
+          pointX + Math.cos(angle) * apertureSize,
+          pointY + Math.sin(angle) * apertureSize,
+        )
+      }
+      view
+        .poly(aperturePoints)
+        .fill({ color: beamColors[endpointIndex % beamColors.length]!, alpha: 0.16 })
+        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
     }
 
     return view
@@ -767,10 +1549,10 @@ export class PixiGame {
     const pulse = armed
       ? 1 + Math.sin(time * 12 + trap.id) * 0.08
       : 1 + Math.sin(time * 8 + trap.id) * 0.04
-    const mineRadius = 12 * pulse
+    const mineRadius = 14 * pulse
     view.clear()
     view
-      .circle(0, 0, trap.radius)
+      .poly(createPolygonPoints(trap.radius, 8, Math.PI / 8))
       .stroke({
         color: visual.primaryColor,
         width: armed ? 3 : 2,
@@ -778,25 +1560,46 @@ export class PixiGame {
       })
       .poly([
         0, -mineRadius,
-        mineRadius, 0,
+        mineRadius * 0.72, -mineRadius * 0.34,
+        mineRadius * 0.62, mineRadius * 0.62,
         0, mineRadius,
-        -mineRadius, 0,
+        -mineRadius * 0.62, mineRadius * 0.62,
+        -mineRadius * 0.72, -mineRadius * 0.34,
       ])
       .fill({ color: visual.primaryColor, alpha: armed ? 0.9 : 0.55 })
       .stroke({ color: visual.outlineColor, width: 2 })
-      .circle(0, 0, mineRadius * 0.42)
+      .poly(createPolygonPoints(mineRadius * 0.42, 6, Math.PI / 6))
       .fill(visual.secondaryColor)
+      .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.9 })
+    for (let index = 0; index < 6; index += 1) {
+      const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2
+      const inner = mineRadius * 0.72
+      const outer = mineRadius * 1.1
+      view
+        .poly([
+          Math.cos(angle - 0.14) * inner,
+          Math.sin(angle - 0.14) * inner,
+          Math.cos(angle) * outer,
+          Math.sin(angle) * outer,
+          Math.cos(angle + 0.14) * inner,
+          Math.sin(angle + 0.14) * inner,
+        ])
+        .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: armed ? 0.85 : 0.45 })
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.72 })
+    }
     if (!armed) {
       view
-        .moveTo(-5, 0)
-        .lineTo(5, 0)
-        .moveTo(0, -5)
-        .lineTo(0, 5)
+        .moveTo(-mineRadius * 0.32, mineRadius * 0.08)
+        .lineTo(mineRadius * 0.32, mineRadius * 0.08)
+        .moveTo(0, -mineRadius * 0.32)
+        .lineTo(0, mineRadius * 0.38)
         .stroke({ color: visual.outlineColor, width: 2 })
     } else {
       view
-        .circle(0, 0, trap.radius * 0.72)
+        .poly(createPolygonPoints(trap.radius * 0.72, 8, Math.PI / 8))
         .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.7 })
+        .poly(createStarPoints(trap.radius * 0.32, 8, 0.4))
+        .fill({ color: visual.outlineColor, alpha: 0.72 })
     }
   }
 
@@ -1834,6 +2637,30 @@ export class PixiGame {
     this.app.destroy({ removeView: true }, { children: true })
     this.initialized = false
   }
+}
+
+function createPolygonPoints(
+  radius: number,
+  sides: number,
+  rotation = 0,
+): number[] {
+  return Array.from({ length: sides }, (_, index) => {
+    const angle = rotation + (Math.PI * 2 * index) / sides
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius]
+  }).flat()
+}
+
+function createStarPoints(
+  radius: number,
+  points: number,
+  innerRatio: number,
+  rotation = 0,
+): number[] {
+  return Array.from({ length: points * 2 }, (_, index) => {
+    const angle = rotation + (Math.PI * index) / points
+    const pointRadius = index % 2 === 0 ? radius : radius * innerRatio
+    return [Math.cos(angle) * pointRadius, Math.sin(angle) * pointRadius]
+  }).flat()
 }
 
 function applyEnemyRenderScale(

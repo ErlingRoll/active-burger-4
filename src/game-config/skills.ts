@@ -268,7 +268,7 @@ export const BASIC_ATTACK_VARIANTS = {
   },
   staff: {
     id: 'staff',
-    description: 'Creates a 40-unit area hit that poisons every enemy it strikes for 4 seconds. Each poison stack deals 50% of the applying hit physical and chaos damage per second.',
+    description: 'Creates a 40-unit physical area hit that poisons every enemy it strikes for 4 seconds. Each Poison stack deals Chaos damage per second equal to 50% of the applying hit physical and chaos damage.',
     kind: 'area',
     attackRange: 110,
     tags: ['physical', 'area', 'dot'],
@@ -617,7 +617,7 @@ export const SKILL_DEFINITIONS = {
   [CINDER_MINE_SKILL_ID]: {
     id: CINDER_MINE_SKILL_ID,
     name: 'Cinder Mine',
-    description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then explodes and leaves every enemy caught in the blast Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds.`,
+    description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then deals Fire damage in its blast and leaves every enemy caught in it Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds. Burning deals Fire damage over time.`,
     kind: 'area',
     tags: ['fire', 'area', 'dot'],
     canProduceDirectHit: true,
@@ -670,7 +670,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, dealing chaos damage over time and restoring a portion of that damage as health. Tethers are independent, and each snaps to one weaker nearby enemy when its target dies.`,
+    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores a portion of that damage as health. Tethers are independent, and each snaps to one weaker nearby enemy when its target dies.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger'],
     canProduceDirectHit: false,
@@ -827,7 +827,7 @@ export const SKILL_DEFINITIONS = {
   [PRISM_HALO_SKILL_ID]: {
     id: PRISM_HALO_SKILL_ID,
     name: 'Prism Halo',
-    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Burning, Chill, and Shock.`,
+    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock.`,
     kind: 'utility',
     tags: ['fire', 'cold', 'lightning', 'duration'],
     canProduceDirectHit: true,

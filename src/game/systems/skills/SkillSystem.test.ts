@@ -1138,7 +1138,7 @@ describe('skill system', () => {
       expect(burningEvents).toEqual([
         expect.objectContaining({ targetId, sourceLabel: 'Burning', damageOverTime: true }),
       ])
-      expect(burningEvents[0]?.damage.fire).toBeCloseTo(6.3)
+      expect(burningEvents[0]?.damage.fire).toBeCloseTo(6)
     })
 
     it('deploys a second, weaker mine with Cluster Charges', () => {
@@ -1304,6 +1304,32 @@ describe('skill system', () => {
       ])
       applyDamageEvents(game.state, events)
       expect(game.state.player.hp).toBeGreaterThan(50)
+    })
+
+    it('applies DoT multiplier to Soul Tether ticks', () => {
+      const game = createGame({ seed: 20260901 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const targetId = game.spawnSlime({ x: 60, y: 0 })
+      const target = game.state.enemies.find((enemy) => enemy.id === targetId)!
+      target.hp = 1_000
+      target.maxHp = 1_000
+      equipRolledItem(
+        game.state.player,
+        'swiftstride-boots',
+        Rarity.Common,
+        [createGearModifier('swiftstride-boots', 'dot-multiplier', 1, 20)],
+      )
+
+      collectSkillDamage(game.state, allocator)
+      const [tick] = updateSoulTether(game.state, 1, allocator)
+
+      expect(tick?.damage.chaos).toBeCloseTo(7)
+      applyDamageEvents(game.state, [tick!])
+      expect(target.hp).toBeCloseTo(991.6)
     })
 
     it('keeps cooldown-overlapping tethers independent, including their visuals', () => {

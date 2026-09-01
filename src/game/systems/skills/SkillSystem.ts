@@ -2625,6 +2625,7 @@ export function updateBloodDebt(
 
 const PRISM_ELEMENTS = ['fire', 'cold', 'lightning'] as const
 type PrismElement = (typeof PRISM_ELEMENTS)[number]
+type PrismBeamElement = PrismElement | 'all'
 
 function getPrismStatusApplications(
   element: PrismElement,
@@ -2777,10 +2778,35 @@ function firePrismShard(
         'line',
       )
     }
+
   }
 
   events.push(...updatePrismConvergence(state, target, element, shardDamage, profile.criticalStrike))
   return events
+}
+
+function addPrismBeamEffect(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  target: Readonly<EnemyState | BossState>,
+  beamElement: PrismBeamElement,
+): void {
+  const definition = getSkillDefinition(PRISM_HALO_SKILL_ID)
+  state.effects.push({
+    id: allocator.createEntityId(),
+    skillId: PRISM_HALO_SKILL_ID,
+    shape: 'line',
+    prismBeamElement: beamElement,
+    x: state.player.x,
+    y: state.player.y,
+    radius: 6,
+    lifetime: definition.effectLifetime,
+    remainingLifetime: definition.effectLifetime,
+    points: [
+      { x: state.player.x, y: state.player.y },
+      { x: target.x, y: target.y },
+    ],
+  })
 }
 
 /** Ticks the Prism Halo: advances rotation and fires shards on the interval. */
@@ -2825,17 +2851,14 @@ export function updatePrismHalo(
     halo.nextElementIndex = (halo.nextElementIndex + 1) % PRISM_ELEMENTS.length
     events.push(...firePrismShard(state, allocator, target, element, true))
   }
-  addEffect(
+  addPrismBeamEffect(
     state,
     allocator,
-    PRISM_HALO_SKILL_ID,
-    [
-      { x: state.player.x, y: state.player.y },
-      { x: target.x, y: target.y },
-    ],
-    6,
-    definition.effectLifetime,
-    'line',
+    target,
+    halo.firesAllElements
+      ? 'all'
+      : PRISM_ELEMENTS[(halo.nextElementIndex + PRISM_ELEMENTS.length - 1) %
+        PRISM_ELEMENTS.length]!,
   )
   return events
 }

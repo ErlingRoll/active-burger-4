@@ -39,6 +39,16 @@ export interface ResolvedOutgoingDamage {
   poisonApplication?: DamageEvent['poisonApplication']
 }
 
+/**
+ * Player damage pipeline:
+ * 1. Basic Attacks add flat damage, then apply increased damage.
+ * 2. Other sources apply their native base damage and increased damage.
+ * 3. Attunement is calculated from the finalized, pre-crit Basic Attack and
+ *    appended as typed damage without reapplying the skill's native increases.
+ * 4. Periodic player damage applies DoT multiplier once when the event resolves.
+ * 5. Critical strikes (when present) and target resistance resolve afterward.
+ */
+
 export function getAttunementSourceAdditionalIncreasedDamage(
   state: Readonly<GameState>,
 ): Partial<Record<DamageIncreaseType, number>> {

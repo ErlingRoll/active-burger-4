@@ -850,7 +850,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'rift-javelin-barbed',
     name: 'Barbed Javelin',
-    description: `Rift Javelin hits apply a Poison stack lasting ${RIFT_JAVELIN_BARBED_DURATION_SECONDS} seconds.`,
+    description: `Rift Javelin hits apply a Poison stack lasting ${RIFT_JAVELIN_BARBED_DURATION_SECONDS} seconds that deals Chaos damage over time.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
@@ -911,7 +911,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'cinder-mine-inferno',
     name: 'Inferno Charge',
-    description: `Cinder Mine's blast radius grows by ${CINDER_MINE_INFERNO_RADIUS_BONUS} and its Burning stacks deal more damage.`,
+    description: `Cinder Mine's Fire blast radius grows by ${CINDER_MINE_INFERNO_RADIUS_BONUS} and its Burning stacks deal more Fire damage over time.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
@@ -1410,7 +1410,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: 'All three elements trigger Prism Burst',
     skillId: PRISM_HALO_SKILL_ID,
     branch: 'prism-halo-chromatic-convergence',
-    evolutionTags: ['prism', 'convergence'],
+    evolutionTags: ['convergence'],
     prismHaloChromaticConvergence: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(PRISM_HALO_SKILL_ID) &&
@@ -1427,7 +1427,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `Impacts split into ${PRISM_HALO_REFRACTION_MAX_SPLITS} shards`,
     skillId: PRISM_HALO_SKILL_ID,
     branch: 'prism-halo-refraction',
-    evolutionTags: ['prism'],
+    evolutionTags: ['projectile-chain'],
     prismHaloRefraction: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(PRISM_HALO_SKILL_ID) &&

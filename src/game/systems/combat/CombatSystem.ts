@@ -28,6 +28,7 @@ import {
 } from '../../../content/upgrades/Upgrades'
 import {
   DAMAGE_TYPES,
+  applyDotMultiplier,
   addDamageValues,
   createDamageValues,
   isCriticalStrike,
@@ -331,6 +332,7 @@ function collectFieryTouchTriggerEvents(
             sourceLabel: 'Wildfire',
             targetId: enemy.id,
             damage: createDamageValues({ fire: burstDamage }),
+            damageOverTime: true,
           })
         }
       }
@@ -1249,20 +1251,30 @@ export function collectProjectileDamage(
 }
 
 function resolveEventDamage(
+  state: Readonly<GameState>,
   event: Readonly<DamageEvent>,
   resistances: Readonly<Partial<DamageResistanceValues>> | undefined,
   rng?: Pick<RandomSource, 'next'>,
 ): ResolvedDamage {
+  // DoT scaling belongs here so direct applications and periodic ticks cannot
+  // accidentally apply the player's multiplier twice.
+  const isPlayerOwnedSource = event.sourceId === state.player.id ||
+    state.summons.some(
+      (summon) => summon.id === event.sourceId && summon.ownerId === state.player.id,
+    )
+  const damageOverTime = event.damageOverTime && isPlayerOwnedSource
+    ? applyDotMultiplier(event.damage, getDerivedPlayerStats(state.player).dotMultiplier)
+    : event.damage
   const criticalStrike = event.criticalStrike
   const isCritical = criticalStrike
     ? isCriticalStrike(criticalStrike, rng?.next() ?? 1)
     : false
   const damageAfterCrit = criticalStrike && isCritical
     ? scaleDamageValues(
-        event.damage,
+        damageOverTime,
         normalizeCriticalStrikeStats(criticalStrike).multiplier / 100,
       )
-    : event.damage
+    : damageOverTime
   return {
     preMitigation: damageAfterCrit,
     mitigated: mitigateDamageValues(damageAfterCrit, resistances),
@@ -1315,6 +1327,7 @@ export function applyDamageEvents(
         ? event
         : { ...event, damage: scaleDamageValues(event.damage, playerDamageFactor) }
       const resolvedDamage = resolveEventDamage(
+        state,
         playerEvent,
         getDerivedPlayerStats(state.player).resistances,
         rng,
@@ -1370,7 +1383,7 @@ export function applyDamageEvents(
       (candidate) => candidate.id === event.targetId && candidate.hp > 0,
     )
     if (summon) {
-      const resolvedDamage = resolveEventDamage(event, undefined, rng)
+      const resolvedDamage = resolveEventDamage(state, event, undefined, rng)
       summon.hp = Math.max(
         0,
         summon.hp - sumDamageValues(resolvedDamage.mitigated),
@@ -1391,7 +1404,7 @@ export function applyDamageEvents(
       const enemyEvent = shatters
         ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
         : event
-      const resolvedDamage = resolveEventDamage(enemyEvent, enemy.resistances, rng)
+      const resolvedDamage = resolveEventDamage(state, enemyEvent, enemy.resistances, rng)
       const actualDamage = Math.min(
         enemy.hp,
         sumDamageValues(resolvedDamage.mitigated),
@@ -1440,7 +1453,7 @@ export function applyDamageEvents(
       const bossEvent = shatters
         ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
         : event
-      const resolvedDamage = resolveEventDamage(bossEvent, boss.resistances, rng)
+      const resolvedDamage = resolveEventDamage(state, bossEvent, boss.resistances, rng)
       const actualDamage = Math.min(
         boss.hp,
         sumDamageValues(resolvedDamage.mitigated),
@@ -1634,7 +1647,7 @@ export function updateFrost(
 }
 
 function applyPoisonApplication(
-  state: GameState,
+  state: Readonly<GameState>,
   target: EnemyState | PlayerState,
   event: Readonly<DamageEvent>,
   preMitigationDamage: Readonly<DamageValues>,
@@ -1644,12 +1657,8 @@ function applyPoisonApplication(
     return
   }
   const sourceDamage = preMitigationDamage.physical + preMitigationDamage.chaos
-  const dotMultiplier = event.sourceId === state.player.id
-    ? getDerivedPlayerStats(state.player).dotMultiplier
-    : 0
   const damagePerSecond = sourceDamage *
-    application.physicalChaosRatio *
-    (1 + dotMultiplier / 100)
+    application.physicalChaosRatio
   if (damagePerSecond <= 0) {
     return
   }
@@ -1658,6 +1667,12 @@ function applyPoisonApplication(
     remainingDuration: application.durationSeconds,
     damagePerSecond,
     ...(event.sourceSkillId ? { sourceSkillId: event.sourceSkillId } : {}),
+    ...(event.sourceId !== undefined &&
+      state.summons.some(
+        (summon) => summon.id === event.sourceId && summon.ownerId === state.player.id,
+      )
+      ? { sourceId: event.sourceId }
+      : {}),
   })
 }
 
@@ -1682,6 +1697,11 @@ export function updatePoison(
       const damage = stack.damagePerSecond * Math.min(elapsed, stack.remainingDuration)
       if (damage > 0) {
         events.push({
+          ...(stack.sourceId !== undefined
+            ? { sourceId: stack.sourceId }
+            : stack.sourceSkillId
+              ? { sourceId: state.player.id }
+              : {}),
           sourceLabel: 'Poison',
           ...(stack.sourceSkillId ? { sourceSkillId: stack.sourceSkillId } : {}),
           targetId: target.id,
@@ -1708,12 +1728,8 @@ function applyBurningApplication(
   if (!application || target.hp <= 0) {
     return
   }
-  const dotMultiplier = event.sourceId === state.player.id
-    ? getDerivedPlayerStats(state.player).dotMultiplier
-    : 0
   const damagePerSecond = preMitigationDamage.fire *
-    application.fireDamageRatio *
-    (1 + dotMultiplier / 100)
+    application.fireDamageRatio
   if (damagePerSecond <= 0) {
     return
   }
@@ -1722,6 +1738,12 @@ function applyBurningApplication(
     remainingDuration: application.durationSeconds,
     damagePerSecond,
     ...(event.sourceSkillId ? { sourceSkillId: event.sourceSkillId } : {}),
+    ...(event.sourceId !== undefined &&
+      state.summons.some(
+        (summon) => summon.id === event.sourceId && summon.ownerId === state.player.id,
+      )
+      ? { sourceId: event.sourceId }
+      : {}),
   })
 }
 
@@ -1742,6 +1764,11 @@ export function updateBurning(
       const damage = stack.damagePerSecond * Math.min(elapsed, stack.remainingDuration)
       if (damage > 0) {
         events.push({
+          ...(stack.sourceId !== undefined
+            ? { sourceId: stack.sourceId }
+            : stack.sourceSkillId
+              ? { sourceId: state.player.id }
+              : {}),
           sourceLabel: 'Burning',
           ...(stack.sourceSkillId ? { sourceSkillId: stack.sourceSkillId } : {}),
           targetId: target.id,

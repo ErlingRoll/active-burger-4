@@ -31,8 +31,8 @@ export type KeywordId =
   | 'wire'
   | 'tension'
   | 'blood-debt'
-  | 'prism'
   | 'convergence'
+  | 'prism-burst'
 
 export interface KeywordDefinition {
   id: KeywordId
@@ -47,14 +47,14 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Poison',
     summary: 'Damage over time applied by a hit.',
     details:
-      'Each application creates a separate stack. Its damage and duration come from the source skill or modifier.',
+      'Each application creates a separate stack of Chaos damage over time. Its damage and duration come from the source skill or modifier; player-owned stacks are increased by DoT multiplier.',
   },
   burning: {
     id: 'burning',
     label: 'Burning',
     summary: 'A fire damage-over-time stack.',
     details:
-      'Each application creates a separate stack that deals fire damage per second based on the applying hit\'s fire damage. Cinder Mine applies Burning to every enemy caught in its explosion.',
+      'Each application creates a separate stack that deals Fire damage per second based on the applying hit\'s Fire damage. DoT multiplier increases the damage of player-owned Burning ticks, including Burning created by Cinder Mine or a Prismatic Ruin.',
   },
   frost: {
     id: 'frost',
@@ -166,7 +166,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Damage over time',
     summary: 'Damage dealt gradually instead of in one hit.',
     details:
-      'Damage over time effects tick during their duration. Poison and Burning are the current player-applied damage-over-time effects.',
+      'Damage over time effects tick during their duration. Player-owned Poison, Burning, and Soul Tether damage is multiplied once when each periodic event resolves. DoT multiplier does not affect enemy damage.',
   },
   stack: {
     id: 'stack',
@@ -266,19 +266,19 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     details:
       'Blood Rite sacrifices current HP to store Blood Debt. Your next skill consumes it for a bounded bonus: damage skills gain chaos, healing skills restore sacrificed health, shields gain shield, and utility skills gain duration. Blood Debt expires if unused.',
   },
-  prism: {
-    id: 'prism',
-    label: 'Prism',
-    summary: 'Orbiting shards that fire the three elements.',
-    details:
-      'A Prism Halo orbits three shards that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Burning, Chill, and Shock. Resonance fires all three at once and distributes Attunement a single time per volley.',
-  },
   convergence: {
     id: 'convergence',
     label: 'Convergence',
     summary: 'All three Prism elements on one target.',
     details:
       'Chromatic Convergence tracks Prism elements on each enemy within a short window. When Fire, Cold, and Lightning all land on the same target it triggers a Prism Burst for bonus damage and clears the tracked elements.',
+  },
+  'prism-burst': {
+    id: 'prism-burst',
+    label: 'Prism Burst',
+    summary: 'A three-element detonation from Chromatic Convergence.',
+    details:
+      'When Fire, Cold, and Lightning from Prism Halo hit the same enemy within the convergence window, Prism Burst deals equal Fire, Cold, and Lightning damage based on the shard damage, uses the triggering shard\'s critical-strike profile, and clears that enemy\'s Convergence progress. It does not apply another elemental status.',
   },
 }
 
@@ -337,8 +337,8 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'wire', text: 'wires' },
   { id: 'tension', text: 'tension' },
   { id: 'blood-debt', text: 'blood debt' },
-  { id: 'prism', text: 'prism' },
   { id: 'convergence', text: 'convergence' },
+  { id: 'prism-burst', text: 'prism burst' },
   { id: 'damage-over-time', text: 'dot' },
   { id: 'area-of-effect', text: 'aoe' },
   { id: 'critical-strike', text: 'crit' },

@@ -570,14 +570,17 @@ describe('Prism Halo', () => {
     const fireEvent = fireOnce(game)[0]
     expect(fireEvent?.damage.fire).toBeGreaterThan(0)
     expect(fireEvent?.burningApplication).toBeDefined()
+    expect(game.state.effects.at(-1)?.prismBeamElement).toBe('fire')
 
     const coldEvent = fireOnce(game)[0]
     expect(coldEvent?.damage.cold).toBeGreaterThan(0)
     expect(coldEvent?.frostApplication).toBeDefined()
+    expect(game.state.effects.at(-1)?.prismBeamElement).toBe('cold')
 
     const lightningEvent = fireOnce(game)[0]
     expect(lightningEvent?.damage.lightning).toBeGreaterThan(0)
     expect(lightningEvent?.shockApplication).toBeDefined()
+    expect(game.state.effects.at(-1)?.prismBeamElement).toBe('lightning')
   })
 
   it('Resonance fires all three at once and distributes Attunement a single time', () => {
@@ -591,6 +594,7 @@ describe('Prism Halo', () => {
 
     const volley = fireOnce(game)
     expect(volley.filter((event) => event.targetId === targetId)).toHaveLength(3)
+    expect(game.state.effects.at(-1)?.prismBeamElement).toBe('all')
     // Attunement (physical) rides on exactly one shard for the whole volley.
     const attunedShards = volley.filter((event) => event.damage.physical > 0)
     expect(attunedShards).toHaveLength(1)

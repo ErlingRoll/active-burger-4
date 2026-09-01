@@ -53,6 +53,18 @@ import {
 } from '../../content/skills/Skills'
 import {
   DEFAULT_SKILL_SLOT_COUNT,
+  CINDER_MINE_BURNING_DURATION_SECONDS,
+  CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO,
+  CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER,
+  CINDER_MINE_INFERNO_BURNING_RATIO_BONUS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+  RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+  RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
+  PRISM_HALO_BURNING_DURATION_SECONDS,
+  PRISM_HALO_BURNING_FIRE_DAMAGE_RATIO,
+  PRISM_HALO_DURATION_SECONDS,
+  PRISM_HALO_FIRE_INTERVAL_SECONDS,
   RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT,
   RALLYING_BANNER_BASE_DURATION_SECONDS,
   RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
@@ -107,6 +119,7 @@ import {
 } from '../../content/stats/Stats'
 import {
   addDamageValues,
+  applyDotMultiplier,
   DAMAGE_INCREASE_TYPES,
   DAMAGE_TYPES,
   ELEMENTAL_DAMAGE_TYPES,
@@ -195,7 +208,7 @@ export interface SkillHudSnapshot {
   /** True when this skill has enough Basic Attack charges for resonance. */
   readonly resonanceReady: boolean
   readonly tags: readonly SkillTag[]
-  /** Native skill and Attunement damage before critical strikes and resistance. */
+  /** Effective native skill and Attunement damage before critical strikes and resistance. */
   readonly damage: DamageValues
   readonly damageTypes: readonly DamageType[]
   /** Typed Attunement contribution after the Basic Attack profile is finalized. */
@@ -1146,6 +1159,134 @@ function createCharacterStatsSnapshot(
   })
 }
 
+function getEstimatedSingleTargetDamagePerCast(
+  state: Readonly<GameState>,
+  skillId: SkillId,
+  outgoingDamage: Readonly<{
+    damage: DamageValues
+    criticalStrike: { chance: number; multiplier: number }
+  }>,
+  isBasicAttack: boolean,
+  basicAttackVariant: ReturnType<typeof getBasicAttackVariant>,
+  skeletonStats: ReturnType<typeof getSkeletonStats> | undefined,
+): number {
+  const criticalStrikeFactor = getAverageCriticalStrikeFactor(
+    outgoingDamage.criticalStrike,
+  )
+  const dotMultiplier = getDerivedPlayerStats(state.player).dotMultiplier
+  const directDamage = sumDamageValues(outgoingDamage.damage) *
+    criticalStrikeFactor
+
+  if (skillId === SOUL_TETHER_SKILL_ID) {
+    return applyDotMultiplier(
+      {
+        chaos: outgoingDamage.damage.chaos * SOUL_TETHER_DURATION_SECONDS,
+      },
+      dotMultiplier,
+    ).chaos
+  }
+
+  if (skillId === CINDER_MINE_SKILL_ID) {
+    const cluster = state.run.selectedUpgradeIds.includes('cinder-mine-cluster')
+    const inferno = state.run.selectedUpgradeIds.includes('cinder-mine-inferno')
+    const mineDamage = createDamageValues(
+      Object.fromEntries(
+        DAMAGE_TYPES.map((damageType) => [
+          damageType,
+          outgoingDamage.damage[damageType] *
+            (cluster ? CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER : 1),
+        ]),
+      ),
+    )
+    const burningPerSecond = mineDamage.fire *
+      (CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO +
+        (inferno ? CINDER_MINE_INFERNO_BURNING_RATIO_BONUS : 0))
+    const oneMineDamage = sumDamageValues(mineDamage) * criticalStrikeFactor +
+      applyDotMultiplier(
+        {
+          fire: burningPerSecond *
+            CINDER_MINE_BURNING_DURATION_SECONDS *
+            criticalStrikeFactor,
+        },
+        dotMultiplier,
+      ).fire
+    return oneMineDamage * (cluster ? 2 : 1)
+  }
+
+  if (skillId === PRISM_HALO_SKILL_ID) {
+    const shardVolleyCount = Math.ceil(
+      PRISM_HALO_DURATION_SECONDS / PRISM_HALO_FIRE_INTERVAL_SECONDS,
+    )
+    const fireShardCount = Math.ceil(shardVolleyCount / 3)
+    const burningDamage = applyDotMultiplier(
+      {
+        fire: outgoingDamage.damage.fire *
+          PRISM_HALO_BURNING_FIRE_DAMAGE_RATIO *
+          PRISM_HALO_BURNING_DURATION_SECONDS *
+          criticalStrikeFactor *
+          fireShardCount,
+      },
+      dotMultiplier,
+    ).fire
+    return directDamage * shardVolleyCount + burningDamage
+  }
+
+  const poisonApplication = isBasicAttack
+    ? basicAttackVariant.poisonApplication
+    : skillId === RAISE_SKELETON_SKILL_ID &&
+        skeletonStats !== undefined &&
+        state.run.selectedUpgradeIds.includes('raise-skeleton-rotting-bones')
+      ? {
+          durationSeconds: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+          physicalChaosRatio: RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+        }
+      : skillId === RIFT_JAVELIN_SKILL_ID &&
+          state.run.selectedUpgradeIds.includes('rift-javelin-barbed')
+        ? {
+            durationSeconds: RIFT_JAVELIN_BARBED_DURATION_SECONDS,
+            physicalChaosRatio: RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
+          }
+        : undefined
+  if (!poisonApplication) {
+    return directDamage
+  }
+
+  const applyingDamage = outgoingDamage.damage.physical +
+    outgoingDamage.damage.chaos
+  const poisonPerHit = applyDotMultiplier(
+    {
+      chaos: applyingDamage *
+        poisonApplication.physicalChaosRatio *
+        poisonApplication.durationSeconds *
+        criticalStrikeFactor,
+    },
+    dotMultiplier,
+  ).chaos
+  const hitCount = skillId === RIFT_JAVELIN_SKILL_ID ? 2 : 1
+  return directDamage * hitCount + poisonPerHit * hitCount
+}
+
+function getEffectiveSkillTags(
+  state: Readonly<GameState>,
+  skillId: SkillId,
+  isBasicAttack: boolean,
+  definitionTags: readonly SkillTag[],
+  basicAttackTags: readonly SkillTag[],
+): readonly SkillTag[] {
+  const tags = [...(isBasicAttack ? basicAttackTags : definitionTags)]
+  const producesDot = skillId === PRISM_HALO_SKILL_ID ||
+    (skillId === RAISE_SKELETON_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('raise-skeleton-rotting-bones')) ||
+    (skillId === RIFT_JAVELIN_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('rift-javelin-barbed')) ||
+    (skillId === SIGIL_OF_RUIN_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('synergy-sigil-of-ruin-prism-halo'))
+  if (producesDot && !tags.includes('dot')) {
+    tags.push('dot')
+  }
+  return tags
+}
+
 /** Immutable data retained by the results screen after a run ends. */
 export interface PlayerCombatLogSnapshot {
   readonly time: number
@@ -1217,7 +1358,13 @@ export function createUiSnapshot(
     }
     const definition = getSkillDefinition(skill.skillId)
     const isBasicAttack = skill.skillId === BASIC_ATTACK_SKILL_ID
-    const skillTags = isBasicAttack ? basicAttackVariant.tags : definition.tags
+    const skillTags = getEffectiveSkillTags(
+      state,
+      skill.skillId,
+      isBasicAttack,
+      definition.tags,
+      basicAttackVariant.tags,
+    )
     const supportsAreaOfEffect = isBasicAttack
       ? basicAttackVariant.kind === 'area'
       : definition.kind === 'area' && definition.radius !== undefined
@@ -1287,24 +1434,37 @@ export function createUiSnapshot(
               getAttunementSourceAdditionalIncreasedDamage(state),
           },
         )
-    const damage = sumDamageValues(outgoingDamage.damage) *
-      getAverageCriticalStrikeFactor(outgoingDamage.criticalStrike)
-    const damageTypes = (Object.keys(outgoingDamage.damage) as DamageType[]).filter(
-      (damageType) => outgoingDamage.damage[damageType] > 0,
+    const displayedDamage = skill.skillId === SOUL_TETHER_SKILL_ID
+      ? createDamageValues({ chaos: outgoingDamage.damage.chaos })
+      : outgoingDamage.damage
+    const damageTypes = (Object.keys(displayedDamage) as DamageType[]).filter(
+      (damageType) => displayedDamage[damageType] > 0,
     )
-    const attunementDamage = outgoingDamage.attunementDamage ?? createDamageValues()
+    const attunementDamage = skill.skillId === SOUL_TETHER_SKILL_ID
+      ? createDamageValues({
+          chaos: outgoingDamage.attunementDamage?.chaos ?? 0,
+        })
+      : outgoingDamage.attunementDamage ?? createDamageValues()
     const attunementDamageTypes = DAMAGE_TYPES.filter(
       (damageType) => attunementDamage[damageType] > 0,
     )
     const damagePerAttackCooldown = skeletonStats?.attackCooldown ?? cooldown
-    const damageDuration = skill.skillId === SOUL_TETHER_SKILL_ID
-      ? SOUL_TETHER_DURATION_SECONDS
-      : 1
+    const estimatedSingleTargetDamage = getEstimatedSingleTargetDamagePerCast(
+      state,
+      skill.skillId,
+      {
+        damage: outgoingDamage.damage,
+        criticalStrike: outgoingDamage.criticalStrike,
+      },
+      isBasicAttack,
+      basicAttackVariant,
+      skeletonStats,
+    )
     const estimatedSingleTargetDps =
       damageTypes.length > 0 &&
       Number.isFinite(damagePerAttackCooldown) &&
       damagePerAttackCooldown > 0
-        ? damage * damageDuration / damagePerAttackCooldown
+        ? estimatedSingleTargetDamage / damagePerAttackCooldown
         : null
     const skillModifiers = getSkillModifierSummaries(
       state,
@@ -1394,7 +1554,7 @@ export function createUiSnapshot(
       resonanceEffect: isBasicAttack ? null : definition.resonanceEffect ?? null,
       resonanceReady: !isBasicAttack && isSkillResonant(state, skill.skillId),
       tags: Object.freeze([...skillTags]),
-      damage: outgoingDamage.damage,
+      damage: displayedDamage,
       damageTypes: Object.freeze(damageTypes),
       attunementDamage,
       attunementDamageTypes: Object.freeze(attunementDamageTypes),
@@ -1411,7 +1571,9 @@ export function createUiSnapshot(
         : skill.skillId === VITALITY_SKILL_ID
           ? 'Restores health automatically every cooldown.'
           : skill.skillId === RAISE_SKELETON_SKILL_ID
-            ? 'One persistent skeleton attacks the nearest target in range once per second.'
+            ? state.run.selectedUpgradeIds.includes('raise-skeleton-rotting-bones')
+              ? 'Physical skeleton attacks plus Chaos Poison damage over time, sustained once per second.'
+              : 'One persistent skeleton attacks the nearest target in range once per second.'
           : skill.skillId === FIERY_TOUCH_SKILL_ID
             ? 'Triggers on direct player or summon hits, subject to its cooldown.'
           : skill.skillId === WHIRLWIND_SKILL_ID
@@ -1431,11 +1593,11 @@ export function createUiSnapshot(
           : skill.skillId === RIFT_JAVELIN_SKILL_ID
           ? 'Every enemy pierced once outbound and once inbound, sustained over its cooldown.'
           : skill.skillId === CINDER_MINE_SKILL_ID
-          ? 'Every enemy caught in the delayed blast, sustained over its cooldown.'
+          ? 'Fire blast plus Fire Burning damage over its duration, sustained over its cooldown.'
           : skill.skillId === STORM_RELAY_SKILL_ID
           ? 'Primary target struck by the relay each strike interval while it is active.'
           : skill.skillId === SOUL_TETHER_SKILL_ID
-          ? 'Each cast sustains an independent tether; cooldown reduction allows overlapping links.'
+          ? 'Chaos damage only; each cast sustains an independent tether, with DoT multiplier applied over its duration.'
           : skill.skillId === PHANTOM_ARSENAL_SKILL_ID
           ? 'One persistent phantom archer attacks the nearest target in range on its own cadence.'
           : skill.skillId === SIGIL_OF_RUIN_SKILL_ID
@@ -1447,7 +1609,7 @@ export function createUiSnapshot(
           : skill.skillId === BLOOD_RITE_SKILL_ID
           ? 'Chaos pulse on cast; the stored Blood Debt empowers your next skill.'
           : skill.skillId === PRISM_HALO_SKILL_ID
-          ? 'Rotating shards strike the nearest enemy each fire interval while the halo persists.'
+          ? 'Rotating Fire, Cold, and Lightning shards strike each interval; Fire shards add Fire Burning.'
           : 'One target sustained over the skill cooldown.',
       healingPerCast: skill.skillId === VITALITY_SKILL_ID
         ? (

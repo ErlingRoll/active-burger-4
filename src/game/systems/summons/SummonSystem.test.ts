@@ -128,6 +128,7 @@ describe('updateSummons', () => {
       remainingDuration: RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
       damagePerSecond: 12 * RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
       sourceSkillId: 'raise-skeleton',
+      sourceId: 1,
     }])
     expect(updatePoison(game.state, 1)).toEqual([expect.objectContaining({
       targetId,
