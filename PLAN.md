@@ -59,7 +59,8 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
 - React owns screen-space UI and PixiJS projects simulation state into the
   world. The renderer includes skill-specific effects, evolution accents,
   Synergy accents, status overlays, hostile danger telegraphs, hit feedback,
-  projectile trails, pickup feedback, and reduced-motion/performance budgets.
+  projectile trails, pickup feedback, world-space hit anchoring for directional
+  and multi-target effects, and reduced-motion/performance budgets.
 - The default dungeon has 30 normal floors, 60-second normal floors,
   120-second boss floors, floor-scaled encounters, Stone Golem boss floors,
   and an Inferno Warden final encounter.

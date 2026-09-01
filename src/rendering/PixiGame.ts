@@ -70,6 +70,14 @@ const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
 const STATUS_EFFECT_ICON_SIZE = 10
 const STATUS_EFFECT_ICON_GAP = 2
 
+function hasWorldSpaceEffectGeometry(
+  effect: Pick<SkillEffectState, 'points' | 'impactPoint' | 'impactPoints'>,
+): boolean {
+  return effect.points.length > 1 ||
+    effect.impactPoint !== undefined ||
+    (effect.impactPoints?.length ?? 0) > 0
+}
+
 interface StatusEffectBadge {
   id: string
 }
@@ -3038,7 +3046,7 @@ export class PixiGame {
     const settle = Math.min(1, progress * 1.5)
     const isShortEffect = effect.lifetime <= 1.5
     view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
-    if (effect.impactPoints?.length || this.reducedMotion) {
+    if (hasWorldSpaceEffectGeometry(effect) || this.reducedMotion) {
       // Impact markers use world-space target positions relative to the
       // effect origin; scaling the parent would make them drift.
       view.scale.set(1)
@@ -3065,7 +3073,7 @@ export class PixiGame {
       ? Math.max(0, Math.min(1, 1 - effect.remainingLifetime / effect.lifetime))
       : 1
     const expansion = Math.min(1, progress * 5)
-    if (effect.impactPoints?.length || this.reducedMotion) {
+    if (hasWorldSpaceEffectGeometry(effect) || this.reducedMotion) {
       view.scale.set(1)
       view.rotation = 0
       view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
