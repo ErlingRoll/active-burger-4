@@ -686,15 +686,24 @@ function scaleSwordArcDegrees(
   return Math.min(180, baseArcDegrees * (1 + Math.max(0, areaOfEffect) / 200))
 }
 
-function getBasicAttackEngagementRange(
+export function getBasicAttackEngagementRange(
   state: Readonly<GameState>,
+  target: Readonly<EnemyState | BossState>,
 ): number {
   const stats = getDerivedPlayerStats(state.player)
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(state.player))
   const attackRange = variant.kind === 'area' && variant.areaShape !== 'circle'
     ? scaleAreaValue(stats.attackRange, stats.areaOfEffect)
     : stats.attackRange
-  return attackRange + state.player.radius
+  if (variant.kind === 'area') {
+    return attackRange + target.radius
+  }
+  const projectileDefinition = getProjectileDefinition(
+    variant.projectileDefinitionId ??
+      getSkillDefinition(BASIC_ATTACK_SKILL_ID).projectileDefinitionId!,
+  )
+  return projectileDefinition.speed * projectileDefinition.lifetime +
+    projectileDefinition.radius
 }
 
 function buildArcEffectPoints(
@@ -837,16 +846,15 @@ function collectProjectileImpactEvents(
 
 function getBasicAttackTarget(
   state: GameState,
-  variant: ReturnType<typeof getBasicAttackVariant>,
 ): EnemyState | BossState | undefined {
   const currentTarget = findLivingTarget(state, state.player.targetId)
-  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget, variant)) {
+  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
     return currentTarget
   }
 
   return [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) =>
-      enemy.hp > 0 && isBasicAttackTargetInRange(state, enemy, variant)
+      enemy.hp > 0 && isBasicAttackTargetInRange(state, enemy)
     )
     .sort((left, right) =>
       distanceSquared(state.player.x, state.player.y, left.x, left.y) -
@@ -858,25 +866,9 @@ function getBasicAttackTarget(
 function isBasicAttackTargetInRange(
   state: Readonly<GameState>,
   target: Readonly<EnemyState | BossState>,
-  variant: ReturnType<typeof getBasicAttackVariant>,
 ): boolean {
-  const distance = Math.hypot(target.x - state.player.x, target.y - state.player.y)
-  if (variant.kind === 'area') {
-    const stats = getDerivedPlayerStats(state.player)
-    const range = variant.areaShape === 'circle'
-      ? stats.attackRange
-      : scaleAreaValue(stats.attackRange, stats.areaOfEffect)
-    return distance <= range + target.radius
-  }
-
-  const projectileDefinition = getProjectileDefinition(
-    variant.projectileDefinitionId ??
-      getSkillDefinition(BASIC_ATTACK_SKILL_ID).projectileDefinitionId!,
-  )
-  const projectileRange =
-    projectileDefinition.speed * projectileDefinition.lifetime +
-    projectileDefinition.radius
-  return distance <= projectileRange
+  return Math.hypot(target.x - state.player.x, target.y - state.player.y) <=
+    getBasicAttackEngagementRange(state, target)
 }
 
 function resolveProjectileTarget(
@@ -1294,24 +1286,24 @@ export function updateAttackCooldown(
 
 export function resolvePlayerTarget(
   state: GameState,
-  enemySpatialHash = createEnemySpatialHash(state),
 ): void {
   const player = state.player
-  const engagementRange = getBasicAttackEngagementRange(state)
   const currentTarget = findLivingTarget(state, player.targetId)
-  const target = currentTarget
-    ? currentTarget
-    : findNearestEnemy(
-        {
-          originX: player.x,
-          originY: player.y,
-          maxRange: engagementRange,
-        },
-        state,
-        enemySpatialHash,
-      )
+  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
+    return
+  }
+  const targets = [...state.enemies, ...(state.bosses ?? [])]
+    .filter((target) =>
+      target.hp > 0 &&
+      isBasicAttackTargetInRange(state, target)
+    )
+    .sort((left, right) =>
+      distanceSquared(player.x, player.y, left.x, left.y) -
+        distanceSquared(player.x, player.y, right.x, right.y) ||
+      left.id - right.id,
+    )
 
-  player.targetId = target?.id
+  player.targetId = targets[0]?.id
 }
 
 export function performBasicAttackIfReady(
@@ -1331,7 +1323,7 @@ export function performBasicAttackIfReady(
   }
 
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(player))
-  const target = getBasicAttackTarget(state, variant)
+  const target = getBasicAttackTarget(state)
   if (!target) {
     if (
       player.targetId !== undefined &&

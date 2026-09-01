@@ -9,6 +9,10 @@ import {
 } from '../../../content/enemies/EnemyConfig'
 import { FIXED_STEP_SECONDS, createGame } from '../../Game'
 import { collectEnemyContactDamage, updateEnemyChase } from './CombatSystem'
+import {
+  getEnemyCombatTarget,
+  getEnemyInterceptPoint,
+} from './EnemyBehaviors'
 import { collectSkillDamage } from '../skills/SkillSystem'
 import { createEntityIdAllocator } from '../../ids'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
@@ -172,6 +176,28 @@ describe('enemy variety behaviors', () => {
       observedCooldown: true,
       observedRegularMovement: true,
     })
+  })
+
+  it('only predicts an intercept destination while a Flanker is actively intercepting', () => {
+    const game = createGame({ seed: 111 })
+    const flankerId = game.spawnEnemy(
+      FLANKER_DEFINITION_ID,
+      { x: 300, y: 0 },
+    )
+    const flanker = game.state.enemies.find((enemy) => enemy.id === flankerId)
+    if (!flanker) {
+      throw new Error('Expected Flanker to exist')
+    }
+
+    const target = getEnemyCombatTarget(game.state, flanker)
+    const activeIntercept = getEnemyInterceptPoint(flanker, target, 100, 0)
+    expect(activeIntercept).toEqual({
+      x: 100,
+      y: flanker.id % 2 === 0 ? 90 : -90,
+    })
+
+    flanker.interceptCooldownRemaining = 1
+    expect(getEnemyInterceptPoint(flanker, target, 100, 0)).toBeUndefined()
   })
 
   it('does not apply Flanking to a Flanker enemy', () => {

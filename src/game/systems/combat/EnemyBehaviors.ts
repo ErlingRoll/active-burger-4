@@ -49,7 +49,7 @@ const MAX_INTERCEPT_PREDICTION_SECONDS = 1.5
 const INTERCEPT_REENGAGEMENT_COOLDOWN_SECONDS = 2.5
 const INTERCEPT_DISTANCE_EPSILON = 1e-6
 
-function getEffectiveEnemyBehavior(
+export function getEffectiveEnemyBehavior(
   enemy: Readonly<EnemyState>,
 ): EnemyBehaviorDefinition {
   const behaviorOverride = enemy.eliteModifier
@@ -259,6 +259,22 @@ function getInterceptPoint(
   const velocityY = target.id === state.player.id
     ? finiteValue(state.player.movementVelocityY)
     : 0
+  return getInterceptPointForVelocity(
+    target,
+    enemy,
+    behavior,
+    velocityX,
+    velocityY,
+  )
+}
+
+function getInterceptPointForVelocity(
+  target: Readonly<EnemyCombatTarget>,
+  enemy: Readonly<EnemyState>,
+  behavior: Extract<EnemyBehaviorDefinition, { kind: 'intercept' }>,
+  velocityX: number,
+  velocityY: number,
+): Vector2 {
   const velocityLength = Math.hypot(velocityX, velocityY)
   const lateral = velocityLength > 0
     ? { x: -velocityY / velocityLength, y: velocityX / velocityLength }
@@ -274,6 +290,33 @@ function getInterceptPoint(
     y: target.y + velocityY * predictionSeconds +
       lateral.y * behavior.lateralOffset * side,
   }
+}
+
+/**
+ * Returns the active lateral intercept destination when this enemy is pursuing
+ * the supplied target. During re-engagement it deliberately returns undefined:
+ * the runtime behavior is an ordinary direct chase in that state.
+ */
+export function getEnemyInterceptPoint(
+  enemy: Readonly<EnemyState>,
+  target: Readonly<EnemyCombatTarget>,
+  targetVelocityX: number,
+  targetVelocityY: number,
+): Vector2 | undefined {
+  const behavior = getEffectiveEnemyBehavior(enemy)
+  if (
+    behavior.kind !== 'intercept' ||
+    Math.max(0, finiteValue(enemy.interceptCooldownRemaining)) > 0
+  ) {
+    return undefined
+  }
+  return getInterceptPointForVelocity(
+    target,
+    enemy,
+    behavior,
+    finiteValue(targetVelocityX),
+    finiteValue(targetVelocityY),
+  )
 }
 
 function getFallbackLateralDirection(

@@ -50,11 +50,13 @@ export function selectMovementCandidate(
     stairs: 0,
     free: 1,
     dodge: 2,
-    gear: 3,
-    xp: 4,
-    kite: 5,
-    'combat-range': 6,
-    hold: 7,
+    healing: 3,
+    gear: 4,
+    xp: 5,
+    zone: 6,
+    kite: 7,
+    'combat-range': 8,
+    hold: 9,
   }
   return candidates
     .map((candidate, index) => ({ candidate, index }))

@@ -9,7 +9,11 @@ import { updatePlayerBehavior } from './BehaviorController'
 import { createInitialPlayerState } from '../spawning/SpawningSystem'
 import { equipItem } from '../../equipment/EquipmentState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
-import type { EnemyState, GameState } from '../../state/GameState'
+import type {
+  EnemyState,
+  GameState,
+  ProjectileState,
+} from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 
 function createState(
@@ -55,6 +59,36 @@ function enemy(
     contactDamage: 5,
     xpReward: 5,
     targetId: 1,
+  }
+}
+
+function hostileProjectile(
+  id: number,
+  targetId: number,
+  x: number,
+  y: number,
+  velocityX: number,
+  velocityY: number,
+): ProjectileState {
+  return {
+    id,
+    ownerId: 99,
+    definitionId: 'enemy-archer-arrow',
+    hostile: true,
+    targetId,
+    x,
+    y,
+    velocityX,
+    velocityY,
+    radius: 7,
+    damage: {
+      physical: 1,
+      lightning: 0,
+      fire: 0,
+      cold: 0,
+      chaos: 0,
+    },
+    remainingLifetime: 3,
   }
 }
 
@@ -146,8 +180,8 @@ describe('data-driven player behavior intents', () => {
     ])
     expect(candidates[0]).toMatchObject({
       pickupId: 4,
-      priority: BEHAVIOR_INTENT_PRIORITIES.gear,
     })
+    expect(candidates[0]?.priority).toBeGreaterThan(BEHAVIOR_INTENT_PRIORITIES.gear)
   })
 
   it('uses pack pressure and stable IDs for high-threat target selection', () => {
@@ -211,7 +245,16 @@ describe('data-driven player behavior intents', () => {
     expect('attackRange' in state.player).toBe(false)
   })
 
-  it('keeps movement aligned with the active combat target', () => {
+  it('uses the target-radius engagement range shared with basic attacks', () => {
+    const state = createState([enemy(4, 'slime', 127)])
+    equipItem(state.player, 'ritual-staff')
+
+    expect(getPlayerBehaviorCandidates(state).some(
+      (candidate) => candidate.source === 'combat-range',
+    )).toBe(false)
+  })
+
+  it('replaces an out-of-range stale target with the best current combat target', () => {
     const activeTarget = enemy(4, 'slime', 90)
     const higherThreat = enemy(9, 'brute', 120)
     const state = createState([activeTarget, higherThreat])
@@ -220,10 +263,10 @@ describe('data-driven player behavior intents', () => {
     const combatRange = getPlayerBehaviorCandidates(state).find(
       (candidate) => candidate.source === 'combat-range',
     )
-    expect(combatRange?.targetId).toBe(activeTarget.id)
+    expect(combatRange?.targetId).toBe(higherThreat.id)
   })
 
-  it('holds a lone Runner at engagement range instead of kiting out of attack range', () => {
+  it('kites a close Runner before it can sustain contact damage', () => {
     const runner = enemy(4, 'runner', 61)
     const state = createState([runner])
     state.player.behaviorController = {
@@ -231,11 +274,90 @@ describe('data-driven player behavior intents', () => {
     }
 
     const candidates = getPlayerBehaviorCandidates(state)
-    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
-    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('hold')
+    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(true)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('kite')
   })
 
-  it('closes to a threatening pack before kiting so basic attacks remain available', () => {
+  it('dodges an existing hostile projectile along its predicted route', () => {
+    const state = createState()
+    state.projectiles = [
+      hostileProjectile(9, state.player.id, -120, 0, 480, 0),
+    ]
+
+    const dodge = getPlayerBehaviorCandidates(state)[0]
+    expect(dodge?.source).toBe('dodge')
+    expect(Math.abs(dodge?.directionY ?? 0)).toBeGreaterThan(
+      Math.abs(dodge?.directionX ?? 0),
+    )
+  })
+
+  it('ignores hostile projectiles assigned to a summon', () => {
+    const state = createState()
+    state.summons = [{
+      id: 72,
+      ownerId: state.player.id,
+      x: -40,
+      y: 0,
+      hp: 10,
+      maxHp: 10,
+      contactCooldownRemaining: 0,
+      attackCooldownRemaining: 0,
+    }]
+    state.projectiles = [
+      hostileProjectile(9, state.summons[0].id, -120, 0, 480, 0),
+    ]
+
+    expect(getPlayerBehaviorCandidates(state).map((candidate) => candidate.source))
+      .toEqual(['hold'])
+  })
+
+  it('steers away from a Flanker lateral intercept destination', () => {
+    const state = createState([enemy(2, 'flanker', 60)])
+    state.player.behaviorController = { profileId: 'cautious' }
+
+    const kite = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'kite',
+    )
+    expect(kite).toMatchObject({ source: 'kite' })
+    expect(Math.abs(kite?.directionY ?? 0)).toBeGreaterThan(0.2)
+  })
+
+  it('keeps kiting while a Flanker re-engages through ordinary pursuit', () => {
+    const flanker = enemy(2, 'flanker', 60)
+    flanker.interceptCooldownRemaining = 1
+    const state = createState([flanker])
+    state.player.behaviorController = { profileId: 'cautious' }
+
+    const kite = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'kite',
+    )
+    expect(kite).toMatchObject({ source: 'kite' })
+  })
+
+  it('evaluates a deterministic kite route for more than one hundred enemies', () => {
+    const state = createState(
+      Array.from({ length: 120 }, (_, index) =>
+        enemy(
+          index + 2,
+          'slime',
+          70 + (index % 20) * 12,
+          (Math.floor(index / 20) - 3) * 18,
+        )
+      ),
+    )
+    state.player.behaviorController = { profileId: 'cautious' }
+
+    const first = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'kite',
+    )
+    const second = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'kite',
+    )
+    expect(first).toMatchObject({ source: 'kite' })
+    expect(second).toEqual(first)
+  })
+
+  it('kites a threatening pack instead of approaching it before attacks are available', () => {
     const state = createState([
       enemy(7, 'brute', 120),
       enemy(2, 'brute', 150),
@@ -245,8 +367,8 @@ describe('data-driven player behavior intents', () => {
     }
 
     const candidates = getPlayerBehaviorCandidates(state)
-    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
-    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('combat-range')
+    expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(true)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('kite')
   })
 
   it('selects distinct profile intents from the same deterministic state', () => {
@@ -275,7 +397,7 @@ describe('data-driven player behavior intents', () => {
     expect(selectedByProfile('cautious')).toBe('kite')
   })
 
-  it('prioritizes safe XP pickups over ordinary combat movement for every profile', () => {
+  it('preserves profile combat priorities while valuing high-value safe XP', () => {
     const state = createState(
       [enemy(9, 'slime', 320)],
       [{
@@ -286,18 +408,55 @@ describe('data-driven player behavior intents', () => {
         radius: 8,
         attractionRadius: 180,
         attractionSpeed: 360,
-        xpAmount: 5,
+        xpAmount: 20,
       }],
     )
 
-    for (const profileId of ['balanced', 'aggressive', 'cautious'] as const) {
+    const selectedByProfile = (profileId: 'balanced' | 'aggressive' | 'cautious') => {
       state.player.behaviorController = {
         profileId,
         lastCandidate: undefined,
         commitmentRemaining: 0,
       }
-      expect(updatePlayerBehavior(state, 0)?.source).toBe('xp')
+      return updatePlayerBehavior(state, 0)?.source
     }
+    expect(selectedByProfile('aggressive')).toBe('combat-range')
+    expect(selectedByProfile('balanced')).toBe('xp')
+    expect(selectedByProfile('cautious')).toBe('xp')
+  })
+
+  it('prioritizes a reachable healing potion when the player is critically hurt', () => {
+    const state = createState([], [{
+      id: 3,
+      kind: 'healing-potion',
+      x: 80,
+      y: 0,
+      radius: 10,
+      attractionRadius: 180,
+      attractionSpeed: 360,
+    }])
+    state.player.hp = 20
+
+    expect(updatePlayerBehavior(state, 0)?.source).toBe('healing')
+  })
+
+  it('holds within a nearby Rallying Banner while injured', () => {
+    const state = createState()
+    state.player.hp = 50
+    state.effects = [{
+      id: 9,
+      skillId: 'rallying-banner',
+      x: 0,
+      y: 0,
+      radius: 96,
+      remainingLifetime: 4,
+      lifetime: 6,
+      points: [{ x: 0, y: 0 }],
+      periodicHealingAmount: 6,
+      periodicHealingRemaining: 1,
+    }]
+
+    expect(updatePlayerBehavior(state, 0)?.source).toBe('zone')
   })
 
   it('commits a movement intent briefly while Dodge remains an interrupt', () => {

@@ -407,6 +407,19 @@ describe('performBasicAttackIfReady', () => {
     expect(gameState.player.attackCooldownRemaining).toBeGreaterThan(0)
   })
 
+  it('replaces a stale target with the nearest target that the equipped weapon can attack', () => {
+    const gameState = state(
+      [enemy(2, 700), enemy(3, 20)],
+      { projectiles: [] },
+    )
+    equipItem(gameState.player, 'starcall-wand')
+    gameState.player.targetId = 2
+
+    resolvePlayerTarget(gameState)
+
+    expect(gameState.player.targetId).toBe(3)
+  })
+
   it('fires deterministic bow spreads without steering mid-flight', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
     equipRolledItem(

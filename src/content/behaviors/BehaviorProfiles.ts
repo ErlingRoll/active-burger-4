@@ -10,8 +10,10 @@ export type BehaviorProfileId =
 
 export type BehaviorIntentSource =
   | 'dodge'
+  | 'healing'
   | 'gear'
   | 'xp'
+  | 'zone'
   | 'kite'
   | 'combat-range'
   | 'hold'
@@ -64,8 +66,10 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     description: 'Closes to combat range and maintains pressure unless Dodge is imminent.',
     intentPriorities: {
       dodge: DODGE_PRIORITY,
+      healing: 700,
       gear: 250,
-      xp: 850,
+      xp: 450,
+      zone: 250,
       kite: 100,
       'combat-range': 800,
       hold: 0,
@@ -86,10 +90,12 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     description: 'Collects safe reachable gear before normal combat pressure.',
     intentPriorities: {
       dodge: DODGE_PRIORITY,
-      gear: 800,
-      xp: 700,
-      kite: 600,
-      'combat-range': 400,
+      healing: 750,
+      gear: 600,
+      xp: 600,
+      zone: 500,
+      kite: 700,
+      'combat-range': 650,
       hold: 0,
     },
     thresholds: {
@@ -108,10 +114,12 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
     description: 'Kites earlier around packs and high-threat enemies, closing to attack range when needed.',
     intentPriorities: {
       dodge: DODGE_PRIORITY,
-      gear: 700,
+      healing: 850,
+      gear: 400,
       xp: 500,
-      kite: 850,
-      'combat-range': 300,
+      zone: 600,
+      kite: 800,
+      'combat-range': 600,
       hold: 0,
     },
     thresholds: {

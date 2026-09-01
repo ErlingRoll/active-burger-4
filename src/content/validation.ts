@@ -172,8 +172,10 @@ function validateBehaviorProfiles(
 ): void {
   const intentSources: readonly BehaviorIntentSource[] = [
     'dodge',
+    'healing',
     'gear',
     'xp',
+    'zone',
     'kite',
     'combat-range',
     'hold',

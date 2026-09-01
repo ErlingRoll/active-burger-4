@@ -42,8 +42,13 @@ describe('behavior profile content', () => {
     )
     expect(profiles.map((profile) => profile.intentPriorities['combat-range'])).toEqual([
       800,
-      400,
-      300,
+      650,
+      600,
+    ])
+    expect(profiles.map((profile) => profile.intentPriorities.healing)).toEqual([
+      700,
+      750,
+      850,
     ])
     expect(profiles.map((profile) => profile.thresholds.kiteThreatScore)).toEqual([
       1_000_000,

@@ -993,8 +993,9 @@ export class Game {
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
     updateEnemyAbilities(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
+    resolvePlayerTarget(this.gameState)
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS, enemySpatialHash)
-    resolvePlayerTarget(this.gameState, enemySpatialHash)
+    resolvePlayerTarget(this.gameState)
     const basicAttackEvents = performBasicAttackIfReady(
       this.gameState,
       this.idAllocator,
