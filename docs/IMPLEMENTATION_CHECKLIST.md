@@ -24,6 +24,8 @@ milestones in order unless an ADR documents an exception.
   persistence, and network APIs.
 - [ ] Keep rendering a projection of simulation state; content remains
   data-driven with stable IDs.
+- [ ] Follow the [graphics guidelines](GRAPHICS_GUIDELINES.md) for every new
+  skill, projectile, effect, persistent object, and HUD icon.
 - [ ] Put balance values in content data, not engine systems.
 - [ ] Add focused tests for deterministic rules and run applicable validation.
 - [ ] Record material architecture changes in `docs/decisions/`.

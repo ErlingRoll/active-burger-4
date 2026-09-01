@@ -36,4 +36,5 @@ npm run build
 ## Architecture
 
 See [PLAN.md](PLAN.md), [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md),
-and [docs/decisions/](docs/decisions/).
+the [graphics guidelines](docs/GRAPHICS_GUIDELINES.md), and
+[docs/decisions/](docs/decisions/).
