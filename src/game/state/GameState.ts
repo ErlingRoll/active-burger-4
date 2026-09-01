@@ -643,6 +643,8 @@ export interface ProjectileState {
   radius: number
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
+  /** Remaining time before a homing projectile begins tracking its target. */
+  homingDelayRemaining?: number
   remainingLifetime: number
 }
 

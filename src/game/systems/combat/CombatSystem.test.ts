@@ -584,6 +584,40 @@ describe('performBasicAttackIfReady', () => {
     expect(lastAngle - firstAngle).toBeGreaterThan((40 * Math.PI) / 180)
   })
 
+  it('waits before homing wand projectiles begin tracking', () => {
+    const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
+    equipItem(gameState.player, 'starcall-wand')
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+    const firedProjectile = gameState.projectiles[0]
+    if (!firedProjectile) {
+      throw new Error('Expected a wand projectile to be created')
+    }
+
+    gameState.enemies[0]!.y = 120
+    updateProjectiles(gameState, 0.49)
+    expect(firedProjectile.velocityY).toBe(0)
+
+    updateProjectiles(gameState, 0.01)
+    expect(firedProjectile.velocityY).toBeGreaterThan(0)
+  })
+
+  it('applies the Splintering set projectile bonus to wand Basic Attacks', () => {
+    const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
+    equipRolledItem(gameState.player, 'starcall-wand', Rarity.Common, [], undefined, 'splintering')
+    equipRolledItem(gameState.player, 'helmet', Rarity.Common, [], undefined, 'splintering')
+    equipRolledItem(gameState.player, 'armor', Rarity.Common, [], undefined, 'splintering')
+    equipRolledItem(gameState.player, 'boots', Rarity.Common, [], undefined, 'splintering')
+    equipRolledItem(gameState.player, 'ring', Rarity.Common, [], undefined, 'splintering')
+    equipRolledItem(gameState.player, 'amulet', Rarity.Common, [], undefined, 'splintering')
+    gameState.player.targetId = 2
+
+    performBasicAttackIfReady(gameState, allocator)
+
+    expect(gameState.projectiles).toHaveLength(7)
+  })
+
   it('increases projectile chain range with area of effect', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
     equipRolledItem(
@@ -627,7 +661,7 @@ describe('performBasicAttackIfReady', () => {
     expect(firedProjectile.velocityY).toBe(0)
 
     gameState.enemies[0]!.y = 120
-    updateProjectiles(gameState, 1 / 60)
+    updateProjectiles(gameState, 0.5)
 
     expect(gameState.projectiles[0]?.velocityY).toBeGreaterThan(0)
     expect(gameState.projectiles[0]?.targetId).toBe(2)

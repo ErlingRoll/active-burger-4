@@ -181,6 +181,7 @@ import {
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
 const DEGREES_TO_RADIANS = Math.PI / 180
+const HOMING_DELAY_EPSILON_SECONDS = 0.000001
 
 interface Vector2 {
   x: number
@@ -1034,6 +1035,9 @@ function createBasicAttackProjectileState(
       radius: projectileDefinition.radius,
       damage: outgoingDamage.damage,
       criticalStrike: outgoingDamage.criticalStrike,
+      ...(projectileDefinition.homingDelaySeconds !== undefined
+        ? { homingDelayRemaining: projectileDefinition.homingDelaySeconds }
+        : {}),
       impactFrostApplication: getBasicAttackSynergyApplications(state).frostApplication,
       impactShockApplication: getBasicAttackSynergyApplications(state).shockApplication,
       remainingLifetime: projectileDefinition.lifetime,
@@ -1420,23 +1424,31 @@ export function updateProjectiles(
   for (const projectile of state.projectiles) {
     const definition = getProjectileDefinition(projectile.definitionId)
     if (definition.guidance === 'homing') {
-      enemySpatialHash ??= createEnemySpatialHash(state)
-      const target = resolveProjectileTarget(
-        state,
-        projectile,
-        definition.retargetRange ?? definition.speed * definition.lifetime,
-        enemySpatialHash,
-      )
-      if (target) {
-        projectile.targetId = target.id
-        steerProjectileTowardTarget(
+      const currentHomingDelay = projectile.homingDelayRemaining ?? 0
+      const homingDelayRemaining =
+        currentHomingDelay <= fixedStepSeconds + HOMING_DELAY_EPSILON_SECONDS
+        ? 0
+        : currentHomingDelay - fixedStepSeconds
+      projectile.homingDelayRemaining = homingDelayRemaining
+      if (homingDelayRemaining <= 0) {
+        enemySpatialHash ??= createEnemySpatialHash(state)
+        const target = resolveProjectileTarget(
+          state,
           projectile,
-          target,
-          (definition.turnRateDegreesPerSecond ?? 0) * DEGREES_TO_RADIANS * fixedStepSeconds,
-          definition.speed,
+          definition.retargetRange ?? definition.speed * definition.lifetime,
+          enemySpatialHash,
         )
-      } else {
-        projectile.targetId = undefined
+        if (target) {
+          projectile.targetId = target.id
+          steerProjectileTowardTarget(
+            projectile,
+            target,
+            (definition.turnRateDegreesPerSecond ?? 0) * DEGREES_TO_RADIANS * fixedStepSeconds,
+            definition.speed,
+          )
+        } else {
+          projectile.targetId = undefined
+        }
       }
     }
     projectile.x += projectile.velocityX * fixedStepSeconds

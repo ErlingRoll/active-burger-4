@@ -6,6 +6,7 @@ export interface ProjectileDefinition {
   radius: number
   lifetime: number
   guidance: 'straight' | 'homing'
+  homingDelaySeconds?: number
   turnRateDegreesPerSecond?: number
   retargetRange?: number
 }
@@ -40,6 +41,7 @@ export const PROJECTILE_DEFINITIONS = {
     radius: 6,
     lifetime: 2,
     guidance: 'homing',
+    homingDelaySeconds: 0.5,
     turnRateDegreesPerSecond: 300,
     retargetRange: 280,
   },
