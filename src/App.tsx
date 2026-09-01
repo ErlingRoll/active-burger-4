@@ -61,6 +61,7 @@ import {
   type BugReportImage,
   type BugReportService,
   type BugReport,
+  type BugReportFloorSnapshot,
 } from './bug-report'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
@@ -627,6 +628,9 @@ function App() {
     }
     await bugReport.service.submit({
       userId: authentication.account.id,
+      username: authentication.account.displayName ??
+        authentication.account.email ??
+        authentication.account.id,
       description,
       image,
       dungeon,
@@ -1192,6 +1196,22 @@ function App() {
     }
   }, [authentication.account, repository, showToast])
 
+  const loadBugReportFloorSnapshot = useCallback(async (
+    snapshotId: number,
+  ): Promise<BugReportFloorSnapshot> => {
+    if (!authentication.account?.isAdmin) {
+      throw new Error('Administrator access is required.')
+    }
+    if (!bugReport.service) {
+      throw new Error(bugReport.configurationError ?? 'Bug reporting is unavailable.')
+    }
+    return bugReport.service.loadFloorSnapshot(snapshotId)
+  }, [
+    authentication.account,
+    bugReport.configurationError,
+    bugReport.service,
+  ])
+
 
   useEffect(() => {
     const service = metaProgressionService.service
@@ -1317,6 +1337,7 @@ function App() {
           onRefresh={refreshAdminReports}
           onToggleShowHidden={() => { setShowHiddenAdminReports((current) => !current) }}
           onToggleHide={(reportId, hidden) => { void toggleBugReportHidden(reportId, hidden) }}
+          onLoadFloorSnapshot={loadBugReportFloorSnapshot}
         />
       ) : null}
       {screen === 'admin' && (!authentication.account || !authentication.account.isAdmin) ? (

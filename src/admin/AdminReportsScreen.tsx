@@ -1,4 +1,5 @@
-import type { BugReport } from '../bug-report'
+import { useState } from 'react'
+import type { BugReport, BugReportFloorSnapshot } from '../bug-report'
 
 interface AdminReportsScreenProps {
   reports: readonly BugReport[]
@@ -10,6 +11,7 @@ interface AdminReportsScreenProps {
   onRefresh: () => void
   onToggleShowHidden: () => void
   onToggleHide: (reportId: number, hidden: boolean) => void
+  onLoadFloorSnapshot: (snapshotId: number) => Promise<BugReportFloorSnapshot>
 }
 
 function formatSubmittedAt(value: string): string {
@@ -33,11 +35,34 @@ export function AdminReportsScreen({
   onRefresh,
   onToggleShowHidden,
   onToggleHide,
+  onLoadFloorSnapshot,
 }: AdminReportsScreenProps) {
+  const [floorSnapshot, setFloorSnapshot] = useState<{
+    snapshotId: number
+    state: 'loading' | 'ready' | 'error'
+    snapshot: BugReportFloorSnapshot | null
+    error: string | null
+  } | null>(null)
   const visibleReports = showHidden
     ? reports
     : reports.filter((report) => !hiddenReportIds.has(report.id))
   const hiddenCount = reports.filter((report) => hiddenReportIds.has(report.id)).length
+
+  const loadFloorSnapshot = (snapshotId: number): void => {
+    setFloorSnapshot({ snapshotId, state: 'loading', snapshot: null, error: null })
+    void onLoadFloorSnapshot(snapshotId)
+      .then((snapshot) => {
+        setFloorSnapshot({ snapshotId, state: 'ready', snapshot, error: null })
+      })
+      .catch((error: unknown) => {
+        setFloorSnapshot({
+          snapshotId,
+          state: 'error',
+          snapshot: null,
+          error: error instanceof Error ? error.message : 'Unable to load saved floor.',
+        })
+      })
+  }
 
   return (
     <section className="admin-reports-screen" aria-labelledby="admin-reports-title">
@@ -76,6 +101,7 @@ export function AdminReportsScreen({
           <div className="admin-reports-list">
             {visibleReports.map((report) => {
               const hidden = hiddenReportIds.has(report.id)
+              const savedFloorId = report.savedFloorId
               return (
                 <article className="admin-report-card" key={report.id}>
                   <header className="admin-report-card-header">
@@ -84,6 +110,9 @@ export function AdminReportsScreen({
                       <span>{formatSubmittedAt(report.submittedAt)}</span>
                     </div>
                     <div className="admin-report-card-controls">
+                      <strong className="admin-report-username">
+                        {report.username ?? report.userId}
+                      </strong>
                       <code>{report.userId}</code>
                       <button
                         className="admin-report-hide"
@@ -94,37 +123,71 @@ export function AdminReportsScreen({
                       </button>
                     </div>
                   </header>
-                  <p className="admin-report-bug">{report.bug}</p>
-                  <dl className="admin-report-context">
-                    <div>
-                      <dt>Dungeon</dt>
-                      <dd>{report.dungeon.dungeonName} ({report.dungeon.dungeonId})</dd>
-                    </div>
-                    <div>
-                      <dt>Floor</dt>
-                      <dd>{report.dungeon.currentFloor} / {report.dungeon.maxFloor}</dd>
-                    </div>
-                    <div>
-                      <dt>Playstyle</dt>
-                      <dd>{report.dungeon.playstyleId}</dd>
-                    </div>
-                    {report.dungeon.runId ? (
-                      <div>
-                        <dt>Run</dt>
-                        <dd>{report.dungeon.runId}</dd>
+                    <div className="admin-report-body">
+                      <div className="admin-report-details">
+                        <p className="admin-report-bug">{report.bug}</p>
+                        <dl className="admin-report-context">
+                          <div>
+                            <dt>Dungeon</dt>
+                            <dd>{report.dungeon.dungeonName} ({report.dungeon.dungeonId})</dd>
+                          </div>
+                          <div>
+                            <dt>Floor</dt>
+                            <dd>{report.dungeon.currentFloor} / {report.dungeon.maxFloor}</dd>
+                          </div>
+                          <div>
+                            <dt>Saved floor ID</dt>
+                            <dd>
+                              {savedFloorId !== null ? (
+                                <button
+                                  className="admin-report-floor-link"
+                                  type="button"
+                                  onClick={() => { loadFloorSnapshot(savedFloorId) }}
+                                  aria-expanded={floorSnapshot?.snapshotId === savedFloorId}
+                                >
+                                  {savedFloorId}
+                                </button>
+                              ) : 'Not available'}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Playstyle</dt>
+                            <dd>{report.dungeon.playstyleId}</dd>
+                          </div>
+                          {report.dungeon.runId ? (
+                            <div>
+                              <dt>Run</dt>
+                              <dd>{report.dungeon.runId}</dd>
+                            </div>
+                          ) : null}
+                        </dl>
+                        {floorSnapshot?.snapshotId === savedFloorId ? (
+                          <div className="admin-report-floor-json">
+                            {floorSnapshot.state === 'loading' ? (
+                              <p role="status">Loading saved floor…</p>
+                            ) : floorSnapshot.state === 'error' ? (
+                              <p className="persistence-error" role="alert">{floorSnapshot.error}</p>
+                            ) : (
+                              <pre>{JSON.stringify(floorSnapshot.snapshot?.payload, null, 2)}</pre>
+                            )}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </dl>
-                  {canPreviewImage(report) ? (
-                    <img
-                      className="admin-report-image"
-                      src={report.imageData ?? undefined}
-                      alt={report.imageName ?? 'Bug report attachment'}
-                    />
-                  ) : report.imageName ? (
-                    <p className="admin-report-attachment">Attachment: {report.imageName}</p>
-                  ) : null}
-                </article>
+                      <div className="admin-report-media">
+                        {canPreviewImage(report) ? (
+                          <img
+                            className="admin-report-image"
+                            src={report.imageData ?? undefined}
+                            alt={report.imageName ?? 'Bug report attachment'}
+                          />
+                        ) : report.imageName ? (
+                          <p className="admin-report-attachment">Attachment: {report.imageName}</p>
+                        ) : (
+                          <span className="admin-report-no-image">No image attached</span>
+                        )}
+                      </div>
+                    </div>
+                  </article>
               )
             })}
           </div>

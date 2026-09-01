@@ -5199,6 +5199,21 @@
   white-space: pre-wrap;
 }
 
+.admin-report-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.75fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-report-details {
+  min-width: 0;
+}
+
+.admin-report-details .admin-report-bug {
+  margin-top: 0;
+}
+
 .admin-report-context {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
@@ -5228,18 +5243,79 @@
   font-size: 0.82rem;
 }
 
+.admin-report-username {
+  color: #fef3c7;
+  font-size: 0.8rem;
+}
+
+.admin-report-floor-link {
+  padding: 0;
+  color: #fbbf24;
+  font: inherit;
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.admin-report-floor-link:hover,
+.admin-report-floor-link:focus-visible {
+  color: #fde68a;
+  outline: 3px solid rgb(251 191 36 / 25%);
+  outline-offset: 2px;
+}
+
+.admin-report-floor-json {
+  max-height: 24rem;
+  overflow: auto;
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 0.35rem;
+}
+
+.admin-report-floor-json p {
+  margin: 0;
+}
+
+.admin-report-floor-json pre {
+  margin: 0;
+  color: #cbd5e1;
+  font: 0.7rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-report-media {
+  min-width: 0;
+}
+
 .admin-report-image {
   display: block;
-  max-width: min(100%, 36rem);
+  width: 100%;
+  max-width: 36rem;
   max-height: 24rem;
-  margin-top: 1rem;
+  margin: 0 auto;
   object-fit: contain;
   border: 1px solid #475569;
   border-radius: 0.35rem;
 }
 
+.admin-report-no-image {
+  display: block;
+  padding: 2rem 1rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-align: center;
+  border: 1px dashed #334155;
+  border-radius: 0.35rem;
+}
+
 .admin-report-attachment {
-  margin: 1rem 0 0;
+  margin: 0;
   color: #94a3b8;
   font-size: 0.8rem;
 }
@@ -5282,6 +5358,10 @@
   .admin-report-card-header code {
     max-width: 100%;
     text-align: left;
+  }
+
+  .admin-report-body {
+    grid-template-columns: 1fr;
   }
 
   .admin-report-card-controls {
