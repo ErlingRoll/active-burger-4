@@ -24,10 +24,12 @@ import {
   PHANTOM_ARSENAL_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../../../game-config/skills'
+import { getSkillDefinition } from '../../../content/skills/Skills'
 import type { UpgradeId } from '../../../content/upgrades/Upgrades'
 import type { GameState } from '../../state/GameState'
 import { refreshMeleeLeech } from '../../equipment/EquipmentState'
@@ -136,6 +138,25 @@ export function applyUpgrade(
           cooldownRemaining: 0,
           resonanceAttackCount: 0,
         })
+        const unlockedSkill = definition.skillId
+        if (
+          unlockedSkill === CRITICAL_SPELLSTRIKE_SKILL_ID &&
+          player.criticalSpellstrikeTargetSkillId === undefined
+        ) {
+          player.criticalSpellstrikeTargetSkillId = player.skills.find(
+            (candidate) =>
+              getSkillDefinition(candidate.skillId).tags.includes('triggerable'),
+          )?.skillId
+        } else if (
+          player.skills.some((candidate) =>
+            candidate.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+          ) &&
+          player.criticalSpellstrikeTargetSkillId === undefined &&
+          getSkillDefinition(unlockedSkill).tags.includes('triggerable')
+        ) {
+          player.criticalSpellstrikeTargetSkillId = unlockedSkill
+        }
+        refreshPlayerDerivedStats(player)
       }
     } else if (skill) {
       skill.level += definition.amount
@@ -181,6 +202,12 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     skillId === MIRRORCAST_SKILL_ID
   ) {
     state.player.mirrorcastTargetSkillId = undefined
+  }
+  if (
+    state.player.criticalSpellstrikeTargetSkillId === skillId ||
+    skillId === CRITICAL_SPELLSTRIKE_SKILL_ID
+  ) {
+    state.player.criticalSpellstrikeTargetSkillId = undefined
   }
   if (
     state.player.bloodRiteTargetSkillId === skillId ||

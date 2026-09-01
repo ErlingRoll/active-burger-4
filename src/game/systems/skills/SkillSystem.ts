@@ -22,6 +22,7 @@ import {
   PHANTOM_ARSENAL_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
@@ -100,6 +101,10 @@ import {
   MIRRORCAST_DEFERRED_EFFECTIVENESS,
   MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT,
   MIRRORCAST_COPY_MAX_RANGE,
+  CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS,
+  CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS,
+  CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL,
+  getCriticalSpellstrikeBaseCooldown,
   RAZORWIRE_DURATION_SECONDS,
   RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
   RAZORWIRE_MAX_RANGE,
@@ -2090,7 +2095,7 @@ function captureMirrorcastIfArmed(state: GameState, castSkill: SkillState): void
     mirrorcast.status !== 'armed' ||
     castSkill.skillId === MIRRORCAST_SKILL_ID ||
     castSkill.skillId === BASIC_ATTACK_SKILL_ID ||
-    !getSkillDefinition(castSkill.skillId).mirrorcastEligible ||
+    !getSkillDefinition(castSkill.skillId).tags.includes('triggerable') ||
     (state.player.mirrorcastTargetSkillId !== undefined &&
       state.player.mirrorcastTargetSkillId !== castSkill.skillId)
   ) {
@@ -2144,7 +2149,9 @@ function executeMirrorcastCopy(
       const element = PRISM_ELEMENTS[state.player.prismHalo.nextElementIndex % PRISM_ELEMENTS.length]!
       state.player.prismHalo.nextElementIndex =
         (state.player.prismHalo.nextElementIndex + 1) % PRISM_ELEMENTS.length
-      events.push(...firePrismShard(state, allocator, prismTarget, element, false))
+      events.push(...firePrismShard(state, allocator, prismTarget, element, false).map(
+        (event) => ({ ...event, sourceSkillId: copy.skillId }),
+      ))
     }
   }
 
@@ -2293,12 +2300,94 @@ function executeMirrorcastSkillEffect(
 
   return events.map((event) => ({
     ...event,
-    sourceSkillId: MIRRORCAST_SKILL_ID,
+    sourceSkillId: copy.skillId,
     sourceLabel: event.sourceLabel
       ? `${event.sourceLabel} (Echo)`
-      : 'Mirrorcast',
+      : `${getSkillDefinition(copy.skillId).name} (Echo)`,
     damage: scaleDamageValues(event.damage, copy.effectiveness),
   }))
+}
+
+/**
+ * Replays the focused Triggerable skill after a resolved Basic Attack critical.
+ * This intentionally bypasses normal skill collection, preserving the target's
+ * cooldown, cast count, and Resonance.
+ */
+export function triggerCriticalSpellstrike(
+  state: GameState,
+  allocator: EntityIdAllocator,
+  random?: Pick<RandomSource, 'next'>,
+): DamageEvent[] {
+  const trigger = state.player.skills.find(
+    (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+  )
+  const targetId = state.player.criticalSpellstrikeTargetSkillId
+  const target = targetId
+    ? state.player.skills.find((skill) => skill.skillId === targetId)
+    : undefined
+  if (
+    !trigger ||
+    trigger.cooldownRemaining > 0 ||
+    !target ||
+    !getSkillDefinition(target.skillId).tags.includes('triggerable')
+  ) {
+    return []
+  }
+
+  const selected = state.run.selectedUpgradeIds
+  const baseCooldown = getCriticalSpellstrikeBaseCooldown(selected)
+  const baseline = selected.includes('critical-spellstrike-overwhelming-spellstrike')
+    ? CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS
+    : CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS
+  const effectiveness = isSkillResonant(state, trigger.skillId)
+    ? 1
+    : baseline +
+      Math.max(0, trigger.level - 1) * CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL
+  const copies = selected.includes('synergy-critical-spellstrike-mirrorcast') ? 2 : 1
+  const events: DamageEvent[] = []
+  for (let index = 0; index < copies; index += 1) {
+    const copy: MirrorcastCopyState = {
+      skillId: target.skillId,
+      level: target.level,
+      delayRemaining: 0,
+      effectiveness,
+      targetId: undefined,
+      retargetOnKill: false,
+      preserveSecondary: false,
+    }
+    if (selected.includes('synergy-critical-spellstrike-razorwire')) {
+      const newestWire = (state.wires ?? [])
+        .filter((wire) => wire.remainingDuration > 0)
+        .at(-1)
+      if (newestWire) {
+        newestWire.remainingDuration = extendDurationUpToMaximum(
+          newestWire.remainingDuration,
+          MIRRORCAST_WIRE_DURATION_BONUS_SECONDS,
+          RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+        )
+      }
+    }
+    if (selected.includes('synergy-critical-spellstrike-prism-halo') && state.player.prismHalo) {
+      const prismTarget = findNearestLivingTarget(state, PRISM_HALO_RANGE)
+      if (prismTarget) {
+        const element = PRISM_ELEMENTS[state.player.prismHalo.nextElementIndex % PRISM_ELEMENTS.length]!
+        state.player.prismHalo.nextElementIndex =
+          (state.player.prismHalo.nextElementIndex + 1) % PRISM_ELEMENTS.length
+        events.push(...firePrismShard(state, allocator, prismTarget, element, true).map(
+          (event) => ({ ...event, sourceSkillId: target.skillId }),
+        ))
+      }
+    }
+    events.push(...executeMirrorcastSkillEffect(state, allocator, copy, random))
+  }
+  trigger.cooldownRemaining = getSkillCooldown(
+    state,
+    trigger,
+    baseCooldown,
+  )
+  markSkillUsed(trigger)
+  consumeSkillResonance(state, trigger.skillId)
+  return events
 }
 
 function createRazorwire(
@@ -3130,6 +3219,9 @@ export function collectSkillDamage(
   )
 
   for (const skill of skills) {
+    if (skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID) {
+      continue
+    }
     if (skill.cooldownRemaining > 0) {
       continue
     }

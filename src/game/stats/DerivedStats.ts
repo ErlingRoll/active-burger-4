@@ -35,7 +35,10 @@ import {
   normalizeGearSetId,
   type GearSetId,
 } from '../../game-config/gear-sets'
-import { getBasicAttackVariant } from '../../content/skills/Skills'
+import {
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
+  getBasicAttackVariant,
+} from '../../content/skills/Skills'
 import type { PlayerState } from '../state/GameState'
 import {
   DEFAULT_RESONANCE_ATTACKS,
@@ -217,7 +220,6 @@ function aggregateGearEffects(
     if (!Number.isFinite(modifier.value)) {
       continue
     }
-
     if (definition.kind === 'stat') {
       effects.statModifiers.push({
         stat: definition.stat,
@@ -294,6 +296,10 @@ function aggregateGearEffects(
     } else if (definition.kind === 'frost-application') {
       effects.frostStacksOnHit += modifier.value
     }
+  }
+  if (player.skills.some((skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID)) {
+    effects.critChance += 50
+    effects.critMultiplier -= 70
   }
 
   const setPieceCounts = getEquippedGearSetPieceCounts(player, itemDefinitions)

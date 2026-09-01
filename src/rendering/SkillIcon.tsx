@@ -174,6 +174,14 @@ export function SkillIcon({
         </>
       )
       break
+    case 'critical-spellstrike':
+      shape = (
+        <>
+          <path {...strokeProps} d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z" />
+          <path {...strokeProps} d="m12 7 1 4 4 1-4 1-1 4-1-4-4-1 4-1z" />
+        </>
+      )
+      break
     case 'razorwire':
       shape = (
         <>

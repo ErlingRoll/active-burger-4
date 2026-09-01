@@ -138,6 +138,7 @@ import {
   BLOOD_RITE_SKILL_ID,
   getSkillDefinition,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   type SkillId,
 } from '../content/skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
@@ -515,6 +516,7 @@ export class Game {
       if (this.gameState.player.mirrorcastTargetSkillId === undefined) {
         return true
       }
+
       this.gameState.player.mirrorcastTargetSkillId = undefined
       this.notifyStateChanged()
       return true
@@ -523,7 +525,7 @@ export class Game {
     if (
       !this.gameState.player.skills.some((skill) => skill.skillId === MIRRORCAST_SKILL_ID) ||
       !this.gameState.player.skills.some((skill) => skill.skillId === skillId) ||
-      !getSkillDefinition(skillId).mirrorcastEligible
+      !getSkillDefinition(skillId).tags.includes('triggerable')
     ) {
       return false
     }
@@ -531,6 +533,33 @@ export class Game {
       return true
     }
     this.gameState.player.mirrorcastTargetSkillId = skillId
+    this.notifyStateChanged()
+    return true
+  }
+
+  /** Sets or clears the one Triggerable skill replayed by Critical Spellstrike. */
+  setCriticalSpellstrikeTargetSkill(skillId: SkillId | null): boolean {
+    if (skillId === null) {
+      if (this.gameState.player.criticalSpellstrikeTargetSkillId === undefined) {
+        return true
+      }
+      this.gameState.player.criticalSpellstrikeTargetSkillId = undefined
+      this.notifyStateChanged()
+      return true
+    }
+    if (
+      !this.gameState.player.skills.some(
+        (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+      ) ||
+      !this.gameState.player.skills.some((skill) => skill.skillId === skillId) ||
+      !getSkillDefinition(skillId).tags.includes('triggerable')
+    ) {
+      return false
+    }
+    if (this.gameState.player.criticalSpellstrikeTargetSkillId === skillId) {
+      return true
+    }
+    this.gameState.player.criticalSpellstrikeTargetSkillId = skillId
     this.notifyStateChanged()
     return true
   }

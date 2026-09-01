@@ -44,6 +44,7 @@ import {
   PHANTOM_ARSENAL_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
@@ -74,6 +75,7 @@ import {
   AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS,
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
   SOUL_TETHER_DURATION_SECONDS,
+  getCriticalSpellstrikeBaseCooldown,
 } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
@@ -390,6 +392,7 @@ interface PointSnapshot {
 export interface GameUiSnapshot extends RunHudSnapshot {
   readonly skillSlotCount: number
   readonly mirrorcastTargetSkillId: SkillId | null
+  readonly criticalSpellstrikeTargetSkillId: SkillId | null
   readonly bloodRiteTargetSkillId: SkillId | null
   readonly skills: readonly SkillHudSnapshot[]
   readonly equipment: Readonly<
@@ -1426,7 +1429,9 @@ export function createUiSnapshot(
       : Math.max(
           0,
           getEffectiveSkillCooldown(
-            definition.cooldown,
+            skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID
+              ? getCriticalSpellstrikeBaseCooldown(state.run.selectedUpgradeIds)
+              : definition.cooldown,
             playerStats.cooldownReduction +
               getSkillCooldownReductionPercent(
                 skill.skillId,
@@ -1621,6 +1626,8 @@ export function createUiSnapshot(
               : 'One persistent skeleton attacks the nearest target in range once per second.'
           : skill.skillId === FIERY_TOUCH_SKILL_ID
             ? 'Triggers on direct player or summon hits, subject to its cooldown.'
+          : skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID
+            ? 'Replays the focused Triggerable skill after a resolved Basic Attack critical; damage and healing depend on that skill and your critical-hit rate.'
           : skill.skillId === WHIRLWIND_SKILL_ID
           ? 'One target in Whirlwind range, sustained over its cooldown.'
           : skill.skillId === CHAIN_LIGHTNING_SKILL_ID
@@ -1967,6 +1974,7 @@ export function createUiSnapshot(
     floorDurationSeconds,
     skillSlotCount: eligibilityState.skillSlotCount,
     mirrorcastTargetSkillId: state.player.mirrorcastTargetSkillId ?? null,
+    criticalSpellstrikeTargetSkillId: state.player.criticalSpellstrikeTargetSkillId ?? null,
     bloodRiteTargetSkillId: state.player.bloodRiteTargetSkillId ?? null,
     skills: Object.freeze(skills),
     equipment: Object.freeze(equipment),

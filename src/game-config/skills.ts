@@ -30,6 +30,7 @@ export const SOUL_TETHER_SKILL_ID: SkillId = 'soul-tether'
 export const PHANTOM_ARSENAL_SKILL_ID: SkillId = 'phantom-arsenal'
 export const SIGIL_OF_RUIN_SKILL_ID: SkillId = 'sigil-of-ruin'
 export const MIRRORCAST_SKILL_ID: SkillId = 'mirrorcast'
+export const CRITICAL_SPELLSTRIKE_SKILL_ID: SkillId = 'critical-spellstrike'
 export const RAZORWIRE_SKILL_ID: SkillId = 'razorwire'
 export const BLOOD_RITE_SKILL_ID: SkillId = 'blood-rite'
 export const PRISM_HALO_SKILL_ID: SkillId = 'prism-halo'
@@ -149,6 +150,28 @@ export const MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS = 0.35
 export const MIRRORCAST_DEFERRED_EFFECTIVENESS = 0.65
 export const MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT = 2
 export const MIRRORCAST_COPY_MAX_RANGE = 320
+export const CRITICAL_SPELLSTRIKE_BASE_COOLDOWN_SECONDS = 1
+export const CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS = 0.7
+export const CRITICAL_SPELLSTRIKE_FRACTURED_ECHO_COOLDOWN_SECONDS = 1.5
+export const CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS = 0.5
+export const CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS = 0.8
+export const CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL = 0.05
+
+export function getCriticalSpellstrikeBaseCooldown(
+  selectedUpgradeIds: readonly string[],
+): number {
+  const baseCooldown = selectedUpgradeIds.includes(
+    'critical-spellstrike-rapid-invocation',
+  )
+    ? CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS
+    : CRITICAL_SPELLSTRIKE_BASE_COOLDOWN_SECONDS
+  return baseCooldown + (selectedUpgradeIds.includes(
+    'synergy-critical-spellstrike-mirrorcast',
+  )
+    ? CRITICAL_SPELLSTRIKE_FRACTURED_ECHO_COOLDOWN_SECONDS -
+      CRITICAL_SPELLSTRIKE_BASE_COOLDOWN_SECONDS
+    : 0)
+}
 
 // Razorwire: throws two anchors around the nearest enemy and connects them with
 // a persistent wire. Crossing the wire deals physical damage and applies a brief
@@ -380,7 +403,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Whirlwind',
     description: 'Periodically damages every enemy close to you.',
     kind: 'area',
-    tags: ['physical', 'melee', 'area'],
+    tags: ['physical', 'melee', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 2.5,
@@ -405,7 +428,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Chain Lightning',
     description: 'Strikes a nearby enemy, then jumps to up to four distinct targets.',
     kind: 'chain',
-    tags: ['lightning', 'area'],
+    tags: ['lightning', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 3,
@@ -433,7 +456,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Vitality',
     description: 'Automatically restores 6 HP every 5 seconds. Each level adds 5 HP per cast, and Vitality healing can critically strike.',
     kind: 'utility',
-    tags: ['defensive'],
+    tags: ['defensive', 'triggerable'],
     canProduceDirectHit: false,
     mirrorcastEligible: true,
     cooldown: 5,
@@ -516,7 +539,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Glacial Orb',
     description: 'Launches a cold orb at the nearest enemy that explodes and chills everyone caught in the blast.',
     kind: 'area',
-    tags: ['cold', 'projectile', 'area'],
+    tags: ['cold', 'projectile', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 3.2,
@@ -547,7 +570,7 @@ export const SKILL_DEFINITIONS = {
     name: "Lancer's Charge",
     description: 'Dashes toward the nearest enemy, striking everything in a narrow corridor and building Momentum with each hit.',
     kind: 'area',
-    tags: ['physical', 'melee', 'area'],
+    tags: ['physical', 'melee', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 2.6,
@@ -573,7 +596,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Rallying Banner',
     description: `Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Duration extensions affect only your newest banner and cap at ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds. Deals no direct damage.`,
     kind: 'utility',
-    tags: ['defensive', 'duration'],
+    tags: ['defensive', 'duration', 'triggerable'],
     canProduceDirectHit: false,
     mirrorcastEligible: true,
     cooldown: 16,
@@ -599,7 +622,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Gravity Well',
     description: 'Crushes the space around you, pulling nearby enemies in and dealing chaos damage.',
     kind: 'area',
-    tags: ['chaos', 'area'],
+    tags: ['chaos', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 5,
@@ -624,7 +647,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Aegis Pulse',
     description: `Releases a defensive burst that damages nearby enemies and grants a 14-HP absorb shield for ${AEGIS_PULSE_BASE_DURATION_SECONDS} seconds.`,
     kind: 'area',
-    tags: ['physical', 'area', 'defensive', 'duration'],
+    tags: ['physical', 'area', 'defensive', 'duration', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 11,
@@ -651,7 +674,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Rift Javelin',
     description: 'Hurls a long-range javelin that pierces every enemy in its path, then returns along the same path, hitting each enemy once outbound and once inbound.',
     kind: 'projectile',
-    tags: ['physical', 'projectile'],
+    tags: ['physical', 'projectile', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 3.4,
@@ -681,7 +704,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Cinder Mine',
     description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then deals Fire damage in its blast and leaves every enemy caught in it Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds. Burning deals Fire damage over time.`,
     kind: 'area',
-    tags: ['fire', 'area', 'dot'],
+    tags: ['fire', 'area', 'dot', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 3.8,
@@ -706,7 +729,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Storm Relay',
     description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds. Duration extensions cap at ${STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'chain',
-    tags: ['lightning', 'area', 'duration'],
+    tags: ['lightning', 'area', 'duration', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 9,
@@ -734,7 +757,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Soul Tether',
     description: `Each cast latches onto a nearby enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, favoring enemies closer to you. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies. Duration extensions affect only the newest tether on a target and cap at ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'utility',
-    tags: ['chaos', 'dot', 'trigger', 'duration'],
+    tags: ['chaos', 'dot', 'trigger', 'duration', 'triggerable'],
     canProduceDirectHit: false,
     mirrorcastEligible: true,
     cooldown: 6.5,
@@ -791,7 +814,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Sigil of Ruin',
     description: `Brands the nearest enemy with a Ruin Sigil for ${SIGIL_OF_RUIN_DURATION_SECONDS} seconds. The sigil gains one charge for each distinct damage source category that strikes the target, and at ${SIGIL_OF_RUIN_DETONATION_CHARGES} charges it detonates for chaos damage based on the capped damage dealt while marked.`,
     kind: 'utility',
-    tags: ['chaos', 'trigger'],
+    tags: ['chaos', 'trigger', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 4.5,
@@ -835,12 +858,36 @@ export const SKILL_DEFINITIONS = {
       description: `The Echo copies at ${Math.round(MIRRORCAST_RESONANCE_EFFECTIVENESS * 100)}% effectiveness and preserves an additional secondary effect.`,
     },
   },
+  [CRITICAL_SPELLSTRIKE_SKILL_ID]: {
+    id: CRITICAL_SPELLSTRIKE_SKILL_ID,
+    name: 'Critical Spellstrike',
+    description: `When a Basic Attack critically hits, replay your focused Triggerable skill at ${Math.round(CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS * 100)}% effectiveness. Starts with a 1-second cooldown, reduced by normal cooldown reduction. Owning it grants +50% critical chance and -70% critical multiplier.`,
+    kind: 'utility',
+    tags: ['trigger'],
+    canProduceDirectHit: false,
+    mirrorcastEligible: false,
+    cooldown: CRITICAL_SPELLSTRIKE_BASE_COOLDOWN_SECONDS,
+    baseDamage: {},
+    effectLifetime: 0.3,
+    visual: {
+      kind: 'utility',
+      icon: '✹',
+      primaryColor: '#facc15',
+      secondaryColor: '#fb7185',
+      outlineColor: '#fef3c7',
+    },
+    resonanceEffect: {
+      id: 'critical-spellstrike-perfect-invocation',
+      name: 'Perfect Invocation',
+      description: 'The next Critical Spellstrike replay has 100% effectiveness.',
+    },
+  },
   [RAZORWIRE_SKILL_ID]: {
     id: RAZORWIRE_SKILL_ID,
     name: 'Razorwire',
     description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown. Duration extensions affect only your newest Wire and cap at ${RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'area',
-    tags: ['physical', 'area', 'duration'],
+    tags: ['physical', 'area', 'duration', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 6,
@@ -866,7 +913,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Blood Rite',
     description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus. Open an eligible skill tooltip to focus Blood Debt on that skill, or clear the focus to return to automatic capture. Utility bonuses extend only your newest active persistent effects, capped at twice their base duration.`,
     kind: 'utility',
-    tags: ['chaos', 'duration'],
+    tags: ['chaos', 'duration', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 8,
@@ -891,7 +938,7 @@ export const SKILL_DEFINITIONS = {
     name: 'Prism Halo',
     description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock. Duration extensions cap at ${PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'utility',
-    tags: ['fire', 'cold', 'lightning', 'duration'],
+    tags: ['fire', 'cold', 'lightning', 'duration', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 7.5,

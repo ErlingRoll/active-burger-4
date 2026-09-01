@@ -22,6 +22,7 @@ export type SkillId =
   | 'phantom-arsenal'
   | 'sigil-of-ruin'
   | 'mirrorcast'
+  | 'critical-spellstrike'
   | 'razorwire'
   | 'blood-rite'
   | 'prism-halo'
@@ -39,6 +40,7 @@ export type SkillTag =
   | 'summon'
   | 'dot'
   | 'trigger'
+  | 'triggerable'
   | 'duration'
 
 export type SkillKind = 'projectile' | 'area' | 'chain' | 'utility'
@@ -145,6 +147,7 @@ export {
   PHANTOM_ARSENAL_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,

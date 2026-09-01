@@ -79,6 +79,7 @@ import {
   getEnemyCombatTarget,
   updateEnemyBehaviors,
 } from './EnemyBehaviors'
+import { triggerCriticalSpellstrike } from '../skills/SkillSystem'
 import type { ChildSpawnRequest } from './EnemyBehaviors'
 import type {
   DamageEvent,
@@ -1876,6 +1877,13 @@ export function applyDamageEvents(
       applyMendingReturnHealing(state, event, actualDamage)
       applyCrimsonBulwark(state, event, actualDamage)
       applyBasicAttackSynergyHooks(state, enemy, event, actualDamage)
+      if (
+        idAllocator &&
+        event.sourceSkillId === BASIC_ATTACK_SKILL_ID &&
+        resolvedDamage.critical
+      ) {
+        pendingEvents.push(...triggerCriticalSpellstrike(state, idAllocator, rng))
+      }
       applySpitefulRetaliation(state, enemy, event, mitigatedDamage, pendingEvents)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
@@ -1936,6 +1944,13 @@ export function applyDamageEvents(
       applyMendingReturnHealing(state, event, actualDamage)
       applyCrimsonBulwark(state, event, actualDamage)
       applyBasicAttackSynergyHooks(state, boss, event, actualDamage)
+      if (
+        idAllocator &&
+        event.sourceSkillId === BASIC_ATTACK_SKILL_ID &&
+        resolvedDamage.critical
+      ) {
+        pendingEvents.push(...triggerCriticalSpellstrike(state, idAllocator, rng))
+      }
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,

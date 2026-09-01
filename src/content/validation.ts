@@ -154,6 +154,7 @@ const VALID_SKILL_TAGS = new Set([
   'summon',
   'dot',
   'trigger',
+  'triggerable',
   'duration',
 ])
 const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
@@ -1199,6 +1200,8 @@ function validateDefinitions(
           upgrade.sigilOfRuinExecutionProtocol === undefined &&
           upgrade.mirrorcastDoubleExposure === undefined &&
           upgrade.mirrorcastDeferredEcho === undefined &&
+          upgrade.criticalSpellstrikeRapidInvocation === undefined &&
+          upgrade.criticalSpellstrikeOverwhelming === undefined &&
           upgrade.razorwireTripwireNetwork === undefined &&
           upgrade.razorwireGuillotineLine === undefined &&
           upgrade.bloodRiteSanguinePact === undefined &&

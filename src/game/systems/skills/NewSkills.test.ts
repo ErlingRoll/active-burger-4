@@ -16,6 +16,7 @@ import {
   SOUL_TETHER_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
@@ -34,6 +35,7 @@ import {
   MIRRORCAST_COPY_DELAY_SECONDS,
   MIRRORCAST_DEFERRED_COPY_DELAY_SECONDS,
   MIRRORCAST_CAPTURE_WINDOW_SECONDS,
+  CRITICAL_SPELLSTRIKE_FRACTURED_ECHO_COOLDOWN_SECONDS,
   RAZORWIRE_TRIPWIRE_COUNT,
   RAZORWIRE_GUILLOTINE_SNAP_DAMAGE_MULTIPLIER,
   RAZORWIRE_CROSSING_COOLDOWN_SECONDS,
@@ -63,8 +65,11 @@ import {
   updatePrismHalo,
   updateMirrorcast,
   updateBloodDebt,
+  triggerCriticalSpellstrike,
 } from './SkillSystem'
 import { applyDamageEvents } from '../combat/CombatSystem'
+import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import { applyUpgrade } from '../upgrades/UpgradeSystem'
 import type {
   DamageEvent,
   EnemyState,
@@ -464,7 +469,7 @@ describe('Mirrorcast', () => {
         expect(game.state.player.hp).toBeGreaterThan(7)
       } else {
         expect(events.some(
-          (event) => event.sourceSkillId === MIRRORCAST_SKILL_ID,
+          (event) => event.sourceSkillId === skillId,
         )).toBe(true)
       }
     },
@@ -537,6 +542,142 @@ describe('Mirrorcast', () => {
 
     expect(game.setBloodRiteTargetSkill(null)).toBe(true)
     expect(game.state.player.bloodRiteTargetSkillId).toBeUndefined()
+  })
+})
+
+describe('Critical Spellstrike', () => {
+  it('focuses an owned Triggerable skill on unlock, fills an empty focus later, and clears on removal', () => {
+    const game = createGame({ seed: 89 })
+    setSkills(game, [WHIRLWIND_SKILL_ID])
+    applyUpgrade(game.state, 'critical-spellstrike-unlock')
+    expect(game.state.player.criticalSpellstrikeTargetSkillId).toBe(WHIRLWIND_SKILL_ID)
+    applyUpgrade(game.state, 'remove-skill', WHIRLWIND_SKILL_ID)
+    expect(game.state.player.criticalSpellstrikeTargetSkillId).toBeUndefined()
+
+    const delayed = createGame({ seed: 90 })
+    setSkills(delayed, [BASIC_ATTACK_SKILL_ID])
+    applyUpgrade(delayed.state, 'critical-spellstrike-unlock')
+    expect(delayed.state.player.criticalSpellstrikeTargetSkillId).toBeUndefined()
+    applyUpgrade(delayed.state, 'whirlwind-unlock')
+    expect(delayed.state.player.criticalSpellstrikeTargetSkillId).toBe(WHIRLWIND_SKILL_ID)
+  })
+
+  it('focuses only Triggerable skills and passively changes global critical stats', () => {
+    const game = createGame({ seed: 89 })
+    setSkills(game, [CRITICAL_SPELLSTRIKE_SKILL_ID, WHIRLWIND_SKILL_ID])
+
+    expect(game.setCriticalSpellstrikeTargetSkill(BASIC_ATTACK_SKILL_ID)).toBe(false)
+    expect(game.setCriticalSpellstrikeTargetSkill(WHIRLWIND_SKILL_ID)).toBe(true)
+    expect(game.state.player.criticalSpellstrikeTargetSkillId).toBe(WHIRLWIND_SKILL_ID)
+    expect(game.setCriticalSpellstrikeTargetSkill(null)).toBe(true)
+    expect(game.state.player.criticalSpellstrikeTargetSkillId).toBeUndefined()
+
+    const stats = getDerivedPlayerStats(game.state.player)
+    expect(stats.critChance).toBe(55)
+    expect(stats.critMultiplier).toBe(130)
+  })
+
+  it('replays only after a resolved Basic Attack critical and preserves the target state', () => {
+    const game = createGame({ seed: 90 })
+    setSkills(game, [BASIC_ATTACK_SKILL_ID, CRITICAL_SPELLSTRIKE_SKILL_ID, WHIRLWIND_SKILL_ID])
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    toughEnemy(game, targetId)
+    const allocator = createAllocator()
+    const target = game.state.player.skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)!
+    const trigger = game.state.player.skills.find(
+      (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+    )!
+
+    expect(triggerCriticalSpellstrike(game.state, allocator)).toEqual([])
+    expect(trigger.cooldownRemaining).toBe(0)
+    expect(game.setCriticalSpellstrikeTargetSkill(WHIRLWIND_SKILL_ID)).toBe(true)
+    applyDamageEvents(game.state, [{
+      sourceId: game.state.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId,
+      damage: damage({ physical: 10 }),
+      criticalStrike: { chance: 100, multiplier: 100 },
+    }], { next: () => 0 }, allocator)
+
+    expect(trigger.cooldownRemaining).toBeCloseTo(1)
+    expect(target.cooldownRemaining).toBe(0)
+    expect(target.castCount).toBeUndefined()
+    expect(game.state.run.skillDamageDealt?.[WHIRLWIND_SKILL_ID]).toBeGreaterThan(0)
+  })
+
+  it('scales effectiveness by level and doubles replays with Fractured Echo at its tradeoff cooldown', () => {
+    const game = createGame({ seed: 91 })
+    setSkills(game, [CRITICAL_SPELLSTRIKE_SKILL_ID, WHIRLWIND_SKILL_ID])
+    game.spawnSlime({ x: 40, y: 0 })
+    const trigger = game.state.player.skills.find(
+      (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+    )!
+    trigger.level = 2
+    game.state.run.selectedUpgradeIds.push('synergy-critical-spellstrike-mirrorcast')
+    game.setCriticalSpellstrikeTargetSkill(WHIRLWIND_SKILL_ID)
+
+    const events = triggerCriticalSpellstrike(game.state, createAllocator())
+    expect(events).toHaveLength(2)
+    expect(events[0]?.damage.physical).toBeCloseTo(16 * 0.55)
+    expect(trigger.cooldownRemaining).toBeCloseTo(
+      CRITICAL_SPELLSTRIKE_FRACTURED_ECHO_COOLDOWN_SECONDS,
+    )
+
+    trigger.cooldownRemaining = 0
+    game.state.run.selectedUpgradeIds.push('critical-spellstrike-rapid-invocation')
+    triggerCriticalSpellstrike(game.state, createAllocator())
+    expect(trigger.cooldownRemaining).toBeCloseTo(
+      CRITICAL_SPELLSTRIKE_FRACTURED_ECHO_COOLDOWN_SECONDS - 0.3,
+    )
+  })
+
+  it('consumes Resonance for a fully effective Perfect Invocation', () => {
+    const game = createGame({ seed: 92 })
+    setSkills(game, [CRITICAL_SPELLSTRIKE_SKILL_ID, WHIRLWIND_SKILL_ID])
+    game.spawnSlime({ x: 40, y: 0 })
+    const trigger = game.state.player.skills.find(
+      (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+    )!
+    trigger.resonanceAttackCount = game.state.player.resonance
+    game.setCriticalSpellstrikeTargetSkill(WHIRLWIND_SKILL_ID)
+
+    const [event] = triggerCriticalSpellstrike(game.state, createAllocator())
+
+    expect(event?.damage.physical).toBeCloseTo(16)
+    expect(trigger.resonanceAttackCount).toBe(0)
+  })
+
+  it('extends only the newest Razorwire to its cap and credits Critical Spectrum shards to its focus', () => {
+    const game = createGame({ seed: 93 })
+    setSkills(game, [
+      CRITICAL_SPELLSTRIKE_SKILL_ID,
+      WHIRLWIND_SKILL_ID,
+      RAZORWIRE_SKILL_ID,
+      PRISM_HALO_SKILL_ID,
+    ])
+    game.spawnSlime({ x: 40, y: 0 })
+    const allocator = createAllocator()
+    game.state.player.skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)!.cooldownRemaining = 99
+    game.state.player.skills.find((skill) => skill.skillId === PRISM_HALO_SKILL_ID)!.cooldownRemaining = 99
+    collectSkillDamage(game.state, allocator)
+    game.state.wires![0]!.remainingDuration = 15.5
+    game.state.run.selectedUpgradeIds.push('synergy-critical-spellstrike-razorwire')
+    game.setCriticalSpellstrikeTargetSkill(WHIRLWIND_SKILL_ID)
+    triggerCriticalSpellstrike(game.state, allocator)
+    expect(game.state.wires![0]!.remainingDuration).toBe(16)
+
+    game.state.player.skills.find((skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID)!.cooldownRemaining = 0
+    game.state.player.prismHalo = {
+      ownerId: game.state.player.id,
+      remainingDuration: 4,
+      fireCooldownRemaining: 0,
+      nextElementIndex: 0,
+      firesAllElements: false,
+      rotation: 0,
+    }
+    game.state.run.selectedUpgradeIds = ['synergy-critical-spellstrike-prism-halo']
+    const events = triggerCriticalSpellstrike(game.state, allocator)
+    expect(events.some((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)).toBe(true)
   })
 })
 

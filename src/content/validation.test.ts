@@ -9,6 +9,7 @@ import { SYNERGY_UPGRADES } from './upgrades/Upgrades'
 import {
   BASIC_ATTACK_SKILL_ID,
   BASIC_ATTACK_VARIANTS,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   SKILL_DEFINITIONS,
 } from './skills/Skills'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
@@ -82,7 +83,10 @@ describe('content validation', () => {
 
     for (const skill of CURRENT_CONTENT.skills) {
       expect(counts.get(skill.id)).toBeGreaterThanOrEqual(2)
-      if (skill.id !== BASIC_ATTACK_SKILL_ID) {
+      if (
+        skill.id !== BASIC_ATTACK_SKILL_ID &&
+        skill.id !== CRITICAL_SPELLSTRIKE_SKILL_ID
+      ) {
         expect(SYNERGY_UPGRADES.some((synergy) =>
           synergy.synergySkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
           synergy.synergySkillIds.includes(skill.id)
@@ -90,7 +94,7 @@ describe('content validation', () => {
       }
     }
     expect(counts.get(BASIC_ATTACK_SKILL_ID)).toBe(
-      CURRENT_CONTENT.skills.length - 1,
+      CURRENT_CONTENT.skills.length - 2,
     )
   })
 

@@ -40,6 +40,7 @@ export type KeywordId =
   | 'blood-debt'
   | 'convergence'
   | 'prism-burst'
+  | 'triggerable'
 
 export interface KeywordDefinition {
   id: KeywordId
@@ -160,6 +161,13 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     summary: 'Makes skills ready again sooner.',
     details:
       'This percentage reduces a skill\'s cooldown. For example, 20% turns a 5-second cooldown into 4 seconds. Skill cooldowns cannot go below 0.1 seconds.',
+  },
+  triggerable: {
+    id: 'triggerable',
+    label: 'Triggerable',
+    summary: 'Can be replayed by a copying trigger.',
+    details:
+      'Triggerable skills may be focused by Critical Spellstrike and are eligible for Mirrorcast. Replays use the focused skill’s normal behavior without consuming its cooldown, cast count, or Resonance.',
   },
   duration: {
     id: 'duration',

@@ -90,6 +90,10 @@ export type UpgradeId =
   | 'mirrorcast-level'
   | 'mirrorcast-double-exposure'
   | 'mirrorcast-deferred-echo'
+  | 'critical-spellstrike-unlock'
+  | 'critical-spellstrike-level'
+  | 'critical-spellstrike-rapid-invocation'
+  | 'critical-spellstrike-overwhelming-spellstrike'
   | 'razorwire-unlock'
   | 'razorwire-level'
   | 'razorwire-tripwire-network'
@@ -157,6 +161,9 @@ export type UpgradeId =
   | 'synergy-sigil-of-ruin-blood-rite'
   | 'synergy-mirrorcast-razorwire'
   | 'synergy-mirrorcast-prism-halo'
+  | 'synergy-critical-spellstrike-mirrorcast'
+  | 'synergy-critical-spellstrike-razorwire'
+  | 'synergy-critical-spellstrike-prism-halo'
   | 'synergy-razorwire-blood-rite'
   | 'synergy-blood-rite-prism-halo'
   | typeof REMOVE_SKILL_UPGRADE_ID
@@ -207,6 +214,8 @@ export type UpgradeBranch =
   | 'sigil-of-ruin-execution-protocol'
   | 'mirrorcast-double-exposure'
   | 'mirrorcast-deferred-echo'
+  | 'critical-spellstrike-rapid-invocation'
+  | 'critical-spellstrike-overwhelming-spellstrike'
   | 'razorwire-tripwire-network'
   | 'razorwire-guillotine-line'
   | 'blood-rite-sanguine-pact'
@@ -359,6 +368,10 @@ export interface UpgradeDefinition {
   mirrorcastDoubleExposure?: boolean
   /** Mirrorcast copies later but more accurately and retargets on kill. */
   mirrorcastDeferredEcho?: boolean
+  /** Critical Spellstrike uses a 0.7-second base cooldown. */
+  criticalSpellstrikeRapidInvocation?: boolean
+  /** Critical Spellstrike starts at 80% replay effectiveness. */
+  criticalSpellstrikeOverwhelming?: boolean
   /** Razorwire deploys several shorter wires with reduced per-wire damage. */
   razorwireTripwireNetwork?: boolean
   /** Razorwire strings one longer, narrower wire that builds and snaps Tension. */

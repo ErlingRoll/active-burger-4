@@ -305,6 +305,8 @@ export interface PlayerState {
   mirrorcast?: MirrorcastState
   /** Optional skill selected for Mirrorcast to capture instead of any eligible skill. */
   mirrorcastTargetSkillId?: SkillId
+  /** Optional Triggerable skill replayed when a Basic Attack critically strikes. */
+  criticalSpellstrikeTargetSkillId?: SkillId
   /** Optional skill selected for Blood Rite to empower instead of any eligible skill. */
   bloodRiteTargetSkillId?: SkillId
   /** Stored Blood Debt waiting to empower the next skill cast. */

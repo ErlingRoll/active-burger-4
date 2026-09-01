@@ -52,6 +52,7 @@ import {
   isSkillId,
   RALLYING_BANNER_SKILL_ID,
   MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
   SKILL_DEFINITIONS,
   type SkillId,
 } from '../content/skills/Skills'
@@ -718,6 +719,9 @@ export function GameCanvas({
           onSetMirrorcastTarget={(skillId) => {
             gameRef.current?.setMirrorcastTargetSkill(skillId)
           }}
+          onSetCriticalSpellstrikeTarget={(skillId) => {
+            gameRef.current?.setCriticalSpellstrikeTargetSkill(skillId)
+          }}
           onSetBloodRiteTarget={(skillId) => {
             gameRef.current?.setBloodRiteTargetSkill(skillId)
           }}
@@ -800,12 +804,14 @@ export function GameCanvas({
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
   onSetMirrorcastTarget: (skillId: SkillId | null) => void
+  onSetCriticalSpellstrikeTarget: (skillId: SkillId | null) => void
   onSetBloodRiteTarget: (skillId: SkillId | null) => void
 }
 
 function GameplayHud({
   snapshot,
   onSetMirrorcastTarget,
+  onSetCriticalSpellstrikeTarget,
   onSetBloodRiteTarget,
 }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
@@ -823,6 +829,9 @@ function GameplayHud({
   )
   const mirrorcastOwned = snapshot.skills.some(
     (skill) => skill.skillId === MIRRORCAST_SKILL_ID,
+  )
+  const criticalSpellstrikeOwned = snapshot.skills.some(
+    (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
   )
   const bloodRiteOwned = snapshot.skills.some(
     (skill) => skill.skillId === BLOOD_RITE_SKILL_ID,
@@ -1072,11 +1081,16 @@ function GameplayHud({
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
             const mirrorcastTargeted = snapshot.mirrorcastTargetSkillId === skill.skillId
+            const criticalSpellstrikeTargeted =
+              snapshot.criticalSpellstrikeTargetSkillId === skill.skillId
             const bloodRiteTargeted = snapshot.bloodRiteTargetSkillId === skill.skillId
             const canFocusMirrorcast =
               mirrorcastOwned &&
               skill.skillId !== MIRRORCAST_SKILL_ID &&
-              SKILL_DEFINITIONS[skill.skillId].mirrorcastEligible
+              skill.tags.includes('triggerable')
+            const canFocusCriticalSpellstrike =
+              criticalSpellstrikeOwned &&
+              skill.tags.includes('triggerable')
             const canFocusBloodRite =
               bloodRiteOwned &&
               skill.skillId !== BASIC_ATTACK_SKILL_ID &&
@@ -1093,7 +1107,7 @@ function GameplayHud({
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}${bloodRiteTargeted ? ' skill-card-blood-rite-target' : ''}`}
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}${criticalSpellstrikeTargeted ? ' skill-card-critical-spellstrike-target' : ''}${bloodRiteTargeted ? ' skill-card-blood-rite-target' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
                   aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}${totalHealingLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
@@ -1193,6 +1207,42 @@ function GameplayHud({
                           {mirrorcastTargeted
                             ? 'Mirrorcast will wait for this skill while focused.'
                             : 'Choose this to make Mirrorcast wait for this skill.'}
+                        </p>
+                      </section>
+                    ) : null}
+                    {skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID ? (
+                      <section className="skill-mirrorcast-section" aria-label="Critical Spellstrike focus instructions">
+                        <p className="skill-upgrade-heading">Spellstrike focus</p>
+                        <p>
+                          Resolved Basic Attack critical hits replay your focused
+                          Triggerable skill. Open a Triggerable skill&apos;s tooltip
+                          and choose <strong>Focus Spellstrike</strong>.
+                        </p>
+                        <p className="skill-mirrorcast-status">
+                          {snapshot.criticalSpellstrikeTargetSkillId
+                            ? `Focused on ${snapshot.skills.find((candidate) =>
+                              candidate.skillId === snapshot.criticalSpellstrikeTargetSkillId,
+                            )?.name ?? snapshot.criticalSpellstrikeTargetSkillId}.`
+                            : 'No Triggerable skill is focused; critical hits will not replay a skill.'}
+                        </p>
+                      </section>
+                    ) : null}
+                    {canFocusCriticalSpellstrike ? (
+                      <section className="skill-mirrorcast-section" aria-label="Critical Spellstrike focus control">
+                        <button
+                          className={`skill-mirrorcast-focus-button${criticalSpellstrikeTargeted ? ' active' : ''}`}
+                          type="button"
+                          aria-pressed={criticalSpellstrikeTargeted}
+                          onClick={() => onSetCriticalSpellstrikeTarget(
+                            criticalSpellstrikeTargeted ? null : skill.skillId,
+                          )}
+                        >
+                          {criticalSpellstrikeTargeted ? 'Clear Spellstrike Focus' : 'Focus Spellstrike'}
+                        </button>
+                        <p>
+                          {criticalSpellstrikeTargeted
+                            ? 'Critical Spellstrike will replay this skill on a Basic Attack critical hit.'
+                            : 'Choose this skill for Critical Spellstrike to replay.'}
                         </p>
                       </section>
                     ) : null}

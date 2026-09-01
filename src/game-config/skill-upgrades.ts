@@ -61,6 +61,11 @@ import {
   MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS,
   MIRRORCAST_DEFERRED_EFFECTIVENESS,
   MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS,
+  CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL,
+  CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS,
+  CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS,
   RAZORWIRE_SKILL_ID,
   RAZORWIRE_TRIPWIRE_COUNT,
   RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER,
@@ -1289,6 +1294,65 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       state.ownedSkillIds.includes(MIRRORCAST_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('mirrorcast-deferred-echo') &&
       !state.selectedUpgradeIds.includes('mirrorcast-double-exposure'),
+  },
+  {
+    id: 'critical-spellstrike-unlock',
+    name: 'Critical Spellstrike',
+    description: `Unlock a passive trigger: resolved Basic Attack critical hits replay your focused Triggerable skill at ${Math.round(CRITICAL_SPELLSTRIKE_BASE_EFFECTIVENESS * 100)}% effectiveness. Grants +50% global critical chance and -70% global critical multiplier.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: 'Unlock skill',
+    skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
+    skillAction: 'unlock',
+    isEligible: (state) =>
+      state.ownedSkillIds.length < state.skillSlotCount &&
+      !state.ownedSkillIds.includes(CRITICAL_SPELLSTRIKE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('critical-spellstrike-unlock'),
+  },
+  {
+    id: 'critical-spellstrike-level',
+    name: 'Critical Focus',
+    description: `Increase Critical Spellstrike replay effectiveness by ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points.`,
+    category: 'skill',
+    rarity: Rarity.Common,
+    amount: 1,
+    valueLabel: `+${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points replay effectiveness`,
+    skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
+    skillAction: 'level',
+    isEligible: (state) => (state.skillLevels[CRITICAL_SPELLSTRIKE_SKILL_ID] ?? 0) >= 1,
+  },
+  {
+    id: 'critical-spellstrike-rapid-invocation',
+    name: 'Rapid Invocation',
+    description: `Reduce Critical Spellstrike base cooldown from 1.0 to ${CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS.toFixed(1)} seconds before ordinary cooldown reduction.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS.toFixed(1)}s base cooldown before CDR`,
+    skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
+    branch: 'critical-spellstrike-rapid-invocation',
+    criticalSpellstrikeRapidInvocation: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CRITICAL_SPELLSTRIKE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('critical-spellstrike-rapid-invocation') &&
+      !state.selectedUpgradeIds.includes('critical-spellstrike-overwhelming-spellstrike'),
+  },
+  {
+    id: 'critical-spellstrike-overwhelming-spellstrike',
+    name: 'Overwhelming Spellstrike',
+    description: `Set Critical Spellstrike baseline replay effectiveness to ${Math.round(CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS * 100)}%; Critical Focus still adds ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points per rank.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `${Math.round(CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS * 100)}% baseline replay effectiveness`,
+    skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
+    branch: 'critical-spellstrike-overwhelming-spellstrike',
+    criticalSpellstrikeOverwhelming: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(CRITICAL_SPELLSTRIKE_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('critical-spellstrike-overwhelming-spellstrike') &&
+      !state.selectedUpgradeIds.includes('critical-spellstrike-rapid-invocation'),
   },
   {
     id: 'razorwire-unlock',
