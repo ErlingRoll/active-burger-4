@@ -334,7 +334,7 @@ export interface UpgradeDefinition {
   cinderMineCluster?: boolean
   /** Strikes more often and applies extra Shock stacks for Storm Relay. */
   stormRelayOvercharge?: boolean
-  /** Makes Storm Relay permanent and adds a periodic burst around it. */
+  /** Pulls enemies toward Storm Relay before each strike. */
   stormRelayConduit?: boolean
   /** Increases the fraction of Soul Tether damage restored as healing. */
   soulTetherSiphon?: boolean

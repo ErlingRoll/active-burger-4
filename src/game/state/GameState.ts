@@ -773,8 +773,6 @@ export interface RelayState {
   skillId: SkillId
   x: number
   y: number
-  /** True when the relay ignores remainingDuration and persists until removed. */
-  permanent?: boolean
   remainingDuration: number
   strikeIntervalSeconds: number
   strikeCooldownRemaining: number
@@ -787,9 +785,9 @@ export interface RelayState {
   shockDurationSeconds: number
   shockThreshold: number
   shockBurstMultiplier: number
-  /** Optional radius for an additional burst around the relay on each strike. */
-  burstRadius?: number
-  burstDamageRatio?: number
+  /** Optional pre-strike pull centered on the relay. */
+  pullRadius?: number
+  pullDistance?: number
   /** Aurora Relay has prepared one additional fork on the next strike. */
   spectrumForkPrimed?: boolean
 }

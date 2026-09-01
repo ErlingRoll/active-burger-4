@@ -76,8 +76,8 @@ import {
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_SHOCK_STACKS,
-  STORM_RELAY_CONDUIT_BURST_RADIUS,
-  STORM_RELAY_CONDUIT_BURST_DAMAGE_RATIO,
+  STORM_RELAY_CONDUIT_PULL_RADIUS,
+  STORM_RELAY_CONDUIT_PULL_DISTANCE,
   SOUL_TETHER_DURATION_SECONDS,
   SOUL_TETHER_BASE_HEALING_RATIO,
   SOUL_TETHER_SIPHON_HEALING_BONUS,
@@ -205,6 +205,25 @@ import { clampPlayerPosition } from '../../../game-config/arena'
 
 function scaleAreaValue(value: number, areaOfEffect: number): number {
   return value * (1 + Math.max(0, areaOfEffect) / 100)
+}
+
+function pullEnemyToward(
+  enemy: EnemyState | BossState,
+  anchorX: number,
+  anchorY: number,
+  maximumPullDistance: number,
+  minimumDistance: number,
+): void {
+  const distance = Math.hypot(enemy.x - anchorX, enemy.y - anchorY)
+  const controlFactor = 1 - Math.min(90, Math.max(0, enemy.controlResistance ?? 0)) / 100
+  const pull = Math.min(
+    maximumPullDistance,
+    Math.max(0, distance - minimumDistance),
+  ) * controlFactor
+  if (pull > 0 && distance > 0) {
+    enemy.x += ((anchorX - enemy.x) / distance) * pull
+    enemy.y += ((anchorY - enemy.y) / distance) * pull
+  }
 }
 
 function addEffect(
@@ -1095,14 +1114,14 @@ function collectGravityWellDamage(
         : undefined
       const pullAnchorX = skeletonAnchor?.x ?? state.player.x
       const pullAnchorY = skeletonAnchor?.y ?? state.player.y
-      const distance = Math.hypot(enemy.x - pullAnchorX, enemy.y - pullAnchorY)
       const minDistance = enemy.radius + state.player.radius + 8
-      const controlFactor = 1 - Math.min(90, Math.max(0, enemy.controlResistance ?? 0)) / 100
-      const pull = Math.min(pullDistance, Math.max(0, distance - minDistance)) * controlFactor
-      if (pull > 0 && distance > 0) {
-        enemy.x += ((pullAnchorX - enemy.x) / distance) * pull
-        enemy.y += ((pullAnchorY - enemy.y) / distance) * pull
-      }
+      pullEnemyToward(
+        enemy,
+        pullAnchorX,
+        pullAnchorY,
+        pullDistance,
+        minDistance,
+      )
     }
     const event = createPlayerDamageEventFromStats(
       playerStats,
@@ -1486,6 +1505,24 @@ function collectStormRelayChainDamage(
   let originY = relay.y
   const path: SkillEffectPoint[] = [{ x: originX, y: originY }]
 
+  if (relay.pullRadius && relay.pullDistance) {
+    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]
+      .filter((enemy) => enemy.hp > 0)
+      .filter((enemy) =>
+        Math.hypot(enemy.x - relay.x, enemy.y - relay.y) <=
+          (relay.pullRadius ?? 0) + enemy.radius
+      )
+      .sort((left, right) => left.id - right.id)) {
+      pullEnemyToward(
+        enemy,
+        relay.x,
+        relay.y,
+        relay.pullDistance,
+        enemy.radius + 8,
+      )
+    }
+  }
+
   for (let jump = 0; jump < targetCount; jump += 1) {
     let target: EnemyState | BossState | undefined
     let targetDistanceSquared = Number.POSITIVE_INFINITY
@@ -1553,44 +1590,6 @@ function collectStormRelayChainDamage(
     originY = target.y
   }
 
-  if (relay.burstRadius) {
-    const burstDamage = scaleDamageValues(relay.damage, relay.burstDamageRatio ?? 1)
-    for (const enemy of [...state.enemies, ...(state.bosses ?? [])]
-      .filter((enemy) => enemy.hp > 0 && !visited.has(enemy.id))
-      .filter((enemy) =>
-        Math.hypot(enemy.x - relay.x, enemy.y - relay.y) <= (relay.burstRadius ?? 0) + enemy.radius,
-      )
-      .sort((left, right) => left.id - right.id)
-    ) {
-      events.push({
-        sourceId: relay.ownerId,
-        sourceSkillId: relay.skillId,
-        sourceLabel: 'Conduit Burst',
-        sourceTags: getSkillDefinition(relay.skillId).tags,
-        targetId: enemy.id,
-        damage: burstDamage,
-        shockApplication: {
-          stacks: Math.min(
-            SHOCK_MAX_STACKS - 1,
-            relay.shockStacks +
-              (ashenCircuit && (enemy.burningStacks?.length ?? 0) > 0 ? 1 : 0),
-          ),
-          durationSeconds: relay.shockDurationSeconds,
-          threshold: relay.shockThreshold,
-          burstMultiplier: relay.shockBurstMultiplier,
-        },
-      })
-      if (voltaicBond) {
-        for (const tether of state.player.soulTethers ?? []) {
-          if (tether.targetId === enemy.id) {
-            tether.remainingDuration += 0.5
-            tether.duration += 0.5
-          }
-        }
-      }
-    }
-  }
-
   if (events.length > 0) {
     if (spectrumFork) {
       relay.spectrumForkPrimed = false
@@ -1641,18 +1640,12 @@ function collectStormRelayCast(
   )
 
   state.relays ??= []
-  if (conduit) {
-    state.relays = state.relays.filter(
-      (relay) => relay.ownerId !== state.player.id || relay.skillId !== skill.skillId,
-    )
-  }
   const relay: RelayState = {
     id: allocator.createEntityId(),
     ownerId: state.player.id,
     skillId: skill.skillId,
     x: state.player.x,
     y: state.player.y,
-    permanent: conduit,
     remainingDuration: STORM_RELAY_BASE_DURATION_SECONDS,
     strikeIntervalSeconds: overcharge
       ? STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS
@@ -1672,8 +1665,11 @@ function collectStormRelayCast(
     shockBurstMultiplier: 1.5,
     ...(conduit
       ? {
-          burstRadius: STORM_RELAY_CONDUIT_BURST_RADIUS,
-          burstDamageRatio: STORM_RELAY_CONDUIT_BURST_DAMAGE_RATIO,
+          pullRadius: scaleAreaValue(
+            STORM_RELAY_CONDUIT_PULL_RADIUS,
+            playerStats.areaOfEffect,
+          ),
+          pullDistance: STORM_RELAY_CONDUIT_PULL_DISTANCE,
         }
       : {}),
   }
@@ -1702,11 +1698,9 @@ export function updateStormRelay(
   const events: DamageEvent[] = []
   const remaining: RelayState[] = []
   for (const relay of [...(state.relays ?? [])].sort((left, right) => left.id - right.id)) {
-    if (!relay.permanent) {
-      relay.remainingDuration -= fixedStepSeconds
-      if (relay.remainingDuration <= 0) {
-        continue
-      }
+    relay.remainingDuration -= fixedStepSeconds
+    if (relay.remainingDuration <= 0) {
+      continue
     }
     relay.strikeCooldownRemaining -= fixedStepSeconds
     if (relay.strikeCooldownRemaining <= 0) {

@@ -1317,7 +1317,7 @@ describe('skill system', () => {
         .toBe(STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS)
     })
 
-    it('keeps one permanent Conduit relay when recast and adds a burst pulse around it', () => {
+    it('pulls enemies before each strike, scaling its radius with Area of Effect and respecting control resistance', () => {
       const game = createGame({ seed: 89 })
       game.state.player.skills = [{
         skillId: STORM_RELAY_SKILL_ID,
@@ -1325,25 +1325,33 @@ describe('skill system', () => {
         cooldownRemaining: 0,
       }]
       game.state.run.selectedUpgradeIds.push('storm-relay-conduit')
-      game.spawnSlime({ x: 100, y: 0 })
+      equipRolledItem(
+        game.state.player,
+        'duelists-band',
+        Rarity.Common,
+        [createGearModifier('duelists-band', 'area-of-effect', 1, 25)],
+      )
+      const normalTargetId = game.spawnSlime({ x: 120, y: 0 })
+      const resistantTargetId = game.spawnSlime({ x: 120, y: 50 })
+      const scaledRadiusTargetId = game.spawnSlime({ x: 160, y: 0 })
+      const resistantTarget = game.state.enemies.find(
+        (enemy) => enemy.id === resistantTargetId,
+      )!
+      resistantTarget.controlResistance = 50
 
       collectSkillDamage(game.state, allocator)
-      expect(game.state.relays?.[0]?.permanent).toBe(true)
 
-      updateStormRelay(game.state, 1000, allocator)
-      expect(game.state.relays).toHaveLength(1)
+      expect(game.state.enemies.find((enemy) => enemy.id === normalTargetId)?.x)
+        .toBeCloseTo(60)
+      expect(game.state.enemies.find((enemy) => enemy.id === resistantTargetId)?.x)
+        .toBeCloseTo(92.3076923076923)
+      expect(game.state.enemies.find((enemy) => enemy.id === resistantTargetId)?.y)
+        .toBeCloseTo(38.4615384615385)
+      expect(game.state.enemies.find((enemy) => enemy.id === scaledRadiusTargetId)?.x)
+        .toBeCloseTo(100)
 
-      game.state.player.x = 50
-      game.state.player.y = 75
-      game.state.player.skills[0]!.cooldownRemaining = 0
-      collectSkillDamage(game.state, allocator)
-
-      expect(game.state.relays).toHaveLength(1)
-      expect(game.state.relays?.[0]).toMatchObject({
-        permanent: true,
-        x: 50,
-        y: 75,
-      })
+      updateStormRelay(game.state, STORM_RELAY_BASE_DURATION_SECONDS, allocator)
+      expect(game.state.relays).toEqual([])
     })
   })
 
