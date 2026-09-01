@@ -783,6 +783,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  opacity: 0;
   background:
     radial-gradient(ellipse at center, transparent 54%, rgb(127 29 29 / 18%) 100%);
   border: 3px solid rgb(248 113 113 / 82%);
@@ -790,21 +791,12 @@
     inset 0 0 1.4rem rgb(248 113 113 / 82%),
     inset 0 0 5rem rgb(127 29 29 / 70%),
     0 0 1.75rem rgb(185 28 28 / 48%);
-  animation: damage-blood-flash 320ms ease-out forwards;
+  transition: opacity 320ms ease-out;
 }
 
-@keyframes damage-blood-flash {
-  0% {
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
+.damage-flash-overlay-active {
+  opacity: 1;
+  transition-duration: 100ms;
 }
 
 .gameplay-hud {
@@ -2626,7 +2618,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .damage-flash-overlay {
-    animation: none;
+    transition: none;
+  }
+
+  .damage-flash-overlay-active {
     opacity: 0.75;
   }
 

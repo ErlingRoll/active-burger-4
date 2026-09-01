@@ -706,13 +706,12 @@ export function GameCanvas({
         aria-label="Active Burger 4 game arena"
         role="img"
       />
-      {damageFlashId > 0 ? (
-        <div
-          key={damageFlashId}
-          className="damage-flash-overlay"
-          aria-hidden="true"
-        />
-      ) : null}
+      <div
+        className={`damage-flash-overlay${
+          damageFlashId > 0 ? ' damage-flash-overlay-active' : ''
+        }`}
+        aria-hidden="true"
+      />
       {snapshot ? (
         <GameplayHud
           snapshot={snapshot}
