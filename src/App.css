@@ -2577,7 +2577,7 @@
 
 .skill-icon svg,
 .skill-tooltip-icon svg,
-.upgrade-action-evolved-skill svg {
+.upgrade-action-skill svg {
   display: inline-block;
   vertical-align: middle;
 }
@@ -4513,7 +4513,7 @@
 }
 
 .upgrade-action-label-evolve { color: #f9a8d4; }
-.upgrade-action-evolved-skill { color: #fb923c; }
+.upgrade-action-skill { color: #fb923c; }
 .upgrade-action-label-unlock { color: #fb923c; }
 .upgrade-action-label-upgrade { color: #c4b5fd; }
 .upgrade-action-label-release { color: #f87171; }

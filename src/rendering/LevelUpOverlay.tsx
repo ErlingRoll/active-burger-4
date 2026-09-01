@@ -503,17 +503,24 @@ function UpgradeCard({
   const removedSynergy = choice.upgradeId === REMOVE_SYNERGY_UPGRADE_ID
     ? getUpgradeDefinition(choice.synergyId)
     : undefined
-  const unlockedSkill = definition.skillAction === 'unlock' && definition.skillId
+  const associatedSkill = definition.skillId
     ? getSkillDefinition(definition.skillId)
+    : undefined
+  const unlockedSkill = definition.skillAction === 'unlock'
+    ? associatedSkill
     : undefined
   const synergyPartnerSkills = unlockedSkill
     ? getSynergyPartnerSkillIds(unlockedSkill.id, ownedSkillIds)
       .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
       .map((skillId) => getSkillDefinition(skillId))
     : []
-  const evolvedSkill = definition.branch && definition.skillId
-    ? getSkillDefinition(definition.skillId)
+  const evolvedSkill = definition.branch
+    ? associatedSkill
     : undefined
+  const upgradedSkill = !definition.branch && !unlockedSkill
+    ? associatedSkill
+    : undefined
+  const actionSkill = evolvedSkill ?? upgradedSkill
   const synergySkillIds = definition.synergySkillIds ??
     removedSynergy?.synergySkillIds
   const synergySkills = synergySkillIds?.map((skillId) =>
@@ -576,11 +583,10 @@ function UpgradeCard({
         </span>
         <span className={`upgrade-action-label ${actionLabelClass}`}>
           {actionLabel}
-          {evolvedSkill ? (
-            <span className="upgrade-action-evolved-skill">
+          {actionSkill ? (
+            <span className="upgrade-action-skill">
               {' '}
-              <SkillIcon skillId={evolvedSkill.id} size={18} />{' '}
-              {evolvedSkill.name}
+              <SkillIcon skillId={actionSkill.id} size={18} /> {actionSkill.name}
             </span>
           ) : null}
         </span>
