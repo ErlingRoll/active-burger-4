@@ -50,6 +50,7 @@ import {
   updateSummons,
 } from '../summons/SummonSystem'
 import { isPlayerInRallyingBanner } from './RallyingBanner'
+import { isSkillResonant } from '../../combat/Resonance'
 
 const allocator = {
   createEntityId: () => 10_000,
@@ -100,8 +101,37 @@ describe('skill system', () => {
 
     collectSkillDamage(game.state, allocator)
 
-    expect(game.state.player.resonanceAttackCount).toBe(0)
+    expect(game.state.player.skills.find(
+      (skill) => skill.skillId === WHIRLWIND_SKILL_ID,
+    )?.resonanceAttackCount).toBe(0)
     expect(game.state.player.attackCooldownRemaining).toBe(0)
+  })
+
+  it('charges and consumes resonance independently for each skill', () => {
+    const game = createGame({ seed: 51 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    game.state.player.targetId = targetId
+    const resonanceRequirement = game.state.player.resonance ?? 5
+
+    for (let attack = 0; attack < resonanceRequirement; attack += 1) {
+      game.state.player.attackCooldownRemaining = 0
+      performBasicAttackIfReady(game.state, allocator)
+    }
+
+    expect(isSkillResonant(game.state, WHIRLWIND_SKILL_ID)).toBe(true)
+    expect(isSkillResonant(game.state, CHAIN_LIGHTNING_SKILL_ID)).toBe(true)
+
+    const events = collectSkillDamage(game.state, allocator)
+
+    expect(events.some((event) => event.sourceSkillId === WHIRLWIND_SKILL_ID)).toBe(true)
+    expect(events.some((event) => event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID)).toBe(true)
+    expect(isSkillResonant(game.state, WHIRLWIND_SKILL_ID)).toBe(false)
+    expect(isSkillResonant(game.state, CHAIN_LIGHTNING_SKILL_ID)).toBe(false)
   })
 
   it('resolves Whirlwind hits by stable EntityId order and respects cooldown', () => {

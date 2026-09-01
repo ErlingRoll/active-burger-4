@@ -103,7 +103,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Resonance',
     summary: 'A charged skill effect created by Basic Attacks.',
     details:
-      'Successful Basic Attacks build Resonance. When the requirement is reached, the next successful skill consumes the charge and triggers that skill\'s Resonance effect.',
+      'Successful Basic Attacks charge each skill independently. Skills with a golden border will proc Resonance on their next cast.',
   },
   attunement: {
     id: 'attunement',

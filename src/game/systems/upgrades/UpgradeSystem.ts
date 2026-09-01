@@ -130,6 +130,7 @@ export function applyUpgrade(
           skillId: definition.skillId,
           level: 1,
           cooldownRemaining: 0,
+          resonanceAttackCount: 0,
         })
       }
     } else if (skill) {

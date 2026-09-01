@@ -1549,6 +1549,13 @@
   overflow: hidden;
 }
 
+.skill-card.skill-card-resonance-ready {
+  border-color: #facc15;
+  box-shadow:
+    0 0 0.75rem rgb(250 204 21 / 62%),
+    inset 0 0 0.45rem rgb(250 204 21 / 18%);
+}
+
 .skill-cooldown-overlay {
   position: absolute;
   z-index: 1;

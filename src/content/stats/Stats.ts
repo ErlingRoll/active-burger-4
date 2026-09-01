@@ -20,13 +20,13 @@ export const STAT_KEYS = [
 export const ATTUNEMENT_DESCRIPTION =
   'Attunement adds this percentage of your final pre-crit Basic Attack damage to skills and summons, preserving each damage type and rounding each component up.'
 export const RESONANCE_DESCRIPTION =
-  'Resonance is the number of successful Basic Attacks needed to empower the next skill cast.'
+  'Successful Basic Attacks charge each skill independently. Skills with a golden border will proc Resonance on their next cast.'
 
 export type StatValues = { [K in StatKey]: number }
 /** Character-authored stats; attack range is supplied by the equipped weapon. */
 /** Character-authored combat stats that are not derived from equipment. */
 export type CharacterStatValues = Omit<StatValues, 'attackRange'> & {
-  /** Successful Basic Attacks required to empower the next skill cast. */
+  /** Successful Basic Attacks required to empower each skill's next cast. */
   resonance?: number
   /** Percentage of final Basic Attack damage converted into skill damage. */
   attunement?: number

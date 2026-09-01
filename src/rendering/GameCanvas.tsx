@@ -982,10 +982,10 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}`}
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
-                  aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}`}
+                  aria-label={`${skill.name}, level ${skill.level}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => {
                     cancelTooltipClose()

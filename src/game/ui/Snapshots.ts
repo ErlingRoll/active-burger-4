@@ -84,6 +84,7 @@ import {
   getDerivedPlayerStats,
   getEquippedGearSetPieceCounts,
 } from '../stats/DerivedStats'
+import { isSkillResonant } from '../combat/Resonance'
 import {
   ALL_GEAR_SET_DEFINITIONS,
   getActiveGearSetBonuses,
@@ -186,6 +187,8 @@ export interface SkillHudSnapshot {
   readonly totalDamageDealt: number
   readonly description: string
   readonly resonanceEffect: SkillResonanceEffect | null
+  /** True when this skill has enough Basic Attack charges for resonance. */
+  readonly resonanceReady: boolean
   readonly tags: readonly SkillTag[]
   /** Native skill and Attunement damage before critical strikes and resistance. */
   readonly damage: DamageValues
@@ -1384,6 +1387,7 @@ export function createUiSnapshot(
       totalDamageDealt: state.run.skillDamageDealt?.[skill.skillId] ?? 0,
       description: isBasicAttack ? basicAttackVariant.description : definition.description,
       resonanceEffect: isBasicAttack ? null : definition.resonanceEffect ?? null,
+      resonanceReady: !isBasicAttack && isSkillResonant(state, skill.skillId),
       tags: Object.freeze([...skillTags]),
       damage: outgoingDamage.damage,
       damageTypes: Object.freeze(damageTypes),

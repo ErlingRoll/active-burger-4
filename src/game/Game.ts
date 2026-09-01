@@ -551,6 +551,7 @@ export class Game {
       skillId,
       level: 1,
       cooldownRemaining: 0,
+      resonanceAttackCount: 0,
     })
     this.notifyStateChanged()
     return { ok: true, changed: true }

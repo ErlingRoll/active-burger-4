@@ -245,7 +245,7 @@ function collectFieryTouchTriggerEvents(
 
   const definition = getSkillDefinition(FIERY_TOUCH_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
-  const resonant = isSkillResonant(state)
+  const resonant = isSkillResonant(state, skill.skillId)
   const cooldownReduction = playerStats.cooldownReduction +
     getSkillCooldownReductionPercent(
       FIERY_TOUCH_SKILL_ID,
@@ -334,7 +334,7 @@ function collectFieryTouchTriggerEvents(
   if (events.length > 0) {
     skill.castCount = (skill.castCount ?? 0) + 1
     if (resonant) {
-      consumeSkillResonance(state)
+      consumeSkillResonance(state, skill.skillId)
     }
   }
   if (idAllocator) {

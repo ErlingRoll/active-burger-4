@@ -224,14 +224,12 @@ export interface PlayerState {
   attackDamage: number
   attackSpeed: number
   attackCooldownRemaining: number
-  /** Successful Basic Attacks required to empower the next skill cast. */
+  /** Successful Basic Attacks required to empower each skill's next cast. */
   resonance?: number
   /** Percentage of final Basic Attack damage converted into skill damage. */
   attunement?: number
   /** Additive Attunement adjustment that can change during a run. */
   attunementBonusPercent?: number
-  /** Successful Basic Attacks banked toward the next resonant skill cast. */
-  resonanceAttackCount?: number
   /** Additive fraction of actual gear-based melee damage restored as health. */
   meleeLeech?: number
   /** Additive fraction of actual Whirlwind damage restored as health. */
@@ -311,6 +309,8 @@ export interface SkillState {
   skillId: SkillId
   level: number
   cooldownRemaining: number
+  /** Successful Basic Attacks banked toward this skill's next resonant cast. */
+  resonanceAttackCount?: number
   /** Incremented after each successful cast so UI feedback does not rely on timing. */
   castCount?: number
 }

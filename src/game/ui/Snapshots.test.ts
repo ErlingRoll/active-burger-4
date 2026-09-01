@@ -90,6 +90,7 @@ describe('UI snapshots', () => {
     ])
     expect(snapshot.skills[0]?.name).toBe('Basic Attack')
     expect(snapshot.skills[0]?.castCount).toBe(0)
+    expect(snapshot.skills[0]?.resonanceReady).toBe(false)
     expect(snapshot.skills[0]?.totalDamageDealt).toBe(0)
     expect(snapshot.skills[0]?.damage).toMatchObject({ physical: 14 })
     expect(snapshot.skills[0]?.damageTypes).toEqual(['physical'])
@@ -119,6 +120,30 @@ describe('UI snapshots', () => {
     })
     expect(Object.isFrozen(snapshot)).toBe(true)
     expect(Object.isFrozen(snapshot.skills)).toBe(true)
+  })
+
+  it('projects resonance readiness independently for each skill', () => {
+    const game = createGame({ seed: 73 })
+    const resonanceRequirement = game.state.player.resonance ?? 5
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      {
+        skillId: WHIRLWIND_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+        resonanceAttackCount: resonanceRequirement,
+      },
+      { skillId: CHAIN_LIGHTNING_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+
+    const skills = createUiSnapshot(game.state).skills
+
+    expect(skills.find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)?.resonanceReady)
+      .toBe(false)
+    expect(skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)?.resonanceReady)
+      .toBe(true)
+    expect(skills.find((skill) => skill.skillId === CHAIN_LIGHTNING_SKILL_ID)?.resonanceReady)
+      .toBe(false)
   })
 
   it('projects Rallying Banner healing and active defensive values', () => {

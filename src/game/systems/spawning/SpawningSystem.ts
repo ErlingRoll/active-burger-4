@@ -144,7 +144,6 @@ export function createInitialPlayerState(
     resonance: baseStats.resonance ?? DEFAULT_RESONANCE_ATTACKS,
     attunement: baseStats.attunement ?? DEFAULT_ATTUNEMENT_PERCENT,
     attunementBonusPercent: 0,
-    resonanceAttackCount: 0,
     meleeLeech: 0,
     whirlwindLeech: 0,
     increasedHealing: 0,
@@ -179,6 +178,7 @@ export function createInitialPlayerState(
       skillId,
       level: 1,
       cooldownRemaining: 0,
+      resonanceAttackCount: 0,
     })),
   }
 }
