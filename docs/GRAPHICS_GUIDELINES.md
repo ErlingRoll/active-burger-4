@@ -261,6 +261,10 @@ accent on the owning object rather than inventing a separate persistent object.
 
 - **Player:** a simple high-contrast body derived from the selected playstyle,
   with health and shield bars kept separate from the body.
+- **Riftwalker:** violet six-sided body, dark dimensional core, and bright
+  diagonal rift slash.
+- **Bloodweaver:** crimson ritual-star body, dark occult core, and red
+  blood-drop center.
 - **Enemies:** content-owned silhouettes such as circles, diamonds, triangles,
   and hexagons. Elite modifiers add a distinct aura style rather than replacing
   the enemy silhouette.

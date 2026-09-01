@@ -97,6 +97,8 @@ const PLAYSTYLE_ICONS: Record<PlaystyleId, string> = {
   'frost-warden': '❄',
   'ashen-alchemist': '🔥',
   'war-shepherd': '🚩',
+  riftwalker: '✧',
+  bloodweaver: '🩸',
 }
 
 function getScreenForPath(pathname: string): AppScreen {

@@ -154,6 +154,10 @@ describe('Game', () => {
       .toMatchObject({ itemId: 'ashen-alchemist-training-staff' })
     expect(createGame({ seed: 106, playstyleId: 'war-shepherd' }).state.player.equipment?.weapon)
       .toMatchObject({ itemId: 'war-shepherd-training-sword' })
+    expect(createGame({ seed: 107, playstyleId: 'riftwalker' }).state.player.equipment?.weapon)
+      .toMatchObject({ itemId: 'ranger-training-bow' })
+    expect(createGame({ seed: 108, playstyleId: 'bloodweaver' }).state.player.equipment?.weapon)
+      .toMatchObject({ itemId: 'ashen-alchemist-training-staff' })
   })
 
   it('grants development gear and refreshes the player projection', () => {

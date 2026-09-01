@@ -353,9 +353,34 @@ export class PixiGame {
       this.game.state.player.playstyleId ?? DEFAULT_PLAYSTYLE_ID,
     )
     const body = new Graphics()
-      .circle(0, 0, 24)
-      .fill(playstyle.visual.fillColor)
-      .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+    if (playstyle.id === 'riftwalker') {
+      body
+        .poly(createPolygonPoints(24, 6, Math.PI / 6))
+        .fill(playstyle.visual.fillColor)
+        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+        .poly(createPolygonPoints(14, 4, Math.PI / 4))
+        .fill({ color: 0x312e81, alpha: 0.9 })
+        .stroke({ color: 0xc4b5fd, width: 2 })
+        .moveTo(-11, 11)
+        .lineTo(11, -11)
+        .stroke({ color: 0xf5f3ff, width: 2 })
+    } else if (playstyle.id === 'bloodweaver') {
+      body
+        .poly(createStarPoints(24, 8, 0.7, -Math.PI / 2))
+        .fill(playstyle.visual.fillColor)
+        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+        .poly(createPolygonPoints(15, 6, Math.PI / 6))
+        .fill({ color: 0x450a0a, alpha: 0.9 })
+        .stroke({ color: 0xf87171, width: 2 })
+        .poly([0, -10, 7, 2, 0, 11, -7, 2])
+        .fill({ color: 0xef4444, alpha: 0.85 })
+        .stroke({ color: 0xfecaca, width: 1.5 })
+    } else {
+      body
+        .circle(0, 0, 24)
+        .fill(playstyle.visual.fillColor)
+        .stroke({ color: playstyle.visual.outlineColor, width: 3 })
+    }
     const hpBar = new Graphics()
     const shieldBar = new Graphics()
     const hitFlash = new Graphics()

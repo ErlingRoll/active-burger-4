@@ -5,9 +5,10 @@ import {
   isPlaystyleId,
   PLAYSTYLE_IDS,
 } from './Playstyles'
+import { SKILL_DEFINITIONS } from '../skills/Skills'
 
 describe('Playstyles', () => {
-  it('defines six valid, distinct starter playstyles', () => {
+  it('defines eight valid, distinct starter playstyles', () => {
     expect(PLAYSTYLE_IDS).toEqual([
       'knight',
       'ranger',
@@ -15,6 +16,8 @@ describe('Playstyles', () => {
       'frost-warden',
       'ashen-alchemist',
       'war-shepherd',
+      'riftwalker',
+      'bloodweaver',
     ])
     expect(isPlaystyleId('ranger')).toBe(true)
     expect(isPlaystyleId('frost-warden')).toBe(true)
@@ -28,6 +31,15 @@ describe('Playstyles', () => {
       expect(player.playstyleId).toBe(playstyleId)
       expect(player.baseStats).toEqual(definition.baseStats)
       expect(player.skills.map((skill) => skill.skillId)).toEqual(definition.startingSkillIds)
+    }
+  })
+
+  it('keeps class descriptions flavor-focused without naming skills', () => {
+    for (const playstyleId of PLAYSTYLE_IDS) {
+      const description = getPlaystyleDefinition(playstyleId).description.toLowerCase()
+      for (const skill of Object.values(SKILL_DEFINITIONS)) {
+        expect(description).not.toContain(skill.name.toLowerCase())
+      }
     }
   })
 })

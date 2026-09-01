@@ -47,6 +47,8 @@ describe('content validation', () => {
       'frost-warden': { resonance: 6, attunement: 68 },
       'ashen-alchemist': { resonance: 4, attunement: 72 },
       'war-shepherd': { resonance: 4, attunement: 62 },
+      riftwalker: { resonance: 6, attunement: 58 },
+      bloodweaver: { resonance: 5, attunement: 74 },
     } as const
     for (const playstyle of Object.values(PLAYSTYLE_DEFINITIONS)) {
       expect(playstyle.baseStats.resonance).toBeGreaterThan(0)
