@@ -233,6 +233,15 @@ export class PixiGame {
     }
   }
 
+  /** Refreshes the world after a non-tick state change, such as equipment selection. */
+  refresh(): void {
+    if (!this.initialized || this.disposed) {
+      return
+    }
+    this.renderState()
+    this.centerCamera(0)
+  }
+
   private createWorld(): void {
     const world = new Container()
     world.sortableChildren = true
@@ -806,7 +815,7 @@ export class PixiGame {
     label.anchor.set(0.5, 1)
     const root = new Container()
     root.addChild(view, label)
-    return { root, label }
+    return { root, graphic: view, label }
   }
 
   private createTelegraphGraphic(
@@ -868,55 +877,68 @@ export class PixiGame {
         .stroke({ color: lightColor, width: 1.5, alpha: 0.72 })
     }
     if (isLineTelegraphKind(telegraph)) {
-      const start = telegraph.points[0]
       const view = new Graphics()
-      if (start) {
-        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
-        for (const point of telegraph.points.slice(1)) {
-          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-        }
-        view
-          .stroke({ color: '#450a0a', width: telegraph.radius * 2 + 10, alpha: 0.82 })
-          .moveTo(start.x - telegraph.x, start.y - telegraph.y)
-        for (const point of telegraph.points.slice(1)) {
-          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-        }
-        view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
-        view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
-        for (const point of telegraph.points.slice(1)) {
-          view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-        }
-        view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
-        const end = telegraph.points[telegraph.points.length - 1]
-        if (end) {
-          const endX = end.x - telegraph.x
-          const endY = end.y - telegraph.y
-          const previous = telegraph.points[telegraph.points.length - 2] ?? start
-          const directionX = end.x - previous.x
-          const directionY = end.y - previous.y
-          const length = Math.hypot(directionX, directionY) || 1
-          const normalX = -directionY / length
-          const normalY = directionX / length
-          const arrowSize = Math.max(10, telegraph.radius * 0.8)
-          view
-            .poly([
-              endX,
-              endY,
-              endX - directionX / length * arrowSize + normalX * arrowSize * 0.6,
-              endY - directionY / length * arrowSize + normalY * arrowSize * 0.6,
-              endX - directionX / length * arrowSize - normalX * arrowSize * 0.6,
-              endY - directionY / length * arrowSize - normalY * arrowSize * 0.6,
-            ])
-            .fill(lightColor)
-            .stroke({ color, width: 1 })
-        }
-      }
+      this.drawTelegraphLine(view, telegraph, color, lightColor)
       return view
     }
     return new Graphics()
       .poly(createStarPoints(telegraph.radius, 12, 0.78))
       .fill({ color, alpha: 0.22 })
       .stroke({ color: lightColor, width: 3, alpha: 0.9 })
+  }
+
+  private drawTelegraphLine(
+    view: Graphics,
+    telegraph: TelegraphState,
+    color: string,
+    lightColor: string,
+  ): void {
+    view.clear()
+    const start = telegraph.points[0]
+    if (!start) {
+      return
+    }
+    const drawPath = (): void => {
+      view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
+      for (const point of telegraph.points.slice(1)) {
+        view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
+      }
+    }
+    drawPath()
+    view.stroke({
+      color: '#450a0a',
+      width: telegraph.radius * 2 + 10,
+      alpha: 0.82,
+    })
+    drawPath()
+    view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
+    drawPath()
+    view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
+
+    const end = telegraph.points[telegraph.points.length - 1]
+    if (!end) {
+      return
+    }
+    const endX = end.x - telegraph.x
+    const endY = end.y - telegraph.y
+    const previous = telegraph.points[telegraph.points.length - 2] ?? start
+    const directionX = end.x - previous.x
+    const directionY = end.y - previous.y
+    const length = Math.hypot(directionX, directionY) || 1
+    const normalX = -directionY / length
+    const normalY = directionX / length
+    const arrowSize = Math.max(10, telegraph.radius * 0.8)
+    view
+      .poly([
+        endX,
+        endY,
+        endX - directionX / length * arrowSize + normalX * arrowSize * 0.6,
+        endY - directionY / length * arrowSize + normalY * arrowSize * 0.6,
+        endX - directionX / length * arrowSize - normalX * arrowSize * 0.6,
+        endY - directionY / length * arrowSize - normalY * arrowSize * 0.6,
+      ])
+      .fill(lightColor)
+      .stroke({ color, width: 1 })
   }
 
   private createStairsPlaceholder(stairs: StairsState): StairsView {
@@ -2988,9 +3010,17 @@ export class PixiGame {
 
   private readonly update = (ticker: Ticker): void => {
     const deltaSeconds = ticker.deltaMS / 1000
+    const phaseBeforeUpdate = this.game.phase
     this.game.update(deltaSeconds)
-    this.renderState()
-    this.centerCamera(deltaSeconds)
+    const phaseAfterUpdate = this.game.phase
+    if (
+      phaseAfterUpdate === 'playing' ||
+      phaseAfterUpdate === 'floor-transition' ||
+      phaseAfterUpdate !== phaseBeforeUpdate
+    ) {
+      this.renderState()
+      this.centerCamera(deltaSeconds)
+    }
   }
 
   private drawProjectileTrail(
@@ -3468,6 +3498,15 @@ export class PixiGame {
         telegraphView = this.createTelegraphPlaceholder(telegraph)
         this.telegraphViews.set(telegraph.id, telegraphView)
         this.telegraphLayer?.addChild(telegraphView.root)
+      }
+      if (isLineTelegraphKind(telegraph)) {
+        const color = telegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
+        this.drawTelegraphLine(
+          telegraphView.graphic,
+          telegraph,
+          color,
+          '#fecaca',
+        )
       }
       telegraphView.root.position.set(telegraph.x, telegraph.y)
       telegraphView.label.position.set(0, -(telegraph.radius + 10))
@@ -4216,6 +4255,7 @@ interface BossView {
 
 interface TelegraphView {
   root: Container
+  graphic: Graphics
   label: Text
 }
 

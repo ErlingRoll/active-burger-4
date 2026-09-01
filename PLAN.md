@@ -3139,6 +3139,11 @@ Use rate limiting or aggregated effects.
 
 Do not play one sound for every individual late-game damage event.
 
+The current cue inventory is maintained in
+[docs/SOUND_DESIGN_BRIEF.md](docs/SOUND_DESIGN_BRIEF.md). It covers the
+implemented player skills, weapon variants, pickups, progression, enemy
+abilities, bosses, menus, and integration priorities.
+
 ---
 
 # 89. Screen and Resolution

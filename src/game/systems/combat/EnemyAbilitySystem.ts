@@ -132,6 +132,7 @@ export function updateEnemyAbilities(
   fixedStepSeconds: number,
 ): void {
   const elapsed = Math.max(0, fixedStepSeconds)
+  updateEnemyTelegraphPositions(state)
   const floorProfile = getFloorDifficultyProfile(state.run.floor ?? 1)
   for (const enemy of [...state.enemies].sort((left, right) => left.id - right.id)) {
     if (enemy.hp <= 0) {
@@ -175,6 +176,27 @@ function findProjectileTarget(
     return state.player
   }
   return state.summons.find((summon) => summon.id === targetId && summon.hp > 0)
+}
+
+export function updateEnemyTelegraphPositions(state: GameState): void {
+  for (const telegraph of state.telegraphs ?? []) {
+    if (telegraph.sourceKind !== 'enemy' || telegraph.kind !== 'enemy-projectile') {
+      continue
+    }
+    const enemy = state.enemies.find(
+      (candidate) => candidate.id === telegraph.sourceId && candidate.hp > 0,
+    )
+    const target = findProjectileTarget(state, telegraph.targetId)
+    if (!enemy || !target) {
+      continue
+    }
+    telegraph.x = enemy.x
+    telegraph.y = enemy.y
+    telegraph.points = [
+      { x: enemy.x, y: enemy.y },
+      { x: target.x, y: target.y },
+    ]
+  }
 }
 
 function createEnemyProjectile(

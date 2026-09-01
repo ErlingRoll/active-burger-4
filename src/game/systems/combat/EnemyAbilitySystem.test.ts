@@ -4,6 +4,7 @@ import { createEntityIdAllocator } from '../../ids'
 import { FIXED_STEP_SECONDS, createGame } from '../../Game'
 import {
   resolveEnemyTelegraphs,
+  updateEnemyTelegraphPositions,
   updateEnemyAbilities,
 } from './EnemyAbilitySystem'
 
@@ -83,5 +84,30 @@ describe('ordinary enemy abilities', () => {
     expect(game.state.player.hp).toBeLessThan(hpBefore)
     updateProjectiles(game.state, FIXED_STEP_SECONDS)
     expect(game.state.projectiles[0]?.remainingLifetime).toBeLessThan(3)
+  })
+
+  it('tracks the Archer warning line as its source and target move', () => {
+    const game = createGame({ seed: 304 })
+    game.spawnEnemy('archer', { x: 300, y: 0 })
+    const allocator = createEntityIdAllocator()
+
+    updateEnemyAbilities(game.state, allocator, 0)
+    const telegraph = game.state.telegraphs?.[0]
+    if (!telegraph) {
+      throw new Error('Expected Archer telegraph')
+    }
+
+    game.state.enemies[0]!.x = 250
+    game.state.enemies[0]!.y = -40
+    game.state.player.x = 20
+    game.state.player.y = 80
+    updateEnemyTelegraphPositions(game.state)
+
+    expect(telegraph.x).toBe(250)
+    expect(telegraph.y).toBe(-40)
+    expect(telegraph.points).toEqual([
+      { x: 250, y: -40 },
+      { x: 20, y: 80 },
+    ])
   })
 })

@@ -151,6 +151,7 @@ import {
 } from './systems/boss/BossSystem'
 import {
   resolveEnemyTelegraphs,
+  updateEnemyTelegraphPositions,
   updateEnemyAbilities,
 } from './systems/combat/EnemyAbilitySystem'
 import { updatePlayerBehavior } from './systems/behavior/BehaviorController'
@@ -1031,6 +1032,7 @@ export class Game {
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState)
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS, enemySpatialHash)
+    updateEnemyTelegraphPositions(this.gameState)
     resolvePlayerTarget(this.gameState)
     const basicAttackEvents = performBasicAttackIfReady(
       this.gameState,

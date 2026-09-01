@@ -4139,7 +4139,6 @@
   .behavior-screen,
   .level-up-overlay {
     background: rgb(9 9 11 / 80%);
-    backdrop-filter: blur(3px);
   }
 
   .behavior-panel,

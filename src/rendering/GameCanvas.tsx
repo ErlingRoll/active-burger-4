@@ -454,6 +454,7 @@ export function GameCanvas({
       // Phase changes are published immediately so the level-up overlay never
       // waits for the throttled HUD interval.
       publishSnapshot()
+      pixiGame.refresh()
 
       if (
         (game.phase === 'defeat' || game.phase === 'results') &&
@@ -596,10 +597,11 @@ export function GameCanvas({
     window.addEventListener('keydown', handleKeyDown, { capture: true })
     window.addEventListener('keyup', handleKeyUp, { capture: true })
     window.addEventListener('blur', handleWindowBlur)
-    const snapshotTimer = window.setInterval(
-      publishSnapshot,
-      UI_UPDATE_INTERVAL_MS,
-    )
+    const snapshotTimer = window.setInterval(() => {
+      if (game.phase === 'playing' || game.phase === 'floor-transition') {
+        publishSnapshot()
+      }
+    }, UI_UPDATE_INTERVAL_MS)
 
     void pixiGame.initialize(container).catch((error: unknown) => {
       if (!disposed) {
