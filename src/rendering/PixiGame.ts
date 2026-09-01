@@ -142,6 +142,35 @@ function isLineTelegraphKind(telegraph: TelegraphState): boolean {
     telegraph.kind === 'enemy-projectile'
 }
 
+function getTelegraphRenderState(
+  state: Game['state'],
+  telegraph: TelegraphState,
+): TelegraphState {
+  if (telegraph.kind !== 'enemy-projectile' || telegraph.sourceKind !== 'enemy') {
+    return telegraph
+  }
+  const source = state.enemies.find(
+    (enemy) => enemy.id === telegraph.sourceId && enemy.hp > 0,
+  )
+  const target = telegraph.targetId === state.player.id
+    ? state.player
+    : state.summons.find(
+        (summon) => summon.id === telegraph.targetId && summon.hp > 0,
+      )
+  if (!source || !target) {
+    return telegraph
+  }
+  return {
+    ...telegraph,
+    x: source.x,
+    y: source.y,
+    points: [
+      { x: source.x, y: source.y },
+      { x: target.x, y: target.y },
+    ],
+  }
+}
+
 export class PixiGame {
   private static readonly MAX_IMPACT_PARTICLE_VIEWS = 48
   private static readonly MAX_PROJECTILE_TRAIL_VIEWS = 96
@@ -3493,29 +3522,30 @@ export class PixiGame {
     const activeTelegraphIds = new Set<EntityId>()
     for (const telegraph of state.telegraphs ?? []) {
       activeTelegraphIds.add(telegraph.id)
+      const renderTelegraph = getTelegraphRenderState(state, telegraph)
       let telegraphView = this.telegraphViews.get(telegraph.id)
       if (!telegraphView) {
-        telegraphView = this.createTelegraphPlaceholder(telegraph)
+        telegraphView = this.createTelegraphPlaceholder(renderTelegraph)
         this.telegraphViews.set(telegraph.id, telegraphView)
         this.telegraphLayer?.addChild(telegraphView.root)
       }
-      if (isLineTelegraphKind(telegraph)) {
-        const color = telegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
+      if (isLineTelegraphKind(renderTelegraph)) {
+        const color = renderTelegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
         this.drawTelegraphLine(
           telegraphView.graphic,
-          telegraph,
+          renderTelegraph,
           color,
           '#fecaca',
         )
       }
-      telegraphView.root.position.set(telegraph.x, telegraph.y)
-      telegraphView.label.position.set(0, -(telegraph.radius + 10))
-      const progress = telegraph.duration > 0
-        ? Math.max(0, Math.min(1, 1 - telegraph.remainingDuration / telegraph.duration))
+      telegraphView.root.position.set(renderTelegraph.x, renderTelegraph.y)
+      telegraphView.label.position.set(0, -(renderTelegraph.radius + 10))
+      const progress = renderTelegraph.duration > 0
+        ? Math.max(0, Math.min(1, 1 - renderTelegraph.remainingDuration / renderTelegraph.duration))
         : 1
       telegraphView.root.alpha = 0.7 + progress * 0.3
       telegraphView.root.scale.set(0.88 + progress * 0.12)
-      telegraphView.label.text = `${getTelegraphName(telegraph)} · DODGE`
+      telegraphView.label.text = `${getTelegraphName(renderTelegraph)} · DODGE`
     }
 
     for (const [telegraphId, telegraphView] of this.telegraphViews) {
