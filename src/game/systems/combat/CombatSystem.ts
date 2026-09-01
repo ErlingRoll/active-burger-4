@@ -69,8 +69,10 @@ import {
   getEquippedWeaponArchetype,
 } from '../../equipment/EquipmentState'
 import {
+  extendRallyingBannerDuration,
   getRallyingBannerDamageReductionPercent,
   getRallyingBannerEffects,
+  getNewestRallyingBannerEffect,
 } from '../skills/RallyingBanner'
 import {
   getSplitChildren,
@@ -127,7 +129,6 @@ import {
   SIGIL_OF_RUIN_DURATION_SECONDS,
   SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO,
   BLOOD_RITE_DEBT_DURATION_SECONDS,
-  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   BASIC_ATTACK_VITALITY_HIT_INTERVAL,
   BASIC_ATTACK_VITALITY_HEAL_AMOUNT,
   BASIC_ATTACK_VITALITY_TRIGGER_COOLDOWN_SECONDS,
@@ -354,13 +355,12 @@ function applyBasicAttackSynergyHooks(
     selected.includes('synergy-basic-attack-rallying-banner') &&
     consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_BANNER_TRIGGER_INTERVAL_SECONDS)
   ) {
-    for (const effect of getRallyingBannerEffects(state)) {
-      const extension = Math.min(
+    const newestBanner = getNewestRallyingBannerEffect(state)
+    if (newestBanner) {
+      extendRallyingBannerDuration(
+        newestBanner,
         BASIC_ATTACK_BANNER_EXTENSION_SECONDS,
-        Math.max(0, RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - effect.remainingLifetime),
       )
-      effect.remainingLifetime += extension
-      effect.lifetime += extension
     }
   }
   if (

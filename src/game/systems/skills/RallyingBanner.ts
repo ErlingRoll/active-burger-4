@@ -3,6 +3,7 @@ import {
   RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT,
   RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
   RALLYING_BANNER_SKILL_ID,
+  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
 } from '../../../game-config/skills'
 import type {
   GameState,
@@ -26,6 +27,27 @@ export function getRallyingBannerEffectsAffectingPlayer(
     Math.hypot(state.player.x - effect.x, state.player.y - effect.y) <=
       effect.radius + state.player.radius,
   )
+}
+
+export function getNewestRallyingBannerEffect(
+  state: Readonly<GameState>,
+): SkillEffectState | undefined {
+  return getRallyingBannerEffects(state).at(-1)
+}
+
+export function extendRallyingBannerDuration(
+  effect: SkillEffectState,
+  extensionSeconds: number,
+): void {
+  const extension = Math.min(
+    extensionSeconds,
+    Math.max(
+      0,
+      RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - effect.remainingLifetime,
+    ),
+  )
+  effect.remainingLifetime += extension
+  effect.lifetime += extension
 }
 
 export function isPlayerInRallyingBanner(

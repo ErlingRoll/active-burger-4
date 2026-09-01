@@ -153,6 +153,8 @@ export interface RunConfig {
   skillSlotCount?: number
   /** Purchased permanent maximum-floor bonus, in floors. */
   dungeonMaxFloorBonus?: number
+  /** Permanent reroll level, granting this many rerolls for the run. */
+  rerollCount?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   playstyleId?: PlaystyleId
@@ -172,6 +174,8 @@ export interface RunState {
   completedEncounterIds?: string[]
   killCount: number
   selectedUpgradeIds: UpgradeId[]
+  /** Purchased rerolls that have not yet been used during this run. */
+  rerollsRemaining?: number
   /** Cumulative post-mitigation damage dealt by each skill during this run. */
   skillDamageDealt?: Partial<Record<SkillId, number>>
   /** Remains true after the first gear orb is generated, even after collection. */

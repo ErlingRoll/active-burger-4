@@ -173,6 +173,7 @@ export interface RunHudSnapshot {
   readonly estimatedEssence: number
   readonly elapsedTime: number
   readonly killCount: number
+  readonly rerollsRemaining: number
   readonly gearXpBlessingActive: boolean
   readonly worldModifierIds?: readonly string[]
   readonly worldModifierRewardMultiplier?: number
@@ -1939,6 +1940,7 @@ export function createUiSnapshot(
     estimatedEssence,
     elapsedTime: state.time,
     killCount: state.run.killCount,
+    rerollsRemaining: state.run.rerollsRemaining ?? 0,
     gearXpBlessingActive: state.run.gearXpBlessingActive === true,
     ...(state.run.worldModifierIds?.length
       ? {

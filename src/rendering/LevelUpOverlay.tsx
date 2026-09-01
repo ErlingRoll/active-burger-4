@@ -59,7 +59,9 @@ interface LevelUpOverlayProps {
   keybinds: GameKeybinds
   playstyleId: PlaystyleId
   ownedSkillIds: readonly SkillId[]
+  rerollsRemaining: number
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
+  onReroll: () => void
   onSkip: () => void
 }
 
@@ -268,6 +270,7 @@ function GearCard({
   firstButtonRef,
   gearSets,
   keybind,
+  disabled,
 }: {
   choice: GearChoice
   index: number
@@ -278,6 +281,7 @@ function GearCard({
   firstButtonRef: (element: HTMLButtonElement | null) => void
   gearSets: GameUiSnapshot['gearSets']
   keybind: string | undefined
+  disabled: boolean
 }) {
   if (choice.type === 'gear-xp-blessing') {
     return (
@@ -287,6 +291,7 @@ function GearCard({
           className="upgrade-choice choice-card gear-xp-blessing-card"
           data-choice-type="gear-xp-blessing"
           type="button"
+          disabled={disabled}
           aria-keyshortcuts={keybind}
           onClick={() => onSelect(choice)}
         >
@@ -315,6 +320,7 @@ function GearCard({
           className="upgrade-choice choice-card gear-rarity-floor-card"
           data-choice-type="gear-rarity-floor"
           type="button"
+          disabled={disabled}
           aria-keyshortcuts={keybind}
           onClick={() => onSelect(choice)}
         >
@@ -359,6 +365,7 @@ function GearCard({
           className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-upgrade"
           type="button"
+          disabled={disabled}
           aria-keyshortcuts={keybind}
           aria-describedby={active ? comparisonId : undefined}
           onClick={() => onSelect(choice)}
@@ -413,6 +420,7 @@ function GearCard({
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
         data-choice-type="gear"
         type="button"
+        disabled={disabled}
         aria-keyshortcuts={keybind}
         aria-describedby={active ? comparisonId : undefined}
         onClick={() => onSelect(choice)}
@@ -478,6 +486,7 @@ function UpgradeCard({
   onSelect,
   keybind,
   ownedSkillIds,
+  disabled,
 }: {
   choice: LevelUpUpgradeChoice
   index: number
@@ -485,6 +494,7 @@ function UpgradeCard({
   onSelect: (choice: LevelUpUpgradeChoice) => void
   keybind: string | undefined
   ownedSkillIds: readonly SkillId[]
+  disabled: boolean
 }) {
   const definition = getUpgradeDefinition(choice.upgradeId)
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
@@ -544,6 +554,7 @@ function UpgradeCard({
         }`}
         data-choice-type="upgrade"
         type="button"
+        disabled={disabled}
         aria-keyshortcuts={keybind}
         onClick={() => onSelect(choice)}
       >
@@ -647,7 +658,9 @@ export function LevelUpOverlay({
   keybinds,
   playstyleId,
   ownedSkillIds,
+  rerollsRemaining,
   onSelect,
+  onReroll,
   onSkip,
 }: LevelUpOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null)
@@ -655,6 +668,7 @@ export function LevelUpOverlay({
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
   const playstyle = getPlaystyleDefinition(playstyleId)
+  const canReroll = rerollsRemaining > 0
 
   useEffect(() => {
     if (isGearFlow) {
@@ -711,6 +725,7 @@ export function LevelUpOverlay({
                     keybinds.choiceRight,
                   ][index]}
                   ownedSkillIds={ownedSkillIds}
+                  disabled={false}
                   onSelect={(selected) => onSelect(selected)}
                 />
               ))
@@ -737,6 +752,7 @@ export function LevelUpOverlay({
                     keybinds.choiceMiddle,
                     keybinds.choiceRight,
                   ][index]}
+                  disabled={false}
                   firstButtonRef={(element) => {
                     if (index === 0) {
                       firstButtonRef.current = element
@@ -745,15 +761,35 @@ export function LevelUpOverlay({
                 />
               ))}
         </div>
-        <button
-          className="skip-choice-button"
-          type="button"
-          aria-keyshortcuts={keybinds.skipChoice}
-          onClick={onSkip}
-        >
-          Skip
-          <ChoiceKeyHint keybind={keybinds.skipChoice} />
-        </button>
+        <div className="level-up-choice-actions">
+          <span className="reroll-choice-action">
+            <button
+              className="skip-choice-button reroll-choice-button"
+              type="button"
+              disabled={!canReroll}
+              aria-describedby="reroll-choice-tooltip"
+              onClick={onReroll}
+            >
+              Reroll ({rerollsRemaining} available)
+            </button>
+            <span
+              className="reroll-choice-tooltip"
+              id="reroll-choice-tooltip"
+              role="tooltip"
+            >
+              Spend one reroll to refresh ALL the current gear or skill upgrade offers.
+            </span>
+          </span>
+          <button
+            className="skip-choice-button"
+            type="button"
+            aria-keyshortcuts={keybinds.skipChoice}
+            onClick={onSkip}
+          >
+            Skip
+            <ChoiceKeyHint keybind={keybinds.skipChoice} />
+          </button>
+        </div>
       </div>
     </section>
     </>

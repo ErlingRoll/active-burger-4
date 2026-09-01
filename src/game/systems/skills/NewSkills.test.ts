@@ -809,7 +809,7 @@ describe('new skill synergies', () => {
     expect(game.state.player.hp).toBeGreaterThan(50)
   })
 
-  it('Mirror Wire extends active Razorwires each time an Echo copies', () => {
+  it('Mirror Wire extends the newest active Razorwire each time an Echo copies', () => {
     const game = createGame({ seed: 124 })
     setSkills(game, [MIRRORCAST_SKILL_ID, GLACIAL_ORB_SKILL_ID, RAZORWIRE_SKILL_ID])
     game.state.run.selectedUpgradeIds.push('synergy-mirrorcast-razorwire')

@@ -1,6 +1,8 @@
 import {
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
   DUNGEON_MAX_FLOOR_MAX_RANK,
+  getRerollPurchaseCost,
+  MAX_REROLL_LEVEL,
   SKILL_SLOT_UNLOCK_CATEGORY,
   type MetaProgressionSnapshot,
   type MetaUnlockDefinition,
@@ -16,6 +18,7 @@ export interface MetaProgressionScreenProps {
   onBack: () => void
   onRefresh: () => void
   onPurchaseUnlock: (unlockId: string) => void
+  onPurchaseReroll: () => void
 }
 
 function formatCurrency(value: number): string {
@@ -150,6 +153,7 @@ export function MetaProgressionScreen({
   onBack,
   onRefresh,
   onPurchaseUnlock,
+  onPurchaseReroll,
 }: MetaProgressionScreenProps) {
   if (loadState === 'loading') {
     return (
@@ -225,6 +229,9 @@ export function MetaProgressionScreen({
       ? nextDungeonMaxFloorUpgrade.payload.maxFloorBonus
       : 0
   const nextDungeonMaxFloor = snapshot.dungeonMaxFloor + nextDungeonMaxFloorBonus
+  const rerollCost = getRerollPurchaseCost(snapshot.wallet.rerollLevel)
+  const canPurchaseReroll = snapshot.wallet.rerollLevel < MAX_REROLL_LEVEL &&
+    snapshot.wallet.essenceBalance >= rerollCost
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -245,6 +252,7 @@ export function MetaProgressionScreen({
           <div><dt>Essence</dt><dd>{formatCurrency(snapshot.wallet.essenceBalance)}</dd></div>
           <div><dt>Earned</dt><dd>{formatCurrency(snapshot.wallet.essenceEarned)}</dd></div>
           <div><dt>Spent</dt><dd>{formatCurrency(snapshot.wallet.essenceSpent)}</dd></div>
+          <div><dt>Reroll level</dt><dd>{snapshot.wallet.rerollLevel} / {MAX_REROLL_LEVEL}</dd></div>
         </dl>
 
         <section className="meta-shop-unlocks" aria-labelledby="meta-upgrades-title">
@@ -252,6 +260,47 @@ export function MetaProgressionScreen({
             <h3 id="meta-upgrades-title" style={{marginBottom: "2rem"}}>Permanent upgrades</h3>
           </div>
           <div className="dashboard-choice-list">
+            <div className="dashboard-choice meta-unlock-card">
+              <div className="meta-unlock-card-multiplier">
+                <span>Rerolls</span>
+                <strong>{snapshot.wallet.rerollLevel} / {MAX_REROLL_LEVEL}</strong>
+              </div>
+              <div className="meta-unlock-card-heading">
+                <strong>Reroll</strong>
+                <span>Permanent upgrade</span>
+              </div>
+              <p className="meta-unlock-description">
+                Each level grants one reroll at the start of every dungeon run. Spend
+                rerolls to refresh ALL the current gear or skill upgrade offers.
+              </p>
+              <div className="meta-unlock-card-benefit">
+                <strong>+1 reroll per run</strong>
+                <span>
+                  {snapshot.wallet.rerollLevel >= MAX_REROLL_LEVEL
+                    ? `All runs start with ${MAX_REROLL_LEVEL} rerolls`
+                    : `${snapshot.wallet.rerollLevel} → ${snapshot.wallet.rerollLevel + 1} rerolls`}
+                </span>
+              </div>
+              <span className="meta-unlock-state">
+                {snapshot.wallet.rerollLevel >= MAX_REROLL_LEVEL
+                  ? 'Maximum reroll level reached'
+                  : canPurchaseReroll
+                  ? `Next reroll costs ${formatCurrency(rerollCost)} Essence`
+                  : `Need ${formatCurrency(rerollCost - snapshot.wallet.essenceBalance)} more Essence`}
+              </span>
+              <button
+                className="secondary-action meta-purchase-action"
+                type="button"
+                disabled={!canPurchaseReroll || purchaseState === 'purchasing'}
+                onClick={onPurchaseReroll}
+              >
+                {purchaseState === 'purchasing' && activePurchaseUnlockId === 'reroll'
+                  ? 'Purchasing...'
+                  : snapshot.wallet.rerollLevel >= MAX_REROLL_LEVEL
+                    ? 'Fully upgraded'
+                    : `Purchase for ${formatCurrency(rerollCost)} Essence`}
+              </button>
+            </div>
             {nextUpgrade && nextUpgradeState && nextUpgradeLevel !== null ? (
               <div className="dashboard-choice meta-unlock-card" key={nextUpgrade.id}>
                 <div className="meta-unlock-card-multiplier">
@@ -262,6 +311,9 @@ export function MetaProgressionScreen({
                   <strong>Increased XP</strong>
                   <span>Level {nextUpgradeLevel}</span>
                 </div>
+                <p className="meta-unlock-description">
+                  Increases all experience earned during future dungeon runs.
+                </p>
                 <div className="meta-unlock-card-benefit">
                   <strong>+5% XP multiplier</strong>
                   <span>
@@ -298,6 +350,9 @@ export function MetaProgressionScreen({
                   <strong>Starting Level</strong>
                   <span>Rank {nextStartingLevelRank}</span>
                 </div>
+                <p className="meta-unlock-description">
+                  Future dungeon runs begin at a higher level and immediately grant its upgrades.
+                </p>
                 <div className="meta-unlock-card-benefit">
                   <strong>Start at level {nextStartingLevel}</strong>
                   <span>Level {snapshot.startingLevel} → {nextStartingLevel}</span>
@@ -333,6 +388,9 @@ export function MetaProgressionScreen({
                   <strong>Expanded Skill Slots</strong>
                   <span>One-time upgrade</span>
                 </div>
+                <p className="meta-unlock-description">
+                  Lets you equip one additional skill in every future dungeon run.
+                </p>
                 <div className="meta-unlock-card-benefit">
                   <strong>{skillSlotUpgradeOwned ? 'Maximum skill capacity' : '+1 maximum skill'}</strong>
                   <span>
@@ -369,6 +427,9 @@ export function MetaProgressionScreen({
                   <strong>Deeper Dungeon</strong>
                   <span>Rank {nextDungeonMaxFloorRank} of {DUNGEON_MAX_FLOOR_MAX_RANK}</span>
                 </div>
+                <p className="meta-unlock-description">
+                  Extends every future dungeon run with more floors, encounters, and rewards.
+                </p>
                 <div className="meta-unlock-card-benefit">
                   <strong>+{nextDungeonMaxFloorBonus} maximum floors</strong>
                   <span>{snapshot.dungeonMaxFloor} → {nextDungeonMaxFloor} floors</span>

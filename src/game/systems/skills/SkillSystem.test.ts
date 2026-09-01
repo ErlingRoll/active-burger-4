@@ -15,6 +15,10 @@ import {
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  RAZORWIRE_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  PRISM_HALO_SKILL_ID,
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
@@ -24,10 +28,14 @@ import {
   RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   CINDER_MINE_FUSE_SECONDS,
   STORM_RELAY_BASE_DURATION_SECONDS,
+  STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
   SOUL_TETHER_DURATION_SECONDS,
+  SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
+  RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+  PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
 } from '../../../game-config/skills'
 import { createGame, FIXED_STEP_SECONDS } from '../../Game'
 import { equipItem, equipRolledItem } from '../../equipment/EquipmentState'
@@ -39,6 +47,7 @@ import {
   updateCinderMineTraps,
   updateStormRelay,
   updateSoulTether,
+  updateMirrorcast,
 } from './SkillSystem'
 import {
   applyDamageEvents,
@@ -776,6 +785,45 @@ describe('skill system', () => {
       )
     })
 
+    it('extends only the newest Rallying Banner with Renewing Banner', () => {
+      const game = createGame({ seed: 100 })
+      game.state.player.skills = [
+        {
+          skillId: RALLYING_BANNER_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: VITALITY_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push(
+        'synergy-vitality-rallying-banner',
+      )
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.x = RALLYING_BANNER_EFFECT_RADIUS + 20
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      const [olderBanner, newestBanner] = game.state.effects.filter(
+        (effect) => effect.skillId === RALLYING_BANNER_SKILL_ID,
+      )
+      olderBanner!.remainingLifetime = 9
+      newestBanner!.remainingLifetime =
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - 1
+      game.state.player.skills[1]!.cooldownRemaining = 0
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(olderBanner!.remainingLifetime).toBe(9)
+      expect(newestBanner!.remainingLifetime).toBe(
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+      )
+    })
+
     it('allows overlapping placements with independent durations', () => {
       const game = createGame({ seed: 69 })
       game.state.player.skills = [{
@@ -1431,6 +1479,127 @@ describe('skill system', () => {
     })
   })
 
+  describe('persistent duration extensions', () => {
+    it('extends only the newest Razorwire and caps Mirror Wire duration', () => {
+      const game = createGame({ seed: 101 })
+      game.state.player.skills = [
+        {
+          skillId: MIRRORCAST_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: RAZORWIRE_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push('synergy-mirrorcast-razorwire')
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[1]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      const [olderWire, newestWire] = game.state.wires ?? []
+      olderWire!.remainingDuration = 5
+      newestWire!.remainingDuration =
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS - 1
+
+      updateMirrorcast(game.state, 10, allocator)
+
+      expect(olderWire!.remainingDuration).toBe(5)
+      expect(newestWire!.remainingDuration).toBe(
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+      )
+    })
+
+    it('caps Blood Debt utility extensions and targets only newest entities', () => {
+      const game = createGame({ seed: 102 })
+      game.state.player.skills = [
+        {
+          skillId: BLOOD_RITE_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: MIRRORCAST_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: PRISM_HALO_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: RAZORWIRE_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: SOUL_TETHER_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: STORM_RELAY_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push('synergy-blood-rite-prism-halo')
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      for (const skill of game.state.player.skills) {
+        if (
+          skill.skillId === RAZORWIRE_SKILL_ID ||
+          skill.skillId === SOUL_TETHER_SKILL_ID ||
+          skill.skillId === STORM_RELAY_SKILL_ID
+        ) {
+          skill.cooldownRemaining = 0
+        }
+      }
+      collectSkillDamage(game.state, allocator)
+
+      const [olderWire, newestWire] = game.state.wires ?? []
+      const [olderTether, newestTether] = game.state.player.soulTethers ?? []
+      const [olderRelay, newestRelay] = game.state.relays ?? []
+      olderWire!.remainingDuration = 5
+      newestWire!.remainingDuration =
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS - 1
+      olderTether!.remainingDuration = 5
+      newestTether!.remainingDuration =
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS - 1
+      olderRelay!.remainingDuration = 5
+      newestRelay!.remainingDuration =
+        STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS - 1
+      game.state.player.prismHalo!.remainingDuration =
+        PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS - 1
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      game.state.player.skills[1]!.cooldownRemaining = 0
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(olderWire!.remainingDuration).toBe(5)
+      expect(newestWire!.remainingDuration).toBe(
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+      )
+      expect(olderTether!.remainingDuration).toBe(5)
+      expect(newestTether!.remainingDuration).toBe(
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
+      )
+      expect(olderRelay!.remainingDuration).toBe(5)
+      expect(newestRelay!.remainingDuration).toBe(
+        STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS,
+      )
+      expect(game.state.player.prismHalo?.remainingDuration).toBe(
+        PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
+      )
+    })
+  })
+
   describe('Soul Tether', () => {
     it('tethers the nearest enemy, deals chaos damage over time, and heals the player', () => {
       const game = createGame({ seed: 90 })
@@ -1551,7 +1720,7 @@ describe('skill system', () => {
       expect(game.state.player.soulTethers).toEqual([])
     })
 
-    it('extends every matching tether with Voltaic Bond', () => {
+    it('extends only the newest matching tether with Voltaic Bond', () => {
       const game = createGame({ seed: 97 })
       game.state.player.skills = [
         {
@@ -1576,8 +1745,22 @@ describe('skill system', () => {
 
       const tethers = game.state.player.soulTethers ?? []
       expect(tethers).toHaveLength(2)
-      expect(tethers.map((tether) => tether.duration)).toEqual([8, 7.5])
-      expect(tethers.map((tether) => tether.remainingDuration)).toEqual([8, 7.5])
+      expect(tethers.map((tether) => tether.duration)).toEqual([7.5, 7.5])
+      expect(tethers.map((tether) => tether.remainingDuration)).toEqual([7.5, 7.5])
+
+      const newestTether = tethers[1]!
+      newestTether.remainingDuration =
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS - 0.1
+      newestTether.duration = SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS - 0.1
+      updateStormRelay(game.state, STORM_RELAY_STRIKE_INTERVAL_SECONDS, allocator)
+
+      expect(tethers[0]?.remainingDuration).toBe(7.5)
+      expect(newestTether.remainingDuration).toBe(
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
+      )
+      expect(newestTether.duration).toBe(
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
+      )
     })
 
     it('applies Lifebound Pact healing to Soul Tether damage', () => {

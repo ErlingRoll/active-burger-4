@@ -574,6 +574,7 @@ function App() {
       startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
       skillSlotCount: metaProgression.snapshot?.skillSlotCount ?? DEFAULT_SKILL_SLOT_COUNT,
       dungeonMaxFloorBonus: metaProgression.snapshot?.dungeonMaxFloorBonus ?? 0,
+      rerollCount: metaProgression.snapshot?.wallet.rerollLevel ?? 0,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
@@ -1111,6 +1112,49 @@ function App() {
     showToast,
   ])
 
+  const purchaseReroll = useCallback(async (): Promise<void> => {
+    if (activeRun !== null) {
+      showToast('Finish or forfeit your current dungeon run before purchasing rerolls.', 'error')
+      return
+    }
+    if (runLoadState !== 'ready') {
+      showToast('Dungeon run status is still loading. Try again in a moment.', 'error')
+      return
+    }
+    if (!metaProgressionService.service || !authentication.account || !metaProgression.snapshot) {
+      showToast('Meta progression is unavailable.', 'error')
+      return
+    }
+    setMetaProgression((current) => ({
+      ...current,
+      purchaseState: 'purchasing',
+      activePurchaseUnlockId: 'reroll',
+    }))
+    try {
+      const nextSnapshot = await metaProgressionService.service.purchaseReroll()
+      setMetaProgression((current) => ({
+        ...current,
+        snapshot: nextSnapshot,
+        purchaseState: 'idle',
+        activePurchaseUnlockId: null,
+      }))
+    } catch (error: unknown) {
+      setMetaProgression((current) => ({
+        ...current,
+        purchaseState: 'idle',
+        activePurchaseUnlockId: null,
+      }))
+      showToast(`Unable to purchase reroll: ${errorMessage(error)}`, 'error')
+    }
+  }, [
+    activeRun,
+    authentication.account,
+    metaProgression.snapshot,
+    metaProgressionService.service,
+    runLoadState,
+    showToast,
+  ])
+
   const returnToDashboard = useCallback((): void => {
     setResult(null)
     navigateToScreen('dashboard', true)
@@ -1382,6 +1426,7 @@ function App() {
           onBack={closeMetaProgression}
           onRefresh={refreshMetaProgression}
           onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
+          onPurchaseReroll={() => { void purchaseReroll() }}
         />
       ) : null}
       {screen === 'gameplay' ? (

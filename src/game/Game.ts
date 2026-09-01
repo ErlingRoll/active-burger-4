@@ -342,6 +342,7 @@ export class Game {
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
+        rerollsRemaining: getConfiguredRerollCount(config.rerollCount),
         skillDamageDealt: {},
         playerCombatLog: [],
         gearDropGenerated: false,
@@ -651,6 +652,40 @@ export class Game {
 
   get pendingChoiceFlows(): readonly PendingChoiceFlow[] {
     return this.getPendingChoiceFlows()
+  }
+
+  get canRerollActiveChoice(): boolean {
+    const flow = this.choiceFlows[0]
+    return this.gameState.run.phase === 'level-up' &&
+      flow !== undefined &&
+      (this.gameState.run.rerollsRemaining ?? 0) > 0
+  }
+
+  /** Replaces the current gear or skill offers without resolving the choice. */
+  rerollActiveChoice(): boolean {
+    const flow = this.choiceFlows[0]
+    if (!this.canRerollActiveChoice || !flow) {
+      return false
+    }
+
+    if (flow.type === 'level-up') {
+      flow.choices = generateUpgradeChoices(
+        this.gameState,
+        UPGRADE_CHOICES_PER_LEVEL,
+        this.random,
+        this.synergyRandom,
+      )
+    } else {
+      flow.choices = generateGearChoices(
+        this.gameState,
+        GEAR_CHOICES_PER_PICKUP,
+        this.gearRandom,
+      )
+    }
+    this.gameState.run.rerollsRemaining =
+      (this.gameState.run.rerollsRemaining ?? 0) - 1
+    this.notifyStateChanged()
+    return true
   }
 
   getPendingChoices(): readonly (LevelUpUpgradeChoice | GearChoice)[] {
@@ -1410,6 +1445,12 @@ function getConfiguredSkillSlotCount(player: GameState['player']): number {
   return typeof configuredCount === 'number' && Number.isFinite(configuredCount)
     ? Math.max(1, Math.floor(configuredCount))
     : DEFAULT_SKILL_SLOT_COUNT
+}
+
+function getConfiguredRerollCount(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(10, Math.max(0, Math.floor(value)))
+    : 0
 }
 
 function getNextEntityIdFromState(state: GameState): number {

@@ -90,6 +90,8 @@ export const CINDER_MINE_CLUSTER_OFFSET = 46
 export const CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER = 0.65
 
 export const STORM_RELAY_BASE_DURATION_SECONDS = 9
+export const STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS =
+  STORM_RELAY_BASE_DURATION_SECONDS * 2
 export const STORM_RELAY_STRIKE_INTERVAL_SECONDS = 1.8
 export const STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS = 1.1
 export const STORM_RELAY_OVERCHARGE_SHOCK_STACKS = 2
@@ -97,6 +99,8 @@ export const STORM_RELAY_CONDUIT_PULL_RADIUS = 120
 export const STORM_RELAY_CONDUIT_PULL_DISTANCE = 60
 
 export const SOUL_TETHER_DURATION_SECONDS = 7
+export const SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS =
+  SOUL_TETHER_DURATION_SECONDS * 2
 export const SOUL_TETHER_BASE_HEALING_RATIO = 0.05
 export const SOUL_TETHER_SIPHON_HEALING_BONUS = 0.05
 export const SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER = 0.5
@@ -148,6 +152,8 @@ export const MIRRORCAST_COPY_MAX_RANGE = 320
 // a persistent wire. Crossing the wire deals physical damage and applies a brief
 // slow, gated by a per-enemy crossing cooldown so there is no per-tick damage.
 export const RAZORWIRE_DURATION_SECONDS = 8
+export const RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS =
+  RAZORWIRE_DURATION_SECONDS * 2
 export const RAZORWIRE_MAX_RANGE = 240
 export const RAZORWIRE_WIRE_LENGTH = 160
 export const RAZORWIRE_CROSSING_COOLDOWN_SECONDS = 0.9
@@ -182,6 +188,8 @@ export const BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS = 2
 // at nearby enemies, applying the matching element status. Resonance fires all
 // three at once and distributes Attunement a single time per volley.
 export const PRISM_HALO_DURATION_SECONDS = 8
+export const PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS =
+  PRISM_HALO_DURATION_SECONDS * 2
 export const PRISM_HALO_RANGE = 220
 export const PRISM_HALO_FIRE_INTERVAL_SECONDS = 0.7
 export const PRISM_HALO_SHARD_COUNT = 3
@@ -552,7 +560,7 @@ export const SKILL_DEFINITIONS = {
   [RALLYING_BANNER_SKILL_ID]: {
     id: RALLYING_BANNER_SKILL_ID,
     name: 'Rallying Banner',
-    description: 'Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.',
+    description: `Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Duration extensions affect only your newest banner and cap at ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds. Deals no direct damage.`,
     kind: 'utility',
     tags: ['defensive', 'duration'],
     canProduceDirectHit: false,
@@ -680,7 +688,7 @@ export const SKILL_DEFINITIONS = {
   [STORM_RELAY_SKILL_ID]: {
     id: STORM_RELAY_SKILL_ID,
     name: 'Storm Relay',
-    description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds.`,
+    description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds. Duration extensions cap at ${STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'chain',
     tags: ['lightning', 'area', 'duration'],
     canProduceDirectHit: true,
@@ -707,7 +715,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies.`,
+    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies. Duration extensions affect only the newest tether on a target and cap at ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger'],
     canProduceDirectHit: false,
@@ -809,7 +817,7 @@ export const SKILL_DEFINITIONS = {
   [RAZORWIRE_SKILL_ID]: {
     id: RAZORWIRE_SKILL_ID,
     name: 'Razorwire',
-    description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown.`,
+    description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown. Duration extensions affect only your newest Wire and cap at ${RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'area',
     tags: ['physical', 'area'],
     canProduceDirectHit: true,
@@ -834,7 +842,7 @@ export const SKILL_DEFINITIONS = {
   [BLOOD_RITE_SKILL_ID]: {
     id: BLOOD_RITE_SKILL_ID,
     name: 'Blood Rite',
-    description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus.`,
+    description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus. Utility bonuses extend only your newest active persistent effects, capped at twice their base duration.`,
     kind: 'utility',
     tags: ['chaos'],
     canProduceDirectHit: true,
@@ -858,7 +866,7 @@ export const SKILL_DEFINITIONS = {
   [PRISM_HALO_SKILL_ID]: {
     id: PRISM_HALO_SKILL_ID,
     name: 'Prism Halo',
-    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock.`,
+    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock. Duration extensions cap at ${PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
     kind: 'utility',
     tags: ['fire', 'cold', 'lightning', 'duration'],
     canProduceDirectHit: true,

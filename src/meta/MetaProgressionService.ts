@@ -15,11 +15,15 @@ export const SKILL_SLOT_UNLOCK_CATEGORY = 'skill-slot'
 export const DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY = 'dungeon-max-floor'
 export const DUNGEON_MAX_FLOOR_BONUS_PER_RANK = 5
 export const DUNGEON_MAX_FLOOR_MAX_RANK = 4
+export const REROLL_BASE_COST = 500
+export const REROLL_COST_MULTIPLIER = 2
+export const MAX_REROLL_LEVEL = 10
 
 export interface MetaWallet {
   essenceBalance: number
   essenceEarned: number
   essenceSpent: number
+  rerollLevel: number
 }
 
 export interface MetaUnlockDefinition {
@@ -49,6 +53,7 @@ export interface MetaProgressionService {
   load(): Promise<MetaProgressionSnapshot>
   submitRunResult(input: MetaRunResultInput): Promise<MetaRunReward>
   purchaseUnlock(unlockId: string): Promise<MetaProgressionSnapshot>
+  purchaseReroll(): Promise<MetaProgressionSnapshot>
 }
 
 export interface MetaRunResultInput {
@@ -71,6 +76,8 @@ interface WalletRow {
   essence_balance: number
   essence_earned: number
   essence_spent: number
+  reroll_balance: number
+  rerolls_purchased: number
 }
 
 interface UnlockDefinitionRow {
@@ -100,7 +107,9 @@ function isWalletRow(value: unknown): value is WalletRow {
   return isRecord(value) &&
     'essence_balance' in value && typeof value.essence_balance === 'number' &&
     'essence_earned' in value && typeof value.essence_earned === 'number' &&
-    'essence_spent' in value && typeof value.essence_spent === 'number'
+    'essence_spent' in value && typeof value.essence_spent === 'number' &&
+    'reroll_balance' in value && typeof value.reroll_balance === 'number' &&
+    'rerolls_purchased' in value && typeof value.rerolls_purchased === 'number'
 }
 
 function isUnlockDefinitionRow(value: unknown): value is UnlockDefinitionRow {
@@ -127,7 +136,19 @@ function isRunRewardRow(value: unknown): value is RunRewardRow {
 }
 
 function defaultWallet(): MetaWallet {
-  return { essenceBalance: 0, essenceEarned: 0, essenceSpent: 0 }
+  return {
+    essenceBalance: 0,
+    essenceEarned: 0,
+    essenceSpent: 0,
+    rerollLevel: 0,
+  }
+}
+
+export function getRerollPurchaseCost(rerollLevel: number): number {
+  const purchaseCount = Number.isFinite(rerollLevel)
+    ? Math.max(0, Math.floor(rerollLevel))
+    : 0
+  return Math.ceil(REROLL_BASE_COST * REROLL_COST_MULTIPLIER ** purchaseCount)
 }
 
 export function getXpMultiplierLevel(
@@ -244,6 +265,7 @@ function toSnapshot(
         essenceBalance: walletRow.essence_balance,
         essenceEarned: walletRow.essence_earned,
         essenceSpent: walletRow.essence_spent,
+        rerollLevel: Math.min(MAX_REROLL_LEVEL, walletRow.rerolls_purchased),
       }
     : defaultWallet()
   if (!Array.isArray(definitionRows) || !definitionRows.every(isUnlockDefinitionRow)) {
@@ -291,7 +313,9 @@ export function createMetaProgressionService(
   const load = async (): Promise<MetaProgressionSnapshot> => {
     const client = getClient()
     const [walletResponse, definitionsResponse, unlocksResponse] = await Promise.all([
-      client.from('meta_wallets').select('essence_balance, essence_earned, essence_spent').maybeSingle(),
+      client.from('meta_wallets').select(
+        'essence_balance, essence_earned, essence_spent, reroll_balance, rerolls_purchased',
+      ).maybeSingle(),
       client.from('meta_unlock_definitions').select(
         'id, category, cost, requires_unlock_id, is_starter, payload',
       ).order('id'),
@@ -350,6 +374,17 @@ export function createMetaProgressionService(
       }
       if (!Array.isArray(response.data) || response.data.length !== 1) {
         throw new Error('Unlock purchase returned an invalid response.')
+      }
+      return load()
+    },
+
+    async purchaseReroll(): Promise<MetaProgressionSnapshot> {
+      const response = await getClient().rpc('purchase_meta_reroll')
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1) {
+        throw new Error('Reroll purchase returned an invalid response.')
       }
       return load()
     },

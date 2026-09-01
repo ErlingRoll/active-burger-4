@@ -32,6 +32,17 @@ milestones in order unless an ADR documents an exception.
 - [ ] Add focused tests for deterministic rules and run applicable validation.
 - [ ] Record material architecture changes in `docs/decisions/`.
 
+## Duration Renewal Rules
+
+- Duration renewals must use a fixed maximum: Rallying Banner is capped at 12
+  seconds; Storm Relay, Soul Tether, Razorwire, and Prism Halo are capped at
+  twice their base duration.
+- A renewal affects only the newest eligible persistent entity. For example,
+  Rallying Banner renewals target the newest banner, Voltaic Bond targets the
+  newest tether on its struck target, and Mirror Wire targets the newest Wire.
+- Blood Debt utility renewals target only the newest live Tether, Relay, Wire,
+  and Prism Halo, respectively.
+
 ## Milestones
 
 - [x] **0. Repository Foundation:** scaffold, dependencies, scripts, project

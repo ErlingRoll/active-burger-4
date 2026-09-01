@@ -51,7 +51,6 @@ import {
   RALLYING_BANNER_HEAL_INTERVAL_SECONDS,
   RALLYING_BANNER_EFFECT_RADIUS,
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
-  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   RALLYING_BANNER_RESONANCE_DURATION_BONUS_SECONDS,
   GRAVITY_WELL_BASE_PULL_DISTANCE,
   GRAVITY_WELL_SINGULARITY_PULL_BONUS,
@@ -73,12 +72,14 @@ import {
   CINDER_MINE_CLUSTER_OFFSET,
   CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER,
   STORM_RELAY_BASE_DURATION_SECONDS,
+  STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS,
   STORM_RELAY_OVERCHARGE_SHOCK_STACKS,
   STORM_RELAY_CONDUIT_PULL_RADIUS,
   STORM_RELAY_CONDUIT_PULL_DISTANCE,
   SOUL_TETHER_DURATION_SECONDS,
+  SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
   SOUL_TETHER_BASE_HEALING_RATIO,
   SOUL_TETHER_SIPHON_HEALING_BONUS,
   AEGIS_PULSE_RESONANCE_SHIELD_MULTIPLIER,
@@ -99,6 +100,7 @@ import {
   MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT,
   MIRRORCAST_COPY_MAX_RANGE,
   RAZORWIRE_DURATION_SECONDS,
+  RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
   RAZORWIRE_MAX_RANGE,
   RAZORWIRE_WIRE_LENGTH,
   RAZORWIRE_CROSSING_COOLDOWN_SECONDS,
@@ -125,6 +127,7 @@ import {
   BLOOD_RITE_CRIMSON_POTENCY_MULTIPLIER,
   BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
   PRISM_HALO_DURATION_SECONDS,
+  PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
   PRISM_HALO_RANGE,
   PRISM_HALO_FIRE_INTERVAL_SECONDS,
   PRISM_HALO_ORBIT_RADIUS,
@@ -189,8 +192,10 @@ import {
 } from '../../combat/PlayerCombatLog'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import {
+  extendRallyingBannerDuration,
   getRallyingBannerCooldownReductionPercent,
-  getRallyingBannerEffects,
+  getNewestRallyingBannerEffect,
+  getRallyingBannerEffectsAffectingPlayer,
   syncRallyingBannerPlayerState,
 } from './RallyingBanner'
 import {
@@ -371,6 +376,14 @@ function getSkillCooldown(
       skillCooldownReduction +
       rallyingBannerCooldownReduction,
   )
+}
+
+function extendDurationUpToMaximum(
+  remainingDuration: number,
+  extensionSeconds: number,
+  maximumDuration: number,
+): number {
+  return Math.min(maximumDuration, remainingDuration + extensionSeconds)
 }
 
 function markSkillUsed(skill: SkillState): void {
@@ -670,24 +683,12 @@ function collectVitalityHealing(
   if (state.run.selectedUpgradeIds.includes('synergy-vitality-rift-javelin')) {
     state.player.vitalityRiftPrimed = true
   }
+  const newestBanner = getNewestRallyingBannerEffect(state)
   if (
     state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-banner') &&
-    getRallyingBannerEffects(state).length > 0
+    newestBanner
   ) {
-    for (const effect of getRallyingBannerEffects(state)) {
-      const bannerExtension = Math.min(
-        2,
-        Math.max(
-          0,
-          RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS -
-            effect.remainingLifetime,
-        ),
-      )
-      if (bannerExtension > 0) {
-        effect.remainingLifetime += bannerExtension
-        effect.lifetime += bannerExtension
-      }
-    }
+    extendRallyingBannerDuration(newestBanner, 2)
     syncRallyingBannerPlayerState(state)
   }
   if (
@@ -910,21 +911,12 @@ function collectLancersChargeDamage(
   state.player.x = dashDestination.x
   state.player.y = dashDestination.y
   if (state.run.selectedUpgradeIds.includes('synergy-lancers-charge-rallying-banner')) {
-    for (const banner of getRallyingBannerEffects(state)) {
-      if (
-        Math.hypot(banner.x - state.player.x, banner.y - state.player.y) <=
-        banner.radius + state.player.radius
-      ) {
-        const extension = Math.min(
-          VANGUARD_STANDARD_BANNER_EXTENSION_SECONDS,
-          Math.max(
-            0,
-            RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - banner.remainingLifetime,
-          ),
-        )
-        banner.remainingLifetime += extension
-        banner.lifetime += extension
-      }
+    const newestBanner = getRallyingBannerEffectsAffectingPlayer(state).at(-1)
+    if (newestBanner) {
+      extendRallyingBannerDuration(
+        newestBanner,
+        VANGUARD_STANDARD_BANNER_EXTENSION_SECONDS,
+      )
     }
     syncRallyingBannerPlayerState(state)
   }
@@ -1578,11 +1570,19 @@ function collectStormRelayChainDamage(
       },
     })
     if (voltaicBond) {
-      for (const tether of state.player.soulTethers ?? []) {
-        if (tether.targetId === target.id) {
-          tether.remainingDuration += 0.5
-          tether.duration += 0.5
-        }
+      const newestTether = (state.player.soulTethers ?? [])
+        .filter((tether) =>
+          tether.targetId === target.id && tether.remainingDuration > 0
+        )
+        .at(-1)
+      if (newestTether) {
+        const remainingDuration = newestTether.remainingDuration
+        newestTether.remainingDuration = extendDurationUpToMaximum(
+          remainingDuration,
+          0.5,
+          SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
+        )
+        newestTether.duration += newestTether.remainingDuration - remainingDuration
       }
     }
     path.push({ x: target.x, y: target.y })
@@ -1594,18 +1594,9 @@ function collectStormRelayChainDamage(
     if (spectrumFork) {
       relay.spectrumForkPrimed = false
     }
-    const newestBanner = getRallyingBannerEffects(state).at(-1)
+    const newestBanner = getNewestRallyingBannerEffect(state)
     if (wardedConduit && newestBanner) {
-      const bannerExtension = Math.min(
-        0.25,
-        Math.max(
-          0,
-          RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS -
-            newestBanner.remainingLifetime,
-        ),
-      )
-      newestBanner.remainingLifetime += bannerExtension
-      newestBanner.lifetime += bannerExtension
+      extendRallyingBannerDuration(newestBanner, 0.25)
       syncRallyingBannerPlayerState(state)
     }
     addEffect(
@@ -2116,8 +2107,15 @@ function executeMirrorcastCopy(
   const category = classifySkillEffect(definition)
 
   if (mirrorWire) {
-    for (const wire of state.wires ?? []) {
-      wire.remainingDuration += MIRRORCAST_WIRE_DURATION_BONUS_SECONDS
+    const newestWire = (state.wires ?? [])
+      .filter((wire) => wire.remainingDuration > 0)
+      .at(-1)
+    if (newestWire) {
+      newestWire.remainingDuration = extendDurationUpToMaximum(
+        newestWire.remainingDuration,
+        MIRRORCAST_WIRE_DURATION_BONUS_SECONDS,
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+      )
     }
   }
   if (prismaticEcho && state.player.prismHalo) {
@@ -2596,6 +2594,7 @@ function collectBloodRiteCast(
   const crimson = state.run.selectedUpgradeIds.includes('blood-rite-crimson-debt')
   const sanguine = state.run.selectedUpgradeIds.includes('blood-rite-sanguine-pact')
   const prismOffering = state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')
+  const prismHalo = state.player.prismHalo
   state.player.bloodRiteShieldRestored = 0
 
   const notionalSacrifice = Math.max(
@@ -2634,8 +2633,12 @@ function collectBloodRiteCast(
     remainingDuration: BLOOD_RITE_DEBT_DURATION_SECONDS,
     sanguinePact: sanguine,
   }
-  if (prismOffering && state.player.prismHalo) {
-    state.player.prismHalo.remainingDuration += BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS
+  if (prismOffering && prismHalo && prismHalo.remainingDuration > 0) {
+    prismHalo.remainingDuration = extendDurationUpToMaximum(
+      prismHalo.remainingDuration,
+      BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS,
+      PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
+    )
   }
 
   const pulseRadius = scaleAreaValue(
@@ -2720,17 +2723,43 @@ function consumeBloodDebtForCast(
       }
     }
   } else {
-    for (const tether of state.player.soulTethers ?? []) {
-      tether.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    const newestTether = (state.player.soulTethers ?? [])
+      .filter((tether) => tether.remainingDuration > 0)
+      .at(-1)
+    if (newestTether) {
+      newestTether.remainingDuration = extendDurationUpToMaximum(
+        newestTether.remainingDuration,
+        BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
+        SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
+      )
     }
-    for (const relay of state.relays ?? []) {
-      relay.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    const newestRelay = (state.relays ?? [])
+      .filter((relay) => relay.remainingDuration > 0)
+      .at(-1)
+    if (newestRelay) {
+      newestRelay.remainingDuration = extendDurationUpToMaximum(
+        newestRelay.remainingDuration,
+        BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
+        STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS,
+      )
     }
-    for (const wire of state.wires ?? []) {
-      wire.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    const newestWire = (state.wires ?? [])
+      .filter((wire) => wire.remainingDuration > 0)
+      .at(-1)
+    if (newestWire) {
+      newestWire.remainingDuration = extendDurationUpToMaximum(
+        newestWire.remainingDuration,
+        BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
+        RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
+      )
     }
-    if (state.player.prismHalo) {
-      state.player.prismHalo.remainingDuration += BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS
+    const prismHalo = state.player.prismHalo
+    if (prismHalo && prismHalo.remainingDuration > 0) {
+      prismHalo.remainingDuration = extendDurationUpToMaximum(
+        prismHalo.remainingDuration,
+        BLOOD_RITE_UTILITY_DURATION_BONUS_SECONDS,
+        PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
+      )
     }
   }
   debt.charges -= 1

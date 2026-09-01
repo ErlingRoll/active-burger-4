@@ -16,6 +16,7 @@ import {
   LANCERS_CHARGE_SKILL_ID,
   RAISE_SKELETON_SKILL_ID,
   RALLYING_BANNER_SKILL_ID,
+  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
@@ -23,12 +24,15 @@ import {
   CINDER_MINE_SKILL_ID,
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
+  SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
   PHANTOM_ARSENAL_SKILL_ID,
   SIGIL_OF_RUIN_SKILL_ID,
   MIRRORCAST_SKILL_ID,
   RAZORWIRE_SKILL_ID,
+  RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
+  PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
   PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO,
   PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT,
   RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE,
@@ -188,8 +192,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-basic-attack-rallying-banner',
     'Rallying Volley',
-    'Basic Attack hits while Rallying Banner is active extend it by 0.1 seconds.',
-    'Basic Attack sustains Rallying Banner',
+    `Basic Attack hits extend your newest active Rallying Banner by 0.1 seconds, up to ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Sustains newest Rallying Banner (${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [BASIC_ATTACK_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
@@ -320,8 +324,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-vitality-rallying-banner',
     'Renewing Banner',
-    'Vitality extends an active Rallying Banner by 2 seconds.',
-    'Vitality extends Rallying Banner',
+    `Vitality extends your newest active Rallying Banner by 2 seconds, up to ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Extends newest Rallying Banner (${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [VITALITY_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
@@ -400,8 +404,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-storm-relay-rallying-banner',
     'Warded Conduit',
-    'Storm Relay strikes while Rallying Banner is active extend the banner by 0.25 seconds.',
-    'Storm Relay sustains Rallying Banner',
+    `Storm Relay strikes extend your newest active Rallying Banner by 0.25 seconds, up to ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Sustains newest Rallying Banner (${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [STORM_RELAY_SKILL_ID, RALLYING_BANNER_SKILL_ID],
     [],
   ),
@@ -422,8 +426,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-storm-relay-soul-tether',
     'Voltaic Bond',
-    'Storm Relay strikes against Soul Tether targets extend those tethers by 0.5 seconds.',
-    'Storm Relay extends Soul Tether',
+    `Storm Relay strikes against Soul Tether targets extend the newest tether on that target by 0.5 seconds, up to ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Extends newest target tether (${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [STORM_RELAY_SKILL_ID, SOUL_TETHER_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -457,8 +461,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-mirrorcast-razorwire',
     'Mirror Wire',
-    'Each Echo copy extends the duration of every active Razorwire.',
-    'Echo copies sustain Razorwires',
+    `Each Echo copy extends your newest active Razorwire by 2 seconds, up to ${RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Sustains newest Razorwire (${RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [MIRRORCAST_SKILL_ID, RAZORWIRE_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -478,8 +482,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-blood-rite-prism-halo',
     'Prism Offering',
-    'Blood Rite\'s pulse extends an active Prism Halo\'s duration.',
-    'Blood Rite sustains Prism Halo',
+    `Blood Rite's pulse extends an active Prism Halo by 2 seconds, up to ${PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    `Extends Prism Halo (${PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [BLOOD_RITE_SKILL_ID, PRISM_HALO_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -527,8 +531,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-lancers-charge-rallying-banner',
     'Vanguard Standard',
-    'Lancer’s Charge ending inside Rallying Banner refreshes it briefly and grants one Momentum stack.',
-    'Charge refreshes the Banner',
+    `Lancer's Charge ending inside Rallying Banner extends the newest banner affecting you by 0.5 seconds, up to ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds, and grants one Momentum stack.`,
+    `Extends newest nearby Banner (${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS}s max)`,
     [LANCERS_CHARGE_SKILL_ID, RALLYING_BANNER_SKILL_ID],
   ),
   createSynergyUpgrade(

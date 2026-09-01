@@ -120,6 +120,44 @@ describe('Game', () => {
     expect(game.state.run.selectedUpgradeIds).toHaveLength(3)
   })
 
+  it('spends all rerolls on the same skill upgrade choice', () => {
+    const game = createGame({ seed: 150, startingLevel: 2, rerollCount: 10 })
+    const initialChoices = game.getPendingChoiceFlow()
+
+    expect(game.canRerollActiveChoice).toBe(true)
+    expect(game.rerollActiveChoice()).toBe(true)
+    expect(game.getPendingChoiceFlow()?.choices).not.toEqual(initialChoices?.choices)
+    for (let index = 1; index < 10; index += 1) {
+      expect(game.rerollActiveChoice()).toBe(true)
+    }
+
+    expect(game.state.run.rerollsRemaining).toBe(0)
+    expect(game.getPendingChoiceFlow()?.type).toBe('level-up')
+    expect(game.canRerollActiveChoice).toBe(false)
+    expect(game.rerollActiveChoice()).toBe(false)
+
+    const restored = createGameFromCheckpoint(game.createCheckpoint())
+    expect(restored.state.run.rerollsRemaining).toBe(0)
+    expect(restored.getPendingChoiceFlow()?.type).toBe('level-up')
+    expect(restored.canRerollActiveChoice).toBe(false)
+
+    const nextRun = createGame({ seed: 152, startingLevel: 2, rerollCount: 10 })
+    expect(nextRun.state.run.rerollsRemaining).toBe(10)
+  })
+
+  it('spends rerolls to refresh a gear upgrade choice', () => {
+    const game = createGame({ seed: 151, rerollCount: 1 })
+    game.spawnGearPickup({ x: 0, y: 0 })
+    game.update(FIXED_STEP_SECONDS)
+    const initialChoices = game.getPendingChoiceFlow()
+
+    expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+    expect(game.rerollActiveChoice()).toBe(true)
+    expect(game.getPendingChoiceFlow()?.choices).not.toEqual(initialChoices?.choices)
+    expect(game.state.run.rerollsRemaining).toBe(0)
+    expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+  })
+
   it('generates each queued level-up after the previous selection is applied', () => {
     const game = createGame({ seed: 6, startingLevel: 4 })
     const firstFlow = game.getPendingChoiceFlow()

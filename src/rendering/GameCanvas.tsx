@@ -289,8 +289,10 @@ export function GameCanvas({
   const initialCheckpointRef = useRef(initialCheckpoint)
   const [game, setGame] = useState<Game | null>(null)
   const [snapshot, setSnapshot] = useState<GameUiSnapshot | null>(null)
+  const [damageFlashId, setDamageFlashId] = useState(0)
   const [choiceFlow, setChoiceFlow] = useState<Readonly<PendingChoiceFlow> | null>(null)
   const [floorSaveError, setFloorSaveError] = useState<string | null>(null)
+  const previousHpRef = useRef<number | null>(null)
   const retryFloorSaveRef = useRef<() => void>(() => undefined)
   const choiceFlowKeyRef = useRef<string | null>(null)
   const choiceFlowRef = useRef<Readonly<PendingChoiceFlow> | null>(null)
@@ -315,6 +317,32 @@ export function GameCanvas({
   useEffect(() => {
     onBehaviorProfileChangeRef.current = onBehaviorProfileChange
   }, [onBehaviorProfileChange])
+
+  useEffect(() => {
+    const hp = snapshot?.hp
+    if (hp === undefined) {
+      return
+    }
+
+    const previousHp = previousHpRef.current
+    previousHpRef.current = hp
+    if (previousHp === null || hp >= previousHp) {
+      return
+    }
+
+    setDamageFlashId((current) => current + 1)
+  }, [snapshot?.hp])
+
+  useEffect(() => {
+    if (damageFlashId === 0) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDamageFlashId(0)
+    }, 320)
+    return () => window.clearTimeout(timeoutId)
+  }, [damageFlashId])
 
   useEffect(() => {
     const container = containerRef.current
@@ -605,6 +633,14 @@ export function GameCanvas({
     gameRef.current?.skipChoice()
   }
 
+  const rerollChoice = (): void => {
+    const currentGame = gameRef.current
+    if (!currentGame || !currentGame.canRerollActiveChoice) {
+      return
+    }
+    currentGame.rerollActiveChoice()
+  }
+
   const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
     const currentGame = gameRef.current
     if (!currentGame) {
@@ -665,6 +701,13 @@ export function GameCanvas({
         aria-label="Active Burger 4 game arena"
         role="img"
       />
+      {damageFlashId > 0 ? (
+        <div
+          key={damageFlashId}
+          className="damage-flash-overlay"
+          aria-hidden="true"
+        />
+      ) : null}
       {snapshot ? (
         <GameplayHud snapshot={snapshot} />
       ) : null}
@@ -732,7 +775,9 @@ export function GameCanvas({
           ownedSkillIds={snapshot?.skills.map((skill) => skill.skillId) ?? []}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
+          rerollsRemaining={snapshot?.rerollsRemaining ?? 0}
           onSelect={selectChoice}
+          onReroll={rerollChoice}
           onSkip={skipChoice}
         />
       ) : null}

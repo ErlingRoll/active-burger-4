@@ -5,6 +5,8 @@ import {
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
   getDungeonMaxFloorBonus,
   getDungeonMaxFloorRank,
+  getRerollPurchaseCost,
+  MAX_REROLL_LEVEL,
   getSkillSlotCount,
   getXpMultiplierLevel,
   getStartingLevelRank,
@@ -129,6 +131,24 @@ describe('dungeon maximum-floor unlock definitions', () => {
     expect(getDungeonMaxFloorRank(definitions, unlockedIds)).toBe(4)
     expect(getDungeonMaxFloorBonus(definitions, unlockedIds)).toBe(20)
     expect(getDungeonMaxFloorBonus(definitions, [])).toBe(0)
+  })
+
+  describe('reroll pricing', () => {
+    it('starts at 500 Essence and scales exponentially with each purchase', () => {
+      expect(getRerollPurchaseCost(0)).toBe(500)
+      expect(getRerollPurchaseCost(1)).toBe(1000)
+      expect(getRerollPurchaseCost(2)).toBe(2000)
+      expect(getRerollPurchaseCost(3)).toBe(4000)
+    })
+
+    it('uses the initial price for invalid purchase counters', () => {
+      expect(getRerollPurchaseCost(-1)).toBe(500)
+      expect(getRerollPurchaseCost(Number.NaN)).toBe(500)
+    })
+
+    it('defines ten as the permanent reroll level cap', () => {
+      expect(MAX_REROLL_LEVEL).toBe(10)
+    })
   })
 
   it('does not exceed the four-rank cap', () => {
