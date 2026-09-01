@@ -21,6 +21,7 @@ import {
   RALLYING_BANNER_BASE_DURATION_SECONDS,
   RALLYING_BANNER_EFFECT_RADIUS,
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
+  RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   CINDER_MINE_FUSE_SECONDS,
   STORM_RELAY_BASE_DURATION_SECONDS,
   STORM_RELAY_STRIKE_INTERVAL_SECONDS,
@@ -1252,6 +1253,81 @@ describe('skill system', () => {
       expect(events.every((event) => event.shockApplication?.threshold === 3)).toBe(true)
       expect(game.state.relays).toHaveLength(1)
       expect(game.state.relays?.[0]?.strikeIntervalSeconds).toBe(STORM_RELAY_STRIKE_INTERVAL_SECONDS)
+    })
+
+    it('caps Warded Conduit banner extensions at the maximum duration', () => {
+      const game = createGame({ seed: 98 })
+      game.state.player.skills = [
+        {
+          skillId: RALLYING_BANNER_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: STORM_RELAY_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push(
+        'synergy-storm-relay-rallying-banner',
+      )
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      const banner = game.state.effects.find(
+        (effect) => effect.skillId === RALLYING_BANNER_SKILL_ID,
+      )!
+      banner.remainingLifetime = RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - 0.1
+      banner.lifetime = RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - 0.1
+
+      updateStormRelay(game.state, STORM_RELAY_STRIKE_INTERVAL_SECONDS, allocator)
+
+      expect(banner.remainingLifetime).toBe(
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+      )
+      expect(banner.lifetime).toBe(
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+      )
+    })
+
+    it('extends only the newest Rallying Banner with Warded Conduit', () => {
+      const game = createGame({ seed: 99 })
+      game.state.player.skills = [
+        {
+          skillId: RALLYING_BANNER_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+        {
+          skillId: STORM_RELAY_SKILL_ID,
+          level: 1,
+          cooldownRemaining: 0,
+        },
+      ]
+      game.state.run.selectedUpgradeIds.push(
+        'synergy-storm-relay-rallying-banner',
+      )
+      game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      game.state.player.x = RALLYING_BANNER_EFFECT_RADIUS + 20
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      const [olderBanner, newestBanner] = game.state.effects.filter(
+        (effect) => effect.skillId === RALLYING_BANNER_SKILL_ID,
+      )
+      olderBanner!.remainingLifetime = 9
+      newestBanner!.remainingLifetime =
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - 0.1
+
+      updateStormRelay(game.state, STORM_RELAY_STRIKE_INTERVAL_SECONDS, allocator)
+
+      expect(olderBanner!.remainingLifetime).toBe(9)
+      expect(newestBanner!.remainingLifetime).toBe(
+        RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
+      )
     })
 
     it('strikes again once its interval elapses, then expires after its duration', () => {

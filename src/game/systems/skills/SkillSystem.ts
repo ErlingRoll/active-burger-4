@@ -1594,11 +1594,18 @@ function collectStormRelayChainDamage(
     if (spectrumFork) {
       relay.spectrumForkPrimed = false
     }
-    if (wardedConduit && getRallyingBannerEffects(state).length > 0) {
-      for (const effect of getRallyingBannerEffects(state)) {
-        effect.remainingLifetime += 0.25
-        effect.lifetime += 0.25
-      }
+    const newestBanner = getRallyingBannerEffects(state).at(-1)
+    if (wardedConduit && newestBanner) {
+      const bannerExtension = Math.min(
+        0.25,
+        Math.max(
+          0,
+          RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS -
+            newestBanner.remainingLifetime,
+        ),
+      )
+      newestBanner.remainingLifetime += bannerExtension
+      newestBanner.lifetime += bannerExtension
       syncRallyingBannerPlayerState(state)
     }
     addEffect(
