@@ -2,6 +2,6 @@
 VITE_AUTH_REDIRECT_URL = "https://activeburger.com"
 
 [[redirects]]
-from = "/wiki"
+from = "/*"
 to = "/index.html"
 status = 200
