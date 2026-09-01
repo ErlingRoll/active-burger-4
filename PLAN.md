@@ -81,10 +81,10 @@ npm run build
 ```
 
 The unit suite, lint, and production build are currently passing. The
-Playwright suite still contains a known stale world-modifier text expectation
-in `e2e/game-canvas.spec.ts`; it expects old `+2/+3/+5` values while the
-current UI renders reward multipliers such as `1.10x`. This should be corrected
-before treating the browser suite as fully green.
+authenticated Playwright suite asserts the current World modifier reward
+multipliers, including Elite Triad. Supplying `VITE_TEST_USER_EMAIL` and
+`VITE_TEST_USER_PASSWORD` is required to execute those authenticated browser
+flows locally.
 
 Use these documents together:
 

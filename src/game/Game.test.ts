@@ -202,7 +202,7 @@ describe('Game', () => {
       .toMatchObject({ itemId: 'ashen-alchemist-training-staff' })
   })
 
-  it('grants development gear and refreshes the player projection', () => {
+  it('grants unmodified development gear and refreshes the player projection', () => {
     const game = createGame({ seed: 109 })
     let notificationCount = 0
     game.subscribe(() => {
@@ -216,7 +216,7 @@ describe('Game', () => {
     expect(game.state.player.equipment?.weapon).toMatchObject({
       itemId: 'hunters-bow',
     })
-    expect(game.state.player.attackSpeed).toBeGreaterThan(1)
+    expect(game.state.player.attackSpeed).toBe(1)
     expect(notificationCount).toBe(1)
 
     expect(game.grantDebugGear('hunters-bow', 'splintering')).toEqual({

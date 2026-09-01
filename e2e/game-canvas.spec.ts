@@ -162,15 +162,18 @@ test('selects and persists world modifiers before starting a deterministic run',
     .getByRole('group', { name: 'World modifiers' })
     .getByRole('button')
   await expect(modifierButtons).toHaveText([
-    /Swarming.*\+2/,
-    /Fast Start.*\+2/,
-    /Juggernauts.*\+3/,
-    /Glass World.*\+3/,
-    /Shorter Minute.*\+3/,
-    /Elite Invasion.*\+5/,
+    /Swarming.*Reward 1\.10x/,
+    /Fast Start.*Reward 1\.08x/,
+    /Juggernauts.*Reward 1\.20x/,
+    /Glass World.*Reward 1\.15x/,
+    /Shorter Minute.*Reward 1\.15x/,
+    /Elite Invasion.*Reward 1\.20x/,
+    /Elite Triad.*Reward 1\.25x/,
   ])
-  const swarming = page.getByRole('button', { name: /swarming.*\+2/i })
-  const eliteInvasion = page.getByRole('button', { name: /elite invasion.*\+5/i })
+  const swarming = page.getByRole('button', { name: /swarming.*reward 1\.10x/i })
+  const eliteInvasion = page.getByRole('button', {
+    name: /elite invasion.*reward 1\.20x/i,
+  })
   await swarming.click()
   await eliteInvasion.click()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')

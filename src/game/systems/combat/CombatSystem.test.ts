@@ -545,9 +545,14 @@ describe('performBasicAttackIfReady', () => {
     expect(gameState.projectiles.every((value) => value.primaryTargetId === undefined)).toBe(true)
   })
 
-  it('uses the default Starcall Wand extra-projectile modifier', () => {
+  it('uses a rolled Starcall Wand extra-projectile modifier', () => {
     const gameState = state([enemy(2, 120, 0)], { projectiles: [] })
-    equipItem(gameState.player, 'starcall-wand')
+    equipRolledItem(
+      gameState.player,
+      'starcall-wand',
+      Rarity.Common,
+      [createGearModifier('starcall-wand', 'basic-attack-extra-projectiles', 5, 1)],
+    )
     gameState.player.targetId = 2
 
     expect(performBasicAttackIfReady(gameState, allocator)).toEqual([])
