@@ -8,6 +8,7 @@ import {
   isCriticalStrike,
   normalizeCriticalStrikeStats,
 } from '../../content/stats/Damage'
+import type { SkillId } from '../../content/skills/Skills'
 import type { RandomSource } from '../random/Random'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
 
@@ -21,6 +22,19 @@ function recordPlayerCombatEntry(
   entries.push(entry)
   const earliestTime = state.time - PLAYER_COMBAT_LOG_WINDOW_SECONDS
   state.run.playerCombatLog = entries.filter((candidate) => candidate.time >= earliestTime)
+}
+
+function recordSkillHealing(
+  state: GameState,
+  sourceSkillId: SkillId | undefined,
+  amount: number,
+): void {
+  if (!sourceSkillId || amount <= 0) {
+    return
+  }
+  state.run.skillHealingDone ??= {}
+  state.run.skillHealingDone[sourceSkillId] =
+    (state.run.skillHealingDone[sourceSkillId] ?? 0) + amount
 }
 
 export function recordPlayerDamage(
@@ -47,6 +61,7 @@ export function healPlayer(
   requestedAmount: number,
   source: string,
   random?: Pick<RandomSource, 'next'>,
+  sourceSkillId?: SkillId,
 ): number {
   const playerStats = getDerivedPlayerStats(state.player)
   const healingMultiplier = 1 +
@@ -77,6 +92,7 @@ export function healPlayer(
     return 0
   }
   state.player.hp += amount
+  recordSkillHealing(state, sourceSkillId, amount)
   recordPlayerCombatEntry(state, {
     time: state.time,
     kind: 'healing',

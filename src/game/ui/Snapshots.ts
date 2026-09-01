@@ -205,6 +205,8 @@ export interface SkillHudSnapshot {
   readonly castCount: number
   /** Cumulative post-mitigation damage dealt by this skill during the run. */
   readonly totalDamageDealt: number
+  /** Cumulative effective player healing provided by this skill during the run. */
+  readonly totalHealingDone: number
   readonly description: string
   readonly resonanceEffect: SkillResonanceEffect | null
   /** True when this skill has enough Basic Attack charges for resonance. */
@@ -1344,6 +1346,8 @@ export interface RunResultSnapshot {
   readonly playerCombatLog: readonly PlayerCombatLogSnapshot[]
   /** Cumulative post-mitigation damage totals, including skills removed during the run. */
   readonly skillDamage: readonly SkillDamageSnapshot[]
+  /** Cumulative effective player healing totals, including skills removed during the run. */
+  readonly skillHealing: readonly SkillHealingSnapshot[]
   /** Present only when the completed run ended in a final-boss victory. */
   readonly outcome?: 'victory'
 }
@@ -1352,6 +1356,12 @@ export interface SkillDamageSnapshot {
   readonly skillId: SkillId
   readonly name: string
   readonly damage: number
+}
+
+export interface SkillHealingSnapshot {
+  readonly skillId: SkillId
+  readonly name: string
+  readonly healing: number
 }
 
 export function createUiSnapshot(
@@ -1584,6 +1594,7 @@ export function createUiSnapshot(
         ? Math.max(0, Math.floor(skill.castCount ?? 0))
         : 0,
       totalDamageDealt: state.run.skillDamageDealt?.[skill.skillId] ?? 0,
+      totalHealingDone: state.run.skillHealingDone?.[skill.skillId] ?? 0,
       description: isBasicAttack ? basicAttackVariant.description : definition.description,
       resonanceEffect: isBasicAttack ? null : definition.resonanceEffect ?? null,
       resonanceReady: !isBasicAttack && isSkillResonant(state, skill.skillId),
@@ -2040,6 +2051,12 @@ export function createRunResultSnapshot(
       skillIds.push(skillId)
     }
   }
+  for (const skillId of Object.keys(state.run.skillHealingDone ?? {})) {
+    if (isSkillId(skillId) && !seenSkillIds.has(skillId)) {
+      seenSkillIds.add(skillId)
+      skillIds.push(skillId)
+    }
+  }
   const skillDamage = skillIds.flatMap((skillId) => {
     const damage = state.run.skillDamageDealt?.[skillId] ?? 0
     if (!Number.isFinite(damage) || damage <= 0) {
@@ -2049,6 +2066,17 @@ export function createRunResultSnapshot(
       skillId,
       name: getSkillDefinition(skillId).name,
       damage,
+    })]
+  })
+  const skillHealing = skillIds.flatMap((skillId) => {
+    const healing = state.run.skillHealingDone?.[skillId] ?? 0
+    if (!Number.isFinite(healing) || healing <= 0) {
+      return []
+    }
+    return [Object.freeze({
+      skillId,
+      name: getSkillDefinition(skillId).name,
+      healing,
     })]
   })
   const result = {
@@ -2063,6 +2091,7 @@ export function createRunResultSnapshot(
       (state.run.playerCombatLog ?? []).map((entry) => Object.freeze({ ...entry })),
     ),
     skillDamage: Object.freeze(skillDamage),
+    skillHealing: Object.freeze(skillHealing),
     ...(state.run.phase === 'results' &&
     state.player.hp > 0
       ? { outcome: 'victory' as const }

@@ -511,11 +511,12 @@ describe('Game', () => {
       worldModifierIds: [],
       playerCombatLog: [],
       skillDamage: [],
+      skillHealing: [],
     })
     expect(Object.isFrozen(result)).toBe(true)
   })
 
-  it('forfeits a paused run without retaining its combat log', () => {
+  it('forfeits a paused run without retaining its combat history', () => {
     const game = createGame({ seed: 113 })
     game.state.run.playerCombatLog = [{
       time: 0,
@@ -525,12 +526,16 @@ describe('Game', () => {
       source: 'Slime',
       resultingHp: game.state.player.hp - 5,
     }]
+    game.state.run.skillDamageDealt = { [BASIC_ATTACK_SKILL_ID]: 5 }
+    game.state.run.skillHealingDone = { [BASIC_ATTACK_SKILL_ID]: 3 }
     game.pause()
 
     expect(game.forfeit()).toBe(true)
     expect(game.phase).toBe('defeat')
     expect(game.state.player.hp).toBe(0)
     expect(game.state.run.playerCombatLog).toEqual([])
+    expect(game.state.run.skillDamageDealt).toEqual({})
+    expect(game.state.run.skillHealingDone).toEqual({})
     expect(game.getRunResultSnapshot()).toMatchObject({
       phase: 'defeat',
       forfeited: true,

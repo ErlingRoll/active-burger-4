@@ -346,7 +346,13 @@ function applyBasicAttackSynergyHooks(
     hitCount % BASIC_ATTACK_VITALITY_HIT_INTERVAL === 0 &&
     consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_VITALITY_TRIGGER_COOLDOWN_SECONDS)
   ) {
-    healPlayer(state, BASIC_ATTACK_VITALITY_HEAL_AMOUNT, 'Vital Spark')
+    healPlayer(
+      state,
+      BASIC_ATTACK_VITALITY_HEAL_AMOUNT,
+      'Vital Spark',
+      undefined,
+      BASIC_ATTACK_SKILL_ID,
+    )
   }
   if (
     selected.includes('synergy-basic-attack-lancers-charge') &&
@@ -445,7 +451,13 @@ function applyBasicAttackSynergyHooks(
     state.player.soulTethers?.some((tether) => tether.targetId === target.id) &&
     consumeBasicAttackSynergyTrigger(state, BASIC_ATTACK_SOUL_TRIGGER_INTERVAL_SECONDS)
   ) {
-    healPlayer(state, actualDamage * BASIC_ATTACK_SOUL_HEALING_RATIO, 'Lifeline Rounds')
+    healPlayer(
+      state,
+      actualDamage * BASIC_ATTACK_SOUL_HEALING_RATIO,
+      'Lifeline Rounds',
+      undefined,
+      BASIC_ATTACK_SKILL_ID,
+    )
   }
   if (
     selected.includes('synergy-basic-attack-sigil-of-ruin') &&
@@ -2246,7 +2258,7 @@ function applySoulTetherHealing(
       (state.player.soulTetherVitalityCharge ?? 0) + healing * 0.5,
     )
   }
-  healPlayer(state, healing, 'Soul Tether')
+  healPlayer(state, healing, 'Soul Tether', undefined, SOUL_TETHER_SKILL_ID)
 }
 
 /**
@@ -2361,6 +2373,8 @@ function applyMendingReturnHealing(
     state,
     state.player.maxHp * MENDING_RETURN_HEAL_RATIO,
     'Mending Return',
+    undefined,
+    RIFT_JAVELIN_SKILL_ID,
   )
   state.player.mendingReturnHealingRemaining = Math.max(
     0,
@@ -2557,7 +2571,13 @@ function detonateRuinSigil(
       })
     }
     if (sanguineRuin) {
-      healPlayer(state, burst * SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO, 'Sanguine Ruin')
+      healPlayer(
+        state,
+        burst * SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO,
+        'Sanguine Ruin',
+        undefined,
+        SIGIL_OF_RUIN_SKILL_ID,
+      )
     }
   }
   if ((sigil.spreadOnDetonate || contagious) && sigil.canSpread) {
@@ -2739,6 +2759,8 @@ function applyMeleeLeech(
     state,
     actualDamage * leechAmount,
     source,
+    undefined,
+    event.sourceSkillId,
   )
 }
 

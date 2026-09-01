@@ -33,6 +33,17 @@
   font-size: clamp(1.5rem, 4vw, 2.5rem);
 }
 
+.app-title-link {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-title-link:focus-visible {
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 3px;
+}
+
 .app-version {
   margin: 0.25rem 0 0;
   color: #64748b;
@@ -2786,7 +2797,8 @@
 
 .skill-cadence,
 .skill-dps,
-.skill-damage-total {
+.skill-damage-total,
+.skill-healing-total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2797,7 +2809,8 @@
   margin-top: 0.55rem;
 }
 
-.skill-damage-total {
+.skill-damage-total,
+.skill-healing-total {
   margin: 0.55rem 0 0;
   padding-top: 0.45rem;
   border-top: 1px solid #334155;
@@ -2810,7 +2823,8 @@
 
 .skill-cadence span,
 .skill-dps span,
-.skill-damage-total span {
+.skill-damage-total span,
+.skill-healing-total span {
   color: #fef08a;
   font-size: 0.73rem;
   font-weight: 700;
@@ -2818,7 +2832,8 @@
 
 .skill-cadence b,
 .skill-dps b,
-.skill-damage-total b {
+.skill-damage-total b,
+.skill-healing-total b {
   color: #f8fafc;
   white-space: nowrap;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDamageValues } from '../../content/stats/Damage'
+import { VITALITY_SKILL_ID } from '../../content/skills/Skills'
 import { createGame } from '../Game'
 import type { GameState } from '../state/GameState'
 import { applyDamageEvents } from '../systems/combat/CombatSystem'
@@ -83,6 +84,28 @@ describe('player combat log', () => {
     expect(state.player.hp).toBe(75)
     expect(healPlayer(state, 100, 'Healing potion')).toBe(state.player.maxHp - 75)
     expect(state.player.hp).toBe(state.player.maxHp)
+  })
+
+  it('records effective healing for the skill that provided it', () => {
+    const game = createGame({ seed: 95 })
+    const state = mutableState(game)
+    state.player.hp = 50
+
+    expect(healPlayer(
+      state,
+      20,
+      'Vitality',
+      undefined,
+      VITALITY_SKILL_ID,
+    )).toBe(20)
+    expect(state.run.skillHealingDone).toEqual({
+      [VITALITY_SKILL_ID]: 20,
+    })
+
+    healPlayer(state, 20, 'Healing potion')
+    expect(state.run.skillHealingDone).toEqual({
+      [VITALITY_SKILL_ID]: 20,
+    })
   })
 
   it('allows critical Vitality healing and applies the max HP cap afterward', () => {

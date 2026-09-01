@@ -73,6 +73,19 @@ import { ARENA_BOUNDS } from '../game-config/arena'
 const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
 const STATUS_EFFECT_ICON_SIZE = 10
 const STATUS_EFFECT_ICON_GAP = 2
+const ALLY_HP_BAR_COLORS = {
+  background: '#14532d',
+  fill: '#22c55e',
+  outline: '#dcfce7',
+} as const
+const ENEMY_HP_BAR_COLORS = {
+  background: '#450a0a',
+  fill: '#ef4444',
+  outline: '#fee2e2',
+} as const
+type HealthBarColors =
+  | typeof ALLY_HP_BAR_COLORS
+  | typeof ENEMY_HP_BAR_COLORS
 
 function hasWorldSpaceEffectGeometry(
   effect: Pick<SkillEffectState, 'points' | 'impactPoint' | 'impactPoints'>,
@@ -3214,6 +3227,7 @@ export class PixiGame {
         -34,
         state.player.hp,
         state.player.maxHp,
+        ALLY_HP_BAR_COLORS,
       )
       this.drawShieldBar(
         this.playerView.shieldBar,
@@ -3288,6 +3302,7 @@ export class PixiGame {
         -22,
         summon.hp,
         summon.maxHp,
+        ALLY_HP_BAR_COLORS,
       )
     }
     for (const [summonId, summonView] of this.summonViews) {
@@ -3404,6 +3419,7 @@ export class PixiGame {
         barY,
         enemy.hp,
         enemy.maxHp,
+        ENEMY_HP_BAR_COLORS,
       )
       this.drawShieldBar(
         enemyView.shieldBar,
@@ -3500,6 +3516,7 @@ export class PixiGame {
         barY,
         boss.hp,
         boss.maxHp,
+        ENEMY_HP_BAR_COLORS,
       )
     }
 
@@ -3810,6 +3827,7 @@ export class PixiGame {
     y: number,
     hp: number,
     maxHp: number,
+    colors: HealthBarColors,
   ): void {
     const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0
     view.visible = ratio < 1
@@ -3820,10 +3838,10 @@ export class PixiGame {
     view
       .clear()
       .rect(-width / 2, y, width, height)
-      .fill({ color: '#450a0a', alpha: 0.9 })
+      .fill({ color: colors.background, alpha: 0.9 })
       .rect(-width / 2, y, width * ratio, height)
-      .fill('#ef4444')
-      .stroke({ color: '#fee2e2', width: 1 })
+      .fill(colors.fill)
+      .stroke({ color: colors.outline, width: 1 })
   }
 
   private drawShieldBar(

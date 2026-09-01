@@ -178,6 +178,8 @@ export interface RunState {
   rerollsRemaining?: number
   /** Cumulative post-mitigation damage dealt by each skill during this run. */
   skillDamageDealt?: Partial<Record<SkillId, number>>
+  /** Cumulative effective player healing provided by each skill during this run. */
+  skillHealingDone?: Partial<Record<SkillId, number>>
   /** Remains true after the first gear orb is generated, even after collection. */
   gearDropGenerated?: boolean
   /** True after the one-time blessing converts future gear drops to XP. */

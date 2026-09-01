@@ -338,7 +338,13 @@ export function updateSkillEffects(
         Math.hypot(state.player.x - effect.x, state.player.y - effect.y) <=
         effect.radius + state.player.radius
       ) {
-        healPlayer(state, healing, getSkillDefinition(RALLYING_BANNER_SKILL_ID).name, random)
+        healPlayer(
+          state,
+          healing,
+          getSkillDefinition(RALLYING_BANNER_SKILL_ID).name,
+          random,
+          RALLYING_BANNER_SKILL_ID,
+        )
       }
       for (const summon of state.summons) {
         if (
@@ -678,6 +684,7 @@ function collectVitalityHealing(
     healing,
     definition.name,
     random,
+    VITALITY_SKILL_ID,
   )
   if (state.run.selectedUpgradeIds.includes('synergy-vitality-rift-javelin')) {
     state.player.vitalityRiftPrimed = true
@@ -1017,7 +1024,13 @@ function collectRallyingBannerEffect(
   const definition = getSkillDefinition(RALLYING_BANNER_SKILL_ID)
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-banner-bulwark')
   const healing = getSkillHealing(definition, skill.level)
-  healPlayer(state, healing, definition.name, random)
+  healPlayer(
+    state,
+    healing,
+    definition.name,
+    random,
+    RALLYING_BANNER_SKILL_ID,
+  )
 
   const duration = RALLYING_BANNER_BASE_DURATION_SECONDS +
     (bulwark ? RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS : 0) +
@@ -2691,7 +2704,7 @@ function consumeBloodDebtForCast(
   const potency = debt.potency
   const events: DamageEvent[] = []
   if (category === 'healing') {
-    healPlayer(state, potency, 'Blood Debt')
+    healPlayer(state, potency, 'Blood Debt', undefined, castSkill.skillId)
   } else if (category === 'shield') {
     grantMirrorWardShield(state, potency)
   } else if (category === 'damage') {
@@ -2706,7 +2719,13 @@ function consumeBloodDebtForCast(
         damage: createDamageValues({ chaos: potency }),
       })
       if (debt.sanguinePact) {
-        healPlayer(state, potency * BLOOD_RITE_SANGUINE_HEAL_RATIO, 'Sanguine Pact')
+        healPlayer(
+          state,
+          potency * BLOOD_RITE_SANGUINE_HEAL_RATIO,
+          'Sanguine Pact',
+          undefined,
+          BLOOD_RITE_SKILL_ID,
+        )
       }
     }
   } else {

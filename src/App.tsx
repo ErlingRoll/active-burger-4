@@ -1533,6 +1533,7 @@ function App() {
           nickname={nickname}
           onRequestNicknameChange={requestNicknameChange}
           onSignOut={signOut}
+          onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
         />
@@ -1552,6 +1553,7 @@ function App() {
           nickname={nickname}
           onRequestNicknameChange={requestNicknameChange}
           onSignOut={signOut}
+          onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
         />
@@ -1574,6 +1576,7 @@ function App() {
           nickname={nickname}
           onRequestNicknameChange={requestNicknameChange}
           onSignOut={signOut}
+          onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
         />
@@ -1610,6 +1613,7 @@ function App() {
           nickname={nickname}
           onRequestNicknameChange={requestNicknameChange}
           onSignOut={signOut}
+          onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
         />
@@ -1741,6 +1745,7 @@ interface AppHeaderProps {
   nickname: NicknameState
   onRequestNicknameChange: (nickname: string) => Promise<void>
   onSignOut: () => Promise<boolean>
+  onNavigateToDashboard: () => void
   onOpenAdmin: () => void
   onOpenNicknameModeration: () => void
 }
@@ -1750,6 +1755,7 @@ function AppHeader({
   nickname,
   onRequestNicknameChange,
   onSignOut,
+  onNavigateToDashboard,
   onOpenAdmin,
   onOpenNicknameModeration,
 }: AppHeaderProps) {
@@ -1757,7 +1763,16 @@ function AppHeader({
     <header className="app-header">
       <div>
         <p className="app-kicker">Active Burger 4</p>
-        <h1>Active Burger</h1>
+        <a
+          className="app-title-link"
+          href="/"
+          onClick={(event) => {
+            event.preventDefault()
+            onNavigateToDashboard()
+          }}
+        >
+          <h1>Active Burger</h1>
+        </a>
         <p className="app-version">Version: {APP_VERSION}</p>
       </div>
       <nav className="app-navigation" aria-label="Primary navigation">
@@ -2278,6 +2293,27 @@ function ResultsScreen({
             </ul>
           ) : (
             <p className="skill-damage-results-empty">No skill damage was recorded.</p>
+          )}
+        </section>
+        <section className="skill-healing-results" aria-labelledby="skill-healing-results-title">
+          <div className="skill-damage-results-heading">
+            <p className="screen-kicker">Combat performance</p>
+            <h3 id="skill-healing-results-title">Skill healing</h3>
+          </div>
+          {result.skillHealing.length > 0 ? (
+            <ul>
+              {result.skillHealing.map((skill) => (
+                <li key={skill.skillId}>
+                  <span className="results-skill-name">
+                    <SkillIcon skillId={skill.skillId} size={18} />
+                    {skill.name}
+                  </span>
+                  <strong>{formatCompactDamage(skill.healing)}</strong>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="skill-damage-results-empty">No skill healing was recorded.</p>
           )}
         </section>
         {!victory && !result.forfeited ? (

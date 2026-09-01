@@ -379,6 +379,7 @@ export class Game {
         selectedUpgradeIds: [],
         rerollsRemaining: getConfiguredRerollCount(runConfig.rerollCount),
         skillDamageDealt: {},
+        skillHealingDone: {},
         playerCombatLog: [],
         gearDropGenerated: false,
         gearXpBlessingActive: false,
@@ -976,6 +977,8 @@ export class Game {
 
     this.gameState.run.forfeited = true
     this.gameState.run.playerCombatLog = []
+    this.gameState.run.skillDamageDealt = {}
+    this.gameState.run.skillHealingDone = {}
     this.gameState.player.hp = 0
     this.transitionTo('defeat')
     return true

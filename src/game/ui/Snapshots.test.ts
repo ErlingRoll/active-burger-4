@@ -254,9 +254,18 @@ describe('UI snapshots', () => {
 
   it('projects cumulative skill damage into the HUD and run results', () => {
     const game = createGame({ seed: 74 })
+    game.state.player.skills.push({
+      skillId: VITALITY_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
     game.state.run.skillDamageDealt = {
       [BASIC_ATTACK_SKILL_ID]: 1_250,
       [WHIRLWIND_SKILL_ID]: 500,
+    }
+    game.state.run.skillHealingDone = {
+      [VITALITY_SKILL_ID]: 750,
+      [WHIRLWIND_SKILL_ID]: 125,
     }
 
     const snapshot = createUiSnapshot(game.state)
@@ -264,9 +273,15 @@ describe('UI snapshots', () => {
 
     expect(snapshot.skills.find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
       ?.totalDamageDealt).toBe(1_250)
+    expect(snapshot.skills.find((skill) => skill.skillId === VITALITY_SKILL_ID)
+      ?.totalHealingDone).toBe(750)
     expect(result.skillDamage).toEqual([
       { skillId: BASIC_ATTACK_SKILL_ID, name: 'Basic Attack', damage: 1_250 },
       { skillId: WHIRLWIND_SKILL_ID, name: 'Whirlwind', damage: 500 },
+    ])
+    expect(result.skillHealing).toEqual([
+      { skillId: WHIRLWIND_SKILL_ID, name: 'Whirlwind', healing: 125 },
+      { skillId: VITALITY_SKILL_ID, name: 'Vitality', healing: 750 },
     ])
   })
 

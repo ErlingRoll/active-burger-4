@@ -1088,13 +1088,16 @@ function GameplayHud({
             const totalDamageLabel = skill.totalDamageDealt > 0
               ? `, total damage ${formatCompactDamage(skill.totalDamageDealt)}`
               : ''
+            const totalHealingLabel = skill.totalHealingDone > 0
+              ? `, total healing ${formatCompactDamage(skill.totalHealingDone)}`
+              : ''
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
                   className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}${bloodRiteTargeted ? ' skill-card-blood-rite-target' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
-                  aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
+                  aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}${totalHealingLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
                   aria-describedby={isActive ? tooltipId : undefined}
                   onFocus={() => {
                     cancelTooltipClose()
@@ -1285,6 +1288,12 @@ function GameplayHud({
                       <p className="skill-damage-total">
                         <span>Total damage</span>
                         <b>{formatCompactDamage(skill.totalDamageDealt)}</b>
+                      </p>
+                    ) : null}
+                    {skill.totalHealingDone > 0 ? (
+                      <p className="skill-healing-total">
+                        <span>Total healing</span>
+                        <b>{formatCompactDamage(skill.totalHealingDone)}</b>
                       </p>
                     ) : null}
                     {skill.healingPerCast !== null ? (
