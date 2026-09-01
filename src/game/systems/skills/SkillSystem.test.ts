@@ -1105,7 +1105,7 @@ describe('skill system', () => {
   })
 
   describe('Cinder Mine', () => {
-    it('arms until an enemy enters its radius, then explodes and applies Burning', () => {
+    it('arms before an enemy enters its radius, then explodes and applies Burning', () => {
       const game = createGame({ seed: 83 })
       game.state.player.skills = [{
         skillId: CINDER_MINE_SKILL_ID,
@@ -1117,7 +1117,7 @@ describe('skill system', () => {
 
       expect(collectSkillDamage(game.state, allocator)).toEqual([])
       expect(game.state.traps).toHaveLength(1)
-      expect(updateCinderMineTraps(game.state, CINDER_MINE_FUSE_SECONDS - 0.1, allocator))
+      expect(updateCinderMineTraps(game.state, CINDER_MINE_FUSE_SECONDS, allocator))
         .toEqual([])
       expect(game.state.traps).toHaveLength(1)
 
@@ -1140,6 +1140,36 @@ describe('skill system', () => {
         expect.objectContaining({ targetId, sourceLabel: 'Burning', damageOverTime: true }),
       ])
       expect(burningEvents[0]?.damage.fire).toBeCloseTo(6)
+    })
+
+    it('does not detonate while its fuse is still running', () => {
+      const game = createGame({ seed: 86 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 20, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+      expect(updateCinderMineTraps(game.state, 0.05, allocator)).toEqual([])
+      expect(game.state.traps).toHaveLength(1)
+      expect(game.state.traps?.[0]?.fuseRemaining).toBeGreaterThan(0)
+    })
+
+    it('keeps an armed mine until an enemy enters its radius', () => {
+      const game = createGame({ seed: 86 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+
+      collectSkillDamage(game.state, allocator)
+      expect(updateCinderMineTraps(game.state, CINDER_MINE_FUSE_SECONDS, allocator))
+        .toEqual([])
+      expect(game.state.traps).toHaveLength(1)
+      expect(game.state.traps?.[0]?.fuseRemaining).toBe(0)
     })
 
     it('deploys a second, weaker mine with Cluster Charges', () => {

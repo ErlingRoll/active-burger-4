@@ -1404,7 +1404,7 @@ function placeCinderMineIfReady(
   return true
 }
 
-/** Resolves armed Cinder Mine traps, detonating any whose fuse has elapsed. */
+/** Updates Cinder Mine traps, detonating any that have an enemy in range. */
 export function updateCinderMineTraps(
   state: GameState,
   fixedStepSeconds: number,
@@ -1413,12 +1413,12 @@ export function updateCinderMineTraps(
   const events: DamageEvent[] = []
   const remaining: TrapState[] = []
   for (const trap of [...(state.traps ?? [])].sort((left, right) => left.id - right.id)) {
-    trap.fuseRemaining -= fixedStepSeconds
+    trap.fuseRemaining = Math.max(0, trap.fuseRemaining - fixedStepSeconds)
     const affected = [...state.enemies, ...(state.bosses ?? [])]
       .filter((enemy) => enemy.hp > 0)
       .filter((enemy) => Math.hypot(enemy.x - trap.x, enemy.y - trap.y) <= trap.radius + enemy.radius)
       .sort((left, right) => left.id - right.id)
-    if (trap.fuseRemaining > 0 && affected.length === 0) {
+    if (trap.fuseRemaining > 0 || affected.length === 0) {
       remaining.push(trap)
       continue
     }
