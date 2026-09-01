@@ -2232,6 +2232,255 @@
   outline-offset: 2px;
 }
 
+.pause-report-bug-button {
+  display: block;
+  width: 100%;
+  min-height: 2.8rem;
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  color: #fef3c7;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  background: #713f12;
+  border: 1px solid #fbbf24;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.pause-report-bug-button:hover:not(:disabled),
+.pause-report-bug-button:focus-visible {
+  background: #854d0e;
+  outline: 3px solid rgb(251 191 36 / 30%);
+  outline-offset: 2px;
+}
+
+.pause-report-bug-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.report-bug-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(2 6 23 / 82%);
+}
+
+.report-bug-dialog {
+  width: min(34rem, 100%);
+  max-height: min(44rem, 100%);
+  overflow: auto;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  color: #e2e8f0;
+  background: #1f1d29;
+  border: 1px solid #fbbf24;
+  border-radius: 0.65rem;
+  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 75%);
+}
+
+.report-bug-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.report-bug-dialog h2 {
+  margin: 0.3rem 0 0;
+  color: #f8fafc;
+  font-size: clamp(1.75rem, 5vw, 2.4rem);
+}
+
+.report-bug-close {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.35rem;
+  color: #cbd5e1;
+  font-size: 1.8rem;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.report-bug-close:hover:not(:disabled),
+.report-bug-close:focus-visible {
+  color: #fef3c7;
+  outline: 3px solid rgb(251 191 36 / 30%);
+  outline-offset: 2px;
+}
+
+.report-bug-instructions {
+  margin: 0.7rem 0 1.2rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.report-bug-field {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.report-bug-field small {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.report-bug-field textarea {
+  width: 100%;
+  min-height: 8rem;
+  resize: vertical;
+  padding: 0.65rem;
+  color: #f8fafc;
+  background: #0f172a;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+}
+
+.report-bug-field textarea:focus {
+  border-color: #fbbf24;
+  outline: 3px solid rgb(251 191 36 / 22%);
+  outline-offset: 1px;
+}
+
+.report-bug-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.report-bug-upload,
+.report-bug-cancel,
+.report-bug-submit,
+.report-bug-remove {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.75rem;
+  font-weight: 800;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.report-bug-upload {
+  justify-self: start;
+  color: #dbeafe;
+  background: #334155;
+  border: 1px solid #64748b;
+}
+
+.report-bug-upload:hover:not(:disabled),
+.report-bug-upload:focus-visible {
+  background: #475569;
+  outline: 3px solid rgb(148 163 184 / 30%);
+  outline-offset: 2px;
+}
+
+.report-bug-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.4rem;
+}
+
+.report-bug-preview img {
+  width: 5rem;
+  height: 5rem;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 0.25rem;
+}
+
+.report-bug-preview > div {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.report-bug-remove {
+  min-height: 0;
+  justify-self: start;
+  padding: 0;
+  color: #fca5a5;
+  background: transparent;
+  border: 0;
+}
+
+.report-bug-remove:hover:not(:disabled),
+.report-bug-remove:focus-visible {
+  color: #fee2e2;
+  text-decoration: underline;
+}
+
+.report-bug-context {
+  margin: 1rem 0 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.report-bug-error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.report-bug-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.report-bug-cancel {
+  color: #e2e8f0;
+  background: #334155;
+  border: 1px solid #64748b;
+}
+
+.report-bug-cancel:hover:not(:disabled),
+.report-bug-cancel:focus-visible {
+  background: #475569;
+  outline: 3px solid rgb(148 163 184 / 30%);
+  outline-offset: 2px;
+}
+
+.report-bug-submit {
+  color: #18181b;
+  background: #fbbf24;
+  border: 1px solid #fef3c7;
+}
+
+.report-bug-submit:hover:not(:disabled),
+.report-bug-submit:focus-visible {
+  background: #fde68a;
+  outline: 3px solid rgb(251 191 36 / 30%);
+  outline-offset: 2px;
+}
+
+.report-bug-submit:disabled,
+.report-bug-cancel:disabled,
+.report-bug-close:disabled,
+.report-bug-upload:disabled,
+.report-bug-remove:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .confirmation-dialog-backdrop {
   position: fixed;
   inset: 0;

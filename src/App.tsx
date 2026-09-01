@@ -54,6 +54,12 @@ import {
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
+import {
+  createBugReportService,
+  type BugReportDungeonContext,
+  type BugReportImage,
+  type BugReportService,
+} from './bug-report'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
   ATTUNEMENT_DESCRIPTION,
@@ -308,6 +314,22 @@ function App() {
     try {
       return {
         service: createDungeonRunPersistenceService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const bugReport = useMemo<{ service: BugReportService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createBugReportService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         }, () => authenticationService.service?.getClient()),
@@ -578,6 +600,34 @@ function App() {
     },
     [persistSettings],
   )
+
+  const submitBugReport = useCallback(async (
+    description: string,
+    image: BugReportImage | undefined,
+    dungeon: BugReportDungeonContext,
+  ): Promise<void> => {
+    if (!authentication.account) {
+      throw new Error('Sign in before submitting a bug report.')
+    }
+    if (!bugReport.service) {
+      throw new Error(bugReport.configurationError ?? 'Bug reporting is unavailable.')
+    }
+    await bugReport.service.submit({
+      userId: authentication.account.id,
+      description,
+      image,
+      dungeon,
+    })
+    showToast(
+      'Thank you for submitting a bug report! Erling will remember this during The Purge.',
+      'info',
+    )
+  }, [
+    authentication.account,
+    bugReport.configurationError,
+    bugReport.service,
+    showToast,
+  ])
 
   const refreshMetaProgression = useCallback((): void => {
     setMetaProgression((current) => ({
@@ -1204,6 +1254,8 @@ function App() {
           onBehaviorProfileChange={selectBehaviorProfile}
           keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
           onKeybindsChange={updateKeybinds}
+          reportBugRunId={activeRunSubmission?.runId}
+          onSubmitBugReport={submitBugReport}
         />
       ) : null}
       {screen === 'results' && result ? (

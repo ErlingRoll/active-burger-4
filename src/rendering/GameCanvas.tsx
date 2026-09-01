@@ -75,6 +75,7 @@ import {
 } from './TooltipShell'
 import { formatExperience } from '../ui/formatNumbers'
 import { formatCompactDamage } from '../ui/formatNumbers'
+import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot, checkpoint: GameCheckpoint) => void
@@ -85,6 +86,12 @@ interface GameCanvasProps {
   onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
   keybinds: GameKeybinds
   onKeybindsChange?: (keybinds: GameKeybinds) => Promise<void>
+  reportBugRunId?: string
+  onSubmitBugReport?: (
+    description: string,
+    image: BugReportImage | undefined,
+    dungeon: BugReportDungeonContext,
+  ) => Promise<void>
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
@@ -269,6 +276,8 @@ export function GameCanvas({
   onBehaviorProfileChange,
   keybinds,
   onKeybindsChange,
+  reportBugRunId,
+  onSubmitBugReport,
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Game | null>(null)
@@ -458,7 +467,8 @@ export function GameCanvas({
         (event.target.closest(
           '[data-keybind-capture="true"][data-keybind-listening="true"]',
         ) || event.target.closest('[data-keyword-term="true"]') ||
-          event.target.closest('[data-confirmation-dialog="true"]'))
+        event.target.closest('[data-confirmation-dialog="true"]') ||
+        event.target.closest('[data-report-bug-dialog="true"]'))
       ) {
         return
       }
@@ -626,6 +636,15 @@ export function GameCanvas({
   }
 
   const phase = snapshot?.phase ?? 'loading'
+  const dungeon: BugReportDungeonContext = {
+    dungeonId: game?.state.run.dungeonId ?? runConfig?.dungeonId ?? 'unknown-dungeon',
+    dungeonName: game?.dungeon.name ?? 'Unknown dungeon',
+    currentFloor: game?.state.run.floor ?? snapshot?.floor ?? 1,
+    maxFloor: game?.state.run.dungeonMaxFloor ?? game?.dungeon.defaultMaxFloor ?? 1,
+    playstyleId: game?.state.player.playstyleId ?? runConfig?.playstyleId ?? 'knight',
+    worldModifierIds: game?.state.run.worldModifierIds ?? runConfig?.worldModifierIds ?? [],
+    runId: reportBugRunId,
+  }
 
   return (
     <div
@@ -676,6 +695,12 @@ export function GameCanvas({
             await onSaveAndQuitRef.current?.()
           }}
           onForfeit={() => gameRef.current?.forfeit()}
+          dungeon={dungeon}
+          onSubmitBugReport={
+            onSubmitBugReport
+              ? (description, image) => onSubmitBugReport(description, image, dungeon)
+              : undefined
+          }
         />
       ) : null}
       {phase === 'floor-transition' && snapshot?.floorTransition?.savePending ? (

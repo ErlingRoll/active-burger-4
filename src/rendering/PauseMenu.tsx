@@ -10,6 +10,8 @@ import {
   type KeybindId,
 } from '../input/Keybinds'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
+import { ReportBugModal } from './ReportBugModal'
+import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
 interface PauseMenuProps {
   keybinds: GameKeybinds
@@ -17,6 +19,8 @@ interface PauseMenuProps {
   onResume: () => void
   onSaveAndQuit: () => Promise<void>
   onForfeit: () => void
+  dungeon: BugReportDungeonContext
+  onSubmitBugReport?: (description: string, image?: BugReportImage) => Promise<void>
 }
 
 function getErrorMessage(error: unknown): string {
@@ -29,6 +33,8 @@ export function PauseMenu({
   onResume,
   onSaveAndQuit,
   onForfeit,
+  dungeon,
+  onSubmitBugReport,
 }: PauseMenuProps) {
   const resumeButtonRef = useRef<HTMLButtonElement>(null)
   const forfeitButtonRef = useRef<HTMLButtonElement>(null)
@@ -37,6 +43,7 @@ export function PauseMenu({
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [reportBugOpen, setReportBugOpen] = useState(false)
 
   useEffect(() => {
     resumeButtonRef.current?.focus()
@@ -171,6 +178,16 @@ export function PauseMenu({
         >
           Forfeit
         </button>
+        {onSubmitBugReport ? (
+          <button
+            className="pause-report-bug-button"
+            type="button"
+            onClick={() => { setReportBugOpen(true) }}
+            disabled={saving}
+          >
+            Report a bug
+          </button>
+        ) : null}
         {saveError ? <p className="pause-save-error" role="alert">{saveError}</p> : null}
         <fieldset className="pause-keybinds">
           <legend>Keybinds</legend>
@@ -212,6 +229,16 @@ export function PauseMenu({
             confirmLabel="Forfeit"
             onConfirm={confirmForfeit}
             onCancel={cancelForfeit}
+          />
+        ) : null}
+        {reportBugOpen && onSubmitBugReport ? (
+          <ReportBugModal
+            dungeon={dungeon}
+            onClose={() => { setReportBugOpen(false) }}
+            onSubmit={async (description, image) => {
+              await onSubmitBugReport(description, image)
+              setReportBugOpen(false)
+            }}
           />
         ) : null}
       </div>
