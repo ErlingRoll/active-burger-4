@@ -7,6 +7,7 @@ import {
 } from './enemies/EnemyAbilities'
 import type { EnemyDefinition } from './enemies/Enemies'
 import {
+  MAX_ELITE_MODIFIER_COUNT,
   ELITE_MODIFIER_DEFINITIONS,
   type EliteModifierDefinition,
 } from './enemies/EliteModifiers'
@@ -517,22 +518,42 @@ function validateEliteModifiers(
     ) {
       errors.push(`eliteModifiers[${index}].markerColor must be a non-empty string.`)
     }
-    if (!['ring', 'flames', 'electric', 'frost', 'poison'].includes(modifier.auraStyle)) {
+    if (![
+      'ring',
+      'flames',
+      'electric',
+      'frost',
+      'poison',
+      'armor',
+      'berserk',
+      'volatile',
+      'leech',
+      'ward',
+      'maddening',
+      'spiteful',
+      'phase',
+    ].includes(modifier.auraStyle)) {
       errors.push(
         `eliteModifiers[${index}].auraStyle is not supported; received "${String(modifier.auraStyle)}".`,
       )
     }
-    if (modifier.poisonApplication !== undefined) {
+    for (const [applicationName, application] of [
+      ['poisonApplication', modifier.poisonApplication],
+      ['hastedPoisonApplication', modifier.hastedPoisonApplication],
+    ] as const) {
+      if (application === undefined) {
+        continue
+      }
       validateFiniteNumber(
         errors,
-        `eliteModifiers[${index}].poisonApplication.durationSeconds`,
-        modifier.poisonApplication.durationSeconds,
+        `eliteModifiers[${index}].${applicationName}.durationSeconds`,
+        application.durationSeconds,
         'positive',
       )
       validateFiniteNumber(
         errors,
-        `eliteModifiers[${index}].poisonApplication.physicalChaosRatio`,
-        modifier.poisonApplication.physicalChaosRatio,
+        `eliteModifiers[${index}].${applicationName}.physicalChaosRatio`,
+        application.physicalChaosRatio,
         'non-negative',
       )
     }
@@ -570,6 +591,69 @@ function validateEliteModifiers(
           behavior.engagementDistance,
           'positive',
         )
+      }
+    }
+    if (modifier.physicalResistance !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `eliteModifiers[${index}].physicalResistance`,
+        modifier.physicalResistance,
+        'non-negative',
+      )
+      if (modifier.physicalResistance > 100) {
+        errors.push(
+          `eliteModifiers[${index}].physicalResistance must be at most 100.`,
+        )
+      }
+    }
+    if (modifier.berserking !== undefined) {
+      const path = `eliteModifiers[${index}].berserking`
+      validateFiniteNumber(errors, `${path}.healthThreshold`, modifier.berserking.healthThreshold, 'positive')
+      validateFiniteNumber(errors, `${path}.speedMultiplier`, modifier.berserking.speedMultiplier, 'positive')
+      validateFiniteNumber(errors, `${path}.contactDamageMultiplier`, modifier.berserking.contactDamageMultiplier, 'positive')
+      if (modifier.berserking.healthThreshold > 1) {
+        errors.push(`${path}.healthThreshold must be at most 1.`)
+      }
+    }
+    if (modifier.volatile !== undefined) {
+      const path = `eliteModifiers[${index}].volatile`
+      validateFiniteNumber(errors, `${path}.telegraphDurationSeconds`, modifier.volatile.telegraphDurationSeconds, 'positive')
+      validateFiniteNumber(errors, `${path}.radius`, modifier.volatile.radius, 'positive')
+      validateFiniteNumber(errors, `${path}.contactDamageMultiplier`, modifier.volatile.contactDamageMultiplier, 'positive')
+    }
+    if (modifier.leeching !== undefined) {
+      const path = `eliteModifiers[${index}].leeching`
+      validateFiniteNumber(errors, `${path}.healingRatio`, modifier.leeching.healingRatio, 'non-negative')
+      validateFiniteNumber(errors, `${path}.poisonerHealingRatio`, modifier.leeching.poisonerHealingRatio, 'non-negative')
+      validateFiniteNumber(errors, `${path}.maximumHealRatio`, modifier.leeching.maximumHealRatio, 'positive')
+    }
+    if (modifier.wardMaxHpRatio !== undefined) {
+      validateFiniteNumber(errors, `eliteModifiers[${index}].wardMaxHpRatio`, modifier.wardMaxHpRatio, 'positive')
+    }
+    if (modifier.maddening !== undefined) {
+      const path = `eliteModifiers[${index}].maddening`
+      validateFiniteNumber(errors, `${path}.radius`, modifier.maddening.radius, 'positive')
+      validateFiniteNumber(errors, `${path}.attackSpeedMultiplier`, modifier.maddening.attackSpeedMultiplier, 'positive')
+      if (modifier.maddening.attackSpeedMultiplier > 1) {
+        errors.push(`${path}.attackSpeedMultiplier must be at most 1.`)
+      }
+    }
+    if (modifier.spiteful !== undefined) {
+      const path = `eliteModifiers[${index}].spiteful`
+      validateFiniteNumber(errors, `${path}.cooldownSeconds`, modifier.spiteful.cooldownSeconds, 'positive')
+      validateFiniteNumber(errors, `${path}.radius`, modifier.spiteful.radius, 'positive')
+      validateFiniteNumber(errors, `${path}.contactDamageMultiplier`, modifier.spiteful.contactDamageMultiplier, 'positive')
+    }
+    if (modifier.phasebound !== undefined) {
+      const path = `eliteModifiers[${index}].phasebound`
+      validateFiniteNumber(errors, `${path}.intervalSeconds`, modifier.phasebound.intervalSeconds, 'positive')
+      validateFiniteNumber(errors, `${path}.durationSeconds`, modifier.phasebound.durationSeconds, 'positive')
+      validateFiniteNumber(errors, `${path}.damageTakenMultiplier`, modifier.phasebound.damageTakenMultiplier, 'positive')
+      if (modifier.phasebound.durationSeconds >= modifier.phasebound.intervalSeconds) {
+        errors.push(`${path}.durationSeconds must be shorter than intervalSeconds.`)
+      }
+      if (modifier.phasebound.damageTakenMultiplier > 1) {
+        errors.push(`${path}.damageTakenMultiplier must be at most 1.`)
       }
     }
   })
@@ -1198,6 +1282,20 @@ function validateSpawnBalance(
     balance.eliteStartTimeSeconds,
     'non-negative',
   )
+  validateFiniteNumber(
+    errors,
+    'spawnBalance.minimumEliteModifierCount',
+    balance.minimumEliteModifierCount,
+    'positive',
+  )
+  if (
+    Number.isInteger(balance.minimumEliteModifierCount) &&
+    balance.minimumEliteModifierCount > MAX_ELITE_MODIFIER_COUNT
+  ) {
+    errors.push(
+      `spawnBalance.minimumEliteModifierCount must be at most ${MAX_ELITE_MODIFIER_COUNT}.`,
+    )
+  }
   const eliteWeights = balance.eliteModifierWeights ?? {}
   let positiveEliteWeight = false
   for (const [modifierId, weight] of Object.entries(eliteWeights)) {

@@ -71,9 +71,17 @@ export interface FloorDifficultyProfile {
   compositionProgress: number
 }
 
-interface FloorDifficultyAnchor extends FloorDifficultyProfile {
+interface FloorDifficultyAnchor extends Omit<
+  FloorDifficultyProfile,
+  'maxEliteModifierCount'
+> {
   floor: number
 }
+
+type InterpolatedFloorDifficultyKey = Exclude<
+  keyof FloorDifficultyProfile,
+  'maxEliteModifierCount'
+>
 
 const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
   {
@@ -83,7 +91,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1,
     spawnThreatMultiplier: 1,
     eliteChanceMultiplier: 0.8,
-    maxEliteModifierCount: 1,
     abilityIntensity: 0.2,
     abilityDamageMultiplier: 0.6,
     abilityCooldownMultiplier: 1.4,
@@ -96,7 +103,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1,
     spawnThreatMultiplier: 1.05,
     eliteChanceMultiplier: 0.9,
-    maxEliteModifierCount: 1,
     abilityIntensity: 0.25,
     abilityDamageMultiplier: 0.7,
     abilityCooldownMultiplier: 1.3,
@@ -109,7 +115,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1.08,
     spawnThreatMultiplier: 1.32,
     eliteChanceMultiplier: 1.3,
-    maxEliteModifierCount: 2,
     abilityIntensity: 0.62,
     abilityDamageMultiplier: 1.02,
     abilityCooldownMultiplier: 0.95,
@@ -122,7 +127,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1.17,
     spawnThreatMultiplier: 1.52,
     eliteChanceMultiplier: 1.55,
-    maxEliteModifierCount: 3,
     abilityIntensity: 0.85,
     abilityDamageMultiplier: 1.22,
     abilityCooldownMultiplier: 0.8,
@@ -135,7 +139,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1.26,
     spawnThreatMultiplier: 1.75,
     eliteChanceMultiplier: 1.85,
-    maxEliteModifierCount: 3,
     abilityIntensity: 1.08,
     abilityDamageMultiplier: 1.45,
     abilityCooldownMultiplier: 0.7,
@@ -148,7 +151,6 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
     ordinaryEnemySpeedMultiplier: 1.42,
     spawnThreatMultiplier: 2.3,
     eliteChanceMultiplier: 2.35,
-    maxEliteModifierCount: 3,
     abilityIntensity: 1.3,
     abilityDamageMultiplier: 1.8,
     abilityCooldownMultiplier: 0.55,
@@ -158,7 +160,7 @@ const FLOOR_DIFFICULTY_ANCHORS: readonly FloorDifficultyAnchor[] = [
 
 function interpolateFloorDifficultyValue(
   floorNumber: number,
-  key: keyof FloorDifficultyProfile,
+  key: InterpolatedFloorDifficultyKey,
 ): number {
   const floor = Math.max(1, Math.floor(floorNumber))
   const first = FLOOR_DIFFICULTY_ANCHORS[0]!
@@ -186,6 +188,17 @@ function interpolateFloorDifficultyValue(
   return last[key]
 }
 
+function getMaxEliteModifierCount(floorNumber: number): number {
+  const floor = Math.max(1, Math.floor(floorNumber))
+  if (floor >= 20) {
+    return 3
+  }
+  if (floor >= 10) {
+    return 2
+  }
+  return 1
+}
+
 export function getFloorDifficultyProfile(
   floorNumber: number,
 ): FloorDifficultyProfile {
@@ -210,10 +223,7 @@ export function getFloorDifficultyProfile(
       floorNumber,
       'eliteChanceMultiplier',
     ),
-    maxEliteModifierCount: Math.floor(interpolateFloorDifficultyValue(
-      floorNumber,
-      'maxEliteModifierCount',
-    )),
+    maxEliteModifierCount: getMaxEliteModifierCount(floorNumber),
     abilityIntensity: interpolateFloorDifficultyValue(
       floorNumber,
       'abilityIntensity',

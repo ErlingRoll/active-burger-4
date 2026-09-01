@@ -57,7 +57,7 @@ export interface TelegraphState {
   sourceId: EntityId
   targetId?: EntityId
   sourceKind?: 'boss' | 'enemy'
-  skillId: BossSkillId | EnemyAbilityId
+  skillId: BossSkillId | EnemyAbilityId | 'elite-volatile'
   kind:
     | 'ground-slam'
     | 'charge'
@@ -303,6 +303,8 @@ export interface PlayerState {
   mirrorcast?: MirrorcastState
   /** Optional skill selected for Mirrorcast to capture instead of any eligible skill. */
   mirrorcastTargetSkillId?: SkillId
+  /** Optional skill selected for Blood Rite to empower instead of any eligible skill. */
+  bloodRiteTargetSkillId?: SkillId
   /** Stored Blood Debt waiting to empower the next skill cast. */
   bloodDebt?: BloodDebtState
   /** Active Prism Halo firing rotating elemental shards. */
@@ -393,6 +395,14 @@ export interface EnemyState {
   eliteModifier?: EliteModifierId
   /** All distinct modifiers assigned once at spawn, in weighted selection order. */
   eliteModifiers?: readonly EliteModifierId[]
+  /** Wardbound's one-time, non-regenerating damage shield. */
+  wardHp?: number
+  wardMaxHp?: number
+  /** Absolute time at which Spiteful may retaliate again. */
+  spitefulNextRetaliationTime?: number
+  /** Tracks a Volatile death telegraph until its delayed explosion resolves. */
+  volatileExplosionTelegraphId?: EntityId
+  volatileExplosionResolved?: boolean
   resistances?: Partial<DamageResistanceValues>
   poisonStacks?: PoisonStackState[]
   chillStacks?: number
@@ -435,6 +445,8 @@ export interface DamageEvent {
   criticalStrike?: CriticalStrikeStats
   /** Marks periodic damage for DoT scaling and excludes hit-only effects such as leech. */
   damageOverTime?: boolean
+  /** Identifies an ordinary enemy contact hit for contact-only elite effects. */
+  enemyContact?: boolean
   /** Creates one independent poison stack after this hit is resolved. */
   poisonApplication?: PoisonApplication
   /** Applies capped Chill/Freeze progress after this hit is resolved. */

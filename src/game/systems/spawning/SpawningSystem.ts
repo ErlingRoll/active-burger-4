@@ -4,6 +4,7 @@ import {
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import {
   getEliteModifierDefinition,
+  getEliteModifierRewardMultiplier,
   normalizeEliteModifierIds,
   isEliteModifierAllowedForEnemy,
   type EliteModifierInput,
@@ -211,10 +212,9 @@ export function spawnEnemy(
     baseXpReward > 0
       ? Math.round(
           baseXpReward *
-            modifiers.reduce(
-              (multiplier, modifier) =>
-                multiplier * modifier.xpRewardMultiplier,
-              1,
+            getEliteModifierRewardMultiplier(
+              eligibleEliteModifiers,
+              'xpRewardMultiplier',
             ),
         )
       : baseXpReward
@@ -236,6 +236,14 @@ export function spawnEnemy(
       1,
     ) *
     (effects?.ordinaryEnemyMaxHpMultiplier ?? 1)
+  const physicalResistance = modifiers.reduce(
+    (resistance, modifier) => resistance + (modifier.physicalResistance ?? 0),
+    definition.resistances?.physical ?? 0,
+  )
+  const wardMaxHp = maxHp * modifiers.reduce(
+    (ratio, modifier) => Math.max(ratio, modifier.wardMaxHpRatio ?? 0),
+    0,
+  )
   const enemyId = idAllocator.createEntityId()
   const enemy: EnemyState = {
     id: enemyId,
@@ -266,7 +274,15 @@ export function spawnEnemy(
     ...(definition.controlResistance !== undefined
       ? { controlResistance: definition.controlResistance }
       : {}),
-    ...(definition.resistances ? { resistances: { ...definition.resistances } } : {}),
+    ...(physicalResistance > 0 || definition.resistances
+      ? {
+          resistances: {
+            ...definition.resistances,
+            ...(physicalResistance > 0 ? { physical: physicalResistance } : {}),
+          },
+        }
+      : {}),
+    ...(wardMaxHp > 0 ? { wardHp: wardMaxHp, wardMaxHp } : {}),
     ...(eligibleEliteModifiers.length > 0
       ? {
           eliteModifier: eligibleEliteModifiers[0],

@@ -1162,12 +1162,13 @@ describe('collectEnemyContactDamage', () => {
   })
 
   it.each([
-    ['fiery', 'fire'],
-    ['electrocuting', 'lightning'],
-    ['frigid', 'cold'],
-  ] as const)('adds 50%% physical damage as %s damage for %s elites', (
+    ['fiery', 'fire', 2.25],
+    ['electrocuting', 'lightning', 2],
+    ['frigid', 'cold', 1.75],
+  ] as const)('adds authored physical damage as %s damage for %s elites', (
     eliteModifier,
     elementalDamageType,
+    elementalDamage,
   ) => {
     const gameState = state([{
       ...enemy(2, 34),
@@ -1178,7 +1179,7 @@ describe('collectEnemyContactDamage', () => {
 
     expect(event?.damage).toMatchObject({
       physical: 5,
-      [elementalDamageType]: 2.5,
+      [elementalDamageType]: elementalDamage,
     })
   })
 
@@ -1192,12 +1193,12 @@ describe('collectEnemyContactDamage', () => {
 
     expect(event?.damage).toMatchObject({
       physical: 5,
-      fire: 2.5,
-      cold: 2.5,
+      fire: 2.25,
+      cold: 1.75,
     })
   })
 
-  it('makes Poisoner contact hits apply independent poison stacks to the player', () => {
+  it('makes Poisoner contact hits apply shorter, lower-damage poison stacks to the player', () => {
     const gameState = state([{
       ...enemy(2, 34),
       eliteModifier: 'poisoner',
@@ -1206,20 +1207,34 @@ describe('collectEnemyContactDamage', () => {
 
     const [hit] = collectEnemyContactDamage(gameState, 1 / 60)
     expect(hit?.poisonApplication).toEqual({
-      durationSeconds: 4,
-      physicalChaosRatio: 0.5,
+      durationSeconds: 3,
+      physicalChaosRatio: 0.3,
     })
 
     applyDamageEvents(gameState, [hit!], neverCrit)
     expect(gameState.player.poisonStacks).toEqual([{
-      remainingDuration: 4,
-      damagePerSecond: 2.5,
+      remainingDuration: 3,
+      damagePerSecond: 1.5,
     }])
 
     const [poisonTick] = updatePoison(gameState, 1)
-    expect(poisonTick?.damage).toMatchObject({ chaos: 2.5 })
+    expect(poisonTick?.damage).toMatchObject({ chaos: 1.5 })
     applyDamageEvents(gameState, [poisonTick!], neverCrit)
-    expect(gameState.player.hp).toBeCloseTo(93.75)
+    expect(gameState.player.hp).toBeCloseTo(94.25)
+  })
+
+  it('reduces Poisoner damage further when paired with Hasted', () => {
+    const gameState = state([{
+      ...enemy(2, 34),
+      eliteModifiers: ['hasted', 'poisoner'],
+    }])
+
+    const [hit] = collectEnemyContactDamage(gameState, 1 / 60)
+
+    expect(hit?.poisonApplication).toEqual({
+      durationSeconds: 3,
+      physicalChaosRatio: 0.2,
+    })
   })
 
   describe('Rallying Banner and Aegis Pulse player defenses', () => {

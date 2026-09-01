@@ -257,6 +257,30 @@ export function resolveEnemyTelegraphs(
       remaining.push(telegraph)
       continue
     }
+    if (telegraph.skillId === 'elite-volatile') {
+      const enemy = state.enemies.find(
+        (candidate) => candidate.id === telegraph.sourceId,
+      )
+      if (enemy) {
+        enemy.volatileExplosionResolved = true
+      }
+      const targets = [state.player, ...state.summons].filter(
+        (target) => target.hp > 0,
+      )
+      for (const target of targets) {
+        const distance = Math.hypot(target.x - telegraph.x, target.y - telegraph.y)
+        const targetRadius = target.id === state.player.id ? state.player.radius : 13
+        if (distance <= telegraph.radius + targetRadius) {
+          events.push({
+            sourceId: telegraph.sourceId,
+            targetId: target.id,
+            damage: telegraph.damage,
+            sourceLabel: 'Volatile Explosion',
+          })
+        }
+      }
+      continue
+    }
     const enemy = state.enemies.find(
       (candidate) => candidate.id === telegraph.sourceId && candidate.hp > 0,
     )

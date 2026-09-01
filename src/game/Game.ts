@@ -133,6 +133,8 @@ import type {
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
 import {
+  BASIC_ATTACK_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
   getSkillDefinition,
   MIRRORCAST_SKILL_ID,
   type SkillId,
@@ -487,6 +489,7 @@ export class Game {
       this.notifyStateChanged()
       return true
     }
+
     if (
       !this.gameState.player.skills.some((skill) => skill.skillId === MIRRORCAST_SKILL_ID) ||
       !this.gameState.player.skills.some((skill) => skill.skillId === skillId) ||
@@ -498,6 +501,35 @@ export class Game {
       return true
     }
     this.gameState.player.mirrorcastTargetSkillId = skillId
+    this.notifyStateChanged()
+    return true
+  }
+
+  /**
+   * Sets or clears the skill that Blood Debt should wait to empower.
+   * Targeting is deliberately persistent for the current run.
+   */
+  setBloodRiteTargetSkill(skillId: SkillId | null): boolean {
+    if (skillId === null) {
+      if (this.gameState.player.bloodRiteTargetSkillId === undefined) {
+        return true
+      }
+      this.gameState.player.bloodRiteTargetSkillId = undefined
+      this.notifyStateChanged()
+      return true
+    }
+    if (
+      !this.gameState.player.skills.some((skill) => skill.skillId === BLOOD_RITE_SKILL_ID) ||
+      !this.gameState.player.skills.some((skill) => skill.skillId === skillId) ||
+      skillId === BASIC_ATTACK_SKILL_ID ||
+      skillId === BLOOD_RITE_SKILL_ID
+    ) {
+      return false
+    }
+    if (this.gameState.player.bloodRiteTargetSkillId === skillId) {
+      return true
+    }
+    this.gameState.player.bloodRiteTargetSkillId = skillId
     this.notifyStateChanged()
     return true
   }

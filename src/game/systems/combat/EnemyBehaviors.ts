@@ -5,6 +5,7 @@ import {
 } from '../../../content/enemies/Enemies'
 import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import {
+  getEliteBerserkingEffect,
   getEliteModifierDefinition,
   getEliteModifierIds,
 } from '../../../content/enemies/EliteModifiers'
@@ -563,6 +564,7 @@ function getEffectiveEnemySpeed(
   const chillStacks = Math.min(3, Math.max(0, enemy.chillStacks ?? 0))
   return enemy.speed *
     getPostSpawnSpeedMultiplier(state.time, enemy.spawnTime) *
+    (getEliteBerserkingEffect(enemy)?.speedMultiplier ?? 1) *
     (1 - chillStacks * 0.15)
 }
 

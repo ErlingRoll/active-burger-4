@@ -30,12 +30,15 @@ export interface SpawnBalance {
   /**
    * Elites begin after 45 seconds so the first composition is readable. Once
    * enabled, 10% of normal director spawns receive weighted, distinct modifiers.
-   * Floor difficulty raises the maximum from one to three. Splitter children
+   * Floors 10 and 20 raise the maximum from one to two and then three,
+   * respectively. Each elite rolls one through that maximum. Splitter children
    * bypass this roll and remain ordinary children.
    */
   eliteChance: number
   eliteStartTimeSeconds: number
-  eliteModifierWeights: Readonly<Record<EliteModifierId, number>>
+  /** World modifiers can require a higher count than the floor progression. */
+  minimumEliteModifierCount: number
+  eliteModifierWeights: Readonly<Partial<Record<EliteModifierId, number>>>
 }
 
 export const SPAWN_RING_DISTANCE_MULTIPLIER = 1.3
@@ -90,6 +93,7 @@ export const SPAWN_BALANCE = {
   spawnRingOuterRadius: 650 * SPAWN_RING_DISTANCE_MULTIPLIER,
   eliteChance: 0.1,
   eliteStartTimeSeconds: 45,
+  minimumEliteModifierCount: 1,
   eliteModifierWeights: {
     hasted: 2,
     giant: 1,
@@ -98,6 +102,14 @@ export const SPAWN_BALANCE = {
     frigid: 1,
     poisoner: 1,
     flanking: 1,
+    armored: 1,
+    berserking: 1,
+    volatile: 1,
+    leeching: 1,
+    wardbound: 1,
+    maddening: 1,
+    spiteful: 1,
+    phasebound: 1,
   },
 } as const satisfies SpawnBalance
 

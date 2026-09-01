@@ -497,6 +497,47 @@ describe('Mirrorcast', () => {
     expect(game.setMirrorcastTargetSkill(null)).toBe(true)
     expect(game.state.player.mirrorcastTargetSkillId).toBeUndefined()
   })
+
+  it('focuses Blood Rite independently from Mirrorcast', () => {
+    const game = createGame({ seed: 88 })
+    setSkills(game, [
+      BLOOD_RITE_SKILL_ID,
+      MIRRORCAST_SKILL_ID,
+      GLACIAL_ORB_SKILL_ID,
+      WHIRLWIND_SKILL_ID,
+    ])
+    game.spawnSlime({ x: 40, y: 0 })
+
+    const blood = game.state.player.skills.find((skill) => skill.skillId === BLOOD_RITE_SKILL_ID)!
+    const mirror = game.state.player.skills.find((skill) => skill.skillId === MIRRORCAST_SKILL_ID)!
+    const glacial = game.state.player.skills.find((skill) => skill.skillId === GLACIAL_ORB_SKILL_ID)!
+    const whirlwind = game.state.player.skills.find((skill) => skill.skillId === WHIRLWIND_SKILL_ID)!
+
+    expect(game.setBloodRiteTargetSkill(WHIRLWIND_SKILL_ID)).toBe(true)
+    expect(game.setMirrorcastTargetSkill(GLACIAL_ORB_SKILL_ID)).toBe(true)
+    expect(game.state.player.bloodRiteTargetSkillId).toBe(WHIRLWIND_SKILL_ID)
+    expect(game.state.player.mirrorcastTargetSkillId).toBe(GLACIAL_ORB_SKILL_ID)
+
+    glacial.cooldownRemaining = 99
+    whirlwind.cooldownRemaining = 99
+    collectSkillDamage(game.state, createAllocator())
+    glacial.cooldownRemaining = 0
+    blood.cooldownRemaining = 99
+    mirror.cooldownRemaining = 99
+    collectSkillDamage(game.state, createAllocator())
+    expect(game.state.player.bloodDebt).toBeDefined()
+    expect(game.state.player.mirrorcast?.copies[0]?.skillId).toBe(GLACIAL_ORB_SKILL_ID)
+
+    whirlwind.cooldownRemaining = 0
+    const events = collectSkillDamage(game.state, createAllocator())
+
+    expect(events.some((event) => event.sourceLabel === 'Blood Debt')).toBe(true)
+    expect(game.state.player.bloodDebt).toBeUndefined()
+    expect(game.state.player.mirrorcast?.copies[0]?.skillId).toBe(GLACIAL_ORB_SKILL_ID)
+
+    expect(game.setBloodRiteTargetSkill(null)).toBe(true)
+    expect(game.state.player.bloodRiteTargetSkillId).toBeUndefined()
+  })
 })
 
 describe('Razorwire', () => {

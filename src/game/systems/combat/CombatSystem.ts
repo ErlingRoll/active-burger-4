@@ -90,13 +90,20 @@ import type {
   SkillEffectPoint,
   SkillEffectState,
   SoulTetherState,
+  TelegraphState,
   RuinSigilState,
   RuinSigilSourceCategory,
   HitVisualElement,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
-import { getEliteModifierIds } from '../../../content/enemies/EliteModifiers'
+import {
+  getEliteBerserkingEffect,
+  getEliteLeechingEffect,
+  getEliteModifierDefinition,
+  getEliteModifierIds,
+  getElitePhaseboundDamageMultiplier,
+} from '../../../content/enemies/EliteModifiers'
 import {
   GEAR_XP_BLESSING_MULTIPLIER,
 } from '../../../game-config/gear'
@@ -178,6 +185,27 @@ const DEGREES_TO_RADIANS = Math.PI / 180
 interface Vector2 {
   x: number
   y: number
+}
+
+function getMaddeningAttackSpeedMultiplier(state: Readonly<GameState>): number {
+  return state.enemies.reduce((multiplier, enemy) => {
+    if (enemy.hp <= 0) {
+      return multiplier
+    }
+    const effect = getEliteModifierIds(enemy)
+      .map(getEliteModifierDefinition)
+      .find((modifier) => modifier.maddening)?.maddening
+    if (!effect) {
+      return multiplier
+    }
+    const distance = Math.hypot(
+      enemy.x - state.player.x,
+      enemy.y - state.player.y,
+    )
+    return distance <= effect.radius + state.player.radius
+      ? Math.min(multiplier, effect.attackSpeedMultiplier)
+      : multiplier
+  }, 1)
 }
 
 interface ResolvedDamage {
@@ -1253,14 +1281,18 @@ export function collectEnemyContactDamage(
       continue
     }
 
-    events.push(createMonsterDamageEvent(
-      enemy,
-      target.id,
-      {
-        physical: enemy.contactDamage *
-          getPostSpawnDamageMultiplier(state.time, enemy.spawnTime),
-      },
-    ))
+    events.push({
+      ...createMonsterDamageEvent(
+        enemy,
+        target.id,
+        {
+          physical: enemy.contactDamage *
+            getPostSpawnDamageMultiplier(state.time, enemy.spawnTime) *
+            (getEliteBerserkingEffect(enemy)?.contactDamageMultiplier ?? 1),
+        },
+      ),
+      enemyContact: true,
+    })
     enemy.contactCooldownRemaining = ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS
     enemy.lastMeleeAttackTime = state.time
   }
@@ -1334,7 +1366,10 @@ export function performBasicAttackIfReady(
     }
     return []
   }
-  const cooldown = createBasicAttackCooldown(getDerivedPlayerStats(player).attackSpeed)
+  const cooldown = createBasicAttackCooldown(
+    getDerivedPlayerStats(player).attackSpeed *
+      getMaddeningAttackSpeedMultiplier(state),
+  )
 
   if (variant.kind === 'area') {
     const events = variant.areaShape === 'circle'
@@ -1707,6 +1742,7 @@ export function applyDamageEvents(
           element: getHitVisualElement(event, resolvedDamage.mitigated),
           critical: resolvedDamage.critical,
         }
+        applyEliteLeeching(state, event, totalPlayerDamage)
       }
       if (
         totalAbsorbedByShield > 0 &&
@@ -1755,13 +1791,33 @@ export function applyDamageEvents(
       if (shatters) {
         enemy.frozenRemainingDuration = 0
       }
-      const enemyEvent = shatters
-        ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
-        : event
+      const enemyDamageMultiplier =
+        (shatters ? 1.5 : 1) *
+        getElitePhaseboundDamageMultiplier(
+          enemy,
+          state.time,
+          (state.telegraphs ?? []).some(
+            (telegraph) =>
+              telegraph.sourceKind === 'enemy' &&
+              telegraph.sourceId === enemy.id &&
+              telegraph.remainingDuration > 0,
+          ),
+        )
+      const enemyEvent = enemyDamageMultiplier === 1
+        ? event
+        : { ...event, damage: scaleDamageValues(event.damage, enemyDamageMultiplier) }
       const resolvedDamage = resolveEventDamage(state, enemyEvent, enemy.resistances, rng)
+      const mitigatedDamage = sumDamageValues(resolvedDamage.mitigated)
+      const wardAbsorbed = Math.min(
+        Math.max(0, enemy.wardHp ?? 0),
+        mitigatedDamage,
+      )
+      if (wardAbsorbed > 0) {
+        enemy.wardHp = Math.max(0, (enemy.wardHp ?? 0) - wardAbsorbed)
+      }
       const actualDamage = Math.min(
         enemy.hp,
-        sumDamageValues(resolvedDamage.mitigated),
+        mitigatedDamage - wardAbsorbed,
       )
       enemy.hp -= actualDamage
       if (actualDamage > 0) {
@@ -1789,6 +1845,7 @@ export function applyDamageEvents(
       applyMendingReturnHealing(state, event, actualDamage)
       applyCrimsonBulwark(state, event, actualDamage)
       applyBasicAttackSynergyHooks(state, enemy, event, actualDamage)
+      applySpitefulRetaliation(state, enemy, event, mitigatedDamage, pendingEvents)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
           state,
@@ -1798,6 +1855,7 @@ export function applyDamageEvents(
         ))
       }
       if (enemy.hp <= 0) {
+        scheduleVolatileExplosion(state, enemy, idAllocator)
         pendingEvents.push(...triggerSoulTetherSnaps(state, enemy))
       }
       continue
@@ -2298,6 +2356,7 @@ function applyMendingReturnHealing(
   ) {
     return
   }
+
   healPlayer(
     state,
     state.player.maxHp * MENDING_RETURN_HEAL_RATIO,
@@ -2307,6 +2366,108 @@ function applyMendingReturnHealing(
     0,
     (state.player.mendingReturnHealingRemaining ?? 0) - 1,
   )
+}
+
+function applyEliteLeeching(
+  state: GameState,
+  event: Readonly<DamageEvent>,
+  actualDamage: number,
+): void {
+  if (
+    event.damageOverTime ||
+    !event.enemyContact ||
+    event.sourceId === undefined ||
+    actualDamage <= 0
+  ) {
+    return
+  }
+  const enemy = state.enemies.find(
+    (candidate) => candidate.id === event.sourceId && candidate.hp > 0,
+  )
+  if (!enemy) {
+    return
+  }
+  const effect = getEliteLeechingEffect(getEliteModifierIds(enemy))
+  if (!effect) {
+    return
+  }
+  const healing = Math.min(
+    enemy.maxHp * effect.maximumHealRatio,
+    actualDamage * effect.healingRatio,
+  )
+  enemy.hp = Math.min(enemy.maxHp, enemy.hp + healing)
+}
+
+function applySpitefulRetaliation(
+  state: GameState,
+  enemy: EnemyState,
+  event: Readonly<DamageEvent>,
+  mitigatedDamage: number,
+  pendingEvents: DamageEvent[],
+): void {
+  if (
+    mitigatedDamage <= 0 ||
+    event.damageOverTime ||
+    !isPlayerOwnedDirectHit(state, event)
+  ) {
+    return
+  }
+  const effect = getEliteModifierIds(enemy)
+    .map(getEliteModifierDefinition)
+    .find((modifier) => modifier.spiteful)?.spiteful
+  if (
+    !effect ||
+    (enemy.spitefulNextRetaliationTime ?? 0) > state.time ||
+    Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y) >
+      effect.radius + state.player.radius
+  ) {
+    return
+  }
+  enemy.spitefulNextRetaliationTime = state.time + effect.cooldownSeconds
+  pendingEvents.push({
+    sourceId: enemy.id,
+    targetId: state.player.id,
+    sourceLabel: 'Spiteful Burst',
+    damage: createDamageValues({
+      physical: enemy.contactDamage * effect.contactDamageMultiplier,
+    }),
+  })
+}
+
+function scheduleVolatileExplosion(
+  state: GameState,
+  enemy: EnemyState,
+  idAllocator: EntityIdAllocator | undefined,
+): void {
+  if (enemy.volatileExplosionTelegraphId !== undefined || !idAllocator) {
+    return
+  }
+  const effect = getEliteModifierIds(enemy)
+    .map(getEliteModifierDefinition)
+    .find((modifier) => modifier.volatile)?.volatile
+  if (!effect) {
+    return
+  }
+  const telegraphId = idAllocator.createEntityId()
+  const telegraph: TelegraphState = {
+    id: telegraphId,
+    sourceId: enemy.id,
+    sourceKind: 'enemy',
+    skillId: 'elite-volatile',
+    kind: 'enemy-shockwave',
+    x: enemy.x,
+    y: enemy.y,
+    radius: effect.radius,
+    remainingDuration: effect.telegraphDurationSeconds,
+    duration: effect.telegraphDurationSeconds,
+    points: [{ x: enemy.x, y: enemy.y }],
+    damage: createDamageValues({
+      fire: enemy.contactDamage * effect.contactDamageMultiplier,
+    }),
+  }
+  enemy.volatileExplosionTelegraphId = telegraphId
+  state.telegraphs ??= []
+  state.telegraphs.push(telegraph)
 }
 
 function applyCrimsonBulwark(
@@ -2605,7 +2766,11 @@ export function removeDeadEntities(
   ).spawnBalance
   let killCount = 0
   for (const enemy of state.enemies) {
-    if (enemy.hp > 0) {
+    if (
+      enemy.hp > 0 ||
+      (enemy.volatileExplosionTelegraphId !== undefined &&
+        !enemy.volatileExplosionResolved)
+    ) {
       livingEnemies.push(enemy)
     } else {
       killCount += 1

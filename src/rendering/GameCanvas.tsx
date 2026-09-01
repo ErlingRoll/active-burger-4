@@ -48,6 +48,7 @@ import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import {
   BASIC_ATTACK_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
   isSkillId,
   RALLYING_BANNER_SKILL_ID,
   MIRRORCAST_SKILL_ID,
@@ -718,6 +719,9 @@ export function GameCanvas({
           onSetMirrorcastTarget={(skillId) => {
             gameRef.current?.setMirrorcastTargetSkill(skillId)
           }}
+          onSetBloodRiteTarget={(skillId) => {
+            gameRef.current?.setBloodRiteTargetSkill(skillId)
+          }}
         />
       ) : null}
       {snapshot ? <FloorHud snapshot={snapshot} /> : null}
@@ -797,11 +801,13 @@ export function GameCanvas({
 interface GameplayHudProps {
   snapshot: GameUiSnapshot
   onSetMirrorcastTarget: (skillId: SkillId | null) => void
+  onSetBloodRiteTarget: (skillId: SkillId | null) => void
 }
 
 function GameplayHud({
   snapshot,
   onSetMirrorcastTarget,
+  onSetBloodRiteTarget,
 }: GameplayHudProps) {
   const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
   const xpPercent = snapshot.xpProgress * 100
@@ -818,6 +824,9 @@ function GameplayHud({
   )
   const mirrorcastOwned = snapshot.skills.some(
     (skill) => skill.skillId === MIRRORCAST_SKILL_ID,
+  )
+  const bloodRiteOwned = snapshot.skills.some(
+    (skill) => skill.skillId === BLOOD_RITE_SKILL_ID,
   )
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null)
   const [activeLoadoutSlot, setActiveLoadoutSlot] = useState<EquipmentSlotType | null>(
@@ -1064,10 +1073,15 @@ function GameplayHud({
             const tooltipId = `skill-tooltip-${skill.skillId}`
             const isActive = activeSkillId === skill.skillId
             const mirrorcastTargeted = snapshot.mirrorcastTargetSkillId === skill.skillId
+            const bloodRiteTargeted = snapshot.bloodRiteTargetSkillId === skill.skillId
             const canFocusMirrorcast =
               mirrorcastOwned &&
               skill.skillId !== MIRRORCAST_SKILL_ID &&
               SKILL_DEFINITIONS[skill.skillId].mirrorcastEligible
+            const canFocusBloodRite =
+              bloodRiteOwned &&
+              skill.skillId !== BASIC_ATTACK_SKILL_ID &&
+              skill.skillId !== BLOOD_RITE_SKILL_ID
             const evolvedUpgrade = skill.upgrades.find((upgrade) =>
               upgrade.status === 'acquired' && upgrade.branch !== undefined,
             )
@@ -1077,7 +1091,7 @@ function GameplayHud({
             return (
               <li className="skill-entry" key={skill.skillId}>
                 <button
-                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}`}
+                  className={`skill-card${skill.cooldownProgress > 0 ? ' skill-card-on-cooldown' : ''}${skill.resonanceReady ? ' skill-card-resonance-ready' : ''}${evolvedUpgrade ? ' skill-card-evolved' : ''}${mirrorcastTargeted ? ' skill-card-mirrorcast-target' : ''}${bloodRiteTargeted ? ' skill-card-blood-rite-target' : ''}`}
                   type="button"
                   ref={isActive ? skillTooltipAnchorRef : undefined}
                   aria-label={`${skill.name}, level ${skill.level}${evolvedUpgrade ? `, evolved through ${evolvedUpgrade.name}` : ''}${totalDamageLabel}, single-target DPS ${formatEstimatedDps(skill.estimatedSingleTargetDps)}${skill.resonanceReady ? ', resonance ready' : ''}`}
@@ -1177,6 +1191,43 @@ function GameplayHud({
                           {mirrorcastTargeted
                             ? 'Mirrorcast will wait for this skill while focused.'
                             : 'Choose this to make Mirrorcast wait for this skill.'}
+                        </p>
+                      </section>
+                    ) : null}
+                    {skill.skillId === BLOOD_RITE_SKILL_ID ? (
+                      <section className="skill-blood-rite-section" aria-label="Blood Rite focus instructions">
+                        <p className="skill-upgrade-heading">Blood Debt focus</p>
+                        <p>
+                          By default, Blood Debt empowers the next eligible skill.
+                          Open another skill's tooltip and choose
+                          <strong> Focus Debt</strong> to make it wait for that skill.
+                          Choose <strong>Clear Debt Focus</strong> to return to automatic capture.
+                        </p>
+                        <p className="skill-blood-rite-status">
+                          {snapshot.bloodRiteTargetSkillId
+                            ? `Focused on ${snapshot.skills.find((candidate) =>
+                              candidate.skillId === snapshot.bloodRiteTargetSkillId,
+                            )?.name ?? snapshot.bloodRiteTargetSkillId}.`
+                            : 'Currently empowering the next eligible skill.'}
+                        </p>
+                      </section>
+                    ) : null}
+                    {canFocusBloodRite ? (
+                      <section className="skill-blood-rite-section" aria-label="Blood Rite focus control">
+                        <button
+                          className={`skill-blood-rite-focus-button${bloodRiteTargeted ? ' active' : ''}`}
+                          type="button"
+                          aria-pressed={bloodRiteTargeted}
+                          onClick={() => onSetBloodRiteTarget(
+                            bloodRiteTargeted ? null : skill.skillId,
+                          )}
+                        >
+                          {bloodRiteTargeted ? 'Clear Debt Focus' : 'Focus Debt'}
+                        </button>
+                        <p>
+                          {bloodRiteTargeted
+                            ? 'Blood Debt will wait for this skill while focused.'
+                            : 'Choose this to make Blood Debt wait for this skill.'}
                         </p>
                       </section>
                     ) : null}

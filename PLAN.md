@@ -95,6 +95,42 @@ Use these documents together:
 - [docs/decisions/](docs/decisions/) for historical architectural decisions.
 - [TODO.md](TODO.md) for the active backlog.
 
+### Elite modifier catalog and combination guardrails
+
+Elites roll distinct modifiers. Floors 1-9 roll one modifier, floors 10-19
+roll one or two, and floor 20 onward roll one through three. The **Elite
+Triad** world modifier raises the minimum to three. Reward bonuses stack
+additively so multi-modifier rewards remain meaningful without compounding
+unboundedly.
+
+| Modifier | Runtime behavior |
+| --- | --- |
+| Hasted | 1.75x movement speed. |
+| Giant | 2x maximum HP and 1.5x radius. |
+| Fiery / Electrocuting / Frigid | Adds Fire (45%), Lightning (40%), or Cold (35%) contact damage from the physical hit. |
+| Poisoner | Applies a 3-second poison worth 30% of physical damage as Chaos; Hasted + Poisoner uses 20% instead. |
+| Flanking | Uses the intercept behavior. |
+| Armored | Adds 35% Physical resistance only; it never grants generic elemental resistance. |
+| Berserking | At 50% HP or lower, gains 35% movement speed and 20% contact damage. |
+| Volatile | On death, displays a 0.75-second danger telegraph, then deals a 120-radius Fire burst equal to 150% of contact damage. |
+| Leeching | Contact hits heal 25% of actual post-mitigation player damage, capped at 8% of the elite's maximum HP per hit. |
+| Wardbound | Starts with a visible, non-regenerating shield equal to 30% of maximum HP. |
+| Maddening | Within 180 units, reduces Basic Attack speed to 88%; multiple auras use the strongest effect only. |
+| Spiteful | A player direct hit within 120 units triggers a 75%-contact-damage Physical burst, at most once every 1.75 seconds. |
+| Phasebound | Every 6 seconds, receives 75% damage reduction for the final 1 second. It cannot phase while frozen or during an enemy ability windup. |
+
+Guardrails are enforced at elite selection and effect resolution:
+
+- No modifier can appear more than once.
+- Hasted and Berserking cannot roll together.
+- Volatile is excluded from Splitters, including to avoid delayed explosion
+  interactions with split children.
+- Leeching paired with Poisoner heals only 10% instead of 25%, while retaining
+  the per-hit cap.
+- Hasted + Flanking + Maddening is excluded as a triple combination.
+- Volatile always telegraphs before damage; Wardbound does not regenerate;
+  Phasebound has short, bounded downtime rather than untargetability.
+
 ---
 
 # 1. Purpose of This Document

@@ -182,6 +182,12 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   ) {
     state.player.mirrorcastTargetSkillId = undefined
   }
+  if (
+    state.player.bloodRiteTargetSkillId === skillId ||
+    skillId === BLOOD_RITE_SKILL_ID
+  ) {
+    state.player.bloodRiteTargetSkillId = undefined
+  }
   if (skillId === WHIRLWIND_SKILL_ID) {
     state.player.upgradeWhirlwindLeech = 0
     state.player.whirlwindGuardRemaining = 0

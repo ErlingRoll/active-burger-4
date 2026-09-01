@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
 import { getGearDropChance } from '../../content/gear/GearDrops'
+import { resolveWorldModifierEffects } from '../../content/modifiers/WorldModifiers'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { Random } from '../random/Random'
 import { SpawnDirector, type SpawnDirectorState } from './SpawnDirector'
@@ -74,7 +75,7 @@ describe('elite enemy spawning and rewards', () => {
     expect(spawn?.eliteModifier).toBe('poisoner')
   })
 
-  it('adds up to three distinct modifiers as floor difficulty increases', () => {
+  it('rolls one through the floor-specific maximum of distinct modifiers', () => {
     const balance = {
       ...SPAWN_BALANCE,
       eliteChance: 1,
@@ -89,6 +90,67 @@ describe('elite enemy spawning and rewards', () => {
         flanking: 0,
       },
     }
+    const minimumModifierCountRandom = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+    const maximumModifierCountRandom = {
+      ...minimumModifierCountRandom,
+      int: (_min: number, max: number) => max,
+    }
+
+    const [early] = new SpawnDirector(minimumModifierCountRandom, balance).update(
+      { ...directorState(), run: { floor: 1 } },
+      1,
+    )
+    const [floorTen] = new SpawnDirector(maximumModifierCountRandom, balance).update(
+      { ...directorState(), run: { floor: 10 } },
+      1,
+    )
+    const [floorTwenty] = new SpawnDirector(
+      maximumModifierCountRandom,
+      balance,
+    ).update(
+      { ...directorState(), run: { floor: 20 } },
+      1,
+    )
+
+    expect(early?.eliteModifiers).toEqual(['hasted'])
+    expect(floorTen?.eliteModifiers).toEqual(['hasted', 'giant'])
+    expect(floorTwenty?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
+    expect(new Set(floorTwenty?.eliteModifiers ?? []).size).toBe(3)
+
+    const [minimumAtFloorTwenty] = new SpawnDirector(
+      minimumModifierCountRandom,
+      balance,
+    ).update(
+      { ...directorState(), run: { floor: 20 } },
+      1,
+    )
+    expect(minimumAtFloorTwenty?.eliteModifiers).toEqual(['hasted'])
+  })
+
+  it('honors the Elite Triad world modifier above the floor modifier cap', () => {
+    const balance = {
+      ...SPAWN_BALANCE,
+      eliteChance: 1,
+      eliteStartTimeSeconds: 0,
+      eliteModifierWeights: {
+        hasted: 1,
+        giant: 1,
+        fiery: 1,
+        electrocuting: 0,
+        frigid: 0,
+        poisoner: 0,
+        flanking: 0,
+      },
+    }
+    const eliteTriadBalance = resolveWorldModifierEffects(
+      ['elite-triad'],
+      balance,
+    ).spawnBalance
     const random = {
       next: () => 0,
       int: (min: number) => min,
@@ -96,18 +158,12 @@ describe('elite enemy spawning and rewards', () => {
       pick: <T>(items: readonly T[]) => items[0] as T,
     }
 
-    const [early] = new SpawnDirector(random, balance).update(
+    const [spawn] = new SpawnDirector(random, eliteTriadBalance).update(
       { ...directorState(), run: { floor: 1 } },
       1,
     )
-    const [late] = new SpawnDirector(random, balance).update(
-      { ...directorState(), run: { floor: 50 } },
-      1,
-    )
 
-    expect(early?.eliteModifiers).toEqual(['hasted'])
-    expect(late?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
-    expect(new Set(late?.eliteModifiers ?? []).size).toBe(3)
+    expect(spawn?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
   })
 
   it('assigns Flanking to ordinary enemies but not to Flanker enemies', () => {
@@ -153,6 +209,31 @@ describe('elite enemy spawning and rewards', () => {
     expect(flankerSpawn?.eliteModifier).toBeUndefined()
   })
 
+  it('does not combine Hasted and Berserking even when they are the only choices', () => {
+    const balance = {
+      ...SPAWN_BALANCE,
+      eliteChance: 1,
+      eliteStartTimeSeconds: 0,
+      eliteModifierWeights: {
+        hasted: 1,
+        berserking: 1,
+      },
+    }
+    const random = {
+      next: () => 0,
+      int: (_min: number, max: number) => max,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const [spawn] = new SpawnDirector(random, balance).update(
+      { ...directorState(), run: { floor: 20 } },
+      1,
+    )
+
+    expect(spawn?.eliteModifiers).toEqual(['hasted'])
+  })
+
   it('applies exact Hasted and Giant stat and XP multipliers', () => {
     const game = createGame({ seed: 12 })
     game.spawnEnemy('slime', { x: 500, y: 0 })
@@ -185,8 +266,8 @@ describe('elite enemy spawning and rewards', () => {
     expect(elite?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
     expect(elite?.radius).toBe(27)
     expect(elite?.maxHp).toBe(100)
-    expect(elite?.xpReward).toBe(18)
-    expect(getGearDropChance('slime', elite?.eliteModifiers)).toBeCloseTo(0.315)
+    expect(elite?.xpReward).toBe(12)
+    expect(getGearDropChance('slime', elite?.eliteModifiers)).toBeCloseTo(0.21)
   })
 
   it('spawns elemental elite modifiers with their authored identities', () => {

@@ -8,6 +8,7 @@ import {
 } from '../../content/dungeons/Dungeons'
 import type { EnemyDefinitionId } from '../ids'
 import {
+  isEliteModifierCombinationAllowed,
   isEliteModifierAllowedForEnemy,
   type EliteModifierId,
 } from '../../content/enemies/EliteModifiers'
@@ -205,30 +206,50 @@ export class SpawnDirector {
     const selectedModifiers: EliteModifierId[] = []
     const availableModifiers = [...weightedModifiers]
     const maxModifiers = Math.min(
-      floorDifficulty.maxEliteModifierCount,
+      Math.max(
+        floorDifficulty.maxEliteModifierCount,
+        this.balance.minimumEliteModifierCount,
+      ),
       availableModifiers.length,
     )
-    while (selectedModifiers.length < maxModifiers) {
-      const availableWeight = availableModifiers.reduce(
+    const minimumModifiers = Math.min(
+      Math.max(1, this.balance.minimumEliteModifierCount),
+      maxModifiers,
+    )
+    const modifierCount = this.random.int(minimumModifiers, maxModifiers)
+    while (selectedModifiers.length < modifierCount) {
+      const eligibleModifiers = availableModifiers.filter(([modifierId]) =>
+        isEliteModifierCombinationAllowed(selectedModifiers, modifierId),
+      )
+      if (eligibleModifiers.length === 0) {
+        break
+      }
+      const availableWeight = eligibleModifiers.reduce(
         (sum, [, weight]) => sum + weight,
         0,
       )
       let selection = this.random.next() * availableWeight
       let selected = false
-      for (let index = 0; index < availableModifiers.length; index += 1) {
-        const [modifierId, weight] = availableModifiers[index]!
+      for (const [modifierId, weight] of eligibleModifiers) {
         selection -= weight
         if (selection < 0) {
           selectedModifiers.push(modifierId)
-          availableModifiers.splice(index, 1)
+          availableModifiers.splice(
+            availableModifiers.findIndex(([id]) => id === modifierId),
+            1,
+          )
           selected = true
           break
         }
       }
       if (!selected) {
-        const fallback = availableModifiers.pop()
+        const fallback = eligibleModifiers[eligibleModifiers.length - 1]
         if (fallback) {
           selectedModifiers.push(fallback[0])
+          availableModifiers.splice(
+            availableModifiers.findIndex(([id]) => id === fallback[0]),
+            1,
+          )
         }
       }
     }

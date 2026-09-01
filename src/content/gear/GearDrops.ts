@@ -1,7 +1,6 @@
 import type { EnemyDefinitionId } from '../enemies/Enemies'
 import {
-  getEliteModifierDefinition,
-  normalizeEliteModifierIds,
+  getEliteModifierRewardMultiplier,
   type EliteModifierInput,
 } from '../enemies/EliteModifiers'
 import {
@@ -73,10 +72,9 @@ export function getGearDropChance(
     threatRatio,
     Math.max(0, GEAR_DROP_CHANCE_BALANCE.threatNormalizationExponent),
   )
-  const multiplier = normalizeEliteModifierIds(eliteModifiers).reduce(
-    (total, modifierId) =>
-      total * getEliteModifierDefinition(modifierId).gearDropChanceMultiplier,
-    1,
+  const multiplier = getEliteModifierRewardMultiplier(
+    eliteModifiers,
+    'gearDropChanceMultiplier',
   )
   const floorMultiplier = getGearDropFloorMultiplier(options.floorNumber)
   const chanceMultiplier = Math.max(0, options.chanceMultiplier ?? 1)

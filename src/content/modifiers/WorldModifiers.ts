@@ -8,6 +8,7 @@ export const WORLD_MODIFIER_IDS = [
   'glass-world',
   'shorter-minute',
   'elite-invasion',
+  'elite-triad',
 ] as const
 
 export type WorldModifierId = (typeof WORLD_MODIFIER_IDS)[number]
@@ -57,6 +58,13 @@ export const WORLD_MODIFIER_DEFINITIONS: Readonly<
     description: 'Elites start at 20 seconds and appear on 22% of normal spawns.',
     difficulty: 5,
     essenceRewardMultiplier: 1.2,
+  },
+  'elite-triad': {
+    id: 'elite-triad',
+    name: 'Elite Triad',
+    description: 'All elites have three distinct modifiers.',
+    difficulty: 5,
+    essenceRewardMultiplier: 1.25,
   },
   'fast-start': {
     id: 'fast-start',
@@ -127,6 +135,7 @@ export function resolveWorldModifierEffects(
   const selected = new Set(normalizedIds)
   const swarming = selected.has('swarming')
   const eliteInvasion = selected.has('elite-invasion')
+  const eliteTriad = selected.has('elite-triad')
   const fastStart = selected.has('fast-start')
   const juggernauts = selected.has('juggernauts')
   const glassWorld = selected.has('glass-world')
@@ -154,6 +163,7 @@ export function resolveWorldModifierEffects(
         eliteInvasion ? 20 : Number.POSITIVE_INFINITY,
         fastStart ? 30 : Number.POSITIVE_INFINITY,
       ),
+      minimumEliteModifierCount: eliteTriad ? 3 : baseBalance.minimumEliteModifierCount,
       eliteModifierWeights: eliteInvasion
         ? {
             hasted: 18,

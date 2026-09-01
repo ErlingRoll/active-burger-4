@@ -25,6 +25,7 @@ describe('WorldModifiers', () => {
       'fast-start',
       'shorter-minute',
       'swarming',
+      'elite-triad',
     ]).map((modifier) => modifier.id)).toEqual([
       'swarming',
       'fast-start',
@@ -32,6 +33,7 @@ describe('WorldModifiers', () => {
       'glass-world',
       'shorter-minute',
       'elite-invasion',
+      'elite-triad',
     ])
   })
 
@@ -83,5 +85,14 @@ describe('WorldModifiers', () => {
 
     expect(effects.floorDurationMultiplier).toBe(0.75)
     expect(effects.essenceRewardMultiplier).toBe(1.15)
+  })
+
+  it('makes every elite roll exactly three modifiers', () => {
+    const effects = resolveWorldModifierEffects(
+      ['elite-triad'],
+      SPAWN_BALANCE,
+    )
+
+    expect(effects.spawnBalance.minimumEliteModifierCount).toBe(3)
   })
 })

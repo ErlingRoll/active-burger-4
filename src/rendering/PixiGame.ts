@@ -8,6 +8,7 @@ import {
 import {
   getEliteModifierDefinition,
   getEliteModifierIds,
+  isElitePhaseboundActive,
   normalizeEliteModifierIds,
   type EliteModifierInput,
   type EliteModifierId,
@@ -124,6 +125,9 @@ function isEnemyAbilityId(
 }
 
 function getTelegraphName(telegraph: TelegraphState): string {
+  if (telegraph.skillId === 'elite-volatile') {
+    return 'Volatile Explosion'
+  }
   if (isEnemyAbilityId(telegraph.skillId)) {
     return getEnemyAbilityDefinition(telegraph.skillId).name
   }
@@ -530,13 +534,23 @@ export class PixiGame {
     })
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
+    const shieldBar = new Graphics()
     const statusEffects = new Container()
     const hitFlash = new Graphics()
       .circle(0, 0, radius + 4)
       .fill({ color: '#ffffff', alpha: 0.72 })
     hitFlash.visible = false
-    root.addChild(hitFlash, hpBar, statusEffects, label)
-    return { root, body, label, hpBar, statusEffects, poisonAura, hitFlash }
+    root.addChild(hitFlash, shieldBar, hpBar, statusEffects, label)
+    return {
+      root,
+      body,
+      label,
+      hpBar,
+      shieldBar,
+      statusEffects,
+      poisonAura,
+      hitFlash,
+    }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -3360,6 +3374,18 @@ export class PixiGame {
       enemyView.body.scale.set(
         renderScale * (1 + attackIntensity * 0.14 + hitPulse * 0.1),
       )
+      enemyView.body.alpha = isElitePhaseboundActive(
+        enemy,
+        state.time,
+        (state.telegraphs ?? []).some(
+          (telegraph) =>
+            telegraph.sourceKind === 'enemy' &&
+            telegraph.sourceId === enemy.id &&
+            telegraph.remainingDuration > 0,
+        ),
+      )
+        ? 0.42
+        : 1
       const baseLabelY = -(enemy.radius * renderScale + 16)
       const statusOffset = enemyStatuses.length > 0
         ? STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
@@ -3378,6 +3404,14 @@ export class PixiGame {
         barY,
         enemy.hp,
         enemy.maxHp,
+      )
+      this.drawShieldBar(
+        enemyView.shieldBar,
+        enemyBarWidth,
+        3,
+        barY - 5,
+        enemy.wardHp ?? 0,
+        enemy.wardMaxHp ?? 0,
       )
     }
 
@@ -4253,6 +4287,7 @@ interface EnemyView {
   hitFlash: Graphics
   label: Text
   hpBar: Graphics
+  shieldBar: Graphics
   statusEffects: Container
   statusEffectSignature?: string
   poisonAura: Graphics

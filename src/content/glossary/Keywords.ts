@@ -264,7 +264,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Blood Debt',
     summary: 'Stored power spent by your next skill.',
     details:
-      'Blood Rite sacrifices current HP to store Blood Debt. Your next skill consumes it for a bounded bonus: damage skills gain chaos, healing skills restore sacrificed health, shields gain shield, and utility skills gain duration. Blood Debt expires if unused.',
+      'Blood Rite sacrifices current HP to store Blood Debt. Your next skill consumes it for a bounded bonus: damage skills gain chaos, healing skills restore sacrificed health, shields gain shield, and utility skills gain duration. Open an eligible skill tooltip and choose Focus Debt to make Blood Debt wait for that skill, or Clear Debt Focus to return to automatic capture. Blood Debt expires if unused.',
   },
   convergence: {
     id: 'convergence',

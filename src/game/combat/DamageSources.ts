@@ -28,6 +28,7 @@ import type {
 import {
   getEliteModifierDefinition,
   getEliteModifierIds,
+  getElitePoisonApplication,
 } from '../../content/enemies/EliteModifiers'
 import {
   getDerivedPlayerStats,
@@ -244,9 +245,9 @@ export function createMonsterDamageProfile(
         damage.physical * (modifier.extraPhysicalDamageRatio ?? 0)
     }
   }
-  const poisonApplication = eliteModifiers.find(
-    (modifier) => modifier.poisonApplication,
-  )?.poisonApplication
+  const poisonApplication = getElitePoisonApplication(
+    source ? getEliteModifierIds(source) : undefined,
+  )
   return {
     damage,
     criticalStrike: createMonsterCriticalStrikeStats(source),

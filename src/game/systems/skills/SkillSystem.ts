@@ -2680,7 +2680,9 @@ function consumeBloodDebtForCast(
     !debt ||
     debt.charges <= 0 ||
     castSkill.skillId === BLOOD_RITE_SKILL_ID ||
-    castSkill.skillId === BASIC_ATTACK_SKILL_ID
+    castSkill.skillId === BASIC_ATTACK_SKILL_ID ||
+    (state.player.bloodRiteTargetSkillId !== undefined &&
+      state.player.bloodRiteTargetSkillId !== castSkill.skillId)
   ) {
     return []
   }

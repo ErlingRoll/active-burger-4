@@ -109,6 +109,8 @@ describe('default dungeon timeline foundation', () => {
   it('ramps supplemental difficulty smoothly across the floor-20 inflection', () => {
     const floorOne = getFloorDifficultyProfile(1)
     const floorFive = getFloorDifficultyProfile(5)
+    const floorNine = getFloorDifficultyProfile(9)
+    const floorTen = getFloorDifficultyProfile(10)
     const floorNineteen = getFloorDifficultyProfile(19)
     const floorTwenty = getFloorDifficultyProfile(20)
     const floorTwentyOne = getFloorDifficultyProfile(21)
@@ -116,8 +118,10 @@ describe('default dungeon timeline foundation', () => {
 
     expect(floorOne.abilityIntensity).toBeGreaterThan(0)
     expect(floorOne.maxEliteModifierCount).toBe(1)
-    expect(floorNineteen.maxEliteModifierCount).toBe(1)
-    expect(floorTwenty.maxEliteModifierCount).toBe(2)
+    expect(floorNine.maxEliteModifierCount).toBe(1)
+    expect(floorTen.maxEliteModifierCount).toBe(2)
+    expect(floorNineteen.maxEliteModifierCount).toBe(2)
+    expect(floorTwenty.maxEliteModifierCount).toBe(3)
     expect(floorOneHundred.maxEliteModifierCount).toBe(3)
     expect(floorFive.ordinaryEnemySpeedMultiplier).toBe(1)
     expect(floorTwenty.ordinaryEnemySpeedMultiplier).toBeGreaterThan(

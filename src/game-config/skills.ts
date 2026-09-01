@@ -863,7 +863,7 @@ export const SKILL_DEFINITIONS = {
   [BLOOD_RITE_SKILL_ID]: {
     id: BLOOD_RITE_SKILL_ID,
     name: 'Blood Rite',
-    description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus. Utility bonuses extend only your newest active persistent effects, capped at twice their base duration.`,
+    description: `Sacrifices a bounded portion of current HP (never lethal) to store Blood Debt and release a chaos pulse. Your next skill consumes the Blood Debt for a bounded, type-appropriate bonus. Open an eligible skill tooltip to focus Blood Debt on that skill, or clear the focus to return to automatic capture. Utility bonuses extend only your newest active persistent effects, capped at twice their base duration.`,
     kind: 'utility',
     tags: ['chaos', 'duration'],
     canProduceDirectHit: true,
