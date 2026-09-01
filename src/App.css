@@ -4270,6 +4270,15 @@
     transform: rotate(45deg);
   }
 
+  .run-dashboard .playstyle-card-tooltip::after {
+    position: absolute;
+    right: 0;
+    bottom: -0.65rem;
+    left: 0;
+    height: 0.65rem;
+    content: '';
+  }
+
   .run-dashboard .playstyle-card-detail:hover .playstyle-card-tooltip,
   .run-dashboard .playstyle-card-detail:focus-visible .playstyle-card-tooltip,
   .run-dashboard .playstyle-card-tooltip:hover {

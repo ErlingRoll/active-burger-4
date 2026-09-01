@@ -1,6 +1,7 @@
-# Browser Roguelike RPG — Implementation Guide
+# Active Burger 4 — Implementation Guide
 
-> **Status:** Initial architecture and implementation plan
+> **Status:** Current architecture guide and implementation history
+> **Last reviewed:** 2026-09-01
 > **Primary language:** TypeScript
 > **Target:** Modern desktop and mobile browsers
 > **Rendering:** PixiJS
@@ -9,6 +10,89 @@
 > **Persistent backend:** Supabase
 > **Local persistence:** IndexedDB via Dexie
 > **Testing:** Vitest + Playwright
+
+---
+
+## Current implementation snapshot
+
+This section is authoritative for the current repository. The numbered design
+sections below preserve the original architecture and delivery sequence; they
+contain examples and historical milestone instructions that may describe an
+earlier stage of development. When an example conflicts with this snapshot or
+with the current content registries, prefer the implementation and the
+snapshot.
+
+### Implemented content
+
+```text
+skills:             21
+skill evolutions:   42 branches (2 branches per skill)
+synergies:          57
+playstyles/classes: 8
+enemy abilities:    2 current enemy ability types
+boss attack types:  5
+```
+
+The skill roster includes Basic Attack, Whirlwind, Chain Lightning, Vitality,
+Raise Skeleton, Fiery Touch, Glacial Orb, Lancer's Charge, Rallying Banner,
+Gravity Well, Aegis Pulse, Rift Javelin, Cinder Mine, Storm Relay, Soul Tether,
+Phantom Arsenal, Sigil of Ruin, Mirrorcast, Razorwire, Blood Rite, and Prism
+Halo. The canonical definitions live in
+[src/game-config/skills.ts](src/game-config/skills.ts).
+
+Every non-Basic skill has a predefined Basic Attack Synergy. Synergies are
+separate from Evolutions, require both skills, default to Legendary rarity,
+use the teal presentation, have a 10% offer chance, and are mutually exclusive
+per participating skill while active. The canonical registry and eligibility
+rules live in [src/game-config/synergies.ts](src/game-config/synergies.ts).
+
+The eight current classes are Knight, Ranger, Necromancer, Frost Warden, Ashen
+Alchemist, War Shepherd, Riftwalker, and Bloodweaver. Their data-driven
+starting loadouts, affinities, stats, flavor descriptions, and visual
+identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
+
+### Implemented runtime and presentation
+
+- The simulation uses a deterministic fixed timestep and seeded randomness.
+  Gameplay remains independent from React, PixiJS, Supabase, IndexedDB, the
+  DOM, and network requests.
+- React owns screen-space UI and PixiJS projects simulation state into the
+  world. The renderer includes skill-specific effects, evolution accents,
+  Synergy accents, status overlays, hostile danger telegraphs, hit feedback,
+  projectile trails, pickup feedback, and reduced-motion/performance budgets.
+- The default dungeon has 30 normal floors, 60-second normal floors,
+  120-second boss floors, floor-scaled encounters, Stone Golem boss floors,
+  and an Inferno Warden final encounter.
+- Implemented progression includes gear and rarity, passive upgrades, local
+  Dexie persistence, Supabase authentication, Essence meta progression, world
+  modifiers, character selection, player behavior profiles, and run results.
+- Durable active-run recovery and server-owned run locking are not complete.
+  They remain the next major implementation milestone.
+
+### Current validation and documentation sources
+
+The normal local validation commands are:
+
+```bash
+npm run lint
+npm run test:run
+npm run build
+```
+
+The unit suite, lint, and production build are currently passing. The
+Playwright suite still contains a known stale world-modifier text expectation
+in `e2e/game-canvas.spec.ts`; it expects old `+2/+3/+5` values while the
+current UI renders reward multipliers such as `1.10x`. This should be corrected
+before treating the browser suite as fully green.
+
+Use these documents together:
+
+- [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md) for
+  milestone completion and remaining infrastructure work.
+- [docs/GRAPHICS_GUIDELINES.md](docs/GRAPHICS_GUIDELINES.md) for the canonical
+  visual language and rendering constraints.
+- [docs/decisions/](docs/decisions/) for historical architectural decisions.
+- [TODO.md](TODO.md) for the active backlog.
 
 ---
 
@@ -26,9 +110,11 @@ It is intended to be read by:
 The document is both:
 
 1. an architectural specification; and
-2. a step-by-step implementation plan.
+2. a record of the step-by-step implementation plan.
 
-When implementation choices conflict with this document, prefer the principles in this document unless there is a documented reason to change them.
+The current implementation snapshot above and the code registries are the
+source of truth for implemented behavior. The principles in this document
+remain authoritative for new work unless a later ADR documents an exception.
 
 ---
 
@@ -2618,13 +2704,14 @@ interface CharacterDefinition {
 }
 ```
 
-Start with one character.
-
-Add more only after the vertical slice works.
+This architecture is now implemented through the data-driven
+`PlaystyleDefinition` registry. The current roster contains eight classes;
+the single-character guidance above is retained only as the original
+vertical-slice sequencing rule.
 
 ---
 
-# 72. First Complete Character
+# 72. First Complete Character (Historical Baseline)
 
 Example:
 
@@ -2643,7 +2730,8 @@ normal movement
 normal pickup radius
 ```
 
-The first character should intentionally be boring.
+The first character was intentionally simple during the original vertical
+slice. This is historical guidance, not a restriction on the current roster.
 
 It establishes a baseline for balancing future characters.
 
@@ -3101,8 +3189,6 @@ Plan early for:
 
 ```text
 reduced motion
-screen shake toggle
-damage-number toggle
 high-contrast UI
 text scaling
 volume controls
@@ -3646,13 +3732,13 @@ this flow.
 
 ---
 
-# 107. Milestone 8 — Skills
+# 107. Milestone 8 — Skills (Complete)
 
 ## Goal
 
 Transform simple stat choices into builds.
 
-Add:
+The original skill milestone introduced:
 
 ```text
 Basic Attack
@@ -3660,7 +3746,9 @@ Whirlwind
 Chain Lightning
 ```
 
-Add skill-level upgrades.
+Skill-level upgrades, two evolution branches per skill, and the later Synergy
+system are now implemented. See the current skill and Synergy registries in
+the implementation snapshot.
 
 ## Definition of Done
 
@@ -3894,9 +3982,10 @@ Players can deliberately make runs harder for increased rewards.
 
 ---
 
-# 118. Milestone 19 — Multiple Characters
+# 118. Milestone 19 — Multiple Characters (Complete)
 
-Introduce at least three playstyles.
+The original milestone required at least three playstyles. The current
+implementation provides eight data-driven classes:
 
 Example:
 
@@ -3925,33 +4014,35 @@ Do not create characters by duplicating engine code.
 
 ---
 
-# 119. Milestone 20 — Polish
+# 119. Milestone 20 — Polish (Complete Baseline)
 
-Only after the core game works:
+The completed visual polish baseline includes:
 
 ```text
-production art
-animations
-particles
-screen shake
-audio
-music
-damage numbers
-better HUD
+combat readability
+reduced-motion support
+responsive HUD
 tooltips
-transitions
-tutorial
-accessibility
-mobile layout
+results presentation
+skill-specific VFX
+status overlays
+danger telegraphs
+hit and pickup feedback
 ```
 
-Polish should amplify good gameplay rather than hide incomplete mechanics.
+The renderer also includes mechanic-specific effects, evolution and Synergy
+accents, status overlays, dangerous enemy telegraphs, hit feedback, pickup
+feedback, and reduced-motion support. Screenshake, camera jolts, hit-stop, and
+time dilation are intentionally excluded; use restrained glow, expansion,
+particles, and hit flashes instead. Polish should amplify good gameplay rather
+than hide incomplete mechanics.
 
 ---
 
-# 120. First Development Sprint
+# 120. First Development Sprint (Historical)
 
-The recommended immediate implementation sequence is:
+The following was the original implementation sequence and is retained as a
+historical record. Do not restart this sequence for current work:
 
 ```text
 1. Initialize Vite project
@@ -3983,7 +4074,7 @@ Do not work on Supabase before these are functional unless authentication is nee
 
 ---
 
-# 121. First Playable Target
+# 121. First Playable Target (Historical)
 
 The first genuinely playable version should be extremely small.
 
@@ -4007,7 +4098,7 @@ If this version is not fun, adding 200 items will not fix the underlying problem
 
 ---
 
-# 122. MVP Content Target
+# 122. MVP Content Target (Historical Directional Target)
 
 After the first playable version proves the concept:
 
@@ -4023,7 +4114,9 @@ Bosses:            3
 World modifiers:   10–15
 ```
 
-These are directional targets, not hard requirements.
+These were directional targets for the original MVP, not the current content
+inventory. See the current implementation snapshot at the top of this
+document.
 
 ---
 
@@ -4481,8 +4574,24 @@ choose the second option until the core loop is demonstrably fun.
 
 # 139. Immediate Next Task
 
-Milestones 0–20 and the deterministic Player Behavior Controller are complete. World
-Modifiers and character selection are persisted locally and passed as plain
-deterministic run configuration without network activity during gameplay. Future work
-can expand production art, animation, VFX, audio, additional content, and platform
-support based on playtest feedback.
+Milestones 0–20 and the deterministic Player Behavior Controller are complete.
+World Modifiers and character selection are persisted locally and passed as
+plain deterministic run configuration without network activity during
+gameplay.
+
+The next planned milestone is **Durable Dungeon Runs**:
+
+```text
+Supabase-owned active-run locking
+exact deterministic floor checkpoints
+Continue / Save & Quit / Forfeit lifecycle
+terminal run snapshots
+active-run store restrictions
+```
+
+This work is tracked as milestone 21 in
+[docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md). Production
+art, animation, VFX, audio, additional content, platform support, and the
+optional detailed rarity-aware loot reveal can proceed alongside it when
+playtest feedback justifies the investment, but they are not substitutes for
+the durable-run milestone.
