@@ -90,6 +90,7 @@ import type {
   SoulTetherState,
   RuinSigilState,
   RuinSigilSourceCategory,
+  HitVisualElement,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
@@ -178,6 +179,7 @@ interface Vector2 {
 interface ResolvedDamage {
   mitigated: DamageValues
   preMitigation: DamageValues
+  critical: boolean
 }
 
 function normalizeVector(x: number, y: number): Vector2 {
@@ -1607,7 +1609,23 @@ function resolveEventDamage(
   return {
     preMitigation: damageAfterCrit,
     mitigated: mitigateDamageValues(damageAfterCrit, resistances),
+    critical: isCritical,
   }
+}
+
+function getHitVisualElement(
+  event: Readonly<DamageEvent>,
+  damage: Readonly<DamageValues>,
+): HitVisualElement {
+  const label = event.sourceLabel?.toLowerCase()
+  if (label?.includes('poison')) {
+    return 'poison'
+  }
+  if (label?.includes('burn')) {
+    return 'fire'
+  }
+  return [...DAMAGE_TYPES]
+    .sort((left, right) => damage[right] - damage[left])[0] ?? 'physical'
 }
 
 function getPlayerDamageSource(
@@ -1663,6 +1681,7 @@ export function applyDamageEvents(
       )
       const source = getPlayerDamageSource(state, event)
       let totalAbsorbedByShield = 0
+      let totalPlayerDamage = 0
       for (const damageType of DAMAGE_TYPES) {
         let actualDamage = Math.min(state.player.hp, resolvedDamage.mitigated[damageType])
         if (actualDamage <= 0) {
@@ -1681,7 +1700,14 @@ export function applyDamageEvents(
           continue
         }
         state.player.hp -= actualDamage
+        totalPlayerDamage += actualDamage
         recordPlayerDamage(state, actualDamage, damageType, source)
+      }
+      if (totalPlayerDamage > 0) {
+        state.player.lastHitVisual = {
+          element: getHitVisualElement(event, resolvedDamage.mitigated),
+          critical: resolvedDamage.critical,
+        }
       }
       if (
         totalAbsorbedByShield > 0 &&
@@ -1739,6 +1765,12 @@ export function applyDamageEvents(
         sumDamageValues(resolvedDamage.mitigated),
       )
       enemy.hp -= actualDamage
+      if (actualDamage > 0) {
+        enemy.lastHitVisual = {
+          element: getHitVisualElement(event, resolvedDamage.mitigated),
+          critical: resolvedDamage.critical,
+        }
+      }
       recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
         state,
@@ -1791,6 +1823,12 @@ export function applyDamageEvents(
         sumDamageValues(resolvedDamage.mitigated),
       )
       boss.hp -= actualDamage
+      if (actualDamage > 0) {
+        boss.lastHitVisual = {
+          element: getHitVisualElement(event, resolvedDamage.mitigated),
+          critical: resolvedDamage.critical,
+        }
+      }
       recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
         state,

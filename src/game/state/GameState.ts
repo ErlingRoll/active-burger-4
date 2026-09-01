@@ -228,6 +228,8 @@ export interface PlayerState {
   resonance?: number
   /** Percentage of final Basic Attack damage converted into skill damage. */
   attunement?: number
+  /** Latest resolved hit presentation for renderer feedback. */
+  lastHitVisual?: HitVisualState
   /** Bounded hit counter used by Basic Attack Synergy interactions. */
   basicAttackSynergyHitCount?: number
   /** Internal cooldown shared by the currently active Basic Attack Synergy. */
@@ -327,6 +329,13 @@ export interface PlayerState {
   behaviorController?: BehaviorControllerState
 }
 
+export type HitVisualElement = 'physical' | 'fire' | 'cold' | 'lightning' | 'chaos' | 'poison'
+
+export interface HitVisualState {
+  element: HitVisualElement
+  critical: boolean
+}
+
 export interface SkillState {
   skillId: SkillId
   level: number
@@ -364,6 +373,8 @@ export interface EnemyState {
   interceptCooldownRemaining?: number
   /** Simulation time of the most recent contact attack, for rendering feedback. */
   lastMeleeAttackTime?: number
+  /** Latest resolved hit presentation for renderer feedback. */
+  lastHitVisual?: HitVisualState
 
   xpReward: number
 

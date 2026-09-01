@@ -48,6 +48,7 @@ import type {
   WireState,
   RuinSigilState,
   PrismHaloState,
+  HitVisualElement,
 } from '../game/state/GameState'
 import {
   getBossDefinition,
@@ -342,9 +343,11 @@ export class PixiGame {
       .stroke({ color: playstyle.visual.outlineColor, width: 3 })
     const hpBar = new Graphics()
     const shieldBar = new Graphics()
+    const hitFlash = new Graphics()
+    hitFlash.visible = false
     const root = new Container()
-    root.addChild(body, shieldBar, hpBar)
-    return { root, hpBar, shieldBar }
+    root.addChild(body, hitFlash, shieldBar, hpBar)
+    return { root, body, hitFlash, hpBar, shieldBar }
   }
 
   private createSummonPlaceholder(
@@ -2971,6 +2974,45 @@ export class PixiGame {
     view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
   }
 
+  private drawHitFlash(
+    view: Graphics,
+    radius: number,
+    hitVisual: { element: HitVisualElement; critical: boolean } | undefined,
+    intensity: number,
+  ): void {
+    if (!hitVisual || intensity <= 0) {
+      view.visible = false
+      return
+    }
+    const color = hitVisual.element === 'fire'
+      ? '#fb923c'
+      : hitVisual.element === 'cold'
+        ? '#7dd3fc'
+        : hitVisual.element === 'lightning'
+          ? '#fef08a'
+          : hitVisual.element === 'chaos'
+            ? '#c084fc'
+            : hitVisual.element === 'poison'
+              ? '#a3e635'
+              : '#f8fafc'
+    const flashRadius = radius * (1 + intensity * (hitVisual.critical ? 0.28 : 0.14))
+    view.visible = true
+    view.clear()
+    view
+      .poly(createStarPoints(flashRadius, hitVisual.critical ? 10 : 8, hitVisual.critical ? 0.35 : 0.62))
+      .fill({ color, alpha: intensity * (hitVisual.critical ? 0.34 : 0.2) })
+      .stroke({
+        color: hitVisual.critical ? '#ffffff' : color,
+        width: hitVisual.critical ? 3 : 2,
+        alpha: intensity * 0.9,
+      })
+    if (hitVisual.critical) {
+      view
+        .poly(createPolygonPoints(flashRadius * 0.62, 6, Math.PI / 6))
+        .stroke({ color: '#ffffff', width: 1.5, alpha: intensity * 0.82 })
+    }
+  }
+
   private renderState(): void {
     const state = this.game.state
     this.playerView?.root.position.set(state.player.x, state.player.y)
@@ -2990,6 +3032,23 @@ export class PixiGame {
         -40,
         state.player.aegisPulseShieldAmount ?? 0,
         state.player.aegisPulseShieldMaxAmount ?? 0,
+      )
+      if (
+        this.playerView.lastHp !== undefined &&
+        state.player.hp < this.playerView.lastHp
+      ) {
+        this.playerView.hitFlashUntil = state.time + 0.14
+      }
+      this.playerView.lastHp = state.player.hp
+      const playerHitPulse = Math.max(
+        0,
+        Math.min(1, ((this.playerView.hitFlashUntil ?? 0) - state.time) / 0.14),
+      )
+      this.drawHitFlash(
+        this.playerView.hitFlash,
+        26,
+        state.player.lastHitVisual,
+        playerHitPulse,
       )
     }
     const activeSummonIds = new Set<EntityId>()
@@ -3070,8 +3129,12 @@ export class PixiGame {
         0,
         Math.min(1, ((enemyView.hitFlashUntil ?? 0) - state.time) / 0.12),
       )
-      enemyView.hitFlash.visible = hitPulse > 0
-      enemyView.hitFlash.alpha = hitPulse * 0.72
+      this.drawHitFlash(
+        enemyView.hitFlash,
+        enemy.radius,
+        enemy.lastHitVisual,
+        hitPulse,
+      )
       const poisonStackCount = enemy.poisonStacks?.length ?? 0
       const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
       const enemyBarWidth = Math.max(28, enemy.radius * renderScale * 1.8)
@@ -3188,8 +3251,12 @@ export class PixiGame {
         0,
         Math.min(1, ((bossView.hitFlashUntil ?? 0) - state.time) / 0.16),
       )
-      bossView.hitFlash.visible = bossHitPulse > 0
-      bossView.hitFlash.alpha = bossHitPulse * 0.78
+      this.drawHitFlash(
+        bossView.hitFlash,
+        boss.radius,
+        boss.lastHitVisual,
+        bossHitPulse,
+      )
       const poisonStackCount = boss.poisonStacks?.length ?? 0
       const bossBarWidth = boss.radius * 2.5
       bossView.poisonAura.visible = poisonStackCount > 0
@@ -3880,8 +3947,12 @@ interface EnemyView {
 
 interface PlayerView {
   root: Container
+  body: Graphics
+  hitFlash: Graphics
   hpBar: Graphics
   shieldBar: Graphics
+  lastHp?: number
+  hitFlashUntil?: number
 }
 
 interface SummonView {

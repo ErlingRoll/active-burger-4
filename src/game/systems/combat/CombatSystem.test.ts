@@ -149,6 +149,31 @@ function state(
   }
 }
 
+describe('hit visual feedback', () => {
+  it('records the resolved element and critical state for enemy and player hits', () => {
+    const gameState = state([enemy(2, 20)])
+    const target = gameState.enemies[0]!
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: FIERY_TOUCH_SKILL_ID,
+      targetId: target.id,
+      damage: createDamageValues({ fire: 5 }),
+    }])
+    expect(target.lastHitVisual).toEqual({ element: 'fire', critical: false })
+
+    applyDamageEvents(gameState, [{
+      sourceId: target.id,
+      targetId: gameState.player.id,
+      damage: createDamageValues({ lightning: 5 }),
+      criticalStrike: { chance: 100, multiplier: 200 },
+    }], alwaysCrit)
+    expect(gameState.player.lastHitVisual).toEqual({
+      element: 'lightning',
+      critical: true,
+    })
+  })
+})
+
 describe('collectProjectileDamage', () => {
   it('keeps the stable EntityId consumer tie-break across reversed storage order', () => {
     const damageEvents = collectProjectileDamage(
