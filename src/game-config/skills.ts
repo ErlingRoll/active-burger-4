@@ -203,6 +203,8 @@ export const PRISM_HALO_REFRACTION_SPLIT_RADIUS = 120
 export const SIGIL_OF_RUIN_SANGUINE_HEAL_RATIO = 0.25
 export const MIRRORCAST_WIRE_DURATION_BONUS_SECONDS = 2
 export const RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE = 8
+export const PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO = 0.25
+export const PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT = 25
 export const BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS = 2
 export const BASIC_ATTACK_VITALITY_HIT_INTERVAL = 5
 export const BASIC_ATTACK_VITALITY_HEAL_AMOUNT = 2
@@ -240,6 +242,7 @@ export const FROSTLINE_RADIUS = 30
 export const FROSTLINE_DURATION_SECONDS = 2
 export const FROSTLINE_DAMAGE_RATIO = 0.25
 export const FROSTLINE_CROSSING_COOLDOWN_SECONDS = 2
+export const THERMAL_SHOCK_COLD_DAMAGE_RATIO = 0.5
 export const MENDING_RETURN_HEAL_RATIO = 0.01
 export const MENDING_RETURN_MAX_HEAL_PERCENT = 5
 export const ASHEN_LEGION_MAX_GUARD_CHARGES = 2
@@ -704,7 +707,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores a portion of that damage as health. Tethers are independent, and each snaps to one weaker nearby enemy when its target dies.`,
+    description: `Each cast latches onto the nearest enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger'],
     canProduceDirectHit: false,
@@ -783,7 +786,7 @@ export const SKILL_DEFINITIONS = {
   [MIRRORCAST_SKILL_ID]: {
     id: MIRRORCAST_SKILL_ID,
     name: 'Mirrorcast',
-    description: `Weaves a fragile Echo. The next non-Basic skill you cast is copied after a short delay at reduced effectiveness, without resetting the original cooldown. Mirrorcast can never copy itself.`,
+    description: `Weaves a fragile Echo. The next non-Basic skill you cast is copied after a short delay at ${Math.round(MIRRORCAST_BASE_EFFECTIVENESS * 100)}% effectiveness, without resetting the original cooldown. Mirrorcast can never copy itself.`,
     kind: 'utility',
     tags: ['trigger'],
     canProduceDirectHit: true,
@@ -800,7 +803,7 @@ export const SKILL_DEFINITIONS = {
     resonanceEffect: {
       id: 'mirrorcast-true-image',
       name: 'True Image',
-      description: 'The Echo copies at higher effectiveness and preserves an additional secondary effect.',
+      description: `The Echo copies at ${Math.round(MIRRORCAST_RESONANCE_EFFECTIVENESS * 100)}% effectiveness and preserves an additional secondary effect.`,
     },
   },
   [RAZORWIRE_SKILL_ID]: {

@@ -1416,6 +1416,32 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                               </p>
                             ) : null}
                             <p><KeywordText text={stat.description} /></p>
+                            {stat.damageBonuses !== undefined ? (
+                              <section
+                                className="attunement-bonus-panel"
+                                aria-label="Current Attunement bonus by damage type"
+                              >
+                                <div className="attunement-bonus-heading">
+                                  <span>Attunement bonus</span>
+                                  <small>from Basic Attack</small>
+                                </div>
+                                <ul className="attunement-bonus-list">
+                                  {stat.damageBonuses.map((bonus) => (
+                                    <li
+                                      className="attunement-bonus"
+                                      data-damage-type={bonus.damageType}
+                                      key={bonus.damageType}
+                                    >
+                                      <span className="attunement-bonus-type">
+                                        <span className="attunement-bonus-orb" aria-hidden="true" />
+                                        {bonus.label}
+                                      </span>
+                                      <strong>{bonus.value}</strong>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </section>
+                            ) : null}
                             <p className="character-stat-tooltip-applies">
                               <span>Applies to:</span> <KeywordText text={stat.appliesTo} />
                             </p>

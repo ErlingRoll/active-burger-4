@@ -110,6 +110,7 @@ import {
 } from '../../game-config/gear-sets'
 import {
   createPlayerDamageProfileFromStats,
+  getAttunementDamageFromStats,
   getAttunementSourceAdditionalIncreasedDamage,
 } from '../combat/DamageSources'
 import { getSkeletonStats, getPhantomArsenalStats } from '../systems/summons/SummonSystem'
@@ -244,9 +245,16 @@ export interface CharacterStatSnapshot {
   readonly appliesTo: string
   readonly uncappedValue?: string
   readonly sources?: readonly CharacterStatSourceSnapshot[]
+  readonly damageBonuses?: readonly CharacterStatDamageBonusSnapshot[]
 }
 
 export interface CharacterStatSourceSnapshot {
+  readonly label: string
+  readonly value: string
+}
+
+export interface CharacterStatDamageBonusSnapshot {
+  readonly damageType: DamageType
   readonly label: string
   readonly value: string
 }
@@ -819,6 +827,7 @@ function createCharacterStatSnapshot(
   options: {
     uncappedValue?: string
     sources?: readonly CharacterStatSourceSnapshot[]
+    damageBonuses?: readonly CharacterStatDamageBonusSnapshot[]
   } = {},
 ): CharacterStatSnapshot {
   return Object.freeze({
@@ -833,7 +842,24 @@ function createCharacterStatSnapshot(
     ...(options.sources === undefined
       ? {}
       : { sources: Object.freeze([...options.sources]) }),
+    ...(options.damageBonuses === undefined
+      ? {}
+      : { damageBonuses: Object.freeze([...options.damageBonuses]) }),
   })
+}
+
+function getAttunementDamageBonuses(
+  attunementDamage: Readonly<DamageValues>,
+): readonly CharacterStatDamageBonusSnapshot[] {
+  return DAMAGE_TYPES
+    .filter((damageType) => attunementDamage[damageType] > 0)
+    .map((damageType) =>
+      Object.freeze({
+        damageType,
+        label: titleCase(damageType),
+        value: formatSignedFlatValue(attunementDamage[damageType]),
+      }),
+    )
 }
 
 function getResistanceContributingTypes(
@@ -1006,8 +1032,10 @@ function createCharacterStatsSnapshot(
   playerStats: ReturnType<typeof getDerivedPlayerStats>,
   player: Readonly<GameState['player']>,
   weaponArchetype: WeaponArchetype | undefined,
+  attunementDamage: Readonly<DamageValues>,
 ): CharacterStatsHudSnapshot {
   const basicAttackVariant = getBasicAttackVariant(weaponArchetype)
+  const attunementDamageBonuses = getAttunementDamageBonuses(attunementDamage)
   const projectileVariantNote = basicAttackVariant.kind === 'projectile'
     ? `Currently applies to your ${titleCase(basicAttackVariant.id)} Basic Attack variant.`
     : 'Sword Basic Attack is not projectile-tagged, so this is currently inactive unless you swap weapons.'
@@ -1028,6 +1056,9 @@ function createCharacterStatsSnapshot(
       formatUnsignedPercent(playerStats.attunement),
       ATTUNEMENT_DESCRIPTION,
       'All non-Basic-Attack skills and summons.',
+      attunementDamageBonuses.length > 0
+        ? { damageBonuses: attunementDamageBonuses }
+        : undefined,
     ),
     createCharacterStatSnapshot(
       'cooldown-reduction',
@@ -1937,6 +1968,10 @@ export function createUiSnapshot(
       playerStats,
       state.player,
       equippedWeaponArchetype,
+      getAttunementDamageFromStats(
+        playerStats,
+        getAttunementSourceAdditionalIncreasedDamage(state),
+      ),
     ),
   })
 }

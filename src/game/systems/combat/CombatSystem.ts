@@ -166,6 +166,8 @@ import {
   CRIMSON_BULWARK_MAX_SHIELD_PERCENT,
   FROSTLINE_RADIUS,
   FROSTLINE_DURATION_SECONDS,
+  PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT,
+  THERMAL_SHOCK_COLD_DAMAGE_RATIO,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -590,7 +592,10 @@ function collectFieryTouchTriggerEvents(
         damage: thermalShock && chilled
           ? addDamageValues(
               outgoingDamage.damage,
-              { cold: outgoingDamage.damage.fire * 0.5 },
+              {
+                cold: outgoingDamage.damage.fire *
+                  THERMAL_SHOCK_COLD_DAMAGE_RATIO,
+              },
             )
           : outgoingDamage.damage,
         criticalStrike: outgoingDamage.criticalStrike,
@@ -1540,7 +1545,8 @@ export function collectProjectileDamage(
           'synergy-phantom-arsenal-rift-javelin',
         )
       ) {
-        state.player.riftJavelinReturnBonusPercent = 25
+        state.player.riftJavelinReturnBonusPercent =
+          PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT
       }
       if (projectile.piercing) {
         projectile.pierceHitTargetIds = [

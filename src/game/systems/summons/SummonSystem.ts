@@ -52,6 +52,7 @@ import {
   ASHEN_LEGION_SPLASH_DAMAGE_RATIO,
   ASHEN_LEGION_SPLASH_RADIUS,
   ECHO_WELL_DAMAGE_RATIO,
+  PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO,
 } from '../../../game-config/skills'
 import {
   getRallyingBannerCooldownReductionPercent,
@@ -561,7 +562,10 @@ export function updateSummons(
             damage: tethered
               ? addDamageValues(
                   outgoingDamage.damage,
-                  { chaos: outgoingDamage.damage.physical * 0.25 },
+                  {
+                    chaos: outgoingDamage.damage.physical *
+                      PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO,
+                  },
                 )
               : outgoingDamage.damage,
             criticalStrike: outgoingDamage.criticalStrike,

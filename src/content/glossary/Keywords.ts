@@ -80,7 +80,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
   shatter: {
     id: 'shatter',
     label: 'Shatter',
-    summary: 'A physical hit that breaks Freeze for bonus damage.',
+    summary: 'A physical hit that breaks Freeze for 150% damage.',
     details:
       'The first physical hit against a frozen enemy ends Freeze and deals 150% of that hit\'s damage.',
   },
@@ -243,7 +243,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Echo',
     summary: 'A delayed copy of a skill cast.',
     details:
-      'Mirrorcast arms an Echo that copies your next non-Basic skill cast after a short delay at reduced effectiveness. The copy never resets the original cooldown and can never copy Mirrorcast itself, so Echoes never nest.',
+      'Mirrorcast arms an Echo that copies your next non-Basic skill cast after a short delay at 50% effectiveness. The copy never resets the original cooldown and can never copy Mirrorcast itself, so Echoes never nest.',
   },
   wire: {
     id: 'wire',
@@ -271,14 +271,14 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Convergence',
     summary: 'All three Prism elements on one target.',
     details:
-      'Chromatic Convergence tracks Prism elements on each enemy within a short window. When Fire, Cold, and Lightning all land on the same target it triggers a Prism Burst for bonus damage and clears the tracked elements.',
+      'Chromatic Convergence tracks Prism elements on each enemy within a short window. When Fire, Cold, and Lightning all land on the same target it triggers a Prism Burst for 140% total shard damage and clears the tracked elements.',
   },
   'prism-burst': {
     id: 'prism-burst',
     label: 'Prism Burst',
     summary: 'A three-element detonation from Chromatic Convergence.',
     details:
-      'When Fire, Cold, and Lightning from Prism Halo hit the same enemy within the convergence window, Prism Burst deals equal Fire, Cold, and Lightning damage based on the shard damage, uses the triggering shard\'s critical-strike profile, and clears that enemy\'s Convergence progress. It does not apply another elemental status.',
+      'When Fire, Cold, and Lightning from Prism Halo hit the same enemy within the convergence window, Prism Burst deals 140% total shard damage as equal Fire, Cold, and Lightning damage, uses the triggering shard\'s critical-strike profile, and clears that enemy\'s Convergence progress. It does not apply another elemental status.',
   },
 }
 

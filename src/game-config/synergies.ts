@@ -19,6 +19,7 @@ import {
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   RIFT_JAVELIN_SKILL_ID,
+  BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT,
   CINDER_MINE_SKILL_ID,
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
@@ -28,6 +29,16 @@ import {
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
   PRISM_HALO_SKILL_ID,
+  PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO,
+  PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT,
+  RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE,
+  THERMAL_SHOCK_COLD_DAMAGE_RATIO,
+  SCORCHING_LIFELINE_DAMAGE_RATIO,
+  ASHEN_LEGION_SPLASH_DAMAGE_RATIO,
+  ECHO_WELL_DAMAGE_RATIO,
+  AURORA_RELAY_DAMAGE_RATIO,
+  FROSTLINE_DAMAGE_RATIO,
+  PARALLAX_TEMPEST_DAMAGE_RATIO,
 } from './skills'
 
 export const SYNERGY_OFFER_CHANCE = 0.1
@@ -201,8 +212,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-basic-attack-rift-javelin',
     'Returning Rhythm',
-    'Every fourth Basic Attack hit primes the next Rift Javelin return for bonus damage.',
-    'Basic Attack primes Javelin return',
+    `Every fourth Basic Attack hit primes the next Rift Javelin return for ${BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT}% bonus damage.`,
+    `Basic Attack grants +${BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT}% return damage`,
     [BASIC_ATTACK_SKILL_ID, RIFT_JAVELIN_SKILL_ID],
     [],
   ),
@@ -242,7 +253,7 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     'synergy-basic-attack-sigil-of-ruin',
     'Ruinous Marks',
     'Basic Attack hits against a Ruin Sigil store 25% additional damage.',
-    'Basic Attack charges Ruin Sigils',
+    'Basic Attack stores 25% additional damage',
     [BASIC_ATTACK_SKILL_ID, SIGIL_OF_RUIN_SKILL_ID],
     [],
   ),
@@ -340,8 +351,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-fiery-touch-glacial-orb',
     'Thermal Shock',
-    'Fiery Touch hitting a Chilled or Frozen enemy consumes its Frost and adds a Cold burst.',
-    'Fiery Touch triggers Thermal Shock',
+    `Fiery Touch hitting a Chilled or Frozen enemy consumes its Frost and adds a Cold burst equal to ${Math.round(THERMAL_SHOCK_COLD_DAMAGE_RATIO * 100)}% of the Fire damage.`,
+    `Fiery Touch adds ${Math.round(THERMAL_SHOCK_COLD_DAMAGE_RATIO * 100)}% Cold damage vs Chilled/Frozen`,
     [FIERY_TOUCH_SKILL_ID, GLACIAL_ORB_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -368,8 +379,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-cinder-mine-fiery-touch',
     'Wildfire',
-    'Fiery Touch hitting a Burning enemy consumes its Burning stacks for an immediate Wildfire burst.',
-    'Fiery Touch consumes Burning',
+    'Fiery Touch hitting a Burning enemy consumes its Burning stacks for an immediate Wildfire burst equal to their remaining damage.',
+    'Fiery Touch cashes out remaining Burning damage',
     [CINDER_MINE_SKILL_ID, FIERY_TOUCH_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -418,15 +429,15 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-soul-tether-phantom-arsenal',
     'Spectral Pact',
-    'Phantom Arsenal bolts against Soul Tether targets add a Chaos damage component.',
-    'Phantom Arsenal marks the tether',
+    `Phantom Arsenal bolts against Soul Tether targets add Chaos damage equal to ${Math.round(PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO * 100)}% of the bolt's physical damage.`,
+    `Phantom Arsenal adds ${Math.round(PHANTOM_ARSENAL_SOUL_TETHER_CHAOS_DAMAGE_RATIO * 100)}% Chaos damage`,
     [SOUL_TETHER_SKILL_ID, PHANTOM_ARSENAL_SKILL_ID],
   ),
   createSynergyUpgrade(
     'synergy-phantom-arsenal-rift-javelin',
     'Ghost Volley',
-    'Phantom Arsenal hits prime the next Rift Javelin return for bonus damage.',
-    'Phantom Arsenal primes Rift Javelin',
+    `Phantom Arsenal hits prime the next Rift Javelin return for ${PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT}% bonus damage.`,
+    `Phantom Arsenal grants +${PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT}% return damage`,
     [PHANTOM_ARSENAL_SKILL_ID, RIFT_JAVELIN_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -439,8 +450,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-sigil-of-ruin-blood-rite',
     'Sanguine Ruin',
-    'A Ruin Sigil detonation restores health equal to part of its burst damage.',
-    'Ruin detonation heals you',
+    'A Ruin Sigil detonation restores health equal to 25% of its burst damage.',
+    'Ruin detonation heals for 25% of burst damage',
     [SIGIL_OF_RUIN_SKILL_ID, BLOOD_RITE_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -460,8 +471,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-razorwire-blood-rite',
     'Bloodwire',
-    'While Blood Debt is active, Razorwire crossings deal bonus chaos damage.',
-    'Wire crossings add chaos with Blood Debt',
+    `While Blood Debt is active, Razorwire crossings deal ${RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE} additional Chaos damage.`,
+    `Wire crossings add ${RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE} Chaos damage with Blood Debt`,
     [RAZORWIRE_SKILL_ID, BLOOD_RITE_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -481,15 +492,15 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-whirlwind-mirrorcast',
     'Parallax Tempest',
-    'A Mirrorcast copy of Whirlwind creates a narrower mirrored Physical arc at reduced effectiveness.',
-    'Echo Whirlwind creates a mirrored arc',
+    `A Mirrorcast copy of Whirlwind creates a narrower mirrored Physical arc at ${Math.round(PARALLAX_TEMPEST_DAMAGE_RATIO * 100)}% damage.`,
+    `Echo Whirlwind adds a ${Math.round(PARALLAX_TEMPEST_DAMAGE_RATIO * 100)}% mirrored arc`,
     [WHIRLWIND_SKILL_ID, MIRRORCAST_SKILL_ID],
   ),
   createSynergyUpgrade(
     'synergy-glacial-orb-razorwire',
     'Frostline',
-    'A Glacial Orb impact near Razorwire crystallizes it; the next crossing releases a Cold shard and extra Chill.',
-    'Glacial Orb crystallizes Razorwire',
+    `A Glacial Orb impact near Razorwire crystallizes it; the next crossing releases a Cold shard equal to ${Math.round(FROSTLINE_DAMAGE_RATIO * 100)}% of the crossing damage and extra Chill.`,
+    `Glacial Orb adds a ${Math.round(FROSTLINE_DAMAGE_RATIO * 100)}% Cold shard`,
     [GLACIAL_ORB_SKILL_ID, RAZORWIRE_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -502,15 +513,15 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-raise-skeleton-cinder-mine',
     'Ashen Legion',
-    'Cinder Mine detonations grant living Skeletons Ember Guard charges; their next hits release a reduced Fire splash.',
-    'Mines empower Skeleton attacks',
+    `Cinder Mine detonations grant living Skeletons Ember Guard charges; their next hits release a Fire splash equal to ${Math.round(ASHEN_LEGION_SPLASH_DAMAGE_RATIO * 100)}% of the hit's damage.`,
+    `Mines add ${Math.round(ASHEN_LEGION_SPLASH_DAMAGE_RATIO * 100)}% Fire splash`,
     [RAISE_SKELETON_SKILL_ID, CINDER_MINE_SKILL_ID],
   ),
   createSynergyUpgrade(
     'synergy-fiery-touch-soul-tether',
     'Scorching Lifeline',
-    'Fiery Touch damaging a Soul Tether target flares the tether for a reduced Chaos aftershock once per second.',
-    'Fiery Touch flares Soul Tether',
+    `Fiery Touch damaging a Soul Tether target flares the tether for a Chaos aftershock equal to ${Math.round(SCORCHING_LIFELINE_DAMAGE_RATIO * 100)}% of Fiery Touch's Fire damage once per second.`,
+    `Fiery Touch adds ${Math.round(SCORCHING_LIFELINE_DAMAGE_RATIO * 100)}% Chaos aftershock`,
     [FIERY_TOUCH_SKILL_ID, SOUL_TETHER_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -523,8 +534,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-gravity-well-phantom-arsenal',
     'Echo Well',
-    'Gravity Well primes the next Phantom Arsenal bolt against an affected enemy to fire one reduced Echo Bolt.',
-    'Gravity Well primes a Phantom Echo',
+    `Gravity Well primes the next Phantom Arsenal bolt against an affected enemy to fire one Echo Bolt at ${Math.round(ECHO_WELL_DAMAGE_RATIO * 100)}% damage.`,
+    `Gravity Well adds a ${Math.round(ECHO_WELL_DAMAGE_RATIO * 100)}% Phantom Echo`,
     [GRAVITY_WELL_SKILL_ID, PHANTOM_ARSENAL_SKILL_ID],
   ),
   createSynergyUpgrade(
@@ -537,8 +548,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-storm-relay-prism-halo',
     'Aurora Relay',
-    'A Prism Halo volley primes Storm Relay to fork its next strike to one extra target at reduced damage.',
-    'Prism Halo primes a Relay fork',
+    `A Prism Halo volley primes Storm Relay to fork its next strike to one extra target at ${Math.round(AURORA_RELAY_DAMAGE_RATIO * 100)}% damage.`,
+    `Prism Halo adds a ${Math.round(AURORA_RELAY_DAMAGE_RATIO * 100)}% Relay fork`,
     [STORM_RELAY_SKILL_ID, PRISM_HALO_SKILL_ID],
   ),
 ]

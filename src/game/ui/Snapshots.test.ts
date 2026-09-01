@@ -371,6 +371,36 @@ describe('UI snapshots', () => {
     expect(upgrade?.status).toBe('available')
   })
 
+  it('projects current Attunement bonuses by positive damage type', () => {
+    const game = createGame({ seed: 72 })
+    const defaultAttunement = createUiSnapshot(game.state).characterStats.groups
+      .find((group) => group.id === 'offence')
+      ?.stats.find((stat) => stat.id === 'attunement')
+
+    expect(defaultAttunement?.damageBonuses).toEqual([
+      { damageType: 'physical', label: 'Physical', value: '+8' },
+    ])
+
+    equipRolledItem(
+      game.state.player,
+      'starcaller-amulet',
+      Rarity.Legendary,
+      [
+        createGearModifier('starcaller-amulet', 'flat-lightning-damage', 2, 7),
+        createGearModifier('starcaller-amulet', 'increased-elemental-damage', 3, 24),
+      ],
+    )
+
+    const elementalAttunement = createUiSnapshot(game.state).characterStats.groups
+      .find((group) => group.id === 'offence')
+      ?.stats.find((stat) => stat.id === 'attunement')
+
+    expect(elementalAttunement?.damageBonuses).toEqual([
+      { damageType: 'physical', label: 'Physical', value: '+8' },
+      { damageType: 'lightning', label: 'Lightning', value: '+5' },
+    ])
+  })
+
   it('shows Vitality healing and increased healing in the skill and Defence panels', () => {
     const game = createGame({ seed: 97 })
     game.state.player.skills.push({
