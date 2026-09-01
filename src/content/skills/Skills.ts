@@ -4,9 +4,7 @@ import {
   type SkillId,
 } from './SkillConfigs'
 import {
-  addDamageValues,
   createDamageValues,
-  scaleDamageValues,
   type DamageValues,
 } from '../stats/Damage'
 
@@ -70,15 +68,9 @@ export function isSkillId(value: string): value is SkillId {
 
 export function getSkillDamage(
   definition: SkillDefinition,
-  level: number,
+  _level: number,
 ): DamageValues {
-  return addDamageValues(
-    definition.baseDamage,
-    scaleDamageValues(
-      createDamageValues(definition.damagePerLevel),
-      Math.max(0, level - 1),
-    ),
-  )
+  return createDamageValues(definition.baseDamage)
 }
 
 export function getSkillHealing(

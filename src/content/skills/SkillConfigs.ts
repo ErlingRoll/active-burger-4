@@ -75,7 +75,6 @@ export interface SkillDefinition {
   canProduceDirectHit: boolean
   cooldown: number
   baseDamage: PartialDamageValues
-  damagePerLevel: PartialDamageValues
   baseHealing?: number
   healingPerLevel?: number
   /** Base absorb-shield amount granted on cast (e.g. Aegis Pulse). */

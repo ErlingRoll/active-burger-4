@@ -798,7 +798,6 @@ function validateDefinitions(
     ) {
       errors.push(`skills[${index}].tags must contain supported skill tags.`)
     }
-    validateDamageValues(errors, `skills[${index}].damagePerLevel`, skill.damagePerLevel)
     validateFiniteNumber(
       errors,
       `skills[${index}].effectLifetime`,
