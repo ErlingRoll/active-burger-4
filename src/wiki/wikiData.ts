@@ -21,8 +21,8 @@ export const WIKI_SECTION_IDS = [
   'glossary',
 ] as const
 
-const WIKI_CHART_LEVELS = [1, 5, 10, 20, 30, 50, 100] as const
-const WIKI_CHART_FLOORS = [1, 5, 10, 20, 30, 50, 100] as const
+const WIKI_CHART_LEVELS = [1, 5, 10, 20, 30, 50] as const
+const WIKI_CHART_FLOORS = [1, 5, 10, 20, 30, 50] as const
 
 export function createXpChartPoints(): readonly WikiChartPoint[] {
   return WIKI_CHART_LEVELS.map((level) => ({

@@ -46,7 +46,7 @@ import {
 } from './skills'
 
 export const SYNERGY_OFFER_CHANCE = 0.1
-export const SYNERGY_DEFAULT_RARITY = Rarity.Legendary
+export const SYNERGY_DEFAULT_RARITY = Rarity.Epic
 
 export function isSynergyActive(
   selectedUpgradeIds: readonly UpgradeId[],

@@ -683,8 +683,8 @@ function validateSynergyDefinitions(
     if (upgrade.category !== 'skill') {
       errors.push(`upgrades[${index}] synergies must be skill upgrades.`)
     }
-    if (upgrade.rarity !== Rarity.Legendary) {
-      errors.push(`upgrades[${index}] synergies must use legendary rarity.`)
+    if (upgrade.rarity !== Rarity.Epic) {
+      errors.push(`upgrades[${index}] synergies must use epic rarity.`)
     }
     if (upgrade.branch !== undefined || upgrade.skillAction !== undefined) {
       errors.push(`upgrades[${index}] synergies must be separate from evolutions.`)

@@ -56,12 +56,12 @@ describe('upgrade choice generation', () => {
     ).toBe(true)
   })
 
-  it('defines at least two unique legendary synergies for every skill', () => {
+  it('defines at least two unique epic synergies for every skill', () => {
     const counts = new Map<string, number>()
     const pairs = new Set<string>()
 
     for (const synergy of SYNERGY_UPGRADES) {
-      expect(synergy.rarity).toBe(Rarity.Legendary)
+      expect(synergy.rarity).toBe(Rarity.Epic)
       const pair = [...synergy.synergySkillIds].sort().join('|')
       expect(pairs.has(pair)).toBe(false)
       pairs.add(pair)

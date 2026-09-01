@@ -17,9 +17,19 @@ describe('wiki source-derived data', () => {
       label: 'L30',
       value: xpRequiredForLevel(30),
     })
+    expect(createXpChartPoints()).toHaveLength(6)
+    expect(createXpChartPoints().at(-1)).toEqual({
+      label: 'L50',
+      value: xpRequiredForLevel(50),
+    })
     expect(createFloorScalingChartPoints()).toContainEqual({
       label: 'F30',
       value: getFloorStatMultiplier(30),
+    })
+    expect(createFloorScalingChartPoints()).toHaveLength(6)
+    expect(createFloorScalingChartPoints().at(-1)).toEqual({
+      label: 'F50',
+      value: getFloorStatMultiplier(50),
     })
   })
 

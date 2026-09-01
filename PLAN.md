@@ -41,7 +41,7 @@ Halo. The canonical definitions live in
 [src/game-config/skills.ts](src/game-config/skills.ts).
 
 Every non-Basic skill has a predefined Basic Attack Synergy. Synergies are
-separate from Evolutions, require both skills, default to Legendary rarity,
+separate from Evolutions, require both skills, default to Epic rarity,
 use the teal presentation, have a 10% offer chance, and are mutually exclusive
 per participating skill while active. The canonical registry and eligibility
 rules live in [src/game-config/synergies.ts](src/game-config/synergies.ts).

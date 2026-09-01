@@ -78,7 +78,7 @@ const WIKI_SECTIONS: readonly WikiSection[] = [
   { id: 'classes', title: 'Classes', summary: 'Starting stats, equipment, skills, and affinities.' },
   { id: 'combat', title: 'Combat and stats', summary: 'Damage, resistance, crits, healing, and core resources.' },
   { id: 'skills', title: 'Skills and evolves', summary: 'Every skill, level scaling, branches, and Resonance.' },
-  { id: 'synergies', title: 'Synergies', summary: 'Legendary pair upgrades and their requirements.' },
+  { id: 'synergies', title: 'Synergies', summary: 'Epic pair upgrades and their requirements.' },
   { id: 'gear', title: 'Gear and upgrades', summary: 'Items, rarities, modifiers, sets, and drops.' },
   { id: 'progression', title: 'Progression', summary: 'Experience, essence, and meta progression.' },
   { id: 'floors', title: 'Floors and encounters', summary: 'Dungeon contracts, scaling, threat, and bosses.' },
@@ -382,12 +382,12 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
 
           <article id="synergies" className="wiki-article">
             <WikiSectionHeading id="synergies" title="Synergies">
-              Eligible owned skill pairs can be offered as legendary synergies; the configured offer chance is {formatWikiPercentage(SYNERGY_OFFER_CHANCE)}.
+              Eligible owned skill pairs can be offered as epic synergies; the configured offer chance is {formatWikiPercentage(SYNERGY_OFFER_CHANCE)}.
             </WikiSectionHeading>
             <div className="wiki-card-grid">
               {SYNERGY_UPGRADES.map((synergy) => (
                 <section id={`upgrade-${synergy.id}`} className="wiki-card" key={synergy.id}>
-                  <p className="screen-kicker">Legendary pair</p>
+                  <p className="screen-kicker">Epic pair</p>
                   <h3>{synergy.name}</h3>
                   <p>{synergy.synergySkillIds.map((skillId) => <a className="wiki-inline-link" key={skillId} href={`#skill-${skillId}`}>{SKILL_DEFINITIONS[skillId].name}</a>)}</p>
                   <p><KeywordText text={synergy.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
