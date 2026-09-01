@@ -2726,6 +2726,23 @@ function triggerSoulTetherSnap(
   return events
 }
 
+export function resolveDeadSoulTetherSnaps(
+  state: GameState,
+  random?: RandomSource,
+  idAllocator?: EntityIdAllocator,
+): void {
+  const deadTargets = [
+    ...state.enemies,
+    ...(state.bosses ?? []),
+  ].filter((target) => target.hp <= 0)
+  const snapEvents = deadTargets.flatMap((target) =>
+    triggerSoulTetherSnaps(state, target),
+  )
+  if (snapEvents.length > 0) {
+    applyDamageEvents(state, snapEvents, random, idAllocator)
+  }
+}
+
 function applyMeleeLeech(
   state: GameState,
   event: DamageEvent,
@@ -2791,7 +2808,10 @@ export function removeDeadEntities(
   ) => void,
   random?: RandomSource,
   spawnHealingPotion?: (position: { x: number; y: number }) => void,
+  idAllocator?: EntityIdAllocator,
 ): void {
+  resolveDeadSoulTetherSnaps(state, random, idAllocator)
+
   const livingEnemies: EnemyState[] = []
   const childSpawns: ChildSpawnRequest[] = []
   const spawnBalance = resolveWorldModifierEffects(

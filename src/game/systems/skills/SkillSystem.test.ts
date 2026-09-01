@@ -34,6 +34,7 @@ import {
   SOUL_TETHER_DURATION_SECONDS,
   SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS,
   SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER,
+  SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
   RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS,
   PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS,
 } from '../../../game-config/skills'
@@ -53,6 +54,7 @@ import {
   applyDamageEvents,
   collectProjectileDamage,
   performBasicAttackIfReady,
+  removeDeadEntities,
   updateBurning,
   updateProjectiles,
 } from '../combat/CombatSystem'
@@ -1796,6 +1798,8 @@ describe('skill system', () => {
       const secondaryId = game.spawnSlime({ x: 90, y: 0 })
       collectSkillDamage(game.state, allocator)
       const initialDps = game.state.player.soulTethers?.[0]?.damagePerSecond ?? 0
+      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
+      const secondaryInitialHp = secondary.hp
 
       const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
       primary.hp = 1
@@ -1810,8 +1814,10 @@ describe('skill system', () => {
       expect(game.state.player.soulTethers?.[0]?.damagePerSecond)
         .toBeCloseTo(initialDps * SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER)
       expect(game.state.player.soulTethers?.[0]?.hasRetargeted).toBe(true)
+      expect(secondary.hp).toBeCloseTo(
+        secondaryInitialHp - initialDps * SOUL_TETHER_SNAP_BURST_SECONDS_EQUIVALENT,
+      )
 
-      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
       secondary.hp = 1
       applyDamageEvents(game.state, [{
         sourceId: game.state.player.id,
@@ -1820,6 +1826,53 @@ describe('skill system', () => {
         damage: { physical: 5, lightning: 0, fire: 0, cold: 0, chaos: 0 },
       }])
       expect(game.state.player.soulTethers).toEqual([])
+    })
+
+    it('snaps during dead-enemy cleanup when the death was not a damage event', () => {
+      const game = createGame({ seed: 92 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const primaryId = game.spawnSlime({ x: 60, y: 0 })
+      const secondaryId = game.spawnSlime({ x: 90, y: 0 })
+      collectSkillDamage(game.state, allocator)
+
+      const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
+      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
+      secondary.hp = 100
+      secondary.maxHp = 100
+      primary.hp = 0
+
+      removeDeadEntities(game.state, () => {})
+
+      expect(game.state.player.soulTethers?.[0]?.targetId).toBe(secondaryId)
+      expect(secondary.hp).toBeLessThan(100)
+    })
+
+    it('keeps the snap when a dead target is found at the start of a game step', () => {
+      const game = createGame({ seed: 98 })
+      game.state.player.skills = [{
+        skillId: SOUL_TETHER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const primaryId = game.spawnSlime({ x: 60, y: 0 })
+      const secondaryId = game.spawnSlime({ x: 90, y: 0 })
+      collectSkillDamage(game.state, allocator)
+      game.state.player.skills[0]!.cooldownRemaining = 1
+
+      const primary = game.state.enemies.find((enemy) => enemy.id === primaryId)!
+      const secondary = game.state.enemies.find((enemy) => enemy.id === secondaryId)!
+      secondary.hp = 100
+      secondary.maxHp = 100
+      primary.hp = 0
+
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.player.soulTethers?.[0]?.targetId).toBe(secondaryId)
+      expect(secondary.hp).toBeLessThan(100)
     })
 
     it('retargets every overlapping tether independently when a shared target dies', () => {

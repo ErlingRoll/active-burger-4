@@ -304,7 +304,7 @@ function GearCard({
             All future gear drops become 10x XP
           </span>
           <span className="upgrade-choice-description">
-            Convert late-game gear drops into experience for the rest of this dungeon.
+            Convert all future gear drops into experience for the rest of this dungeon.
           </span>
         </button>
       </div>

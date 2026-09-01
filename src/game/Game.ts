@@ -78,6 +78,7 @@ import {
   collectProjectileDamage,
   performBasicAttackIfReady,
   removeDeadEntities,
+  resolveDeadSoulTetherSnaps,
   resolvePlayerTarget,
   updateAttackCooldown,
   updateEnemyChase,
@@ -1134,6 +1135,7 @@ export class Game {
       this.idAllocator,
     )
     updateProjectiles(this.gameState, FIXED_STEP_SECONDS)
+    resolveDeadSoulTetherSnaps(this.gameState, this.random, this.idAllocator)
     const damageEvents = [
       ...collectEnemyContactDamage(this.gameState, FIXED_STEP_SECONDS),
       ...basicAttackEvents,
@@ -1209,7 +1211,7 @@ export class Game {
       this.spawnGearPickup(position, sourceEnemyDefinitionId)
     }, this.gearRandom, (position) => {
       spawnHealingPotion(this.gameState, this.idAllocator, position)
-    })
+    }, this.idAllocator)
     updateStairs(this.gameState, (stairs) => {
       stairs.rewardsCollected = true
       if (this.choiceFlows.length === 0) {
