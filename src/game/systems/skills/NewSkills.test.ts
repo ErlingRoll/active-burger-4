@@ -674,6 +674,29 @@ describe('new skill synergies', () => {
     }
   })
 
+  it('ships the approved cross-cluster Synergy links', () => {
+    const expectedPairs = [
+      ['chain-lightning', 'sigil-of-ruin'],
+      ['whirlwind', 'mirrorcast'],
+      ['glacial-orb', 'razorwire'],
+      ['vitality', 'rift-javelin'],
+      ['raise-skeleton', 'cinder-mine'],
+      ['fiery-touch', 'soul-tether'],
+      ['lancers-charge', 'rallying-banner'],
+      ['gravity-well', 'phantom-arsenal'],
+      ['aegis-pulse', 'blood-rite'],
+      ['storm-relay', 'prism-halo'],
+    ] as const
+
+    for (const [left, right] of expectedPairs) {
+      const synergy = SYNERGY_UPGRADES.find((candidate) =>
+        candidate.synergySkillIds.includes(left) &&
+        candidate.synergySkillIds.includes(right)
+      )
+      expect(synergy).toBeDefined()
+    }
+  })
+
   it('gates synergy eligibility on owning both skills and having no conflicting synergy', () => {
     const eligible = isSynergyPairEligible(
       { ownedSkillIds: [SIGIL_OF_RUIN_SKILL_ID, PRISM_HALO_SKILL_ID], selectedUpgradeIds: [] },

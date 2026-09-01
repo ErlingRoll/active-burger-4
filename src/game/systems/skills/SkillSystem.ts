@@ -143,6 +143,14 @@ import {
   MIRRORCAST_WIRE_DURATION_BONUS_SECONDS,
   RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE,
   BLOOD_RITE_PRISM_DURATION_BONUS_SECONDS,
+  VANGUARD_STANDARD_BANNER_EXTENSION_SECONDS,
+  ASHEN_LEGION_MAX_GUARD_CHARGES,
+  ASHEN_LEGION_GUARD_DURATION_SECONDS,
+  AURORA_RELAY_DAMAGE_RATIO,
+  MENDING_RETURN_MAX_HEAL_PERCENT,
+  FROSTLINE_DAMAGE_RATIO,
+  FROSTLINE_CROSSING_COOLDOWN_SECONDS,
+  PARALLAX_TEMPEST_DAMAGE_RATIO,
 } from '../../../game-config/skills'
 import {
   createDamageValues,
@@ -640,6 +648,9 @@ function collectVitalityHealing(
     definition.name,
     random,
   )
+  if (state.run.selectedUpgradeIds.includes('synergy-vitality-rift-javelin')) {
+    state.player.vitalityRiftPrimed = true
+  }
   if (
     state.run.selectedUpgradeIds.includes('synergy-vitality-rallying-banner') &&
     getRallyingBannerEffects(state).length > 0
@@ -879,6 +890,25 @@ function collectLancersChargeDamage(
   )
   state.player.x = dashDestination.x
   state.player.y = dashDestination.y
+  if (state.run.selectedUpgradeIds.includes('synergy-lancers-charge-rallying-banner')) {
+    for (const banner of getRallyingBannerEffects(state)) {
+      if (
+        Math.hypot(banner.x - state.player.x, banner.y - state.player.y) <=
+        banner.radius + state.player.radius
+      ) {
+        const extension = Math.min(
+          VANGUARD_STANDARD_BANNER_EXTENSION_SECONDS,
+          Math.max(
+            0,
+            RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - banner.remainingLifetime,
+          ),
+        )
+        banner.remainingLifetime += extension
+        banner.lifetime += extension
+      }
+    }
+    syncRallyingBannerPlayerState(state)
+  }
 
   const struck = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
@@ -1113,6 +1143,12 @@ function collectGravityWellDamage(
     )
   }
   if (
+    state.run.selectedUpgradeIds.includes('synergy-gravity-well-phantom-arsenal') &&
+    affected.length > 0
+  ) {
+    state.player.gravityWellEchoPrimed = true
+  }
+  if (
     state.run.selectedUpgradeIds.includes('synergy-fiery-touch-gravity-well')
   ) {
     state.player.fieryTouchGravityPrimed = true
@@ -1238,6 +1274,13 @@ function collectRiftJavelinDamage(
     (homeward ? RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT : 0) +
     primedReturnBonus +
     (isSkillResonant(state, skill.skillId) ? RIFT_JAVELIN_RESONANCE_RETURN_BONUS_PERCENT : 0)
+  const mendingReturn =
+    state.run.selectedUpgradeIds.includes('synergy-vitality-rift-javelin') &&
+    state.player.vitalityRiftPrimed === true
+  if (mendingReturn) {
+    state.player.vitalityRiftPrimed = false
+    state.player.mendingReturnHealingRemaining = MENDING_RETURN_MAX_HEAL_PERCENT
+  }
 
   state.projectiles.push(
     ...spreadAngles.map((spreadAngle) => {
@@ -1255,6 +1298,7 @@ function collectRiftJavelinDamage(
         ...(returnDamageBonus > 0
           ? { returnDamageMultiplier: 1 + returnDamageBonus / 100 }
           : {}),
+        ...(mendingReturn ? { mendingReturn: true } : {}),
         ...(barbed
           ? {
               impactPoisonApplication: {
@@ -1399,6 +1443,20 @@ export function updateCinderMineTraps(
         trap.radius,
         definition.effectLifetime,
       )
+      if (state.run.selectedUpgradeIds.includes('synergy-raise-skeleton-cinder-mine')) {
+        for (const summon of state.summons) {
+          if (
+            summon.hp > 0 &&
+            (summon.skillId ?? RAISE_SKELETON_SKILL_ID) === RAISE_SKELETON_SKILL_ID
+          ) {
+            summon.emberGuardCharges = Math.min(
+              ASHEN_LEGION_MAX_GUARD_CHARGES,
+              (summon.emberGuardCharges ?? 0) + 1,
+            )
+            summon.emberGuardRemaining = ASHEN_LEGION_GUARD_DURATION_SECONDS
+          }
+        }
+      }
     }
   }
   state.traps = remaining
@@ -1420,12 +1478,15 @@ function collectStormRelayChainDamage(
   const wardedConduit = state.run.selectedUpgradeIds.includes(
     'synergy-storm-relay-rallying-banner',
   )
+  const spectrumFork = relay.spectrumForkPrimed === true &&
+    state.run.selectedUpgradeIds.includes('synergy-storm-relay-prism-halo')
+  const targetCount = relay.maxTargets + (spectrumFork ? 1 : 0)
   const visited = new Set<number>()
   let originX = relay.x
   let originY = relay.y
   const path: SkillEffectPoint[] = [{ x: originX, y: originY }]
 
-  for (let jump = 0; jump < relay.maxTargets; jump += 1) {
+  for (let jump = 0; jump < targetCount; jump += 1) {
     let target: EnemyState | BossState | undefined
     let targetDistanceSquared = Number.POSITIVE_INFINITY
     const range = jump === 0 ? relay.maxRange : relay.jumpRange
@@ -1468,7 +1529,9 @@ function collectStormRelayChainDamage(
       sourceSkillId: relay.skillId,
       sourceTags: getSkillDefinition(relay.skillId).tags,
       targetId: target.id,
-      damage: relay.damage,
+      damage: spectrumFork && jump === relay.maxTargets
+        ? scaleDamageValues(relay.damage, AURORA_RELAY_DAMAGE_RATIO)
+        : relay.damage,
       criticalStrike: relay.criticalStrike,
       shockApplication: {
         stacks: shockStacks,
@@ -1529,6 +1592,9 @@ function collectStormRelayChainDamage(
   }
 
   if (events.length > 0) {
+    if (spectrumFork) {
+      relay.spectrumForkPrimed = false
+    }
     if (wardedConduit && getRallyingBannerEffects(state).length > 0) {
       for (const effect of getRallyingBannerEffects(state)) {
         effect.remainingLifetime += 0.25
@@ -1721,6 +1787,10 @@ export function updateSoulTether(
     duration: number
   }> = []
   for (const tether of tethers) {
+    tether.scorchingLifelineCooldownRemaining = Math.max(
+      0,
+      (tether.scorchingLifelineCooldownRemaining ?? 0) - elapsed,
+    )
     const activeDuration = Math.min(
       elapsed,
       Math.max(0, tether.remainingDuration),
@@ -2114,6 +2184,41 @@ function executeMirrorcastCopy(
           ...statusApplications,
         })
       }
+      if (
+        copy.skillId === WHIRLWIND_SKILL_ID &&
+        state.run.selectedUpgradeIds.includes('synergy-whirlwind-mirrorcast')
+      ) {
+        const mirroredTarget = findNearbyLivingEnemies(
+          state,
+          target.x,
+          target.y,
+          definition.radius ?? 0,
+          new Set(targets.map((candidate) => candidate.id)),
+        )[0]
+        if (mirroredTarget) {
+          events.push({
+            sourceId: state.player.id,
+            sourceSkillId: MIRRORCAST_SKILL_ID,
+            sourceLabel: 'Parallax Tempest',
+            sourceTags: definition.tags,
+            targetId: mirroredTarget.id,
+            damage: scaleDamageValues(copyDamage, PARALLAX_TEMPEST_DAMAGE_RATIO),
+            criticalStrike: profile.criticalStrike,
+          })
+          addEffect(
+            state,
+            allocator,
+            MIRRORCAST_SKILL_ID,
+            [
+              { x: state.player.x, y: state.player.y },
+              { x: mirroredTarget.x, y: mirroredTarget.y },
+            ],
+            10,
+            getSkillDefinition(MIRRORCAST_SKILL_ID).effectLifetime,
+            'line',
+          )
+        }
+      }
       addEffect(
         state,
         allocator,
@@ -2370,6 +2475,14 @@ export function updateRazorwires(
     if (wire.remainingDuration <= 0) {
       continue
     }
+    wire.frostedRemainingDuration = Math.max(
+      0,
+      (wire.frostedRemainingDuration ?? 0) - fixedStepSeconds,
+    )
+    wire.frostedCrossingCooldownRemaining = Math.max(
+      0,
+      (wire.frostedCrossingCooldownRemaining ?? 0) - fixedStepSeconds,
+    )
     for (const cooldown of wire.crossingCooldowns) {
       cooldown.remaining = Math.max(0, cooldown.remaining - fixedStepSeconds)
     }
@@ -2419,18 +2532,30 @@ export function updateRazorwires(
         }
       }
       const chillStacks = wire.slowChillStacks
+      const frostlineReady =
+        (wire.frostedRemainingDuration ?? 0) > 0 &&
+        (wire.frostedCrossingCooldownRemaining ?? 0) <= 0
       const crossingEventDamage = bloodwire
         ? addDamageValues(crossingDamage, { chaos: RAZORWIRE_BLOODWIRE_CHAOS_DAMAGE })
         : crossingDamage
+      const frostlineDamage = frostlineReady
+        ? addDamageValues(crossingEventDamage, {
+            cold: sumDamageValues(crossingEventDamage) * FROSTLINE_DAMAGE_RATIO,
+          })
+        : crossingEventDamage
+      if (frostlineReady) {
+        wire.frostedRemainingDuration = 0
+        wire.frostedCrossingCooldownRemaining = FROSTLINE_CROSSING_COOLDOWN_SECONDS
+      }
       events.push({
         sourceId: state.player.id,
         sourceSkillId: RAZORWIRE_SKILL_ID,
         sourceTags: getSkillDefinition(RAZORWIRE_SKILL_ID).tags,
         targetId: enemy.id,
-        damage: crossingEventDamage,
+        damage: frostlineDamage,
         criticalStrike: wire.criticalStrike,
         frostApplication: {
-          stacks: chillStacks,
+          stacks: chillStacks + (frostlineReady ? 1 : 0),
           durationSeconds: wire.slowDurationSeconds,
         },
       })
@@ -2465,6 +2590,7 @@ function collectBloodRiteCast(
   const crimson = state.run.selectedUpgradeIds.includes('blood-rite-crimson-debt')
   const sanguine = state.run.selectedUpgradeIds.includes('blood-rite-sanguine-pact')
   const prismOffering = state.run.selectedUpgradeIds.includes('synergy-blood-rite-prism-halo')
+  state.player.bloodRiteShieldRestored = 0
 
   const notionalSacrifice = Math.max(
     0,
@@ -2850,6 +2976,14 @@ export function updatePrismHalo(
     const element = PRISM_ELEMENTS[halo.nextElementIndex % PRISM_ELEMENTS.length]!
     halo.nextElementIndex = (halo.nextElementIndex + 1) % PRISM_ELEMENTS.length
     events.push(...firePrismShard(state, allocator, target, element, true))
+  }
+  if (
+    state.run.selectedUpgradeIds.includes('synergy-storm-relay-prism-halo') &&
+    state.relays
+  ) {
+    for (const relay of state.relays) {
+      relay.spectrumForkPrimed = true
+    }
   }
   addPrismBeamEffect(
     state,

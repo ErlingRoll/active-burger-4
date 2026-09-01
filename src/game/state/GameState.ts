@@ -279,6 +279,14 @@ export interface PlayerState {
   soulTethers?: SoulTetherState[]
   /** Healing stored by Lifebound Pact for the next Vitality cast. */
   soulTetherVitalityCharge?: number
+  /** Vitality has prepared the next Rift Javelin return for Mending Return. */
+  vitalityRiftPrimed?: boolean
+  /** Remaining unique return targets eligible for Mending Return healing. */
+  mendingReturnHealingRemaining?: number
+  /** Gravity Well has prepared one Phantom Arsenal Echo Bolt. */
+  gravityWellEchoPrimed?: boolean
+  /** Blood Rite shield restoration accumulated during its current pulse. */
+  bloodRiteShieldRestored?: number
   /** Bonus return-leg damage primed by Phantom Arsenal. */
   riftJavelinReturnBonusPercent?: number
   /** Active Ruin Sigils branded on enemies by Sigil of Ruin. */
@@ -427,6 +435,8 @@ export interface SoulTetherState {
   damagePerSecond: number
   healingRatio: number
   hasRetargeted: boolean
+  /** Scorching Lifeline cooldown for this tether's next flare. */
+  scorchingLifelineCooldownRemaining?: number
 }
 
 /** A distinct damage source category that can charge a Ruin Sigil once. */
@@ -451,6 +461,8 @@ export interface RuinSigilState {
   spreadOnDetonate: boolean
   /** Spread sigils cannot spread again, which bounds the chain reaction. */
   canSpread: boolean
+  /** Fractured Circuit has already added its one bonus charge. */
+  conductiveChargeAdded?: boolean
 }
 
 /** A scheduled Mirrorcast copy of a captured skill cast. */
@@ -500,6 +512,10 @@ export interface WireState {
   slowDurationSeconds: number
   crossingCooldownSeconds: number
   crossingMargin: number
+  /** Remaining time during which the next crossing releases a Frostline shard. */
+  frostedRemainingDuration?: number
+  /** Prevents Frostline from triggering repeatedly on one crossing window. */
+  frostedCrossingCooldownRemaining?: number
   /** Per-enemy remaining crossing cooldowns so crossings do not deal per-tick damage. */
   crossingCooldowns: Array<{ enemyId: EntityId; remaining: number }>
   /** Last known signed side of each enemy relative to the wire, to detect crossings. */
@@ -576,6 +592,10 @@ export interface ProjectileState {
   returning?: boolean
   /** Multiplies damage dealt while this projectile is on its return leg. */
   returnDamageMultiplier?: number
+  /** Vitality-prepared return that grants Mending Return healing on hit. */
+  mendingReturn?: boolean
+  /** Reduced Phantom Arsenal projectile created by Echo Well. */
+  echoWell?: boolean
 
   x: number
   y: number
@@ -669,6 +689,9 @@ export interface SummonState {
   attackCooldownRemaining: number
   /** Seconds remaining before a temporary summon automatically expires. */
   expiryRemaining?: number
+  /** Temporary Ashen Legion charges consumed by the next Skeleton hits. */
+  emberGuardCharges?: number
+  emberGuardRemaining?: number
 }
 
 export interface PoisonStackState {
@@ -754,6 +777,8 @@ export interface RelayState {
   /** Optional radius for an additional burst around the relay on each strike. */
   burstRadius?: number
   burstDamageRatio?: number
+  /** Aurora Relay has prepared one additional fork on the next strike. */
+  spectrumForkPrimed?: boolean
 }
 
 export interface SkillEffectState {

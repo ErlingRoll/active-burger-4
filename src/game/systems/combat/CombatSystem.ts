@@ -6,6 +6,8 @@ import {
 } from '../../../content/projectiles/Projectiles'
 import {
   BASIC_ATTACK_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  CHAIN_LIGHTNING_SKILL_ID,
   CINDER_MINE_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   AEGIS_PULSE_SKILL_ID,
@@ -155,6 +157,14 @@ import {
   BASIC_ATTACK_BLOOD_TRIGGER_INTERVAL_SECONDS,
   BASIC_ATTACK_PRISM_TRIGGER_INTERVAL_SECONDS,
   BASIC_ATTACK_PRISM_COOLDOWN_REDUCTION_SECONDS,
+  FRACTURED_CIRCUIT_BONUS_CHARGE,
+  MENDING_RETURN_HEAL_RATIO,
+  SCORCHING_LIFELINE_DAMAGE_RATIO,
+  SCORCHING_LIFELINE_TRIGGER_COOLDOWN_SECONDS,
+  CRIMSON_BULWARK_SHIELD_RATIO,
+  CRIMSON_BULWARK_MAX_SHIELD_PERCENT,
+  FROSTLINE_RADIUS,
+  FROSTLINE_DURATION_SECONDS,
 } from '../../../game-config/skills'
 
 const ENEMY_CONTACT_DAMAGE_INTERVAL_SECONDS = 1
@@ -583,6 +593,30 @@ function collectFieryTouchTriggerEvents(
           : outgoingDamage.damage,
         criticalStrike: outgoingDamage.criticalStrike,
       }]
+      const scorchingLifeline = state.run.selectedUpgradeIds.includes(
+        'synergy-fiery-touch-soul-tether',
+      )
+        ? state.player.soulTethers?.find((tether) => tether.targetId === enemy.id)
+        : undefined
+      if (
+        scorchingLifeline &&
+        (scorchingLifeline.scorchingLifelineCooldownRemaining ?? 0) <= 0 &&
+        outgoingDamage.damage.fire > 0
+      ) {
+        scorchingLifeline.scorchingLifelineCooldownRemaining =
+          SCORCHING_LIFELINE_TRIGGER_COOLDOWN_SECONDS
+        events.push({
+          sourceId: state.player.id,
+          sourceSkillId: SOUL_TETHER_SKILL_ID,
+          sourceInstanceId: scorchingLifeline.id,
+          sourceLabel: 'Scorching Lifeline',
+          targetId: enemy.id,
+          damage: createDamageValues({
+            chaos: outgoingDamage.damage.fire * SCORCHING_LIFELINE_DAMAGE_RATIO,
+          }),
+          damageOverTime: true,
+        })
+      }
       if (thermalShock && chilled) {
         enemy.chillStacks = 0
         enemy.chillRemainingDuration = 0
@@ -714,6 +748,17 @@ function createProjectileImpactEffect(
     remainingLifetime: definition.effectLifetime,
     points: [{ x, y }],
   })
+  if (
+    state.run.selectedUpgradeIds.includes('synergy-glacial-orb-razorwire') &&
+    state.wires
+  ) {
+    for (const wire of state.wires) {
+      if (distanceToSegment(x, y, wire.ax, wire.ay, wire.bx, wire.by) <= FROSTLINE_RADIUS) {
+        wire.frostedRemainingDuration = FROSTLINE_DURATION_SECONDS
+        wire.frostedCrossingCooldownRemaining = 0
+      }
+    }
+  }
 }
 
 function collectProjectileImpactEvents(
@@ -744,6 +789,9 @@ function collectProjectileImpactEvents(
       sourceTags: projectile.sourceTags,
       targetId: hitEnemy.id,
       damage: getDamageForTarget(hitEnemy.id),
+      ...(projectile.returning && projectile.mendingReturn
+        ? { sourceLabel: 'Mending Return' }
+        : {}),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
       shockApplication: projectile.impactShockApplication,
@@ -770,6 +818,9 @@ function collectProjectileImpactEvents(
       sourceTags: projectile.sourceTags,
       targetId: enemy.id,
       damage: getDamageForTarget(enemy.id),
+      ...(projectile.returning && projectile.mendingReturn
+        ? { sourceLabel: 'Mending Return' }
+        : {}),
       criticalStrike: projectile.criticalStrike,
       frostApplication: projectile.impactFrostApplication,
       shockApplication: projectile.impactShockApplication,
@@ -1697,6 +1748,8 @@ export function applyDamageEvents(
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
       applyRuinSigilDamage(state, event, enemy, actualDamage, pendingEvents, idAllocator)
+      applyMendingReturnHealing(state, event, actualDamage)
+      applyCrimsonBulwark(state, event, actualDamage)
       applyBasicAttackSynergyHooks(state, enemy, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
@@ -1747,6 +1800,8 @@ export function applyDamageEvents(
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
       applyRuinSigilDamage(state, event, boss, actualDamage, pendingEvents, idAllocator)
+      applyMendingReturnHealing(state, event, actualDamage)
+      applyCrimsonBulwark(state, event, actualDamage)
       applyBasicAttackSynergyHooks(state, boss, event, actualDamage)
       if (isPlayerOwnedDirectHit(state, event)) {
         pendingEvents.push(...collectFieryTouchTriggerEvents(
@@ -2161,6 +2216,15 @@ function applyRuinSigilDamage(
       sigil.chargedCategories.push(category)
       sigil.charges += 1
     }
+    if (
+      event.sourceSkillId === CHAIN_LIGHTNING_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('synergy-chain-lightning-sigil-of-ruin') &&
+      !sigil.conductiveChargeAdded &&
+      sigil.charges < SIGIL_OF_RUIN_DETONATION_CHARGES
+    ) {
+      sigil.conductiveChargeAdded = true
+      sigil.charges += FRACTURED_CIRCUIT_BONUS_CHARGE
+    }
   }
   if (sigil.charges < SIGIL_OF_RUIN_DETONATION_CHARGES) {
     return
@@ -2175,6 +2239,65 @@ function applyRuinSigilDamage(
     }
   }
   detonateRuinSigil(state, sigil, target, pendingEvents, executionProtocol, idAllocator)
+}
+
+function applyMendingReturnHealing(
+  state: GameState,
+  event: Readonly<DamageEvent>,
+  actualDamage: number,
+): void {
+  if (
+    event.sourceSkillId !== RIFT_JAVELIN_SKILL_ID ||
+    event.sourceLabel !== 'Mending Return' ||
+    actualDamage <= 0 ||
+    (state.player.mendingReturnHealingRemaining ?? 0) <= 0
+  ) {
+    return
+  }
+  healPlayer(
+    state,
+    state.player.maxHp * MENDING_RETURN_HEAL_RATIO,
+    'Mending Return',
+  )
+  state.player.mendingReturnHealingRemaining = Math.max(
+    0,
+    (state.player.mendingReturnHealingRemaining ?? 0) - 1,
+  )
+}
+
+function applyCrimsonBulwark(
+  state: GameState,
+  event: Readonly<DamageEvent>,
+  actualDamage: number,
+): void {
+  if (
+    event.sourceSkillId !== BLOOD_RITE_SKILL_ID ||
+    event.damageOverTime ||
+    actualDamage <= 0 ||
+    !state.run.selectedUpgradeIds.includes('synergy-aegis-pulse-blood-rite') ||
+    (state.player.aegisPulseShieldRemaining ?? 0) <= 0
+  ) {
+    return
+  }
+  const shieldCap = (state.player.aegisPulseShieldMaxAmount ?? 0) *
+    (CRIMSON_BULWARK_MAX_SHIELD_PERCENT / 100)
+  const remainingCap = Math.max(
+    0,
+    shieldCap - (state.player.bloodRiteShieldRestored ?? 0),
+  )
+  const restored = Math.min(
+    remainingCap,
+    actualDamage * CRIMSON_BULWARK_SHIELD_RATIO,
+  )
+  if (restored <= 0) {
+    return
+  }
+  state.player.aegisPulseShieldAmount = Math.min(
+    state.player.aegisPulseShieldMaxAmount ?? 0,
+    (state.player.aegisPulseShieldAmount ?? 0) + restored,
+  )
+  state.player.bloodRiteShieldRestored =
+    (state.player.bloodRiteShieldRestored ?? 0) + restored
 }
 
 function detonateRuinSigil(

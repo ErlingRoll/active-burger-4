@@ -24,7 +24,11 @@ import {
   PHANTOM_ARSENAL_PROJECTILE_DEFINITION_ID,
   type ProjectileDefinitionId,
 } from '../../../content/projectiles/Projectiles'
-import { addDamageValues } from '../../../content/stats/Damage'
+import {
+  addDamageValues,
+  createDamageValues,
+  scaleDamageValues,
+} from '../../../content/stats/Damage'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import {
   clampPlayerPosition,
@@ -45,6 +49,9 @@ import {
   RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT,
   RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
   RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
+  ASHEN_LEGION_SPLASH_DAMAGE_RATIO,
+  ASHEN_LEGION_SPLASH_RADIUS,
+  ECHO_WELL_DAMAGE_RATIO,
 } from '../../../game-config/skills'
 import {
   getRallyingBannerCooldownReductionPercent,
@@ -445,6 +452,13 @@ export function updateSummons(
         return
       }
     }
+    summon.emberGuardRemaining = Math.max(
+      0,
+      (summon.emberGuardRemaining ?? 0) - fixedStepSeconds,
+    )
+    if (summon.emberGuardRemaining <= 0) {
+      summon.emberGuardCharges = 0
+    }
     const skillId = getSummonSkillId(summon)
     const stats = getCachedStats(skillId)
     if (!stats) {
@@ -530,8 +544,7 @@ export function updateSummons(
         projectileCount,
         skillDefinition.spreadDegrees ?? 0,
       )
-      state.projectiles.push(
-        ...spreadAngles.map((spreadAngle) => {
+      const summonProjectiles = spreadAngles.map((spreadAngle) => {
           const angle = directionAngle + spreadAngle
           return {
             id: allocator.createEntityId(),
@@ -554,8 +567,27 @@ export function updateSummons(
             criticalStrike: outgoingDamage.criticalStrike,
             remainingLifetime: projectileDefinition.lifetime,
           }
-        }),
-      )
+        })
+      state.projectiles.push(...summonProjectiles)
+      if (
+        skillId === PHANTOM_ARSENAL_SKILL_ID &&
+        state.run.selectedUpgradeIds.includes('synergy-gravity-well-phantom-arsenal') &&
+        state.player.gravityWellEchoPrimed
+      ) {
+        const echoProjectile = summonProjectiles[0]
+        if (echoProjectile) {
+          state.projectiles.push({
+            ...echoProjectile,
+            id: allocator.createEntityId(),
+            echoWell: true,
+            damage: scaleDamageValues(
+              echoProjectile.damage,
+              ECHO_WELL_DAMAGE_RATIO,
+            ),
+          })
+          state.player.gravityWellEchoPrimed = false
+        }
+      }
       return
     }
 
@@ -596,6 +628,31 @@ export function updateSummons(
       }
     }
     events.push(damageEvent)
+    if (
+      skillId === RAISE_SKELETON_SKILL_ID &&
+      state.run.selectedUpgradeIds.includes('synergy-raise-skeleton-cinder-mine') &&
+      (summon.emberGuardCharges ?? 0) > 0
+    ) {
+      summon.emberGuardCharges = Math.max(0, (summon.emberGuardCharges ?? 0) - 1)
+      for (const enemy of targets) {
+        if (
+          enemy.id !== attackTarget.id &&
+          Math.hypot(enemy.x - attackTarget.x, enemy.y - attackTarget.y) <=
+            ASHEN_LEGION_SPLASH_RADIUS + enemy.radius
+        ) {
+          events.push({
+            sourceId: summon.id,
+            sourceSkillId: RAISE_SKELETON_SKILL_ID,
+            sourceLabel: 'Ember Guard',
+            sourceTags: ['fire', 'area', 'summon'],
+            targetId: enemy.id,
+            damage: createDamageValues({
+              fire: damageEvent.damage.physical * ASHEN_LEGION_SPLASH_DAMAGE_RATIO,
+            }),
+          })
+        }
+      }
+    }
   })
   return events
 }

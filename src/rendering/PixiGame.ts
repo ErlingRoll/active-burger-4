@@ -369,9 +369,11 @@ export class PixiGame {
           .circle(0, 0, 7)
           .fill('#7e22ce')
     const hpBar = new Graphics()
+    const guardAura = new Graphics()
+    guardAura.visible = false
     const root = new Container()
-    root.addChild(body, hpBar)
-    return { root, body, hpBar }
+    root.addChild(guardAura, body, hpBar)
+    return { root, body, hpBar, guardAura }
   }
 
   private createEnemyPlaceholder(enemy: {
@@ -468,7 +470,15 @@ export class PixiGame {
     const view = new Graphics()
       .moveTo(-trailLength, 0)
       .lineTo(0, 0)
-      .stroke({ color: visual.secondaryColor, width: trailWidth, alpha: 0.8 })
+      .stroke({
+        color: projectile.mendingReturn
+          ? '#fef08a'
+          : projectile.echoWell
+            ? '#c084fc'
+            : visual.secondaryColor,
+        width: trailWidth,
+        alpha: 0.8,
+      })
     if (visual.projectileShape === 'orb') {
       view
         .circle(0, 0, projectile.radius * 1.9)
@@ -1336,6 +1346,15 @@ export class PixiGame {
         .fill({ color: visual.primaryColor, alpha: 0.34 })
         .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.85 })
     }
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-whirlwind-mirrorcast')) {
+      view
+        .moveTo(startX + normalX * 8, startY + normalY * 8)
+        .lineTo(endX + normalX * 8, endY + normalY * 8)
+        .stroke({ color: '#f0abfc', width: 1, alpha: 0.62 })
+        .moveTo(startX - normalX * 8, startY - normalY * 8)
+        .lineTo(endX - normalX * 8, endY - normalY * 8)
+        .stroke({ color: '#38bdf8', width: 1, alpha: 0.62 })
+    }
     return view
   }
 
@@ -1739,6 +1758,24 @@ export class PixiGame {
       .circle(endX, endY, 8)
       .fill({ color: visual.secondaryColor, alpha: 0.8 })
       .stroke({ color: visual.outlineColor, width: 2 })
+    if (this.game.state.run.selectedUpgradeIds.includes('synergy-fiery-touch-soul-tether')) {
+      view
+        .moveTo(startX, startY)
+        .lineTo(endX, endY)
+        .stroke({ color: '#fb923c', width: 1.5, alpha: 0.72 })
+        .poly([
+          endX,
+          endY - 8,
+          endX + 8,
+          endY,
+          endX,
+          endY + 8,
+          endX - 8,
+          endY,
+        ])
+        .fill({ color: '#f97316', alpha: 0.42 })
+        .stroke({ color: '#fed7aa', width: 1, alpha: 0.78 })
+    }
     return view
   }
 
@@ -1856,6 +1893,13 @@ export class PixiGame {
         .fill(visual.primaryColor)
         .stroke({ color: visual.outlineColor, width: 1.5 })
     }
+    if (relay.spectrumForkPrimed) {
+      view
+        .poly(createPolygonPoints(radius * 1.28, 6, time * 0.8))
+        .stroke({ color: '#fef08a', width: 2, alpha: 0.82 })
+        .poly(createPolygonPoints(radius * 1.05, 6, -time * 0.8))
+        .stroke({ color: '#38bdf8', width: 1.5, alpha: 0.72 })
+    }
   }
 
   private drawRuinSigil(
@@ -1900,6 +1944,15 @@ export class PixiGame {
       view
         .circle(0, 0, radius * 1.2)
         .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.5 })
+    }
+    if (sigil.conductiveChargeAdded) {
+      view
+        .poly(createPolygonPoints(radius * 1.26, 3, -Math.PI / 2))
+        .stroke({ color: '#67e8f9', width: 2, alpha: 0.85 })
+        .moveTo(-radius * 0.85, radius * 0.15)
+        .lineTo(0, -radius * 1.35)
+        .lineTo(radius * 0.85, radius * 0.15)
+        .stroke({ color: '#22d3ee', width: 1.5, alpha: 0.7 })
     }
   }
 
@@ -1963,6 +2016,21 @@ export class PixiGame {
         .lineTo(endX, endY)
         .stroke({ color: visual.outlineColor, width: 6, alpha: 0.12 })
     }
+    if ((wire.frostedRemainingDuration ?? 0) > 0) {
+      view
+        .moveTo(startX, startY)
+        .lineTo(endX, endY)
+        .stroke({ color: '#bae6fd', width: 8, alpha: 0.28 })
+      for (let index = 1; index < 4; index += 1) {
+        const progress = index / 4
+        const x = startX + (endX - startX) * progress
+        const y = startY + (endY - startY) * progress
+        view
+          .poly([x, y - 7, x + 5, y, x, y + 7, x - 5, y])
+          .fill({ color: '#e0f2fe', alpha: 0.78 })
+          .stroke({ color: '#7dd3fc', width: 1 })
+      }
+    }
   }
 
   private drawMirrorcastEcho(view: Graphics, time: number): void {
@@ -2020,6 +2088,14 @@ export class PixiGame {
       view
         .circle((index - (charges - 1) / 2) * 7, 0, 2.5)
         .fill({ color: visual.outlineColor, alpha: 0.9 })
+    }
+    if (
+      this.game.state.run.selectedUpgradeIds.includes('synergy-aegis-pulse-blood-rite') &&
+      (player.aegisPulseShieldRemaining ?? 0) > 0
+    ) {
+      view
+        .poly(createPolygonPoints(radius * 1.28, 6, time * 0.5))
+        .stroke({ color: '#67e8f9', width: 2, alpha: 0.78 })
     }
   }
 
@@ -2219,7 +2295,13 @@ export class PixiGame {
         .moveTo(previous.x, previous.y)
         .lineTo(point.x, point.y)
         .stroke({
-          color: index % 2 === 0 ? visual.primaryColor : visual.secondaryColor,
+          color: projectile.mendingReturn
+            ? '#fef08a'
+            : projectile.echoWell
+              ? '#c084fc'
+            : index % 2 === 0
+              ? visual.primaryColor
+              : visual.secondaryColor,
           width: Math.max(1, projectile.radius * (0.45 + progress * 0.7)),
           alpha: progress * 0.46,
         })
@@ -2297,6 +2379,20 @@ export class PixiGame {
       summonView.body.rotation = summon.skillId === PHANTOM_ARSENAL_SKILL_ID
         ? 0
         : state.time * 1.5
+      const emberGuardActive =
+        (summon.emberGuardCharges ?? 0) > 0 &&
+        (summon.emberGuardRemaining ?? 0) > 0
+      summonView.guardAura.visible = emberGuardActive
+      if (emberGuardActive) {
+        const guardRadius = 20 + Math.sin(state.time * 6 + summon.id) * 2
+        summonView.guardAura
+          .clear()
+          .poly(createPolygonPoints(guardRadius, 6, Math.PI / 6))
+          .stroke({ color: '#fb923c', width: 2, alpha: 0.7 })
+          .poly(createStarPoints(guardRadius * 0.74, 6, 0.45))
+          .fill({ color: '#f97316', alpha: 0.18 })
+          .stroke({ color: '#fed7aa', width: 1, alpha: 0.72 })
+      }
       this.drawHealthBar(
         summonView.hpBar,
         26,
@@ -3154,6 +3250,7 @@ interface SummonView {
   root: Container
   body: Graphics
   hpBar: Graphics
+  guardAura: Graphics
 }
 
 interface BossView {
