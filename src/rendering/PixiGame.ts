@@ -7,6 +7,9 @@ import {
 } from '../content/enemies/Enemies'
 import {
   getEliteModifierDefinition,
+  getEliteModifierIds,
+  normalizeEliteModifierIds,
+  type EliteModifierInput,
   type EliteModifierId,
 } from '../content/enemies/EliteModifiers'
 import {
@@ -476,6 +479,7 @@ export class PixiGame {
     radius: number
     definitionId: string
     eliteModifier?: EliteModifierId
+    eliteModifiers?: readonly EliteModifierId[]
   }): EnemyView {
     const definition = getEnemyDefinition(enemy.definitionId)
     const body = new Graphics()
@@ -503,8 +507,8 @@ export class PixiGame {
     poisonAura.visible = false
     applyEnemyRenderScale(poisonAura, definition.render)
     root.addChild(poisonAura)
-    if (enemy.eliteModifier) {
-      const modifier = getEliteModifierDefinition(enemy.eliteModifier)
+    for (const modifierId of getEliteModifierIds(enemy)) {
+      const modifier = getEliteModifierDefinition(modifierId)
       const aura = createEliteAura(modifier, radius)
       applyEnemyRenderScale(aura, definition.render)
       root.addChild(aura)
@@ -512,7 +516,10 @@ export class PixiGame {
     root.addChild(body)
 
     const label = new Text({
-      text: getEnemyDisplayLabel(enemy.definitionId, enemy.eliteModifier),
+      text: getEnemyDisplayLabel(
+        enemy.definitionId,
+        getEliteModifierIds(enemy),
+      ),
       style: {
         fill: '#f8fafc',
         fontSize: 14,
@@ -3329,7 +3336,7 @@ export class PixiGame {
       }
       enemyView.label.text = getEnemyDisplayLabel(
         enemy.definitionId,
-        enemy.eliteModifier,
+        getEliteModifierIds(enemy),
       )
       const attackProgress = getEnemyMeleeAttackAnimationProgress(
         state.time,
@@ -4307,13 +4314,16 @@ interface RenderPoint {
 
 export function getEnemyDisplayLabel(
   definitionId: string,
-  eliteModifier?: EliteModifierId,
+  eliteModifiers?: EliteModifierInput,
 ): string {
   const definition = getEnemyDefinition(definitionId)
-  if (!eliteModifier) {
+  const modifierIds = normalizeEliteModifierIds(eliteModifiers)
+  if (modifierIds.length === 0) {
     return definition.name
   }
-  return `${definition.name} · ${getEliteModifierDefinition(eliteModifier).name}`
+  return `${definition.name} · ${modifierIds.map(
+    (modifierId) => getEliteModifierDefinition(modifierId).name,
+  ).join(' / ')}`
 }
 
 export function getEnemyMeleeAttackAnimationProgress(

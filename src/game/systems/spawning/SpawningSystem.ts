@@ -4,8 +4,9 @@ import {
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
 import {
   getEliteModifierDefinition,
+  normalizeEliteModifierIds,
   isEliteModifierAllowedForEnemy,
-  type EliteModifierId,
+  type EliteModifierInput,
 } from '../../../content/enemies/EliteModifiers'
 import { XP_BALANCE } from '../../../content/progression/XpBalance'
 import {
@@ -191,7 +192,7 @@ export function spawnEnemy(
   definitionId: EnemyDefinitionId,
   position: WorldPosition,
   xpRewardOverride?: number,
-  eliteModifier?: EliteModifierId,
+  eliteModifiers?: EliteModifierInput,
   effects?: Pick<
     WorldModifierEffects,
     | 'ordinaryEnemyMaxHpMultiplier'
@@ -201,18 +202,21 @@ export function spawnEnemy(
   canDropLoot = true,
 ): EntityId {
   const definition = getEnemyDefinition(definitionId)
-  const eligibleEliteModifier =
-    eliteModifier !== undefined &&
-    isEliteModifierAllowedForEnemy(definition.id, eliteModifier)
-      ? eliteModifier
-      : undefined
-  const modifier = eligibleEliteModifier
-    ? getEliteModifierDefinition(eligibleEliteModifier)
-    : undefined
+  const eligibleEliteModifiers = normalizeEliteModifierIds(eliteModifiers).filter(
+    (modifierId) => isEliteModifierAllowedForEnemy(definition.id, modifierId),
+  )
+  const modifiers = eligibleEliteModifiers.map(getEliteModifierDefinition)
   const baseXpReward = xpRewardOverride ?? definition.xpReward
   const xpReward =
     baseXpReward > 0
-      ? Math.round(baseXpReward * (modifier?.xpRewardMultiplier ?? 1))
+      ? Math.round(
+          baseXpReward *
+            modifiers.reduce(
+              (multiplier, modifier) =>
+                multiplier * modifier.xpRewardMultiplier,
+              1,
+            ),
+        )
       : baseXpReward
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   const floor = state.run.floor ?? 1
@@ -227,7 +231,10 @@ export function spawnEnemy(
   )
   const maxHp = scaledStats.maxHp *
     floorDifficulty.ordinaryEnemyHpMultiplier *
-    (modifier?.maxHpMultiplier ?? 1) *
+    modifiers.reduce(
+      (multiplier, modifier) => multiplier * modifier.maxHpMultiplier,
+      1,
+    ) *
     (effects?.ordinaryEnemyMaxHpMultiplier ?? 1)
   const enemyId = idAllocator.createEntityId()
   const enemy: EnemyState = {
@@ -235,14 +242,20 @@ export function spawnEnemy(
     definitionId: definition.id,
     x: position.x,
     y: position.y,
-    radius: definition.radius * (modifier?.radiusMultiplier ?? 1),
+    radius: definition.radius * modifiers.reduce(
+      (multiplier, modifier) => multiplier * modifier.radiusMultiplier,
+      1,
+    ),
     hp: maxHp,
     maxHp,
     spawnTime: state.time,
     speed: definition.speed *
       getEnemyMovementSpeedMultiplier(enemyId) *
       floorDifficulty.ordinaryEnemySpeedMultiplier *
-      (modifier?.speedMultiplier ?? 1) *
+      modifiers.reduce(
+        (multiplier, modifier) => multiplier * modifier.speedMultiplier,
+        1,
+      ) *
       (effects?.ordinaryEnemySpeedMultiplier ?? 1),
     contactDamage: scaledStats.contactDamage *
       floorDifficulty.ordinaryEnemyContactDamageMultiplier *
@@ -254,7 +267,12 @@ export function spawnEnemy(
       ? { controlResistance: definition.controlResistance }
       : {}),
     ...(definition.resistances ? { resistances: { ...definition.resistances } } : {}),
-    ...(modifier ? { eliteModifier: modifier.id } : {}),
+    ...(eligibleEliteModifiers.length > 0
+      ? {
+          eliteModifier: eligibleEliteModifiers[0],
+          eliteModifiers: eligibleEliteModifiers,
+        }
+      : {}),
     abilityCooldownRemaining: 0,
     targetId: state.player.id,
   }
@@ -404,7 +422,7 @@ export function updateEnemySpawns(
       request.definitionId,
       request,
       undefined,
-      request.eliteModifier,
+      request.eliteModifiers ?? request.eliteModifier,
       effects,
     )
   }

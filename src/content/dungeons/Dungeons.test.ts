@@ -115,6 +115,10 @@ describe('default dungeon timeline foundation', () => {
     const floorOneHundred = getFloorDifficultyProfile(100)
 
     expect(floorOne.abilityIntensity).toBeGreaterThan(0)
+    expect(floorOne.maxEliteModifierCount).toBe(1)
+    expect(floorNineteen.maxEliteModifierCount).toBe(1)
+    expect(floorTwenty.maxEliteModifierCount).toBe(2)
+    expect(floorOneHundred.maxEliteModifierCount).toBe(3)
     expect(floorFive.ordinaryEnemySpeedMultiplier).toBe(1)
     expect(floorTwenty.ordinaryEnemySpeedMultiplier).toBeGreaterThan(
       floorNineteen.ordinaryEnemySpeedMultiplier,

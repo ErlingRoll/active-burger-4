@@ -19,6 +19,7 @@ export interface SpawnRequest {
   x: number
   y: number
   eliteModifier?: EliteModifierId
+  eliteModifiers?: readonly EliteModifierId[]
 }
 
 export type SpawnDirectorState = Pick<GameState, 'time'> & {
@@ -144,7 +145,7 @@ export class SpawnDirector {
           (this.balance.spawnRingOuterRadius -
             this.balance.spawnRingInnerRadius)
 
-      const eliteModifier = this.selectEliteModifier(
+      const eliteModifiers = this.selectEliteModifiers(
         state.time,
         state.run?.floor ?? 1,
         entry.definitionId,
@@ -153,18 +154,23 @@ export class SpawnDirector {
         definitionId: entry.definitionId,
         x: state.player.x + Math.cos(angle) * radius,
         y: state.player.y + Math.sin(angle) * radius,
-        ...(eliteModifier ? { eliteModifier } : {}),
+        ...(eliteModifiers.length > 0
+          ? {
+              eliteModifier: eliteModifiers[0],
+              eliteModifiers,
+            }
+          : {}),
       })
     }
 
     return requests
   }
 
-  private selectEliteModifier(
+  private selectEliteModifiers(
     timeSeconds: number,
     floorNumber: number,
     enemyDefinitionId: EnemyDefinitionId,
-  ): EliteModifierId | undefined {
+  ): EliteModifierId[] {
     const floorDifficulty = getFloorDifficultyProfile(floorNumber)
     if (
       timeSeconds < this.balance.eliteStartTimeSeconds ||
@@ -175,7 +181,7 @@ export class SpawnDirector {
         ),
       )
     ) {
-      return undefined
+      return []
     }
 
     const weightedModifiers = Object.entries(
@@ -193,17 +199,40 @@ export class SpawnDirector {
       0,
     )
     if (totalWeight <= 0) {
-      return undefined
+      return []
     }
 
-    let selection = this.random.next() * totalWeight
-    for (const [modifierId, weight] of weightedModifiers) {
-      selection -= weight
-      if (selection < 0) {
-        return modifierId
+    const selectedModifiers: EliteModifierId[] = []
+    const availableModifiers = [...weightedModifiers]
+    const maxModifiers = Math.min(
+      floorDifficulty.maxEliteModifierCount,
+      availableModifiers.length,
+    )
+    while (selectedModifiers.length < maxModifiers) {
+      const availableWeight = availableModifiers.reduce(
+        (sum, [, weight]) => sum + weight,
+        0,
+      )
+      let selection = this.random.next() * availableWeight
+      let selected = false
+      for (let index = 0; index < availableModifiers.length; index += 1) {
+        const [modifierId, weight] = availableModifiers[index]!
+        selection -= weight
+        if (selection < 0) {
+          selectedModifiers.push(modifierId)
+          availableModifiers.splice(index, 1)
+          selected = true
+          break
+        }
+      }
+      if (!selected) {
+        const fallback = availableModifiers.pop()
+        if (fallback) {
+          selectedModifiers.push(fallback[0])
+        }
       }
     }
-    return weightedModifiers[weightedModifiers.length - 1]?.[0]
+    return selectedModifiers
   }
 
   private selectSpawnEntry(

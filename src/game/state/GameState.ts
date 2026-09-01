@@ -391,6 +391,8 @@ export interface EnemyState {
 
   /** Assigned once at spawn and never inferred by the renderer. */
   eliteModifier?: EliteModifierId
+  /** All distinct modifiers assigned once at spawn, in weighted selection order. */
+  eliteModifiers?: readonly EliteModifierId[]
   resistances?: Partial<DamageResistanceValues>
   poisonStacks?: PoisonStackState[]
   chillStacks?: number

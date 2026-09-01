@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isAdminAppMetadata,
   isMissingProfileDisplayNameError,
+  resolveProviderDisplayName,
   resolveAuthEnvironment,
   resolveAuthRedirectUrl,
 } from './AuthService'
@@ -42,6 +43,19 @@ describe('Supabase authentication configuration', () => {
     expect(isAdminAppMetadata({ role: 'user' })).toBe(false)
     expect(isAdminAppMetadata({ role: 'admin', nested: { role: 'user' } })).toBe(true)
     expect(isAdminAppMetadata(null)).toBe(false)
+  })
+
+  it('uses the Discord global name when no approved nickname is available', () => {
+    expect(resolveProviderDisplayName({
+      custom_claims: { global_name: 'BurgerKnight' },
+      preferred_username: 'burger_knight',
+    })).toBe('BurgerKnight')
+  })
+
+  it('falls back through other identity-provider display name fields', () => {
+    expect(resolveProviderDisplayName({ preferred_username: 'burger_knight' }))
+      .toBe('burger_knight')
+    expect(resolveProviderDisplayName({})).toBeNull()
   })
 
   it('uses the configured OAuth redirect URL when provided', () => {

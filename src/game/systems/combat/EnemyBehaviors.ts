@@ -4,7 +4,10 @@ import {
   type EnemySplitDefinition,
 } from '../../../content/enemies/Enemies'
 import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
-import { getEliteModifierDefinition } from '../../../content/enemies/EliteModifiers'
+import {
+  getEliteModifierDefinition,
+  getEliteModifierIds,
+} from '../../../content/enemies/EliteModifiers'
 import type { EnemyState, GameState } from '../../state/GameState'
 import { SpatialHash } from '../../spatial/SpatialHash'
 
@@ -52,9 +55,9 @@ const INTERCEPT_DISTANCE_EPSILON = 1e-6
 export function getEffectiveEnemyBehavior(
   enemy: Readonly<EnemyState>,
 ): EnemyBehaviorDefinition {
-  const behaviorOverride = enemy.eliteModifier
-    ? getEliteModifierDefinition(enemy.eliteModifier).behaviorOverride
-    : undefined
+  const behaviorOverride = getEliteModifierIds(enemy)
+    .map(getEliteModifierDefinition)
+    .find((modifier) => modifier.behaviorOverride)?.behaviorOverride
   return behaviorOverride ?? getEnemyDefinition(enemy.definitionId).behavior
 }
 

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { AuthAccount, SignInOptions } from './AuthService'
+import type { AuthAccount, SignInOptions, SignUpResult } from './AuthService'
 
 export type AuthenticationStatus = 'unavailable' | 'loading' | 'ready' | 'error'
 
@@ -16,6 +16,11 @@ interface AuthPanelProps {
     password: string,
     options?: SignInOptions,
   ) => Promise<boolean>
+  onSignUp: (
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ) => Promise<SignUpResult | null>
   onSignInWithDiscord: (options?: SignInOptions) => Promise<boolean>
   onSignOut: () => Promise<boolean>
 }
@@ -23,21 +28,43 @@ interface AuthPanelProps {
 export function AuthPanel({
   authentication,
   onSignIn,
+  onSignUp,
   onSignInWithDiscord,
   onSignOut,
 }: AuthPanelProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [persistSession, setPersistSession] = useState(false)
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
+  const [formError, setFormError] = useState<string | null>(null)
+  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [discordSubmitting, setDiscordSubmitting] = useState(false)
 
-  const submitSignIn = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+  const submitCredentials = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
+    setFormError(null)
+    setConfirmationMessage(null)
+    if (mode === 'sign-up' && password !== confirmPassword) {
+      setFormError('Passwords do not match.')
+      return
+    }
     setSubmitting(true)
     try {
-      await onSignIn(email, password, { persistSession })
+      if (mode === 'sign-in') {
+        await onSignIn(email, password, { persistSession })
+      } else {
+        const result = await onSignUp(email, password, { persistSession })
+        if (result?.needsEmailConfirmation) {
+          setConfirmationMessage(
+            `Check ${email} for a confirmation email, then sign in to continue.`,
+          )
+          setMode('sign-in')
+        }
+      }
       setPassword('')
+      setConfirmPassword('')
     } finally {
       setSubmitting(false)
     }
@@ -95,8 +122,12 @@ export function AuthPanel({
   return (
     <section className="account-panel" aria-labelledby="account-title">
       <p className="screen-kicker">Account</p>
-      <h3 id="account-title">Sign in</h3>
-      <p>Sign in to prepare this device for account-backed progression.</p>
+      <h3 id="account-title">{mode === 'sign-in' ? 'Sign in' : 'Create account'}</h3>
+      <p>
+        {mode === 'sign-in'
+          ? 'Sign in to prepare this device for account-backed progression.'
+          : 'Create an account with your email address and password.'}
+      </p>
       <button
         className="primary-action discord-sign-in"
         type="button"
@@ -111,7 +142,7 @@ export function AuthPanel({
       <div className="sign-in-divider" role="separator" aria-label="or">
         <span>or</span>
       </div>
-      <form className="sign-in-form" onSubmit={submitSignIn}>
+      <form className="sign-in-form" onSubmit={submitCredentials}>
         <label>
           Email
           <input
@@ -127,7 +158,7 @@ export function AuthPanel({
         <label>
           Password
           <input
-            autoComplete="current-password"
+            autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
             disabled={authentication.status === 'loading' || submitting}
             name="password"
             required
@@ -136,6 +167,20 @@ export function AuthPanel({
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
+        {mode === 'sign-up' ? (
+          <label>
+            Confirm password
+            <input
+              autoComplete="new-password"
+              disabled={authentication.status === 'loading' || submitting}
+              name="confirm-password"
+              required
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </label>
+        ) : null}
         <label className="remember-session">
           <input
             checked={persistSession}
@@ -146,15 +191,37 @@ export function AuthPanel({
           />
           Keep me signed in on this browser
         </label>
+        {formError ? (
+          <p className="persistence-error" role="alert">{formError}</p>
+        ) : null}
         {authentication.error ? (
           <p className="persistence-error" role="alert">{authentication.error}</p>
+        ) : null}
+        {confirmationMessage ? (
+          <p className="auth-success" role="status">{confirmationMessage}</p>
         ) : null}
         <button
           className="secondary-action"
           disabled={authentication.status === 'loading' || submitting}
           type="submit"
         >
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {submitting
+            ? mode === 'sign-in' ? 'Signing in…' : 'Creating account…'
+            : mode === 'sign-in' ? 'Sign in' : 'Create account'}
+        </button>
+        <button
+          className="text-action"
+          disabled={authentication.status === 'loading' || submitting}
+          type="button"
+          onClick={() => {
+            setMode((currentMode) => currentMode === 'sign-in' ? 'sign-up' : 'sign-in')
+            setPassword('')
+            setConfirmPassword('')
+            setFormError(null)
+            setConfirmationMessage(null)
+          }}
+        >
+          {mode === 'sign-in' ? 'Create an account' : 'I already have an account'}
         </button>
       </form>
     </section>

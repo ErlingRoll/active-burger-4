@@ -96,6 +96,7 @@ import type {
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
+import { getEliteModifierIds } from '../../../content/enemies/EliteModifiers'
 import {
   GEAR_XP_BLESSING_MULTIPLIER,
 } from '../../../game-config/gear'
@@ -2614,7 +2615,7 @@ export function removeDeadEntities(
         spawnPickup({ x: enemy.x, y: enemy.y }, enemy.xpReward)
       }
       const randomGearDrop = enemy.canDropLoot !== false && (random?.chance(
-        getGearDropChance(enemy.definitionId, enemy.eliteModifier, {
+        getGearDropChance(enemy.definitionId, getEliteModifierIds(enemy), {
           timeSeconds: state.time,
           floorNumber: state.run.floor,
           chanceMultiplier: state.player.gearDropChanceMultiplier,
@@ -2636,7 +2637,7 @@ export function removeDeadEntities(
         }
       }
       if (enemy.canDropLoot !== false) {
-        const potionChance = enemy.eliteModifier
+        const potionChance = getEliteModifierIds(enemy).length > 0
           ? HEALING_POTION_ELITE_DROP_CHANCE
           : HEALING_POTION_ORDINARY_DROP_CHANCE
         if (random?.chance(potionChance) ?? false) {

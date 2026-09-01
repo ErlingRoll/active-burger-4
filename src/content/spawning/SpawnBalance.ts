@@ -29,8 +29,9 @@ export interface SpawnBalance {
   spawnRingOuterRadius: number
   /**
    * Elites begin after 45 seconds so the first composition is readable. Once
-   * enabled, 10% of normal director spawns receive one weighted modifier.
-   * Splitter children bypass this roll and remain ordinary children.
+   * enabled, 10% of normal director spawns receive weighted, distinct modifiers.
+   * Floor difficulty raises the maximum from one to three. Splitter children
+   * bypass this roll and remain ordinary children.
    */
   eliteChance: number
   eliteStartTimeSeconds: number

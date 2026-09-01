@@ -104,7 +104,7 @@ import {
   updateEnemySpawns,
 } from './systems/spawning/SpawningSystem'
 import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
-import type { EliteModifierId } from '../content/enemies/EliteModifiers'
+import type { EliteModifierInput } from '../content/enemies/EliteModifiers'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import { refreshPlayerDerivedStats } from './stats/DerivedStats'
 import {
@@ -930,7 +930,7 @@ export class Game {
     definitionId: EnemyDefinitionId,
     position: WorldPosition,
     xpRewardOverride?: number,
-    eliteModifier?: EliteModifierId,
+    eliteModifiers?: EliteModifierInput,
     canDropLoot?: boolean,
   ): EntityId {
     return spawnEnemy(
@@ -939,7 +939,7 @@ export class Game {
       definitionId,
       position,
       xpRewardOverride,
-      eliteModifier,
+      eliteModifiers,
       this.worldModifierEffects,
       canDropLoot,
     )

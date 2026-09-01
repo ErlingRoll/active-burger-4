@@ -23,6 +23,11 @@ export interface SignInOptions {
   persistSession?: boolean
 }
 
+export interface SignUpResult {
+  account: AuthAccount | null
+  needsEmailConfirmation: boolean
+}
+
 export interface AuthenticationService {
   getSession(): Promise<AuthAccount | null>
   getClient(): SupabaseClient
@@ -31,6 +36,11 @@ export interface AuthenticationService {
     password: string,
     options?: SignInOptions,
   ): Promise<AuthAccount>
+  signUpWithPassword(
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ): Promise<SignUpResult>
   signInWithDiscord(options?: SignInOptions): Promise<void>
   signOut(): Promise<void>
   subscribe(onAccountChange: (account: AuthAccount | null) => void): () => void
@@ -152,11 +162,8 @@ export function createAuthenticationServiceFromClient(
     onAccountChange: (account: AuthAccount | null) => void,
   ): void => {
     const { data } = activeClient.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
+      (_event: AuthChangeEvent, session: Session | null) => {
         const account = toAuthAccount(session)
-        if (account && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-          void ensureProfile(activeClient, account.id, account.displayName)
-        }
         onAccountChange(account)
       },
     )
@@ -205,8 +212,31 @@ export function createAuthenticationServiceFromClient(
       if (!account) {
         throw new Error('Authentication completed without an active session.')
       }
-      await ensureProfile(activeClient, account.id, account.displayName)
       return account
+    },
+
+    async signUpWithPassword(
+      email: string,
+      password: string,
+      options: SignInOptions = {},
+    ): Promise<SignUpResult> {
+      switchClient(options.persistSession ?? true)
+      const { data, error } = await activeClient.auth.signUp({
+        email,
+        password,
+        options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+      })
+      if (error) {
+        throw error
+      }
+      if (!data.user) {
+        throw new Error('Registration completed without creating an account.')
+      }
+      const account = toAuthAccount(data.session)
+      return {
+        account,
+        needsEmailConfirmation: account === null,
+      }
     },
 
     async signInWithDiscord(options: SignInOptions = {}): Promise<void> {
@@ -249,7 +279,7 @@ function toAuthAccountFromUser(user: User): AuthAccount {
   return {
     id: user.id,
     email: user.email ?? null,
-    displayName: resolveDisplayName(user),
+    displayName: resolveProviderDisplayName(user.user_metadata),
     isAdmin: isAdminAppMetadata(user.app_metadata),
   }
 }
@@ -262,16 +292,20 @@ export function isAdminAppMetadata(metadata: unknown): boolean {
   return appMetadata.role === 'admin'
 }
 
-function resolveDisplayName(user: User): string | null {
-  const metadata = user.user_metadata as Record<string, unknown> | undefined
+export function resolveProviderDisplayName(metadata: unknown): string | null {
+  if (typeof metadata !== 'object' || metadata === null) {
+    return null
+  }
+  const userMetadata = metadata as Record<string, unknown>
+  const customClaims = userMetadata.custom_claims
   const candidates = [
-    metadata?.full_name,
-    metadata?.name,
-    metadata?.custom_claims && typeof metadata.custom_claims === 'object'
-      ? (metadata.custom_claims as Record<string, unknown>).global_name
+    userMetadata.full_name,
+    userMetadata.name,
+    typeof customClaims === 'object' && customClaims !== null
+      ? (customClaims as Record<string, unknown>).global_name
       : undefined,
-    metadata?.preferred_username,
-    metadata?.user_name,
+    userMetadata.preferred_username,
+    userMetadata.user_name,
   ]
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
@@ -279,27 +313,4 @@ function resolveDisplayName(user: User): string | null {
     }
   }
   return null
-}
-
-async function ensureProfile(
-  client: SupabaseClient,
-  accountId: string,
-  displayName: string | null,
-): Promise<void> {
-  const response = await client
-    .from('profiles')
-    .upsert({ id: accountId, display_name: displayName }, { onConflict: 'id' })
-  if (!response.error) {
-    return
-  }
-  if (!isMissingProfileDisplayNameError(response.error)) {
-    throw response.error
-  }
-
-  const fallbackResponse = await client
-    .from('profiles')
-    .upsert({ id: accountId }, { onConflict: 'id' })
-  if (fallbackResponse.error) {
-    throw fallbackResponse.error
-  }
 }

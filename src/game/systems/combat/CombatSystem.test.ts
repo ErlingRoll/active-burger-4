@@ -1182,6 +1182,21 @@ describe('collectEnemyContactDamage', () => {
     })
   })
 
+  it('combines elemental contact effects from multiple elite modifiers', () => {
+    const gameState = state([{
+      ...enemy(2, 34),
+      eliteModifiers: ['fiery', 'frigid'],
+    }])
+
+    const [event] = collectEnemyContactDamage(gameState, 1 / 60)
+
+    expect(event?.damage).toMatchObject({
+      physical: 5,
+      fire: 2.5,
+      cold: 2.5,
+    })
+  })
+
   it('makes Poisoner contact hits apply independent poison stacks to the player', () => {
     const gameState = state([{
       ...enemy(2, 34),

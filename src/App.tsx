@@ -22,10 +22,16 @@ import {
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   AuthPanel,
+  AccountSettingsMenu,
   createAuthenticationService,
+  createNicknameService,
   type AuthenticationState,
   type AuthenticationService,
+  type NicknameChangeRequest,
+  type NicknameService,
+  type NicknameState,
   type SignInOptions,
+  type SignUpResult,
 } from './auth'
 import {
   createMetaProgressionService,
@@ -55,6 +61,7 @@ import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
 import { AdminReportsScreen } from './admin/AdminReportsScreen'
+import { NicknameModerationScreen } from './admin/NicknameModerationScreen'
 import {
   createBugReportService,
   type BugReportDungeonContext,
@@ -88,7 +95,14 @@ import './App.css'
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
 const RUN_GAME_VERSION = APP_VERSION ?? 'development'
 
-type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results' | 'admin'
+type AppScreen =
+  | 'dashboard'
+  | 'run-setup'
+  | 'meta-progression'
+  | 'gameplay'
+  | 'results'
+  | 'admin'
+  | 'nickname-moderation'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 
 const APP_ROUTE_PATHS: Record<AppScreen, string> = {
@@ -98,6 +112,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   gameplay: '/',
   results: '/',
   admin: '/admin',
+  'nickname-moderation': '/admin/nicknames',
 }
 
 const PLAYSTYLE_ICONS: Record<PlaystyleId, string> = {
@@ -121,6 +136,9 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   if (normalizedPath === APP_ROUTE_PATHS.admin) {
     return 'admin'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS['nickname-moderation']) {
+    return 'nickname-moderation'
   }
   return 'dashboard'
 }
@@ -349,12 +367,32 @@ function App() {
       }
     }
   }, [authenticationService])
+  const nicknameService = useMemo<{ service: NicknameService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createNicknameService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
       authenticationService.service,
       authenticationService.configurationError,
     ),
   )
+  const [nickname, setNickname] = useState<NicknameState>({
+    displayName: null,
+    pendingNickname: null,
+  })
   const [metaProgression, setMetaProgression] = useState<MetaProgressionState>(() =>
     createInitialMetaProgressionState(
       metaProgressionService.service,
@@ -395,6 +433,11 @@ function App() {
     hiddenReportIds: number[]
     error: string | null
   }>({ loadState: 'idle', reports: [], hiddenReportIds: [], error: null })
+  const [nicknameModeration, setNicknameModeration] = useState<{
+    loadState: 'idle' | 'loading' | 'ready' | 'error'
+    requests: NicknameChangeRequest[]
+    error: string | null
+  }>({ loadState: 'idle', requests: [], error: null })
   const [showHiddenAdminReports, setShowHiddenAdminReports] = useState(false)
 
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
@@ -466,6 +509,45 @@ function App() {
       unsubscribe()
     }
   }, [authenticationService])
+
+  useEffect(() => {
+    const accountId = authentication.account?.id
+    const service = nicknameService.service
+    if (!accountId) {
+      setNickname({ displayName: null, pendingNickname: null })
+      return
+    }
+    if (!service) {
+      setAuthentication((current) => ({
+        ...current,
+        error: nicknameService.configurationError ?? 'Nickname settings are unavailable.',
+      }))
+      return
+    }
+
+    let cancelled = false
+    void service.loadOwnNickname(accountId)
+      .then((loadedNickname) => {
+        if (!cancelled) {
+          setNickname(loadedNickname)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setAuthentication((current) => ({
+            ...current,
+            error: `Unable to load nickname settings: ${errorMessage(error)}`,
+          }))
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    authentication.account?.id,
+    nicknameService.configurationError,
+    nicknameService.service,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -629,9 +711,9 @@ function App() {
     }
     await bugReport.service.submit({
       userId: authentication.account.id,
-      username: authentication.account.displayName ??
-        authentication.account.email ??
-        authentication.account.id,
+      username: nickname.displayName ??
+        authentication.account.displayName ??
+        'Anonymous player',
       description,
       image,
       dungeon,
@@ -644,6 +726,26 @@ function App() {
     authentication.account,
     bugReport.configurationError,
     bugReport.service,
+    showToast,
+  ])
+
+  const requestNicknameChange = useCallback(async (requestedNickname: string): Promise<void> => {
+    if (!authentication.account) {
+      throw new Error('Sign in before changing your nickname.')
+    }
+    if (!nicknameService.service) {
+      throw new Error(nicknameService.configurationError ?? 'Nickname settings are unavailable.')
+    }
+    await nicknameService.service.requestChange(requestedNickname)
+    setNickname((current) => ({
+      ...current,
+      pendingNickname: requestedNickname,
+    }))
+    showToast('Nickname submitted for moderator review.', 'info')
+  }, [
+    authentication.account,
+    nicknameService.configurationError,
+    nicknameService.service,
     showToast,
   ])
 
@@ -714,6 +816,38 @@ function App() {
     [authenticationService],
   )
 
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      options?: SignInOptions,
+    ): Promise<SignUpResult | null> => {
+      const service = authenticationService.service
+      if (!service) {
+        setAuthentication({
+          status: 'unavailable',
+          account: null,
+          error: authenticationService.configurationError ?? 'Authentication unavailable.',
+        })
+        return null
+      }
+      try {
+        const result = await service.signUpWithPassword(email, password, options)
+        if (result.account) {
+          setAuthentication({ status: 'ready', account: result.account, error: null })
+          setMetaLoadAttempt((attempt) => attempt + 1)
+        } else {
+          setAuthentication({ status: 'ready', account: null, error: null })
+        }
+        return result
+      } catch (error: unknown) {
+        setAuthentication({ status: 'error', account: null, error: errorMessage(error) })
+        return null
+      }
+    },
+    [authenticationService],
+  )
+
   const signInWithDiscord = useCallback(
     async (options?: SignInOptions): Promise<boolean> => {
       const service = authenticationService.service
@@ -764,7 +898,13 @@ function App() {
       setTerminalSaveState('idle')
       setTerminalSaveError(null)
       setActiveRunSubmission(null)
-      setAdminReports({ loadState: 'idle', reports: [], hiddenReportIds: [], error: null })
+      setAdminReports({
+        loadState: 'idle',
+        reports: [],
+        hiddenReportIds: [],
+        error: null,
+      })
+      setNicknameModeration({ loadState: 'idle', requests: [], error: null })
       setShowHiddenAdminReports(false)
       navigateToScreen('dashboard', true)
       return true
@@ -1170,6 +1310,14 @@ function App() {
     navigateToScreen('admin')
   }, [authentication.account, navigateToScreen, showToast])
 
+  const openNicknameModeration = useCallback((): void => {
+    if (!authentication.account?.isAdmin) {
+      showToast('Administrator access is required.', 'error')
+      return
+    }
+    navigateToScreen('nickname-moderation')
+  }, [authentication.account, navigateToScreen, showToast])
+
   const closeAdmin = useCallback((): void => {
     navigateToScreen('dashboard', true)
   }, [navigateToScreen])
@@ -1219,6 +1367,42 @@ function App() {
     }
   }, [authentication.account, refreshAdminReports, screen])
 
+  const refreshNicknameModeration = useCallback((): void => {
+    if (!authentication.account?.isAdmin) {
+      return
+    }
+    if (!nicknameService.service) {
+      setNicknameModeration((current) => ({
+        ...current,
+        loadState: 'error',
+        error: nicknameService.configurationError ?? 'Nickname moderation is unavailable.',
+      }))
+      return
+    }
+    setNicknameModeration((current) => ({ ...current, loadState: 'loading', error: null }))
+    void nicknameService.service.loadPendingChanges()
+      .then((requests) => {
+        setNicknameModeration({ loadState: 'ready', requests, error: null })
+      })
+      .catch((error: unknown) => {
+        setNicknameModeration((current) => ({
+          ...current,
+          loadState: 'error',
+          error: errorMessage(error),
+        }))
+      })
+  }, [
+    authentication.account,
+    nicknameService.configurationError,
+    nicknameService.service,
+  ])
+
+  useEffect(() => {
+    if (screen === 'nickname-moderation' && authentication.account?.isAdmin) {
+      refreshNicknameModeration()
+    }
+  }, [authentication.account, refreshNicknameModeration, screen])
+
   const toggleBugReportHidden = useCallback(async (
     reportId: number,
     hidden: boolean,
@@ -1256,6 +1440,33 @@ function App() {
     authentication.account,
     bugReport.configurationError,
     bugReport.service,
+  ])
+
+  const reviewNicknameChange = useCallback(async (
+    requestId: number,
+    approve: boolean,
+  ): Promise<void> => {
+    try {
+      if (!authentication.account?.isAdmin) {
+        throw new Error('Administrator access is required.')
+      }
+      if (!nicknameService.service) {
+        throw new Error(nicknameService.configurationError ?? 'Nickname settings are unavailable.')
+      }
+      await nicknameService.service.reviewChange(requestId, approve)
+      setNicknameModeration((current) => ({
+        ...current,
+        requests: current.requests.filter((request) => request.id !== requestId),
+      }))
+      showToast(approve ? 'Nickname approved.' : 'Nickname rejected.', 'info')
+    } catch (error: unknown) {
+      showToast(`Unable to review nickname: ${errorMessage(error)}`, 'error')
+    }
+  }, [
+    authentication.account,
+    nicknameService.configurationError,
+    nicknameService.service,
+    showToast,
   ])
 
 
@@ -1311,7 +1522,14 @@ function App() {
   if (persistence.loadState === 'loading') {
     return (
       <main className="app-shell">
-        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
+        <AppHeader
+          authentication={authentication}
+          nickname={nickname}
+          onRequestNicknameChange={requestNicknameChange}
+          onSignOut={signOut}
+          onOpenAdmin={openAdmin}
+          onOpenNicknameModeration={openNicknameModeration}
+        />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
             <p className="screen-kicker">Local persistence</p>
@@ -1326,7 +1544,14 @@ function App() {
   if (persistence.loadState === 'error' || !settings || !profile || !runConfig) {
     return (
       <main className="app-shell">
-        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
+        <AppHeader
+          authentication={authentication}
+          nickname={nickname}
+          onRequestNicknameChange={requestNicknameChange}
+          onSignOut={signOut}
+          onOpenAdmin={openAdmin}
+          onOpenNicknameModeration={openNicknameModeration}
+        />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
             <p className="screen-kicker">Local persistence error</p>
@@ -1355,7 +1580,14 @@ function App() {
   return (
     <main className={`app-shell${screen === 'gameplay' ? ' app-shell-gameplay' : ''}`}>
       {screen !== 'gameplay' ? (
-        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
+        <AppHeader
+          authentication={authentication}
+          nickname={nickname}
+          onRequestNicknameChange={requestNicknameChange}
+          onSignOut={signOut}
+          onOpenAdmin={openAdmin}
+          onOpenNicknameModeration={openNicknameModeration}
+        />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
         <GameDashboard
@@ -1386,12 +1618,25 @@ function App() {
           onLoadFloorSnapshot={loadBugReportFloorSnapshot}
         />
       ) : null}
-      {screen === 'admin' && (!authentication.account || !authentication.account.isAdmin) ? (
+      {screen === 'nickname-moderation' && authentication.account?.isAdmin ? (
+        <NicknameModerationScreen
+          requests={nicknameModeration.requests}
+          loadState={nicknameModeration.loadState === 'idle' ? 'loading' : nicknameModeration.loadState}
+          error={nicknameModeration.error}
+          onBack={closeAdmin}
+          onRefresh={refreshNicknameModeration}
+          onReview={(requestId, approve) => {
+            void reviewNicknameChange(requestId, approve)
+          }}
+        />
+      ) : null}
+      {(screen === 'admin' || screen === 'nickname-moderation') &&
+      (!authentication.account || !authentication.account.isAdmin) ? (
         <section className="dashboard" aria-labelledby="admin-access-title">
           <div className="dashboard-panel" role="alert">
             <p className="screen-kicker">Restricted route</p>
             <h2 id="admin-access-title">Administrator access required</h2>
-            <p>Only administrator accounts can view bug reports.</p>
+            <p>Only administrator accounts can view moderation tools.</p>
             <button className="secondary-action" type="button" onClick={closeAdmin}>
               Back to dashboard
             </button>
@@ -1403,6 +1648,7 @@ function App() {
         <AuthGateway
           authentication={authentication}
           onSignIn={signIn}
+          onSignUp={signUp}
           onSignInWithDiscord={signInWithDiscord}
           onSignOut={signOut}
         />
@@ -1467,14 +1713,20 @@ function App() {
 
 interface AppHeaderProps {
   authentication: AuthenticationState
+  nickname: NicknameState
+  onRequestNicknameChange: (nickname: string) => Promise<void>
   onSignOut: () => Promise<boolean>
   onOpenAdmin: () => void
+  onOpenNicknameModeration: () => void
 }
 
 function AppHeader({
   authentication,
+  nickname,
+  onRequestNicknameChange,
   onSignOut,
   onOpenAdmin,
+  onOpenNicknameModeration,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -1487,16 +1739,28 @@ function AppHeader({
         <div className="app-account">
           <span className="app-account-label">Signed in</span>
           <strong className="app-account-email">
-            {authentication.account.displayName ?? authentication.account.email ?? 'Account unavailable'}
+            {nickname.displayName ??
+              authentication.account.displayName ??
+              'Anonymous player'}
           </strong>
           {authentication.error ? (
             <span className="app-account-error">{authentication.error}</span>
           ) : null}
           {authentication.account.isAdmin ? (
-            <button className="app-admin-link" type="button" onClick={onOpenAdmin}>
-              Bug reports
-            </button>
+            <>
+              <button className="app-admin-link" type="button" onClick={onOpenAdmin}>
+                Bug reports
+              </button>
+              <button className="app-admin-link" type="button" onClick={onOpenNicknameModeration}>
+                Nickname requests
+              </button>
+            </>
           ) : null}
+          <AccountSettingsMenu
+            displayName={nickname.displayName}
+            pendingNickname={nickname.pendingNickname}
+            onRequestNicknameChange={onRequestNicknameChange}
+          />
           <button className="app-sign-out" type="button" onClick={() => { void onSignOut() }}>
             Sign out
           </button>
@@ -1891,6 +2155,11 @@ interface AuthGatewayProps {
     password: string,
     options?: SignInOptions,
   ) => Promise<boolean>
+  onSignUp: (
+    email: string,
+    password: string,
+    options?: SignInOptions,
+  ) => Promise<SignUpResult | null>
   onSignInWithDiscord: (options?: SignInOptions) => Promise<boolean>
   onSignOut: () => Promise<boolean>
 }
@@ -1898,6 +2167,7 @@ interface AuthGatewayProps {
 function AuthGateway({
   authentication,
   onSignIn,
+  onSignUp,
   onSignInWithDiscord,
   onSignOut,
 }: AuthGatewayProps) {
@@ -1912,6 +2182,7 @@ function AuthGateway({
         <AuthPanel
           authentication={authentication}
           onSignIn={onSignIn}
+          onSignUp={onSignUp}
           onSignInWithDiscord={onSignInWithDiscord}
           onSignOut={onSignOut}
         />

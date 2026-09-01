@@ -25,7 +25,10 @@ import type {
   EnemyState,
   GameState,
 } from '../state/GameState'
-import { getEliteModifierDefinition } from '../../content/enemies/EliteModifiers'
+import {
+  getEliteModifierDefinition,
+  getEliteModifierIds,
+} from '../../content/enemies/EliteModifiers'
 import {
   getDerivedPlayerStats,
   type PlayerStats,
@@ -215,6 +218,7 @@ interface MonsterDamageSource {
   critChance?: number
   critMultiplier?: number
   eliteModifier?: EnemyState['eliteModifier']
+  eliteModifiers?: EnemyState['eliteModifiers']
 }
 
 export function createMonsterCriticalStrikeStats(
@@ -231,18 +235,23 @@ export function createMonsterDamageProfile(
   source?: Readonly<MonsterDamageSource>,
 ): ResolvedOutgoingDamage {
   const damage = createDamageValues(baseDamage)
-  const eliteModifier = source?.eliteModifier
-    ? getEliteModifierDefinition(source.eliteModifier)
-    : undefined
-  if (eliteModifier?.extraDamageType) {
-    damage[eliteModifier.extraDamageType] +=
-      damage.physical * (eliteModifier.extraPhysicalDamageRatio ?? 0)
+  const eliteModifiers = source
+    ? getEliteModifierIds(source).map(getEliteModifierDefinition)
+    : []
+  for (const modifier of eliteModifiers) {
+    if (modifier.extraDamageType) {
+      damage[modifier.extraDamageType] +=
+        damage.physical * (modifier.extraPhysicalDamageRatio ?? 0)
+    }
   }
+  const poisonApplication = eliteModifiers.find(
+    (modifier) => modifier.poisonApplication,
+  )?.poisonApplication
   return {
     damage,
     criticalStrike: createMonsterCriticalStrikeStats(source),
-    ...(eliteModifier?.poisonApplication
-      ? { poisonApplication: eliteModifier.poisonApplication }
+    ...(poisonApplication
+      ? { poisonApplication }
       : {}),
   }
 }

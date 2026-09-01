@@ -14,6 +14,13 @@ export type EliteModifierId =
   | 'poisoner'
   | 'flanking'
 
+export const MAX_ELITE_MODIFIER_COUNT = 3
+
+export type EliteModifierInput =
+  | EliteModifierId
+  | readonly EliteModifierId[]
+  | undefined
+
 export type EliteAuraStyle =
   | 'ring'
   | 'flames'
@@ -142,6 +149,30 @@ export function getEliteModifierDefinition(
   modifierId: EliteModifierId,
 ): EliteModifierDefinition {
   return ELITE_MODIFIER_DEFINITIONS[modifierId]
+}
+
+export function normalizeEliteModifierIds(
+  modifierInput: EliteModifierInput,
+): EliteModifierId[] {
+  const modifierIds = Array.isArray(modifierInput)
+    ? modifierInput
+    : modifierInput
+      ? [modifierInput]
+      : []
+  return [...new Set(modifierIds)].slice(0, MAX_ELITE_MODIFIER_COUNT)
+}
+
+export function getEliteModifierIds(
+  entity: Pick<{
+    eliteModifier?: EliteModifierId
+    eliteModifiers?: readonly EliteModifierId[]
+  }, 'eliteModifier' | 'eliteModifiers'>,
+): readonly EliteModifierId[] {
+  return entity.eliteModifiers?.length
+    ? entity.eliteModifiers
+    : entity.eliteModifier
+      ? [entity.eliteModifier]
+      : []
 }
 
 export function isEliteModifierAllowedForEnemy(

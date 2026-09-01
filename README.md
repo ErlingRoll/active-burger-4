@@ -25,6 +25,18 @@ The Discord provider's callback URL must remain the Supabase callback URL
 (`https://<project-ref>.supabase.co/auth/v1/callback`), not the application
 URL. The application URL is passed as the OAuth `redirect_to` value.
 
+## Nickname moderation
+
+Nickname changes are requests, not immediate public profile edits. Apply the
+Supabase migrations and use the administrator **Bug reports** route to approve
+or reject each request. This is deliberately an approval workflow: it prevents
+offensive or hateful names from being displayed even if a browser client is
+modified or bypasses the UI.
+
+An approved nickname takes priority. Until then, the player's Discord display
+name is used as the public fallback; only players without either name appear as
+Anonymous player.
+
 ## Validation
 
 ```bash

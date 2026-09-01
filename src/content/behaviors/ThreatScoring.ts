@@ -1,4 +1,5 @@
 import type { EnemyDefinitionId } from '../enemies/Enemies'
+import { getEliteModifierIds } from '../enemies/EliteModifiers'
 import type { EnemyState, BossState } from '../../game/state/GameState'
 
 /**
@@ -46,9 +47,10 @@ export function getEntityThreatScore(
     : getThreatScoreDefinition(entity.definitionId)
   const base = definition?.base ?? BOSS_THREAT_SCORE
   const packBonus = definition?.packBonus ?? 0
-  const eliteMultiplier = entity.eliteModifier
-    ? (definition?.eliteMultiplier ?? 1.5)
-    : 1
+  const eliteMultiplier = Math.pow(
+    definition?.eliteMultiplier ?? 1.5,
+    getEliteModifierIds(entity).length,
+  )
   const healthRatio = entity.maxHp > 0
     ? Math.max(0, Math.min(1, entity.hp / entity.maxHp))
     : 0

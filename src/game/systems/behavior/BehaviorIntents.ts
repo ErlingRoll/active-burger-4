@@ -587,6 +587,7 @@ function createKiteCandidate(
   }
 
   const isSingleManageableThreat = nearby.length === 1 &&
+    !nearby[0].eliteModifiers?.length &&
     !nearby[0].eliteModifier &&
     !('bossDefinitionId' in nearby[0]) &&
     (threatScores.get(nearby[0]) ?? 0) <=

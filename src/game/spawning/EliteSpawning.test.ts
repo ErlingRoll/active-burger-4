@@ -74,6 +74,42 @@ describe('elite enemy spawning and rewards', () => {
     expect(spawn?.eliteModifier).toBe('poisoner')
   })
 
+  it('adds up to three distinct modifiers as floor difficulty increases', () => {
+    const balance = {
+      ...SPAWN_BALANCE,
+      eliteChance: 1,
+      eliteStartTimeSeconds: 0,
+      eliteModifierWeights: {
+        hasted: 1,
+        giant: 1,
+        fiery: 1,
+        electrocuting: 0,
+        frigid: 0,
+        poisoner: 0,
+        flanking: 0,
+      },
+    }
+    const random = {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => true,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    const [early] = new SpawnDirector(random, balance).update(
+      { ...directorState(), run: { floor: 1 } },
+      1,
+    )
+    const [late] = new SpawnDirector(random, balance).update(
+      { ...directorState(), run: { floor: 50 } },
+      1,
+    )
+
+    expect(early?.eliteModifiers).toEqual(['hasted'])
+    expect(late?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
+    expect(new Set(late?.eliteModifiers ?? []).size).toBe(3)
+  })
+
   it('assigns Flanking to ordinary enemies but not to Flanker enemies', () => {
     const weights = {
       hasted: 0,
@@ -135,6 +171,24 @@ describe('elite enemy spawning and rewards', () => {
     expect(normal?.eliteModifier).toBeUndefined()
   })
 
+  it('applies each distinct stacked modifier exactly once', () => {
+    const game = createGame({ seed: 12 })
+    game.spawnEnemy(
+      'slime',
+      { x: 500, y: 0 },
+      undefined,
+      ['hasted', 'giant', 'hasted', 'fiery'],
+    )
+
+    const elite = game.state.enemies[0]
+    expect(elite?.eliteModifier).toBe('hasted')
+    expect(elite?.eliteModifiers).toEqual(['hasted', 'giant', 'fiery'])
+    expect(elite?.radius).toBe(27)
+    expect(elite?.maxHp).toBe(100)
+    expect(elite?.xpReward).toBe(18)
+    expect(getGearDropChance('slime', elite?.eliteModifiers)).toBeCloseTo(0.315)
+  })
+
   it('spawns elemental elite modifiers with their authored identities', () => {
     const game = createGame({ seed: 14 })
     game.spawnEnemy('slime', { x: 500, y: 0 }, undefined, 'fiery')
@@ -178,6 +232,9 @@ describe('elite enemy spawning and rewards', () => {
     expect(getEnemyDisplayLabel('slime', 'hasted')).toBe('Slime · Hasted')
     expect(getEnemyDisplayLabel('brute', 'giant')).toBe('Brute · Giant')
     expect(getEnemyDisplayLabel('slime', 'flanking')).toBe('Slime · Flanking')
+    expect(getEnemyDisplayLabel('slime', ['hasted', 'giant'])).toBe(
+      'Slime · Hasted / Giant',
+    )
   })
 
   it('projects a short melee attack animation window from the attack timestamp', () => {
