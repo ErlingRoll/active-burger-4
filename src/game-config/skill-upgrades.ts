@@ -1327,11 +1327,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'critical-spellstrike-level',
     name: 'Critical Focus',
-    description: `Increase Critical Spellstrike trigger effectiveness by ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points.`,
+    description: `Increase Critical Spellstrike trigger effectiveness by ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)}%.`,
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
-    valueLabel: `+${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points trigger effectiveness`,
+    valueLabel: `+${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)}% trigger effectiveness`,
     skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
     skillAction: 'level',
     isEligible: (state) => (state.skillLevels[CRITICAL_SPELLSTRIKE_SKILL_ID] ?? 0) >= 1,
@@ -1355,7 +1355,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'critical-spellstrike-overwhelming-spellstrike',
     name: 'Overwhelming Spellstrike',
-    description: `Set Critical Spellstrike baseline trigger effectiveness to ${Math.round(CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS * 100)}%; Critical Focus still adds ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)} percentage points per rank.`,
+    description: `Set Critical Spellstrike baseline trigger effectiveness to ${Math.round(CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS * 100)}%; Critical Focus still adds ${Math.round(CRITICAL_SPELLSTRIKE_EFFECTIVENESS_PER_LEVEL * 100)}% per rank.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
