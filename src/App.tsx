@@ -54,11 +54,13 @@ import {
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
+import { AdminReportsScreen } from './admin/AdminReportsScreen'
 import {
   createBugReportService,
   type BugReportDungeonContext,
   type BugReportImage,
   type BugReportService,
+  type BugReport,
 } from './bug-report'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
@@ -85,7 +87,7 @@ import './App.css'
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
 const RUN_GAME_VERSION = APP_VERSION ?? 'development'
 
-type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results'
+type AppScreen = 'dashboard' | 'run-setup' | 'meta-progression' | 'gameplay' | 'results' | 'admin'
 type PersistenceLoadState = 'loading' | 'ready' | 'error'
 
 const APP_ROUTE_PATHS: Record<AppScreen, string> = {
@@ -94,6 +96,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'meta-progression': '/store',
   gameplay: '/',
   results: '/',
+  admin: '/admin',
 }
 
 const PLAYSTYLE_ICONS: Record<PlaystyleId, string> = {
@@ -114,6 +117,9 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   if (normalizedPath === APP_ROUTE_PATHS['meta-progression']) {
     return 'meta-progression'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS.admin) {
+    return 'admin'
   }
   return 'dashboard'
 }
@@ -382,6 +388,13 @@ function App() {
   const [terminalCheckpoint, setTerminalCheckpoint] = useState<GameCheckpoint | null>(null)
   const [terminalSaveState, setTerminalSaveState] = useState<RunWriteState>('idle')
   const [terminalSaveError, setTerminalSaveError] = useState<string | null>(null)
+  const [adminReports, setAdminReports] = useState<{
+    loadState: 'idle' | 'loading' | 'ready' | 'error'
+    reports: BugReport[]
+    hiddenReportIds: number[]
+    error: string | null
+  }>({ loadState: 'idle', reports: [], hiddenReportIds: [], error: null })
+  const [showHiddenAdminReports, setShowHiddenAdminReports] = useState(false)
 
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
     const nextPath = APP_ROUTE_PATHS[nextScreen]
@@ -746,6 +759,8 @@ function App() {
       setTerminalSaveState('idle')
       setTerminalSaveError(null)
       setActiveRunSubmission(null)
+      setAdminReports({ loadState: 'idle', reports: [], hiddenReportIds: [], error: null })
+      setShowHiddenAdminReports(false)
       navigateToScreen('dashboard', true)
       return true
     } catch (error: unknown) {
@@ -1097,6 +1112,86 @@ function App() {
     navigateToScreen('dashboard', true)
   }, [navigateToScreen])
 
+  const openAdmin = useCallback((): void => {
+    if (!authentication.account?.isAdmin) {
+      showToast('Administrator access is required.', 'error')
+      return
+    }
+    navigateToScreen('admin')
+  }, [authentication.account, navigateToScreen, showToast])
+
+  const closeAdmin = useCallback((): void => {
+    navigateToScreen('dashboard', true)
+  }, [navigateToScreen])
+
+  const refreshAdminReports = useCallback((): void => {
+    if (!authentication.account?.isAdmin) {
+      return
+    }
+    if (!bugReport.service) {
+      setAdminReports((current) => ({
+        ...current,
+        loadState: 'error',
+        error: bugReport.configurationError ?? 'Bug reporting is unavailable.',
+      }))
+      return
+    }
+    setAdminReports((current) => ({ ...current, loadState: 'loading', error: null }))
+    void Promise.all([
+      bugReport.service.loadAll(),
+      repository.getHiddenBugReportIds(authentication.account.id),
+    ])
+      .then(([reports, hiddenReportIds]) => {
+        setAdminReports({
+          loadState: 'ready',
+          reports,
+          hiddenReportIds: [...hiddenReportIds],
+          error: null,
+        })
+      })
+      .catch((error: unknown) => {
+        setAdminReports((current) => ({
+          ...current,
+          loadState: 'error',
+          error: errorMessage(error),
+        }))
+      })
+  }, [
+    authentication.account,
+    bugReport.configurationError,
+    bugReport.service,
+    repository,
+  ])
+
+  useEffect(() => {
+    if (screen === 'admin' && authentication.account?.isAdmin) {
+      refreshAdminReports()
+    }
+  }, [authentication.account, refreshAdminReports, screen])
+
+  const toggleBugReportHidden = useCallback(async (
+    reportId: number,
+    hidden: boolean,
+  ): Promise<void> => {
+    const userId = authentication.account?.id
+    if (!userId) {
+      return
+    }
+    try {
+      await repository.setBugReportHidden(userId, reportId, !hidden)
+      setAdminReports((current) => ({
+        ...current,
+        hiddenReportIds: hidden
+          ? current.hiddenReportIds.filter((id) => id !== reportId)
+          : current.hiddenReportIds.includes(reportId)
+            ? current.hiddenReportIds
+            : [...current.hiddenReportIds, reportId],
+      }))
+    } catch (error: unknown) {
+      showToast(`Unable to update bug report visibility: ${errorMessage(error)}`, 'error')
+    }
+  }, [authentication.account, repository, showToast])
+
 
   useEffect(() => {
     const service = metaProgressionService.service
@@ -1150,7 +1245,7 @@ function App() {
   if (persistence.loadState === 'loading') {
     return (
       <main className="app-shell">
-        <AppHeader authentication={authentication} onSignOut={signOut} />
+        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
             <p className="screen-kicker">Local persistence</p>
@@ -1165,7 +1260,7 @@ function App() {
   if (persistence.loadState === 'error' || !settings || !profile || !runConfig) {
     return (
       <main className="app-shell">
-        <AppHeader authentication={authentication} onSignOut={signOut} />
+        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
             <p className="screen-kicker">Local persistence error</p>
@@ -1194,7 +1289,7 @@ function App() {
   return (
     <main className={`app-shell${screen === 'gameplay' ? ' app-shell-gameplay' : ''}`}>
       {screen !== 'gameplay' ? (
-        <AppHeader authentication={authentication} onSignOut={signOut} />
+        <AppHeader authentication={authentication} onSignOut={signOut} onOpenAdmin={openAdmin} />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
         <GameDashboard
@@ -1210,6 +1305,31 @@ function App() {
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
         />
+      ) : null}
+      {screen === 'admin' && authentication.account?.isAdmin ? (
+        <AdminReportsScreen
+          reports={adminReports.reports}
+          hiddenReportIds={new Set(adminReports.hiddenReportIds)}
+          showHidden={showHiddenAdminReports}
+          loadState={adminReports.loadState === 'idle' ? 'loading' : adminReports.loadState}
+          error={adminReports.error}
+          onBack={closeAdmin}
+          onRefresh={refreshAdminReports}
+          onToggleShowHidden={() => { setShowHiddenAdminReports((current) => !current) }}
+          onToggleHide={(reportId, hidden) => { void toggleBugReportHidden(reportId, hidden) }}
+        />
+      ) : null}
+      {screen === 'admin' && (!authentication.account || !authentication.account.isAdmin) ? (
+        <section className="dashboard" aria-labelledby="admin-access-title">
+          <div className="dashboard-panel" role="alert">
+            <p className="screen-kicker">Restricted route</p>
+            <h2 id="admin-access-title">Administrator access required</h2>
+            <p>Only administrator accounts can view bug reports.</p>
+            <button className="secondary-action" type="button" onClick={closeAdmin}>
+              Back to dashboard
+            </button>
+          </div>
+        </section>
       ) : null}
       {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression') &&
       !authentication.account ? (
@@ -1280,11 +1400,13 @@ function App() {
 interface AppHeaderProps {
   authentication: AuthenticationState
   onSignOut: () => Promise<boolean>
+  onOpenAdmin: () => void
 }
 
 function AppHeader({
   authentication,
   onSignOut,
+  onOpenAdmin,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -1301,6 +1423,11 @@ function AppHeader({
           </strong>
           {authentication.error ? (
             <span className="app-account-error">{authentication.error}</span>
+          ) : null}
+          {authentication.account.isAdmin ? (
+            <button className="app-admin-link" type="button" onClick={onOpenAdmin}>
+              Bug reports
+            </button>
           ) : null}
           <button className="app-sign-out" type="button" onClick={() => { void onSignOut() }}>
             Sign out

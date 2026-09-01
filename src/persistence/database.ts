@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   BasicProfileRecord,
+  HiddenBugReportRecord,
   SettingsRecord,
 } from './types'
 
@@ -17,6 +18,7 @@ export interface PersistenceTable<T extends { id: string }> {
 export interface PersistenceStore {
   settings: PersistenceTable<SettingsRecord>
   profile: PersistenceTable<BasicProfileRecord>
+  hiddenBugReports: PersistenceTable<HiddenBugReportRecord>
 }
 
 /**
@@ -30,6 +32,7 @@ export interface PersistenceStore {
 export class LocalPersistenceDatabase extends Dexie {
   settings!: Table<SettingsRecord, string>
   profile!: Table<BasicProfileRecord, string>
+  hiddenBugReports!: Table<HiddenBugReportRecord, string>
 
   constructor(name = LOCAL_PERSISTENCE_DATABASE_NAME) {
     super(name)
@@ -50,6 +53,11 @@ export class LocalPersistenceDatabase extends Dexie {
       profile: 'id',
       pendingResults: null,
     })
+    this.version(3).stores({
+      settings: 'id',
+      profile: 'id',
+      hiddenBugReports: 'id, userId, reportId',
+    })
   }
 }
 
@@ -59,6 +67,6 @@ export function createDexiePersistenceStore(
   return {
     settings: database.settings,
     profile: database.profile,
+    hiddenBugReports: database.hiddenBugReports,
   }
 }
-

@@ -1317,7 +1317,7 @@ describe('skill system', () => {
         .toBe(STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS)
     })
 
-    it('makes Conduit permanent and adds a burst pulse around the relay', () => {
+    it('keeps one permanent Conduit relay when recast and adds a burst pulse around it', () => {
       const game = createGame({ seed: 89 })
       game.state.player.skills = [{
         skillId: STORM_RELAY_SKILL_ID,
@@ -1332,6 +1332,18 @@ describe('skill system', () => {
 
       updateStormRelay(game.state, 1000, allocator)
       expect(game.state.relays).toHaveLength(1)
+
+      game.state.player.x = 50
+      game.state.player.y = 75
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.relays).toHaveLength(1)
+      expect(game.state.relays?.[0]).toMatchObject({
+        permanent: true,
+        x: 50,
+        y: 75,
+      })
     })
   })
 

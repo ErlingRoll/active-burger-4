@@ -143,6 +143,7 @@ import {
   spawnStairs,
   updateStairs,
 } from './systems/stairs/StairsSystem'
+import { resetFloorCombatState } from './systems/stairs/FloorTransitionReset'
 import {
   cancelBossTelegraphs,
   resolveBossTelegraphs,
@@ -1115,6 +1116,7 @@ export class Game {
       this.gameState.run.floor = toFloor
       this.gameState.run.floorStartedAt = this.gameState.time
       healPlayer(this.gameState, this.gameState.player.maxHp, 'Entering new floor')
+      resetFloorCombatState(this.gameState)
     }
     this.gameState.floorTransition = {
       remainingSeconds: 0,

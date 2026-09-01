@@ -1001,11 +1001,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'storm-relay-conduit',
     name: 'Conduit',
-    description: `Storm Relay never expires and also zaps every enemy within ${STORM_RELAY_CONDUIT_BURST_RADIUS} units of itself on each strike.`,
+    description: `Storm Relay never expires, maintains only one relay, and zaps every enemy within ${STORM_RELAY_CONDUIT_BURST_RADIUS} units of itself on each strike.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
-    valueLabel: 'Permanent relay, adds a burst pulse',
+    valueLabel: 'One permanent relay, adds a burst pulse',
     skillId: STORM_RELAY_SKILL_ID,
     branch: 'storm-relay-conduit',
     evolutionTags: ['duration', 'area-of-effect'],

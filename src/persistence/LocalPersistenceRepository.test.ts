@@ -9,6 +9,7 @@ import {
 import type { PersistenceStore, PersistenceTable } from './database'
 import type {
   BasicProfileRecord,
+  HiddenBugReportRecord,
   SettingsRecord,
 } from './types'
 import { createPersistenceRepository } from './LocalPersistenceRepository'
@@ -36,6 +37,7 @@ function memoryStore(): PersistenceStore {
   return {
     settings: memoryTable<SettingsRecord>(),
     profile: memoryTable<BasicProfileRecord>(),
+    hiddenBugReports: memoryTable<HiddenBugReportRecord>(),
   }
 }
 
@@ -160,5 +162,18 @@ describe('local persistence schema', () => {
     expect((await repository.getBasicProfile()).unlockedDungeonMaxFloorIds).toContain(
       'default-dungeon-20-floor',
     )
+  })
+
+  it('persists hidden bug reports separately for each user', async () => {
+    const repository = createPersistenceRepository(memoryStore())
+    await repository.setBugReportHidden('user-a', 12, true)
+    await repository.setBugReportHidden('user-b', 12, true)
+    await repository.setBugReportHidden('user-a', 13, true)
+
+    expect(await repository.getHiddenBugReportIds('user-a')).toEqual(new Set([12, 13]))
+    expect(await repository.getHiddenBugReportIds('user-b')).toEqual(new Set([12]))
+
+    await repository.setBugReportHidden('user-a', 12, false)
+    expect(await repository.getHiddenBugReportIds('user-a')).toEqual(new Set([13]))
   })
 })

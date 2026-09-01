@@ -2,6 +2,7 @@ export {
   createAuthenticationService,
   createAuthenticationServiceFromClient,
   getSupabaseClient,
+  isAdminAppMetadata,
   isMissingProfileDisplayNameError,
   resolveAuthEnvironment,
   resolveAuthRedirectUrl,

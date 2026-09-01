@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isAdminAppMetadata,
   isMissingProfileDisplayNameError,
   resolveAuthEnvironment,
   resolveAuthRedirectUrl,
@@ -34,6 +35,13 @@ describe('Supabase authentication configuration', () => {
       code: '42501',
       message: 'new row violates row-level security policy',
     })).toBe(false)
+  })
+
+  it('recognizes administrators from the auth app metadata role', () => {
+    expect(isAdminAppMetadata({ role: 'admin' })).toBe(true)
+    expect(isAdminAppMetadata({ role: 'user' })).toBe(false)
+    expect(isAdminAppMetadata({ role: 'admin', nested: { role: 'user' } })).toBe(true)
+    expect(isAdminAppMetadata(null)).toBe(false)
   })
 
   it('uses the configured OAuth redirect URL when provided', () => {

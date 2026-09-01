@@ -13,6 +13,10 @@ import type {
 const SETTINGS_ID = 'settings' as const
 const PROFILE_ID = 'profile' as const
 
+function hiddenBugReportId(userId: string, reportId: number): string {
+  return `${userId}:${reportId}`
+}
+
 export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
   selectedDungeonMaxFloorContractId?: string
@@ -31,6 +35,8 @@ export interface PersistenceRepository {
   getBasicProfile(): Promise<BasicProfileDto>
   saveBasicProfile(profile: BasicProfileDto): Promise<BasicProfileDto>
   unlockDungeonMaxFloor(contractId: string): Promise<BasicProfileDto>
+  getHiddenBugReportIds(userId: string): Promise<Set<number>>
+  setBugReportHidden(userId: string, reportId: number, hidden: boolean): Promise<void>
 }
 
 export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
@@ -84,6 +90,28 @@ export class LocalPersistenceRepositoryImpl implements PersistenceRepository {
       profile.unlockedDungeonMaxFloorIds.push(contractId)
     }
     return this.saveBasicProfile(profile)
+  }
+
+  async getHiddenBugReportIds(userId: string): Promise<Set<number>> {
+    const records = await this.store.hiddenBugReports.toArray()
+    return new Set(
+      records
+        .filter((record) => record.userId === userId)
+        .map((record) => record.reportId),
+    )
+  }
+
+  async setBugReportHidden(
+    userId: string,
+    reportId: number,
+    hidden: boolean,
+  ): Promise<void> {
+    const id = hiddenBugReportId(userId, reportId)
+    if (hidden) {
+      await this.store.hiddenBugReports.put({ id, userId, reportId })
+    } else {
+      await this.store.hiddenBugReports.delete(id)
+    }
   }
 }
 

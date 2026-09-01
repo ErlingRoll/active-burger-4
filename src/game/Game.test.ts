@@ -12,7 +12,10 @@ import {
 import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import { BOSS_DEATH_MAGNET_DURATION_SECONDS } from '../content/bosses/BossRewards'
 import { XP_BALANCE, xpRequiredForLevel } from '../content/progression/XpBalance'
-import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  CINDER_MINE_SKILL_ID,
+} from '../content/skills/Skills'
 import { equipItem, equipRolledItem } from './equipment/EquipmentState'
 import {
   updateBossDeathMagnet,
@@ -21,6 +24,7 @@ import {
 } from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
+import { collectSkillDamage } from './systems/skills/SkillSystem'
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
 
@@ -638,6 +642,49 @@ describe('Game', () => {
     expect(game.phase).toBe('playing')
     expect(game.state.run.floor).toBe(2)
     expect(game.state.player.hp).toBe(maxHp)
+  })
+
+  it('clears combat state before creating the next-floor checkpoint', () => {
+    const game = createGame({ seed: 20260834 })
+    game.state.player.skills.push({
+      skillId: CINDER_MINE_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+    collectSkillDamage(game.state, { createEntityId: () => 100 })
+    const cinderSkill = game.state.player.skills.find(
+      (skill) => skill.skillId === CINDER_MINE_SKILL_ID,
+    )!
+    cinderSkill.resonanceAttackCount = 3
+    game.state.player.basicAttackSynergyHitCount = 4
+    game.state.player.bloodDebt = {
+      charges: 1,
+      potency: 10,
+      sacrificedHealth: 5,
+      remainingDuration: 4,
+      sanguinePact: false,
+    }
+    game.state.effects.push({
+      id: 101,
+      skillId: CINDER_MINE_SKILL_ID,
+      x: 0,
+      y: 0,
+      radius: 65,
+      lifetime: 1,
+      remainingLifetime: 1,
+      points: [{ x: 0, y: 0 }],
+    })
+    game.spawnStairs({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('floor-transition')
+    expect(game.state.traps).toEqual([])
+    expect(game.state.effects).toEqual([])
+    expect(cinderSkill.resonanceAttackCount).toBe(0)
+    expect(game.state.player.basicAttackSynergyHitCount).toBe(0)
+    expect(game.state.player.bloodDebt).toBeUndefined()
+    expect(game.getFloorCheckpointSnapshot()?.gameState.traps).toEqual([])
   })
 
   it('holds simulation time until the floor checkpoint is acknowledged', () => {

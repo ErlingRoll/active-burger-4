@@ -27,3 +27,9 @@ export interface BasicProfileDto {
 
 export type SettingsRecord = SettingsDto & { id: 'settings' }
 export type BasicProfileRecord = BasicProfileDto & { id: 'profile' }
+
+export interface HiddenBugReportRecord {
+  id: string
+  userId: string
+  reportId: number
+}

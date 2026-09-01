@@ -16,6 +16,7 @@ export interface AuthAccount {
   id: string
   email: string | null
   displayName: string | null
+  isAdmin: boolean
 }
 
 export interface SignInOptions {
@@ -249,7 +250,16 @@ function toAuthAccountFromUser(user: User): AuthAccount {
     id: user.id,
     email: user.email ?? null,
     displayName: resolveDisplayName(user),
+    isAdmin: isAdminAppMetadata(user.app_metadata),
   }
+}
+
+export function isAdminAppMetadata(metadata: unknown): boolean {
+  if (typeof metadata !== 'object' || metadata === null) {
+    return false
+  }
+  const appMetadata = metadata as Record<string, unknown>
+  return appMetadata.role === 'admin'
 }
 
 function resolveDisplayName(user: User): string | null {
