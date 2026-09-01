@@ -75,7 +75,7 @@ import { SYNERGY_UPGRADES } from './synergies'
 const BASIC_ATTACK_LEVEL_DAMAGE_INCREASE_PERCENT = 10
 const WHIRLWIND_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const CHAIN_LIGHTNING_LEVEL_DAMAGE_INCREASE_PERCENT = 9
-const FIERY_TOUCH_LEVEL_DAMAGE_INCREASE = 5
+const FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT = 8
 const FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT = 5
 const VITALITY_HEALING_INCREASE_PER_LEVEL = 2
 const VITALITY_GLOBAL_HEALING_INCREASE_PERCENT = 2
@@ -386,13 +386,14 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'fiery-touch-level',
     name: 'Kindled Touch',
-    description: `Increase Fiery Touch damage by ${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE}.`,
+    description: `Increase Fiery Touch damage by ${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT}%.`,
     category: 'skill',
     rarity: Rarity.Common,
     amount: 1,
-    valueLabel: `+${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE} Fiery Touch fire damage per level`,
+    valueLabel: `+${FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT}% Fiery Touch damage per level`,
     skillId: FIERY_TOUCH_SKILL_ID,
     skillAction: 'level',
+    skillDamageIncreasePercent: FIERY_TOUCH_LEVEL_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) => (state.skillLevels[FIERY_TOUCH_SKILL_ID] ?? 0) >= 1,
   },
   {

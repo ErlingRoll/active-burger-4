@@ -752,6 +752,30 @@ describe('applyDamageEvents', () => {
     ])
   })
 
+  it('applies percentage level scaling to Fiery Touch trigger damage', () => {
+    const gameState = state([enemy(2, 20)])
+    gameState.player.skills.push({
+      skillId: FIERY_TOUCH_SKILL_ID,
+      level: 2,
+      cooldownRemaining: 0,
+    })
+
+    applyDamageEvents(gameState, [{
+      sourceId: gameState.player.id,
+      sourceSkillId: BASIC_ATTACK_SKILL_ID,
+      targetId: 2,
+      damage: {
+        physical: 1,
+        lightning: 0,
+        fire: 0,
+        cold: 0,
+        chaos: 0,
+      },
+    }], neverCrit, allocator)
+
+    expect(gameState.enemies[0]?.hp).toBeCloseTo(8.2)
+  })
+
   it('allows summon hits but excludes DoT and Fiery Touch self-triggering', () => {
     const gameState = state([enemy(2, 20)])
     gameState.enemies[0]!.hp = 200

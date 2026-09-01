@@ -433,7 +433,7 @@ export const SKILL_DEFINITIONS = {
     canProduceDirectHit: true,
     cooldown: 2,
     baseDamage: { fire: 10 },
-    damagePerLevel: { fire: 5 },
+    damagePerLevel: {},
     radius: 80,
     effectLifetime: 0.24,
     visual: {

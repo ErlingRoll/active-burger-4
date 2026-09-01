@@ -16,7 +16,7 @@ import { createGame } from '../../Game'
 import { applyUpgrade } from './UpgradeSystem'
 
 describe('skill upgrades', () => {
-  it('unlocks and levels Fiery Touch with flat fire damage growth', () => {
+  it('unlocks and levels Fiery Touch with percentage damage growth', () => {
     const game = createGame({ seed: 68 })
 
     applyUpgrade(game.state, 'fiery-touch-unlock')
@@ -30,7 +30,11 @@ describe('skill upgrades', () => {
       level: 2,
     }))
     expect(getSkillDamage(getSkillDefinition(FIERY_TOUCH_SKILL_ID), fieryTouch!.level))
-      .toMatchObject({ fire: 15 })
+      .toMatchObject({ fire: 10 })
+    expect(getSkillDamageIncreasePercent(
+      FIERY_TOUCH_SKILL_ID,
+      fieryTouch!.level,
+    )).toBe(8)
   })
 
   it('adds Fiery Touch cooldown reduction ranks additively', () => {

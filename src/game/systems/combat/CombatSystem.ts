@@ -283,7 +283,11 @@ function collectFieryTouchTriggerEvents(
     {
       sourceTags: definition.tags,
       additionalIncreasedDamage: {
-        global: state.player.fieryTouchDamageIncreasePercent ?? 0,
+        global: getSkillDamageIncreasePercent(
+          FIERY_TOUCH_SKILL_ID,
+          skill.level,
+          state.run.selectedUpgradeIds,
+        ) + (state.player.fieryTouchDamageIncreasePercent ?? 0),
       },
       attunementSourceAdditionalIncreasedDamage:
         getAttunementSourceAdditionalIncreasedDamage(state),
