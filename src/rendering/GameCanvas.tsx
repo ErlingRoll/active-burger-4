@@ -64,6 +64,7 @@ import {
 import { LevelUpOverlay } from './LevelUpOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
+import { SkillIcon } from './SkillIcon'
 import { GearSetFormation } from './GearSetFormation'
 import { ImplicitModifierList } from './ImplicitModifierList'
 import { KeywordText } from './KeywordTooltip'
@@ -1016,8 +1017,8 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                       aria-hidden="true"
                     />
                   ) : null}
-                  <span className="skill-icon" aria-hidden="true">
-                    {skill.icon}
+                  <span className="skill-icon">
+                    <SkillIcon skillId={skill.skillId} />
                   </span>
                   <span className="skill-card-name">{skill.name}</span>
                   <span className="skill-card-level">Lv. {skill.level}</span>
@@ -1226,8 +1227,8 @@ function GameplayHud({ snapshot }: GameplayHudProps) {
                         </ul>
                       </>
                     ) : null}
-                    <span className="skill-tooltip-icon" aria-hidden="true">
-                      {skill.icon}
+                    <span className="skill-tooltip-icon">
+                      <SkillIcon skillId={skill.skillId} size={28} />
                     </span>
                     </div>,
                     document.body,

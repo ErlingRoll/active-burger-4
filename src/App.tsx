@@ -41,6 +41,7 @@ import {
 import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
 import { GameCanvas } from './rendering/GameCanvas'
 import { KeywordText } from './rendering/KeywordTooltip'
+import { SkillIcon } from './rendering/SkillIcon'
 import { tooltipClassName } from './rendering/TooltipShell'
 import {
   calculateWorldModifierRewardMultiplier,
@@ -1563,7 +1564,7 @@ function RunSetupScreen({
                       >
                         <small>Starting skill</small>
                         <strong>
-                          <span aria-hidden="true">{startingSkill.visual.icon}</span>
+                          <SkillIcon skillId={startingSkill.id} size={18} />
                           {startingSkill.name}
                         </strong>
                         <span

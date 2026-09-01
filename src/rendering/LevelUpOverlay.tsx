@@ -40,6 +40,7 @@ import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
 import { GearSetFormation } from './GearSetFormation'
 import { tooltipClassName } from './TooltipShell'
 import { ImplicitModifierList } from './ImplicitModifierList'
+import { SkillIcon } from './SkillIcon'
 import {
   formatKeybind,
   type GameKeybinds,
@@ -565,7 +566,7 @@ function UpgradeCard({
           {evolvedSkill ? (
             <span className="upgrade-action-evolved-skill">
               {' '}
-              <span aria-hidden="true">{evolvedSkill.visual.icon}</span>{' '}
+              <SkillIcon skillId={evolvedSkill.id} size={18} />{' '}
               {evolvedSkill.name}
             </span>
           ) : null}

@@ -141,8 +141,11 @@ export class PixiGame {
   private readonly bossViews = new Map<EntityId, BossView>()
   private readonly telegraphViews = new Map<EntityId, TelegraphView>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
+  private readonly projectileTrailViews = new Map<EntityId, Graphics>()
+  private readonly projectilePositionHistory = new Map<EntityId, RenderPoint[]>()
   private readonly pickupViews = new Map<EntityId, Graphics>()
   private readonly effectViews = new Map<EntityId, Graphics>()
+  private readonly effectParticleViews = new Map<EntityId, Graphics>()
   private readonly trapViews = new Map<EntityId, Graphics>()
   private readonly relayViews = new Map<EntityId, Graphics>()
   private readonly wireViews = new Map<EntityId, Graphics>()
@@ -207,6 +210,7 @@ export class PixiGame {
 
   private createWorld(): void {
     const world = new Container()
+    world.sortableChildren = true
     const ground = new Container()
     const decorations = new Container()
     const pickups = new Container()
@@ -229,6 +233,20 @@ export class PixiGame {
     const effects = new Container()
     this.effectLayer = effects
     const worldUi = new Container()
+
+    ground.zIndex = 0
+    decorations.zIndex = 10
+    pickups.zIndex = 20
+    stairs.zIndex = 25
+    skillObjects.zIndex = 30
+    telegraphs.zIndex = 40
+    enemies.zIndex = 50
+    bosses.zIndex = 55
+    summons.zIndex = 60
+    player.zIndex = 70
+    projectiles.zIndex = 80
+    effects.zIndex = 90
+    worldUi.zIndex = 100
 
     this.camera.addChild(world)
     world.addChild(
@@ -408,8 +426,12 @@ export class PixiGame {
     label.anchor.set(0.5, 1)
     const hpBar = new Graphics()
     const statusEffects = new Container()
-    root.addChild(hpBar, statusEffects, label)
-    return { root, body, label, hpBar, statusEffects, poisonAura }
+    const hitFlash = new Graphics()
+      .circle(0, 0, radius + 4)
+      .fill({ color: '#ffffff', alpha: 0.72 })
+    hitFlash.visible = false
+    root.addChild(hitFlash, hpBar, statusEffects, label)
+    return { root, body, label, hpBar, statusEffects, poisonAura, hitFlash }
   }
 
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
@@ -587,8 +609,12 @@ export class PixiGame {
     poisonAura.visible = false
     const statusEffects = new Container()
     const root = new Container()
-    root.addChild(poisonAura, body, marker, hpBar, statusEffects, label)
-    return { root, label, hpBar, statusEffects, poisonAura }
+    const hitFlash = new Graphics()
+      .circle(0, 0, boss.radius + 6)
+      .fill({ color: '#ffffff', alpha: 0.78 })
+    hitFlash.visible = false
+    root.addChild(poisonAura, body, hitFlash, marker, hpBar, statusEffects, label)
+    return { root, body, label, hpBar, statusEffects, poisonAura, hitFlash }
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
@@ -1479,6 +1505,39 @@ export class PixiGame {
     return view
   }
 
+  private createImpactParticlePlaceholder(effect: SkillEffectState): Graphics {
+    const visual = effect.skillId === BASIC_ATTACK_SKILL_ID
+      ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
+      : getSkillDefinition(effect.skillId).visual
+    const points = effect.points.length > 0
+      ? effect.points
+      : [{ x: effect.x, y: effect.y }]
+    const impact = points[points.length - 1] ?? points[0]
+    const impactX = (impact?.x ?? effect.x) - effect.x
+    const impactY = (impact?.y ?? effect.y) - effect.y
+    const radius = Math.max(8, Math.min(46, effect.radius * 0.28))
+    const view = new Graphics()
+    for (let index = 0; index < 9; index += 1) {
+      const angle = (Math.PI * 2 * index) / 9 + (effect.id % 7) * 0.11
+      const distance = radius * (0.72 + (index % 3) * 0.18)
+      const size = 2 + (index % 2)
+      const x = impactX + Math.cos(angle) * distance
+      const y = impactY + Math.sin(angle) * distance
+      view
+        .poly([
+          x + Math.cos(angle) * size * 2.6,
+          y + Math.sin(angle) * size * 2.6,
+          x + Math.cos(angle + 2.1) * size,
+          y + Math.sin(angle + 2.1) * size,
+          x + Math.cos(angle - 2.1) * size,
+          y + Math.sin(angle - 2.1) * size,
+        ])
+        .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.85 })
+        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.72 })
+    }
+    return view
+  }
+
   private createPhantomSummonPlaceholder(effect: SkillEffectState): Graphics {
     const visual = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID).visual
     const radius = Math.max(1, effect.radius)
@@ -2132,6 +2191,78 @@ export class PixiGame {
     this.centerCamera(deltaSeconds)
   }
 
+  private drawProjectileTrail(
+    view: Graphics,
+    projectile: ProjectileState,
+    history: readonly RenderPoint[],
+  ): void {
+    view.clear()
+    if (history.length < 2) {
+      return
+    }
+    const visual = projectile.sourceAbilityId
+      ? {
+          primaryColor: '#ef4444',
+          secondaryColor: '#fb7185',
+          outlineColor: '#fee2e2',
+        }
+      : projectile.skillId === BASIC_ATTACK_SKILL_ID
+        ? getBasicAttackVariant(projectile.basicAttackWeaponArchetype).visual
+        : projectile.skillId && isSkillId(projectile.skillId)
+          ? getSkillDefinition(projectile.skillId).visual
+          : getSkillDefinition(BASIC_ATTACK_SKILL_ID).visual
+    for (let index = 1; index < history.length; index += 1) {
+      const previous = history[index - 1]!
+      const point = history[index]!
+      const progress = index / history.length
+      view
+        .moveTo(previous.x, previous.y)
+        .lineTo(point.x, point.y)
+        .stroke({
+          color: index % 2 === 0 ? visual.primaryColor : visual.secondaryColor,
+          width: Math.max(1, projectile.radius * (0.45 + progress * 0.7)),
+          alpha: progress * 0.46,
+        })
+    }
+  }
+
+  private updateEffectAnimation(
+    view: Graphics,
+    effect: SkillEffectState,
+    time: number,
+  ): void {
+    const progress = effect.lifetime > 0
+      ? Math.max(0, Math.min(1, 1 - effect.remainingLifetime / effect.lifetime))
+      : 1
+    const burst = Math.min(1, progress * 5)
+    const settle = Math.min(1, progress * 1.5)
+    const isShortEffect = effect.lifetime <= 1.5
+    view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
+    if (isShortEffect) {
+      view.scale.set(0.72 + burst * 0.38 - settle * 0.08)
+      if (effect.shape !== 'line') {
+        view.rotation = Math.sin(time * 2 + effect.id) * 0.04
+      }
+    } else {
+      view.scale.set(1)
+      view.rotation = 0
+    }
+  }
+
+  private updateImpactParticles(
+    view: Graphics,
+    effect: SkillEffectState,
+    time: number,
+  ): void {
+    const progress = effect.lifetime > 0
+      ? Math.max(0, Math.min(1, 1 - effect.remainingLifetime / effect.lifetime))
+      : 1
+    const expansion = Math.min(1, progress * 5)
+    view.scale.set(0.28 + expansion * 1.1)
+    view.rotation = time * (1.2 + (effect.id % 3) * 0.35)
+    view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
+  }
+
   private renderState(): void {
     const state = this.game.state
     this.playerView?.root.position.set(state.player.x, state.player.y)
@@ -2195,6 +2326,19 @@ export class PixiGame {
       }
 
       enemyView.root.position.set(enemy.x, enemy.y)
+      if (
+        enemyView.lastHp !== undefined &&
+        enemy.hp < enemyView.lastHp
+      ) {
+        enemyView.hitFlashUntil = state.time + 0.12
+      }
+      enemyView.lastHp = enemy.hp
+      const hitPulse = Math.max(
+        0,
+        Math.min(1, ((enemyView.hitFlashUntil ?? 0) - state.time) / 0.12),
+      )
+      enemyView.hitFlash.visible = hitPulse > 0
+      enemyView.hitFlash.alpha = hitPulse * 0.72
       const poisonStackCount = enemy.poisonStacks?.length ?? 0
       const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
       const enemyBarWidth = Math.max(28, enemy.radius * renderScale * 1.8)
@@ -2252,7 +2396,9 @@ export class PixiGame {
         normalizedDirectionX * enemy.radius * 0.38 * attackIntensity,
         normalizedDirectionY * enemy.radius * 0.38 * attackIntensity,
       )
-      enemyView.body.scale.set(renderScale * (1 + attackIntensity * 0.14))
+      enemyView.body.scale.set(
+        renderScale * (1 + attackIntensity * 0.14 + hitPulse * 0.1),
+      )
       const baseLabelY = -(enemy.radius * renderScale + 16)
       const statusOffset = enemyStatuses.length > 0
         ? STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
@@ -2296,7 +2442,21 @@ export class PixiGame {
         this.bossViews.set(boss.id, bossView)
         this.bossLayer?.addChild(bossView.root)
       }
+
       bossView.root.position.set(boss.x, boss.y)
+      if (
+        bossView.lastHp !== undefined &&
+        boss.hp < bossView.lastHp
+      ) {
+        bossView.hitFlashUntil = state.time + 0.16
+      }
+      bossView.lastHp = boss.hp
+      const bossHitPulse = Math.max(
+        0,
+        Math.min(1, ((bossView.hitFlashUntil ?? 0) - state.time) / 0.16),
+      )
+      bossView.hitFlash.visible = bossHitPulse > 0
+      bossView.hitFlash.alpha = bossHitPulse * 0.78
       const poisonStackCount = boss.poisonStacks?.length ?? 0
       const bossBarWidth = boss.radius * 2.5
       bossView.poisonAura.visible = poisonStackCount > 0
@@ -2445,6 +2605,22 @@ export class PixiGame {
 
       view.position.set(projectile.x, projectile.y)
       view.rotation = Math.atan2(projectile.velocityY, projectile.velocityX)
+      let history = this.projectilePositionHistory.get(projectile.id)
+      if (!history) {
+        history = []
+        this.projectilePositionHistory.set(projectile.id, history)
+      }
+      history.push({ x: projectile.x, y: projectile.y })
+      if (history.length > 6) {
+        history.shift()
+      }
+      let trailView = this.projectileTrailViews.get(projectile.id)
+      if (!trailView) {
+        trailView = new Graphics()
+        this.projectileTrailViews.set(projectile.id, trailView)
+        this.projectileLayer?.addChildAt(trailView, 0)
+      }
+      this.drawProjectileTrail(trailView, projectile, history)
     }
 
     for (const [projectileId, view] of this.projectileViews) {
@@ -2455,6 +2631,11 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
       this.projectileViews.delete(projectileId)
+      const trailView = this.projectileTrailViews.get(projectileId)
+      trailView?.removeFromParent()
+      trailView?.destroy()
+      this.projectileTrailViews.delete(projectileId)
+      this.projectilePositionHistory.delete(projectileId)
     }
 
     const activePickupIds = new Set<EntityId>()
@@ -2490,8 +2671,18 @@ export class PixiGame {
         this.effectViews.set(effect.id, view)
         this.effectLayer?.addChild(view)
       }
+      let particleView = this.effectParticleViews.get(effect.id)
+      if (effect.lifetime <= 1.5 && !particleView) {
+        particleView = this.createImpactParticlePlaceholder(effect)
+        this.effectParticleViews.set(effect.id, particleView)
+        this.effectLayer?.addChild(particleView)
+      }
       view.position.set(effect.x, effect.y)
-      view.alpha = Math.max(0, Math.min(1, effect.remainingLifetime / effect.lifetime))
+      this.updateEffectAnimation(view, effect, state.time)
+      if (particleView) {
+        particleView.position.set(effect.x, effect.y)
+        this.updateImpactParticles(particleView, effect, state.time)
+      }
     }
 
     for (const [effectId, view] of this.effectViews) {
@@ -2501,6 +2692,10 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
       this.effectViews.delete(effectId)
+      const particleView = this.effectParticleViews.get(effectId)
+      particleView?.removeFromParent()
+      particleView?.destroy()
+      this.effectParticleViews.delete(effectId)
     }
 
     const activeStairsIds = new Set<EntityId>()
@@ -2719,11 +2914,19 @@ export class PixiGame {
       view.removeFromParent()
       view.destroy()
     }
+    for (const view of this.projectileTrailViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
     for (const view of this.pickupViews.values()) {
       view.removeFromParent()
       view.destroy()
     }
     for (const view of this.effectViews.values()) {
+      view.removeFromParent()
+      view.destroy()
+    }
+    for (const view of this.effectParticleViews.values()) {
       view.removeFromParent()
       view.destroy()
     }
@@ -2764,8 +2967,11 @@ export class PixiGame {
     this.bossViews.clear()
     this.telegraphViews.clear()
     this.projectileViews.clear()
+    this.projectileTrailViews.clear()
+    this.projectilePositionHistory.clear()
     this.pickupViews.clear()
     this.effectViews.clear()
+    this.effectParticleViews.clear()
     this.trapViews.clear()
     this.relayViews.clear()
     this.wireViews.clear()
@@ -2928,11 +3134,14 @@ function drawDashedBoundaryEdge(
 interface EnemyView {
   root: Container
   body: Graphics
+  hitFlash: Graphics
   label: Text
   hpBar: Graphics
   statusEffects: Container
   statusEffectSignature?: string
   poisonAura: Graphics
+  lastHp?: number
+  hitFlashUntil?: number
 }
 
 interface PlayerView {
@@ -2949,11 +3158,15 @@ interface SummonView {
 
 interface BossView {
   root: Container
+  body: Graphics
+  hitFlash: Graphics
   label: Text
   hpBar: Graphics
   statusEffects: Container
   statusEffectSignature?: string
   poisonAura: Graphics
+  lastHp?: number
+  hitFlashUntil?: number
 }
 
 interface TelegraphView {
@@ -2964,6 +3177,11 @@ interface TelegraphView {
 interface StairsView {
   root: Container
   label: Text
+}
+
+interface RenderPoint {
+  x: number
+  y: number
 }
 
 export function getEnemyDisplayLabel(
