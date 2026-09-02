@@ -255,7 +255,7 @@ describe('data-driven player behavior intents', () => {
   })
 
   it('replaces an out-of-range stale target with the best current combat target', () => {
-    const activeTarget = enemy(4, 'slime', 90)
+    const activeTarget = enemy(4, 'slime', 100)
     const higherThreat = enemy(9, 'brute', 120)
     const state = createState([activeTarget, higherThreat])
     state.player.targetId = activeTarget.id
