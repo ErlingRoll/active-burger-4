@@ -365,6 +365,7 @@ function GearCard({
           type="button"
           disabled={disabled}
           aria-keyshortcuts={keybind}
+          onAnimationEnd={onSelectionAnimationEnd}
           onClick={() => onSelect(choice)}
         >
           <ChoiceKeyHint keybind={keybind} />
