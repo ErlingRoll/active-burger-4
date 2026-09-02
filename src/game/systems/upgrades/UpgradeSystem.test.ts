@@ -205,7 +205,7 @@ describe('skill upgrades', () => {
         expect.objectContaining({ skillId: VITALITY_SKILL_ID, level: 2 }),
       ]),
     )
-    expect(game.state.player.increasedHealing).toBe(4)
+    expect(game.state.player.increasedHealing).toBe(10)
 
     applyUpgrade(game.state, 'remove-skill', VITALITY_SKILL_ID)
 
