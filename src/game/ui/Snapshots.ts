@@ -82,7 +82,11 @@ import {
   INITIAL_UPGRADES,
   getSkillCooldownReductionPercent,
   type UpgradeId,
-  type UpgradeBranch,
+  type SkillEvolutionId,
+  type SkillChoiceType,
+  type SkillUpgradeType,
+  getSkillChoiceType,
+  getSkillUpgradeType,
 } from '../../content/upgrades/Upgrades'
 import type {
   BossState,
@@ -195,7 +199,9 @@ export interface SkillUpgradeSnapshot {
   readonly valueLabel: string
   readonly relevant: true
   readonly status: SkillUpgradeStatus
-  readonly branch?: UpgradeBranch
+  readonly choiceType?: SkillChoiceType
+  readonly upgradeType?: SkillUpgradeType
+  readonly evolution?: SkillEvolutionId
   readonly evolutionTags?: readonly KeywordId[]
   readonly synergySkillIds?: readonly SkillId[]
 }
@@ -1582,6 +1588,8 @@ export function createUiSnapshot(
         const acquired = !repeatable &&
           state.run.selectedUpgradeIds.includes(upgrade.id)
         const available = !acquired && upgrade.isEligible(eligibilityState)
+        const choiceType = getSkillChoiceType(upgrade)
+        const upgradeType = getSkillUpgradeType(upgrade)
         return Object.freeze({
           upgradeId: upgrade.id,
           name: upgrade.name,
@@ -1592,7 +1600,9 @@ export function createUiSnapshot(
             state.run.selectedUpgradeIds,
           ),
           relevant: true as const,
-          ...(upgrade.branch ? { branch: upgrade.branch } : {}),
+          ...(choiceType ? { choiceType } : {}),
+          ...(upgradeType ? { upgradeType } : {}),
+          ...(upgrade.evolution ? { evolution: upgrade.evolution } : {}),
           ...(upgrade.evolutionTags
             ? { evolutionTags: Object.freeze([...upgrade.evolutionTags]) }
             : {}),

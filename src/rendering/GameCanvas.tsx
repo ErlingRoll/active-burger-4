@@ -1107,7 +1107,7 @@ function GameplayHud({
               skill.skillId !== BASIC_ATTACK_SKILL_ID &&
               skill.skillId !== BLOOD_RITE_SKILL_ID
             const evolvedUpgrade = skill.upgrades.find((upgrade) =>
-              upgrade.status === 'acquired' && upgrade.branch !== undefined,
+              upgrade.status === 'acquired' && upgrade.choiceType === 'evolve',
             )
             const totalDamageLabel = skill.totalDamageDealt > 0
               ? `, total damage ${formatCompactDamage(skill.totalDamageDealt)}`
@@ -1414,14 +1414,14 @@ function GameplayHud({
                       </section>
                     ) : null}
                     {skill.upgrades.some((upgrade) =>
-                      upgrade.status === 'acquired' && upgrade.branch !== undefined,
+                      upgrade.status === 'acquired' && upgrade.choiceType === 'evolve',
                     ) ? (
                       <section className="skill-evolution-section" aria-label="Skill evolution">
                         <p className="skill-upgrade-heading skill-evolution-heading">Evolution</p>
                         <ul className="skill-evolution-list">
                           {skill.upgrades
                             .filter((upgrade) =>
-                              upgrade.status === 'acquired' && upgrade.branch !== undefined,
+                              upgrade.status === 'acquired' && upgrade.choiceType === 'evolve',
                             )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>
@@ -1465,17 +1465,40 @@ function GameplayHud({
                     ) : null}
                     {skill.upgrades.some((upgrade) =>
                       upgrade.status === 'acquired' &&
-                      upgrade.branch === undefined &&
-                      upgrade.synergySkillIds === undefined,
+                      upgrade.choiceType === 'upgrade' &&
+                      upgrade.upgradeType === 'level',
                     ) ? (
                       <>
-                        <p className="skill-upgrade-heading">Upgrades</p>
+                        <p className="skill-upgrade-heading">Level upgrade</p>
                         <ul className="skill-upgrade-list">
                           {skill.upgrades
                             .filter((upgrade) =>
                               upgrade.status === 'acquired' &&
-                              upgrade.branch === undefined &&
-                              upgrade.synergySkillIds === undefined,
+                              upgrade.choiceType === 'upgrade' &&
+                              upgrade.upgradeType === 'level',
+                            )
+                            .map((upgrade) => (
+                              <li key={upgrade.upgradeId}>
+                                <strong>{upgrade.name}</strong>
+                                <span>Level +1 · {upgrade.valueLabel}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    {skill.upgrades.some((upgrade) =>
+                      upgrade.status === 'acquired' &&
+                      upgrade.choiceType === 'upgrade' &&
+                      upgrade.upgradeType === 'enhancement',
+                    ) ? (
+                      <>
+                        <p className="skill-upgrade-heading">Enhancements</p>
+                        <ul className="skill-upgrade-list">
+                          {skill.upgrades
+                            .filter((upgrade) =>
+                              upgrade.status === 'acquired' &&
+                              upgrade.choiceType === 'upgrade' &&
+                              upgrade.upgradeType === 'enhancement',
                             )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>

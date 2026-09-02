@@ -120,7 +120,12 @@ describe('UI snapshots', () => {
 
     const basicUpgrades = snapshot.skills[0]?.upgrades ?? []
     expect(basicUpgrades.find((upgrade) => upgrade.upgradeId === 'basic-attack-level'))
-      .toMatchObject({ relevant: true, status: 'acquired' })
+      .toMatchObject({
+        relevant: true,
+        status: 'acquired',
+        choiceType: 'upgrade',
+        upgradeType: 'level',
+      })
     expect(snapshot.skills[1]?.upgrades.find(
       (upgrade) => upgrade.upgradeId === 'whirlwind-frost',
     )).toMatchObject({
@@ -199,7 +204,7 @@ describe('UI snapshots', () => {
     )
   })
 
-  it('projects branch-specific healing, shielding, and active cooldown values', () => {
+  it('projects evolution-specific healing, shielding, and active cooldown values', () => {
     const game = createGame({ seed: 76 })
     game.state.player.skills = [
       { skillId: VITALITY_SKILL_ID, level: 2, cooldownRemaining: 0 },
@@ -234,7 +239,7 @@ describe('UI snapshots', () => {
     )).toMatchObject({
       valueLabel: '+12 shield, +2s duration',
       description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield.',
-      branch: 'aegis-pulse-bulwark',
+      evolution: 'aegis-pulse-bulwark',
     })
     expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)
   })
@@ -255,7 +260,7 @@ describe('UI snapshots', () => {
     })
     expect(available.skills[0]?.upgrades.find(
       (upgrade) => upgrade.upgradeId === 'synergy-basic-attack-whirlwind',
-    )).not.toHaveProperty('branch')
+    )).not.toHaveProperty('evolution')
 
     game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
     const acquired = createUiSnapshot(game.state)
@@ -663,7 +668,7 @@ describe('UI snapshots', () => {
       (upgrade) => upgrade.upgradeId === 'raise-skeleton-legion',
     )).toMatchObject({
       status: 'acquired',
-      branch: 'raise-skeleton-legion',
+      evolution: 'raise-skeleton-legion',
       valueLabel: '+5% attack speed, +3% per additional skeleton (max +14%)',
     })
   })

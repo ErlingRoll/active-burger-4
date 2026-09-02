@@ -1391,30 +1391,30 @@ export class PixiGame {
     skillId: SkillEffectState['skillId'],
     radius: number,
   ): void {
-    const branch = this.game.state.run.selectedUpgradeIds
+    const evolution = this.game.state.run.selectedUpgradeIds
       .map((upgradeId) => getUpgradeDefinition(upgradeId))
-      .find((upgrade) => upgrade.skillId === skillId && upgrade.branch !== undefined)
-      ?.branch
-    if (!branch) {
+      .find((upgrade) => upgrade.skillId === skillId && upgrade.evolution !== undefined)
+      ?.evolution
+    if (!evolution) {
       return
     }
-    const isCold = branch.includes('frost') || branch.includes('permafrost') ||
-      branch.includes('ice-lance') || branch.includes('cold-attunement')
-    const isFire = branch.includes('ember') || branch.includes('inferno') ||
-      branch.includes('cinder') || branch.includes('fire-attunement')
-    const isLightning = branch.includes('overload') || branch.includes('overcharge') ||
-      branch.includes('conduit') || branch.includes('precision') ||
-      branch.includes('lightning-attunement')
-    const isChaos = branch.includes('chaos-attunement')
-    const isDefense = branch.includes('guard') || branch.includes('bulwark') ||
-      branch.includes('last-stand') || branch.includes('commander') ||
-      branch.includes('reprisal')
-    const isSummon = branch.includes('legion') || branch.includes('rotting') ||
-      branch.includes('requiem') || branch.includes('volley') ||
-      branch.includes('marksman')
-    const isMirror = branch.includes('echo') || branch.includes('exposure') ||
-      branch.includes('refraction') || branch.includes('horizon') ||
-      branch.includes('convergence')
+    const isCold = evolution.includes('frost') || evolution.includes('permafrost') ||
+      evolution.includes('ice-lance') || evolution.includes('cold-attunement')
+    const isFire = evolution.includes('ember') || evolution.includes('inferno') ||
+      evolution.includes('cinder') || evolution.includes('fire-attunement')
+    const isLightning = evolution.includes('overload') || evolution.includes('overcharge') ||
+      evolution.includes('conduit') || evolution.includes('precision') ||
+      evolution.includes('lightning-attunement')
+    const isChaos = evolution.includes('chaos-attunement')
+    const isDefense = evolution.includes('guard') || evolution.includes('bulwark') ||
+      evolution.includes('last-stand') || evolution.includes('commander') ||
+      evolution.includes('reprisal')
+    const isSummon = evolution.includes('legion') || evolution.includes('rotting') ||
+      evolution.includes('requiem') || evolution.includes('volley') ||
+      evolution.includes('marksman')
+    const isMirror = evolution.includes('echo') || evolution.includes('exposure') ||
+      evolution.includes('refraction') || evolution.includes('horizon') ||
+      evolution.includes('convergence')
     const color = isCold
       ? '#bae6fd'
       : isFire

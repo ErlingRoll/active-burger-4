@@ -1199,21 +1199,21 @@ describe('new skill metadata and balance guardrails', () => {
     expect(SKILL_DEFINITIONS[PRISM_HALO_SKILL_ID].description).toContain('Prism')
   })
 
-  it('defines exactly two mutually exclusive evolution branches per new skill', () => {
-    const branchesBySkill: Record<string, [UpgradeId, UpgradeId]> = {
+  it('defines exactly two mutually exclusive evolutions per new skill', () => {
+    const evolutionsBySkill: Record<string, [UpgradeId, UpgradeId]> = {
       [SIGIL_OF_RUIN_SKILL_ID]: ['sigil-of-ruin-contagious-script', 'sigil-of-ruin-execution-protocol'],
       [MIRRORCAST_SKILL_ID]: ['mirrorcast-double-exposure', 'mirrorcast-deferred-echo'],
       [RAZORWIRE_SKILL_ID]: ['razorwire-tripwire-network', 'razorwire-guillotine-line'],
       [BLOOD_RITE_SKILL_ID]: ['blood-rite-sanguine-pact', 'blood-rite-crimson-debt'],
       [PRISM_HALO_SKILL_ID]: ['prism-halo-chromatic-convergence', 'prism-halo-refraction'],
     }
-    for (const [skillId, [first, second]] of Object.entries(branchesBySkill)) {
+    for (const [skillId, [first, second]] of Object.entries(evolutionsBySkill)) {
       const firstDef = getUpgradeDefinition(first)
       const secondDef = getUpgradeDefinition(second)
-      expect(firstDef.branch).toBe(first)
-      expect(secondDef.branch).toBe(second)
-      expect(firstDef.branch).not.toBe(secondDef.branch)
-      // Choosing one branch makes the other ineligible.
+      expect(firstDef.evolution).toBe(first)
+      expect(secondDef.evolution).toBe(second)
+      expect(firstDef.evolution).not.toBe(secondDef.evolution)
+      // Choosing one evolution makes the other ineligible.
       const state = {
         playerLevel: 5,
         selectedUpgradeIds: [first],

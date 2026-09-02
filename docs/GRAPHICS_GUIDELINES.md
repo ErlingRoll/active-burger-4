@@ -194,12 +194,12 @@ This inventory is the baseline to match when adding new content.
 
 ## Evolution visual coverage matrix
 
-Every evolution branch must visibly transform its parent skill. The shared
-evolution accent decorator provides a branch-colored glyph; dedicated skill
-renderers should add a stronger shape or motion change when the branch changes
+Every evolution must visibly transform its parent skill. The shared evolution
+accent decorator provides an evolution-colored glyph; dedicated skill renderers
+should add a stronger shape or motion change when the evolution changes
 the skill's behavior.
 
-| Skill | Evolution branches | Visual distinction |
+| Skill | Evolutions | Visual distinction |
 | --- | --- | --- |
 | Basic Attack | Stormbound, Flamebound, Frostbound, Riftbound | Lightning, fire, cold, or chaos conversion accent |
 | Whirlwind | Rime Cyclone, Whirlwind Guard | Cold facets vs. cyan shield edge |

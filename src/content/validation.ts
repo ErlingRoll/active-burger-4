@@ -687,7 +687,7 @@ function validateSynergyDefinitions(
     if (upgrade.rarity !== Rarity.Epic) {
       errors.push(`upgrades[${index}] synergies must use epic rarity.`)
     }
-    if (upgrade.branch !== undefined || upgrade.skillAction !== undefined) {
+    if (upgrade.evolution !== undefined || upgrade.skillAction !== undefined) {
       errors.push(`upgrades[${index}] synergies must be separate from evolutions.`)
     }
 
@@ -773,50 +773,53 @@ function validateSkillUpgradePaths(
   upgrades: readonly UpgradeDefinition[],
   skillIds: Set<string>,
 ): void {
-  const levelUpCountBySkill = new Map<string, number>()
-  const evolutionBranchesBySkill = new Map<string, Set<string>>()
+  const levelUpgradeCountBySkill = new Map<string, number>()
+  const evolutionsBySkill = new Map<string, Set<string>>()
 
   upgrades.forEach((upgrade, index) => {
     if (upgrade.skillAction === 'level' && upgrade.skillId && skillIds.has(upgrade.skillId)) {
-      levelUpCountBySkill.set(
+      levelUpgradeCountBySkill.set(
         upgrade.skillId,
-        (levelUpCountBySkill.get(upgrade.skillId) ?? 0) + 1,
+        (levelUpgradeCountBySkill.get(upgrade.skillId) ?? 0) + 1,
       )
+      if (upgrade.amount !== 1) {
+        errors.push(`upgrades[${index}].amount must be exactly 1 for a level upgrade.`)
+      }
     }
 
-    if (upgrade.branch === undefined) {
+    if (upgrade.evolution === undefined) {
       return
     }
-    if (typeof upgrade.branch !== 'string' || upgrade.branch.trim() === '') {
-      errors.push(`upgrades[${index}].branch must be a non-empty string when provided.`)
+    if (typeof upgrade.evolution !== 'string' || upgrade.evolution.trim() === '') {
+      errors.push(`upgrades[${index}].evolution must be a non-empty string when provided.`)
       return
     }
     if (!upgrade.skillId || !skillIds.has(upgrade.skillId)) {
-      errors.push(`upgrades[${index}].branch must reference a known skill.`)
+      errors.push(`upgrades[${index}].evolution must reference a known skill.`)
       return
     }
     if (upgrade.skillAction !== undefined) {
-      errors.push(`upgrades[${index}].branch must not define a skill action.`)
+      errors.push(`upgrades[${index}].evolution must not define a skill action.`)
     }
 
-    const branches = evolutionBranchesBySkill.get(upgrade.skillId) ?? new Set<string>()
-    branches.add(upgrade.branch)
-    evolutionBranchesBySkill.set(upgrade.skillId, branches)
+    const evolutions = evolutionsBySkill.get(upgrade.skillId) ?? new Set<string>()
+    evolutions.add(upgrade.evolution)
+    evolutionsBySkill.set(upgrade.skillId, evolutions)
   })
 
   for (const skillId of skillIds) {
-    const levelUpCount = levelUpCountBySkill.get(skillId) ?? 0
-    if (levelUpCount !== 1) {
+    const levelUpgradeCount = levelUpgradeCountBySkill.get(skillId) ?? 0
+    if (levelUpgradeCount !== 1) {
       errors.push(
-        `skill "${skillId}" must have exactly 1 level-up path; found ${levelUpCount}.`,
+        `skill "${skillId}" must have exactly 1 level upgrade; found ${levelUpgradeCount}.`,
       )
     }
 
-    const evolutionPathCount = evolutionBranchesBySkill.get(skillId)?.size ?? 0
-    const expectedEvolutionPathCount = skillId === BASIC_ATTACK_SKILL_ID ? 5 : 2
-    if (evolutionPathCount !== expectedEvolutionPathCount) {
+    const evolutionCount = evolutionsBySkill.get(skillId)?.size ?? 0
+    const expectedEvolutionCount = skillId === BASIC_ATTACK_SKILL_ID ? 5 : 2
+    if (evolutionCount !== expectedEvolutionCount) {
       errors.push(
-        `skill "${skillId}" must have exactly ${expectedEvolutionPathCount} evolution paths; found ${evolutionPathCount}.`,
+        `skill "${skillId}" must have exactly ${expectedEvolutionCount} evolutions; found ${evolutionCount}.`,
       )
     }
   }

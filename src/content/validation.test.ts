@@ -103,13 +103,13 @@ describe('content validation', () => {
       const skillUpgrades = CURRENT_CONTENT.upgrades.filter(
         (upgrade) => upgrade.skillId === skill.id,
       )
-      const evolutionPaths = new Set(
+      const evolutionIds = new Set(
         skillUpgrades
-          .map((upgrade) => upgrade.branch)
-          .filter((branch) => branch !== undefined),
+          .map((upgrade) => upgrade.evolution)
+          .filter((evolution) => evolution !== undefined),
       )
 
-      expect(evolutionPaths).toHaveLength(
+      expect(evolutionIds).toHaveLength(
         skill.id === BASIC_ATTACK_SKILL_ID ? 5 : 2,
       )
       expect(
@@ -152,8 +152,8 @@ describe('content validation', () => {
 
     expect(missingPathErrors).toEqual(expect.arrayContaining([
       'skill "basic-attack" must have at least 2 predefined synergies; found 0.',
-      'skill "basic-attack" must have exactly 5 evolution paths; found 0.',
-      'skill "basic-attack" must have exactly 1 level-up path; found 0.',
+      'skill "basic-attack" must have exactly 5 evolutions; found 0.',
+      'skill "basic-attack" must have exactly 1 level upgrade; found 0.',
     ]))
 
     const basicLevel = CURRENT_CONTENT.upgrades.find(
@@ -170,7 +170,7 @@ describe('content validation', () => {
     }))
 
     expect(duplicateLevelErrors).toContain(
-      'skill "basic-attack" must have exactly 1 level-up path; found 2.',
+      'skill "basic-attack" must have exactly 1 level upgrade; found 2.',
     )
   })
 

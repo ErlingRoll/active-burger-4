@@ -291,7 +291,7 @@ describe('skill system', () => {
     expect(projectile.remainingChains).toBe(4)
   })
 
-  it('applies the selected Frost and Overload Chain Lightning branch effects', () => {
+  it('applies the selected Frost and Overload Chain Lightning evolution effects', () => {
     const game = createGame({ seed: 53 })
     game.state.player.skills = [{
       skillId: CHAIN_LIGHTNING_SKILL_ID,

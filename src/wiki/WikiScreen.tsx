@@ -75,7 +75,7 @@ const WIKI_SECTIONS: readonly WikiSection[] = [
   { id: 'getting-started', title: 'Getting started', summary: 'Run loop, controls, and behavior profiles.' },
   { id: 'classes', title: 'Classes', summary: 'Starting stats, equipment, skills, and affinities.' },
   { id: 'combat', title: 'Combat and stats', summary: 'Damage, resistance, crits, healing, and core resources.' },
-  { id: 'skills', title: 'Skills and evolves', summary: 'Every skill, level scaling, branches, and Resonance.' },
+  { id: 'skills', title: 'Skills and evolutions', summary: 'Every skill, level scaling, evolutions, and Resonance.' },
   { id: 'synergies', title: 'Synergies', summary: 'Skill synergy upgrades and their requirements.' },
   { id: 'gear', title: 'Gear and upgrades', summary: 'Items, rarities, modifiers, sets, blessings, and drops.' },
   { id: 'progression', title: 'Progression', summary: 'Experience, essence, and meta progression.' },
@@ -361,8 +361,8 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
           </article>
 
           <article id="skills" className="wiki-article">
-            <WikiSectionHeading id="skills" title="Skills, upgrades, and evolves">
-              Skills are live definitions. Level upgrades and named branches below are the currently authored upgrade pool.
+            <WikiSectionHeading id="skills" title="Skills, upgrades, and evolutions">
+              Skills are live definitions. Each skill has one level upgrade, plus named evolutions and enhancements.
             </WikiSectionHeading>
             <div className="wiki-skill-grid">
               {SKILLS.map((skill) => {
@@ -394,7 +394,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                     {skill.shieldBaseAmount !== undefined ? <p>Shield at level 1 / 5: <strong>{getSkillShieldAmount(skill, 1)} / {getSkillShieldAmount(skill, 5)}</strong></p> : null}
                     <p className="wiki-muted">Base damage: {Object.entries(skill.baseDamage).filter(([, value]) => value !== undefined).map(([type, value]) => `${formatNumber(value ?? 0)} ${type}`).join(' · ') || 'none'}</p>
                     {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> <KeywordText text={skill.resonanceEffect.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p> : null}
-                    {upgrades.length > 0 ? <details><summary>Upgrades and branches ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.branch ? ' · Evolve' : ''}: <KeywordText text={upgrade.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
+                    {upgrades.length > 0 ? <details><summary>Upgrades, evolutions, and enhancements ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.evolution ? ' · Evolve' : upgrade.skillAction === 'level' ? ' · Level upgrade' : ' · Enhancement'}: <KeywordText text={upgrade.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
                   </section>
                 )
               })}

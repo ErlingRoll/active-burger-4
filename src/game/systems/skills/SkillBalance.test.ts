@@ -78,7 +78,7 @@ describe('new skill balance budgets', () => {
     expect(phantomDps).toBeLessThan(5)
   })
 
-  it('keeps branch upgrades inside bounded output budgets', () => {
+  it('keeps evolution upgrades inside bounded output budgets', () => {
     const riftDamage = getSkillDefinition(RIFT_JAVELIN_SKILL_ID).baseDamage.physical ?? 0
     const riftBarbedDps = (
       riftDamage * 2 +

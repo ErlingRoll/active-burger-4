@@ -4718,13 +4718,6 @@
   gap: 0.5rem;
 }
 
-.synergy-card-badge {
-  color: #5eead4;
-  font-size: 0.7rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
 .gear-upgrade-type {
   display: flex;
   align-items: center;

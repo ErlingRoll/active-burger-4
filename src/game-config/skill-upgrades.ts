@@ -189,7 +189,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT,
     valueLabel: `+${RAISE_SKELETON_LEGION_BASE_ATTACK_SPEED_INCREASE_PERCENT}% attack speed, +${RAISE_SKELETON_LEGION_ATTACK_SPEED_PER_ADDITIONAL_SKELETON_PERCENT}% per additional skeleton (max +${RAISE_SKELETON_LEGION_MAX_ATTACK_SPEED_INCREASE_PERCENT}%)`,
     skillId: RAISE_SKELETON_SKILL_ID,
-    branch: 'raise-skeleton-legion',
+    evolution: 'raise-skeleton-legion',
     skeletonLegion: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(RAISE_SKELETON_SKILL_ID) &&
@@ -205,7 +205,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
     valueLabel: `Applies ${RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS}s Poison at ${Math.round(RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO * 100)}% hit damage/sec`,
     skillId: RAISE_SKELETON_SKILL_ID,
-    branch: 'raise-skeleton-rotting-bones',
+    evolution: 'raise-skeleton-rotting-bones',
     evolutionTags: ['poison', 'damage-over-time'],
     skeletonRottingBones: true,
     isEligible: (state) =>
@@ -234,7 +234,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: WHIRLWIND_FROST_STACKS,
     valueLabel: '+1 Chill stack per Whirlwind hit',
     skillId: WHIRLWIND_SKILL_ID,
-    branch: 'whirlwind-control',
+    evolution: 'whirlwind-control',
     evolutionTags: ['chill', 'freeze'],
     whirlwindFrostStacks: WHIRLWIND_FROST_STACKS,
     isEligible: (state) =>
@@ -250,7 +250,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT,
     valueLabel: '+15% Whirlwind Guard damage reduction',
     skillId: WHIRLWIND_SKILL_ID,
-    branch: 'whirlwind-guard',
+    evolution: 'whirlwind-guard',
     evolutionTags: ['duration'],
     whirlwindGuardDamageReductionPercent: WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT,
     isEligible: (state) =>
@@ -266,7 +266,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
     valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Lightning`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-lightning-attunement',
+    evolution: 'basic-attack-lightning-attunement',
     evolutionTags: ['elemental-damage'],
     basicAttackDamageConversionType: 'lightning',
     isEligible: (state) =>
@@ -282,7 +282,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
     valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Fire`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-fire-attunement',
+    evolution: 'basic-attack-fire-attunement',
     evolutionTags: ['elemental-damage'],
     basicAttackDamageConversionType: 'fire',
     isEligible: (state) =>
@@ -298,7 +298,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
     valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Cold`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-cold-attunement',
+    evolution: 'basic-attack-cold-attunement',
     evolutionTags: ['elemental-damage'],
     basicAttackDamageConversionType: 'cold',
     isEligible: (state) =>
@@ -314,7 +314,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT,
     valueLabel: `Convert ${BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT}% physical to Chaos`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-chaos-attunement',
+    evolution: 'basic-attack-chaos-attunement',
     evolutionTags: ['chaos-damage'],
     basicAttackDamageConversionType: 'chaos',
     isEligible: (state) =>
@@ -330,7 +330,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT,
     valueLabel: `${BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT}% more Physical damage`,
     skillId: BASIC_ATTACK_SKILL_ID,
-    branch: 'basic-attack-brutality',
+    evolution: 'basic-attack-brutality',
     basicAttackMorePhysicalDamagePercent: BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
@@ -481,7 +481,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
     valueLabel: `+${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}% Fiery Touch cooldown reduction`,
     skillId: FIERY_TOUCH_SKILL_ID,
-    branch: 'fiery-touch-frequency',
+    evolution: 'fiery-touch-frequency',
     evolutionTags: ['cooldown-reduction'],
     skillCooldownReductionPercent: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
     isEligible: (state) => state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID),
@@ -495,7 +495,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
     valueLabel: `+${FIERY_TOUCH_DAMAGE_INCREASE_PERCENT}% Fiery Touch damage`,
     skillId: FIERY_TOUCH_SKILL_ID,
-    branch: 'fiery-touch-ember',
+    evolution: 'fiery-touch-ember',
     fieryTouchMoreDamagePercent: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID) &&
@@ -535,7 +535,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: VITALITY_MAX_HP_HEALING_PERCENT,
     valueLabel: `+${VITALITY_MAX_HP_HEALING_PERCENT}% max HP healing per cast`,
     skillId: VITALITY_SKILL_ID,
-    branch: 'vitality-renewal',
+    evolution: 'vitality-renewal',
     vitalityMaxHpHealingPercent: VITALITY_MAX_HP_HEALING_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(VITALITY_SKILL_ID) &&
@@ -550,7 +550,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: VITALITY_LOW_HP_HEALING_MULTIPLIER,
     valueLabel: '2x low-health healing, 20% low-health damage reduction',
     skillId: VITALITY_SKILL_ID,
-    branch: 'vitality-last-stand',
+    evolution: 'vitality-last-stand',
     vitalityLowHpHealingMultiplier: VITALITY_LOW_HP_HEALING_MULTIPLIER,
     vitalityLowHpDamageReductionPercent: VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT,
     isEligible: (state) =>
@@ -566,7 +566,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: '+1 Chill stack per lightning hit',
     skillId: CHAIN_LIGHTNING_SKILL_ID,
-    branch: 'chain-lightning-frost',
+    evolution: 'chain-lightning-frost',
     evolutionTags: ['chill'],
     chainLightningFrost: true,
     isEligible: (state) =>
@@ -582,7 +582,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: 'Shock; 3 stacks detonate for 150% lightning damage',
     skillId: CHAIN_LIGHTNING_SKILL_ID,
-    branch: 'chain-lightning-overload',
+    evolution: 'chain-lightning-overload',
     evolutionTags: ['shock', 'overload'],
     chainLightningOverload: true,
     isEligible: (state) =>
@@ -626,7 +626,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: GLACIAL_ORB_PERMAFROST_FROST_STACKS,
     valueLabel: `+1 Chill stack, +${GLACIAL_ORB_PERMAFROST_RADIUS_BONUS} explosion radius`,
     skillId: GLACIAL_ORB_SKILL_ID,
-    branch: 'glacial-orb-permafrost',
+    evolution: 'glacial-orb-permafrost',
     evolutionTags: ['chill'],
     glacialOrbFrostStacks: GLACIAL_ORB_PERMAFROST_FROST_STACKS,
     isEligible: (state) =>
@@ -643,7 +643,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
     valueLabel: `Single-target, +${GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT}% vs Chilled/Frozen`,
     skillId: GLACIAL_ORB_SKILL_ID,
-    branch: 'glacial-orb-ice-lance',
+    evolution: 'glacial-orb-ice-lance',
     evolutionTags: ['chill', 'freeze'],
     glacialOrbIceLance: true,
     glacialOrbIceLanceDamageIncreasePercent: GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT,
@@ -689,7 +689,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Momentum ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% -> ${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}%/stack, +${LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT}% single-target damage`,
     skillId: LANCERS_CHARGE_SKILL_ID,
-    branch: 'lancers-charge-vanguard',
+    evolution: 'lancers-charge-vanguard',
     lancersChargeVanguard: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(LANCERS_CHARGE_SKILL_ID) &&
@@ -705,7 +705,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${LANCERS_CHARGE_IMPALER_RANGE_BONUS} range, +${LANCERS_CHARGE_IMPALER_WIDTH_BONUS} width, -${LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT}% damage`,
     skillId: LANCERS_CHARGE_SKILL_ID,
-    branch: 'lancers-charge-impaler',
+    evolution: 'lancers-charge-impaler',
     lancersChargeImpaler: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(LANCERS_CHARGE_SKILL_ID) &&
@@ -749,7 +749,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and skeleton cooldown reduction while active`,
     skillId: RALLYING_BANNER_SKILL_ID,
-    branch: 'rallying-banner-commander',
+    evolution: 'rallying-banner-commander',
     evolutionTags: ['cooldown-reduction'],
     rallyingBannerCommander: true,
     isEligible: (state) =>
@@ -766,7 +766,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT}% damage reduction, +${RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS}s duration`,
     skillId: RALLYING_BANNER_SKILL_ID,
-    branch: 'rallying-banner-bulwark',
+    evolution: 'rallying-banner-bulwark',
     evolutionTags: ['duration'],
     rallyingBannerBulwark: true,
     isEligible: (state) =>
@@ -811,7 +811,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${GRAVITY_WELL_SINGULARITY_PULL_BONUS} pull distance, +${GRAVITY_WELL_SINGULARITY_RADIUS_BONUS} radius, +1 Chill stack`,
     skillId: GRAVITY_WELL_SKILL_ID,
-    branch: 'gravity-well-singularity',
+    evolution: 'gravity-well-singularity',
     evolutionTags: ['chill'],
     gravityWellSingularity: true,
     isEligible: (state) =>
@@ -828,7 +828,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: 'No pull, +50% damage',
     skillId: GRAVITY_WELL_SKILL_ID,
-    branch: 'gravity-well-event-horizon',
+    evolution: 'gravity-well-event-horizon',
     gravityWellEventHorizon: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(GRAVITY_WELL_SKILL_ID) &&
@@ -872,7 +872,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${AEGIS_PULSE_BULWARK_SHIELD_AMOUNT_BONUS} shield, +${AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS}s duration`,
     skillId: AEGIS_PULSE_SKILL_ID,
-    branch: 'aegis-pulse-bulwark',
+    evolution: 'aegis-pulse-bulwark',
     evolutionTags: ['duration'],
     aegisPulseBulwark: true,
     isEligible: (state) =>
@@ -889,7 +889,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Reflects ${Math.round(AEGIS_PULSE_REPRISAL_RATIO * 100)}% of absorbed damage (not global damage)`,
     skillId: AEGIS_PULSE_SKILL_ID,
-    branch: 'aegis-pulse-reprisal',
+    evolution: 'aegis-pulse-reprisal',
     aegisPulseReprisal: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(AEGIS_PULSE_SKILL_ID) &&
@@ -933,7 +933,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Applies a ${RIFT_JAVELIN_BARBED_DURATION_SECONDS}s Poison stack per hit`,
     skillId: RIFT_JAVELIN_SKILL_ID,
-    branch: 'rift-javelin-barbed',
+    evolution: 'rift-javelin-barbed',
     evolutionTags: ['poison', 'damage-over-time'],
     riftJavelinBarbed: true,
     isEligible: (state) =>
@@ -950,7 +950,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT}% damage on the return trip`,
     skillId: RIFT_JAVELIN_SKILL_ID,
-    branch: 'rift-javelin-homeward',
+    evolution: 'rift-javelin-homeward',
     riftJavelinHomeward: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(RIFT_JAVELIN_SKILL_ID) &&
@@ -994,7 +994,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${CINDER_MINE_INFERNO_RADIUS_BONUS} radius, ${Math.round((CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO + CINDER_MINE_INFERNO_BURNING_RATIO_BONUS) * 100)}% Burning ratio`,
     skillId: CINDER_MINE_SKILL_ID,
-    branch: 'cinder-mine-inferno',
+    evolution: 'cinder-mine-inferno',
     evolutionTags: ['burning', 'area-of-effect'],
     cinderMineInferno: true,
     isEligible: (state) =>
@@ -1011,7 +1011,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Deploys 2 mines per cast, second at ${Math.round(CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER * 100)}% damage`,
     skillId: CINDER_MINE_SKILL_ID,
-    branch: 'cinder-mine-cluster',
+    evolution: 'cinder-mine-cluster',
     cinderMineCluster: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(CINDER_MINE_SKILL_ID) &&
@@ -1055,7 +1055,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${STORM_RELAY_OVERCHARGE_STRIKE_INTERVAL_SECONDS}s strike interval, +1 Shock stack`,
     skillId: STORM_RELAY_SKILL_ID,
-    branch: 'storm-relay-overcharge',
+    evolution: 'storm-relay-overcharge',
     evolutionTags: ['shock', 'overload'],
     stormRelayOvercharge: true,
     isEligible: (state) =>
@@ -1072,7 +1072,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: 'Pulls nearby enemies before each strike',
     skillId: STORM_RELAY_SKILL_ID,
-    branch: 'storm-relay-conduit',
+    evolution: 'storm-relay-conduit',
     evolutionTags: ['duration', 'area-of-effect'],
     stormRelayConduit: true,
     isEligible: (state) =>
@@ -1117,7 +1117,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${Math.round(SOUL_TETHER_SIPHON_HEALING_BONUS * 100)}% healing ratio`,
     skillId: SOUL_TETHER_SKILL_ID,
-    branch: 'soul-tether-siphon',
+    evolution: 'soul-tether-siphon',
     evolutionTags: ['leech'],
     soulTetherSiphon: true,
     isEligible: (state) =>
@@ -1134,7 +1134,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Snap burst chains to ${SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT} enemies`,
     skillId: SOUL_TETHER_SKILL_ID,
-    branch: 'soul-tether-requiem',
+    evolution: 'soul-tether-requiem',
     soulTetherRequiem: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(SOUL_TETHER_SKILL_ID) &&
@@ -1178,7 +1178,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${PHANTOM_ARSENAL_VOLLEY_MAX_COUNT_BONUS} active archer, -${PHANTOM_ARSENAL_VOLLEY_DAMAGE_REDUCTION_PERCENT}% damage each`,
     skillId: PHANTOM_ARSENAL_SKILL_ID,
-    branch: 'phantom-arsenal-volley',
+    evolution: 'phantom-arsenal-volley',
     phantomArsenalVolley: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
@@ -1194,7 +1194,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${PHANTOM_ARSENAL_MARKSMAN_RANGE_BONUS_PERCENT}% range, +${PHANTOM_ARSENAL_MARKSMAN_DAMAGE_INCREASE_PERCENT}% damage`,
     skillId: PHANTOM_ARSENAL_SKILL_ID,
-    branch: 'phantom-arsenal-marksman',
+    evolution: 'phantom-arsenal-marksman',
     phantomArsenalMarksman: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(PHANTOM_ARSENAL_SKILL_ID) &&
@@ -1238,7 +1238,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${Math.round(SIGIL_OF_RUIN_CONTAGIOUS_STORED_CAP_MULTIPLIER * 100)}% stored-damage cap on spread sigils`,
     skillId: SIGIL_OF_RUIN_SKILL_ID,
-    branch: 'sigil-of-ruin-contagious-script',
+    evolution: 'sigil-of-ruin-contagious-script',
     evolutionTags: ['ruin-sigil', 'chaos-damage'],
     sigilOfRuinContagiousScript: true,
     isEligible: (state) =>
@@ -1255,7 +1255,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `+${Math.round((SIGIL_OF_RUIN_EXECUTION_DAMAGE_MULTIPLIER - 1) * 100)}% detonation damage below ${Math.round(SIGIL_OF_RUIN_EXECUTION_HP_THRESHOLD * 100)}% HP`,
     skillId: SIGIL_OF_RUIN_SKILL_ID,
-    branch: 'sigil-of-ruin-execution-protocol',
+    evolution: 'sigil-of-ruin-execution-protocol',
     evolutionTags: ['ruin-sigil'],
     sigilOfRuinExecutionProtocol: true,
     isEligible: (state) =>
@@ -1300,7 +1300,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${MIRRORCAST_DOUBLE_EXPOSURE_ECHO_COUNT} Echoes at ${Math.round(MIRRORCAST_DOUBLE_EXPOSURE_EFFECTIVENESS * 100)}% effectiveness`,
     skillId: MIRRORCAST_SKILL_ID,
-    branch: 'mirrorcast-double-exposure',
+    evolution: 'mirrorcast-double-exposure',
     evolutionTags: ['echo'],
     mirrorcastDoubleExposure: true,
     isEligible: (state) =>
@@ -1317,7 +1317,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${Math.round(MIRRORCAST_DEFERRED_EFFECTIVENESS * 100)}% effectiveness, retargets on kill`,
     skillId: MIRRORCAST_SKILL_ID,
-    branch: 'mirrorcast-deferred-echo',
+    evolution: 'mirrorcast-deferred-echo',
     evolutionTags: ['echo'],
     mirrorcastDeferredEcho: true,
     isEligible: (state) =>
@@ -1361,7 +1361,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${CRITICAL_SPELLSTRIKE_RAPID_COOLDOWN_SECONDS.toFixed(1)}s base cooldown before CDR`,
     skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
-    branch: 'critical-spellstrike-rapid-invocation',
+    evolution: 'critical-spellstrike-rapid-invocation',
     criticalSpellstrikeRapidInvocation: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(CRITICAL_SPELLSTRIKE_SKILL_ID) &&
@@ -1377,7 +1377,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${Math.round(CRITICAL_SPELLSTRIKE_OVERWHELMING_EFFECTIVENESS * 100)}% baseline trigger effectiveness`,
     skillId: CRITICAL_SPELLSTRIKE_SKILL_ID,
-    branch: 'critical-spellstrike-overwhelming-spellstrike',
+    evolution: 'critical-spellstrike-overwhelming-spellstrike',
     criticalSpellstrikeOverwhelming: true,
     isEligible: (state) =>
       state.ownedSkillIds.includes(CRITICAL_SPELLSTRIKE_SKILL_ID) &&
@@ -1421,7 +1421,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${RAZORWIRE_TRIPWIRE_COUNT} wires at ${Math.round(RAZORWIRE_TRIPWIRE_DAMAGE_MULTIPLIER * 100)}% damage each`,
     skillId: RAZORWIRE_SKILL_ID,
-    branch: 'razorwire-tripwire-network',
+    evolution: 'razorwire-tripwire-network',
     evolutionTags: ['wire'],
     razorwireTripwireNetwork: true,
     isEligible: (state) =>
@@ -1438,7 +1438,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${Math.round(RAZORWIRE_GUILLOTINE_SNAP_DAMAGE_MULTIPLIER * 100)}% damage snap at ${RAZORWIRE_GUILLOTINE_TENSION_CAP} Tension`,
     skillId: RAZORWIRE_SKILL_ID,
-    branch: 'razorwire-guillotine-line',
+    evolution: 'razorwire-guillotine-line',
     evolutionTags: ['wire', 'tension'],
     razorwireGuillotineLine: true,
     isEligible: (state) =>
@@ -1483,7 +1483,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Empowered damage heals ${Math.round(BLOOD_RITE_SANGUINE_HEAL_RATIO * 100)}%`,
     skillId: BLOOD_RITE_SKILL_ID,
-    branch: 'blood-rite-sanguine-pact',
+    evolution: 'blood-rite-sanguine-pact',
     evolutionTags: ['blood-debt', 'leech'],
     bloodRiteSanguinePact: true,
     isEligible: (state) =>
@@ -1500,7 +1500,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${BLOOD_RITE_CRIMSON_CHARGES} smaller Blood Debt charges`,
     skillId: BLOOD_RITE_SKILL_ID,
-    branch: 'blood-rite-crimson-debt',
+    evolution: 'blood-rite-crimson-debt',
     evolutionTags: ['blood-debt'],
     bloodRiteCrimsonDebt: true,
     isEligible: (state) =>
@@ -1545,7 +1545,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `Prism Burst: ${Math.round(PRISM_HALO_CONVERGENCE_BURST_MULTIPLIER * 100)}% total shard damage`,
     skillId: PRISM_HALO_SKILL_ID,
-    branch: 'prism-halo-chromatic-convergence',
+    evolution: 'prism-halo-chromatic-convergence',
     evolutionTags: ['convergence'],
     prismHaloChromaticConvergence: true,
     isEligible: (state) =>
@@ -1562,7 +1562,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     amount: 1,
     valueLabel: `${PRISM_HALO_REFRACTION_MAX_SPLITS} projectiles at ${Math.round(PRISM_HALO_REFRACTION_DAMAGE_MULTIPLIER * 100)}% damage`,
     skillId: PRISM_HALO_SKILL_ID,
-    branch: 'prism-halo-refraction',
+    evolution: 'prism-halo-refraction',
     evolutionTags: ['projectile-chain'],
     prismHaloRefraction: true,
     isEligible: (state) =>

@@ -172,12 +172,14 @@ export type UpgradeId =
   | typeof REMOVE_SYNERGY_UPGRADE_ID
 export type UpgradeCategory = 'passive' | 'skill'
 export type UpgradeRarity = RarityValue
+export type SkillUpgradeType = 'level' | 'enhancement'
+export type SkillChoiceType = 'evolve' | 'synergy' | 'upgrade'
 export type UpgradeStat = Extract<
   StatKey,
   'attackDamage' | 'attackSpeed' | 'attackRange'
 >
 export type SkillUpgradeAction = 'unlock' | 'level'
-export type UpgradeBranch =
+export type SkillEvolutionId =
   | 'vitality-renewal'
   | 'vitality-last-stand'
   | 'whirlwind-control'
@@ -234,6 +236,41 @@ export interface UpgradeChoice {
   rarity: UpgradeRarity
 }
 
+export function getSkillChoiceType(
+  upgrade: UpgradeDefinition,
+): SkillChoiceType | undefined {
+  if (isSynergyUpgradeDefinition(upgrade)) {
+    return 'synergy'
+  }
+  if (upgrade.evolution !== undefined) {
+    return 'evolve'
+  }
+  if (
+    upgrade.skillId !== undefined &&
+    upgrade.skillAction !== undefined &&
+    upgrade.skillAction !== 'unlock'
+  ) {
+    return 'upgrade'
+  }
+  if (
+    upgrade.skillId !== undefined &&
+    upgrade.skillAction === undefined
+  ) {
+    return 'upgrade'
+  }
+  return undefined
+}
+
+export function getSkillUpgradeType(
+  upgrade: UpgradeDefinition,
+): SkillUpgradeType | undefined {
+  return upgrade.skillAction === 'level'
+    ? 'level'
+    : getSkillChoiceType(upgrade) === 'upgrade'
+      ? 'enhancement'
+      : undefined
+}
+
 export interface SynergyEffect {
   skillId: SkillId
   damageIncreasePercent?: number
@@ -280,7 +317,7 @@ export interface UpgradeDefinition {
   valueLabel: string
   skillId?: SkillId
   skillAction?: SkillUpgradeAction
-  branch?: UpgradeBranch
+  evolution?: SkillEvolutionId
   /** Status or mechanic tags added or modified by a skill evolution. */
   evolutionTags?: readonly KeywordId[]
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean

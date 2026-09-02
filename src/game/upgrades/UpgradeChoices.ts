@@ -315,7 +315,7 @@ function isBranchCompatible(
   upgrade: UpgradeDefinition,
   state: UpgradeEligibilityState,
 ): boolean {
-  if (!upgrade.branch) {
+  if (!upgrade.evolution) {
     return true
   }
   return !state.selectedUpgradeIds.some((selectedId) => {
@@ -324,8 +324,8 @@ function isBranchCompatible(
       return false
     }
     return selected.skillId === upgrade.skillId &&
-      selected.branch !== undefined &&
-      selected.branch !== upgrade.branch
+      selected.evolution !== undefined &&
+      selected.evolution !== upgrade.evolution
   })
 }
 

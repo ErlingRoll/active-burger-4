@@ -23,6 +23,8 @@ import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import {
   getUpgradeDefinition,
   getSynergyPartnerSkillIds,
+  getSkillChoiceType,
+  getSkillUpgradeType,
   REMOVE_SKILL_UPGRADE_ID,
   REMOVE_SYNERGY_UPGRADE_ID,
   type LevelUpUpgradeChoice,
@@ -427,7 +429,6 @@ function GearCard({
           <span className="choice-card-header">
             <span className="upgrade-choice-name">Upgrade: {itemName}</span>
             <span className="choice-card-badges">
-              <RarityBadge rarity={choice.rarity} label="Offer rarity" />
               <RarityBadge rarity={choice.itemRarity} label="Item rarity" />
             </span>
           </span>
@@ -575,12 +576,13 @@ function UpgradeCard({
       .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
       .map((skillId) => getSkillDefinition(skillId))
     : []
-  const evolvedSkill = definition.branch
+  const evolvedSkill = definition.evolution
     ? associatedSkill
     : undefined
-  const upgradedSkill = !definition.branch && !unlockedSkill
+  const upgradedSkill = getSkillChoiceType(definition) === 'upgrade' && !unlockedSkill
     ? associatedSkill
     : undefined
+  const skillUpgradeType = getSkillUpgradeType(definition)
   const actionSkill = evolvedSkill ?? upgradedSkill
   const synergySkillIds = definition.synergySkillIds ??
     removedSynergy?.synergySkillIds
@@ -595,17 +597,21 @@ function UpgradeCard({
       ? 'Release synergy:'
       : isSynergy
         ? 'Synergy:'
-        : definition.branch
+        : definition.evolution
           ? 'Evolve:'
           : definition.skillAction === 'unlock'
             ? 'Unlock skill'
-            : 'Upgrade'
+            : skillUpgradeType === 'level'
+              ? 'Upgrade:'
+              : skillUpgradeType === 'enhancement'
+                ? 'Enhancement:'
+                : 'Upgrade'
   const actionLabelClass = `upgrade-action-label-${
     isRelease
       ? 'release'
       : isSynergy
         ? 'synergy'
-        : definition.branch
+        : definition.evolution
           ? 'evolve'
           : definition.skillAction === 'unlock'
             ? 'unlock'
@@ -645,9 +651,6 @@ function UpgradeCard({
                 : definition.name}
           </span>
           <span className="choice-card-badges">
-            {isSynergy ? (
-              <span className="synergy-card-badge">SYNERGY</span>
-            ) : null}
             <RarityBadge rarity={choice.rarity} synergy={isSynergy && !isRelease} />
           </span>
         </span>

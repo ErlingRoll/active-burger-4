@@ -19,6 +19,8 @@ import {
   REMOVE_SYNERGY_UPGRADE_ID,
   SYNERGY_OFFER_CHANCE,
   SYNERGY_UPGRADES,
+  getSkillChoiceType,
+  getSkillUpgradeType,
   getSynergyPartnerSkillIds,
   isSkillSynergyActive,
 } from '../../content/upgrades/Upgrades'
@@ -183,7 +185,7 @@ describe('upgrade choice generation', () => {
      'cold',
      'chaos',
     ])
-    expect(evolutions.map((upgrade) => upgrade.branch)).toEqual([
+    expect(evolutions.map((upgrade) => upgrade.evolution)).toEqual([
      'basic-attack-lightning-attunement',
      'basic-attack-fire-attunement',
      'basic-attack-cold-attunement',
@@ -200,9 +202,11 @@ describe('upgrade choice generation', () => {
     const crypt = getUpgrade('raise-skeleton-max-count')
     const guardian = getUpgrade('raise-skeleton-guardian')
 
-    expect(crypt.branch).toBeUndefined()
+    expect(crypt.evolution).toBeUndefined()
+    expect(getSkillChoiceType(crypt)).toBe('upgrade')
+    expect(getSkillUpgradeType(crypt)).toBe('enhancement')
     expect(crypt.summonMaxCountIncrease).toBe(1)
-    expect(guardian.branch).toBeUndefined()
+    expect(guardian.evolution).toBeUndefined()
     expect(guardian.summonMaxHpIncrease).toBe(12)
     expect(crypt.isEligible({
       playerLevel: 2,
@@ -216,6 +220,21 @@ describe('upgrade choice generation', () => {
     })).toBe(true)
   })
 
+  it('classifies the one level upgrade separately from skill enhancements', () => {
+    const level = getUpgrade('whirlwind-level')
+    const enhancement = getUpgrade('whirlwind-leech')
+    const evolution = getUpgrade('whirlwind-frost')
+    const synergy = SYNERGY_UPGRADES[0]
+
+    expect(getSkillChoiceType(level)).toBe('upgrade')
+    expect(getSkillUpgradeType(level)).toBe('level')
+    expect(getSkillChoiceType(enhancement)).toBe('upgrade')
+    expect(getSkillUpgradeType(enhancement)).toBe('enhancement')
+    expect(getSkillChoiceType(evolution)).toBe('evolve')
+    expect(getSkillUpgradeType(evolution)).toBeUndefined()
+    expect(getSkillChoiceType(synergy)).toBe('synergy')
+  })
+
   it('defines Forked Current as a repeatable non-evolution Chain Lightning upgrade', () => {
     const forkedCurrent = getUpgrade('chain-lightning-extra-chain')
 
@@ -224,7 +243,7 @@ describe('upgrade choice generation', () => {
       repeatable: true,
       chainLightningChainIncrease: 1,
     })
-    expect(forkedCurrent.branch).toBeUndefined()
+    expect(forkedCurrent.evolution).toBeUndefined()
     expect(forkedCurrent.isEligible({
       playerLevel: 2,
       selectedUpgradeIds: [
@@ -241,9 +260,9 @@ describe('upgrade choice generation', () => {
     const legion = getUpgrade('raise-skeleton-legion')
     const rot = getUpgrade('raise-skeleton-rotting-bones')
 
-    expect(legion.branch).toBe('raise-skeleton-legion')
+    expect(legion.evolution).toBe('raise-skeleton-legion')
     expect(legion.skeletonLegion).toBe(true)
-    expect(rot.branch).toBe('raise-skeleton-rotting-bones')
+    expect(rot.evolution).toBe('raise-skeleton-rotting-bones')
     expect(rot.skeletonRottingBones).toBe(true)
     expect(rot.evolutionTags).toEqual(['poison', 'damage-over-time'])
 
