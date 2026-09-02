@@ -406,7 +406,7 @@ function GearCard({
       (modifier) => modifier.id === choice.upgradedModifierId,
     )
     return (
-      <div className="choice-card-wrap">
+      <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
         <button
           ref={index === 0 ? firstButtonRef : undefined}
           className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
