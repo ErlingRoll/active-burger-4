@@ -500,6 +500,23 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
   return definition
 }
 
+export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
+  if (!upgrade.evolution || !upgrade.skillId) {
+    return upgrade.description
+  }
+
+  const levelUpgrade = INITIAL_UPGRADES.find(
+    (candidate) =>
+      candidate.skillId === upgrade.skillId && candidate.skillAction === 'level',
+  )
+  if (!levelUpgrade) {
+    return upgrade.description
+  }
+
+  const levelEffect = levelUpgrade.valueLabel.replace(/\s+per level$/i, '')
+  return `${upgrade.description} Each additional skill level: ${levelEffect}.`
+}
+
 export function getBasicAttackDamageConversionType(
   selectedUpgradeIds: readonly UpgradeId[],
 ): Exclude<DamageType, 'physical'> | undefined {

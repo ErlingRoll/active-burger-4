@@ -2,8 +2,8 @@
  * Early-run XP tuning lives here rather than in the simulation or renderer.
  *
  * Thresholds are cumulative XP required to reach each level (the first entry
- * is level 1). The deliberately gentle opening curve gives a player a first
- * level after three Slimes, then leaves room for later enemy types to award more
+ * is level 1). The opening curve gives a player a first level after four
+ * Slimes, then leaves room for later enemy types to award more
  * meaningful amounts.
  */
 export interface XpBalance {
@@ -14,8 +14,8 @@ export interface XpBalance {
 }
 
 const XP_LEVEL_ONE_THRESHOLD = 0
-const XP_LEVEL_TWO_REQUIREMENT = 12
-const XP_LEVEL_REQUIREMENT_GROWTH = 1.16
+const XP_LEVEL_TWO_REQUIREMENT = 16
+const XP_LEVEL_REQUIREMENT_GROWTH = 1.12
 const XP_LEVEL_THRESHOLD_TABLE_SIZE = 100
 
 function buildLevelThresholds(maxLevel: number): readonly number[] {
@@ -33,8 +33,8 @@ function buildLevelThresholds(maxLevel: number): readonly number[] {
 }
 
 export const XP_BALANCE = {
-  // Level 1 starts at zero XP; later levels require meaningfully more XP while
-  // avoiding an excessive late-game wall.
+  // Level 1 starts at zero XP; the higher opening requirement improves early
+  // pacing while the gentler growth avoids an excessive level-30 wall.
   levelThresholds: buildLevelThresholds(XP_LEVEL_THRESHOLD_TABLE_SIZE),
   pickupRadius: 8,
   pickupAttractionRadius: 140,

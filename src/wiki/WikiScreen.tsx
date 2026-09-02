@@ -49,6 +49,7 @@ import { GEAR_DROP_CHANCE_BALANCE, GEAR_XP_BLESSING_CHANCE, GEAR_XP_BLESSING_MUL
 import { GEAR_RARITY_FLOOR_CHANCE } from '../game/equipment/GearChoices'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { INITIAL_UPGRADES } from '../game-config/skill-upgrades'
+import { getUpgradeDescription } from '../content/upgrades/Upgrades'
 import { SYNERGY_OFFER_CHANCE, SYNERGY_UPGRADES } from '../game-config/synergies'
 import { SkillIcon } from '../rendering/SkillIcon'
 import { KeywordTerm, KeywordText } from '../rendering/KeywordTooltip'
@@ -187,7 +188,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
     const indexed = [
       ...WIKI_SECTIONS.map((section) => ({ id: section.id, label: section.title, text: `${section.title} ${section.summary}` })),
       ...SKILLS.map((skill) => ({ id: `skill-${skill.id}`, label: skill.name, text: `${skill.name} ${skill.description} ${skill.tags.join(' ')}` })),
-      ...INITIAL_UPGRADES.map((upgrade) => ({ id: `upgrade-${upgrade.id}`, label: upgrade.name, text: `${upgrade.name} ${upgrade.description} ${upgrade.valueLabel}` })),
+      ...INITIAL_UPGRADES.map((upgrade) => ({ id: `upgrade-${upgrade.id}`, label: upgrade.name, text: `${upgrade.name} ${getUpgradeDescription(upgrade)} ${upgrade.valueLabel}` })),
       ...Object.values(ENEMY_DEFINITIONS).map((enemy) => ({ id: `enemy-${enemy.id}`, label: enemy.name, text: `${enemy.name} ${enemy.behavior.kind}` })),
       ...Object.values(KEYWORD_DEFINITIONS).map((definition) => ({ id: `glossary-${definition.id}`, label: definition.label, text: `${definition.label} ${definition.summary} ${definition.details}` })),
     ]
@@ -394,7 +395,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                     {skill.shieldBaseAmount !== undefined ? <p>Shield at level 1 / 5: <strong>{getSkillShieldAmount(skill, 1)} / {getSkillShieldAmount(skill, 5)}</strong></p> : null}
                     <p className="wiki-muted">Base damage: {Object.entries(skill.baseDamage).filter(([, value]) => value !== undefined).map(([type, value]) => `${formatNumber(value ?? 0)} ${type}`).join(' · ') || 'none'}</p>
                     {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> <KeywordText text={skill.resonanceEffect.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p> : null}
-                    {upgrades.length > 0 ? <details><summary>Upgrades, evolutions, and enhancements ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.evolution ? ' · Evolve' : upgrade.skillAction === 'level' ? ' · Level upgrade' : ' · Enhancement'}: <KeywordText text={upgrade.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
+                    {upgrades.length > 0 ? <details><summary>Upgrades, evolutions, and enhancements ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.evolution ? ' · Evolve' : upgrade.skillAction === 'level' ? ' · Level upgrade' : ' · Enhancement'}: <KeywordText text={getUpgradeDescription(upgrade)} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
                   </section>
                 )
               })}

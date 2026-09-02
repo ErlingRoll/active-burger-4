@@ -81,7 +81,10 @@ import {
   getWhirlwindCycloneCooldownReductionPercent,
   getWhirlwindCycloneStackCount,
 } from '../../game-config/skills'
-import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
+import {
+  getSkillDamageIncreasePercent,
+  getUpgradeDescription,
+} from '../../content/upgrades/Upgrades'
 import {
   INITIAL_UPGRADES,
   getSkillCooldownReductionPercent,
@@ -1611,7 +1614,7 @@ export function createUiSnapshot(
         return Object.freeze({
           upgradeId: upgrade.id,
           name: upgrade.name,
-          description: upgrade.description,
+          description: getUpgradeDescription(upgrade),
           valueLabel: getAcquiredSkillUpgradeValueLabel(
             upgrade,
             skill.level,

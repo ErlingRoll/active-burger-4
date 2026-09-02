@@ -22,6 +22,7 @@ import {
   getSkillChoiceType,
   getSkillUpgradeType,
   getSynergyPartnerSkillIds,
+  getUpgradeDescription,
   isSkillSynergyActive,
 } from '../../content/upgrades/Upgrades'
 
@@ -273,6 +274,17 @@ describe('upgrade choice generation', () => {
     expect(choices.map((choice) => choice.upgradeId)).not.toContain(
       'raise-skeleton-rotting-bones',
     )
+  })
+
+  it('describes the per-level effect for every evolution', () => {
+    const evolutions = INITIAL_UPGRADES.filter((upgrade) => upgrade.evolution)
+
+    expect(evolutions).toHaveLength(48)
+    for (const evolution of evolutions) {
+      expect(getUpgradeDescription(evolution)).toContain(
+        'Each additional skill level:',
+      )
+    }
   })
 
   it('makes Empowered Attack an Uncommon upgrade', () => {

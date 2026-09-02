@@ -22,6 +22,7 @@ import {
 import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import {
   getUpgradeDefinition,
+  getUpgradeDescription,
   getSynergyPartnerSkillIds,
   getSkillChoiceType,
   getSkillUpgradeType,
@@ -723,7 +724,7 @@ function UpgradeCard({
               ? `Remove ${removedSkill.name} from your skill slots. It can be unlocked again later.`
               : removedSynergy
                 ? `Remove ${removedSynergy.name} and make both skills eligible for another synergy.`
-                : definition.description}
+                : getUpgradeDescription(definition)}
           />
         </span>
         {isSelected ? (

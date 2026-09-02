@@ -61,7 +61,7 @@ export const WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK = 10
 export const WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS = 4
 export const RALLYING_BANNER_BASE_DURATION_SECONDS = 6
 export const RALLYING_BANNER_HEAL_INTERVAL_SECONDS = 1
-export const RALLYING_BANNER_EFFECT_RADIUS = 96
+export const RALLYING_BANNER_EFFECT_RADIUS = 144
 export const RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS = 12
 export const RALLYING_BANNER_RESONANCE_DURATION_BONUS_SECONDS = 4
 export const RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT = 10
@@ -622,7 +622,7 @@ export const SKILL_DEFINITIONS = {
   [RALLYING_BANNER_SKILL_ID]: {
     id: RALLYING_BANNER_SKILL_ID,
     name: 'Rallying Banner',
-    description: 'Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.',
+    description: `Plants a stationary banner with a ${RALLYING_BANNER_EFFECT_RADIUS}-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.`,
     kind: 'utility',
     tags: ['defensive', 'duration', 'triggerable'],
     canProduceDirectHit: false,
