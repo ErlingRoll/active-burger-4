@@ -76,6 +76,21 @@ describe('ordinary enemy floor scaling', () => {
     }
   })
 
+  it('applies Juggernauts to ordinary enemy health and contact damage', () => {
+    const game = createGame({
+      seed: 20260831,
+      worldModifierIds: ['juggernauts'],
+    })
+    const id = game.spawnSlime({ x: 0, y: 0 })
+    const enemy = game.state.enemies.find((candidate) => candidate.id === id)
+
+    expect(enemy).toMatchObject({
+      maxHp: 65,
+      hp: 65,
+      contactDamage: expect.closeTo(6.24, 10),
+    })
+  })
+
   it('applies Glass World multipliers to the complete derived player stats', () => {
     const game = createGame({
       seed: 20260830,

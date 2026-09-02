@@ -86,6 +86,28 @@ describe('ordinary enemy abilities', () => {
     expect(game.state.projectiles[0]?.remainingLifetime).toBeLessThan(3)
   })
 
+  it('applies Juggernauts damage to special attacks', () => {
+    const game = createGame({
+      seed: 305,
+      worldModifierIds: ['juggernauts'],
+    })
+    game.spawnEnemy('brute', { x: 100, y: 0 })
+    const allocator = createEntityIdAllocator()
+
+    updateEnemyAbilities(game.state, allocator, 0, {
+      ordinaryEnemyDamageMultiplier: 1.3,
+    })
+    const telegraph = game.state.telegraphs?.[0]
+    if (!telegraph) {
+      throw new Error('Expected Brute telegraph')
+    }
+    telegraph.remainingDuration = 0
+
+    const events = resolveEnemyTelegraphs(game.state, allocator)
+
+    expect(events[0]?.damage.physical).toBeCloseTo(10.92)
+  })
+
   it('tracks the Archer warning line as its source and target move', () => {
     const game = createGame({ seed: 304 })
     game.spawnEnemy('archer', { x: 300, y: 0 })

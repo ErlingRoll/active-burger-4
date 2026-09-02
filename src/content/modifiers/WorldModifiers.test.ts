@@ -77,6 +77,14 @@ describe('WorldModifiers', () => {
     expect(effects.fastStartDurationSeconds).toBe(120)
   })
 
+  it('makes Juggernauts increase ordinary enemy health and all damage', () => {
+    const effects = resolveWorldModifierEffects(['juggernauts'], SPAWN_BALANCE)
+
+    expect(effects.ordinaryEnemyMaxHpMultiplier).toBe(1.3)
+    expect(effects.ordinaryEnemyDamageMultiplier).toBe(1.3)
+    expect(effects.ordinaryEnemySpeedMultiplier).toBe(0.9)
+  })
+
   it('shortens normal floors without changing boss encounter duration', () => {
     const effects = resolveWorldModifierEffects(
       ['shorter-minute'],

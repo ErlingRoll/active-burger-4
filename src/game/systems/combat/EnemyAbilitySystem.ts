@@ -29,6 +29,7 @@ import type {
   ProjectileState,
   TelegraphState,
 } from '../../state/GameState'
+import type { WorldModifierEffects } from '../../../content/modifiers/WorldModifiers'
 
 const MIN_ENEMY_ABILITY_TELEGRAPH_SECONDS = 0.35
 const MAX_ENEMY_ABILITY_INTENSITY = 1.2
@@ -51,6 +52,7 @@ function getEnemyAbilityDamage(
   enemy: Readonly<EnemyState>,
   definition: EnemyAbilityDefinition,
   state: Readonly<GameState>,
+  effects?: Pick<WorldModifierEffects, 'ordinaryEnemyDamageMultiplier'>,
 ): ReturnType<typeof createMonsterDamageProfile> {
   const profile = getFloorDifficultyProfile(state.run.floor ?? 1)
   const floorStatMultiplier = getFloorStatMultiplier(state.run.floor ?? 1)
@@ -63,7 +65,8 @@ function getEnemyAbilityDamage(
       [definition.damageType]: definition.damage *
         floorStatMultiplier *
         profile.abilityDamageMultiplier *
-        postSpawnDamageMultiplier,
+        postSpawnDamageMultiplier *
+        (effects?.ordinaryEnemyDamageMultiplier ?? 1),
     }),
     enemy,
   )
@@ -87,9 +90,10 @@ function createEnemyAbilityTelegraph(
   enemy: EnemyState,
   definition: EnemyAbilityDefinition,
   target: ReturnType<typeof getEnemyCombatTarget>,
+  effects?: Pick<WorldModifierEffects, 'ordinaryEnemyDamageMultiplier'>,
 ): TelegraphState {
   const profile = getFloorDifficultyProfile(state.run.floor ?? 1)
-  const damage = getEnemyAbilityDamage(enemy, definition, state)
+  const damage = getEnemyAbilityDamage(enemy, definition, state, effects)
   const points = definition.kind === 'projectile'
     ? [
         { x: enemy.x, y: enemy.y },
@@ -130,6 +134,7 @@ export function updateEnemyAbilities(
   state: GameState,
   allocator: EntityIdAllocator,
   fixedStepSeconds: number,
+  effects?: Pick<WorldModifierEffects, 'ordinaryEnemyDamageMultiplier'>,
 ): void {
   const elapsed = Math.max(0, fixedStepSeconds)
   updateEnemyTelegraphPositions(state)
@@ -161,7 +166,14 @@ export function updateEnemyAbilities(
 
     state.telegraphs ??= []
     state.telegraphs.push(
-      createEnemyAbilityTelegraph(state, allocator, enemy, definition, target),
+      createEnemyAbilityTelegraph(
+        state,
+        allocator,
+        enemy,
+        definition,
+        target,
+        effects,
+      ),
     )
     enemy.abilityCooldownRemaining =
       definition.cooldown * floorProfile.abilityCooldownMultiplier

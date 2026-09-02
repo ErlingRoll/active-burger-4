@@ -198,7 +198,7 @@ export function spawnEnemy(
   effects?: Pick<
     WorldModifierEffects,
     | 'ordinaryEnemyMaxHpMultiplier'
-    | 'ordinaryEnemyContactDamageMultiplier'
+    | 'ordinaryEnemyDamageMultiplier'
     | 'ordinaryEnemySpeedMultiplier'
   >,
   canDropLoot = true,
@@ -268,7 +268,7 @@ export function spawnEnemy(
       (effects?.ordinaryEnemySpeedMultiplier ?? 1),
     contactDamage: scaledStats.contactDamage *
       floorDifficulty.ordinaryEnemyContactDamageMultiplier *
-      (effects?.ordinaryEnemyContactDamageMultiplier ?? 1),
+      (effects?.ordinaryEnemyDamageMultiplier ?? 1),
     contactCooldownRemaining: 0,
     xpReward,
     canDropLoot,
@@ -302,9 +302,15 @@ export function spawnSlime(
   state: GameState,
   idAllocator: EntityIdAllocator,
   position: WorldPosition,
+  effects?: Pick<
+    WorldModifierEffects,
+    | 'ordinaryEnemyMaxHpMultiplier'
+    | 'ordinaryEnemyDamageMultiplier'
+    | 'ordinaryEnemySpeedMultiplier'
+  >,
 ): EntityId {
   const definition = getEnemyDefinition(SLIME_DEFINITION_ID)
-  return spawnEnemy(state, idAllocator, definition.id, position)
+  return spawnEnemy(state, idAllocator, definition.id, position, undefined, undefined, effects)
 }
 
 export function spawnBoss(
@@ -420,7 +426,7 @@ export function updateEnemySpawns(
   effects?: Pick<
     WorldModifierEffects,
     | 'ordinaryEnemyMaxHpMultiplier'
-    | 'ordinaryEnemyContactDamageMultiplier'
+    | 'ordinaryEnemyDamageMultiplier'
     | 'ordinaryEnemySpeedMultiplier'
   >,
 ): void {

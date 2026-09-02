@@ -34,7 +34,7 @@ export const WORLD_MODIFIER_DEFINITIONS: Readonly<
   juggernauts: {
     id: 'juggernauts',
     name: 'Juggernauts',
-    description: 'All non-boss enemies have 25% more health and 20% more contact damage, but move 10% slower.',
+    description: 'All non-boss enemies have 30% more health and damage, but move 10% slower.',
     difficulty: 3,
     essenceRewardMultiplier: 1.2,
   },
@@ -81,7 +81,7 @@ export interface WorldModifierEffects {
   readonly essenceRewardMultiplier: number
   readonly playerStatMultipliers: Readonly<Partial<Record<StatKey, number>>>
   readonly ordinaryEnemyMaxHpMultiplier: number
-  readonly ordinaryEnemyContactDamageMultiplier: number
+  readonly ordinaryEnemyDamageMultiplier: number
   readonly ordinaryEnemySpeedMultiplier: number
   readonly floorDurationMultiplier: number
   readonly spawnBalance: SpawnBalance
@@ -149,8 +149,8 @@ export function resolveWorldModifierEffects(
     playerStatMultipliers: glassWorld
       ? { maxHp: 0.75, attackDamage: 1.1, attackSpeed: 1.1, movementSpeed: 1.05 }
       : {},
-    ordinaryEnemyMaxHpMultiplier: juggernauts ? 1.25 : 1,
-    ordinaryEnemyContactDamageMultiplier: juggernauts ? 1.2 : 1,
+    ordinaryEnemyMaxHpMultiplier: juggernauts ? 1.3 : 1,
+    ordinaryEnemyDamageMultiplier: juggernauts ? 1.3 : 1,
     ordinaryEnemySpeedMultiplier: juggernauts ? 0.9 : 1,
     floorDurationMultiplier: shorterMinute ? 0.75 : 1,
     spawnBalance: {

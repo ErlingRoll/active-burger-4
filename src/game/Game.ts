@@ -1114,7 +1114,12 @@ export class Game {
 
   /** Adds a Slime at an explicit world position. */
   spawnSlime(position: WorldPosition): EntityId {
-    return spawnSlime(this.gameState, this.idAllocator, position)
+    return spawnSlime(
+      this.gameState,
+      this.idAllocator,
+      position,
+      this.worldModifierEffects,
+    )
   }
 
   spawnEnemy(
@@ -1252,7 +1257,12 @@ export class Game {
     updateBloodDebt(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
-    updateEnemyAbilities(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
+    updateEnemyAbilities(
+      this.gameState,
+      this.idAllocator,
+      FIXED_STEP_SECONDS,
+      this.worldModifierEffects,
+    )
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState)
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS, enemySpatialHash)
