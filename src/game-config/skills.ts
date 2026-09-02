@@ -379,7 +379,7 @@ export const SKILL_DEFINITIONS = {
   [BASIC_ATTACK_SKILL_ID]: {
     id: BASIC_ATTACK_SKILL_ID,
     name: 'Basic Attack',
-    description: 'Automatically attacks with your equipped weapon archetype. Brutal Attack evolves it to deal 10% more Physical damage after increases.',
+    description: 'Automatically attacks with your equipped weapon archetype.',
     kind: 'projectile',
     tags: ['physical', 'projectile'],
     canProduceDirectHit: true,
@@ -459,7 +459,7 @@ export const SKILL_DEFINITIONS = {
   [VITALITY_SKILL_ID]: {
     id: VITALITY_SKILL_ID,
     name: 'Vitality',
-    description: 'Automatically restores 6 HP every 5 seconds. Each level adds 5 HP per cast, and Vitality healing can critically strike.',
+    description: 'Automatically restores 6 HP every 5 seconds. Vitality healing can critically strike.',
     kind: 'utility',
     tags: ['defensive', 'triggerable'],
     canProduceDirectHit: false,
@@ -599,7 +599,7 @@ export const SKILL_DEFINITIONS = {
   [RALLYING_BANNER_SKILL_ID]: {
     id: RALLYING_BANNER_SKILL_ID,
     name: 'Rallying Banner',
-    description: `Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Duration extensions affect only your newest banner and cap at ${RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS} seconds. Deals no direct damage.`,
+    description: 'Plants a stationary banner with a 96-unit radius that heals you immediately, then heals you and living summons inside it every second while active. Reduces incoming damage while active. Deals no direct damage.',
     kind: 'utility',
     tags: ['defensive', 'duration', 'triggerable'],
     canProduceDirectHit: false,
@@ -732,7 +732,7 @@ export const SKILL_DEFINITIONS = {
   [STORM_RELAY_SKILL_ID]: {
     id: STORM_RELAY_SKILL_ID,
     name: 'Storm Relay',
-    description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds. Duration extensions cap at ${STORM_RELAY_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    description: `Plants a lightning relay that strikes the nearest enemy every ${STORM_RELAY_STRIKE_INTERVAL_SECONDS} seconds, chaining to nearby enemies and applying Shock, for ${STORM_RELAY_BASE_DURATION_SECONDS} seconds.`,
     kind: 'chain',
     tags: ['lightning', 'area', 'duration', 'triggerable'],
     canProduceDirectHit: true,
@@ -760,7 +760,7 @@ export const SKILL_DEFINITIONS = {
   [SOUL_TETHER_SKILL_ID]: {
     id: SOUL_TETHER_SKILL_ID,
     name: 'Soul Tether',
-    description: `Each cast latches onto a nearby enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, favoring enemies closer to you. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies. Duration extensions affect only the newest tether on a target and cap at ${SOUL_TETHER_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    description: `Each cast latches onto a nearby enemy for ${SOUL_TETHER_DURATION_SECONDS} seconds, favoring enemies closer to you. The tether deals Chaos damage only over time and restores ${Math.round(SOUL_TETHER_BASE_HEALING_RATIO * 100)}% of that damage as health. Tethers are independent, and each snaps to one nearby enemy at ${Math.round(SOUL_TETHER_RETARGET_DAMAGE_MULTIPLIER * 100)}% damage when its target dies.`,
     kind: 'utility',
     tags: ['chaos', 'dot', 'trigger', 'duration', 'triggerable'],
     canProduceDirectHit: false,
@@ -890,7 +890,7 @@ export const SKILL_DEFINITIONS = {
   [RAZORWIRE_SKILL_ID]: {
     id: RAZORWIRE_SKILL_ID,
     name: 'Razorwire',
-    description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown. Duration extensions affect only your newest Wire and cap at ${RAZORWIRE_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    description: `Throws two anchors around the nearest enemy and strings a persistent Wire between them for ${RAZORWIRE_DURATION_SECONDS} seconds. Enemies crossing the Wire take physical damage and are briefly Chilled, limited by a short per-enemy crossing cooldown.`,
     kind: 'area',
     tags: ['physical', 'area', 'duration', 'triggerable'],
     canProduceDirectHit: true,
@@ -941,7 +941,7 @@ export const SKILL_DEFINITIONS = {
   [PRISM_HALO_SKILL_ID]: {
     id: PRISM_HALO_SKILL_ID,
     name: 'Prism Halo',
-    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock. Duration extensions cap at ${PRISM_HALO_SYNERGY_MAX_DURATION_SECONDS} seconds.`,
+    description: `Summons a Prism of three orbiting shards for ${PRISM_HALO_DURATION_SECONDS} seconds that fire Fire, Cold, and Lightning in rotation at nearby enemies, applying Fire Burning, Chill, and Shock.`,
     kind: 'utility',
     tags: ['fire', 'cold', 'lightning', 'duration', 'triggerable'],
     canProduceDirectHit: true,
