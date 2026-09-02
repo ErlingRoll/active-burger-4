@@ -55,6 +55,10 @@ export const LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT = 15
 export const LANCERS_CHARGE_IMPALER_RANGE_BONUS = 50
 export const LANCERS_CHARGE_IMPALER_WIDTH_BONUS = 25
 export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 4
+export const WHIRLWIND_CYCLONE_MAX_STACKS = 5
+export const WHIRLWIND_CYCLONE_COOLDOWN_REDUCTION_PER_STACK = 10
+export const WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK = 10
+export const WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS = 4
 export const RALLYING_BANNER_BASE_DURATION_SECONDS = 6
 export const RALLYING_BANNER_HEAL_INTERVAL_SECONDS = 1
 export const RALLYING_BANNER_EFFECT_RADIUS = 96
@@ -138,6 +142,25 @@ export const SIGIL_OF_RUIN_EXECUTION_DAMAGE_MULTIPLIER = 1.6
 export const SIGIL_OF_RUIN_CONTAGIOUS_STORED_CAP_MULTIPLIER = 0.5
 export const SIGIL_OF_RUIN_SPREAD_MAX_TARGETS = 3
 export const SIGIL_OF_RUIN_SPREAD_RADIUS = 140
+
+export function getWhirlwindCycloneStackCount(stacks: number): number {
+  return Math.min(
+    WHIRLWIND_CYCLONE_MAX_STACKS,
+    Math.max(0, Math.floor(Number.isFinite(stacks) ? stacks : 0)),
+  )
+}
+
+export function getWhirlwindCycloneCooldownReductionPercent(
+  stacks: number,
+): number {
+  return getWhirlwindCycloneStackCount(stacks) *
+    WHIRLWIND_CYCLONE_COOLDOWN_REDUCTION_PER_STACK
+}
+
+export function getWhirlwindCycloneAreaOfEffectPercent(stacks: number): number {
+  return getWhirlwindCycloneStackCount(stacks) *
+    WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK
+}
 
 // Mirrorcast: arms an echo that copies the next non-Basic skill cast after a
 // short delay at reduced effectiveness. Copies never arm another echo, so the
@@ -297,7 +320,7 @@ export const BASIC_ATTACK_VARIANTS = {
     id: 'sword',
     description: 'Sweeps a wide melee arc through enemies in front of you.',
     kind: 'area',
-    attackRange: 45,
+    attackRange: 76.5,
     tags: ['physical', 'melee', 'area'],
     swingArcDegrees: 100,
     effectLifetime: 0.14,

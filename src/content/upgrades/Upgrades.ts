@@ -33,6 +33,7 @@ export type UpgradeId =
   | 'whirlwind-leech'
   | 'whirlwind-frost'
   | 'whirlwind-guard'
+  | 'whirlwind-cyclone'
   | 'magnet'
   | 'chain-lightning-frost'
   | 'chain-lightning-overload'
@@ -184,6 +185,7 @@ export type SkillEvolutionId =
   | 'vitality-last-stand'
   | 'whirlwind-control'
   | 'whirlwind-guard'
+  | 'whirlwind-cyclone'
   | 'basic-attack-lightning-attunement'
   | 'basic-attack-fire-attunement'
   | 'basic-attack-cold-attunement'
@@ -344,6 +346,8 @@ export interface UpgradeDefinition {
   whirlwindFrostStacks?: number
   /** Damage reduction while Whirlwind Guard is active. */
   whirlwindGuardDamageReductionPercent?: number
+  /** Enables Gathering Storm stacks and their Cyclone bonuses. */
+  whirlwindCyclone?: boolean
   /** Enables Frost application on Chain Lightning hits. */
   chainLightningFrost?: boolean
   /** Additional Chain Lightning jumps granted per acquired rank. */

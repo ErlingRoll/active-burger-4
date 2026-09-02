@@ -76,6 +76,10 @@ import {
   AEGIS_PULSE_BULWARK_DURATION_BONUS_SECONDS,
   SOUL_TETHER_DURATION_SECONDS,
   getCriticalSpellstrikeBaseCooldown,
+  WHIRLWIND_CYCLONE_MAX_STACKS,
+  getWhirlwindCycloneAreaOfEffectPercent,
+  getWhirlwindCycloneCooldownReductionPercent,
+  getWhirlwindCycloneStackCount,
 } from '../../game-config/skills'
 import { getSkillDamageIncreasePercent } from '../../content/upgrades/Upgrades'
 import {
@@ -483,6 +487,7 @@ export type SkillModifierSummaryId =
   | 'skill-cooldown-reduction'
   | 'duration'
   | 'damage-reduction'
+  | 'gathering-storm'
 
 export interface SkillModifierSummarySnapshot {
   readonly id: SkillModifierSummaryId
@@ -659,6 +664,20 @@ function getSkillModifierSummaries(
           formatUnsignedPercent(RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT),
         )
       }
+    }
+    const gatheringStormStacks = skillId === WHIRLWIND_SKILL_ID &&
+      selectedUpgradeIds.includes('whirlwind-cyclone')
+      ? getWhirlwindCycloneStackCount(
+          state.player.whirlwindGatheringStormStacks ?? 0,
+        )
+      : 0
+    if (skillId === WHIRLWIND_SKILL_ID && gatheringStormStacks > 0) {
+      addSummary(
+        'gathering-storm',
+        'Gathering Storm',
+        gatheringStormStacks,
+        `${gatheringStormStacks}/${WHIRLWIND_CYCLONE_MAX_STACKS} stacks (+${getWhirlwindCycloneCooldownReductionPercent(gatheringStormStacks)}% cooldown, +${getWhirlwindCycloneAreaOfEffectPercent(gatheringStormStacks)}% area)`,
+      )
     }
     if (playerStats.cooldownReduction > 0) {
       addSummary(
@@ -1460,6 +1479,12 @@ export function createUiSnapshot(
                 skill.skillId,
                 state.run.selectedUpgradeIds,
               ) +
+              (skill.skillId === WHIRLWIND_SKILL_ID &&
+              state.run.selectedUpgradeIds.includes('whirlwind-cyclone')
+                ? getWhirlwindCycloneCooldownReductionPercent(
+                    state.player.whirlwindGatheringStormStacks ?? 0,
+                  )
+                : 0) +
               rallyingBannerCooldownReduction,
           ),
         )

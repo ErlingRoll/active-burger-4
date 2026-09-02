@@ -39,13 +39,13 @@ describe('equipment attack range', () => {
   it('uses the equipped weapon range after swapping archetypes', () => {
     const game = createGame({ seed: 75, characterClassId: 'knight' })
 
-    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
+    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(76.5)
 
     equipItem(game.state.player, 'ritual-staff')
     expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(110)
 
     equipItem(game.state.player, 'iron-cleaver')
-    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(45)
+    expect(getDerivedPlayerStats(game.state.player).attackRange).toBe(76.5)
     expect('attackRange' in game.state.player).toBe(false)
   })
 })

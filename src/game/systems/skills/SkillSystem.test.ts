@@ -173,6 +173,35 @@ describe('skill system', () => {
     expect(collectSkillDamage(game.state, allocator).length).toBe(2)
   })
 
+  it('stacks Cyclone bonuses on each Whirlwind cast and caps at five stacks', () => {
+    const game = createGame({ seed: 55 })
+    game.state.player.skills = [{
+      skillId: WHIRLWIND_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push('whirlwind-cyclone')
+    game.spawnSlime({ x: 80, y: 0 })
+
+    collectSkillDamage(game.state, allocator)
+    expect(game.state.player.whirlwindGatheringStormStacks).toBe(1)
+    expect(game.state.effects[0]?.radius).toBeCloseTo(99)
+    expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(2.25)
+    expect(game.state.player.whirlwindGatheringStormDecayRemaining).toBe(4)
+
+    for (let cast = 0; cast < 5; cast += 1) {
+      game.state.player.skills[0]!.cooldownRemaining = 0
+      collectSkillDamage(game.state, allocator)
+    }
+
+    expect(game.state.player.whirlwindGatheringStormStacks).toBe(5)
+    expect(game.state.effects.at(-1)?.radius).toBeCloseTo(135)
+    expect(game.state.player.skills[0]?.cooldownRemaining).toBeCloseTo(1.25)
+
+    updateSkillCooldowns(game.state, 4)
+    expect(game.state.player.whirlwindGatheringStormStacks).toBe(0)
+  })
+
   it('launches Chain Lightning with travel time and relaunches it through nearby enemies', () => {
     const game = createGame({ seed: 51 })
     game.state.player.skills = [{

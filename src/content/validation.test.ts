@@ -98,7 +98,7 @@ describe('content validation', () => {
     )
   })
 
-  it('gives Basic Attack five evolutions and every other skill two evolutions', () => {
+  it('gives Basic Attack five evolutions and every other skill its defined evolutions', () => {
     for (const skill of CURRENT_CONTENT.skills) {
       const skillUpgrades = CURRENT_CONTENT.upgrades.filter(
         (upgrade) => upgrade.skillId === skill.id,
@@ -110,7 +110,11 @@ describe('content validation', () => {
       )
 
       expect(evolutionIds).toHaveLength(
-        skill.id === BASIC_ATTACK_SKILL_ID ? 5 : 2,
+        skill.id === BASIC_ATTACK_SKILL_ID
+          ? 5
+          : skill.id === 'whirlwind'
+            ? 3
+            : 2,
       )
       expect(
         skillUpgrades.filter((upgrade) => upgrade.skillAction === 'level'),

@@ -48,6 +48,10 @@ import {
   LANCERS_CHARGE_IMPALER_RANGE_BONUS,
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
+  WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS,
+  getWhirlwindCycloneAreaOfEffectPercent,
+  getWhirlwindCycloneCooldownReductionPercent,
+  getWhirlwindCycloneStackCount,
   RALLYING_BANNER_BASE_DURATION_SECONDS,
   RALLYING_BANNER_HEAL_INTERVAL_SECONDS,
   RALLYING_BANNER_EFFECT_RADIUS,
@@ -316,6 +320,13 @@ export function updateSkillCooldowns(
   if (state.player.lancerMomentumDecayRemaining <= 0) {
     state.player.lancerMomentumStacks = 0
   }
+  state.player.whirlwindGatheringStormDecayRemaining = Math.max(
+    0,
+    (state.player.whirlwindGatheringStormDecayRemaining ?? 0) - fixedStepSeconds,
+  )
+  if (state.player.whirlwindGatheringStormDecayRemaining <= 0) {
+    state.player.whirlwindGatheringStormStacks = 0
+  }
 }
 
 export function updateSkillEffects(
@@ -381,11 +392,19 @@ function getSkillCooldown(
   )
   const rallyingBannerCooldownReduction =
     getRallyingBannerCooldownReductionPercent(state)
+  const whirlwindCycloneCooldownReduction =
+    skill.skillId === WHIRLWIND_SKILL_ID &&
+    state.run.selectedUpgradeIds.includes('whirlwind-cyclone')
+      ? getWhirlwindCycloneCooldownReductionPercent(
+          state.player.whirlwindGatheringStormStacks ?? 0,
+        )
+      : 0
   return getEffectiveSkillCooldown(
     baseCooldown,
     playerStats.cooldownReduction +
       skillCooldownReduction +
-      rallyingBannerCooldownReduction,
+      rallyingBannerCooldownReduction +
+      whirlwindCycloneCooldownReduction,
   )
 }
 
@@ -440,9 +459,16 @@ function collectWhirlwindDamage(
 ): DamageEvent[] {
   const definition = getSkillDefinition(WHIRLWIND_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
+  const cycloneActive = state.run.selectedUpgradeIds.includes('whirlwind-cyclone')
+  const gatheringStormStacks = cycloneActive
+    ? getWhirlwindCycloneStackCount(
+        (state.player.whirlwindGatheringStormStacks ?? 0) + 1,
+      )
+    : 0
   const radius = calculateAreaValue(
     definition.radius ?? 0,
-    playerStats.areaOfEffect,
+    playerStats.areaOfEffect +
+      getWhirlwindCycloneAreaOfEffectPercent(gatheringStormStacks),
   )
   const damage = getSkillDamage(definition, skill.level)
   const events: DamageEvent[] = []
@@ -489,6 +515,11 @@ function collectWhirlwindDamage(
   }
 
   if (events.length > 0) {
+    if (cycloneActive) {
+      state.player.whirlwindGatheringStormStacks = gatheringStormStacks
+      state.player.whirlwindGatheringStormDecayRemaining =
+        WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS
+    }
     if (state.run.selectedUpgradeIds.includes('synergy-whirlwind-lancers-charge')) {
       state.player.lancerMomentumStacks = Math.min(
         LANCERS_CHARGE_MAX_MOMENTUM_STACKS,

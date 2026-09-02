@@ -31,6 +31,7 @@ import {
   BASIC_ATTACK_SKILL_ID,
   BASIC_ATTACK_VARIANTS,
   SKILL_DEFINITIONS,
+  WHIRLWIND_SKILL_ID,
   type SkillDefinition,
 } from './skills/Skills'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
@@ -816,7 +817,11 @@ function validateSkillUpgradePaths(
     }
 
     const evolutionCount = evolutionsBySkill.get(skillId)?.size ?? 0
-    const expectedEvolutionCount = skillId === BASIC_ATTACK_SKILL_ID ? 5 : 2
+    const expectedEvolutionCount = skillId === BASIC_ATTACK_SKILL_ID
+      ? 5
+      : skillId === WHIRLWIND_SKILL_ID
+        ? 3
+        : 2
     if (evolutionCount !== expectedEvolutionCount) {
       errors.push(
         `skill "${skillId}" must have exactly ${expectedEvolutionCount} evolutions; found ${evolutionCount}.`,
@@ -1182,6 +1187,7 @@ function validateDefinitions(
           upgrade.vitalityLowHpDamageReductionPercent === undefined &&
           upgrade.whirlwindFrostStacks === undefined &&
           upgrade.whirlwindGuardDamageReductionPercent === undefined &&
+          upgrade.whirlwindCyclone === undefined &&
           upgrade.basicAttackDamageConversionType === undefined &&
           upgrade.basicAttackMorePhysicalDamagePercent === undefined &&
           upgrade.chainLightningFrost === undefined &&

@@ -296,7 +296,7 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   ),
   createSynergyUpgrade(
     'synergy-whirlwind-lancers-charge',
-    'Cyclone Momentum',
+    'Angular Momentum',
     'Whirlwind hits grant 1 Lancer Momentum stack, respecting the normal Momentum cap.',
     'Whirlwind grants Momentum',
     [WHIRLWIND_SKILL_ID, LANCERS_CHARGE_SKILL_ID],

@@ -224,6 +224,8 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.upgradeWhirlwindLeech = 0
     state.player.whirlwindGuardRemaining = 0
     state.player.whirlwindGuardDamageReductionPercent = 0
+    state.player.whirlwindGatheringStormStacks = 0
+    state.player.whirlwindGatheringStormDecayRemaining = 0
     state.player.lancerMomentumStacks = 0
     state.player.lancerMomentumDecayRemaining = 0
   }

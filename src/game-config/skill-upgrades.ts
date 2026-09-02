@@ -5,6 +5,10 @@ import {
   RAISE_SKELETON_SKILL_ID,
   VITALITY_SKILL_ID,
   WHIRLWIND_SKILL_ID,
+  WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK,
+  WHIRLWIND_CYCLONE_COOLDOWN_REDUCTION_PER_STACK,
+  WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS,
+  WHIRLWIND_CYCLONE_MAX_STACKS,
   GLACIAL_ORB_SKILL_ID,
   GLACIAL_ORB_PERMAFROST_RADIUS_BONUS,
   LANCERS_CHARGE_SKILL_ID,
@@ -256,6 +260,22 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     isEligible: (state) =>
       state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('whirlwind-guard'),
+  },
+  {
+    id: 'whirlwind-cyclone',
+    name: 'Cyclone',
+    description: `Each Whirlwind cast that hits an enemy gains a stack of Gathering Storm, up to ${WHIRLWIND_CYCLONE_MAX_STACKS}. Each stack grants ${WHIRLWIND_CYCLONE_COOLDOWN_REDUCTION_PER_STACK}% cooldown reduction and ${WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK}% area of effect. All stacks fall off if Whirlwind has not hit an enemy in the last ${WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS} seconds.`,
+    category: 'skill',
+    rarity: Rarity.Uncommon,
+    amount: 1,
+    valueLabel: `Gathering Storm: 0/${WHIRLWIND_CYCLONE_MAX_STACKS} stacks`,
+    skillId: WHIRLWIND_SKILL_ID,
+    evolution: 'whirlwind-cyclone',
+    evolutionTags: ['cooldown-reduction', 'area-of-effect'],
+    whirlwindCyclone: true,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(WHIRLWIND_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('whirlwind-cyclone'),
   },
   {
     id: 'basic-attack-lightning-attunement',

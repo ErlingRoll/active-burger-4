@@ -272,6 +272,10 @@ export interface PlayerState {
   vitalityLowHpDamageReductionPercent?: number
   whirlwindGuardRemaining?: number
   whirlwindGuardDamageReductionPercent?: number
+  /** Current Gathering Storm stacks from the Cyclone evolution. */
+  whirlwindGatheringStormStacks?: number
+  /** Time remaining before Gathering Storm stacks expire after the last Whirlwind hit. */
+  whirlwindGatheringStormDecayRemaining?: number
   /** More Fiery Touch damage applied after increases. */
   fieryTouchMoreDamagePercent?: number
   /** Repeatable Chain Lightning upgrade count. */
