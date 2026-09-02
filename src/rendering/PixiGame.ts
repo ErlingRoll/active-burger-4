@@ -1699,28 +1699,68 @@ export class PixiGame {
   ): Graphics {
     const radius = Math.max(1, effect.radius)
     const view = new Graphics()
-    for (let index = 0; index < 4; index += 1) {
-      const angle = (Math.PI * 2 * index) / 4 + 0.28
-      const inner = radius * 0.18
-      const outer = radius * (0.78 + (index % 2) * 0.12)
+      .circle(0, 0, radius * 0.94)
+      .fill({ color: visual.primaryColor, alpha: 0.06 })
+      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.42 })
+      .circle(0, 0, radius * 0.72)
+      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.45 })
+
+    const drawSpiralRibbon = (
+      phase: number,
+      direction: 1 | -1,
+      color: string,
+      fillAlpha: number,
+      strokeWidth: number,
+      strokeAlpha: number,
+    ): void => {
+      const left: number[] = []
+      const right: number[] = []
+      const segmentCount = 14
+      for (let segment = 0; segment <= segmentCount; segment += 1) {
+        const progress = segment / segmentCount
+        const angle = phase + direction * progress * Math.PI * 1.55
+        const distance = radius * (0.16 + progress * 0.77)
+        const thickness = radius * (0.035 + progress * 0.016)
+        const x = Math.cos(angle) * distance
+        const y = Math.sin(angle) * distance
+        const normalX = -Math.sin(angle)
+        const normalY = Math.cos(angle)
+        left.push(x + normalX * thickness, y + normalY * thickness)
+        right.unshift(x - normalX * thickness, y - normalY * thickness)
+      }
       view
-        .poly([
-          Math.cos(angle - 0.3) * inner,
-          Math.sin(angle - 0.3) * inner,
-          Math.cos(angle - 0.08) * outer,
-          Math.sin(angle - 0.08) * outer,
-          Math.cos(angle + 0.22) * outer * 0.82,
-          Math.sin(angle + 0.22) * outer * 0.82,
-          Math.cos(angle + 0.42) * inner,
-          Math.sin(angle + 0.42) * inner,
-        ])
-        .fill({ color: index % 2 === 0 ? visual.primaryColor : visual.secondaryColor, alpha: 0.42 })
-        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.85 })
+        .poly([...left, ...right])
+        .fill({ color, alpha: fillAlpha })
+        .stroke({ color: visual.outlineColor, width: strokeWidth, alpha: strokeAlpha })
     }
+
+    for (let index = 0; index < 5; index += 1) {
+      const phase = (Math.PI * 2 * index) / 5 + 0.2
+      const direction = 1
+      const color = index % 2 === 0 ? visual.primaryColor : visual.secondaryColor
+      drawSpiralRibbon(phase, direction, color, 0.16, 5, 0.28)
+      drawSpiralRibbon(phase, direction, color, 0.3, 1.5, 0.86)
+    }
+
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (Math.PI * 2 * index) / 8 + 0.12
+      const inner = radius * 0.5
+      const outer = radius * (0.78 + (index % 2) * 0.08)
+      view
+        .moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner)
+        .lineTo(Math.cos(angle + 0.16) * outer, Math.sin(angle + 0.16) * outer)
+        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.38 })
+    }
+
     view
-      .circle(0, 0, radius * 0.2)
-      .fill({ color: visual.secondaryColor, alpha: 0.78 })
-      .stroke({ color: visual.outlineColor, width: 2 })
+      .circle(0, 0, radius * 0.25)
+      .fill({ color: '#312e81', alpha: 0.68 })
+      .stroke({ color: visual.outlineColor, width: 2.5, alpha: 0.95 })
+      .circle(0, 0, radius * 0.12)
+      .fill({ color: visual.secondaryColor, alpha: 0.92 })
+      .stroke({ color: '#ffffff', width: 1.5, alpha: 0.8 })
+      .poly(createStarPoints(radius * 0.34, 6, 0.48, Math.PI / 6))
+      .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.76 })
     if (this.game.state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
       view
         .poly(createPolygonPoints(radius * 0.34, 4, Math.PI / 4))
@@ -3329,6 +3369,11 @@ export class PixiGame {
       view.rotation = 0
       return
     }
+    if (effect.skillId === WHIRLWIND_SKILL_ID) {
+      view.scale.set(0.68 + burst * 0.36 - settle * 0.04)
+      view.rotation = -time * 6.4 + (effect.id % 7) * 0.08
+      return
+    }
     if (isShortEffect) {
       view.scale.set(0.72 + burst * 0.38 - settle * 0.08)
       if (effect.shape !== 'line') {
@@ -3352,6 +3397,12 @@ export class PixiGame {
     if (hasWorldSpaceEffectGeometry(effect) || this.reducedMotion) {
       view.scale.set(1)
       view.rotation = 0
+      view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
+      return
+    }
+    if (effect.skillId === WHIRLWIND_SKILL_ID) {
+      view.scale.set(0.24 + expansion * 1.18)
+      view.rotation = time * 8 - (effect.id % 5) * 0.12
       view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
       return
     }
