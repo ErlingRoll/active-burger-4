@@ -338,7 +338,7 @@ function GearCard({
             <span className="upgrade-choice-name">Gear Salvage</span>
             <span className="choice-card-badges">
               <RarityBadge rarity={choice.rarity} />
-              <span className="gear-xp-blessing-badge">SALVAGE</span>
+              <span className="gear-xp-blessing-badge">BLESSING</span>
             </span>
           </span>
           <span className="upgrade-choice-value">
@@ -370,7 +370,7 @@ function GearCard({
             <span className="upgrade-choice-name">{minimumRarity.label} Fortune</span>
             <span className="choice-card-badges">
               <RarityBadge rarity={choice.rarity} />
-              <span className={`gear-rarity-floor-badge ${rarityClass(choice.rarity)}`}>FORTUNE</span>
+              <span className={`gear-rarity-floor-badge ${rarityClass(choice.rarity)}`}>BLESSING</span>
             </span>
           </span>
           <span className="upgrade-choice-value">
