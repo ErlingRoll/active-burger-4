@@ -2123,6 +2123,14 @@ function RunSetupScreen({
                       <span
                         className="character-class-card-detail"
                         tabIndex={0}
+                        aria-label={`Base physical damage: ${characterClass.baseStats.attackDamage}`}
+                      >
+                        <small>Base physical damage</small>
+                        <strong>{characterClass.baseStats.attackDamage}</strong>
+                      </span>
+                      <span
+                        className="character-class-card-detail"
+                        tabIndex={0}
                         aria-label={`Resonance: ${RESONANCE_DESCRIPTION}`}
                       >
                         <small><KeywordText text="Resonance" /></small>
