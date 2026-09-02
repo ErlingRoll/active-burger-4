@@ -834,9 +834,6 @@ const RESISTANCE_LABELS: Record<DamageResistanceType, string> = {
 const RESISTANCE_DISPLAY_TYPES = [
   'physical',
   'elemental',
-  'lightning',
-  'fire',
-  'cold',
   'chaos',
 ] as const satisfies readonly DamageResistanceType[]
 
@@ -1193,11 +1190,7 @@ function createCharacterStatsSnapshot(
       : getResistanceForDamageType(playerStats.resistances, resistanceType)
     const description = resistanceType === 'elemental'
       ? 'Reduces fire, cold, and lightning damage taken. The total is capped at 75%.'
-      : resistanceType === 'lightning' ||
-        resistanceType === 'fire' ||
-        resistanceType === 'cold'
-        ? `Reduces ${resistanceType} damage taken. Elemental resistance contributes to this value; the total is capped at 75%.`
-        : `Reduces ${resistanceType} damage taken, capped at 75%.`
+      : `Reduces ${resistanceType} damage taken, capped at 75%.`
     return createCharacterStatSnapshot(
       `resistance-${resistanceType}`,
       RESISTANCE_LABELS[resistanceType],

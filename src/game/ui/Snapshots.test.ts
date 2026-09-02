@@ -858,19 +858,15 @@ describe('UI snapshots', () => {
             expect.objectContaining({ value: '+18%' }),
           ]),
         }),
-        expect.objectContaining({
-          id: 'resistance-lightning',
-          value: '25%',
-        }),
-        expect.objectContaining({
-          id: 'resistance-fire',
-          value: '25%',
-        }),
-        expect.objectContaining({
-          id: 'resistance-cold',
-          value: '25%',
-        }),
       ]))
+    const defenceStatIds = snapshot.characterStats.groups
+      .find((group) => group.id === 'defence')?.stats
+      .map((stat) => stat.id) ?? []
+    expect(defenceStatIds).not.toEqual(expect.arrayContaining([
+      'resistance-lightning',
+      'resistance-fire',
+      'resistance-cold',
+    ]))
     expect(Object.isFrozen(snapshot.characterStats)).toBe(true)
     expect(
       Object.isFrozen(snapshot.characterStats.groups[0]?.stats),
