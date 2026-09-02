@@ -382,19 +382,23 @@ describe('skill system', () => {
       .toBeCloseTo(8.72)
   })
 
-  it('lets Close Quarters prime a ready Basic Attack after a Whirlwind hit', () => {
+  it('lets Basic Attack hits halve Whirlwind remaining cooldown', () => {
     const game = createGame({ seed: 57 })
     game.state.player.skills = [
       { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
-      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 1.2 },
     ]
-    game.state.player.attackCooldownRemaining = 1
-    game.spawnSlime({ x: 40, y: 0 })
+    const targetId = game.spawnSlime({ x: 40, y: 0 })
+    game.state.player.targetId = targetId
+    equipItem(game.state.player, 'iron-cleaver')
     game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
 
-    collectSkillDamage(game.state, allocator)
+    const events = performBasicAttackIfReady(game.state, allocator)
+    applyDamageEvents(game.state, events)
 
-    expect(game.state.player.attackCooldownRemaining).toBe(0.5)
+    expect(game.state.player.skills.find(
+      (skill) => skill.skillId === WHIRLWIND_SKILL_ID,
+    )?.cooldownRemaining).toBeCloseTo(0.6)
   })
 
   it('lets Basic Attack prime Shock or Chill for its paired skill', () => {

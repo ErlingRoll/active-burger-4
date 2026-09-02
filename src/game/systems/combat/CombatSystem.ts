@@ -151,6 +151,7 @@ import {
   BASIC_ATTACK_VITALITY_TRIGGER_COOLDOWN_SECONDS,
   BASIC_ATTACK_LANCER_HIT_INTERVAL,
   BASIC_ATTACK_LANCER_TRIGGER_COOLDOWN_SECONDS,
+  BASIC_ATTACK_WHIRLWIND_COOLDOWN_REDUCTION_PERCENT,
   BASIC_ATTACK_RAISE_SKELETON_COOLDOWN_REDUCTION_SECONDS,
   BASIC_ATTACK_FIERY_TOUCH_COOLDOWN_REDUCTION_SECONDS,
   BASIC_ATTACK_PHANTOM_COOLDOWN_REDUCTION_SECONDS,
@@ -343,6 +344,19 @@ function applyBasicAttackSynergyHooks(
   const selected = state.run.selectedUpgradeIds
   const hitCount = (state.player.basicAttackSynergyHitCount ?? 0) + 1
   state.player.basicAttackSynergyHitCount = hitCount % 60
+
+  if (selected.includes('synergy-basic-attack-whirlwind')) {
+    const whirlwind = state.player.skills.find(
+      (skill) => skill.skillId === WHIRLWIND_SKILL_ID,
+    )
+    if (whirlwind) {
+      whirlwind.cooldownRemaining = Math.max(
+        0,
+        whirlwind.cooldownRemaining *
+          (1 - BASIC_ATTACK_WHIRLWIND_COOLDOWN_REDUCTION_PERCENT / 100),
+      )
+    }
+  }
 
   if (
     selected.includes('synergy-basic-attack-vitality') &&

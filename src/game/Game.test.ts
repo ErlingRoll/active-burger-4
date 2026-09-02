@@ -698,6 +698,27 @@ describe('Game', () => {
     expect(game.state.player.hp).toBe(maxHp)
   })
 
+  it('preserves uncollected XP and ground loot across a floor transition', () => {
+    const game = createGame({ seed: 20260835 })
+    game.spawnXpPickup({ x: 1_000, y: 0 }, 7)
+    game.spawnGearPickup({ x: 1_000, y: 0 }, 'slime')
+    game.spawnHealingPotion({ x: 1_000, y: 0 })
+    const pickups = game.state.pickups.map((pickup) => ({ ...pickup }))
+    game.spawnStairs({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('floor-transition')
+    expect(game.state.pickups).toEqual(pickups)
+    expect(game.getFloorCheckpointSnapshot()?.gameState.pickups).toEqual(pickups)
+
+    expect(game.completeFloorSave()).toBe(true)
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('playing')
+    expect(game.state.pickups).toEqual(pickups)
+  })
+
   it('clears combat state before creating the next-floor checkpoint', () => {
     const game = createGame({ seed: 20260834 })
     game.state.player.skills.push({
@@ -811,6 +832,34 @@ describe('Game', () => {
 
     updateBossDeathMagnet(game.state, 6)
     expect(game.state.player.bossMagnetRemaining).toBe(0)
+  })
+
+  it('preserves the boss-death Magnet across a floor transition', () => {
+    const game = createGame({ seed: 20260836 })
+    game.state.player.bossMagnetRemaining = BOSS_DEATH_MAGNET_DURATION_SECONDS
+    game.spawnStairs({ x: 0, y: 0 })
+
+    game.update(FIXED_STEP_SECONDS)
+
+    const remainingAfterTransition = BOSS_DEATH_MAGNET_DURATION_SECONDS -
+      FIXED_STEP_SECONDS
+    expect(game.phase).toBe('floor-transition')
+    expect(game.state.player.bossMagnetRemaining).toBeCloseTo(
+      remainingAfterTransition,
+    )
+    expect(game.getFloorCheckpointSnapshot()?.gameState.player.bossMagnetRemaining)
+      .toBeCloseTo(remainingAfterTransition)
+
+    expect(game.completeFloorSave()).toBe(true)
+    expect(game.state.player.bossMagnetRemaining).toBeCloseTo(
+      remainingAfterTransition,
+    )
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.phase).toBe('playing')
+    expect(game.state.player.bossMagnetRemaining).toBeCloseTo(
+      remainingAfterTransition - FIXED_STEP_SECONDS,
+    )
   })
 
   it('waits for every boss in an event before creating stairs', () => {

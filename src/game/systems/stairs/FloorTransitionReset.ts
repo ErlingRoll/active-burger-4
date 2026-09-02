@@ -4,8 +4,9 @@ import type { GameState } from '../../state/GameState'
  * Removes combat state that must not cross a floor boundary.
  *
  * Progression, equipment, pickups, skill levels, and cooldowns intentionally
- * remain part of the run. Runtime combat state is cleared here so new skills
- * and effects have one boundary-reset contract to follow.
+ * remain part of the run. The boss-death pickup magnet also remains active
+ * across the boundary. Runtime combat state is cleared here so new skills and
+ * effects have one boundary-reset contract to follow.
  */
 export function resetFloorCombatState(state: GameState): void {
   state.enemies = []
@@ -48,7 +49,6 @@ export function resetFloorCombatState(state: GameState): void {
   player.bloodDebt = undefined
   player.prismHalo = undefined
   player.prismConvergence = []
-  player.bossMagnetRemaining = 0
   player.poisonStacks = []
 
   for (const skill of player.skills) {

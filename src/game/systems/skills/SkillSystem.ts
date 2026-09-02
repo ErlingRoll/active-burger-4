@@ -489,12 +489,6 @@ function collectWhirlwindDamage(
   }
 
   if (events.length > 0) {
-    if (state.run.selectedUpgradeIds.includes('synergy-basic-attack-whirlwind')) {
-      state.player.attackCooldownRemaining = Math.max(
-        0,
-        state.player.attackCooldownRemaining * 0.5,
-      )
-    }
     if (state.run.selectedUpgradeIds.includes('synergy-whirlwind-lancers-charge')) {
       state.player.lancerMomentumStacks = Math.min(
         LANCERS_CHARGE_MAX_MOMENTUM_STACKS,

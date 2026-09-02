@@ -140,8 +140,8 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
   createSynergyUpgrade(
     'synergy-basic-attack-whirlwind',
     'Close Quarters',
-    'Whirlwind hits prime Basic Attack, reducing its remaining cooldown by 50%.',
-    'Whirlwind halves Basic Attack cooldown',
+    'Basic Attack hits reduce Whirlwind\'s remaining cooldown by 50%.',
+    'Basic Attack halves Whirlwind cooldown',
     [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
   ),
   createSynergyUpgrade(
