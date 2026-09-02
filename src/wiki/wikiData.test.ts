@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getFloorStatMultiplier } from '../content/dungeons/Dungeons'
 import { ELITE_MODIFIER_DEFINITIONS } from '../content/enemies/EliteModifiers'
-import { xpRequiredForLevel } from '../content/progression/XpBalance'
+import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import {
   createFloorScalingChartPoints,
   createXpChartPoints,
@@ -15,12 +15,12 @@ describe('wiki source-derived data', () => {
   it('uses the live XP and floor scaling helpers for graph values', () => {
     expect(createXpChartPoints()).toContainEqual({
       label: 'L30',
-      value: xpRequiredForLevel(30),
+      value: xpRequiredForNextLevel(30),
     })
     expect(createXpChartPoints()).toHaveLength(6)
     expect(createXpChartPoints().at(-1)).toEqual({
       label: 'L50',
-      value: xpRequiredForLevel(50),
+      value: xpRequiredForNextLevel(50),
     })
     expect(createFloorScalingChartPoints()).toContainEqual({
       label: 'F30',

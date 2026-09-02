@@ -1,6 +1,6 @@
 import { getFloorStatMultiplier } from '../content/dungeons/Dungeons'
 import type { EliteModifierDefinition } from '../content/enemies/EliteModifiers'
-import { xpRequiredForLevel } from '../content/progression/XpBalance'
+import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 
 export interface WikiChartPoint {
   label: string
@@ -27,7 +27,7 @@ const WIKI_CHART_FLOORS = [1, 5, 10, 20, 30, 50] as const
 export function createXpChartPoints(): readonly WikiChartPoint[] {
   return WIKI_CHART_LEVELS.map((level) => ({
     label: `L${level}`,
-    value: xpRequiredForLevel(level),
+    value: xpRequiredForNextLevel(level),
   }))
 }
 

@@ -487,7 +487,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
             <WikiSectionHeading id="progression" title="Progression and rewards">
               Experience and essence progression are calculated from deterministic helpers; charts show selected exact samples.
             </WikiSectionHeading>
-            <SourceChart label="Cumulative XP needed to reach each selected level" points={XP_CHART_POINTS} />
+            <SourceChart label="XP needed to reach the next level" points={XP_CHART_POINTS} />
             <div className="wiki-card-grid">
               <section className="wiki-card">
                 <h3>XP formula</h3>
