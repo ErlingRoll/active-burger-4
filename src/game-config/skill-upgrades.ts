@@ -104,6 +104,7 @@ const VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT = 20
 const WHIRLWIND_FROST_STACKS = 1
 const WHIRLWIND_GUARD_DAMAGE_REDUCTION_PERCENT = 15
 const BASIC_ATTACK_DAMAGE_CONVERSION_PERCENT = 70
+const BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT = 10
 const FIERY_TOUCH_DAMAGE_INCREASE_PERCENT = 25
 const SKELETON_MAX_HP_INCREASE = 12
 const GLACIAL_ORB_LEVEL_DAMAGE_INCREASE_PERCENT = 8
@@ -321,6 +322,21 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
       !state.selectedUpgradeIds.includes('basic-attack-chaos-attunement'),
   },
   {
+    id: 'basic-attack-brutality',
+    name: 'Brutal Attack',
+    description: `Basic Attack deals ${BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT}% more Physical damage after increases. This also increases Attunement damage.`,
+    category: 'skill',
+    rarity: Rarity.Rare,
+    amount: BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT,
+    valueLabel: `${BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT}% more Physical damage`,
+    skillId: BASIC_ATTACK_SKILL_ID,
+    branch: 'basic-attack-brutality',
+    basicAttackMorePhysicalDamagePercent: BASIC_ATTACK_MORE_PHYSICAL_DAMAGE_PERCENT,
+    isEligible: (state) =>
+      state.ownedSkillIds.includes(BASIC_ATTACK_SKILL_ID) &&
+      !state.selectedUpgradeIds.includes('basic-attack-brutality'),
+  },
+  {
     id: 'magnet',
     name: 'Magnet',
     description: `Increase XP, health potion, equipment, and item collection range by ${MAGNET_COLLECTION_RANGE_INCREASE_PERCENT}%.`,
@@ -480,7 +496,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${FIERY_TOUCH_DAMAGE_INCREASE_PERCENT}% Fiery Touch damage`,
     skillId: FIERY_TOUCH_SKILL_ID,
     branch: 'fiery-touch-ember',
-    fieryTouchDamageIncreasePercent: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
+    fieryTouchMoreDamagePercent: FIERY_TOUCH_DAMAGE_INCREASE_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(FIERY_TOUCH_SKILL_ID) &&
       !state.selectedUpgradeIds.includes('fiery-touch-ember'),

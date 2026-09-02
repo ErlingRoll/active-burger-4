@@ -9,6 +9,7 @@ import type {
   GameState,
   SkillEffectState,
 } from '../../state/GameState'
+import { extendDurationUpToMaximum } from '../../engine/CombatCalculations'
 
 export function getRallyingBannerEffects(
   state: Readonly<GameState>,
@@ -39,13 +40,12 @@ export function extendRallyingBannerDuration(
   effect: SkillEffectState,
   extensionSeconds: number,
 ): void {
-  const extension = Math.min(
+  const extendedLifetime = extendDurationUpToMaximum(
+    effect.remainingLifetime,
     extensionSeconds,
-    Math.max(
-      0,
-      RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS - effect.remainingLifetime,
-    ),
+    RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
   )
+  const extension = extendedLifetime - effect.remainingLifetime
   effect.remainingLifetime += extension
   effect.lifetime += extension
 }

@@ -5,6 +5,7 @@ import type {
 import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
 import {
   getBasicAttackDamageConversionType,
+  getBasicAttackMorePhysicalDamagePercent,
   getSkillDamageIncreasePercent,
 } from '../../content/upgrades/Upgrades'
 import {
@@ -13,12 +14,13 @@ import {
   DAMAGE_TYPES,
   DAMAGE_INCREASE_TYPES,
   addDamageValues,
-  applyFlatDamage,
-  applyIncreasedDamage,
+  calculateDamageValues,
   createDamageIncreaseValues,
   createDamageValues,
   type CriticalStrikeStats,
+  type DamageConversion,
   type DamageIncreaseType,
+  type DamageMoreModifier,
   type DamageType,
   type DamageValues,
   type PartialDamageValues,
@@ -53,12 +55,14 @@ type BasicAttackDamageConversionType = Exclude<DamageType, 'physical'>
 
 type AttunementSourceDamageContext = Partial<Record<DamageIncreaseType, number>> & {
   basicAttackDamageConversionType?: BasicAttackDamageConversionType
+  basicAttackMorePhysicalDamagePercent?: number
 }
 
 /**
  * Player damage pipeline:
- * 1. Basic Attacks add flat damage, then apply increased damage.
- * 2. Other sources apply their native base damage and increased damage.
+ * 1. Basic Attacks add flat damage, then apply increased and more damage.
+ * 2. Other sources apply their native base damage, increased damage, and
+ *    any applicable more damage.
  * 3. Attunement is calculated from the finalized, pre-crit Basic Attack and
  *    appended as typed damage without reapplying the skill's native increases.
  * 4. Periodic player damage applies DoT multiplier once when the event resolves.
@@ -80,6 +84,8 @@ export function getAttunementSourceAdditionalIncreasedDamage(
     basicAttackDamageConversionType: getBasicAttackDamageConversionType(
       state.run.selectedUpgradeIds,
     ),
+    basicAttackMorePhysicalDamagePercent:
+      getBasicAttackMorePhysicalDamagePercent(state.run.selectedUpgradeIds),
   }
 }
 
@@ -89,22 +95,32 @@ export interface PlayerDamageProfileContext {
   isBasicAttack?: boolean
   sourceTags?: readonly SkillTag[]
   additionalIncreasedDamage?: Partial<Record<DamageIncreaseType, number>>
+  /** Multiplicative damage bonus applied after all applicable increases. */
+  moreDamagePercent?: number
+  /** Source-ordered conversions applied before damage increases and more modifiers. */
+  damageConversions?: readonly DamageConversion[]
+  /** Damage copied from each matching source type before it is converted. */
+  gainAsExtraDamage?: readonly {
+    sourceDamageTypes?: readonly DamageType[]
+    targetDamageType: DamageType
+    percent: number
+  }[]
+  /** Additional type-aware multiplicative modifiers. */
+  moreDamageModifiers?: readonly DamageMoreModifier[]
   attunementSourceAdditionalIncreasedDamage?: AttunementSourceDamageContext
 }
 
-function convertBasicAttackPhysicalDamage(
-  damage: Readonly<DamageValues>,
+function getBasicAttackDamageConversions(
   damageType: BasicAttackDamageConversionType | undefined,
-): DamageValues {
-  if (!damageType) {
-    return createDamageValues(damage)
-  }
-  const convertedDamage = damage.physical * BASIC_ATTACK_DAMAGE_CONVERSION_RATIO
-  return {
-    ...damage,
-    physical: damage.physical - convertedDamage,
-    [damageType]: damage[damageType] + convertedDamage,
-  }
+): readonly DamageConversion[] {
+  return damageType
+    ? [{
+      sourceDamageType: 'physical',
+      targetDamageType: damageType,
+      percent: BASIC_ATTACK_DAMAGE_CONVERSION_RATIO * 100,
+      source: 'skill',
+    }]
+    : []
 }
 
 export function getBasicAttackDamageBeforeCritFromStats(
@@ -119,16 +135,18 @@ export function getBasicAttackDamageBeforeCritFromStats(
   for (const increaseType of DAMAGE_INCREASE_TYPES) {
     increasedDamage[increaseType] += additionalIncreasedDamage[increaseType] ?? 0
   }
-  return convertBasicAttackPhysicalDamage(
-    applyIncreasedDamage(
-    applyFlatDamage(
-      { physical: stats.attackDamage ?? 0 },
-      stats.flatDamage,
-    ),
-    increasedDamage,
-    { isProjectile: stats.basicAttackIsProjectile },
-    ),
-    basicAttackDamageConversionType,
+  return calculateDamageValues(
+    { physical: stats.attackDamage ?? 0 },
+    {
+      flatDamage: stats.flatDamage,
+      conversions: getBasicAttackDamageConversions(basicAttackDamageConversionType),
+      increased: increasedDamage,
+      moreModifiers: [{
+        damageTypes: ['physical'],
+        percent: additionalIncreasedDamage.basicAttackMorePhysicalDamagePercent ?? 0,
+      }],
+      increaseContext: { isProjectile: stats.basicAttackIsProjectile },
+    },
   )
 }
 
@@ -173,19 +191,42 @@ export function createPlayerDamageProfileFromStats(
         stats,
         context.attunementSourceAdditionalIncreasedDamage,
       )
-  const nativeDamage = applyIncreasedDamage(
-    applyFlatDamage(
-      baseDamage,
-      context.isBasicAttack ? stats.flatDamage : {},
-    ),
-    increasedDamage,
-    { isProjectile: context.isProjectile },
+  const basicAttackMoreDamagePercent =
+    context.attunementSourceAdditionalIncreasedDamage
+      ?.basicAttackMorePhysicalDamagePercent ?? 0
+  const moreDamageModifiers: DamageMoreModifier[] = [
+    ...(context.moreDamagePercent === undefined
+      ? []
+      : [{ percent: context.moreDamagePercent }]),
+    ...(context.moreDamageModifiers ?? []),
+    ...(context.isBasicAttack
+      ? [{
+        damageTypes: ['physical'] as const,
+        percent: basicAttackMoreDamagePercent,
+      }]
+      : []),
+  ]
+  const nativeDamage = calculateDamageValues(
+    baseDamage,
+    {
+      flatDamage: context.isBasicAttack ? stats.flatDamage : {},
+      conversions: [
+        ...(context.damageConversions ?? []),
+        ...getBasicAttackDamageConversions(
+          context.isBasicAttack
+            ? context.attunementSourceAdditionalIncreasedDamage
+              ?.basicAttackDamageConversionType
+            : undefined,
+        ),
+      ],
+      gainAsExtra: context.gainAsExtraDamage,
+      increased: increasedDamage,
+      moreModifiers: moreDamageModifiers,
+      increaseContext: { isProjectile: context.isProjectile },
+    },
   )
   const damage = context.isBasicAttack
-    ? convertBasicAttackPhysicalDamage(
-        nativeDamage,
-        context.attunementSourceAdditionalIncreasedDamage?.basicAttackDamageConversionType,
-      )
+    ? nativeDamage
     : addDamageValues(nativeDamage, attunementDamage)
   return {
     damage,

@@ -3,6 +3,8 @@ import {
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK,
   LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK,
+  RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
+  RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
 } from '../../game-config/skills'
 
 export type KeywordId =
@@ -19,7 +21,9 @@ export type KeywordId =
   | 'attunement'
   | 'primed'
   | 'synergy-charge'
+  | 'healing'
   | 'shield'
+  | 'damage-reduction'
   | 'cooldown'
   | 'cooldown-reduction'
   | 'duration'
@@ -55,28 +59,28 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Poison',
     summary: 'Damage over time applied by a hit.',
     details:
-      'Each application creates a separate stack of Chaos damage over time. Its damage and duration come from the source skill or modifier; player-owned stacks are increased by DoT multiplier.',
+      `Each application creates a separate stack of Chaos damage over time. Base Poison damage per second is (the applying hit's pre-mitigation Physical damage + Chaos damage) × the application's Poison ratio. Each source defines that ratio and duration; Rotting Bones is the current player source, at ${Math.round(RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO * 100)}% for ${RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS} seconds. For player-owned Poison, each tick is base Poison damage × (1 + DoT multiplier / 100).`,
   },
   burning: {
     id: 'burning',
     label: 'Burning',
     summary: 'A fire damage-over-time stack.',
     details:
-      'Each application creates a separate stack that deals Fire damage per second based on the applying hit\'s Fire damage. DoT multiplier increases the damage of player-owned Burning ticks, including Burning created by Cinder Mine or a Prismatic Ruin.',
+      'Each application creates a separate stack that deals Fire damage per second based on the applying hit\'s Fire damage. For player-owned Burning, each tick is base Burning damage × (1 + DoT multiplier / 100), including Burning created by Cinder Mine or a Prismatic Ruin.',
   },
   frost: {
     id: 'frost',
     label: 'Frost',
     summary: 'The status family that uses Chill and Freeze.',
     details:
-      'Frost effects apply Chill stacks. Chill slows enemies, and reaching 3 stacks normally triggers Freeze.',
+      'Frost effects apply Chill stacks. Total Chill slow is stacks × 15%, capped at 3 stacks (45%); reaching 3 stacks normally triggers Freeze.',
   },
   chill: {
     id: 'chill',
     label: 'Chill',
     summary: 'Frost stacks that slow enemies.',
     details:
-      'Each Chill stack slows an enemy by 15%. Chill lasts up to 4 seconds and caps at 3 stacks. Reaching 3 stacks triggers Freeze.',
+      'Each Chill stack slows an enemy by 15%, so total slow is stacks × 15%. Chill lasts up to 4 seconds and caps at 3 stacks (45% slow). Reaching 3 stacks triggers Freeze.',
   },
   freeze: {
     id: 'freeze',
@@ -97,7 +101,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Shock',
     summary: 'Lightning stacks that build toward Overload.',
     details:
-      'Shock stacks last up to 4 seconds and cap at 3 stacks. Reaching 3 stacks triggers Overload and consumes the stacks.',
+      'Shock stacks last up to 4 seconds and cap at 3 stacks. Reaching 3 stacks triggers Overload for triggering hit damage × 1.5, then consumes the stacks.',
   },
   overload: {
     id: 'overload',
@@ -111,7 +115,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Momentum',
     summary: 'Stacks that empower Lancer\'s Charge.',
     details:
-      `Each Lancer's Charge grants one stack after it resolves. Each stack adds ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% increased damage to later Charges (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard). Momentum caps at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks, and any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
+      `Each Lancer's Charge grants one stack after it resolves. Total increased damage is stacks × ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard), up to ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard) at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks. Any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
   },
   resonance: {
     id: 'resonance',
@@ -125,7 +129,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Attunement',
     summary: 'Converts part of Basic Attack damage into skill damage.',
     details:
-      'Attunement adds a percentage of the final pre-critical Basic Attack damage to skills and summons. Each damage type is preserved and rounded up independently.',
+      'Attunement adds ceil(final pre-critical Basic Attack component × Attunement / 100) to skills and summons for each damage type. Each component keeps its type and rounds up independently.',
   },
   primed: {
     id: 'primed',
@@ -141,12 +145,26 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     details:
       'Lifebound Pact stores half of Soul Tether healing, up to 20 HP. The next Vitality cast consumes the stored charge as bonus healing.',
   },
+  healing: {
+    id: 'healing',
+    label: 'Healing',
+    summary: 'Restores HP without exceeding the missing amount.',
+    details:
+      'Final healing is min(missing HP, requested healing × (1 + increased healing / 100) × critical multiplier). The critical multiplier is 1 unless the healing roll is critical.',
+  },
   shield: {
     id: 'shield',
     label: 'Shield',
     summary: 'An absorb barrier that prevents incoming damage.',
     details:
-      'A shield absorbs incoming damage before HP is lost. Synergies can repair, refresh, or consume part of an active Aegis Pulse shield.',
+      'A shield absorbs each post-mitigation damage component before HP is lost: absorbed damage = min(component damage, remaining shield); remaining HP damage = component damage - absorbed damage. Synergies can repair, refresh, or consume part of an active Aegis Pulse shield.',
+  },
+  'damage-reduction': {
+    id: 'damage-reduction',
+    label: 'Damage reduction',
+    summary: 'Lowers all damage taken before resistance.',
+    details:
+      'Active player damage-reduction sources add together. Each incoming component is multiplied by 1 - min(75%, total damage reduction) / 100 before its matching resistance is applied.',
   },
   cooldown: {
     id: 'cooldown',
@@ -160,7 +178,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Cooldown reduction',
     summary: 'Makes skills ready again sooner.',
     details:
-      'This percentage reduces a skill\'s cooldown. For example, 20% turns a 5-second cooldown into 4 seconds. Skill cooldowns cannot go below 0.1 seconds.',
+      'Effective cooldown is max(0.1 seconds, base cooldown × (1 - cooldown reduction / 100)). For example, 20% turns a 5-second cooldown into 4 seconds.',
   },
   triggerable: {
     id: 'triggerable',
@@ -174,14 +192,14 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Duration',
     summary: 'How long an effect remains active.',
     details:
-      'A duration is the time an active skill effect remains in the world before it expires.',
+      'A duration is the time an active skill effect remains in the world before it expires. A capped extension sets new remaining duration to min(maximum duration, remaining duration + extension).',
   },
   'damage-over-time': {
     id: 'damage-over-time',
     label: 'Damage over time',
     summary: 'Damage dealt gradually instead of in one hit.',
     details:
-      'Damage over time effects tick during their duration. Player-owned Poison, Burning, and Soul Tether damage is multiplied once when each periodic event resolves. DoT multiplier does not affect enemy damage.',
+      'Damage over time effects tick during their duration. Player-owned Poison, Burning, and Soul Tether ticks use base periodic damage × (1 + DoT multiplier / 100) once when each event resolves. DoT multiplier does not affect enemy damage.',
   },
   stack: {
     id: 'stack',
@@ -195,21 +213,21 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Leech',
     summary: 'Restores health from damage dealt.',
     details:
-      'Leech restores health from actual damage dealt after enemy mitigation. Damage-over-time effects do not trigger melee leech.',
+      'Leech starts as actual post-mitigation hit damage × leech percentage. It then receives increased healing and is capped at missing HP; current melee leech does not roll a healing critical strike. Damage-over-time effects do not trigger melee leech.',
   },
   'critical-strike': {
     id: 'critical-strike',
     label: 'Critical strike',
     summary: 'A hit that deals multiplied damage.',
     details:
-      'Critical chance controls how often a hit crits. Critical multiplier controls how much extra damage a critical strike deals.',
+      'A critical hit deals hit damage × critical multiplier / 100. Critical chance is capped at 100%; each point above 100 adds 0.5 percentage points to the critical multiplier. Average hit factor is 1 + chance / 100 × (multiplier / 100 - 1).',
   },
   'area-of-effect': {
     id: 'area-of-effect',
     label: 'Area of effect',
     summary: 'Affects a region instead of one point.',
     details:
-      'Area-of-effect bonuses increase the coverage of area-based skills. They do not automatically increase single-target damage.',
+      'Area-of-effect bonuses scale an area value as base area × (1 + area of effect / 100). They increase coverage of area-based skills, not their single-target damage.',
   },
   'projectile-chain': {
     id: 'projectile-chain',
@@ -223,7 +241,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Resistance',
     summary: 'Reduces incoming damage of a matching type.',
     details:
-      'Reduces incoming damage of a matching type by a percentage. Resistances are capped at 75%.',
+      'Final component damage is base damage × (1 - effective resistance / 100), where effective resistance is capped at 75%. Lightning, Fire, and Cold use elemental resistance plus their matching individual resistance; Physical and Chaos use their own pools.',
   },
   'physical-damage': {
     id: 'physical-damage',
@@ -293,7 +311,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Prism Burst',
     summary: 'A three-element detonation from Chromatic Convergence.',
     details:
-      'When Fire, Cold, and Lightning from Prism Halo hit the same enemy within the convergence window, Prism Burst deals 140% total shard damage as equal Fire, Cold, and Lightning damage, uses the triggering shard\'s critical-strike profile, and clears that enemy\'s Convergence progress. It does not apply another elemental status.',
+      'When Fire, Cold, and Lightning from Prism Halo hit the same enemy within the convergence window, Prism Burst deals total shard damage × 1.4, split equally into Fire, Cold, and Lightning components. It uses the triggering shard\'s critical-strike profile, clears that enemy\'s Convergence progress, and does not apply another elemental status.',
   },
 }
 
@@ -335,8 +353,10 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'primed', text: 'primes' },
   { id: 'primed', text: 'primed' },
   { id: 'synergy-charge', text: 'synergy charge' },
+  { id: 'healing', text: 'healing' },
   { id: 'shield', text: 'shield' },
   { id: 'shield', text: 'shielded' },
+  { id: 'damage-reduction', text: 'damage reduction' },
   { id: 'cooldown', text: 'cooldown' },
   { id: 'leech', text: 'leech' },
   { id: 'resistance', text: 'resistance' },

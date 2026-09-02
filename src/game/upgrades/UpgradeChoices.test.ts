@@ -116,12 +116,13 @@ describe('upgrade choice generation', () => {
     expect(ids).not.toContain('whirlwind-unlock')
   })
 
-  it('defines four non-repeatable Basic Attack damage conversion evolutions', () => {
+  it('defines five non-repeatable Basic Attack evolutions', () => {
     const evolutions = [
      getUpgrade('basic-attack-lightning-attunement'),
      getUpgrade('basic-attack-fire-attunement'),
      getUpgrade('basic-attack-cold-attunement'),
      getUpgrade('basic-attack-chaos-attunement'),
+     getUpgrade('basic-attack-brutality'),
     ]
 
     expect(evolutions.map((upgrade) => upgrade.rarity)).toEqual([
@@ -129,8 +130,9 @@ describe('upgrade choice generation', () => {
      Rarity.Rare,
      Rarity.Rare,
      Rarity.Rare,
+     Rarity.Rare,
     ])
-    expect(evolutions.map((upgrade) => upgrade.basicAttackDamageConversionType)).toEqual([
+    expect(evolutions.slice(0, 4).map((upgrade) => upgrade.basicAttackDamageConversionType)).toEqual([
      'lightning',
      'fire',
      'cold',
@@ -141,7 +143,12 @@ describe('upgrade choice generation', () => {
      'basic-attack-fire-attunement',
      'basic-attack-cold-attunement',
      'basic-attack-chaos-attunement',
+     'basic-attack-brutality',
     ])
+    expect(evolutions.at(-1)).toMatchObject({
+     basicAttackMorePhysicalDamagePercent: 10,
+     valueLabel: '10% more Physical damage',
+    })
   })
 
   it('treats skeleton count and durability cards as upgrades instead of evolutions', () => {

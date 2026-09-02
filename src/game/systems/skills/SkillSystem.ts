@@ -211,11 +211,11 @@ import {
   consumeSkillResonance,
   isSkillResonant,
 } from '../../combat/Resonance'
+import {
+  calculateAreaValue,
+  extendDurationUpToMaximum,
+} from '../../engine/CombatCalculations'
 import { clampPlayerPosition } from '../../../game-config/arena'
-
-function scaleAreaValue(value: number, areaOfEffect: number): number {
-  return value * (1 + Math.max(0, areaOfEffect) / 100)
-}
 
 function pullEnemyToward(
   enemy: EnemyState | BossState,
@@ -389,14 +389,6 @@ function getSkillCooldown(
   )
 }
 
-function extendDurationUpToMaximum(
-  remainingDuration: number,
-  extensionSeconds: number,
-  maximumDuration: number,
-): number {
-  return Math.min(maximumDuration, remainingDuration + extensionSeconds)
-}
-
 function markSkillUsed(skill: SkillState): void {
   skill.castCount = (skill.castCount ?? 0) + 1
 }
@@ -448,7 +440,7 @@ function collectWhirlwindDamage(
 ): DamageEvent[] {
   const definition = getSkillDefinition(WHIRLWIND_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
-  const radius = scaleAreaValue(
+  const radius = calculateAreaValue(
     definition.radius ?? 0,
     playerStats.areaOfEffect,
   )
@@ -597,7 +589,7 @@ function collectChainLightningDamage(
     projectileCount,
     definition.spreadDegrees ?? 0,
   )
-  const chainRange = scaleAreaValue(definition.jumpRange ?? 0, playerStats.areaOfEffect)
+  const chainRange = calculateAreaValue(definition.jumpRange ?? 0, playerStats.areaOfEffect)
   state.projectiles.push(
     ...spreadAngles.map((spreadAngle, projectileIndex) => {
       const angle = directionAngle + spreadAngle
@@ -846,13 +838,13 @@ function collectGlacialOrbDamage(
     skill.level,
     state.run.selectedUpgradeIds,
   )
-  const explosionRadius = scaleAreaValue(
+  const explosionRadius = calculateAreaValue(
     (definition.radius ?? 0) + (permafrost ? GLACIAL_ORB_PERMAFROST_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
   )
   const isChilledOrFrozen = (target.chillStacks ?? 0) > 0 ||
     (target.frozenRemainingDuration ?? 0) > 0
-  const iceLanceBonus = iceLance && isChilledOrFrozen
+  const iceLanceMoreDamagePercent = iceLance && isChilledOrFrozen
     ? GLACIAL_ORB_ICE_LANCE_DAMAGE_INCREASE_PERCENT
     : 0
   const damageEvent = createPlayerDamageEventFromStats(
@@ -864,8 +856,9 @@ function collectGlacialOrbDamage(
     {
       sourceTags: definition.tags,
       additionalIncreasedDamage: {
-        global: damageIncreasePercent + iceLanceBonus,
+        global: damageIncreasePercent,
       },
+      moreDamagePercent: iceLanceMoreDamagePercent,
       attunementSourceAdditionalIncreasedDamage:
         getAttunementSourceAdditionalIncreasedDamage(state),
     },
@@ -916,7 +909,7 @@ function collectLancersChargeDamage(
   const vanguard = state.run.selectedUpgradeIds.includes('lancers-charge-vanguard')
   const impaler = state.run.selectedUpgradeIds.includes('lancers-charge-impaler')
   const length = (definition.maxRange ?? 0) + (impaler ? LANCERS_CHARGE_IMPALER_RANGE_BONUS : 0)
-  const halfWidth = scaleAreaValue(
+  const halfWidth = calculateAreaValue(
     (definition.radius ?? 0) + (impaler ? LANCERS_CHARGE_IMPALER_WIDTH_BONUS : 0),
     playerStats.areaOfEffect,
   )
@@ -1103,7 +1096,7 @@ function collectGravityWellDamage(
   const playerStats = getDerivedPlayerStats(state.player)
   const singularity = state.run.selectedUpgradeIds.includes('gravity-well-singularity')
   const eventHorizon = state.run.selectedUpgradeIds.includes('gravity-well-event-horizon')
-  const radius = scaleAreaValue(
+  const radius = calculateAreaValue(
     (definition.radius ?? 0) + (singularity ? GRAVITY_WELL_SINGULARITY_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
   )
@@ -1120,8 +1113,7 @@ function collectGravityWellDamage(
     skill.skillId,
     skill.level,
     state.run.selectedUpgradeIds,
-  ) +
-    (eventHorizon ? GRAVITY_WELL_EVENT_HORIZON_DAMAGE_INCREASE_PERCENT : 0)
+  )
 
   const affected = [...state.enemies, ...(state.bosses ?? [])]
     .filter((enemy) => enemy.hp > 0)
@@ -1166,6 +1158,9 @@ function collectGravityWellDamage(
       {
         sourceTags: definition.tags,
         additionalIncreasedDamage: { global: damageIncreasePercent },
+        moreDamagePercent: eventHorizon
+          ? GRAVITY_WELL_EVENT_HORIZON_DAMAGE_INCREASE_PERCENT
+          : 0,
         attunementSourceAdditionalIncreasedDamage:
           getAttunementSourceAdditionalIncreasedDamage(state),
       },
@@ -1219,7 +1214,7 @@ function collectAegisPulseDamage(
   const definition = getSkillDefinition(AEGIS_PULSE_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
   const bulwark = state.run.selectedUpgradeIds.includes('aegis-pulse-bulwark')
-  const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect)
+  const radius = calculateAreaValue(definition.radius ?? 0, playerStats.areaOfEffect)
   const damage = getSkillDamage(definition, skill.level)
   const damageIncreasePercent = getSkillDamageIncreasePercent(
     skill.skillId,
@@ -1403,7 +1398,7 @@ function placeCinderMineIfReady(
         getAttunementSourceAdditionalIncreasedDamage(state),
     },
   )
-  const radius = scaleAreaValue(
+  const radius = calculateAreaValue(
     (definition.radius ?? 0) + (inferno ? CINDER_MINE_INFERNO_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
   )
@@ -1705,7 +1700,7 @@ function collectStormRelayCast(
     shockBurstMultiplier: 1.5,
     ...(conduit
       ? {
-          pullRadius: scaleAreaValue(
+          pullRadius: calculateAreaValue(
             STORM_RELAY_CONDUIT_PULL_RADIUS,
             playerStats.areaOfEffect,
           ),
@@ -2758,7 +2753,7 @@ function collectBloodRiteCast(
     )
   }
 
-  const pulseRadius = scaleAreaValue(
+  const pulseRadius = calculateAreaValue(
     definition.radius ?? BLOOD_RITE_PULSE_RADIUS,
     playerStats.areaOfEffect,
   )

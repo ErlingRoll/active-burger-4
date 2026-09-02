@@ -262,7 +262,8 @@ export interface PlayerState {
   vitalityLowHpDamageReductionPercent?: number
   whirlwindGuardRemaining?: number
   whirlwindGuardDamageReductionPercent?: number
-  fieryTouchDamageIncreasePercent?: number
+  /** More Fiery Touch damage applied after increases. */
+  fieryTouchMoreDamagePercent?: number
   /** Repeatable Chain Lightning upgrade count. */
   chainLightningChainBonus?: number
   /** Extra Chain Lightning targets primed by a Gravity Well synergy. */

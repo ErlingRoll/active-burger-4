@@ -95,10 +95,10 @@ export function applyUpgrade(
       (player.whirlwindGuardDamageReductionPercent ?? 0) +
       definition.whirlwindGuardDamageReductionPercent
   }
-  if (definition.fieryTouchDamageIncreasePercent) {
-    player.fieryTouchDamageIncreasePercent =
-      (player.fieryTouchDamageIncreasePercent ?? 0) +
-      definition.fieryTouchDamageIncreasePercent
+  if (definition.fieryTouchMoreDamagePercent) {
+    player.fieryTouchMoreDamagePercent =
+      (player.fieryTouchMoreDamagePercent ?? 0) +
+      definition.fieryTouchMoreDamagePercent
   }
   if (definition.increasedHealingPercent) {
     player.increasedHealing =
@@ -228,7 +228,7 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.lancerMomentumDecayRemaining = 0
   }
   if (skillId === FIERY_TOUCH_SKILL_ID) {
-    state.player.fieryTouchDamageIncreasePercent = 0
+    state.player.fieryTouchMoreDamagePercent = 0
   }
   if (skillId === VITALITY_SKILL_ID) {
     state.player.increasedHealing = 0

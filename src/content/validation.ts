@@ -813,7 +813,7 @@ function validateSkillUpgradePaths(
     }
 
     const evolutionPathCount = evolutionBranchesBySkill.get(skillId)?.size ?? 0
-    const expectedEvolutionPathCount = skillId === BASIC_ATTACK_SKILL_ID ? 4 : 2
+    const expectedEvolutionPathCount = skillId === BASIC_ATTACK_SKILL_ID ? 5 : 2
     if (evolutionPathCount !== expectedEvolutionPathCount) {
       errors.push(
         `skill "${skillId}" must have exactly ${expectedEvolutionPathCount} evolution paths; found ${evolutionPathCount}.`,
@@ -1180,10 +1180,11 @@ function validateDefinitions(
           upgrade.whirlwindFrostStacks === undefined &&
           upgrade.whirlwindGuardDamageReductionPercent === undefined &&
           upgrade.basicAttackDamageConversionType === undefined &&
+          upgrade.basicAttackMorePhysicalDamagePercent === undefined &&
           upgrade.chainLightningFrost === undefined &&
           upgrade.chainLightningChainIncrease === undefined &&
           upgrade.chainLightningOverload === undefined &&
-          upgrade.fieryTouchDamageIncreasePercent === undefined &&
+          upgrade.fieryTouchMoreDamagePercent === undefined &&
           upgrade.glacialOrbFrostStacks === undefined &&
           upgrade.glacialOrbIceLance === undefined &&
           upgrade.glacialOrbIceLanceDamageIncreasePercent === undefined &&
@@ -1240,6 +1241,19 @@ function validateDefinitions(
       errors.push(
         `upgrades[${index}].basicAttackDamageConversionType must be a non-physical damage type on Basic Attack.`,
       )
+    }
+    if (upgrade.basicAttackMorePhysicalDamagePercent !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].basicAttackMorePhysicalDamagePercent`,
+        upgrade.basicAttackMorePhysicalDamagePercent,
+        'positive',
+      )
+      if (upgrade.skillId !== BASIC_ATTACK_SKILL_ID) {
+        errors.push(
+          `upgrades[${index}].basicAttackMorePhysicalDamagePercent must apply to Basic Attack.`,
+        )
+      }
     }
   })
   validateSynergyDefinitions(errors, catalog.upgrades, skillIds)

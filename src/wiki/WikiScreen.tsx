@@ -18,13 +18,10 @@ import type { SkillDefinition } from '../content/skills/Skills'
 import { RARITIES, RARITY_VISUALS, RARITY_WEIGHTS } from '../content/rarity/Rarity'
 import {
   DAMAGE_TYPES,
-  getAverageCriticalStrikeFactor,
-  mitigateDamageValues,
   RESISTANCE_CAP,
 } from '../content/stats/Damage'
 import {
   ATTUNEMENT_DESCRIPTION,
-  evaluateDerivedStats,
   RESONANCE_DESCRIPTION,
 } from '../content/stats/Stats'
 import {
@@ -210,8 +207,6 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
 
   const levelOneHealing = SKILLS.filter((skill) => skill.baseHealing !== undefined)
   const levelOneShields = SKILLS.filter((skill) => skill.shieldBaseAmount !== undefined)
-  const damageExample = mitigateDamageValues({ fire: 100 }, { elemental: 25, fire: 10 })
-  const critExample = getAverageCriticalStrikeFactor({ chance: 25, multiplier: 200 })
   const essenceExample = calculateEssenceReward(20, 100, 1.2, true)
 
   return (
@@ -315,20 +310,27 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
               Damage components retain their type through increases, critical strikes, resistance, and effects.
             </WikiSectionHeading>
             <div className="wiki-card-grid">
-              <section className="wiki-card">
+              <section className="wiki-card wiki-card-full-width">
                 <h3>Damage types</h3>
                 <p>{DAMAGE_TYPES.map((type) => <a className="wiki-tag" href={`#glossary-${type}`} key={type}>{titleCase(type)}</a>)}</p>
-                <p>Elemental is the shared resistance pool for lightning, fire, and cold. Physical and chaos use their own pools.</p>
+                <p>Lightning, Fire, and Cold share the Elemental resistance pool. Physical and Chaos each use their own resistance pool. Damage type alone does not apply an ailment; skills, evolutions, and effects define when their associated mechanics are applied.</p>
+                <ul>
+                  <li><strong>Physical:</strong> the primary Basic Attack damage type. A Physical hit against a Frozen enemy <a className="wiki-inline-link" href="#glossary-shatter">Shatters</a> it, ending Freeze and dealing <strong>150%</strong> of that hit's damage.</li>
+                  <li><strong>Lightning:</strong> associated with <a className="wiki-inline-link" href="#glossary-shock">Shock</a>. Shock lasts up to 4 seconds, caps at 3 stacks, and its third stack triggers <a className="wiki-inline-link" href="#glossary-overload">Overload</a> for <strong>150%</strong> of the triggering hit's damage.</li>
+                  <li><strong>Fire:</strong> associated with <a className="wiki-inline-link" href="#glossary-burning">Burning</a>. Burning deals Fire damage over time based on the applying hit's Fire damage, and player-owned ticks gain the DoT multiplier.</li>
+                  <li><strong>Cold:</strong> associated with <a className="wiki-inline-link" href="#glossary-chill">Chill</a> and <a className="wiki-inline-link" href="#glossary-freeze">Freeze</a>. Each Chill stack slows by <strong>15%</strong>; 3 stacks trigger a 1-second Freeze.</li>
+                  <li><strong>Chaos:</strong> associated with <a className="wiki-inline-link" href="#glossary-poison">Poison</a>. Each Poison application is a separate Chaos damage-over-time stack; player-owned stacks gain the DoT multiplier.</li>
+                </ul>
               </section>
-              <section className="wiki-card">
-                <h3>Damage order</h3>
-                <p className="wiki-formula">base + flat → increased % → critical hit → resistance mitigation</p>
-                <p>For a component, increases use <code>base × (1 + applicable increase / 100)</code>. Resistance is capped at {RESISTANCE_CAP}%.</p>
-              </section>
-              <section className="wiki-card">
-                <h3>Calculated examples</h3>
-                <p>100 fire against 25% elemental + 10% fire resistance: <strong>{formatNumber(damageExample.fire)} final fire damage</strong>.</p>
-                <p>25% chance and 200% multiplier: <strong>{formatNumber(critExample, 3)}× average crit factor</strong>.</p>
+            </div>
+            <div className="wiki-card-grid">
+              <section className="wiki-card wiki-card-full-width">
+                <h3>Damage order and conversion</h3>
+                <p className="wiki-formula">base + flat → gain as extra → conversion → increased % → more % → critical hit → resistance mitigation</p>
+                <p><strong>Increased</strong> bonuses for a damage type add together, then use <code>base × (1 + applicable increase / 100)</code>. Each <strong>more</strong> multiplier then applies multiplicatively to that increased result. Resistance is capped at {RESISTANCE_CAP}%.</p>
+                <p>Conversion processes source types in order: Physical → Lightning → Cold → Fire → Chaos. A component can only convert forward, so it can chain through later types. For every source type, <strong>gain as extra</strong> is calculated before conversion, so copied damage is not reduced by conversion.</p>
+                <p><a className="wiki-inline-link" href="#skill-basic-attack">Basic Attack</a> evolutions convert 70% of Physical damage to Lightning, Fire, Cold, or Chaos. If a source has more than 100% conversion, skill conversion keeps priority and other conversion is scaled to fill the remaining percentage. Conversion preserves the total before mitigation; each final component uses its new type's resistance. Attunement copies the already converted damage types.</p>
+                <p>Each converted quantity remembers every type it passed through. Applicable Physical, Elemental, Chaos, and global increases apply once each, then applicable more multipliers apply once each.</p>
               </section>
             </div>
             <div className="wiki-card-grid">
@@ -343,7 +345,6 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
               <section className="wiki-card">
                 <h3>Derived stats</h3>
                 <p className="wiki-formula">(base + all additive modifiers) × all multiplicative modifiers</p>
-                <p>Example: 100 base HP with +20 then ×1.1 evaluates to <strong>{evaluateDerivedStats({ maxHp: 100, movementSpeed: 0, attackDamage: 0, attackSpeed: 0, attackRange: 0 }, [{ stat: 'maxHp', operation: 'add', value: 20, sourceId: 'wiki' }, { stat: 'maxHp', operation: 'multiply', value: 1.1, sourceId: 'wiki' }]).maxHp}</strong>.</p>
               </section>
             </div>
           </article>

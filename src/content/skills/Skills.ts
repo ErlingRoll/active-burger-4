@@ -7,6 +7,10 @@ import {
   createDamageValues,
   type DamageValues,
 } from '../stats/Damage'
+import {
+  calculateEffectiveSkillCooldown,
+  calculateLevelScaledAmount,
+} from '../../game/engine/CombatCalculations'
 
 export {
   BASIC_ATTACK_SKILL_ID,
@@ -49,10 +53,7 @@ export function getEffectiveSkillCooldown(
   baseCooldown: number,
   cooldownReduction: number,
 ): number {
-  return Math.max(
-    0.1,
-    baseCooldown * (1 - Math.max(0, cooldownReduction) / 100),
-  )
+  return calculateEffectiveSkillCooldown(baseCooldown, cooldownReduction)
 }
 
 export function getSkillDefinition(skillId: SkillId): SkillDefinition {
@@ -78,10 +79,10 @@ export function getSkillHealing(
   definition: SkillDefinition,
   level: number,
 ): number {
-  return Math.max(
-    0,
-    (definition.baseHealing ?? 0) +
-      (definition.healingPerLevel ?? 0) * Math.max(0, level - 1),
+  return calculateLevelScaledAmount(
+    definition.baseHealing ?? 0,
+    definition.healingPerLevel ?? 0,
+    level,
   )
 }
 
@@ -89,9 +90,9 @@ export function getSkillShieldAmount(
   definition: SkillDefinition,
   level: number,
 ): number {
-  return Math.max(
-    0,
-    (definition.shieldBaseAmount ?? 0) +
-      (definition.shieldAmountPerLevel ?? 0) * Math.max(0, level - 1),
+  return calculateLevelScaledAmount(
+    definition.shieldBaseAmount ?? 0,
+    definition.shieldAmountPerLevel ?? 0,
+    level,
   )
 }

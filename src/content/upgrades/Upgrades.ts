@@ -42,6 +42,7 @@ export type UpgradeId =
   | 'basic-attack-fire-attunement'
   | 'basic-attack-cold-attunement'
   | 'basic-attack-chaos-attunement'
+  | 'basic-attack-brutality'
   | 'fiery-touch-ember'
   | 'glacial-orb-unlock'
   | 'glacial-orb-level'
@@ -185,6 +186,7 @@ export type UpgradeBranch =
   | 'basic-attack-fire-attunement'
   | 'basic-attack-cold-attunement'
   | 'basic-attack-chaos-attunement'
+  | 'basic-attack-brutality'
   | 'chain-lightning-frost'
   | 'chain-lightning-overload'
   | 'raise-skeleton-legion'
@@ -311,10 +313,12 @@ export interface UpgradeDefinition {
   chainLightningChainIncrease?: number
   /** Enables Shock stacking and overload detonations. */
   chainLightningOverload?: boolean
-  /** Percentage bonus applied only to Fiery Touch damage. */
-  fieryTouchDamageIncreasePercent?: number
+  /** More damage applied to Fiery Touch after increases. */
+  fieryTouchMoreDamagePercent?: number
   /** Converts finalized Basic Attack physical damage to this non-physical type. */
   basicAttackDamageConversionType?: Exclude<DamageType, 'physical'>
+  /** More physical damage applied to Basic Attack after increases. */
+  basicAttackMorePhysicalDamagePercent?: number
   /** Flat max HP bonus applied to each skeleton. */
   summonMaxHpIncrease?: number
   /** Enables bounded attack-speed scaling from additional living skeletons. */
@@ -462,6 +466,18 @@ export function getBasicAttackDamageConversionType(
     selectedUpgradeIds.includes(upgrade.id) &&
     upgrade.basicAttackDamageConversionType !== undefined
   )?.basicAttackDamageConversionType
+}
+
+export function getBasicAttackMorePhysicalDamagePercent(
+  selectedUpgradeIds: readonly UpgradeId[],
+): number {
+  return INITIAL_UPGRADES.reduce(
+    (total, upgrade) =>
+      selectedUpgradeIds.includes(upgrade.id)
+        ? total + (upgrade.basicAttackMorePhysicalDamagePercent ?? 0)
+        : total,
+    0,
+  )
 }
 
 export function getUpgradeModifiers(

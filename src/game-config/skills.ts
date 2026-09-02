@@ -378,7 +378,7 @@ export const SKILL_DEFINITIONS = {
   [BASIC_ATTACK_SKILL_ID]: {
     id: BASIC_ATTACK_SKILL_ID,
     name: 'Basic Attack',
-    description: 'Automatically attacks with your equipped weapon archetype.',
+    description: 'Automatically attacks with your equipped weapon archetype. Brutal Attack evolves it to deal 10% more Physical damage after increases.',
     kind: 'projectile',
     tags: ['physical', 'projectile'],
     canProduceDirectHit: true,

@@ -112,6 +112,13 @@ import { resolveWorldModifierEffects } from '../../../content/modifiers/WorldMod
 import { SPAWN_BALANCE } from '../../../content/spawning/SpawnBalance'
 import type { RandomSource } from '../../random/Random'
 import {
+  calculateDamageAfterReduction,
+  calculateLeechAmount,
+  calculatePoisonDamagePerSecond,
+  calculateShieldAbsorption,
+  calculateAreaValue,
+} from '../../engine/CombatCalculations'
+import {
   HEALING_POTION_ELITE_DROP_CHANCE,
   HEALING_POTION_ORDINARY_DROP_CHANCE,
 } from '../../../content/progression/HealingPotions'
@@ -271,13 +278,6 @@ function setBasicAttackCooldown(
     basicAttack.castCount = (basicAttack.castCount ?? 0) + 1
     recordBasicAttackForResonance(state)
   }
-}
-
-function scaleAreaValue(
-  value: number,
-  areaOfEffect: number,
-): number {
-  return value * (1 + Math.max(0, areaOfEffect) / 100)
 }
 
 function isPlayerOwnedDirectHit(
@@ -593,7 +593,7 @@ function collectFieryTouchTriggerEvents(
   const gravityPrimed = state.run.selectedUpgradeIds.includes(
     'synergy-fiery-touch-gravity-well',
   ) && state.player.fieryTouchGravityPrimed === true
-  const radius = scaleAreaValue(definition.radius ?? 0, playerStats.areaOfEffect) *
+  const radius = calculateAreaValue(definition.radius ?? 0, playerStats.areaOfEffect) *
     (gravityPrimed ? 1.5 : 1) *
     (resonant ? 1.5 : 1)
   const thermalShock = state.run.selectedUpgradeIds.includes(
@@ -612,8 +612,9 @@ function collectFieryTouchTriggerEvents(
           FIERY_TOUCH_SKILL_ID,
           skill.level,
           state.run.selectedUpgradeIds,
-        ) + (state.player.fieryTouchDamageIncreasePercent ?? 0),
+        ),
       },
+      moreDamagePercent: state.player.fieryTouchMoreDamagePercent ?? 0,
       attunementSourceAdditionalIncreasedDamage:
         getAttunementSourceAdditionalIncreasedDamage(state),
     },
@@ -737,7 +738,7 @@ export function getBasicAttackEngagementRange(
   const stats = getDerivedPlayerStats(state.player)
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(state.player))
   const attackRange = variant.kind === 'area' && variant.areaShape !== 'circle'
-    ? scaleAreaValue(stats.attackRange, stats.areaOfEffect)
+    ? calculateAreaValue(stats.attackRange, stats.areaOfEffect)
     : stats.attackRange
   if (variant.kind === 'area') {
     return attackRange + target.radius
@@ -1066,7 +1067,7 @@ function createBasicAttackProjectileState(
         : {}),
       remainingChains,
       chainRange: remainingChains > 0
-        ? scaleAreaValue(PLAYER_PROJECTILE_CHAIN_RANGE, stats.areaOfEffect)
+        ? calculateAreaValue(PLAYER_PROJECTILE_CHAIN_RANGE, stats.areaOfEffect)
         : undefined,
       x: player.x,
       y: player.y,
@@ -1189,7 +1190,7 @@ function collectSwordBasicAttackDamage(
     return []
   }
   const variant = getBasicAttackVariant(getEquippedWeaponArchetype(player))
-  const range = scaleAreaValue(stats.attackRange, stats.areaOfEffect)
+  const range = calculateAreaValue(stats.attackRange, stats.areaOfEffect)
   const distanceToTarget = Math.hypot(target.x - player.x, target.y - player.y)
   if (distanceToTarget > range + target.radius) {
     return []
@@ -1289,7 +1290,7 @@ function collectStaffBasicAttackDamage(
   if (Math.hypot(target.x - player.x, target.y - player.y) > range + target.radius) {
     return []
   }
-  const radius = scaleAreaValue(variant.areaRadius ?? 40, stats.areaOfEffect)
+  const radius = calculateAreaValue(variant.areaRadius ?? 40, stats.areaOfEffect)
   const skillDefinition = getSkillDefinition(BASIC_ATTACK_SKILL_ID)
   const baseDamage = getSkillDamage(skillDefinition, skill.level)
   baseDamage.physical += stats.attackDamage
@@ -1886,10 +1887,13 @@ export function applyDamageEvents(
           (state.player.aegisPulseShieldRemaining ?? 0) > 0 &&
           (state.player.aegisPulseShieldAmount ?? 0) > 0
         ) {
-          const absorbed = Math.min(actualDamage, state.player.aegisPulseShieldAmount ?? 0)
-          state.player.aegisPulseShieldAmount = (state.player.aegisPulseShieldAmount ?? 0) - absorbed
-          totalAbsorbedByShield += absorbed
-          actualDamage -= absorbed
+          const absorption = calculateShieldAbsorption(
+            actualDamage,
+            state.player.aegisPulseShieldAmount ?? 0,
+          )
+          state.player.aegisPulseShieldAmount = absorption.remainingShield
+          totalAbsorbedByShield += absorption.absorbedDamage
+          actualDamage = absorption.remainingDamage
         }
         if (actualDamage <= 0) {
           continue
@@ -2113,7 +2117,7 @@ function getIncomingPlayerDamageFactor(state: GameState): number {
     reduction += player.whirlwindGuardDamageReductionPercent ?? 0
   }
   reduction += getRallyingBannerDamageReductionPercent(state)
-  return Math.max(0, 1 - Math.min(75, reduction) / 100)
+  return calculateDamageAfterReduction(1, reduction)
 }
 
 function applyFrostApplication(
@@ -2265,9 +2269,10 @@ function applyPoisonApplication(
   if (!application || target.hp <= 0) {
     return
   }
-  const sourceDamage = preMitigationDamage.physical + preMitigationDamage.chaos
-  const damagePerSecond = sourceDamage *
-    application.physicalChaosRatio
+  const damagePerSecond = calculatePoisonDamagePerSecond(
+    preMitigationDamage,
+    application.physicalChaosRatio,
+  )
   if (damagePerSecond <= 0) {
     return
   }
@@ -2963,7 +2968,7 @@ function applyMeleeLeech(
     : 'Melee leech'
   healPlayer(
     state,
-    actualDamage * leechAmount,
+    calculateLeechAmount(actualDamage, leechAmount),
     source,
     undefined,
     event.sourceSkillId,

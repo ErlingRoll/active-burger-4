@@ -41,7 +41,7 @@ export const WORLD_MODIFIER_DEFINITIONS: Readonly<
   'glass-world': {
     id: 'glass-world',
     name: 'Glass World',
-    description: 'Maximum health is reduced by 25%; basic attacks fire 10% faster and deal 10% more damage.',
+    description: 'Maximum health is reduced by 25%; basic attacks fire 10% faster and Attack Damage is increased by 10%.',
     difficulty: 3,
     essenceRewardMultiplier: 1.15,
   },
