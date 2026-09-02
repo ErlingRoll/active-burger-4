@@ -2091,7 +2091,7 @@ function RunSetupScreen({
                   </span>
                   <span className="character-class-card-body">
                     <span className="character-class-card-section">
-                      <small className="character-class-card-label">Affinities</small>
+                      <small className="character-class-card-label"><KeywordText text="Affinities" /></small>
                       <span className="character-class-affinity-pills" aria-label={`${characterClass.skillAffinity.label} skill affinities`}>
                         {characterClass.skillAffinity.tags.map((tag) => (
                           <span className="character-class-affinity-pill" key={tag}>

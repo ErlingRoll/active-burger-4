@@ -709,7 +709,7 @@ export function LevelUpOverlay({
         </p>
         {!isGearFlow ? (
           <p className="skill-affinity-note">
-            <strong>{characterClass.name} skill affinity:</strong>{' '}
+            <strong>{characterClass.name} <KeywordText text="skill affinity" /></strong>:{' '}
             {characterClass.skillAffinity.description}
           </p>
         ) : null}

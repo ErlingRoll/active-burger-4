@@ -98,6 +98,15 @@ describe('keyword glossary text', () => {
     ])
   })
 
+  it('links skill affinity terminology to its glossary definition', () => {
+    expect(
+      splitKeywordText('Skill affinities increase matching unlock weights.'),
+    ).toEqual([
+      { type: 'keyword', value: 'Skill affinities', keywordId: 'skill-affinity' },
+      { type: 'text', value: ' increase matching unlock weights.' },
+    ])
+  })
+
   it('explains named triggered effects without treating skill themes as keywords', () => {
     expect(
       splitKeywordText('Three elements trigger a Prism Burst.'),

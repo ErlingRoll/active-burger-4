@@ -289,7 +289,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
 
           <article id="classes" className="wiki-article">
             <WikiSectionHeading id="classes" title="Classes">
-              Each class defines its starting stats, weapon, skills, visual identity, and more-likely skill affinity.
+              Each class defines its starting stats, weapon, skills, visual identity, and more-likely <KeywordText text="skill affinity" glossaryHref={(keywordId) => `#glossary-${keywordId}`} />.
             </WikiSectionHeading>
             <div className="wiki-card-grid">
               {Object.values(CHARACTER_CLASS_DEFINITIONS).map((characterClass) => (
@@ -299,7 +299,17 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   <p className="wiki-stat-line">HP <strong>{characterClass.baseStats.maxHp}</strong> · Move <strong>{characterClass.baseStats.movementSpeed}</strong> · Attack <strong>{characterClass.baseStats.attackDamage}</strong></p>
                   <p className="wiki-stat-line">Starts with <a href={`#item-${characterClass.startingWeaponItemId}`}>{ALL_ITEM_DEFINITIONS.find((item) => item.id === characterClass.startingWeaponItemId)?.name}</a></p>
                   <p>{characterClass.startingSkillIds.map((skillId) => <a className="wiki-inline-link" key={skillId} href={`#skill-${skillId}`}>{SKILL_DEFINITIONS[skillId].name}</a>)}</p>
-                  <p className="wiki-muted">{characterClass.skillAffinity.description}</p>
+                  <div className="wiki-skill-affinity">
+                    <p className="wiki-muted"><KeywordText text="Skill affinity" glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
+                    <ul className="skill-tag-list" aria-label={`${characterClass.skillAffinity.label} skill affinities`}>
+                      {characterClass.skillAffinity.tags.map((tag) => (
+                        <li className="skill-tag" key={tag}>
+                          <KeywordText text={tag} glossaryHref={(keywordId) => `#glossary-${keywordId}`} />
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="wiki-muted">{characterClass.skillAffinity.description}</p>
+                  </div>
                 </section>
               ))}
             </div>
@@ -360,7 +370,17 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   <section id={`skill-${skill.id}`} className="wiki-card wiki-skill-card" key={skill.id} style={{ '--wiki-accent': skill.visual.primaryColor } as CSSProperties}>
                     <header>
                       <SkillIcon skillId={skill.id} size={34} />
-                      <div><h3>{skill.name}</h3><p>{skill.kind} · {skill.tags.join(' · ')}</p></div>
+                      <div>
+                        <h3>{skill.name}</h3>
+                        <p>{skill.kind}</p>
+                        <ul className="skill-tag-list" aria-label="Skill tags">
+                          {skill.tags.map((tag) => (
+                            <li className="skill-tag" key={tag}>
+                              <KeywordText text={tag} glossaryHref={(keywordId) => `#glossary-${keywordId}`} />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </header>
                     <p><KeywordText text={skill.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p>
                     <div className="wiki-stat-line">

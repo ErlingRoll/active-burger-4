@@ -19,6 +19,7 @@ export type KeywordId =
   | 'momentum'
   | 'resonance'
   | 'attunement'
+  | 'skill-affinity'
   | 'primed'
   | 'synergy-charge'
   | 'healing'
@@ -130,6 +131,13 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     summary: 'Converts part of Basic Attack damage into skill damage.',
     details:
       'Attunement adds ceil(final pre-critical Basic Attack component × Attunement / 100) to skills and summons for each damage type. Each component keeps its type and rounds up independently.',
+  },
+  'skill-affinity': {
+    id: 'skill-affinity',
+    label: 'Skill affinity',
+    summary: 'A class preference that increases the chance of matching skill unlocks.',
+    details:
+      'Each class has a set of affinity tags. An eligible skill unlock that matches at least one tag receives 3× the normal selection weight; other skill unlocks receive normal weight. Affinity affects skill unlock choices, not stat upgrades, gear, or starting skills.',
   },
   primed: {
     id: 'primed',
@@ -349,6 +357,10 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'momentum', text: 'momentum' },
   { id: 'resonance', text: 'resonance' },
   { id: 'attunement', text: 'attunement' },
+  { id: 'skill-affinity', text: 'skill affinities' },
+  { id: 'skill-affinity', text: 'skill affinity' },
+  { id: 'skill-affinity', text: 'affinities' },
+  { id: 'skill-affinity', text: 'affinity' },
   { id: 'primed', text: 'prime' },
   { id: 'primed', text: 'primes' },
   { id: 'primed', text: 'primed' },
