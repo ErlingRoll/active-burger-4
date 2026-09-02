@@ -4014,6 +4014,7 @@
 }
 
 .level-up-panel {
+  position: relative;
   width: min(62rem, 100%);
   padding: clamp(1.25rem, 4vw, 2.5rem);
   color: #e2e8f0;
@@ -4022,6 +4023,220 @@
   border-radius: 1rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 55%);
   pointer-events: auto;
+}
+
+.choice-transition-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.choice-transition-particles > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  opacity: 0;
+  animation: choice-particle-burst 520ms ease-out forwards;
+}
+
+.choice-transition-particles.select > span {
+  background: #fbbf24;
+  box-shadow: 0 0 0.65rem #f59e0b;
+}
+
+.choice-transition-particles.reroll > span {
+  background: #93c5fd;
+  box-shadow: 0 0 0.65rem #3b82f6;
+}
+
+.choice-transition-particles.skip > span {
+  background: #cbd5e1;
+  box-shadow: 0 0 0.65rem #94a3b8;
+}
+
+.choice-transition-particles > span:nth-child(1) {
+  --particle-x: -12rem;
+  --particle-y: -7rem;
+}
+
+.choice-transition-particles > span:nth-child(2) {
+  --particle-x: -8rem;
+  --particle-y: -10rem;
+}
+
+.choice-transition-particles > span:nth-child(3) {
+  --particle-x: -2rem;
+  --particle-y: -12rem;
+}
+
+.choice-transition-particles > span:nth-child(4) {
+  --particle-x: 5rem;
+  --particle-y: -11rem;
+}
+
+.choice-transition-particles > span:nth-child(5) {
+  --particle-x: 11rem;
+  --particle-y: -7rem;
+}
+
+.choice-transition-particles > span:nth-child(6) {
+  --particle-x: 13rem;
+  --particle-y: 0;
+}
+
+.choice-transition-particles > span:nth-child(7) {
+  --particle-x: 9rem;
+  --particle-y: 7rem;
+}
+
+.choice-transition-particles > span:nth-child(8) {
+  --particle-x: 3rem;
+  --particle-y: 11rem;
+}
+
+.choice-transition-particles > span:nth-child(9) {
+  --particle-x: -4rem;
+  --particle-y: 11rem;
+}
+
+.choice-transition-particles > span:nth-child(10) {
+  --particle-x: -10rem;
+  --particle-y: 7rem;
+}
+
+.choice-transition-particles > span:nth-child(11) {
+  --particle-x: -13rem;
+  --particle-y: 1rem;
+}
+
+.choice-transition-particles > span:nth-child(12) {
+  --particle-x: 0;
+  --particle-y: -5rem;
+}
+
+.choice-transition-select .choice-card-wrap.choice-selected .choice-card {
+  overflow: hidden;
+  box-shadow:
+    0 0 0 2px rgb(253 230 138 / 78%),
+    0 0 1.5rem rgb(251 191 36 / 62%);
+  animation: choice-select-card 520ms ease-out forwards;
+}
+
+.choice-transition-select .choice-card-wrap.choice-selected .choice-card::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  background: linear-gradient(
+    105deg,
+    transparent 18%,
+    rgb(255 255 255 / 8%) 38%,
+    rgb(254 240 138 / 82%) 50%,
+    rgb(255 255 255 / 8%) 62%,
+    transparent 82%
+  );
+  transform: translateX(-125%);
+  animation: choice-select-sheen 520ms ease-out forwards;
+}
+
+.choice-transition-reroll {
+  animation: choice-reroll-transition 520ms ease-in-out forwards;
+}
+
+.choice-transition-reroll .choice-card {
+  overflow: hidden;
+  box-shadow:
+    0 0 0 2px rgb(147 197 253 / 55%),
+    0 0 1.5rem rgb(59 130 246 / 48%);
+  animation: choice-reroll-card 520ms ease-in forwards;
+}
+
+.choice-transition-reroll .choice-card::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgb(147 197 253 / 10%) 42%,
+    rgb(219 234 254 / 76%) 50%,
+    rgb(147 197 253 / 10%) 58%,
+    transparent 80%
+  );
+  transform: translateX(-125%);
+  animation: choice-reroll-sheen 520ms ease-in-out forwards;
+}
+
+.choice-transition-skip {
+  animation: choice-skip-transition 520ms ease-in forwards;
+}
+
+.choice-transition-skip .choice-card {
+  box-shadow: 0 0 1.25rem rgb(148 163 184 / 42%);
+  animation: choice-skip-card 520ms ease-in forwards;
+}
+
+@keyframes choice-particle-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--particle-x)),
+      calc(-50% + var(--particle-y))
+    ) scale(0.2) rotate(240deg);
+  }
+}
+
+@keyframes choice-select-card {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.025) translateY(-0.25rem); }
+  100% { transform: scale(0.98); opacity: 0.5; }
+}
+
+@keyframes choice-select-sheen {
+  0% { opacity: 0; transform: translateX(-125%); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(125%); }
+}
+
+@keyframes choice-reroll-transition {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(18deg) brightness(1.18); }
+  100% { filter: hue-rotate(0deg); }
+}
+
+@keyframes choice-reroll-card {
+  0% { opacity: 1; transform: rotate(0) scale(1); }
+  45% { opacity: 0.72; transform: rotate(1deg) scale(0.985); }
+  100% { opacity: 0.08; transform: rotate(-2deg) scale(0.92); }
+}
+
+@keyframes choice-reroll-sheen {
+  0% { opacity: 0; transform: translateX(-125%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(125%); }
+}
+
+@keyframes choice-skip-transition {
+  0% { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+@keyframes choice-skip-card {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(1.5rem) scale(0.96); }
 }
 
 .level-up-kicker {
@@ -4277,6 +4492,53 @@
   animation: banish-card-embers 700ms ease-out forwards;
 }
 
+.banish-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.banish-particles > span {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 0.55rem #f97316;
+  opacity: 0;
+  animation: banish-particle-rise 700ms ease-out forwards;
+}
+
+.banish-particles > span:nth-child(1) { margin-left: -38%; }
+.banish-particles > span:nth-child(2) { margin-left: -25%; animation-delay: 45ms; }
+.banish-particles > span:nth-child(3) { margin-left: -12%; animation-delay: 90ms; }
+.banish-particles > span:nth-child(4) { margin-left: 2%; animation-delay: 25ms; }
+.banish-particles > span:nth-child(5) { margin-left: 15%; animation-delay: 75ms; }
+.banish-particles > span:nth-child(6) { margin-left: 28%; animation-delay: 115ms; }
+.banish-particles > span:nth-child(7) { margin-left: -32%; animation-delay: 130ms; }
+.banish-particles > span:nth-child(8) { margin-left: 34%; animation-delay: 155ms; }
+.banish-particles > span:nth-child(9) { margin-left: -5%; animation-delay: 180ms; }
+.banish-particles > span:nth-child(10) { margin-left: 8%; animation-delay: 205ms; }
+.banish-particles > span:nth-child(11) { margin-left: -18%; animation-delay: 230ms; }
+.banish-particles > span:nth-child(12) { margin-left: 22%; animation-delay: 255ms; }
+
+@keyframes banish-particle-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0.4rem, -6rem) scale(0.05) rotate(180deg);
+  }
+}
+
 .choice-card-wrap.banishing .banish-choice-action {
   opacity: 0;
   pointer-events: none;
@@ -4333,9 +4595,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .choice-transition-select .choice-card,
+  .choice-transition-reroll,
+  .choice-transition-reroll .choice-card,
+  .choice-transition-skip,
+  .choice-transition-skip .choice-card,
+  .choice-transition-particles > span,
   .choice-card.banishing,
   .choice-card.banishing::before,
-  .choice-card.banishing::after {
+  .choice-card.banishing::after,
+  .banish-particles > span {
     animation-duration: 1ms;
   }
 }

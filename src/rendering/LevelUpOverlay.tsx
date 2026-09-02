@@ -72,6 +72,21 @@ interface LevelUpOverlayProps {
   onSkip: () => void
 }
 
+type ChoiceTransition =
+  | {
+      kind: 'select'
+      index: number
+      choice: LevelUpUpgradeChoice | GearChoice
+    }
+  | {
+      kind: 'reroll' | 'skip'
+    }
+  | {
+      kind: 'banish'
+      index: number
+      choice: LevelUpUpgradeChoice
+    }
+
 const SLOT_LABELS: Record<EquipmentSlot, string> = {
   [EquipmentSlot.Weapon]: 'Weapon',
   [EquipmentSlot.Helmet]: 'Helmet',
@@ -89,6 +104,16 @@ function formatDeltaModifier(modifier: GearModifierSnapshot): string {
   return formatGearModifier(modifier, {
     includeTier: false,
   })
+}
+
+function ParticleBurst({ className }: { className: string }) {
+  return (
+    <span className={className} aria-hidden="true">
+      {Array.from({ length: 12 }, (_, index) => (
+        <span key={index} />
+      ))}
+    </span>
+  )
 }
 
 function getProjectedGearSet(
@@ -278,6 +303,8 @@ function GearCard({
   gearSets,
   keybind,
   disabled,
+  isSelected,
+  onSelectionAnimationEnd,
 }: {
   choice: GearChoice
   index: number
@@ -289,10 +316,12 @@ function GearCard({
   gearSets: GameUiSnapshot['gearSets']
   keybind: string | undefined
   disabled: boolean
+  isSelected: boolean
+  onSelectionAnimationEnd: (event: AnimationEvent<HTMLButtonElement>) => void
 }) {
   if (choice.type === 'gear-xp-blessing') {
     return (
-      <div className="choice-card-wrap">
+      <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
         <button
           ref={index === 0 ? firstButtonRef : undefined}
           className="upgrade-choice choice-card gear-xp-blessing-card"
@@ -300,6 +329,7 @@ function GearCard({
           type="button"
           disabled={disabled}
           aria-keyshortcuts={keybind}
+          onAnimationEnd={onSelectionAnimationEnd}
           onClick={() => onSelect(choice)}
         >
           <ChoiceKeyHint keybind={keybind} />
@@ -321,7 +351,7 @@ function GearCard({
   if (choice.type === 'gear-rarity-floor') {
     const minimumRarity = RARITY_VISUALS[choice.minimumRarity]
     return (
-      <div className="choice-card-wrap">
+      <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
         <button
           ref={index === 0 ? firstButtonRef : undefined}
           className="upgrade-choice choice-card gear-rarity-floor-card"
@@ -375,6 +405,7 @@ function GearCard({
           disabled={disabled}
           aria-keyshortcuts={keybind}
           aria-describedby={active ? comparisonId : undefined}
+          onAnimationEnd={onSelectionAnimationEnd}
           onClick={() => onSelect(choice)}
           onFocus={() => setActive(comparisonId)}
           onBlur={() => setActive(null)}
@@ -421,7 +452,7 @@ function GearCard({
   }
 
   return (
-    <div className="choice-card-wrap">
+    <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
       <button
         ref={index === 0 ? firstButtonRef : undefined}
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
@@ -430,6 +461,7 @@ function GearCard({
         disabled={disabled}
         aria-keyshortcuts={keybind}
         aria-describedby={active ? comparisonId : undefined}
+        onAnimationEnd={onSelectionAnimationEnd}
         onClick={() => onSelect(choice)}
         onFocus={() => setActive(comparisonId)}
         onBlur={() => setActive(null)}
@@ -495,7 +527,11 @@ function UpgradeCard({
   ownedSkillIds,
   banishesRemaining,
   disabled,
-  onBanish,
+  isBanishing,
+  onBanishStart,
+  onBanishAnimationEnd,
+  isSelected,
+  onSelectionAnimationEnd,
 }: {
   choice: LevelUpUpgradeChoice
   index: number
@@ -505,9 +541,12 @@ function UpgradeCard({
   ownedSkillIds: readonly SkillId[]
   banishesRemaining: number
   disabled: boolean
-  onBanish: (choice: LevelUpUpgradeChoice) => void
+  isBanishing: boolean
+  onBanishStart: () => void
+  onBanishAnimationEnd: (event: AnimationEvent<HTMLButtonElement>) => void
+  isSelected: boolean
+  onSelectionAnimationEnd: (event: AnimationEvent<HTMLButtonElement>) => void
 }) {
-  const [isBanishing, setIsBanishing] = useState(false)
   const definition = getUpgradeDefinition(choice.upgradeId)
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
     ? getSkillDefinition(choice.skillId)
@@ -562,20 +601,10 @@ function UpgradeCard({
             ? 'unlock'
             : 'upgrade'
   }`
-  const startBanish = (): void => {
-    if (!isBanishing && banishesRemaining > 0) {
-      setIsBanishing(true)
-    }
-  }
-  const finishBanish = (event: AnimationEvent<HTMLButtonElement>): void => {
-    if (!isBanishing || event.animationName !== 'banish-card-burn') {
-      return
-    }
-    setIsBanishing(false)
-    onBanish(choice)
-  }
   return (
-    <div className={`choice-card-wrap${isBanishing ? ' banishing' : ''}`}>
+    <div className={`choice-card-wrap${isBanishing ? ' banishing' : ''}${
+      isSelected ? ' choice-selected' : ''
+    }`}>
       <button
         ref={index === 0 ? firstButtonRef : undefined}
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}${
@@ -590,7 +619,10 @@ function UpgradeCard({
         disabled={disabled || isBanishing}
         aria-keyshortcuts={keybind}
         aria-busy={isBanishing}
-        onAnimationEnd={finishBanish}
+        onAnimationEnd={(event) => {
+          onBanishAnimationEnd(event)
+          onSelectionAnimationEnd(event)
+        }}
         onClick={() => onSelect(choice)}
       >
         <ChoiceKeyHint keybind={keybind} />
@@ -680,6 +712,10 @@ function UpgradeCard({
                 : definition.description}
           />
         </span>
+        {isSelected ? (
+          <ParticleBurst className="choice-transition-particles select choice-select-particles" />
+        ) : null}
+        {isBanishing ? <ParticleBurst className="banish-particles" /> : null}
       </button>
       {unlockedSkill && banishesRemaining > 0 ? (
         <span className="banish-choice-action">
@@ -689,7 +725,7 @@ function UpgradeCard({
             disabled={disabled || isBanishing || banishesRemaining <= 0}
             aria-describedby={`banish-choice-tooltip-${index}`}
             aria-label={`Banish ${unlockedSkill.name} (${banishesRemaining} available)`}
-            onClick={startBanish}
+            onClick={onBanishStart}
           >
             Banish ({banishesRemaining} available)
           </button>
@@ -725,9 +761,82 @@ export function LevelUpOverlay({
   const dialogRef = useRef<HTMLElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
+  const [choiceTransition, setChoiceTransition] = useState<ChoiceTransition | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
   const characterClass = getCharacterClassDefinition(characterClassId)
   const canReroll = rerollsRemaining > 0
+
+  const handleSelect = (
+    index: number,
+    choice: LevelUpUpgradeChoice | GearChoice,
+  ): void => {
+    if (choiceTransition === null) {
+      setChoiceTransition({ kind: 'select', index, choice })
+    }
+  }
+  const handleBanishStart = (index: number, choice: LevelUpUpgradeChoice): void => {
+    if (choiceTransition === null && banishesRemaining > 0) {
+      setChoiceTransition({ kind: 'banish', index, choice })
+    }
+  }
+  const handleBanishAnimationEnd = (
+    index: number,
+    event: AnimationEvent<HTMLButtonElement>,
+  ): void => {
+    if (
+      choiceTransition?.kind !== 'banish' ||
+      choiceTransition.index !== index ||
+      event.animationName !== 'banish-card-burn'
+    ) {
+      return
+    }
+    const transition = choiceTransition
+    setChoiceTransition(null)
+    onBanish(transition.choice)
+  }
+  const handleSelectionAnimationEnd = (
+    index: number,
+    event: AnimationEvent<HTMLButtonElement>,
+  ): void => {
+    if (
+      choiceTransition?.kind !== 'select' ||
+      choiceTransition.index !== index ||
+      event.animationName !== 'choice-select-card'
+    ) {
+      return
+    }
+    const transition = choiceTransition
+    setChoiceTransition(null)
+    onSelect(transition.choice)
+  }
+  const handleReroll = (): void => {
+    if (choiceTransition === null && canReroll) {
+      setChoiceTransition({ kind: 'reroll' })
+    }
+  }
+  const handleSkip = (): void => {
+    if (choiceTransition === null) {
+      setChoiceTransition({ kind: 'skip' })
+    }
+  }
+  const handleChoiceTransitionEnd = (event: AnimationEvent<HTMLDivElement>): void => {
+    if (
+      event.target !== event.currentTarget ||
+      choiceTransition === null ||
+      choiceTransition.kind === 'select' ||
+      choiceTransition.kind === 'banish' ||
+      event.animationName !== `choice-${choiceTransition.kind}-transition`
+    ) {
+      return
+    }
+    const transition = choiceTransition
+    setChoiceTransition(null)
+    if (transition.kind === 'reroll') {
+      onReroll()
+    } else {
+      onSkip()
+    }
+  }
 
   useEffect(() => {
     if (isGearFlow) {
@@ -741,34 +850,45 @@ export function LevelUpOverlay({
     <>
       <div className="level-up-overlay" aria-hidden="true" />
       <section
-      ref={dialogRef}
-      className={`level-up-dialog ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="choice-dialog-title"
-      tabIndex={-1}
-    >
-      <div className="level-up-panel">
-        <p className="level-up-kicker">
-          {isGearFlow ? 'Gear found' : 'Upgrade available'}
-        </p>
-        <h2 id="choice-dialog-title">
-          {isGearFlow ? 'Choose your gear' : `Level ${flow.level}`}
-        </h2>
-        <p className="level-up-instructions">
-          {isGearFlow
-            ? 'Choose one item. It equips immediately and replaces gear in the same slot.'
-            : 'Choose one upgrade to continue the run.'}
-        </p>
-        {!isGearFlow ? (
-          <p className="skill-affinity-note">
-            <strong>{characterClass.name} <KeywordText text="skill affinity" /></strong>:{' '}
-            {characterClass.skillAffinity.description}
+        ref={dialogRef}
+        className={`level-up-dialog ${isGearFlow ? 'gear-pickup-overlay' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="choice-dialog-title"
+        tabIndex={-1}
+      >
+        <div
+          className={`level-up-panel${
+            choiceTransition && choiceTransition.kind !== 'banish'
+              ? ` choice-transition-${choiceTransition.kind}`
+              : ''
+          }`}
+          onAnimationEnd={handleChoiceTransitionEnd}
+        >
+          {choiceTransition &&
+          (choiceTransition.kind === 'reroll' || choiceTransition.kind === 'skip') ? (
+            <ParticleBurst className={`choice-transition-particles ${choiceTransition.kind}`} />
+          ) : null}
+          <p className="level-up-kicker">
+            {isGearFlow ? 'Gear found' : 'Upgrade available'}
           </p>
-        ) : null}
-        <div className="upgrade-choice-list">
-          {flow.type === 'level-up'
-            ? flow.choices.map((choice, index) => (
+          <h2 id="choice-dialog-title">
+            {isGearFlow ? 'Choose your gear' : `Level ${flow.level}`}
+          </h2>
+          <p className="level-up-instructions">
+            {isGearFlow
+              ? 'Choose one item. It equips immediately and replaces gear in the same slot.'
+              : 'Choose one upgrade to continue the run.'}
+          </p>
+          {!isGearFlow ? (
+            <p className="skill-affinity-note">
+              <strong>{characterClass.name} <KeywordText text="skill affinity" /></strong>:{' '}
+              {characterClass.skillAffinity.description}
+            </p>
+          ) : null}
+          <div className="upgrade-choice-list">
+            {flow.type === 'level-up'
+              ? flow.choices.map((choice, index) => (
                 <UpgradeCard
                   key={choice.upgradeId}
                   choice={choice}
@@ -785,13 +905,21 @@ export function LevelUpOverlay({
                   ][index]}
                   ownedSkillIds={ownedSkillIds}
                   banishesRemaining={banishesRemaining}
-                  disabled={false}
-                  onBanish={onBanish}
-                  onSelect={(selected) => onSelect(selected)}
-                />
-              ))
-            : flow.choices.map((choice, index) => (
-                <GearCard
+                  disabled={choiceTransition !== null}
+                  isBanishing={choiceTransition?.kind === 'banish' &&
+                    choiceTransition.index === index}
+                  onBanishStart={() => handleBanishStart(index, choice)}
+                  onBanishAnimationEnd={(event) =>
+                    handleBanishAnimationEnd(index, event)}
+                  isSelected={choiceTransition?.kind === 'select' &&
+                    choiceTransition.index === index}
+                  onSelectionAnimationEnd={(event) =>
+                    handleSelectionAnimationEnd(index, event)}
+                  onSelect={(selected) => handleSelect(index, selected)}
+                 />
+               ))
+             : flow.choices.map((choice, index) => (
+               <GearCard
                   key={choice.type === 'gear-rarity-floor' ||
                     choice.type === 'gear-xp-blessing'
                     ? `${choice.type}-${index}`
@@ -802,7 +930,7 @@ export function LevelUpOverlay({
                     choice.type === 'gear-xp-blessing'
                     ? undefined
                     : equipment[choice.slot]}
-                  onSelect={(selected) => onSelect(selected)}
+                  onSelect={(selected) => handleSelect(index, selected)}
                   active={choice.type !== 'gear-rarity-floor' &&
                     choice.type !== 'gear-xp-blessing' &&
                     activeComparison === `gear-comparison-${choice.itemId}-${index}`}
@@ -813,45 +941,50 @@ export function LevelUpOverlay({
                     keybinds.choiceMiddle,
                     keybinds.choiceRight,
                   ][index]}
-                  disabled={false}
+                  disabled={choiceTransition !== null}
+                  isSelected={choiceTransition?.kind === 'select' &&
+                    choiceTransition.index === index}
+                  onSelectionAnimationEnd={(event) =>
+                    handleSelectionAnimationEnd(index, event)}
                   firstButtonRef={(element) => {
                     if (index === 0) {
                       firstButtonRef.current = element
                     }
                   }}
-                />
-              ))}
+                 />
+               ))}
+         </div>
+         <div className="level-up-choice-actions">
+           <span className="reroll-choice-action">
+             <button
+               className="skip-choice-button reroll-choice-button"
+               type="button"
+               disabled={!canReroll || choiceTransition !== null}
+               aria-describedby="reroll-choice-tooltip"
+               onClick={handleReroll}
+             >
+               Reroll ({rerollsRemaining} available)
+             </button>
+             <span
+               className="reroll-choice-tooltip"
+               id="reroll-choice-tooltip"
+               role="tooltip"
+             >
+               Spend one reroll to refresh ALL the current gear or skill upgrade offers.
+             </span>
+           </span>
+           <button
+             className="skip-choice-button"
+             type="button"
+             disabled={choiceTransition !== null}
+             aria-keyshortcuts={keybinds.skipChoice}
+             onClick={handleSkip}
+           >
+             Skip
+             <ChoiceKeyHint keybind={keybinds.skipChoice} />
+           </button>
+         </div>
         </div>
-        <div className="level-up-choice-actions">
-          <span className="reroll-choice-action">
-            <button
-              className="skip-choice-button reroll-choice-button"
-              type="button"
-              disabled={!canReroll}
-              aria-describedby="reroll-choice-tooltip"
-              onClick={onReroll}
-            >
-              Reroll ({rerollsRemaining} available)
-            </button>
-            <span
-              className="reroll-choice-tooltip"
-              id="reroll-choice-tooltip"
-              role="tooltip"
-            >
-              Spend one reroll to refresh ALL the current gear or skill upgrade offers.
-            </span>
-          </span>
-          <button
-            className="skip-choice-button"
-            type="button"
-            aria-keyshortcuts={keybinds.skipChoice}
-            onClick={onSkip}
-          >
-            Skip
-            <ChoiceKeyHint keybind={keybinds.skipChoice} />
-          </button>
-        </div>
-      </div>
     </section>
     </>
   )

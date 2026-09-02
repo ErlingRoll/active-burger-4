@@ -37,7 +37,7 @@ describe('LevelUpOverlay', () => {
     expect(markup).toContain('Banish (1 available)')
     expect(markup.match(/Banish \(1 available\)/g)).toHaveLength(1)
     expect(markup).toContain(
-      'Permanently remove this skill unlock from the run and replace it with another skill unlock.',
+      'Permanently remove this skill unlock from the run and replace it with another weighted skill unlock.',
     )
     expect(markup).toContain('aria-describedby="banish-choice-tooltip-0"')
   })
