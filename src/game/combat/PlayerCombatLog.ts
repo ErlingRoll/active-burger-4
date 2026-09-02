@@ -103,6 +103,7 @@ export function healSummon(
   summon: SummonState,
   requestedAmount: number,
   random?: Pick<RandomSource, 'next'>,
+  sourceSkillId?: SkillId,
 ): number {
   const playerStats = getDerivedPlayerStats(state.player)
   const missingHp = Math.max(0, summon.maxHp - summon.hp)
@@ -127,5 +128,6 @@ export function healSummon(
     return 0
   }
   summon.hp += amount
+  recordSkillHealing(state, sourceSkillId, amount)
   return amount
 }

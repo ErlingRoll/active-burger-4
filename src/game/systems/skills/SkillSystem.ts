@@ -357,7 +357,7 @@ export function updateSkillEffects(
           summon.hp > 0 &&
           Math.hypot(summon.x - effect.x, summon.y - effect.y) <= effect.radius
         ) {
-          healSummon(state, summon, healing, random)
+          healSummon(state, summon, healing, random, RALLYING_BANNER_SKILL_ID)
         }
       }
       effect.periodicHealingRemaining =
@@ -672,6 +672,11 @@ function collectVitalityHealing(
     random,
     VITALITY_SKILL_ID,
   )
+  for (const summon of state.summons) {
+    if (summon.hp > 0) {
+      healSummon(state, summon, healing, random, VITALITY_SKILL_ID)
+    }
+  }
   if (state.run.selectedUpgradeIds.includes('synergy-vitality-rift-javelin')) {
     state.player.vitalityRiftPrimed = true
   }

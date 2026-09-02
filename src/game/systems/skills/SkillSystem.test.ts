@@ -4,6 +4,8 @@ import {
   CHAIN_LIGHTNING_SKILL_ID,
   FIERY_TOUCH_SKILL_ID,
   VITALITY_SKILL_ID,
+  RAISE_SKELETON_SKILL_ID,
+  PHANTOM_ARSENAL_SKILL_ID,
   WHIRLWIND_SKILL_ID,
   GLACIAL_ORB_SKILL_ID,
   LANCERS_CHARGE_SKILL_ID,
@@ -14,7 +16,6 @@ import {
   CINDER_MINE_SKILL_ID,
   STORM_RELAY_SKILL_ID,
   SOUL_TETHER_SKILL_ID,
-  PHANTOM_ARSENAL_SKILL_ID,
   MIRRORCAST_SKILL_ID,
   RAZORWIRE_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
@@ -338,6 +339,49 @@ describe('skill system', () => {
     lastStandGame.state.player.vitalityLowHpHealingMultiplier = 2
     collectSkillDamage(lastStandGame.state, allocator)
     expect(lastStandGame.state.player.hp).toBe(32)
+  })
+
+  it('heals the player and every living minion with Vitality', () => {
+    const game = createGame({ seed: 57 })
+    game.state.player.skills = [{
+      skillId: VITALITY_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.player.hp = 50
+    game.state.summons.push(
+      {
+        id: 100,
+        ownerId: game.state.player.id,
+        skillId: RAISE_SKELETON_SKILL_ID,
+        x: 0,
+        y: 0,
+        hp: 10,
+        maxHp: 30,
+        contactCooldownRemaining: 0,
+        attackCooldownRemaining: 0,
+      },
+      {
+        id: 101,
+        ownerId: game.state.player.id,
+        skillId: PHANTOM_ARSENAL_SKILL_ID,
+        x: 0,
+        y: 0,
+        hp: 0,
+        maxHp: 20,
+        contactCooldownRemaining: 0,
+        attackCooldownRemaining: 0,
+      },
+    )
+
+    collectSkillDamage(game.state, allocator)
+
+    expect(game.state.player.hp).toBe(56)
+    expect(game.state.summons[0]?.hp).toBe(16)
+    expect(game.state.summons[1]?.hp).toBe(0)
+    expect(game.state.run.skillHealingDone).toEqual({
+      [VITALITY_SKILL_ID]: 12,
+    })
   })
 
   it('applies synergy bonuses to healing and shields', () => {

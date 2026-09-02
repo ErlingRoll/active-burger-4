@@ -459,7 +459,7 @@ export const SKILL_DEFINITIONS = {
   [VITALITY_SKILL_ID]: {
     id: VITALITY_SKILL_ID,
     name: 'Vitality',
-    description: 'Automatically restores 6 HP every 5 seconds. Vitality healing can critically strike.',
+    description: 'Automatically restores 6 HP every 5 seconds to you and each living minion. Vitality healing can critically strike.',
     kind: 'utility',
     tags: ['defensive', 'triggerable'],
     canProduceDirectHit: false,

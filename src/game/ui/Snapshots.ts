@@ -208,7 +208,7 @@ export interface SkillHudSnapshot {
   readonly castCount: number
   /** Cumulative post-mitigation damage dealt by this skill during the run. */
   readonly totalDamageDealt: number
-  /** Cumulative effective player healing provided by this skill during the run. */
+  /** Cumulative effective healing provided by this skill during the run. */
   readonly totalHealingDone: number
   readonly description: string
   readonly resonanceEffect: SkillResonanceEffect | null
@@ -1636,7 +1636,7 @@ export function createUiSnapshot(
             : 'One target in the current front-facing Basic Attack arc, sustained over attack cadence.'
           : 'One target sustained at the current Basic Attack cadence.'
         : skill.skillId === VITALITY_SKILL_ID
-          ? 'Restores health automatically every cooldown.'
+          ? 'Restores health to you and each living minion automatically every cooldown.'
           : skill.skillId === RAISE_SKELETON_SKILL_ID
             ? state.run.selectedUpgradeIds.includes('raise-skeleton-rotting-bones')
               ? 'Physical skeleton attacks plus Chaos Poison damage over time, sustained once per second.'

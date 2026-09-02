@@ -466,6 +466,10 @@ describe('UI snapshots', () => {
     )
 
     expect(vitality?.healingPerCast).toBeCloseTo(11.44)
+    expect(vitality?.description).toContain('each living minion')
+    expect(vitality?.dpsAssumption).toBe(
+      'Restores health to you and each living minion automatically every cooldown.',
+    )
     expect(vitality?.estimatedSingleTargetDps).toBeNull()
     expect(vitality?.skillModifiers).toEqual(
       expect.arrayContaining([

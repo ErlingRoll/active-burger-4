@@ -1356,8 +1356,8 @@ function GameplayHud({
                       <p className="skill-cadence">
                         <span>
                           {skill.skillId === RALLYING_BANNER_SKILL_ID
-                            ? 'Healing per cast/pulse'
-                            : 'Healing per cast'}
+                            ? 'Healing per target per cast/pulse'
+                            : 'Healing per target'}
                         </span>
                         <b>{formatCadence(skill.healingPerCast)} HP</b>
                       </p>

@@ -390,7 +390,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                       {skill.radius ? <span>Radius <strong>{skill.radius}</strong></span> : null}
                       {skill.maxTargets ? <span>Targets <strong>{skill.maxTargets}</strong></span> : null}
                     </div>
-                    {skill.baseHealing !== undefined ? <p>Healing at level 1 / 5: <strong>{getSkillHealing(skill, 1)} / {getSkillHealing(skill, 5)}</strong></p> : null}
+                    {skill.baseHealing !== undefined ? <p>Healing per target at level 1 / 5: <strong>{getSkillHealing(skill, 1)} / {getSkillHealing(skill, 5)}</strong></p> : null}
                     {skill.shieldBaseAmount !== undefined ? <p>Shield at level 1 / 5: <strong>{getSkillShieldAmount(skill, 1)} / {getSkillShieldAmount(skill, 5)}</strong></p> : null}
                     <p className="wiki-muted">Base damage: {Object.entries(skill.baseDamage).filter(([, value]) => value !== undefined).map(([type, value]) => `${formatNumber(value ?? 0)} ${type}`).join(' · ') || 'none'}</p>
                     {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> <KeywordText text={skill.resonanceEffect.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p> : null}
