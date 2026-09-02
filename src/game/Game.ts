@@ -34,6 +34,7 @@ import type { WorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   generateUpgradeChoices,
   generateBanishReplacement,
+  getEligibleSynergyDefinitions,
   UPGRADE_CHOICES_PER_LEVEL,
 } from './upgrades/UpgradeChoices'
 import type {
@@ -42,6 +43,7 @@ import type {
 } from '../content/upgrades/Upgrades'
 import {
   getUpgradeDefinition,
+  isSynergyUpgradeDefinition,
   REMOVE_SKILL_UPGRADE_ID,
   REMOVE_SYNERGY_UPGRADE_ID,
 } from '../content/upgrades/Upgrades'
@@ -691,6 +693,35 @@ export class Game {
       cooldownRemaining: 0,
       resonanceAttackCount: 0,
     })
+    this.notifyStateChanged()
+    return { ok: true, changed: true }
+  }
+
+  /** Applies an eligible synergy for development testing. */
+  grantDebugSynergy(upgradeId: UpgradeId): DevelopmentGrantResult {
+    const phaseError = this.getDevelopmentGrantPhaseError()
+    if (phaseError) {
+      return { ok: false, error: phaseError }
+    }
+
+    const definition = getUpgradeDefinition(upgradeId)
+    if (!isSynergyUpgradeDefinition(definition)) {
+      return {
+        ok: false,
+        error: 'The selected development upgrade is not a synergy.',
+      }
+    }
+    if (!getEligibleSynergyDefinitions(this.gameState).some(
+      (synergy) => synergy.id === upgradeId,
+    )) {
+      return {
+        ok: false,
+        error: 'That synergy is not currently eligible.',
+      }
+    }
+
+    applyUpgrade(this.gameState, upgradeId)
+    this.gameState.run.selectedUpgradeIds.push(upgradeId)
     this.notifyStateChanged()
     return { ok: true, changed: true }
   }

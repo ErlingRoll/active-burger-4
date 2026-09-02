@@ -19,6 +19,7 @@ import {
   type PendingChoiceFlow,
   type RunResultSnapshot,
   type GameCheckpoint,
+  getEligibleSynergyDefinitions,
 } from '../game'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
@@ -110,6 +111,9 @@ const PROFILE_KEYBIND_IDS = {
 
 const GRANTABLE_GEAR_DEFINITIONS = ALL_ITEM_DEFINITIONS.filter(
   (item) => !item.starterOnly,
+)
+const GRANTABLE_UPGRADE_DEFINITIONS = INITIAL_UPGRADES.filter(
+  (upgrade) => upgrade.synergySkillIds === undefined,
 )
 
 const HUD_SLOT_LABELS: Record<EquipmentSlotType, string> = {
@@ -1855,7 +1859,9 @@ function DevelopmentMenu({
   const [selectedUpgradeId, setSelectedUpgradeId] = useState<string>(
     INITIAL_UPGRADES[0]?.id ?? '',
   )
+  const [selectedSynergyId, setSelectedSynergyId] = useState<string>('')
   const [grantFeedback, setGrantFeedback] = useState<string | null>(null)
+  const eligibleSynergies = getEligibleSynergyDefinitions(game.state)
 
   const entityCounts = {
     enemies: game.state.enemies.length,
@@ -1998,7 +2004,7 @@ function DevelopmentMenu({
   }
 
   const grantSelectedUpgrade = (): void => {
-    const upgrade = INITIAL_UPGRADES.find(
+    const upgrade = GRANTABLE_UPGRADE_DEFINITIONS.find(
       (candidate) => candidate.id === selectedUpgradeId,
     )
     if (!upgrade) {
@@ -2009,6 +2015,24 @@ function DevelopmentMenu({
       game.grantDebugUpgrade(upgrade.id),
       `Granted ${upgrade.name}.`,
       `${upgrade.name} was already granted; applied it again for testing.`,
+    )
+  }
+
+  const grantSelectedSynergy = (): void => {
+    const synergy = eligibleSynergies.find(
+      (candidate) => candidate.id === selectedSynergyId,
+    )
+    if (!synergy) {
+      setGrantFeedback('Select an eligible synergy.')
+      return
+    }
+    const skillNames = synergy.synergySkillIds
+      .map((skillId) => SKILL_DEFINITIONS[skillId].name)
+      .join(' + ')
+    reportGrantResult(
+      game.grantDebugSynergy(synergy.id),
+      `Granted ${synergy.name} (${skillNames}).`,
+      `${synergy.name} was already granted.`,
     )
   }
 
@@ -2159,6 +2183,50 @@ function DevelopmentMenu({
             </div>
           </div>
           <div className="debug-grant-control">
+            <p className="development-control-label">Grant eligible synergy</p>
+            <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-synergy-select">
+                Synergy
+              </label>
+              <select
+                id="debug-synergy-select"
+                value={
+                  eligibleSynergies.some((synergy) => synergy.id === selectedSynergyId)
+                    ? selectedSynergyId
+                    : ''
+                }
+                onChange={(event) => setSelectedSynergyId(event.target.value)}
+                disabled={eligibleSynergies.length === 0}
+              >
+                <option value="">
+                  {eligibleSynergies.length === 0
+                    ? 'No eligible synergies'
+                    : 'Select a synergy'}
+                </option>
+                {eligibleSynergies.map((synergy) => (
+                  <option value={synergy.id} key={synergy.id}>
+                    {synergy.name} ({synergy.synergySkillIds
+                      .map((skillId) => SKILL_DEFINITIONS[skillId].name)
+                      .join(' + ')})
+                  </option>
+                ))}
+              </select>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={grantSelectedSynergy}
+                disabled={
+                  eligibleSynergies.length === 0 ||
+                  (snapshot.phase !== 'playing' &&
+                    snapshot.phase !== 'paused' &&
+                    snapshot.phase !== 'level-up')
+                }
+              >
+                Give synergy
+              </button>
+            </div>
+          </div>
+          <div className="debug-grant-control">
             <p className="development-control-label">Grant upgrade</p>
             <div className="debug-grant-row">
               <label className="visually-hidden" htmlFor="debug-upgrade-select">
@@ -2169,7 +2237,7 @@ function DevelopmentMenu({
                 value={selectedUpgradeId}
                 onChange={(event) => setSelectedUpgradeId(event.target.value)}
               >
-                {INITIAL_UPGRADES.map((upgrade) => (
+                {GRANTABLE_UPGRADE_DEFINITIONS.map((upgrade) => (
                   <option value={upgrade.id} key={upgrade.id}>
                     {upgrade.name}
                   </option>

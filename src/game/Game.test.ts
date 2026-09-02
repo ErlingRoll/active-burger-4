@@ -327,6 +327,30 @@ describe('Game', () => {
     })
   })
 
+  it('grants only eligible development synergies', () => {
+    const game = createGame({ seed: 115 })
+
+    expect(game.grantDebugSynergy('synergy-basic-attack-chain-lightning')).toEqual({
+      ok: false,
+      error: 'That synergy is not currently eligible.',
+    })
+    expect(game.grantDebugSynergy('synergy-basic-attack-whirlwind')).toEqual({
+      ok: true,
+      changed: true,
+    })
+    expect(game.state.run.selectedUpgradeIds).toContain(
+      'synergy-basic-attack-whirlwind',
+    )
+    expect(game.grantDebugSynergy('synergy-basic-attack-whirlwind')).toEqual({
+      ok: false,
+      error: 'That synergy is not currently eligible.',
+    })
+    expect(game.grantDebugSynergy('whirlwind-level')).toEqual({
+      ok: false,
+      error: 'The selected development upgrade is not a synergy.',
+    })
+  })
+
   it('grants ineligible development upgrades and blocks skill unlocks at capacity', () => {
     const game = createGame({ seed: 111 })
 

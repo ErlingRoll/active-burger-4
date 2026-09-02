@@ -16,6 +16,7 @@ import type {
   UpgradeChoice,
   UpgradeEligibilityState,
   UpgradeDefinition,
+  SynergyUpgradeDefinition,
 } from '../../content/upgrades/Upgrades'
 import {
   isSynergyUpgradeId,
@@ -44,6 +45,31 @@ export const UPGRADE_CHOICES_PER_LEVEL = 3
 
 type SelectableUpgradeDefinition = UpgradeDefinition & {
   id: UpgradeChoice['upgradeId']
+}
+
+export function getUpgradeEligibilityState(
+  state: Readonly<GameState>,
+): UpgradeEligibilityState {
+  return {
+    playerLevel: state.player.level,
+    selectedUpgradeIds: state.run.selectedUpgradeIds,
+    ownedSkillIds: state.player.skills
+      .map((skill) => skill.skillId)
+      .filter(isSkillId),
+    skillLevels: Object.fromEntries(
+      state.player.skills.map((skill) => [skill.skillId, skill.level]),
+    ),
+    skillSlotCount: getSkillSlotCount(state),
+  }
+}
+
+export function getEligibleSynergyDefinitions(
+  state: Readonly<GameState>,
+): SynergyUpgradeDefinition[] {
+  const eligibilityState = getUpgradeEligibilityState(state)
+  return INITIAL_UPGRADES
+    .filter(isSynergyUpgradeDefinition)
+    .filter((synergy) => synergy.isEligible(eligibilityState))
 }
 
 /**
@@ -227,17 +253,7 @@ function pickWeightedRarityUpgrade(
 function getEligibleUpgradeDefinitions(
   state: Readonly<GameState>,
 ): UpgradeDefinition[] {
-  const eligibilityState: UpgradeEligibilityState = {
-    playerLevel: state.player.level,
-    selectedUpgradeIds: state.run.selectedUpgradeIds,
-    ownedSkillIds: state.player.skills
-      .map((skill) => skill.skillId)
-      .filter(isSkillId),
-    skillLevels: Object.fromEntries(
-      state.player.skills.map((skill) => [skill.skillId, skill.level]),
-    ),
-    skillSlotCount: getSkillSlotCount(state),
-  }
+  const eligibilityState = getUpgradeEligibilityState(state)
   return INITIAL_UPGRADES
     .filter((upgrade) => upgrade.isEligible(eligibilityState))
     .filter((upgrade) => isBranchCompatible(upgrade, eligibilityState))
