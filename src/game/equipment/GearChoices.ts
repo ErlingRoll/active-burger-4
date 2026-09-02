@@ -41,7 +41,7 @@ import {
 } from '../../content/classes/CharacterClasses'
 
 export const GEAR_CHOICES_PER_PICKUP = 3
-export const GEAR_RARITY_FLOOR_CHANCE = 0.1
+export const GEAR_RARITY_FLOOR_CHANCE = 0.15
 export const EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER = 2
 const STARTING_WEAPON_TYPE_WEIGHT = 2
 
@@ -58,6 +58,9 @@ export interface UpgradeEquippedItemChoice {
   type: 'upgrade-equipped-item'
   itemId: ItemId
   slot: EquipmentSlot
+  /** Rarity of the equipped item being upgraded. */
+  itemRarity: RarityValue
+  /** Rarity of this special gear offer. */
   rarity: RarityValue
   upgradedModifierId: GearModifier['id']
   fromTier: GearModifierTier
@@ -69,10 +72,12 @@ export interface UpgradeEquippedItemChoice {
 export interface GearRarityFloorChoice {
   type: 'gear-rarity-floor'
   minimumRarity: RarityValue
+  rarity: RarityValue
 }
 
 export interface GearXpBlessingChoice {
   type: 'gear-xp-blessing'
+  rarity: RarityValue
 }
 
 export type GearChoice =
@@ -245,7 +250,7 @@ export function gearChoiceSignature(choice: Readonly<GearChoice>): string {
   return choice.type === 'gear'
     ? `gear:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
     : choice.type === 'upgrade-equipped-item'
-      ? `upgrade:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+      ? `upgrade:${choice.itemId}:${choice.slot}:${choice.itemRarity}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
       : choice.type === 'gear-rarity-floor'
         ? `gear-rarity-floor:${choice.minimumRarity}`
         : 'gear-xp-blessing'
@@ -283,9 +288,6 @@ function getEligibleGearRarityFloor(
   }
   const minimumRarity = state.player.gearRarityFloor ?? Rarity.Common
   const next = nextRarity(currentRarity)
-  if (next === Rarity.Rare && minimumRarity === Rarity.Common) {
-    return undefined
-  }
   if (
     !next ||
     RARITY_ORDER[next] <= RARITY_ORDER[minimumRarity]
@@ -365,7 +367,8 @@ export function generateGearChoices(
         type: 'upgrade-equipped-item',
         itemId: target.itemId,
         slot: target.slot,
-        rarity: target.rarity,
+        itemRarity: target.rarity,
+        rarity: Rarity.Uncommon,
         upgradedModifierId: upgrade.upgradedModifierId,
         fromTier: upgrade.fromTier,
         toTier: upgrade.toTier,
@@ -385,6 +388,7 @@ export function generateGearChoices(
       choices[replacementIndex] = {
         type: 'gear-rarity-floor',
         minimumRarity,
+        rarity: minimumRarity,
       }
     }
   }
@@ -398,6 +402,7 @@ export function generateGearChoices(
     if (replacementIndex >= 0) {
       choices[replacementIndex] = {
         type: 'gear-xp-blessing',
+        rarity: Rarity.Epic,
       }
     }
   }

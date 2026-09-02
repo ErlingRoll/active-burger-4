@@ -408,7 +408,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
             </WikiSectionHeading>
             <div className="wiki-card-grid">
               {SYNERGY_UPGRADES.map((synergy) => (
-                <section id={`upgrade-${synergy.id}`} className="wiki-card" key={synergy.id}>
+                <section id={`upgrade-${synergy.id}`} className="wiki-card" key={synergy.id} style={{ '--wiki-accent': RARITY_VISUALS.rare.color } as CSSProperties}>
                   <p className="screen-kicker">Skill synergy</p>
                   <h3>{synergy.name}</h3>
                   <p>{synergy.synergySkillIds.map((skillId) => <a className="wiki-inline-link" key={skillId} href={`#skill-${skillId}`}>{SKILL_DEFINITIONS[skillId].name}</a>)}</p>
@@ -445,17 +445,22 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
             </div>
             <h3 className="wiki-subheading">Gear blessings</h3>
             <div className="wiki-card-grid">
-              <section className="wiki-card">
+              <section className="wiki-card" style={{ '--wiki-accent': RARITY_VISUALS.uncommon.color } as CSSProperties}>
                 <h3>Gear Upgrade</h3>
                 <p>Improves one modifier on an equipped item by one tier.</p>
                 <p className="wiki-muted">Can appear when an equipped item has a modifier above Tier 1.</p>
               </section>
-              <section className="wiki-card">
-                <h3>Gear Fortune</h3>
-                <p>Raises the minimum rarity of all future gear drops to the next rarity.</p>
-                <p className="wiki-muted">Has a <strong>{formatWikiPercentage(GEAR_RARITY_FLOOR_CHANCE)}</strong> chance to appear while your equipped gear is still progressing toward a higher minimum rarity.</p>
+              <section className="wiki-card" style={{ '--wiki-accent': RARITY_VISUALS.uncommon.color } as CSSProperties}>
+                <h3>Uncommon Fortune</h3>
+                <p>Raises the minimum rarity of all future gear drops to Uncommon.</p>
+                <p className="wiki-muted">Has a <strong>{formatWikiPercentage(GEAR_RARITY_FLOOR_CHANCE)}</strong> chance to appear while your equipped gear is still progressing.</p>
               </section>
-              <section className="wiki-card">
+              <section className="wiki-card" style={{ '--wiki-accent': RARITY_VISUALS.rare.color } as CSSProperties}>
+                <h3>Rare Fortune</h3>
+                <p>Raises the minimum rarity of all future gear drops to Rare.</p>
+                <p className="wiki-muted">Has a <strong>{formatWikiPercentage(GEAR_RARITY_FLOOR_CHANCE)}</strong> chance to appear while your equipped gear is still progressing.</p>
+              </section>
+              <section className="wiki-card" style={{ '--wiki-accent': RARITY_VISUALS.epic.color } as CSSProperties}>
                 <h3>Gear Salvage</h3>
                 <p>Converts all future gear drops into XP worth <strong>{GEAR_XP_BLESSING_MULTIPLIER}×</strong> the defeated mob's XP.</p>
                 <p className="wiki-muted">Once all equipment is Rare or better, it has a <strong>{formatWikiPercentage(GEAR_XP_BLESSING_CHANCE)}</strong> chance to appear and can be claimed once per dungeon.</p>

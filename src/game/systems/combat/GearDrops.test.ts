@@ -106,7 +106,7 @@ describe('enemy gear drops', () => {
     expect(gearRolls[0]).toBeCloseTo(0.056)
   })
 
-  it('converts generated gear drops into ten-times XP after the blessing is selected', () => {
+  it('converts generated gear drops into 100-times XP after the blessing is selected', () => {
     const game = createGame({ seed: 802 })
     game.state.run.gearXpBlessingActive = true
     game.spawnSlime({ x: 100, y: 200 })

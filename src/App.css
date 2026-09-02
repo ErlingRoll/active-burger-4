@@ -4653,10 +4653,18 @@
 
 .choice-card.gear-rarity-floor-card {
   background:
-    linear-gradient(145deg, rgb(161 98 7 / 48%), transparent 58%),
-    #332515;
-  border-color: #d97706;
-  border-top-color: #fbbf24;
+    linear-gradient(145deg, rgb(22 101 52 / 48%), transparent 58%),
+    #172a20;
+  border-color: #15803d;
+  border-top-color: #4ade80;
+}
+
+.choice-card.gear-rarity-floor-card.rarity-rare {
+  background:
+    linear-gradient(145deg, rgb(30 64 175 / 48%), transparent 58%),
+    #17223d;
+  border-color: #2563eb;
+  border-top-color: #60a5fa;
 }
 
 .choice-card.gear-xp-blessing-card {
@@ -4683,10 +4691,17 @@
 }
 
 .gear-rarity-floor-badge {
-  color: #fbbf24;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.08em;
+}
+
+.gear-rarity-floor-badge.rarity-uncommon {
+  color: #4ade80;
+}
+
+.gear-rarity-floor-badge.rarity-rare {
+  color: #60a5fa;
 }
 
 .choice-card-header {
@@ -4919,10 +4934,18 @@
 
 .upgrade-choice.gear-rarity-floor-card:hover,
 .upgrade-choice.gear-rarity-floor-card:focus-visible {
-  outline-color: rgb(252 211 77 / 65%);
+  outline-color: rgb(74 222 128 / 65%);
   box-shadow:
-    0 0 0 1px rgb(252 211 77 / 45%),
-    0 0 0.5rem rgb(252 211 77 / 25%);
+    0 0 0 1px rgb(74 222 128 / 45%),
+    0 0 0.5rem rgb(74 222 128 / 25%);
+}
+
+.upgrade-choice.gear-rarity-floor-card.rarity-rare:hover,
+.upgrade-choice.gear-rarity-floor-card.rarity-rare:focus-visible {
+  outline-color: rgb(96 165 250 / 65%);
+  box-shadow:
+    0 0 0 1px rgb(96 165 250 / 45%),
+    0 0 0.5rem rgb(96 165 250 / 25%);
 }
 
 .upgrade-choice.gear-xp-blessing-card:hover,

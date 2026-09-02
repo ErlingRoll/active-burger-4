@@ -45,6 +45,7 @@ import {
   serializeGearModifiers,
 } from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
 import {
   BASIC_ATTACK_SKILL_ID,
@@ -231,9 +232,9 @@ function getChoiceFlowKey(
       : choice.type === 'gear'
         ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
         : choice.type === 'upgrade-equipped-item'
-          ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
+          ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.itemRarity}:${choice.rarity}:${choice.setId ?? ''}:${choice.upgradedModifierId}:${choice.fromTier}:${choice.toTier}:${serializeGearModifiers(choice.upgradedModifiers)}`
           : choice.type === 'gear-rarity-floor'
-            ? `${choice.type}:${choice.minimumRarity}`
+            ? `${choice.type}:${choice.minimumRarity}:${choice.rarity}`
             : choice.type,
   )
   return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
@@ -1738,7 +1739,7 @@ function DungeonStats({ snapshot }: { snapshot: GameUiSnapshot }) {
         </div>
         <div className="dungeon-stat">
           <dt>Gear blessing</dt>
-          <dd>{snapshot.gearXpBlessingActive ? '10x XP' : 'Inactive'}</dd>
+          <dd>{snapshot.gearXpBlessingActive ? `${GEAR_XP_BLESSING_MULTIPLIER}x XP` : 'Inactive'}</dd>
         </div>
       </dl>
     </section>

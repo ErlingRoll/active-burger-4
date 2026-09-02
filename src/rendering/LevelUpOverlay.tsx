@@ -19,6 +19,7 @@ import {
   RARITY_VISUALS,
   type Rarity,
 } from '../content/rarity/Rarity'
+import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import {
   getUpgradeDefinition,
   getSynergyPartnerSkillIds,
@@ -324,7 +325,7 @@ function GearCard({
       <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
         <button
           ref={index === 0 ? firstButtonRef : undefined}
-          className="upgrade-choice choice-card gear-xp-blessing-card"
+          className={`upgrade-choice choice-card gear-xp-blessing-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-xp-blessing"
           type="button"
           disabled={disabled}
@@ -335,10 +336,13 @@ function GearCard({
           <ChoiceKeyHint keybind={keybind} />
           <span className="choice-card-header">
             <span className="upgrade-choice-name">Gear Salvage</span>
-            <span className="gear-xp-blessing-badge">BLESSING</span>
+            <span className="choice-card-badges">
+              <RarityBadge rarity={choice.rarity} />
+              <span className="gear-xp-blessing-badge">SALVAGE</span>
+            </span>
           </span>
           <span className="upgrade-choice-value">
-            All future gear drops become 10x XP
+            All future gear drops become {GEAR_XP_BLESSING_MULTIPLIER}x XP
           </span>
           <span className="upgrade-choice-description">
             Convert all future gear drops into experience for the rest of this dungeon.
@@ -354,7 +358,7 @@ function GearCard({
       <div className={`choice-card-wrap${isSelected ? ' choice-selected' : ''}`}>
         <button
           ref={index === 0 ? firstButtonRef : undefined}
-          className="upgrade-choice choice-card gear-rarity-floor-card"
+          className={`upgrade-choice choice-card gear-rarity-floor-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-rarity-floor"
           type="button"
           disabled={disabled}
@@ -363,8 +367,11 @@ function GearCard({
         >
           <ChoiceKeyHint keybind={keybind} />
           <span className="choice-card-header">
-            <span className="upgrade-choice-name">Gear Fortune</span>
-            <span className="gear-rarity-floor-badge">GOLDEN</span>
+            <span className="upgrade-choice-name">{minimumRarity.label} Fortune</span>
+            <span className="choice-card-badges">
+              <RarityBadge rarity={choice.rarity} />
+              <span className={`gear-rarity-floor-badge ${rarityClass(choice.rarity)}`}>FORTUNE</span>
+            </span>
           </span>
           <span className="upgrade-choice-value">
             All gear dropped is at least {minimumRarity.label}
@@ -419,7 +426,10 @@ function GearCard({
           </span>
           <span className="choice-card-header">
             <span className="upgrade-choice-name">Upgrade: {itemName}</span>
-            <RarityBadge rarity={choice.rarity} label="Item rarity" />
+            <span className="choice-card-badges">
+              <RarityBadge rarity={choice.rarity} label="Offer rarity" />
+              <RarityBadge rarity={choice.itemRarity} label="Item rarity" />
+            </span>
           </span>
           <span className="gear-slot">{SLOT_LABELS[choice.slot]} · {itemName}</span>
           <ImplicitModifierList modifiers={item.implicitModifiers ?? []} />

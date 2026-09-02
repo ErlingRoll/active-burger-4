@@ -225,6 +225,7 @@ describe('gear choices', () => {
     expect(commonBlessing).toEqual({
       type: 'gear-rarity-floor',
       minimumRarity: Rarity.Uncommon,
+      rarity: Rarity.Uncommon,
     })
 
     const equippedItems = Object.values(game.state.player.equipment ?? {})
@@ -239,6 +240,7 @@ describe('gear choices', () => {
     ).toEqual({
       type: 'gear-rarity-floor',
       minimumRarity: Rarity.Uncommon,
+      rarity: Rarity.Uncommon,
     })
 
     game.state.player.gearRarityFloor = Rarity.Uncommon
@@ -257,10 +259,16 @@ describe('gear choices', () => {
     })
     firstEquippedItem.rarity = Rarity.Rare
     game.state.player.gearRarityFloor = Rarity.Common
-    expect(
-      generateGearChoices(game.state, GEAR_CHOICES_PER_PICKUP, guaranteedBlessing)
-        .some((choice) => choice.type === 'gear-rarity-floor'),
-    ).toBe(false)
+    const rareBlessingBeforeFloor = generateGearChoices(
+      game.state,
+      GEAR_CHOICES_PER_PICKUP,
+      guaranteedBlessing,
+    ).find((choice) => choice.type === 'gear-rarity-floor')
+    expect(rareBlessingBeforeFloor).toEqual({
+      type: 'gear-rarity-floor',
+      minimumRarity: Rarity.Rare,
+      rarity: Rarity.Rare,
+    })
 
     game.state.player.gearRarityFloor = Rarity.Uncommon
     const rareBlessing = generateGearChoices(
@@ -271,6 +279,7 @@ describe('gear choices', () => {
     expect(rareBlessing).toEqual({
       type: 'gear-rarity-floor',
       minimumRarity: Rarity.Rare,
+      rarity: Rarity.Rare,
     })
 
     equippedItems.forEach((item) => {
@@ -426,7 +435,8 @@ describe('gear choices', () => {
     expect(choices[0]).toBe(upgrade)
     expect(upgrade).toMatchObject({
       itemId: 'iron-cleaver',
-      rarity: Rarity.Common,
+      itemRarity: Rarity.Common,
+      rarity: Rarity.Uncommon,
       upgradedModifierId: 'melee-leech',
       fromTier: 4,
       toTier: 3,

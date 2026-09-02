@@ -45,9 +45,9 @@ export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, Char
     startingWeaponItemId: 'knight-training-sword' as ItemId,
     startingSkillIds: [BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
     skillAffinity: {
-      tags: ['melee', 'defensive'],
-      label: 'Melee and defensive',
-      description: 'Melee and defensive skill unlocks are more likely to appear.',
+      tags: ['melee', 'defensive', 'area'],
+      label: 'Melee, defensive, and area',
+      description: 'Melee, defensive, and area skill unlocks are more likely to appear.',
     },
     visual: { silhouette: 'armored-knight', icon: '🛡', fillColor: 0x60a5fa, outlineColor: 0xdbeafe },
   },

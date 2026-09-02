@@ -26,7 +26,7 @@ export const GEAR_DROP_CHANCE_BALANCE = {
 } as const
 
 export const GEAR_XP_BLESSING_CHANCE = 0.05
-export const GEAR_XP_BLESSING_MULTIPLIER = 10
+export const GEAR_XP_BLESSING_MULTIPLIER = 100
 
 export const GEAR_PICKUP_BALANCE = {
   radius: 12,

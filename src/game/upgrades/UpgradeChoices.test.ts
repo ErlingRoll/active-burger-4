@@ -335,7 +335,7 @@ describe('upgrade choice generation', () => {
     const necromancer = createGame({ seed: 462, characterClassId: 'necromancer' })
 
     expect(getSkillUnlockWeight(getUpgrade('lancers-charge-unlock'), knight.state)).toBe(6)
-    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(1)
+    expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), knight.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('glacial-orb-unlock'), ranger.state)).toBe(6)
     expect(getSkillUnlockWeight(getUpgrade('chain-lightning-unlock'), ranger.state)).toBe(3)
     expect(getSkillUnlockWeight(getUpgrade('raise-skeleton-unlock'), necromancer.state)).toBe(3)
@@ -365,11 +365,11 @@ describe('upgrade choice generation', () => {
 
   it('ignores universal Basic Attack Synergy when weighting skill unlocks', () => {
     const game = createGame({ seed: 467 })
-    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(1)
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(3)
 
     applyUpgrade(game.state, 'raise-skeleton-unlock')
 
-    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(2)
+    expect(getSkillUnlockWeight(getUpgrade('gravity-well-unlock'), game.state)).toBe(6)
   })
 
   it('ignores owned partners that already have an active Synergy', () => {
