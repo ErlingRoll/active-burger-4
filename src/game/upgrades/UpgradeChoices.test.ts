@@ -9,6 +9,7 @@ import { createGame } from '../Game'
 import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
 import { SKILL_REMOVAL_CHANCE } from '../../game-config/skills'
 import {
+  generateBanishReplacement,
   generateUpgradeChoices,
   getSkillUnlockWeight,
 } from './UpgradeChoices'
@@ -54,6 +55,50 @@ describe('upgrade choice generation', () => {
         INITIAL_UPGRADES.some((upgrade) => upgrade.id === choice.upgradeId),
       ),
     ).toBe(true)
+  })
+
+  it('never offers a skill unlock that was banished earlier in the run', () => {
+    const game = createGame({ seed: 457 })
+    game.state.run.banishedSkillIds = ['chain-lightning']
+
+    const choices = generateUpgradeChoices(game.state, 3, new Random(457))
+
+    expect(choices.some((choice) => choice.upgradeId === 'chain-lightning-unlock'))
+      .toBe(false)
+  })
+
+  it('generates a weighted replacement without reusing the current offers', () => {
+    const game = createGame({ seed: 458 })
+    game.state.run.banishedSkillIds = ['chain-lightning']
+
+    const replacement = generateBanishReplacement(
+      game.state,
+      [
+        { upgradeId: 'chain-lightning-unlock', rarity: Rarity.Common },
+        { upgradeId: 'vitality-level', rarity: Rarity.Common },
+      ],
+      new Random(458),
+    )
+
+    expect(replacement).toBeDefined()
+    expect(replacement?.upgradeId).not.toBe('chain-lightning-unlock')
+    expect(replacement?.upgradeId).not.toBe('vitality-level')
+  })
+
+  it('falls back to a non-unlock upgrade when every skill unlock is banished', () => {
+    const game = createGame({ seed: 459 })
+    game.state.run.banishedSkillIds = INITIAL_UPGRADES.flatMap((upgrade) =>
+      upgrade.skillAction === 'unlock' && upgrade.skillId ? [upgrade.skillId] : [],
+    )
+
+    const replacement = generateBanishReplacement(
+      game.state,
+      [{ upgradeId: 'chain-lightning-unlock', rarity: Rarity.Common }],
+      new Random(459),
+    )
+
+    expect(replacement).toBeDefined()
+    expect(getUpgrade(replacement!.upgradeId).skillAction).not.toBe('unlock')
   })
 
   it('defines at least two unique epic synergies for every skill', () => {

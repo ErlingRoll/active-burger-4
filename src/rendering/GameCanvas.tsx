@@ -647,6 +647,10 @@ export function GameCanvas({
     currentGame.rerollActiveChoice()
   }
 
+  const banishChoice = (choice: LevelUpUpgradeChoice): void => {
+    gameRef.current?.banishActiveChoice(choice)
+  }
+
   const selectBehaviorProfile = (profileId: BehaviorProfileId): void => {
     const currentGame = gameRef.current
     if (!currentGame) {
@@ -792,7 +796,9 @@ export function GameCanvas({
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
           rerollsRemaining={snapshot?.rerollsRemaining ?? 0}
+          banishesRemaining={snapshot?.banishesRemaining ?? 1}
           onSelect={selectChoice}
+          onBanish={banishChoice}
           onReroll={rerollChoice}
           onSkip={skipChoice}
         />

@@ -23,6 +23,7 @@ import {
   updatePickups,
 } from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
+import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
 import { collectSkillDamage } from './systems/skills/SkillSystem'
 import { getPlayerArenaBounds } from '../game-config/arena'
@@ -156,6 +157,36 @@ describe('Game', () => {
     expect(game.getPendingChoiceFlow()?.choices).not.toEqual(initialChoices?.choices)
     expect(game.state.run.rerollsRemaining).toBe(0)
     expect(game.getPendingChoiceFlow()?.type).toBe('gear-pickup')
+  })
+
+  it('banishes one skill unlock, remembers it for the run, and restores the counter', () => {
+    const game = createGame({ seed: 459, startingLevel: 2, banishCount: 2 })
+    const flow = game.getPendingChoiceFlow()
+    expect(flow?.type).toBe('level-up')
+    if (flow?.type !== 'level-up') {
+      return
+    }
+    const unlock = flow.choices.find((choice) =>
+      getUpgradeDefinition(choice.upgradeId).skillAction === 'unlock',
+    )
+    expect(unlock).toBeDefined()
+    expect(game.state.run.banishesRemaining).toBe(2)
+
+    expect(game.banishActiveChoice(unlock!)).toBe(true)
+    expect(game.state.run.banishesRemaining).toBe(1)
+    const banishedSkillId = getUpgradeDefinition(unlock!.upgradeId).skillId
+    expect(game.state.run.banishedSkillIds).toContain(banishedSkillId)
+    expect(game.getPendingChoiceFlow()?.choices).toHaveLength(3)
+    expect(game.getPendingChoiceFlow()?.choices).not.toContainEqual(unlock)
+
+    const restored = createGameFromCheckpoint(game.createCheckpoint())
+    expect(restored.state.run.banishesRemaining).toBe(1)
+    expect(restored.state.run.banishedSkillIds).toEqual(
+      game.state.run.banishedSkillIds,
+    )
+    expect(restored.getPendingChoiceFlow()?.choices).toEqual(
+      game.getPendingChoiceFlow()?.choices,
+    )
   })
 
   it('generates each queued level-up after the previous selection is applied', () => {

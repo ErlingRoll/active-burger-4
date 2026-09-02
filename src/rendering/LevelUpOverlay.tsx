@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type AnimationEvent,
+} from 'react'
 import {
   EquipmentSlot,
   getItemDisplayName,
@@ -60,7 +65,9 @@ interface LevelUpOverlayProps {
   characterClassId: CharacterClassId
   ownedSkillIds: readonly SkillId[]
   rerollsRemaining: number
+  banishesRemaining: number
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
+  onBanish: (choice: LevelUpUpgradeChoice) => void
   onReroll: () => void
   onSkip: () => void
 }
@@ -486,7 +493,9 @@ function UpgradeCard({
   onSelect,
   keybind,
   ownedSkillIds,
+  banishesRemaining,
   disabled,
+  onBanish,
 }: {
   choice: LevelUpUpgradeChoice
   index: number
@@ -494,8 +503,11 @@ function UpgradeCard({
   onSelect: (choice: LevelUpUpgradeChoice) => void
   keybind: string | undefined
   ownedSkillIds: readonly SkillId[]
+  banishesRemaining: number
   disabled: boolean
+  onBanish: (choice: LevelUpUpgradeChoice) => void
 }) {
+  const [isBanishing, setIsBanishing] = useState(false)
   const definition = getUpgradeDefinition(choice.upgradeId)
   const removedSkill = choice.upgradeId === REMOVE_SKILL_UPGRADE_ID
     ? getSkillDefinition(choice.skillId)
@@ -550,19 +562,35 @@ function UpgradeCard({
             ? 'unlock'
             : 'upgrade'
   }`
+  const startBanish = (): void => {
+    if (!isBanishing && banishesRemaining > 0) {
+      setIsBanishing(true)
+    }
+  }
+  const finishBanish = (event: AnimationEvent<HTMLButtonElement>): void => {
+    if (!isBanishing || event.animationName !== 'banish-card-burn') {
+      return
+    }
+    setIsBanishing(false)
+    onBanish(choice)
+  }
   return (
-    <div className="choice-card-wrap">
+    <div className={`choice-card-wrap${isBanishing ? ' banishing' : ''}`}>
       <button
         ref={index === 0 ? firstButtonRef : undefined}
-        className={`upgrade-choice choice-card ${rarityClass(choice.rarity)} ${
+        className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}${
+          isBanishing ? ' banishing' : ''
+        } ${
           isSynergy ? 'synergy-card' : ''
         } ${
           isRelease ? 'skill-removal-card' : ''
         }`}
         data-choice-type="upgrade"
         type="button"
-        disabled={disabled}
+        disabled={disabled || isBanishing}
         aria-keyshortcuts={keybind}
+        aria-busy={isBanishing}
+        onAnimationEnd={finishBanish}
         onClick={() => onSelect(choice)}
       >
         <ChoiceKeyHint keybind={keybind} />
@@ -653,6 +681,29 @@ function UpgradeCard({
           />
         </span>
       </button>
+      {unlockedSkill && banishesRemaining > 0 ? (
+        <span className="banish-choice-action">
+          <button
+            className="banish-choice-button"
+            type="button"
+            disabled={disabled || isBanishing || banishesRemaining <= 0}
+            aria-describedby={`banish-choice-tooltip-${index}`}
+            aria-label={`Banish ${unlockedSkill.name} (${banishesRemaining} available)`}
+            onClick={startBanish}
+          >
+            Banish ({banishesRemaining} available)
+          </button>
+          <span
+            className="banish-choice-tooltip"
+            id={`banish-choice-tooltip-${index}`}
+            role="tooltip"
+          >
+            Permanently remove this skill unlock from the run and replace it with
+            another weighted skill unlock. If none remain, a different upgrade is
+            offered.
+          </span>
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -665,7 +716,9 @@ export function LevelUpOverlay({
   characterClassId,
   ownedSkillIds,
   rerollsRemaining,
+  banishesRemaining,
   onSelect,
+  onBanish,
   onReroll,
   onSkip,
 }: LevelUpOverlayProps) {
@@ -731,7 +784,9 @@ export function LevelUpOverlay({
                     keybinds.choiceRight,
                   ][index]}
                   ownedSkillIds={ownedSkillIds}
+                  banishesRemaining={banishesRemaining}
                   disabled={false}
+                  onBanish={onBanish}
                   onSelect={(selected) => onSelect(selected)}
                 />
               ))

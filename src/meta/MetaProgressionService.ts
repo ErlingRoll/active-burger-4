@@ -15,6 +15,9 @@ export const SKILL_SLOT_UNLOCK_CATEGORY = 'skill-slot'
 export const DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY = 'dungeon-max-floor'
 export const DUNGEON_MAX_FLOOR_BONUS_PER_RANK = 5
 export const DUNGEON_MAX_FLOOR_MAX_RANK = 4
+export const BANISH_UNLOCK_CATEGORY = 'banish'
+export const DEFAULT_BANISH_COUNT = 1
+export const MAX_BANISH_COUNT = 5
 export const REROLL_BASE_COST = 500
 export const REROLL_COST_MULTIPLIER = 2
 export const MAX_REROLL_LEVEL = 10
@@ -44,6 +47,7 @@ export interface MetaProgressionSnapshot {
   startingLevelRank: number
   startingLevel: number
   skillSlotCount: number
+  banishCount: number
   dungeonMaxFloorRank: number
   dungeonMaxFloorBonus: number
   dungeonMaxFloor: number
@@ -242,6 +246,7 @@ export function getDungeonMaxFloorBonus(
     ) {
       return totalBonus
     }
+
     const maxFloorBonus = definition.payload.maxFloorBonus
     return typeof maxFloorBonus === 'number' &&
       Number.isInteger(maxFloorBonus) &&
@@ -253,6 +258,23 @@ export function getDungeonMaxFloorBonus(
     bonus,
     DUNGEON_MAX_FLOOR_MAX_RANK * DUNGEON_MAX_FLOOR_BONUS_PER_RANK,
   )
+}
+
+export function getBanishCount(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  const highestCount = definitions.reduce((highest, definition) => {
+    if (definition.category !== BANISH_UNLOCK_CATEGORY || !unlocked.has(definition.id)) {
+      return highest
+    }
+    const banishCount = definition.payload.banishCount
+    return typeof banishCount === 'number' && Number.isInteger(banishCount)
+      ? Math.max(highest, banishCount)
+      : highest
+  }, DEFAULT_BANISH_COUNT)
+  return Math.min(highestCount, MAX_BANISH_COUNT)
 }
 
 function toSnapshot(
@@ -286,6 +308,7 @@ function toSnapshot(
   const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
   const startingLevelRank = getStartingLevelRank(definitions, unlockedIds)
   const skillSlotCount = getSkillSlotCount(definitions, unlockedIds)
+  const banishCount = getBanishCount(definitions, unlockedIds)
   const dungeonMaxFloorRank = getDungeonMaxFloorRank(definitions, unlockedIds)
   const dungeonMaxFloorBonus = getDungeonMaxFloorBonus(definitions, unlockedIds)
   return {
@@ -297,6 +320,7 @@ function toSnapshot(
     startingLevelRank,
     startingLevel: getStartingLevelForRank(startingLevelRank),
     skillSlotCount,
+    banishCount,
     dungeonMaxFloorRank,
     dungeonMaxFloorBonus,
     dungeonMaxFloor: DEFAULT_DUNGEON_MAX_FLOOR + dungeonMaxFloorBonus,

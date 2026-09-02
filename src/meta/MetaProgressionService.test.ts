@@ -3,6 +3,7 @@ import {
   DUNGEON_MAX_FLOOR_BONUS_PER_RANK,
   DUNGEON_MAX_FLOOR_MAX_RANK,
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
+  getBanishCount,
   getDungeonMaxFloorBonus,
   getDungeonMaxFloorRank,
   getRerollPurchaseCost,
@@ -11,6 +12,9 @@ import {
   getXpMultiplierLevel,
   getStartingLevelRank,
   SKILL_SLOT_UNLOCK_CATEGORY,
+  BANISH_UNLOCK_CATEGORY,
+  DEFAULT_BANISH_COUNT,
+  MAX_BANISH_COUNT,
   type MetaUnlockDefinition,
 } from './MetaProgressionService'
 
@@ -131,6 +135,44 @@ describe('dungeon maximum-floor unlock definitions', () => {
     expect(getDungeonMaxFloorRank(definitions, unlockedIds)).toBe(4)
     expect(getDungeonMaxFloorBonus(definitions, unlockedIds)).toBe(20)
     expect(getDungeonMaxFloorBonus(definitions, [])).toBe(0)
+  })
+
+  describe('Banish unlock definitions', () => {
+    it('starts with one Banish and reaches a five-Banish cap', () => {
+      const definitions = Array.from(
+        { length: MAX_BANISH_COUNT - DEFAULT_BANISH_COUNT },
+        (_, index): MetaUnlockDefinition => ({
+          id: `banish-${index + 1}`,
+          category: BANISH_UNLOCK_CATEGORY,
+          cost: 500 * (2 ** index),
+          requiresUnlockId: index > 0 ? `banish-${index}` : null,
+          isStarter: false,
+          payload: {
+            rank: index + 1,
+            banishCount: index + 2,
+          },
+        }),
+      )
+
+      expect(getBanishCount(definitions, [])).toBe(DEFAULT_BANISH_COUNT)
+      expect(getBanishCount(definitions, definitions.map((definition) => definition.id)))
+        .toBe(MAX_BANISH_COUNT)
+      expect(definitions.map((definition) => definition.cost))
+        .toEqual([500, 1000, 2000, 4000])
+    })
+
+    it('does not exceed the configured cap', () => {
+      const definition: MetaUnlockDefinition = {
+        id: 'banish-9',
+        category: BANISH_UNLOCK_CATEGORY,
+        cost: 1,
+        requiresUnlockId: null,
+        isStarter: false,
+        payload: { banishCount: 9 },
+      }
+
+      expect(getBanishCount([definition], ['banish-9'])).toBe(MAX_BANISH_COUNT)
+    })
   })
 
   describe('reroll pricing', () => {

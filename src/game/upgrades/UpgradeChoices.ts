@@ -61,33 +61,13 @@ export function generateUpgradeChoices(
     throw new Error(`Upgrade choice count must be a non-negative integer: ${count}`)
   }
 
-  const eligibilityState: UpgradeEligibilityState = {
-    playerLevel: state.player.level,
-    selectedUpgradeIds: state.run.selectedUpgradeIds,
-    ownedSkillIds: state.player.skills
-      .map((skill) => skill.skillId)
-      .filter(isSkillId),
-    skillLevels: Object.fromEntries(
-      state.player.skills.map((skill) => [skill.skillId, skill.level]),
-    ),
-    skillSlotCount: getSkillSlotCount(state),
-  }
-  const eligible = INITIAL_UPGRADES
-    .filter((upgrade) => upgrade.isEligible(eligibilityState))
-    .filter((upgrade) => isBranchCompatible(upgrade, eligibilityState))
+  const eligible = getEligibleUpgradeDefinitions(state)
     .filter(isSelectableUpgrade)
 
   if (eligible.length < count) {
     throw new Error(
       `Cannot generate ${count} unique upgrade choices from ${eligible.length} eligible upgrades.`,
     )
-  }
-
-  function isSelectableUpgrade(
-    upgrade: UpgradeDefinition,
-  ): upgrade is UpgradeDefinition & { id: UpgradeChoice['upgradeId'] } {
-    return upgrade.id !== 'remove-skill' &&
-      upgrade.id !== REMOVE_SYNERGY_UPGRADE_ID
   }
 
   const choices: LevelUpUpgradeChoice[] = []
@@ -161,6 +141,33 @@ export function generateUpgradeChoices(
   return choices
 }
 
+/**
+ * Generates a replacement for one banished skill unlock. The replacement
+ * prefers another skill unlock, then falls back to any weighted non-unlock
+ * upgrade so the active choice flow keeps its card count.
+ */
+export function generateBanishReplacement(
+  state: Readonly<GameState>,
+  currentChoices: readonly LevelUpUpgradeChoice[],
+  rng: RandomSource,
+): LevelUpUpgradeChoice | undefined {
+  const currentUpgradeIds = new Set(currentChoices.map((choice) => choice.upgradeId))
+  const eligible = getEligibleUpgradeDefinitions(state)
+    .filter(isSelectableUpgrade)
+    .filter((upgrade) => !currentUpgradeIds.has(upgrade.id))
+  const skillUnlocks = eligible.filter((upgrade) =>
+    upgrade.skillAction === 'unlock' && upgrade.skillId !== undefined,
+  )
+  return toUpgradeChoice(
+    pickWeightedRarityUpgrade(skillUnlocks, state, rng) ??
+      pickWeightedRarityUpgrade(
+        eligible.filter((upgrade) => upgrade.skillAction !== 'unlock'),
+        state,
+        rng,
+      ),
+  )
+}
+
 function pickWeightedUpgrade(
   candidates: readonly SelectableUpgradeDefinition[],
   state: Readonly<GameState>,
@@ -189,6 +196,7 @@ function pickWeightedRarityUpgrade(
   if (candidates.length === 0) {
     return undefined
   }
+
   if (new Set(candidates.map((upgrade) => upgrade.rarity)).size === 1) {
     return pickWeightedUpgrade(candidates, state, rng)
   }
@@ -214,6 +222,50 @@ function pickWeightedRarityUpgrade(
     state,
     rng,
   )
+}
+
+function getEligibleUpgradeDefinitions(
+  state: Readonly<GameState>,
+): UpgradeDefinition[] {
+  const eligibilityState: UpgradeEligibilityState = {
+    playerLevel: state.player.level,
+    selectedUpgradeIds: state.run.selectedUpgradeIds,
+    ownedSkillIds: state.player.skills
+      .map((skill) => skill.skillId)
+      .filter(isSkillId),
+    skillLevels: Object.fromEntries(
+      state.player.skills.map((skill) => [skill.skillId, skill.level]),
+    ),
+    skillSlotCount: getSkillSlotCount(state),
+  }
+  return INITIAL_UPGRADES
+    .filter((upgrade) => upgrade.isEligible(eligibilityState))
+    .filter((upgrade) => isBranchCompatible(upgrade, eligibilityState))
+    .filter((upgrade) => !isBanishedSkillUnlock(upgrade, state))
+}
+
+function isSelectableUpgrade(
+  upgrade: UpgradeDefinition,
+): upgrade is SelectableUpgradeDefinition {
+  return upgrade.id !== 'remove-skill' &&
+    upgrade.id !== REMOVE_SYNERGY_UPGRADE_ID
+}
+
+function toUpgradeChoice(
+  upgrade: SelectableUpgradeDefinition | undefined,
+): UpgradeChoice | undefined {
+  return upgrade
+    ? { upgradeId: upgrade.id, rarity: upgrade.rarity }
+    : undefined
+}
+
+function isBanishedSkillUnlock(
+  upgrade: UpgradeDefinition,
+  state: Readonly<GameState>,
+): boolean {
+  return upgrade.skillAction === 'unlock' &&
+    upgrade.skillId !== undefined &&
+    (state.run.banishedSkillIds ?? []).includes(upgrade.skillId)
 }
 
 export function getSkillUnlockWeight(

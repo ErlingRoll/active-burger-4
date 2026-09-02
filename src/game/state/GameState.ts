@@ -155,6 +155,8 @@ export interface RunConfig {
   dungeonMaxFloorBonus?: number
   /** Permanent reroll level, granting this many rerolls for the run. */
   rerollCount?: number
+  /** Permanent Banish allowance, granting this many Banishes for the run. */
+  banishCount?: number
   /** Optional deterministic challenge modifiers selected before the run starts. */
   worldModifierIds?: readonly WorldModifierId[]
   characterClassId?: CharacterClassId
@@ -176,6 +178,10 @@ export interface RunState {
   selectedUpgradeIds: UpgradeId[]
   /** Purchased rerolls that have not yet been used during this run. */
   rerollsRemaining?: number
+  /** Banishes that have not yet been used during this run. */
+  banishesRemaining?: number
+  /** Skill IDs that cannot be offered again during this run. */
+  banishedSkillIds?: SkillId[]
   /** Cumulative post-mitigation damage dealt by each skill during this run. */
   skillDamageDealt?: Partial<Record<SkillId, number>>
   /** Cumulative effective player healing provided by each skill during this run. */

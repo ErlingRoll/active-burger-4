@@ -33,6 +33,7 @@ import {
 import type { WorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   generateUpgradeChoices,
+  generateBanishReplacement,
   UPGRADE_CHOICES_PER_LEVEL,
 } from './upgrades/UpgradeChoices'
 import type {
@@ -380,6 +381,8 @@ export class Game {
         killCount: 0,
         selectedUpgradeIds: [],
         rerollsRemaining: getConfiguredRerollCount(runConfig.rerollCount),
+        banishesRemaining: getConfiguredBanishCount(runConfig.banishCount),
+        banishedSkillIds: [],
         skillDamageDealt: {},
         skillHealingDone: {},
         playerCombatLog: [],
@@ -808,6 +811,66 @@ export class Game {
     }
     this.gameState.run.rerollsRemaining =
       (this.gameState.run.rerollsRemaining ?? 0) - 1
+    this.notifyStateChanged()
+    return true
+  }
+
+  canBanishChoice(choice: LevelUpUpgradeChoice): boolean {
+    const flow = this.choiceFlows[0]
+    if (
+      this.gameState.run.phase !== 'level-up' ||
+      flow?.type !== 'level-up' ||
+      (this.gameState.run.banishesRemaining ?? 0) <= 0
+    ) {
+      return false
+    }
+    return flow.choices.some((candidate) =>
+      candidate.upgradeId === choice.upgradeId &&
+      ('skillId' in candidate
+        ? 'skillId' in choice && candidate.skillId === choice.skillId
+        : 'synergyId' in candidate
+          ? 'synergyId' in choice && candidate.synergyId === choice.synergyId
+          : !('skillId' in choice) && !('synergyId' in choice)) &&
+      getUpgradeDefinition(candidate.upgradeId).skillAction === 'unlock',
+    )
+  }
+
+  /** Replaces one skill unlock offer and permanently excludes its skill. */
+  banishActiveChoice(choice: LevelUpUpgradeChoice): boolean {
+    const flow = this.choiceFlows[0]
+    if (!this.canBanishChoice(choice) || flow?.type !== 'level-up') {
+      return false
+    }
+    const choiceIndex = flow.choices.findIndex((candidate) =>
+      candidate.upgradeId === choice.upgradeId &&
+      ('skillId' in candidate
+        ? 'skillId' in choice && candidate.skillId === choice.skillId
+        : 'synergyId' in candidate
+          ? 'synergyId' in choice && candidate.synergyId === choice.synergyId
+          : !('skillId' in choice) && !('synergyId' in choice)),
+    )
+    const skillId = choiceIndex >= 0
+      ? getUpgradeDefinition(flow.choices[choiceIndex]!.upgradeId).skillId
+      : undefined
+    if (choiceIndex < 0 || !skillId) {
+      return false
+    }
+    if (!this.gameState.run.banishedSkillIds?.includes(skillId)) {
+      this.gameState.run.banishedSkillIds ??= []
+      this.gameState.run.banishedSkillIds.push(skillId)
+    }
+    this.gameState.run.banishesRemaining =
+      (this.gameState.run.banishesRemaining ?? 0) - 1
+    const replacement = generateBanishReplacement(
+      this.gameState,
+      flow.choices,
+      this.random,
+    )
+    if (replacement) {
+      flow.choices[choiceIndex] = replacement
+    } else {
+      flow.choices.splice(choiceIndex, 1)
+    }
     this.notifyStateChanged()
     return true
   }
@@ -1521,6 +1584,14 @@ export class Game {
 
     // Overwrite all mutable state from the checkpoint.
     Object.assign(game.gameState, normalizeCheckpointState(checkpoint.gameState))
+    if (!Array.isArray(game.gameState.run.banishedSkillIds)) {
+      game.gameState.run.banishedSkillIds = []
+    }
+    if (typeof game.gameState.run.banishesRemaining !== 'number') {
+      game.gameState.run.banishesRemaining = getConfiguredBanishCount(
+        checkpoint.runConfig.banishCount,
+      )
+    }
 
     ;(game.random as Random).setInternalState(checkpoint.rngState)
     ;(game.gearRandom as Random).setInternalState(checkpoint.gearRngState)
@@ -1577,6 +1648,12 @@ function getConfiguredRerollCount(value: number | undefined): number {
   return typeof value === 'number' && Number.isFinite(value)
     ? Math.min(10, Math.max(0, Math.floor(value)))
     : 0
+}
+
+function getConfiguredBanishCount(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(5, Math.max(1, Math.floor(value)))
+    : 1
 }
 
 function getNextEntityIdFromState(state: GameState): number {

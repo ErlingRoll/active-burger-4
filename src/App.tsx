@@ -652,6 +652,7 @@ function App() {
       skillSlotCount: metaProgression.snapshot?.skillSlotCount ?? DEFAULT_SKILL_SLOT_COUNT,
       dungeonMaxFloorBonus: metaProgression.snapshot?.dungeonMaxFloorBonus ?? 0,
       rerollCount: metaProgression.snapshot?.wallet.rerollLevel ?? 0,
+      banishCount: metaProgression.snapshot?.banishCount ?? 1,
       worldModifierIds: settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}

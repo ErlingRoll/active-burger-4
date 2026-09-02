@@ -4182,12 +4182,178 @@
   display: flex;
   position: relative;
   min-width: 0;
+  flex-direction: column;
 }
 
 .choice-card {
   width: 100%;
-  height: 100%;
+  height: auto;
+  flex: 1;
   border-top: 3px solid #64748b;
+}
+
+.banish-choice-action {
+  position: relative;
+}
+
+.banish-choice-button {
+  width: 100%;
+  min-height: 2.25rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  color: #fecaca;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgb(127 29 29 / 42%);
+  border: 1px solid rgb(248 113 113 / 55%);
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.banish-choice-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.6rem);
+  z-index: 2;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 3rem));
+  padding: 0.55rem 0.7rem;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-align: left;
+  background: #0f172a;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  box-shadow: 0 0.75rem 1.5rem rgb(2 6 23 / 45%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0.2rem);
+  visibility: hidden;
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.banish-choice-action:hover .banish-choice-tooltip,
+.banish-choice-action:focus-within .banish-choice-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.choice-card.banishing {
+  overflow: hidden;
+  animation: banish-card-burn 700ms ease-in forwards;
+  pointer-events: none;
+}
+
+.choice-card.banishing::before,
+.choice-card.banishing::after {
+  position: absolute;
+  inset: -12%;
+  z-index: 1;
+  pointer-events: none;
+  content: '';
+}
+
+.choice-card.banishing::before {
+  background:
+    radial-gradient(ellipse at 18% 110%, rgb(255 237 127 / 95%) 0 5%, transparent 25%),
+    radial-gradient(ellipse at 48% 112%, rgb(255 109 26 / 90%) 0 10%, transparent 32%),
+    radial-gradient(ellipse at 80% 108%, rgb(255 196 62 / 88%) 0 7%, transparent 25%),
+    linear-gradient(to top, rgb(255 69 0 / 68%), transparent 70%);
+  mix-blend-mode: screen;
+  transform-origin: bottom;
+  animation: banish-card-flames 700ms ease-out forwards;
+}
+
+.choice-card.banishing::after {
+  background:
+    linear-gradient(110deg, transparent 20%, rgb(12 10 9 / 72%) 21% 24%, transparent 25%),
+    linear-gradient(76deg, transparent 42%, rgb(12 10 9 / 64%) 43% 46%, transparent 47%),
+    linear-gradient(142deg, transparent 62%, rgb(12 10 9 / 66%) 63% 66%, transparent 67%);
+  opacity: 0;
+  transform: scale(1.4);
+  animation: banish-card-embers 700ms ease-out forwards;
+}
+
+.choice-card-wrap.banishing .banish-choice-action {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes banish-card-burn {
+  0% {
+    filter: brightness(1) saturate(1);
+    opacity: 1;
+    transform: scale(1);
+  }
+  22% {
+    filter: brightness(1.18) saturate(1.45);
+    transform: scale(1.015) rotate(-0.5deg);
+  }
+  55% {
+    filter: brightness(0.85) saturate(2);
+    transform: scale(1.01) rotate(0.5deg);
+  }
+  100% {
+    filter: brightness(0.1) saturate(2) blur(1.5px);
+    opacity: 0;
+    transform: scale(0.92) translateY(0.35rem);
+  }
+}
+
+@keyframes banish-card-flames {
+  0% {
+    opacity: 0.15;
+    transform: scaleY(0.15) translateY(25%);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scaleY(1.15) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.45) translateY(-70%);
+  }
+}
+
+@keyframes banish-card-embers {
+  0% {
+    opacity: 0;
+    transform: scale(1.4) translateY(10%);
+  }
+  45% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-35%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-card.banishing,
+  .choice-card.banishing::before,
+  .choice-card.banishing::after {
+    animation-duration: 1ms;
+  }
+}
+
+.banish-choice-button:hover:not(:disabled),
+.banish-choice-button:focus-visible {
+  color: #fff1f2;
+  background: rgb(153 27 27 / 58%);
+  border-color: #f87171;
+  outline: 3px solid rgb(248 113 113 / 28%);
+  outline-offset: 2px;
+}
+
+.banish-choice-button:disabled {
+  color: #a8a29e;
+  background: #292524;
+  border-color: rgb(168 162 158 / 30%);
+  cursor: not-allowed;
 }
 
 .gear-upgrade-card {

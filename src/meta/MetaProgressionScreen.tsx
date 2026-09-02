@@ -1,7 +1,10 @@
 import {
+  BANISH_UNLOCK_CATEGORY,
+  DEFAULT_BANISH_COUNT,
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
   DUNGEON_MAX_FLOOR_MAX_RANK,
   getRerollPurchaseCost,
+  MAX_BANISH_COUNT,
   MAX_REROLL_LEVEL,
   SKILL_SLOT_UNLOCK_CATEGORY,
   type MetaProgressionSnapshot,
@@ -101,6 +104,38 @@ function getSkillSlotUpgradeState(
 ): { label: string; disabled: boolean } {
   if (snapshot.unlockedIds.includes(definition.id)) {
     return { label: 'Owned', disabled: true }
+  }
+  if (snapshot.wallet.essenceBalance < definition.cost) {
+    return {
+      label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`,
+      disabled: true,
+    }
+  }
+  return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
+}
+
+function getNextBanishUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+  currentCount: number,
+): MetaUnlockDefinition | null {
+  return definitions.find((definition) =>
+    definition.category === BANISH_UNLOCK_CATEGORY &&
+    definition.payload.banishCount === currentCount + 1,
+  ) ?? null
+}
+
+function getBanishUpgradeState(
+  definition: MetaUnlockDefinition,
+  snapshot: MetaProgressionSnapshot,
+): { label: string; disabled: boolean } {
+  if (snapshot.unlockedIds.includes(definition.id)) {
+    return { label: 'Owned', disabled: true }
+  }
+  if (
+    definition.requiresUnlockId !== null &&
+    !snapshot.unlockedIds.includes(definition.requiresUnlockId)
+  ) {
+    return { label: 'Locked - purchase the previous Banish upgrade first', disabled: true }
   }
   if (snapshot.wallet.essenceBalance < definition.cost) {
     return {
@@ -232,6 +267,13 @@ export function MetaProgressionScreen({
   const rerollCost = getRerollPurchaseCost(snapshot.wallet.rerollLevel)
   const canPurchaseReroll = snapshot.wallet.rerollLevel < MAX_REROLL_LEVEL &&
     snapshot.wallet.essenceBalance >= rerollCost
+  const nextBanishUpgrade = getNextBanishUpgrade(snapshot.definitions, snapshot.banishCount)
+  const nextBanishCount = typeof nextBanishUpgrade?.payload.banishCount === 'number'
+    ? nextBanishUpgrade.payload.banishCount
+    : null
+  const nextBanishUpgradeState = nextBanishUpgrade === null
+    ? null
+    : getBanishUpgradeState(nextBanishUpgrade, snapshot)
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -252,7 +294,6 @@ export function MetaProgressionScreen({
           <div><dt>Essence</dt><dd>{formatCurrency(snapshot.wallet.essenceBalance)}</dd></div>
           <div><dt>Earned</dt><dd>{formatCurrency(snapshot.wallet.essenceEarned)}</dd></div>
           <div><dt>Spent</dt><dd>{formatCurrency(snapshot.wallet.essenceSpent)}</dd></div>
-          <div><dt>Reroll level</dt><dd>{snapshot.wallet.rerollLevel} / {MAX_REROLL_LEVEL}</dd></div>
         </dl>
 
         <section className="meta-shop-unlocks" aria-labelledby="meta-upgrades-title">
@@ -301,6 +342,41 @@ export function MetaProgressionScreen({
                     : `Purchase for ${formatCurrency(rerollCost)} Essence`}
               </button>
             </div>
+            {nextBanishUpgrade && nextBanishUpgradeState && nextBanishCount !== null ? (
+              <div className="dashboard-choice meta-unlock-card" key={nextBanishUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>Banishes</span>
+                  <strong>{snapshot.banishCount} / {MAX_BANISH_COUNT}</strong>
+                </div>
+                <div className="meta-unlock-card-heading">
+                  <strong>Banish skill unlocks</strong>
+                  <span>Rank {nextBanishCount - DEFAULT_BANISH_COUNT} of {MAX_BANISH_COUNT - DEFAULT_BANISH_COUNT}</span>
+                </div>
+                <p className="meta-unlock-description">
+                  Permanently removes a skill unlock from the current run and replaces it with another offer.
+                </p>
+                <div className="meta-unlock-card-benefit">
+                  <strong>+1 Banish per run</strong>
+                  <span>{snapshot.banishCount} → {nextBanishCount} Banishes</span>
+                </div>
+                <span className="meta-unlock-state">{nextBanishUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={nextBanishUpgradeState.disabled || purchaseState === 'purchasing'}
+                  onClick={() => { onPurchaseUnlock(nextBanishUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' &&
+                  activePurchaseUnlockId === nextBanishUpgrade.id
+                    ? 'Purchasing...'
+                    : `Purchase for ${formatCurrency(nextBanishUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : (
+              <p className="persistence-status" role="status">
+                Banishes fully upgraded.
+              </p>
+            )}
             {nextUpgrade && nextUpgradeState && nextUpgradeLevel !== null ? (
               <div className="dashboard-choice meta-unlock-card" key={nextUpgrade.id}>
                 <div className="meta-unlock-card-multiplier">
