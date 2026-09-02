@@ -4,7 +4,7 @@ import type {
   GameState,
   TelegraphState,
 } from '../../state/GameState'
-import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import { getEffectivePlayerMovementSpeed } from '../../stats/DerivedStats'
 import { applyMovementCandidate } from '../behavior/MovementCandidate'
 
 function pointDistanceSquared(
@@ -125,7 +125,7 @@ export function getPlayerDodgeCandidate(
     source: 'dodge',
     directionX,
     directionY,
-    speed: getDerivedPlayerStats(player).movementSpeed,
+    speed: getEffectivePlayerMovementSpeed(player),
     priority: 100,
   }
 }

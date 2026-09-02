@@ -10,7 +10,9 @@ import type {
   GameState,
   PlayerMovementCandidate,
 } from '../../state/GameState'
-import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import {
+  getEffectivePlayerMovementSpeed,
+} from '../../stats/DerivedStats'
 import { getPlayerDodgeCandidate } from '../movement/DodgeSystem'
 import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
@@ -781,7 +783,7 @@ export function getPlayerBehaviorCandidates(
       source: 'free',
       directionX,
       directionY,
-      speed: getDerivedPlayerStats(state.player).movementSpeed,
+      speed: getEffectivePlayerMovementSpeed(state.player),
       priority: 100,
     }]
   }
@@ -789,7 +791,7 @@ export function getPlayerBehaviorCandidates(
   const profileId: BehaviorProfileId =
     controller?.profileId ?? DEFAULT_BEHAVIOR_PROFILE_ID
   const policy = getBehaviorProfilePolicy(profileId)
-  const playerStats = getDerivedPlayerStats(state.player)
+  const movementSpeed = getEffectivePlayerMovementSpeed(state.player)
   const threats = livingThreats(state)
   const threatSpatialIndex = spatialHash ?? createThreatSpatialIndex(threats)
   const threatScores = new Map<ThreatEntity, number>()
@@ -815,7 +817,7 @@ export function getPlayerBehaviorCandidates(
     0,
   )
 
-  const stairs = createStairsCandidate(state, playerStats.movementSpeed)
+  const stairs = createStairsCandidate(state, movementSpeed)
   if (stairs) {
     return [constrainCandidateToArena(state, stairs)]
   }
@@ -831,7 +833,7 @@ export function getPlayerBehaviorCandidates(
   const projectileDodge = createProjectileDodgeCandidate(
     state,
     playerThreats,
-    playerStats.movementSpeed,
+    movementSpeed,
     threatScores,
   )
   if (projectileDodge) {
@@ -863,7 +865,7 @@ export function getPlayerBehaviorCandidates(
     const candidate = createPickupCandidate(
       state,
       pickup,
-      playerStats.movementSpeed,
+      movementSpeed,
       source,
       policy.intentPriorities[source] + pickupValue(state, pickup) -
         pickupDistance(state, pickup) * PICKUP_DISTANCE_COST,
@@ -892,7 +894,7 @@ export function getPlayerBehaviorCandidates(
   const kite = createKiteCandidate(
     state,
     playerThreats,
-    playerStats.movementSpeed,
+    movementSpeed,
     totalThreatScore,
     policy,
     threatScores,
@@ -906,7 +908,7 @@ export function getPlayerBehaviorCandidates(
 
   const banner = createBannerCandidate(
     state,
-    playerStats.movementSpeed,
+    movementSpeed,
     policy.intentPriorities.zone + missingHealthRatio * PICKUP_PRIORITY_BONUS,
   )
   if (banner) {
@@ -922,7 +924,7 @@ export function getPlayerBehaviorCandidates(
   const combatRange = createCombatRangeCandidate(
     state,
     combatTarget,
-    playerStats.movementSpeed,
+    movementSpeed,
   )
   if (combatRange) {
     candidates.push({

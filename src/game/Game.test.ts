@@ -26,6 +26,7 @@ import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
 import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
 import { collectSkillDamage } from './systems/skills/SkillSystem'
+import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/DerivedStats'
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
 
@@ -212,6 +213,41 @@ describe('Game', () => {
     expect(nextFlow.choices.map((choice) => choice.upgradeId)).not.toContain(
       'raise-skeleton-unlock',
     )
+  })
+
+  it('grants recovery protection and a movement boost after selecting a skill', () => {
+    const game = createGame({ seed: 601, startingLevel: 2 })
+    const baseMovementSpeed = getDerivedPlayerStats(game.state.player).movementSpeed
+    const choice = game.getPendingChoiceFlow()
+
+    if (choice?.type !== 'level-up') {
+      return
+    }
+    expect(game.selectUpgrade(choice.choices[0]!)).toBe(true)
+    expect(game.state.player.choiceRecoveryInvulnerabilityRemaining).toBe(0.5)
+    expect(game.state.player.choiceRecoveryMovementSpeedBoostRemaining).toBe(1)
+    expect(getEffectivePlayerMovementSpeed(game.state.player)).toBeCloseTo(
+      baseMovementSpeed * 1.5,
+    )
+
+    game.update(0.25)
+    game.update(0.25)
+    expect(game.state.player.choiceRecoveryInvulnerabilityRemaining).toBe(0)
+    expect(game.state.player.choiceRecoveryMovementSpeedBoostRemaining).toBeCloseTo(0.5)
+  })
+
+  it('grants the same recovery after selecting gear', () => {
+    const game = createGame({ seed: 602 })
+    game.spawnGearPickup({ x: game.state.player.x, y: game.state.player.y })
+    game.update(FIXED_STEP_SECONDS)
+
+    const choice = game.getPendingChoiceFlow()
+    if (choice?.type !== 'gear-pickup') {
+      return
+    }
+    expect(game.selectGearChoice(choice.choices[0]!)).toBe(true)
+    expect(game.state.player.choiceRecoveryInvulnerabilityRemaining).toBe(0.5)
+    expect(game.state.player.choiceRecoveryMovementSpeedBoostRemaining).toBe(1)
   })
 
   it('equips each class with its authored starter weapon', () => {

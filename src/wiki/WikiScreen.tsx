@@ -46,6 +46,7 @@ import {
 import { calculateEssenceReward } from '../meta/EssenceRewards'
 import { ALL_GEAR_SET_DEFINITIONS } from '../game-config/gear-sets'
 import { GEAR_DROP_CHANCE_BALANCE, GEAR_XP_BLESSING_CHANCE, GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
+import { GEAR_RARITY_FLOOR_CHANCE } from '../game/equipment/GearChoices'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { INITIAL_UPGRADES } from '../game-config/skill-upgrades'
 import { SYNERGY_OFFER_CHANCE, SYNERGY_UPGRADES } from '../game-config/synergies'
@@ -76,7 +77,7 @@ const WIKI_SECTIONS: readonly WikiSection[] = [
   { id: 'combat', title: 'Combat and stats', summary: 'Damage, resistance, crits, healing, and core resources.' },
   { id: 'skills', title: 'Skills and evolves', summary: 'Every skill, level scaling, branches, and Resonance.' },
   { id: 'synergies', title: 'Synergies', summary: 'Skill synergy upgrades and their requirements.' },
-  { id: 'gear', title: 'Gear and upgrades', summary: 'Items, rarities, modifiers, sets, and drops.' },
+  { id: 'gear', title: 'Gear and upgrades', summary: 'Items, rarities, modifiers, sets, blessings, and drops.' },
   { id: 'progression', title: 'Progression', summary: 'Experience, essence, and meta progression.' },
   { id: 'floors', title: 'Floors and encounters', summary: 'Dungeon contracts, scaling, threat, and bosses.' },
   { id: 'enemies', title: 'Enemies and elites', summary: 'Enemy stats, abilities, behaviors, and modifiers.' },
@@ -434,12 +435,30 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
               <section className="wiki-card">
                 <h3>Drops</h3>
                 <p>Gear-drop chance uses a floor taper from <strong>{GEAR_DROP_CHANCE_BALANCE.floorTaper.startMultiplier}×</strong> on floor {GEAR_DROP_CHANCE_BALANCE.floorTaper.startFloor} to <strong>{GEAR_DROP_CHANCE_BALANCE.floorTaper.endMultiplier}×</strong> on floor {GEAR_DROP_CHANCE_BALANCE.floorTaper.endFloor}.</p>
-                <p>Once all gear is at least rare, the one-per-dungeon blessing has a <strong>{formatWikiPercentage(GEAR_XP_BLESSING_CHANCE)}</strong> chance and converts gear drops into XP worth <strong>{GEAR_XP_BLESSING_MULTIPLIER}×</strong> mob XP.</p>
+                <p>Gear can also offer one of three special blessings described below.</p>
               </section>
               <section className="wiki-card">
                 <h3>Slots and weapons</h3>
                 <p>{EQUIPMENT_SLOTS.map((slot) => <span className="wiki-tag" key={slot}>{titleCase(slot)}</span>)}</p>
                 <p>{WEAPON_ARCHETYPES.map((archetype) => <span className="wiki-tag" key={archetype}>{titleCase(archetype)}</span>)}</p>
+              </section>
+            </div>
+            <h3 className="wiki-subheading">Gear blessings</h3>
+            <div className="wiki-card-grid">
+              <section className="wiki-card">
+                <h3>Gear Upgrade</h3>
+                <p>Improves one modifier on an equipped item by one tier.</p>
+                <p className="wiki-muted">Can appear when an equipped item has a modifier above Tier 1.</p>
+              </section>
+              <section className="wiki-card">
+                <h3>Gear Fortune</h3>
+                <p>Raises the minimum rarity of all future gear drops to the next rarity.</p>
+                <p className="wiki-muted">Has a <strong>{formatWikiPercentage(GEAR_RARITY_FLOOR_CHANCE)}</strong> chance to appear while your equipped gear is still progressing toward a higher minimum rarity.</p>
+              </section>
+              <section className="wiki-card">
+                <h3>Gear Salvage</h3>
+                <p>Converts all future gear drops into XP worth <strong>{GEAR_XP_BLESSING_MULTIPLIER}×</strong> the defeated mob's XP.</p>
+                <p className="wiki-muted">Once all equipment is Rare or better, it has a <strong>{formatWikiPercentage(GEAR_XP_BLESSING_CHANCE)}</strong> chance to appear and can be claimed once per dungeon.</p>
               </section>
             </div>
             <h3 className="wiki-subheading">Items</h3>

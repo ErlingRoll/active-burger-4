@@ -1879,6 +1879,9 @@ export function applyDamageEvents(
   for (let eventIndex = 0; eventIndex < pendingEvents.length; eventIndex += 1) {
     const event = pendingEvents[eventIndex]!
     if (event.targetId === state.player.id) {
+      if ((state.player.choiceRecoveryInvulnerabilityRemaining ?? 0) > 0) {
+        continue
+      }
       const playerDamageFactor = getIncomingPlayerDamageFactor(state)
       const playerEvent = playerDamageFactor === 1
         ? event

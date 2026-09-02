@@ -164,6 +164,10 @@ import {
   updateEnemyAbilities,
 } from './systems/combat/EnemyAbilitySystem'
 import { updatePlayerBehavior } from './systems/behavior/BehaviorController'
+import {
+  CHOICE_RECOVERY_INVULNERABILITY_SECONDS,
+  CHOICE_RECOVERY_MOVEMENT_SPEED_BOOST_SECONDS,
+} from '../game-config/movement'
 import type { BossDefinitionId } from '../content/bosses/Bosses'
 import {
   DEFAULT_DUNGEON_ID,
@@ -926,6 +930,7 @@ export class Game {
     }
 
     applyUpgrade(this.gameState, upgradeId, skillId, synergyId)
+    this.grantChoiceRecovery()
     if (
       upgradeId !== REMOVE_SKILL_UPGRADE_ID &&
       upgradeId !== REMOVE_SYNERGY_UPGRADE_ID
@@ -972,6 +977,7 @@ export class Game {
     } else {
       this.gameState.player.gearRarityFloor = offered.minimumRarity
     }
+    this.grantChoiceRecovery()
     this.completeActiveChoiceFlow()
     return true
   }
@@ -1194,6 +1200,7 @@ export class Game {
       this.advanceFloorTransition()
       return
     }
+    this.updateChoiceRecoveryEffects()
     updateBossDeathMagnet(this.gameState, FIXED_STEP_SECONDS)
     // Start due boss events before normal spawning so a completed normal floor
     // never produces an ordinary enemy alongside its boss.
@@ -1453,6 +1460,34 @@ export class Game {
       this.random,
       this.synergyRandom,
     )
+  }
+
+  private updateChoiceRecoveryEffects(): void {
+    const player = this.gameState.player
+    if (player.choiceRecoveryInvulnerabilityRemaining !== undefined) {
+      player.choiceRecoveryInvulnerabilityRemaining =
+        this.decrementChoiceRecoveryTimer(
+          player.choiceRecoveryInvulnerabilityRemaining,
+        )
+    }
+    if (player.choiceRecoveryMovementSpeedBoostRemaining !== undefined) {
+      player.choiceRecoveryMovementSpeedBoostRemaining =
+        this.decrementChoiceRecoveryTimer(
+          player.choiceRecoveryMovementSpeedBoostRemaining,
+        )
+    }
+  }
+
+  private decrementChoiceRecoveryTimer(timer: number | undefined): number {
+    const remaining = Math.max(0, (timer ?? 0) - FIXED_STEP_SECONDS)
+    return remaining <= 1e-9 ? 0 : remaining
+  }
+
+  private grantChoiceRecovery(): void {
+    this.gameState.player.choiceRecoveryInvulnerabilityRemaining =
+      CHOICE_RECOVERY_INVULNERABILITY_SECONDS
+    this.gameState.player.choiceRecoveryMovementSpeedBoostRemaining =
+      CHOICE_RECOVERY_MOVEMENT_SPEED_BOOST_SECONDS
   }
 
   private notifyStateChanged(): void {

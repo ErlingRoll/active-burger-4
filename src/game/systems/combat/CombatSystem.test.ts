@@ -175,6 +175,29 @@ describe('hit visual feedback', () => {
   })
 })
 
+describe('post-choice recovery', () => {
+  it('blocks incoming damage while the recovery invulnerability is active', () => {
+    const gameState = state([])
+    gameState.player.choiceRecoveryInvulnerabilityRemaining = 0.5
+
+    applyDamageEvents(gameState, [{
+      sourceId: 2,
+      targetId: gameState.player.id,
+      damage: createDamageValues({ physical: 25 }),
+    }])
+
+    expect(gameState.player.hp).toBe(100)
+
+    gameState.player.choiceRecoveryInvulnerabilityRemaining = 0
+    applyDamageEvents(gameState, [{
+      sourceId: 2,
+      targetId: gameState.player.id,
+      damage: createDamageValues({ physical: 25 }),
+    }])
+    expect(gameState.player.hp).toBe(75)
+  })
+})
+
 describe('collectProjectileDamage', () => {
   it('keeps the stable EntityId consumer tie-break across reversed storage order', () => {
     const damageEvents = collectProjectileDamage(

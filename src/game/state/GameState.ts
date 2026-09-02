@@ -234,6 +234,10 @@ export interface PlayerState {
   xp: number
 
   movementSpeed: number
+  /** Remaining protection after resolving a gear or skill choice. */
+  choiceRecoveryInvulnerabilityRemaining?: number
+  /** Remaining duration of the post-choice movement speed boost. */
+  choiceRecoveryMovementSpeedBoostRemaining?: number
 
   attackDamage: number
   attackSpeed: number

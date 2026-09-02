@@ -43,6 +43,9 @@ import type { PlayerState } from '../state/GameState'
 import {
   DEFAULT_RESONANCE_ATTACKS,
 } from '../../game-config/skills'
+import {
+  CHOICE_RECOVERY_MOVEMENT_SPEED_MULTIPLIER,
+} from '../../game-config/movement'
 
 export interface PlayerStats extends StatValues {
   resonance: number
@@ -389,6 +392,17 @@ export function getDerivedPlayerStats(
     frostStacksOnHit: Math.max(0, gearEffects.frostStacksOnHit),
     experienceGainPercent: Math.max(0, gearEffects.experienceGainPercent),
   }
+}
+
+/** Returns movement speed including the temporary post-choice recovery boost. */
+export function getEffectivePlayerMovementSpeed(
+  player: Readonly<PlayerState>,
+  itemDefinitions: readonly ItemDefinition[] = ALL_ITEM_DEFINITIONS,
+): number {
+  const movementSpeed = getDerivedPlayerStats(player, itemDefinitions).movementSpeed
+  return (player.choiceRecoveryMovementSpeedBoostRemaining ?? 0) > 0
+    ? movementSpeed * CHOICE_RECOVERY_MOVEMENT_SPEED_MULTIPLIER
+    : movementSpeed
 }
 
 /**
