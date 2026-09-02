@@ -1094,13 +1094,16 @@ describe('skill system', () => {
 
       expect(game.state.player.skills[0]?.castCount).toBe(2)
       expect(game.state.effects).toHaveLength(2)
-      expect(game.state.effects.map((effect) => effect.x)).toEqual([0, 116])
+      expect(game.state.effects.map((effect) => effect.x)).toEqual([
+        0,
+        RALLYING_BANNER_EFFECT_RADIUS + 20,
+      ])
 
       firstBanner.remainingLifetime = 1
       updateSkillEffects(game.state, 1)
 
       expect(game.state.effects).toHaveLength(1)
-      expect(game.state.effects[0]?.x).toBe(116)
+      expect(game.state.effects[0]?.x).toBe(RALLYING_BANNER_EFFECT_RADIUS + 20)
     })
 
     it('removes the banner effect when its active duration expires', () => {

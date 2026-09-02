@@ -15,6 +15,7 @@ import type {
   ProjectileState,
 } from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
+import { RALLYING_BANNER_EFFECT_RADIUS } from '../../../game-config/skills'
 
 function createState(
   enemies: EnemyState[] = [],
@@ -448,7 +449,7 @@ describe('data-driven player behavior intents', () => {
       skillId: 'rallying-banner',
       x: 0,
       y: 0,
-      radius: 96,
+      radius: RALLYING_BANNER_EFFECT_RADIUS,
       remainingLifetime: 4,
       lifetime: 6,
       points: [{ x: 0, y: 0 }],

@@ -501,8 +501,11 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
 }
 
 export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
-  if (!upgrade.evolution || !upgrade.skillId) {
+  if (!upgrade.evolution) {
     return upgrade.description
+  }
+  if (!upgrade.skillId) {
+    throw new Error(`Evolution ${upgrade.id} must reference a skill.`)
   }
 
   const levelUpgrade = INITIAL_UPGRADES.find(
@@ -510,7 +513,9 @@ export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
       candidate.skillId === upgrade.skillId && candidate.skillAction === 'level',
   )
   if (!levelUpgrade) {
-    return upgrade.description
+    throw new Error(
+      `Evolution ${upgrade.id} has no level upgrade for skill ${upgrade.skillId}.`,
+    )
   }
 
   const levelEffect = levelUpgrade.valueLabel.replace(/\s+per level$/i, '')
