@@ -1132,7 +1132,7 @@ describe('skill system', () => {
         game.state.player,
         'starcall-wand',
         Rarity.Rare,
-        [],
+        [createGearModifier('starcall-wand', 'cooldown-reduction', 5, 6)],
         undefined,
         'astral',
       )
