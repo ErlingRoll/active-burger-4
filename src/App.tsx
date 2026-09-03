@@ -73,6 +73,15 @@ import {
   type BugReport,
   type BugReportFloorSnapshot,
 } from './bug-report'
+import {
+  createFishingService,
+  FishingScreen,
+  type FishingService,
+} from './fishing'
+import {
+  createInventoryService,
+  type InventoryService,
+} from './inventory'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
   ATTUNEMENT_DESCRIPTION,
@@ -102,6 +111,7 @@ type AppScreen =
   | 'dashboard'
   | 'run-setup'
   | 'meta-progression'
+  | 'fishing'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -113,6 +123,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   dashboard: '/',
   'run-setup': '/prepare',
   'meta-progression': '/store',
+  fishing: '/fishing',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -336,6 +347,38 @@ function App() {
     try {
       return {
         service: createDungeonRunPersistenceService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const inventory = useMemo<{ service: InventoryService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createInventoryService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const fishing = useMemo<{ service: FishingService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createFishingService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         }, () => authenticationService.service?.getClient()),
@@ -1304,6 +1347,10 @@ function App() {
     navigateToScreen('dashboard', true)
   }, [navigateToScreen])
 
+  const openFishing = useCallback((): void => {
+    navigateToScreen('fishing')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1532,6 +1579,7 @@ function App() {
           onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
+          onOpenFishing={openFishing}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1552,6 +1600,7 @@ function App() {
           onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
+          onOpenFishing={openFishing}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1575,6 +1624,7 @@ function App() {
           onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
+          onOpenFishing={openFishing}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1612,6 +1662,7 @@ function App() {
           onNavigateToDashboard={returnToDashboard}
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
+          onOpenFishing={openFishing}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1624,6 +1675,7 @@ function App() {
           runLoadState={runLoadState}
           runLoadError={runLoadError}
           onOpenMetaProgression={openMetaProgression}
+          onOpenFishing={openFishing}
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
@@ -1668,7 +1720,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1700,6 +1752,14 @@ function App() {
           onRefresh={refreshMetaProgression}
           onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
           onPurchaseReroll={() => { void purchaseReroll() }}
+        />
+      ) : null}
+      {screen === 'fishing' && authentication.account ? (
+        <FishingScreen
+          fishingService={fishing.service}
+          inventoryService={inventory.service}
+          configurationError={fishing.configurationError ?? inventory.configurationError}
+          onBack={returnToDashboard}
         />
       ) : null}
       {screen === 'gameplay' ? (
@@ -1744,6 +1804,7 @@ interface AppHeaderProps {
   onNavigateToDashboard: () => void
   onOpenAdmin: () => void
   onOpenNicknameModeration: () => void
+  onOpenFishing: () => void
 }
 
 function AppHeader({
@@ -1754,6 +1815,7 @@ function AppHeader({
   onNavigateToDashboard,
   onOpenAdmin,
   onOpenNicknameModeration,
+  onOpenFishing,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -1773,6 +1835,7 @@ function AppHeader({
       </div>
       <nav className="app-navigation" aria-label="Primary navigation">
         <a className="app-wiki-link" href="/wiki">Wiki</a>
+        <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -1819,6 +1882,7 @@ interface GameDashboardProps {
   runLoadError: string | null
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
+  onOpenFishing: () => void
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
 }
@@ -1833,6 +1897,7 @@ function GameDashboard({
   runLoadError,
   onOpenRunSetup,
   onOpenMetaProgression,
+  onOpenFishing,
   onContinueRun,
   onForfeitRun,
 }: GameDashboardProps) {
@@ -1908,6 +1973,22 @@ function GameDashboard({
               <span>
                 <strong>Essence store</strong>
                 <small>Turn Essence into permanent power.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+              className="game-dashboard-action game-dashboard-action-secondary"
+              type="button"
+              onClick={onOpenFishing}
+              disabled={runLoadState !== 'ready'}
+              title={runLoadState !== 'ready'
+                ? 'Checking the current dungeon run before opening fishing.'
+                : undefined}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">≈</span>
+              <span>
+                <strong>Go fishing</strong>
+                <small>Catch fish for future run meals and recovery.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>

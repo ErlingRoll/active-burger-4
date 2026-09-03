@@ -7407,6 +7407,122 @@
   max-width: 15ch;
 }
 
+.fishing-screen {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    radial-gradient(circle at 80% 10%, rgb(14 116 144 / 22%), transparent 28rem),
+    linear-gradient(145deg, #07111f 0%, #0f1f33 52%, #0b1626 100%);
+}
+
+.fishing-panel {
+  display: grid;
+  gap: 1.25rem;
+  width: min(52rem, 100%);
+  margin: 0 auto;
+}
+
+.fishing-panel > .secondary-action {
+  justify-self: start;
+}
+
+.fishing-panel h3 {
+  margin: 0.35rem 0 0;
+  color: #f8fafc;
+}
+
+.fishing-spot-card,
+.fishing-catch-card,
+.fishing-inventory {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.15rem;
+  background:
+    linear-gradient(135deg, rgb(14 116 144 / 18%), transparent 72%),
+    #0f172a;
+  border: 1px solid rgb(103 232 249 / 28%);
+  border-radius: 0.7rem;
+}
+
+.fishing-spot-card p,
+.fishing-catch-card p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.fishing-spot-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0.25rem 0;
+}
+
+.fishing-spot-card dl div {
+  padding: 0.7rem;
+  background: rgb(30 41 59 / 65%);
+  border-radius: 0.45rem;
+}
+
+.fishing-spot-card dt {
+  color: #67e8f9;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fishing-spot-card dd {
+  margin: 0.25rem 0 0;
+  color: #f8fafc;
+}
+
+.fishing-catch-card {
+  border-color: rgb(251 191 36 / 50%);
+  background:
+    linear-gradient(135deg, rgb(180 83 9 / 24%), transparent 72%),
+    #1c1917;
+}
+
+.fishing-catch-card .screen-kicker {
+  color: #fbbf24;
+}
+
+.fishing-inventory {
+  border-color: rgb(148 163 184 / 25%);
+}
+
+.fishing-inventory-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fishing-inventory-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  color: #e2e8f0;
+  background: rgb(30 41 59 / 55%);
+  border: 1px solid rgb(148 163 184 / 16%);
+  border-radius: 0.4rem;
+}
+
+.fishing-inventory-list small {
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+.fishing-muted {
+  margin: 0;
+  color: #94a3b8;
+}
+
 @media (max-width: 700px) {
   .game-dashboard-hero {
     align-items: stretch;
@@ -7440,5 +7556,13 @@
   .essence-leaderboard-heading {
     align-items: start;
     flex-direction: column;
+  }
+
+  .fishing-spot-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .fishing-inventory-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
