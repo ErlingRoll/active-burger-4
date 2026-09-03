@@ -318,6 +318,11 @@ export function spawnBoss(
   idAllocator: EntityIdAllocator,
   definitionId: BossDefinitionId,
   position: WorldPosition,
+  effects?: {
+    maxHpMultiplier: number
+    damageMultiplier: number
+    speedMultiplier: number
+  },
 ): EntityId {
   const definition = getBossDefinition(definitionId)
   const floor = state.run.floor ?? 1
@@ -331,13 +336,14 @@ export function spawnBoss(
     x: position.x,
     y: position.y,
     radius: definition.radius,
-    hp: definition.maxHp * hpMultiplier,
-    maxHp: definition.maxHp * hpMultiplier,
+    hp: definition.maxHp * hpMultiplier * (effects?.maxHpMultiplier ?? 1),
+    maxHp: definition.maxHp * hpMultiplier * (effects?.maxHpMultiplier ?? 1),
     spawnTime: state.time,
-    speed: definition.speed,
+    speed: definition.speed * (effects?.speedMultiplier ?? 1),
     contactDamage: definition.contactDamage *
       contactDamageMultiplier *
-      damageMultiplier,
+      damageMultiplier *
+      (effects?.damageMultiplier ?? 1),
     xpReward: definition.xpReward,
     targetId: state.player.id,
     // Bosses can be controlled, but should not be permanently locked down.
@@ -429,6 +435,7 @@ export function updateEnemySpawns(
     | 'ordinaryEnemyDamageMultiplier'
     | 'ordinaryEnemySpeedMultiplier'
   >,
+  canDropLoot = true,
 ): void {
   if (
     state.encounter?.normalSpawnsSuspended ||
@@ -447,6 +454,7 @@ export function updateEnemySpawns(
       undefined,
       request.eliteModifiers ?? request.eliteModifier,
       effects,
+      canDropLoot,
     )
   }
 }

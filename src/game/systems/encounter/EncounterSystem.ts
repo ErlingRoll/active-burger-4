@@ -6,6 +6,7 @@ import {
 import type { EntityIdAllocator } from '../../ids'
 import type { GameState } from '../../state/GameState'
 import { spawnBoss } from '../spawning/SpawningSystem'
+import { getAbyssEnemyEffects } from '../../../abyss/AbyssModifiers'
 
 function nextEncounter(
   state: GameState,
@@ -34,6 +35,11 @@ function nextEncounter(
 
 function getEncounterTimeline(state: GameState): readonly EncounterDefinition[] {
   const dungeon = getDungeonDefinition(state.run.dungeonId)
+  if (state.run.modeId === 'infinite-abyss') {
+    return createDungeonEncounterTimeline(
+      Math.max((state.run.floor ?? 1) + 10, 10),
+    )
+  }
   return state.run.dungeonMaxFloor === undefined ||
     state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
     ? dungeon.encounterTimeline
@@ -70,7 +76,7 @@ export function startBossEncounter(
     spawnBoss(state, allocator, bossDefinitionId, {
       x: state.player.x + 320 + index * 90,
       y: state.player.y,
-    }),
+    }, getAbyssEnemyEffects(state.run)),
   )
   state.encounter = {
     status: 'active',

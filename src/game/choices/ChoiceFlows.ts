@@ -4,6 +4,7 @@ import {
   type GearChoice,
 } from '../equipment/GearChoices'
 import type { LevelUpUpgradeChoice } from '../../content/upgrades/Upgrades'
+import type { AbyssModifierChoice } from '../../abyss/AbyssModifiers'
 
 export interface LevelUpChoiceFlow {
   type: 'level-up'
@@ -17,12 +18,27 @@ export interface GearPickupChoiceFlow {
   choices: GearChoice[]
 }
 
-export type PendingChoiceFlow = LevelUpChoiceFlow | GearPickupChoiceFlow
+export interface AbyssModifierChoiceFlow {
+  type: 'abyss-modifier'
+  floor: number
+  choices: readonly AbyssModifierChoice[]
+}
+
+export type PendingChoiceFlow =
+  | LevelUpChoiceFlow
+  | GearPickupChoiceFlow
+  | AbyssModifierChoiceFlow
 
 export function cloneChoiceFlow(
   flow: Readonly<PendingChoiceFlow>,
 ): PendingChoiceFlow {
   if (flow.type === 'level-up') {
+    return {
+      ...flow,
+      choices: flow.choices.map((choice) => ({ ...choice })),
+    }
+  }
+  if (flow.type === 'abyss-modifier') {
     return {
       ...flow,
       choices: flow.choices.map((choice) => ({ ...choice })),

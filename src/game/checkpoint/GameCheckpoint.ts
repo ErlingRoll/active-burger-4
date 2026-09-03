@@ -12,6 +12,7 @@ import {
   isRunModeId,
   isRunPreparationSnapshot,
 } from '../RunModes'
+import { isCharacterBuildSnapshot } from '../../characters/CharacterSnapshots'
 
 /** Current checkpoint format version. Bump on breaking schema changes. */
 export const CHECKPOINT_VERSION = 1
@@ -91,6 +92,8 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
     (record.runConfig.modeId !== undefined && !isRunModeId(record.runConfig.modeId)) ||
     (record.runConfig.preparation !== undefined &&
       !isRunPreparationSnapshot(record.runConfig.preparation)) ||
+    (record.runConfig.champion !== undefined &&
+      !isCharacterBuildSnapshot(record.runConfig.champion)) ||
     !isRecord(record.gameState) ||
     !isRecord(record.spawnDirector) ||
     !Array.isArray(record.choiceFlows) ||

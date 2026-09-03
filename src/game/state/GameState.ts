@@ -36,6 +36,8 @@ import type {
   RunModeId,
   RunPreparationSnapshot,
 } from '../RunModes'
+import type { CharacterBuildSnapshot } from '../../characters/CharacterTypes'
+import type { AbyssModifierId } from '../../abyss/AbyssModifiers'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -143,6 +145,10 @@ export interface RunConfig {
   modeId?: RunModeId
   /** Immutable pre-run item selections and resolved effects. */
   preparation?: RunPreparationSnapshot
+  /** Preserved build used when this run replaces the active character. */
+  champion?: CharacterBuildSnapshot
+  /** Durable Champion identity used when this run enters the Abyss. */
+  championId?: string
   /** Initial behavior policy for this run. */
   behaviorProfileId?: BehaviorProfileId
   /** Whether direct player movement starts enabled; defaults to true. */
@@ -190,6 +196,11 @@ export interface RunState {
   rerollsRemaining?: number
   /** Banishes that have not yet been used during this run. */
   banishesRemaining?: number
+  /** Persistent enemy modifiers selected in an Infinite Abyss attempt. */
+  abyssModifierIds?: AbyssModifierId[]
+  abyssDangerScore?: number
+  abyssScore?: number
+  abyssCompletedFloors?: number
   /** Skill IDs that cannot be offered again during this run. */
   banishedSkillIds?: SkillId[]
   /** Cumulative post-mitigation damage dealt by each skill during this run. */

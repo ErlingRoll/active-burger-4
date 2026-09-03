@@ -7679,6 +7679,96 @@
   gap: 0.6rem;
 }
 
+.abyss-screen {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    radial-gradient(circle at 78% 12%, rgb(127 29 29 / 24%), transparent 28rem),
+    linear-gradient(145deg, #180a0a 0%, #27131b 52%, #111827 100%);
+}
+
+.abyss-panel {
+  display: grid;
+  gap: 1.1rem;
+  width: min(58rem, 100%);
+  margin: 0 auto;
+}
+
+.abyss-panel > .secondary-action {
+  justify-self: start;
+}
+
+.abyss-champion-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.65rem;
+}
+
+.abyss-entry-card {
+  padding: 1rem;
+  color: #fecaca;
+  background: rgb(127 29 29 / 22%);
+  border: 1px solid rgb(248 113 113 / 30%);
+  border-radius: 0.55rem;
+}
+
+.abyss-entry-card strong {
+  color: #fca5a5;
+}
+
+.abyss-entry-card ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.abyss-modifier-overlay .level-up-panel {
+  border-color: rgb(248 113 113 / 40%);
+}
+
+.abyss-modifier-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 5rem;
+  padding: 0.9rem 1rem;
+  color: #fee2e2;
+  text-align: left;
+  background: linear-gradient(110deg, rgb(127 29 29 / 46%), transparent 75%), #1c1917;
+  border: 1px solid rgb(248 113 113 / 40%);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.abyss-modifier-choice:hover,
+.abyss-modifier-choice:focus-visible {
+  background: linear-gradient(110deg, rgb(153 27 27 / 65%), transparent 75%), #292524;
+  border-color: #fca5a5;
+  outline: 3px solid rgb(248 113 113 / 22%);
+  outline-offset: 2px;
+}
+
+.abyss-modifier-choice span {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.abyss-modifier-choice small {
+  color: #fecaca;
+  line-height: 1.4;
+}
+
+.abyss-modifier-choice em {
+  flex: 0 0 auto;
+  color: #fca5a5;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .run-dashboard-meal {
   display: grid;
   gap: 0.8rem;
@@ -7913,5 +8003,10 @@
   .champion-management-layout,
   .champion-details-grid {
     grid-template-columns: 1fr;
+  }
+
+  .abyss-modifier-choice {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

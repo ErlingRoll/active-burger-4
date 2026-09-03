@@ -136,6 +136,15 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
+import type { CharacterBuildSnapshot } from '../characters/CharacterTypes'
+import { isCharacterBuildSnapshot } from '../characters/CharacterSnapshots'
+import {
+  getAbyssEnemyEffects,
+  getAbyssModifierChoices,
+  getAbyssModifierDefinition,
+  type AbyssModifierChoice,
+  type AbyssModifierId,
+} from '../abyss/AbyssModifiers'
 import {
   BASIC_ATTACK_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
@@ -340,8 +349,9 @@ export class Game {
   constructor(config: RunConfig) {
     assertValidContent()
     const runConfig = normalizeRunConfig(config)
-    if (runConfig.modeId !== DEFAULT_RUN_MODE_ID) {
-      throw new Error(`Run mode "${runConfig.modeId}" is not implemented yet.`)
+    if (runConfig.modeId === 'infinite-abyss' &&
+      !isCharacterBuildSnapshot(runConfig.champion)) {
+      throw new Error('Infinite Abyss runs require a valid Champion snapshot.')
     }
     this.runConfig = runConfig
     this.idAllocator = createEntityIdAllocator()
@@ -368,6 +378,7 @@ export class Game {
             baseDungeon.floorDurationSeconds *
             this.worldModifierEffects.floorDurationMultiplier,
         }
+    const isAbyss = runConfig.modeId === 'infinite-abyss'
     const contractMaxFloor = resolveDungeonMaxFloor(
       dungeon,
       runConfig.dungeonMaxFloorContractId,
@@ -377,8 +388,10 @@ export class Game {
       Number.isFinite(runConfig.dungeonMaxFloorBonus)
       ? Math.max(0, Math.floor(runConfig.dungeonMaxFloorBonus))
       : 0
-    const dungeonMaxFloor = contractMaxFloor + dungeonMaxFloorBonus
-    this.dungeon = dungeonMaxFloor === dungeon.defaultMaxFloor
+    const dungeonMaxFloor = isAbyss
+      ? Number.MAX_SAFE_INTEGER
+      : contractMaxFloor + dungeonMaxFloorBonus
+    this.dungeon = isAbyss || dungeonMaxFloor === dungeon.defaultMaxFloor
       ? dungeon
       : {
         ...dungeon,
@@ -403,6 +416,14 @@ export class Game {
         completedEncounterIds: [],
         killCount: 0,
         selectedUpgradeIds: [],
+        ...(isAbyss
+          ? {
+              abyssModifierIds: [],
+              abyssDangerScore: 0,
+              abyssScore: 0,
+              abyssCompletedFloors: 0,
+            }
+          : {}),
         rerollsRemaining: getConfiguredRerollCount(runConfig.rerollCount),
         banishesRemaining: getConfiguredBanishCount(runConfig.banishCount),
         banishedSkillIds: [],
@@ -418,7 +439,7 @@ export class Game {
       player: createInitialPlayerState(
         this.idAllocator.createEntityId(),
         this.worldModifierEffects,
-        runConfig.characterClassId,
+        runConfig.champion?.classId ?? runConfig.characterClassId,
         runConfig.startingLevel,
         runConfig.skillSlotCount,
       ),
@@ -436,6 +457,9 @@ export class Game {
       time: 0,
       tick: 0,
       paused: false,
+    }
+    if (isAbyss) {
+      this.applyChampionBuild(runConfig.champion!)
     }
     const preparationEffects = resolveRunPreparationEffects(
       runConfig.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
@@ -467,6 +491,39 @@ export class Game {
     const startingLevel = this.gameState.player.level
     if (startingLevel > 1) {
       this.enqueueLevelUpFlows(startingLevel - 1)
+    }
+  }
+
+  private applyChampionBuild(build: CharacterBuildSnapshot): void {
+    const player = this.gameState.player
+    player.equipment = JSON.parse(JSON.stringify(build.equipment))
+    if (player.behaviorController) {
+      player.behaviorController.profileId = build.behaviorProfileId
+    }
+    for (const upgradeId of build.selectedUpgradeIds) {
+      applyUpgrade(this.gameState, upgradeId)
+    }
+    const expectedSkills = build.skills.map((skill) => `${skill.skillId}:${skill.level}`)
+    const actualSkills = player.skills.map((skill) => `${skill.skillId}:${skill.level}`)
+    if (expectedSkills.join('|') !== actualSkills.join('|')) {
+      throw new Error('Champion skills are incompatible with the current content definitions.')
+    }
+    this.gameState.run.selectedUpgradeIds = [...build.selectedUpgradeIds]
+  }
+
+  private getEnemySpawnEffects(): {
+    ordinaryEnemyMaxHpMultiplier: number
+    ordinaryEnemyDamageMultiplier: number
+    ordinaryEnemySpeedMultiplier: number
+  } {
+    const abyssEffects = getAbyssEnemyEffects(this.gameState.run)
+    return {
+      ordinaryEnemyMaxHpMultiplier:
+        this.worldModifierEffects.ordinaryEnemyMaxHpMultiplier * abyssEffects.maxHpMultiplier,
+      ordinaryEnemyDamageMultiplier:
+        this.worldModifierEffects.ordinaryEnemyDamageMultiplier * abyssEffects.damageMultiplier,
+      ordinaryEnemySpeedMultiplier:
+        this.worldModifierEffects.ordinaryEnemySpeedMultiplier * abyssEffects.speedMultiplier,
     }
   }
 
@@ -944,7 +1001,11 @@ export class Game {
     return true
   }
 
-  getPendingChoices(): readonly (LevelUpUpgradeChoice | GearChoice)[] {
+  getPendingChoices(): readonly (
+    | LevelUpUpgradeChoice
+    | GearChoice
+    | AbyssModifierChoice
+  )[] {
     return this.pendingChoiceFlows[0]?.choices.map((choice) => ({ ...choice })) ?? []
   }
 
@@ -1060,13 +1121,35 @@ export class Game {
     return this.selectGearChoice(choice)
   }
 
-  selectChoice(choice: LevelUpUpgradeChoice | GearChoice | UpgradeId): boolean {
+  selectChoice(
+    choice: LevelUpUpgradeChoice | GearChoice | AbyssModifierChoice | UpgradeId,
+  ): boolean {
     if (typeof choice === 'string') {
       return this.selectUpgrade(choice)
+    }
+    if ('modifierId' in choice) {
+      return this.selectAbyssModifier(choice.modifierId)
     }
     return choice && 'upgradeId' in choice
       ? this.selectUpgrade(choice)
       : this.selectGearChoice(choice)
+  }
+
+  private selectAbyssModifier(modifierId: AbyssModifierId): boolean {
+    const flow = this.choiceFlows[0]
+    if (flow?.type !== 'abyss-modifier' ||
+      !flow.choices.some((choice) => choice.modifierId === modifierId)) {
+      return false
+    }
+    const definition = getAbyssModifierDefinition(modifierId)
+    this.gameState.run.abyssModifierIds ??= []
+    this.gameState.run.abyssModifierIds.push(modifierId)
+    this.gameState.run.abyssDangerScore =
+      (this.gameState.run.abyssDangerScore ?? 0) + definition.dangerScore
+    this.gameState.run.abyssScore =
+      (this.gameState.run.abyssScore ?? 0) + definition.dangerScore * 10
+    this.completeActiveChoiceFlow()
+    return true
   }
 
   skipChoice(): boolean {
@@ -1152,7 +1235,7 @@ export class Game {
       this.gameState,
       this.idAllocator,
       position,
-      this.worldModifierEffects,
+      this.getEnemySpawnEffects(),
     )
   }
 
@@ -1170,7 +1253,7 @@ export class Game {
       position,
       xpRewardOverride,
       eliteModifiers,
-      this.worldModifierEffects,
+      this.getEnemySpawnEffects(),
       canDropLoot,
     )
   }
@@ -1187,7 +1270,13 @@ export class Game {
       y: this.gameState.player.y,
     },
   ): EntityId {
-    return spawnBoss(this.gameState, this.idAllocator, definitionId, position)
+    return spawnBoss(
+      this.gameState,
+      this.idAllocator,
+      definitionId,
+      position,
+      getAbyssEnemyEffects(this.gameState.run),
+    )
   }
 
   /** Starts a named boss encounter immediately, for development harnesses. */
@@ -1283,7 +1372,8 @@ export class Game {
       this.spawnDirector,
       this.idAllocator,
       FIXED_STEP_SECONDS,
-      this.worldModifierEffects,
+      this.getEnemySpawnEffects(),
+      this.gameState.run.modeId !== 'infinite-abyss',
     )
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
@@ -1342,7 +1432,7 @@ export class Game {
       )
       for (const boss of defeatedBosses) {
         activateBossDeathMagnet(this.gameState)
-        if (boss.xpReward > 0) {
+        if (this.gameState.run.modeId !== 'infinite-abyss' && boss.xpReward > 0) {
           this.spawnXpPickup({ x: boss.x, y: boss.y }, boss.xpReward)
         }
       }
@@ -1367,7 +1457,9 @@ export class Game {
       }
     }
     removeDeadEntities(this.gameState, (position, xpAmount) => {
-      this.spawnXpPickup(position, xpAmount)
+      if (this.gameState.run.modeId !== 'infinite-abyss') {
+        this.spawnXpPickup(position, xpAmount)
+      }
     }, (definitionId, position, xpRewardOverride, canDropLoot) => {
       // Splitter children intentionally use the ordinary spawn path without
       // an elite modifier; only director requests assign elites. They also do
@@ -1380,7 +1472,9 @@ export class Game {
         canDropLoot,
       )
     }, (position, sourceEnemyDefinitionId) => {
-      this.spawnGearPickup(position, sourceEnemyDefinitionId)
+      if (this.gameState.run.modeId !== 'infinite-abyss') {
+        this.spawnGearPickup(position, sourceEnemyDefinitionId)
+      }
     }, this.gearRandom, (position) => {
       spawnHealingPotion(this.gameState, this.idAllocator, position)
     }, this.idAllocator)
@@ -1418,6 +1512,25 @@ export class Game {
     }
     const fromFloor = this.gameState.run.floor ?? stairs.floorNumber
     const toFloor = fromFloor + 1
+    if (this.gameState.run.modeId === 'infinite-abyss' &&
+      !stairs.isFinal &&
+      (this.gameState.run.abyssModifierIds?.length ?? 0) <
+        (this.gameState.run.abyssCompletedFloors ?? 0) + 1) {
+      this.gameState.run.abyssCompletedFloors =
+        (this.gameState.run.abyssCompletedFloors ?? 0) + 1
+      this.gameState.run.abyssScore =
+        (this.gameState.run.abyssScore ?? 0) + 100
+      const choices = getAbyssModifierChoices(this.gameState.run.abyssModifierIds ?? [])
+      if (choices.length > 0) {
+        this.choiceFlows.push({
+          type: 'abyss-modifier',
+          floor: fromFloor,
+          choices,
+        })
+        this.activateChoiceFlow()
+        return
+      }
+    }
     if (!stairs.isFinal) {
       this.gameState.run.floor = toFloor
       this.gameState.run.floorStartedAt = this.gameState.time

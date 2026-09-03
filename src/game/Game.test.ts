@@ -50,7 +50,35 @@ describe('Game', () => {
     expect(() => createGame({
       seed: 2,
       modeId: 'infinite-abyss',
-    })).toThrow('Run mode "infinite-abyss" is not implemented yet.')
+    })).toThrow('Infinite Abyss runs require a valid Champion snapshot.')
+  })
+
+  it('starts an Abyss run from one preserved Champion build with a 10x enemy baseline', () => {
+    const champion = {
+      schemaVersion: 1 as const,
+      classId: 'knight' as const,
+      skills: [
+        { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+        { skillId: 'whirlwind' as const, level: 1 },
+      ],
+      selectedUpgradeIds: [],
+      equipment: {},
+      behaviorProfileId: 'balanced' as const,
+    }
+    const normal = createGame({ seed: 4 })
+    const abyss = createGame({
+      seed: 4,
+      modeId: 'infinite-abyss',
+      champion,
+    })
+    const normalEnemyId = normal.spawnSlime({ x: 100, y: 0 })
+    const abyssEnemyId = abyss.spawnSlime({ x: 100, y: 0 })
+    const normalEnemy = normal.state.enemies.find((enemy) => enemy.id === normalEnemyId)
+    const abyssEnemy = abyss.state.enemies.find((enemy) => enemy.id === abyssEnemyId)
+
+    expect(abyss.state.player.characterClassId).toBe('knight')
+    expect(abyss.state.run.floor).toBe(1)
+    expect(abyssEnemy?.maxHp).toBeCloseTo((normalEnemy?.maxHp ?? 0) * 10)
   })
 
   it('applies resolved fish meal effects to the deterministic player state', () => {

@@ -1,6 +1,8 @@
 import type { CharacterClassId } from '../content/classes/CharacterClasses'
 import type { SkillId } from '../content/skills/Skills'
 import type { EquipmentLoadout } from '../game/equipment/EquipmentState'
+import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
+import type { UpgradeId } from '../content/upgrades/Upgrades'
 
 export const CHARACTER_SCHEMA_VERSION = 1 as const
 
@@ -13,9 +15,9 @@ export interface CharacterBuildSnapshot {
   schemaVersion: typeof CHARACTER_SCHEMA_VERSION
   classId: CharacterClassId
   skills: readonly CharacterBuildSkill[]
-  selectedUpgradeIds: readonly string[]
+  selectedUpgradeIds: readonly UpgradeId[]
   equipment: EquipmentLoadout
-  behaviorProfileId: string
+  behaviorProfileId: BehaviorProfileId
 }
 
 export interface CharacterRecipe {

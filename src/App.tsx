@@ -11,6 +11,7 @@ import {
   isRunPreparationSnapshot,
   isValidCheckpoint,
   type BehaviorProfileId,
+  type RunModeId,
 } from './game'
 import {
   createDexiePersistenceStore,
@@ -22,6 +23,9 @@ import {
   createDungeonRunPersistenceService,
   type ActiveDungeonRun,
 } from './persistence'
+import {
+  AbyssScreen,
+} from './abyss'
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   AuthPanel,
@@ -84,6 +88,7 @@ import {
 import {
   ChampionManagementScreen,
   createCharacterService,
+  type CharacterBuildSnapshot,
   type CharacterService,
 } from './characters'
 import {
@@ -124,6 +129,7 @@ type AppScreen =
   | 'meta-progression'
   | 'fishing'
   | 'champions'
+  | 'abyss'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -137,6 +143,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'meta-progression': '/store',
   fishing: '/fishing',
   champions: '/champions',
+  abyss: '/abyss',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -157,6 +164,9 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   if (normalizedPath === APP_ROUTE_PATHS['nickname-moderation']) {
     return 'nickname-moderation'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS.abyss) {
+    return 'abyss'
   }
   if (normalizedPath === APP_ROUTE_PATHS.wiki) {
     return 'wiki'
@@ -182,6 +192,13 @@ interface RunRewardState {
   status: 'idle' | 'submitting' | 'saved' | 'error' | 'unavailable'
   essenceAwarded: number | null
   error: string | null
+}
+
+interface StartRunOptions {
+  modeId?: RunModeId
+  preparation?: RunPreparationSnapshot
+  champion?: CharacterBuildSnapshot
+  championId?: string
 }
 
 type RunLoadState = 'loading' | 'ready' | 'error' | 'unavailable'
@@ -470,6 +487,9 @@ function App() {
   )
   const [runId, setRunId] = useState(0)
   const [runSeed, setRunSeed] = useState(createRunSeed)
+  const [runMode, setRunMode] = useState<RunModeId>(DEFAULT_RUN_MODE_ID)
+  const [runChampion, setRunChampion] = useState<CharacterBuildSnapshot | null>(null)
+  const [runChampionId, setRunChampionId] = useState<string | null>(null)
   const [activeRunSubmission, setActiveRunSubmission] = useState<MetaRunResultInput | null>(null)
   const [result, setResult] = useState<RunResultSnapshot | null>(null)
   const [runReward, setRunReward] = useState<RunRewardState>({
@@ -725,8 +745,10 @@ function App() {
       settings.selectedDungeonMaxFloorContractId === DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
     return {
       seed: activeRun?.seed ?? runSeed,
-      modeId: DEFAULT_RUN_MODE_ID,
+      modeId: activeRun?.modeId ?? runMode,
       preparation: activeRun?.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
+      champion: runChampion ?? undefined,
+      championId: runChampionId ?? undefined,
       behaviorProfileId: settings.selectedBehaviorProfileId,
       characterClassId: settings.selectedCharacterClassId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
@@ -743,7 +765,7 @@ function App() {
             unlockedDungeonMaxFloorIds,
           }),
     }
-  }, [activeRun, metaProgression.snapshot, profile, runSeed, settings])
+  }, [activeRun, metaProgression.snapshot, profile, runChampion, runChampionId, runMode, runSeed, settings])
 
   const persistSettings = useCallback(
     async (patch: SettingsPatch): Promise<void> => {
@@ -969,6 +991,9 @@ function App() {
       setMetaLoadAttempt(0)
       setMetaLoadedAttempt(0)
       setActiveRun(null)
+      setRunMode(DEFAULT_RUN_MODE_ID)
+      setRunChampion(null)
+      setRunChampionId(null)
       setRunLoadState('ready')
       setResumeCheckpoint(null)
       setTerminalCheckpoint(null)
@@ -1034,7 +1059,7 @@ function App() {
   )
 
   const startRun = useCallback(async (
-    preparation: RunPreparationSnapshot = EMPTY_RUN_PREPARATION_SNAPSHOT,
+    options: StartRunOptions = {},
   ): Promise<void> => {
     const service = dungeonRunPersistence.service
     if (
@@ -1052,16 +1077,29 @@ function App() {
       )
       return
     }
-    setRunStartState('saving')
-    setRunStartError(null)
-    setResult(null)
-    setWriteError(null)
+    const preparation = options.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT
     if (!isRunPreparationSnapshot(preparation)) {
       showToast('The selected run meal is invalid.', 'error')
       return
     }
+    if (options.modeId === 'infinite-abyss' && !options.champion) {
+      showToast('Select an available Champion before entering the Abyss.', 'error')
+      return
+    }
+    setRunStartState('saving')
+    setRunStartError(null)
+    setResult(null)
+    setWriteError(null)
     const seed = createRunSeed()
-    const config: RunConfig = { ...runConfig, seed, preparation }
+    const config: RunConfig = {
+      ...runConfig,
+      seed,
+      modeId: options.modeId ?? runMode,
+      preparation,
+      champion: options.champion ?? runChampion ?? undefined,
+      championId: options.championId ?? runChampionId ?? undefined,
+      characterClassId: options.champion?.classId ?? runConfig.characterClassId,
+    }
     const durableRunId = pendingRunIdRef.current ?? crypto.randomUUID()
     pendingRunIdRef.current = durableRunId
     try {
@@ -1082,6 +1120,9 @@ function App() {
       })
       const createdCheckpoint = parseGameCheckpoint(created.checkpoint.payload)
       pendingRunIdRef.current = null
+      setRunMode(config.modeId ?? DEFAULT_RUN_MODE_ID)
+      setRunChampion(config.champion ?? null)
+      setRunChampionId(config.championId ?? null)
       setRunSeed(seed)
       setActiveRun(created)
       setResumeCheckpoint(null)
@@ -1108,8 +1149,11 @@ function App() {
     authentication.account,
     dungeonRunPersistence.service,
     navigateToScreen,
+    runChampion,
+    runChampionId,
     runConfig,
     runLoadState,
+    runMode,
     showToast,
   ])
 
@@ -1121,6 +1165,9 @@ function App() {
       const checkpoint = parseGameCheckpoint(activeRun.checkpoint.payload)
       setResumeCheckpoint(checkpoint)
       setRunSeed(activeRun.seed)
+      setRunMode(checkpoint.runConfig.modeId ?? DEFAULT_RUN_MODE_ID)
+      setRunChampion(checkpoint.runConfig.champion ?? null)
+      setRunChampionId(checkpoint.runConfig.championId ?? null)
       setActiveRunSubmission({
         runId: activeRun.runId,
         pendingResultId: activeRun.runId,
@@ -1443,6 +1490,10 @@ function App() {
     navigateToScreen('champions')
   }, [navigateToScreen])
 
+  const openAbyss = useCallback((): void => {
+    navigateToScreen('abyss')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1673,6 +1724,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
+          onOpenAbyss={openAbyss}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1695,6 +1747,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
+          onOpenAbyss={openAbyss}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1720,6 +1773,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
+          onOpenAbyss={openAbyss}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1759,6 +1813,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
+          onOpenAbyss={openAbyss}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1773,6 +1828,7 @@ function App() {
           onOpenMetaProgression={openMetaProgression}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
+          onOpenAbyss={openAbyss}
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
@@ -1817,7 +1873,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'abyss') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1834,7 +1890,7 @@ function App() {
           startState={runStartState}
           inventoryService={inventory.service}
           inventoryError={inventory.configurationError}
-          onStart={startRun}
+          onStart={(preparation) => startRun({ preparation })}
           onSelectCharacterClass={selectCharacterClass}
           onToggleWorldModifier={toggleWorldModifier}
           onBack={closeRunSetup}
@@ -1866,6 +1922,18 @@ function App() {
           service={characters.service}
           configurationError={characters.configurationError}
           onBack={returnToDashboard}
+        />
+      ) : null}
+      {screen === 'abyss' && authentication.account ? (
+        <AbyssScreen
+          service={characters.service}
+          configurationError={characters.configurationError}
+          onBack={returnToDashboard}
+          onStart={(champion) => startRun({
+            modeId: 'infinite-abyss',
+            championId: champion.championId,
+            champion: champion.build,
+          })}
         />
       ) : null}
       {screen === 'gameplay' ? (
@@ -1916,6 +1984,7 @@ interface AppHeaderProps {
   onOpenNicknameModeration: () => void
   onOpenFishing: () => void
   onOpenChampions: () => void
+  onOpenAbyss: () => void
 }
 
 function AppHeader({
@@ -1928,6 +1997,7 @@ function AppHeader({
   onOpenNicknameModeration,
   onOpenFishing,
   onOpenChampions,
+  onOpenAbyss,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -1949,6 +2019,7 @@ function AppHeader({
         <a className="app-wiki-link" href="/wiki">Wiki</a>
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
         <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
+        <button className="app-admin-link" type="button" onClick={onOpenAbyss}>Abyss</button>
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -1997,6 +2068,7 @@ interface GameDashboardProps {
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
   onOpenChampions: () => void
+  onOpenAbyss: () => void
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
 }
@@ -2013,6 +2085,7 @@ function GameDashboard({
   onOpenMetaProgression,
   onOpenFishing,
   onOpenChampions,
+  onOpenAbyss,
   onContinueRun,
   onForfeitRun,
 }: GameDashboardProps) {
@@ -2088,6 +2161,22 @@ function GameDashboard({
               <span>
                 <strong>Essence store</strong>
                 <small>Turn Essence into permanent power.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+              className="game-dashboard-action game-dashboard-action-primary"
+              type="button"
+              onClick={onOpenAbyss}
+              disabled={runLoadState !== 'ready'}
+              title={runLoadState !== 'ready'
+                ? 'Checking the current dungeon run before opening the Abyss.'
+                : undefined}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">∞</span>
+              <span>
+                <strong>Enter Infinite Abyss</strong>
+                <small>Push one completed Champion past the normal dungeon.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>

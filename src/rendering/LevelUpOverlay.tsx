@@ -46,7 +46,10 @@ import type {
   GearModifierSnapshot,
   GameUiSnapshot,
 } from '../game/ui/Snapshots'
-import type { PendingChoiceFlow } from '../game/choices/ChoiceFlows'
+import type {
+  GearPickupChoiceFlow,
+  LevelUpChoiceFlow,
+} from '../game/choices/ChoiceFlows'
 import { GearSetFormation } from './GearSetFormation'
 import { tooltipClassName } from './TooltipShell'
 import { ImplicitModifierList } from './ImplicitModifierList'
@@ -62,7 +65,7 @@ import {
 } from '../content/classes/CharacterClasses'
 
 interface LevelUpOverlayProps {
-  flow: Readonly<PendingChoiceFlow>
+  flow: Readonly<LevelUpChoiceFlow | GearPickupChoiceFlow>
   equipment: GameUiSnapshot['equipment']
   gearSets: GameUiSnapshot['gearSets']
   keybinds: GameKeybinds

@@ -21,6 +21,7 @@ import {
   type GameCheckpoint,
   getEligibleSynergyDefinitions,
 } from '../game'
+import type { AbyssModifierChoice } from '../abyss/AbyssModifiers'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
   BEHAVIOR_PROFILE_ORDER,
@@ -68,6 +69,7 @@ import {
   type LevelUpUpgradeChoice,
 } from '../content/upgrades/Upgrades'
 import { LevelUpOverlay } from './LevelUpOverlay'
+import { AbyssModifierOverlay } from '../abyss/AbyssModifierOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
 import { SkillIcon } from './SkillIcon'
@@ -231,7 +233,9 @@ function getChoiceFlowKey(
     return null
   }
   const choices = flow.choices.map((choice) =>
-    'upgradeId' in choice
+    'modifierId' in choice
+      ? `abyss:${choice.modifierId}`
+      : 'upgradeId' in choice
       ? choice.upgradeId
       : choice.type === 'gear'
         ? `${choice.type}:${choice.itemId}:${choice.slot}:${choice.rarity}:${choice.setId ?? ''}:${serializeGearModifiers(choice.modifiers)}`
@@ -241,7 +245,12 @@ function getChoiceFlowKey(
             ? `${choice.type}:${choice.minimumRarity}:${choice.rarity}`
             : choice.type,
   )
-  return `${flow.type}:${'level' in flow ? flow.level : flow.pickupId}:${choices.join(',')}`
+  const flowIdentity = flow.type === 'level-up'
+    ? flow.level
+    : flow.type === 'gear-pickup'
+      ? flow.pickupId
+      : flow.floor
+  return `${flow.type}:${flowIdentity}:${choices.join(',')}`
 }
 
 function getStoredDevelopmentTimeScale(): number | null {
@@ -636,7 +645,9 @@ export function GameCanvas({
     }
   }, [])
 
-  const selectChoice = (choice: LevelUpUpgradeChoice | GearChoice): void => {
+  const selectChoice = (
+    choice: LevelUpUpgradeChoice | GearChoice | AbyssModifierChoice,
+  ): void => {
     gameRef.current?.selectChoice(choice)
   }
 
@@ -792,7 +803,19 @@ export function GameCanvas({
           )}
         </section>
       ) : null}
-      {choiceFlow ? (
+      {choiceFlow?.type === 'abyss-modifier' ? (
+        <AbyssModifierOverlay
+          flow={choiceFlow}
+          onSelect={(modifierId) => {
+            gameRef.current?.selectChoice({
+              modifierId,
+              name: choiceFlow.choices.find((choice) => choice.modifierId === modifierId)?.name ?? '',
+              description: choiceFlow.choices.find((choice) => choice.modifierId === modifierId)?.description ?? '',
+              dangerScore: choiceFlow.choices.find((choice) => choice.modifierId === modifierId)?.dangerScore ?? 0,
+            })
+          }}
+        />
+      ) : choiceFlow ? (
         <LevelUpOverlay
           flow={choiceFlow}
           keybinds={activeKeybinds}
