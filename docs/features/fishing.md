@@ -1,57 +1,149 @@
-I agree to a lot of this. I want fishing to be a seperate activity that grants tradeable meta items.
+# Fishing
 
-Fish will be a consumeable item that players can use to gain various benefits or resources during their run.
-Fish will have low essence value when selling to the in-game shop but players may find them valuable for crafting, trading, or completing specific in-game objectives.
+## Purpose
 
-Fishing can either be auto or manual. Manual has a higher chance of rare loot. Fishing will have a chance to receieve treasure chest (of different rarities depending on fishing rod and bait used).
+Fishing is a separate downtime activity that supplies tradeable fish, bait,
+rods, and occasional loot boxes. It supports dungeon preparation and Champion
+recovery without interrupting the autoplay combat loop.
 
-Different fishing rods will have different rarities and attributes, affecting the chances of catching rare loot and treasure chests.
-Players can acquire fishing rods through in-game activities or trading.
-Fishing rods are rolled once when dropped and cannot be upgraded, but rods can be traded.
-Rods will have the same rule as other gear. Common: 1 modifier, Uncommon: 2 modifiers, Rare: 3 modifiers, Epic: 4 modifiers, Legendary: 5 modifiers
-Rods will have the following modifier pool:
-- Increased fish rarity (T5: +(1-20)%, T4: +(21-40)%, T3: +(41-60)%, T2: +(61-80)%, T1: +(81-100)%). People want the legendary fish!
-- Increased treasure chests: (T5: +(1-20)%, T4: +(21-40)%, T3: +(41-60)%, T2: +(61-80)%, T1: +(81-100)%)
-- Chance to keep bait: (T5: +(1-5)%, T4: +(6-10)%, T3: +(11-15)%, T2: +(16-20)%, T1: +(21-25)%)
-- Faster fishing speed: (T5: +(1-10)%, T4: +(11-20)%, T3: +(21-30)%, T2: +(31-40)%, T1: +(41-50)%)
-- Enchantment chance: (T5: +(1-2)%, T4: +(3-4)%, T3: +(5-6)%, T2: +(7-8)%, T1: +(9-10)%)
+Fishing is not part of the combat simulation. A fishing attempt is resolved
+before the next attempt begins, and its result is added to the player's
+inventory.
 
-Fishing will have the following mechanics:
-- Auto fishing: The game will automatically attempt to catch fish at regular intervals. Lower chance of rare loot.
-- Manual fishing: Players actively participate in the fishing process, increasing the chance of rare loot.
-- Treasure chests: Can be obtained while fishing, with rarity influenced by the fishing rod and bait used.
-- Bait consumption: Bait is consumed with each fishing attempt, but rods may have a chance to keep bait.
-- Fishing speed: Determines how quickly fishing attempts are made, influenced by rod modifiers. Average time should be around 20 seconds but worst case can be close to infinity (However player is guaranteed to eventually catch a fish at a hardcoded 60 seconds).
+## Fishing loop
 
-Fish will have the following attributes:
-- Name: The specific species of the fish.
-- Rarity (Common - Legendary): Determines how rare the fish is, affecting its value and the likelihood of catching it.
-- Size (kg): Influences the amount of resources or rewards obtained from the fish.
-- Enchantments: Any magical or special enhancements that can be applied to the fish, affecting its abilities or interactions within the game.
+1. Choose an unlocked fishing spot, rod, bait, and fishing mode.
+2. Start an attempt.
+3. Wait for a deterministic catch result.
+4. In manual mode, complete the fishing interaction before the timeout.
+5. Receive a fish or an occasional fishing loot box.
 
-The species of fish will determine:
-- appearance and visual characteristics.
-- the consumable effects or benefits it provides when used.
-- any special abilities or interactions it may have within the game.
+Auto fishing always eventually produces a result. Manual fishing has better
+expected fish rarity and size, but it requires the player to remain present.
+Manual fishing must improve the result rather than create a second mandatory
+progression track.
 
-The rarity of the fish will influence:
-- appearance and visual distinctiveness compared to more common fish.
-- the likelihood of being caught, with rarer fish being more difficult to obtain.
-- the potency of its consumable effects or benefits, with rarer fish providing stronger effects.
-- the value when selling to the in-game shop, with rarer fish generally being worth more.
+Initial target timings:
 
-The size of the fish will influence:
-- appearance and visual size compared to other fish.
-- the value when selling to the in-game shop, with larger fish generally being worth more.
-- the duration of the consumable effects or benefits it provides, with larger fish generally offering longer-lasting effects.
+- Normal catch time: 10-30 seconds.
+- Pity timeout: 45-60 seconds.
+- Rod speed modifiers reduce waiting time but do not remove the pity result.
 
-The enchantments of the fish will influence:
-- the abilities or interactions it has within the game, with different enchantments providing unique effects.
-- the value when selling to the in-game shop, with enchanted fish generally being worth more.
-- A fish usually comes with no enchantments. The default chance to get an enchantment is 5%.
+## Bait
 
-Social interactions related to fishing:
-- Trading: Players can trade fish and fishing rods with each other.
-- Sharing: Players can share their fishing achievements or rare catches with friends or the community.
-- Visual interaction: Players can observe each other's fishing activities, such as casting lines and catching fish, enhancing the social experience. They can inspect others playing fishing equipment when hovering them. People can leave and join the fishing pond in real-time.
-- Players can use predetermined actions to interact with each other while fishing, such as waving, cheering, or signaling for help.
+- Basic bait has unlimited use.
+- Basic bait catches only very common, small fish.
+- The shop pays only a small amount of Essence for basic fish. This is an
+  introductory sink, not a replacement for dungeon progression.
+- Better bait comes from dungeon runs, Abyss loot boxes, fishing rewards, and
+  trading.
+- Bait is consumed per attempt unless the equipped rod rolls a bait-retention
+  result.
+
+Better fishing must remain accessible after a player exhausts a Champion. The
+player must be able to earn better bait or recovery fish through normal
+dungeons, not only through a successful Abyss attempt.
+
+## Fishing rods
+
+Rods are unique rolled inventory items. A rod is rolled when it is created and
+cannot be upgraded. Rods can be traded while unbound.
+
+Rarity determines the number of modifiers:
+
+| Rarity | Modifiers |
+| --- | ---: |
+| Common | 1 |
+| Uncommon | 2 |
+| Rare | 3 |
+| Epic | 4 |
+| Legendary | 5 |
+
+The initial modifier pool is:
+
+- Increased fish rarity.
+- Increased loot-box chance.
+- Chance to retain bait.
+- Faster fishing speed.
+- Increased enchantment chance.
+
+Modifier values use the existing tier convention, but final ranges must be
+validated against catch-rate simulations. Rod bonuses must not allow an
+unbounded supply of high-rarity loot.
+
+## Fish data
+
+Each fish instance contains:
+
+- Stable species ID.
+- Rarity from Common through Legendary.
+- Size value and a normalized size percentile.
+- Optional enchantment ID and rolled value.
+- Unique inventory item ID.
+
+Species determines the appearance, base effect, and special interactions.
+Rarity affects catch probability, visual presentation, effect potency, and shop
+value. Size affects visual scale, shop value, and effect potency. Effects should
+use normalized size rather than raw kilograms so different species remain
+balanceable.
+
+Most fish have no enchantment. The initial target enchantment chance is 5%,
+subject to later balance changes. Enchantments are a later expansion and are not
+required for the first fishing implementation.
+
+## Fish uses
+
+### Run meal
+
+Fish are consumed before a dungeon or Abyss run. The player can select up to
+five fish. Their effects are resolved once at run start and remain fixed for
+that run.
+
+The selected fish are removed or reserved atomically with run creation. A
+checkpoint stores the selected fish IDs and resolved effects so reconnecting
+cannot recalculate or consume them twice.
+
+The first implementation should use a small number of effect families and
+prevent five copies of one offensive effect from becoming the universal optimal
+loadout. This can be done with one-slot-per-family rules or diminishing returns.
+
+### Revival fish
+
+Eligible fish, including Revival Koi, can reduce a Champion's Abyss exhaustion.
+Revival use consumes the fish and cannot be combined with run-meal use.
+
+Revival power is based on rarity and normalized size:
+
+```text
+reduction = min(remaining exhaustion, base value * rarity factor * size factor)
+```
+
+The size factor and maximum reduction are content-defined and capped. A
+high-quality fish may clear a full 24-hour timer; common small fish should
+provide only a small reduction or be ineligible.
+
+### Shop and other sinks
+
+Fish have deliberately low shop value. Their primary value comes from run
+effects, Champion recovery, crafting or collection objectives, and trading.
+Shop sales must not become an infinite Essence farm.
+
+## Fishing loot boxes
+
+Fishing can rarely produce a loot box. Rod, bait, and fishing mode influence
+the chance and maximum quality. The global loot-box rules in
+`infinite_abyss.md` apply unless a source-specific table explicitly overrides
+them.
+
+Fishing loot tables initially focus on fish, bait, rods, materials, and
+cosmetics. High-end Abyss artifacts should not accidentally become common
+fishing output.
+
+## Social scope
+
+Trading fish and rods is a later server-backed feature. Sharing catches and
+public collection displays can follow the inventory implementation.
+
+Real-time fishing ponds, player presence, emotes, and inspecting another
+player's equipment are optional future social features. They are not required
+for the first fishing release.
