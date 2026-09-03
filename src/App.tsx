@@ -82,6 +82,10 @@ import {
   type FishingService,
 } from './fishing'
 import {
+  createCharacterService,
+  type CharacterService,
+} from './characters'
+import {
   createInventoryService,
   getInventoryItemDefinition,
   type InventoryItemInstance,
@@ -333,6 +337,22 @@ function App() {
       }
     }
   }, [authenticationService])
+  const characters = useMemo<{ service: CharacterService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createCharacterService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
   const essenceLeaderboard = useMemo(() => {
     try {
       return {
@@ -473,6 +493,10 @@ function App() {
   const [terminalCheckpoint, setTerminalCheckpoint] = useState<GameCheckpoint | null>(null)
   const [terminalSaveState, setTerminalSaveState] = useState<RunWriteState>('idle')
   const [terminalSaveError, setTerminalSaveError] = useState<string | null>(null)
+  const [championSaveState, setChampionSaveState] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
+  const [championSaveError, setChampionSaveError] = useState<string | null>(null)
   const [adminReports, setAdminReports] = useState<{
     loadState: 'idle' | 'loading' | 'ready' | 'error'
     reports: BugReport[]
@@ -486,6 +510,7 @@ function App() {
   }>({ loadState: 'idle', requests: [], error: null })
   const [showHiddenAdminReports, setShowHiddenAdminReports] = useState(false)
   const pendingRunIdRef = useRef<string | null>(null)
+  const pendingChampionIdRef = useRef<string | null>(null)
 
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
     const nextPath = APP_ROUTE_PATHS[nextScreen]
@@ -948,6 +973,9 @@ function App() {
       setRunStartError(null)
       setTerminalSaveState('idle')
       setTerminalSaveError(null)
+      setChampionSaveState('idle')
+      setChampionSaveError(null)
+      pendingChampionIdRef.current = null
       setActiveRunSubmission(null)
       setAdminReports({
         loadState: 'idle',
@@ -1232,6 +1260,45 @@ function App() {
       void saveTerminalRun(activeRunSubmission, terminalCheckpoint)
     }
   }, [activeRunSubmission, saveTerminalRun, terminalCheckpoint])
+
+  const saveChampion = useCallback(async (name: string): Promise<void> => {
+    if (result?.outcome !== 'victory' || !activeRunSubmission) {
+      return
+    }
+    if (!characters.service) {
+      setChampionSaveState('error')
+      setChampionSaveError(characters.configurationError ?? 'Champion storage is unavailable.')
+      return
+    }
+    const trimmedName = name.trim()
+    if (trimmedName.length < 1 || trimmedName.length > 32) {
+      setChampionSaveState('error')
+      setChampionSaveError('Champion names must be between 1 and 32 characters.')
+      return
+    }
+    const championId = pendingChampionIdRef.current ?? crypto.randomUUID()
+    pendingChampionIdRef.current = championId
+    setChampionSaveState('saving')
+    setChampionSaveError(null)
+    try {
+      await characters.service.createChampionFromRun({
+        championId,
+        sourceRunId: activeRunSubmission.runId,
+        name: trimmedName,
+        contentVersion: RUN_GAME_VERSION,
+      })
+      pendingChampionIdRef.current = null
+      setChampionSaveState('saved')
+    } catch (error: unknown) {
+      setChampionSaveState('error')
+      setChampionSaveError(errorMessage(error))
+    }
+  }, [
+    activeRunSubmission,
+    characters.configurationError,
+    characters.service,
+    result,
+  ])
 
   const forfeitActiveRun = useCallback(async (): Promise<void> => {
     const service = dungeonRunPersistence.service
@@ -1803,6 +1870,10 @@ function App() {
           runReward={runReward}
           terminalSaveState={terminalSaveState}
           terminalSaveError={terminalSaveError}
+          championSaveState={championSaveState}
+          championSaveError={championSaveError}
+          championConfigurationError={characters.configurationError}
+          onSaveChampion={saveChampion}
           onReturn={returnToDashboard}
           onRetryTerminalSave={retryTerminalSave}
           onRetryReward={() => {
@@ -2435,6 +2506,10 @@ interface ResultsScreenProps {
   runReward: RunRewardState
   terminalSaveState: RunWriteState
   terminalSaveError: string | null
+  championSaveState: 'idle' | 'saving' | 'saved' | 'error'
+  championSaveError: string | null
+  championConfigurationError: string | null
+  onSaveChampion: (name: string) => Promise<void>
   onReturn: () => void
   onRetryTerminalSave: () => void
   onRetryReward: () => void
@@ -2445,12 +2520,17 @@ function ResultsScreen({
   runReward,
   terminalSaveState,
   terminalSaveError,
+  championSaveState,
+  championSaveError,
+  championConfigurationError,
+  onSaveChampion,
   onReturn,
   onRetryTerminalSave,
   onRetryReward,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
   const essenceReceipt = createEssenceReceipt(result)
+  const [championName, setChampionName] = useState('My Champion')
   return (
     <section
       className={`results-screen${victory ? ' victory-screen' : ''}`}
@@ -2582,6 +2662,43 @@ function ResultsScreen({
             </div>
           </dl>
         </section>
+        {victory ? (
+          <section className="champion-save-panel" aria-labelledby="champion-save-title">
+            <div>
+              <p className="screen-kicker">Preserve the build</p>
+              <h3 id="champion-save-title">Save as Champion</h3>
+            </div>
+            <p>
+              Save this completed build for a future Infinite Abyss attempt.
+              Runtime HP, cooldowns, and positions are not copied.
+            </p>
+            <label htmlFor="champion-name">Champion name</label>
+            <input
+              id="champion-name"
+              value={championName}
+              maxLength={32}
+              onChange={(event) => setChampionName(event.target.value)}
+              disabled={championSaveState === 'saving' || championSaveState === 'saved'}
+            />
+            {championSaveError || championConfigurationError ? (
+              <p className="persistence-error" role="alert">
+                {championSaveError ?? championConfigurationError}
+              </p>
+            ) : null}
+            {championSaveState === 'saved' ? (
+              <p className="persistence-status" role="status">Champion saved.</p>
+            ) : (
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => { void onSaveChampion(championName) }}
+                disabled={terminalSaveState !== 'saved' || championSaveState === 'saving'}
+              >
+                {championSaveState === 'saving' ? 'Saving Champion…' : 'Save Champion'}
+              </button>
+            )}
+          </section>
+        ) : null}
         {terminalSaveState === 'saving' ? (
           <p className="persistence-status" role="status">
             Saving the completed dungeon run…
