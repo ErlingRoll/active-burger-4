@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { RunResultSnapshot, RunConfig, GameCheckpoint } from './game'
 import {
@@ -8,6 +8,7 @@ import {
   EMPTY_RUN_PREPARATION_SNAPSHOT,
   createGameFromCheckpoint,
   createInitialGameCheckpoint,
+  isRunPreparationSnapshot,
   isValidCheckpoint,
   type BehaviorProfileId,
 } from './game'
@@ -75,13 +76,18 @@ import {
 } from './bug-report'
 import {
   createFishingService,
+  getFishMealLabel,
+  resolveFishMeal,
   FishingScreen,
   type FishingService,
 } from './fishing'
 import {
   createInventoryService,
+  getInventoryItemDefinition,
+  type InventoryItemInstance,
   type InventoryService,
 } from './inventory'
+import type { RunPreparationSnapshot } from './game'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
   ATTUNEMENT_DESCRIPTION,
@@ -479,6 +485,7 @@ function App() {
     error: string | null
   }>({ loadState: 'idle', requests: [], error: null })
   const [showHiddenAdminReports, setShowHiddenAdminReports] = useState(false)
+  const pendingRunIdRef = useRef<string | null>(null)
 
   const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
     const nextPath = APP_ROUTE_PATHS[nextScreen]
@@ -689,9 +696,9 @@ function App() {
     const selectedContractIsDefault =
       settings.selectedDungeonMaxFloorContractId === DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
     return {
-      seed: runSeed,
+      seed: activeRun?.seed ?? runSeed,
       modeId: DEFAULT_RUN_MODE_ID,
-      preparation: EMPTY_RUN_PREPARATION_SNAPSHOT,
+      preparation: activeRun?.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
       behaviorProfileId: settings.selectedBehaviorProfileId,
       characterClassId: settings.selectedCharacterClassId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
@@ -708,7 +715,7 @@ function App() {
             unlockedDungeonMaxFloorIds,
           }),
     }
-  }, [metaProgression.snapshot, profile, runSeed, settings])
+  }, [activeRun, metaProgression.snapshot, profile, runSeed, settings])
 
   const persistSettings = useCallback(
     async (patch: SettingsPatch): Promise<void> => {
@@ -926,6 +933,7 @@ function App() {
     try {
       await service.signOut()
       setAuthentication({ status: 'ready', account: null, error: null })
+      pendingRunIdRef.current = null
       setMetaProgression(createInitialMetaProgressionState(
         metaProgressionService.service,
         metaProgressionService.configurationError,
@@ -994,7 +1002,9 @@ function App() {
     [persistSettings, settings],
   )
 
-  const startRun = useCallback(async (): Promise<void> => {
+  const startRun = useCallback(async (
+    preparation: RunPreparationSnapshot = EMPTY_RUN_PREPARATION_SNAPSHOT,
+  ): Promise<void> => {
     const service = dungeonRunPersistence.service
     if (
       !authentication.account ||
@@ -1015,12 +1025,18 @@ function App() {
     setRunStartError(null)
     setResult(null)
     setWriteError(null)
+    if (!isRunPreparationSnapshot(preparation)) {
+      showToast('The selected run meal is invalid.', 'error')
+      return
+    }
     const seed = createRunSeed()
-    const config: RunConfig = { ...runConfig, seed }
+    const config: RunConfig = { ...runConfig, seed, preparation }
+    const durableRunId = pendingRunIdRef.current ?? crypto.randomUUID()
+    pendingRunIdRef.current = durableRunId
     try {
       const checkpoint = createInitialGameCheckpoint(config)
       const created = await service.createRun({
-        runId: crypto.randomUUID(),
+        runId: durableRunId,
         seed,
         contractId: config.dungeonMaxFloorContractId ?? DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
         worldModifierIds: config.worldModifierIds ?? [],
@@ -1033,6 +1049,8 @@ function App() {
         preparation: config.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
         checkpoint,
       })
+      const createdCheckpoint = parseGameCheckpoint(created.checkpoint.payload)
+      pendingRunIdRef.current = null
       setRunSeed(seed)
       setActiveRun(created)
       setResumeCheckpoint(null)
@@ -1041,10 +1059,10 @@ function App() {
         runId: created.runId,
         pendingResultId: created.runId,
         completedAt: '',
-        level: checkpoint.gameState.player.level,
-        killCount: checkpoint.gameState.run.killCount,
+        level: createdCheckpoint.gameState.player.level,
+        killCount: createdCheckpoint.gameState.run.killCount,
         outcome: 'defeat',
-        worldModifierIds: checkpoint.gameState.run.worldModifierIds ?? [],
+        worldModifierIds: createdCheckpoint.gameState.run.worldModifierIds ?? [],
       })
       setRunReward({ status: 'idle', essenceAwarded: null, error: null })
       setRunStartState('saved')
@@ -1735,6 +1753,8 @@ function App() {
           settings={settings}
           writeError={writeError ?? runStartError}
           startState={runStartState}
+          inventoryService={inventory.service}
+          inventoryError={inventory.configurationError}
           onStart={startRun}
           onSelectCharacterClass={selectCharacterClass}
           onToggleWorldModifier={toggleWorldModifier}
@@ -2086,7 +2106,9 @@ interface RunSetupScreenProps {
   settings: SettingsDto
   writeError: string | null
   startState: RunWriteState
-  onStart: () => Promise<void>
+  inventoryService: InventoryService | null
+  inventoryError: string | null
+  onStart: (preparation: RunPreparationSnapshot) => Promise<void>
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onBack: () => void
@@ -2096,11 +2118,49 @@ function RunSetupScreen({
   settings,
   writeError,
   startState,
+  inventoryService,
+  inventoryError,
   onStart,
   onSelectCharacterClass,
   onToggleWorldModifier,
   onBack,
 }: RunSetupScreenProps) {
+  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>([])
+  const [fishLoadState, setFishLoadState] = useState<'loading' | 'ready' | 'error'>(
+    () => inventoryService ? 'loading' : 'error',
+  )
+  const [fishLoadError, setFishLoadError] = useState<string | null>(
+    () => inventoryService ? inventoryError : inventoryError ?? 'Inventory is unavailable.',
+  )
+  const [selectedFishIds, setSelectedFishIds] = useState<string[]>([])
+  useEffect(() => {
+    if (!inventoryService) {
+      return
+    }
+    let cancelled = false
+    void inventoryService.loadInventory('fish')
+      .then((loadedItems) => {
+        if (!cancelled) {
+          setFishItems(loadedItems)
+          setFishLoadState('ready')
+          setFishLoadError(null)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setFishLoadState('error')
+          setFishLoadError(errorMessage(error))
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [inventoryService])
+  const selectedFish = useMemo(
+    () => fishItems.filter((item) => selectedFishIds.includes(item.itemInstanceId)),
+    [fishItems, selectedFishIds],
+  )
+  const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
   const worldModifierEffects = resolveWorldModifierEffects(
     settings.selectedWorldModifierIds,
     SPAWN_BALANCE,
@@ -2131,7 +2191,7 @@ function RunSetupScreen({
           <button
             className="primary-action run-dashboard-start"
             type="button"
-            onClick={() => { void onStart() }}
+            onClick={() => { void onStart(fishMeal.preparation) }}
             disabled={startState === 'saving'}
           >
             <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
@@ -2139,6 +2199,57 @@ function RunSetupScreen({
           </button>
         </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
+        <section className="run-dashboard-meal" aria-labelledby="fish-meal-title">
+          <div className="run-dashboard-section-heading">
+            <p className="screen-kicker">Pre-run meal</p>
+            <h3 id="fish-meal-title">Choose up to five fish</h3>
+          </div>
+          <p className="fish-meal-summary">
+            {getFishMealLabel(fishMeal.movementSpeedPercent)} · {selectedFish.length}/{5} selected
+          </p>
+          {fishLoadState === 'loading' ? (
+            <p className="fish-meal-muted">Loading fish inventory…</p>
+          ) : fishLoadState === 'error' ? (
+            <p className="persistence-error" role="alert">
+              {fishLoadError ?? 'Fish inventory is unavailable. You can still start without a meal.'}
+            </p>
+          ) : fishItems.length === 0 ? (
+            <p className="fish-meal-muted">No fish available. Visit Fishing to catch some.</p>
+          ) : (
+            <div className="fish-meal-list">
+              {fishItems.map((fish) => {
+                const selected = selectedFishIds.includes(fish.itemInstanceId)
+                return (
+                  <button
+                    className={`fish-meal-item${selected ? ' selected' : ''}`}
+                    type="button"
+                    aria-pressed={selected}
+                    key={fish.itemInstanceId}
+                    onClick={() => {
+                      setSelectedFishIds((current) => selected
+                        ? current.filter((id) => id !== fish.itemInstanceId)
+                        : current.length < 5
+                          ? [...current, fish.itemInstanceId]
+                          : current)
+                    }}
+                  >
+                    <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
+                    <span>
+                      {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} ·{' '}
+                      size {typeof fish.metadata.sizePercentile === 'number'
+                        ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
+                        : 'unknown'}
+                    </span>
+                    <small>{selected ? 'Selected' : 'Select fish'}</small>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <p className="fish-meal-footnote">
+            Selected fish are consumed when the run starts and cannot be used for recovery.
+          </p>
+        </section>
         <div className="run-dashboard-section-heading">
           <p className="screen-kicker">Choose your fighter</p>
           <h3>Select your character</h3>

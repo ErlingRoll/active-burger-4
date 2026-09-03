@@ -16,6 +16,11 @@ export interface RunPreparationSnapshot {
   items: readonly RunPreparationItemSnapshot[]
 }
 
+export interface RunPreparationEffects {
+  movementSpeedPercent: number
+  increasedHealingPercent: number
+}
+
 export const EMPTY_RUN_PREPARATION_SNAPSHOT: RunPreparationSnapshot = {
   version: RUN_PREPARATION_SCHEMA_VERSION,
   items: [],
@@ -60,4 +65,32 @@ export function isRunPreparationSnapshot(
         itemRecord.resolvedEffect !== null &&
         !Array.isArray(itemRecord.resolvedEffect))
   })
+}
+
+export function resolveRunPreparationEffects(
+  preparation: RunPreparationSnapshot,
+): RunPreparationEffects {
+  const effects: RunPreparationEffects = {
+    movementSpeedPercent: 0,
+    increasedHealingPercent: 0,
+  }
+  for (const item of preparation.items) {
+    const effect = item.resolvedEffect
+    if (!effect) {
+      continue
+    }
+    if (effect.type === 'fish-meal' &&
+      effect.family === 'movement-speed' &&
+      typeof effect.movementSpeedPercent === 'number' &&
+      Number.isFinite(effect.movementSpeedPercent)) {
+      effects.movementSpeedPercent += Math.max(0, effect.movementSpeedPercent)
+    }
+    if (effect.type === 'fish-meal' &&
+      effect.family === 'increased-healing' &&
+      typeof effect.increasedHealingPercent === 'number' &&
+      Number.isFinite(effect.increasedHealingPercent)) {
+      effects.increasedHealingPercent += Math.max(0, effect.increasedHealingPercent)
+    }
+  }
+  return effects
 }

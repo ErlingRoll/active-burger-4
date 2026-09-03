@@ -189,6 +189,7 @@ import {
   DEFAULT_RUN_MODE_ID,
   EMPTY_RUN_PREPARATION_SNAPSHOT,
   isRunModeId,
+  resolveRunPreparationEffects,
 } from './RunModes'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
@@ -435,6 +436,23 @@ export class Game {
       time: 0,
       tick: 0,
       paused: false,
+    }
+    const preparationEffects = resolveRunPreparationEffects(
+      runConfig.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
+    )
+    if (preparationEffects.movementSpeedPercent > 0) {
+      this.gameState.player.statModifiers = [
+        ...(this.gameState.player.statModifiers ?? []),
+        {
+          stat: 'movementSpeed',
+          operation: 'multiply',
+          value: 1 + preparationEffects.movementSpeedPercent / 100,
+          sourceId: 'run-preparation:fish-meal',
+        },
+      ]
+    }
+    if (preparationEffects.increasedHealingPercent > 0) {
+      this.gameState.player.increasedHealing = preparationEffects.increasedHealingPercent
     }
     refreshPlayerDerivedStats(this.gameState.player)
     this.gameState.player.hp = this.gameState.player.maxHp

@@ -53,6 +53,29 @@ describe('Game', () => {
     })).toThrow('Run mode "infinite-abyss" is not implemented yet.')
   })
 
+  it('applies resolved fish meal effects to the deterministic player state', () => {
+    const game = createGame({
+      seed: 3,
+      preparation: {
+        version: 1,
+        items: [{
+          itemInstanceId: 'fish-1',
+          definitionId: 'river-minnow',
+          quantity: 1,
+          resolvedEffect: {
+            type: 'fish-meal',
+            family: 'movement-speed',
+            movementSpeedPercent: 4,
+          },
+        }],
+      },
+    })
+
+    expect(game.state.player.movementSpeed).toBeCloseTo(
+      game.state.player.baseStats!.movementSpeed * 1.04,
+    )
+  })
+
   it('applies the purchased XP multiplier to collected XP', () => {
     const game = createGame({ seed: 106, xpMultiplierLevel: 2 })
     game.spawnXpPickup({ x: 0, y: 0 }, 10)

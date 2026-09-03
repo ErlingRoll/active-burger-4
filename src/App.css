@@ -7407,6 +7407,78 @@
   max-width: 15ch;
 }
 
+.run-dashboard-meal {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1.75rem 0 2rem;
+  padding: 1rem;
+  background:
+    linear-gradient(135deg, rgb(14 116 144 / 18%), transparent 72%),
+    rgb(15 23 42 / 72%);
+  border: 1px solid rgb(103 232 249 / 26%);
+  border-radius: 0.7rem;
+}
+
+.run-dashboard-meal .run-dashboard-section-heading {
+  margin-bottom: 0;
+}
+
+.fish-meal-summary,
+.fish-meal-footnote,
+.fish-meal-muted {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.fish-meal-summary {
+  color: #67e8f9;
+  font-weight: 700;
+}
+
+.fish-meal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.65rem;
+}
+
+.fish-meal-item {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 5.75rem;
+  padding: 0.75rem;
+  color: #e2e8f0;
+  text-align: left;
+  background: rgb(30 41 59 / 78%);
+  border: 1px solid rgb(148 163 184 / 22%);
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.fish-meal-item:hover,
+.fish-meal-item:focus-visible {
+  border-color: #67e8f9;
+  outline: 3px solid rgb(103 232 249 / 20%);
+  outline-offset: 2px;
+}
+
+.fish-meal-item.selected {
+  color: #ecfeff;
+  background: rgb(14 116 144 / 38%);
+  border-color: #22d3ee;
+}
+
+.fish-meal-item span,
+.fish-meal-item small {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.fish-meal-item.selected small {
+  color: #67e8f9;
+  font-weight: 800;
+}
+
 .fishing-screen {
   min-height: 0;
   overflow: auto;
