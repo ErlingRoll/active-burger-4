@@ -209,6 +209,24 @@ export function createCharacterService(
       return mapChampion(response.data[0])
     },
 
+    async renameChampion(championId: string, name: string): Promise<ChampionSnapshot> {
+      if (!isNonEmptyString(championId) ||
+        !isNonEmptyString(name) ||
+        name.trim().length > 32) {
+        throw new Error('Champion name input is invalid.')
+      }
+      const response = await getClient().rpc('rename_champion', {
+        p_champion_id: championId,
+        p_name: name.trim(),
+      })
+      if (response.error) throw response.error
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isChampionRow(response.data[0])) {
+        throw invalidResponse('renamed Champion')
+      }
+      return mapChampion(response.data[0])
+    },
+
     async archiveCharacter(characterId: string): Promise<void> {
       if (!isNonEmptyString(characterId)) throw new Error('Character ID must be non-empty.')
       const response = await getClient().rpc('archive_character', { p_character_id: characterId })

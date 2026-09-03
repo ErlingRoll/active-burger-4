@@ -12,8 +12,9 @@ selected Champion replaces the active character for an Abyss attempt.
 
 ## Creation
 
-After a successful dungeon completion, the player may save the resulting build
-as a Champion. The Champion stores a build recipe and a revision snapshot,
+The only way to create a Champion is by completing a dungeon successfully. After
+victory, the player may save the resulting build as a Champion. The Champion
+stores a build recipe and a revision snapshot,
 including:
 
 - Stable class ID.
@@ -28,6 +29,18 @@ including:
 It does not store transient runtime state such as current HP, positions,
 cooldowns, active effects, RNG cursors, or enemy entities. A fresh runtime
 state is created when the Champion enters a run.
+
+## Player actions after creation
+
+Champions are immutable build snapshots. Players may only:
+
+- View a Champion and its preserved build details.
+- Rename a Champion.
+- Delete or archive a Champion.
+
+Players cannot edit the class, skills, upgrades, equipment, behavior, or
+content version of an existing Champion. A different build must be created by
+completing another dungeon run.
 
 The source build and the Champion snapshot are independent. Editing or deleting
 a saved character must never mutate an active run or an existing Champion.

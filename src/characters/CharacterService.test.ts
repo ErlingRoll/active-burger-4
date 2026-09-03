@@ -70,4 +70,25 @@ describe('CharacterService', () => {
     })).rejects.toThrow(/input is invalid/)
     expect(client.rpc).not.toHaveBeenCalled()
   })
+
+  it('renames a Champion without accepting a new build', async () => {
+    const client = fakeClient([{
+      id: 'champion-1',
+      name: 'Renamed Champion',
+      source_run_id: 'run-1',
+      content_version: 'test',
+      build,
+      exhaustion_until: null,
+      archived: false,
+      created_at: '2026-09-04T00:00:00.000Z',
+    }])
+    const service = createService(client)
+
+    await expect(service.renameChampion('champion-1', 'Renamed Champion'))
+      .resolves.toMatchObject({ championId: 'champion-1', name: 'Renamed Champion' })
+    expect(client.rpc).toHaveBeenCalledWith('rename_champion', {
+      p_champion_id: 'champion-1',
+      p_name: 'Renamed Champion',
+    })
+  })
 })

@@ -71,6 +71,7 @@ export interface CharacterService {
   }>
   saveCharacter(input: SaveCharacterInput): Promise<CharacterRevision>
   createChampionFromRun(input: CreateChampionInput): Promise<ChampionSnapshot>
+  renameChampion(championId: string, name: string): Promise<ChampionSnapshot>
   archiveCharacter(characterId: string): Promise<void>
   archiveChampion(championId: string): Promise<void>
 }
