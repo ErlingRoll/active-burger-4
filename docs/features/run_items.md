@@ -1,0 +1,1 @@
+A player can bring various run items into a dungeon run or an infinite abyss run to aid them in their journey. These items can provide various benefits, such as enhancing combat abilities, offering utility effects, or granting temporary buffs. The choice of run items can significantly impact the player's strategy and success in the run.
