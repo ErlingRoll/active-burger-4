@@ -82,6 +82,7 @@ import {
   type FishingService,
 } from './fishing'
 import {
+  ChampionManagementScreen,
   createCharacterService,
   type CharacterService,
 } from './characters'
@@ -122,6 +123,7 @@ type AppScreen =
   | 'run-setup'
   | 'meta-progression'
   | 'fishing'
+  | 'champions'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -134,6 +136,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'run-setup': '/prepare',
   'meta-progression': '/store',
   fishing: '/fishing',
+  champions: '/champions',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -1436,6 +1439,10 @@ function App() {
     navigateToScreen('fishing')
   }, [navigateToScreen])
 
+  const openChampions = useCallback((): void => {
+    navigateToScreen('champions')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1665,6 +1672,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenChampions={openChampions}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1686,6 +1694,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenChampions={openChampions}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1710,6 +1719,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenChampions={openChampions}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1748,6 +1758,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenChampions={openChampions}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1761,6 +1772,7 @@ function App() {
           runLoadError={runLoadError}
           onOpenMetaProgression={openMetaProgression}
           onOpenFishing={openFishing}
+          onOpenChampions={openChampions}
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
@@ -1805,7 +1817,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1846,6 +1858,13 @@ function App() {
           fishingService={fishing.service}
           inventoryService={inventory.service}
           configurationError={fishing.configurationError ?? inventory.configurationError}
+          onBack={returnToDashboard}
+        />
+      ) : null}
+      {screen === 'champions' && authentication.account ? (
+        <ChampionManagementScreen
+          service={characters.service}
+          configurationError={characters.configurationError}
           onBack={returnToDashboard}
         />
       ) : null}
@@ -1896,6 +1915,7 @@ interface AppHeaderProps {
   onOpenAdmin: () => void
   onOpenNicknameModeration: () => void
   onOpenFishing: () => void
+  onOpenChampions: () => void
 }
 
 function AppHeader({
@@ -1907,6 +1927,7 @@ function AppHeader({
   onOpenAdmin,
   onOpenNicknameModeration,
   onOpenFishing,
+  onOpenChampions,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -1927,6 +1948,7 @@ function AppHeader({
       <nav className="app-navigation" aria-label="Primary navigation">
         <a className="app-wiki-link" href="/wiki">Wiki</a>
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
+        <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -1974,6 +1996,7 @@ interface GameDashboardProps {
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
+  onOpenChampions: () => void
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
 }
@@ -1989,6 +2012,7 @@ function GameDashboard({
   onOpenRunSetup,
   onOpenMetaProgression,
   onOpenFishing,
+  onOpenChampions,
   onContinueRun,
   onForfeitRun,
 }: GameDashboardProps) {
@@ -2064,6 +2088,22 @@ function GameDashboard({
               <span>
                 <strong>Essence store</strong>
                 <small>Turn Essence into permanent power.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+              className="game-dashboard-action game-dashboard-action-secondary"
+              type="button"
+              onClick={onOpenChampions}
+              disabled={runLoadState !== 'ready'}
+              title={runLoadState !== 'ready'
+                ? 'Checking the current dungeon run before opening Champions.'
+                : undefined}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">◆</span>
+              <span>
+                <strong>Champions</strong>
+                <small>View completed builds for future Abyss attempts.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
