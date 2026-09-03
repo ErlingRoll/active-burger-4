@@ -39,6 +39,18 @@ describe('Game', () => {
     expect(game.state.tick).toBe(0)
     expect(game.state.time).toBe(0)
     expect(game.state.run.seed).toBe(1)
+    expect(game.state.run.modeId).toBe('dungeon')
+    expect(game.createCheckpoint().runConfig.preparation).toEqual({
+      version: 1,
+      items: [],
+    })
+  })
+
+  it('does not silently run an unsupported mode as a normal dungeon', () => {
+    expect(() => createGame({
+      seed: 2,
+      modeId: 'infinite-abyss',
+    })).toThrow('Run mode "infinite-abyss" is not implemented yet.')
   })
 
   it('applies the purchased XP multiplier to collected XP', () => {

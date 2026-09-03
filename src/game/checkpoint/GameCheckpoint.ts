@@ -8,6 +8,10 @@ import type { GameState, GearPickupState } from '../state/GameState'
 import type { PendingChoiceFlow } from '../choices/ChoiceFlows'
 import type { RunPhase } from '../state/RunPhase'
 import type { RunConfig } from '../state/GameState'
+import {
+  isRunModeId,
+  isRunPreparationSnapshot,
+} from '../RunModes'
 
 /** Current checkpoint format version. Bump on breaking schema changes. */
 export const CHECKPOINT_VERSION = 1
@@ -84,6 +88,9 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
       (typeof record.resumePhase !== 'string' || !RUN_PHASES.has(record.resumePhase))) ||
     !isRecord(record.runConfig) ||
     !isFiniteNumberValue(record.runConfig.seed) ||
+    (record.runConfig.modeId !== undefined && !isRunModeId(record.runConfig.modeId)) ||
+    (record.runConfig.preparation !== undefined &&
+      !isRunPreparationSnapshot(record.runConfig.preparation)) ||
     !isRecord(record.gameState) ||
     !isRecord(record.spawnDirector) ||
     !Array.isArray(record.choiceFlows) ||
@@ -98,6 +105,7 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
   return isRecord(run) &&
     typeof run.phase === 'string' &&
     RUN_PHASES.has(run.phase) &&
+    (run.modeId === undefined || isRunModeId(run.modeId)) &&
     isRecord(player) &&
     Array.isArray(gameState.enemies) &&
     Array.isArray(gameState.projectiles) &&

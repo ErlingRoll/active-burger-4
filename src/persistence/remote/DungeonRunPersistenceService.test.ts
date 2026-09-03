@@ -7,6 +7,8 @@ import {
 const activeRow = {
   id: 'run-1',
   status: 'active',
+  mode_id: 'dungeon',
+  preparation: { version: 1, items: [] },
   contract_id: 'default-dungeon-10-floor',
   world_modifier_ids: ['fast-start'],
   seed: 42,
@@ -74,6 +76,8 @@ describe('DungeonRunPersistenceService', () => {
     await expect(service.loadActiveRun()).resolves.toEqual({
       runId: 'run-1',
       status: 'active',
+      modeId: 'dungeon',
+      preparation: { version: 1, items: [] },
       seed: 42,
       dungeonId: 'default-dungeon',
       characterClassId: 'ranger',
@@ -107,6 +111,8 @@ describe('DungeonRunPersistenceService', () => {
     await service.createRun({
       runId: 'run-1',
       seed: 42,
+      modeId: 'dungeon',
+      preparation: { version: 1, items: [] },
       contractId: activeRow.contract_id,
       worldModifierIds: activeRow.world_modifier_ids,
       maxFloor: 30,
@@ -121,7 +127,9 @@ describe('DungeonRunPersistenceService', () => {
       p_run_id: 'run-1',
       p_initial_payload: checkpoint,
       p_dungeon_id: 'default-dungeon',
+      p_mode_id: 'dungeon',
       p_class_id: 'ranger',
+      p_preparation: { version: 1, items: [] },
     }))
   })
 
@@ -205,6 +213,18 @@ describe('DungeonRunPersistenceService', () => {
       run: {
         ...activeRow,
         class_id: 42,
+      },
+      snapshot: checkpointRow,
+    }))
+
+    await expect(service.loadActiveRun()).rejects.toThrow(/invalid response/)
+  })
+
+  it('rejects an unknown run mode or malformed preparation snapshot', async () => {
+    const service = createService(fakeClient({
+      run: {
+        ...activeRow,
+        mode_id: 'unknown',
       },
       snapshot: checkpointRow,
     }))

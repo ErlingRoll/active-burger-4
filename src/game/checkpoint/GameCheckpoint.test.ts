@@ -42,6 +42,11 @@ describe('GameCheckpoint', () => {
       expect(restored.state.time).toBe(0)
       expect(restored.state.tick).toBe(0)
       expect(restored.phase).toBe('playing')
+      expect(restored.state.run.modeId).toBe('dungeon')
+      expect(restored.createCheckpoint().runConfig.preparation).toEqual({
+        version: 1,
+        items: [],
+      })
     })
 
     it('round-trips through JSON.stringify/parse preserving all GameState fields', () => {
@@ -57,6 +62,36 @@ describe('GameCheckpoint', () => {
       expect(restored.state).toEqual(game.state)
       expect(restored.phase).toBe(game.phase)
       expect(restored.timeScale).toBe(game.timeScale)
+    })
+
+    it('preserves the run mode and resolved preparation snapshot', () => {
+      const game = createGame({
+        seed: 102,
+        preparation: {
+          version: 1,
+          items: [{
+            itemInstanceId: 'fish-1',
+            definitionId: 'revival-koi',
+            quantity: 1,
+            resolvedEffect: { attackDamagePercent: 8 },
+          }],
+        },
+      })
+
+      const restored = Game.restoreFromCheckpoint(
+        JSON.parse(JSON.stringify(game.createCheckpoint())),
+      )
+
+      expect(restored.state.run.modeId).toBe('dungeon')
+      expect(restored.createCheckpoint().runConfig.preparation).toEqual({
+        version: 1,
+        items: [{
+          itemInstanceId: 'fish-1',
+          definitionId: 'revival-koi',
+          quantity: 1,
+          resolvedEffect: { attackDamagePercent: 8 },
+        }],
+      })
     })
 
     it('restores legacy character-class fields and writes the current checkpoint shape', () => {

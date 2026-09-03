@@ -1,5 +1,11 @@
 import { getSupabaseClient, type AuthEnvironment } from '../../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  isRunModeId,
+  isRunPreparationSnapshot,
+  type RunModeId,
+  type RunPreparationSnapshot,
+} from '../../game/RunModes'
 
 export type DungeonRunStatus =
   | 'active'
@@ -13,6 +19,8 @@ export type DungeonRunSnapshotKind = 'start' | 'floor' | 'victory' | 'death' | '
 export interface DungeonRunMetadata {
   runId: string
   status: DungeonRunStatus
+  modeId: RunModeId
+  preparation: RunPreparationSnapshot
   seed: number
   dungeonId: string
   characterClassId: string
@@ -37,6 +45,8 @@ export interface ActiveDungeonRun extends DungeonRunMetadata {
 export interface CreateDungeonRunInput {
   runId: string
   seed: number
+  modeId: RunModeId
+  preparation: RunPreparationSnapshot
   contractId: string
   worldModifierIds: readonly string[]
   maxFloor: number
@@ -91,6 +101,8 @@ export interface DungeonRunPersistenceService {
 interface DungeonRunRow {
   id: string
   status: DungeonRunStatus
+  mode_id: RunModeId
+  preparation: RunPreparationSnapshot
   contract_id: string
   world_modifier_ids: string[]
   seed: number
@@ -155,6 +167,8 @@ function isDungeonRunRow(value: unknown): value is DungeonRunRow {
   return isRecord(value) &&
     typeof value.id === 'string' &&
     isRunStatus(value.status) &&
+    isRunModeId(value.mode_id) &&
+    isRunPreparationSnapshot(value.preparation) &&
     typeof value.contract_id === 'string' &&
     Array.isArray(value.world_modifier_ids) &&
     value.world_modifier_ids.every((id) => typeof id === 'string') &&
@@ -187,6 +201,8 @@ function toMetadata(row: DungeonRunRow): DungeonRunMetadata {
   return {
     runId: row.id,
     status: row.status,
+    modeId: row.mode_id,
+    preparation: row.preparation,
     seed: row.seed,
     dungeonId: row.dungeon_id,
     characterClassId: row.class_id,
@@ -276,7 +292,7 @@ export function createDungeonRunPersistenceService(
     const runResponse = await client
       .from('dungeon_runs')
       .select(
-        'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
+        'id, status, mode_id, preparation, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
       )
       .in('status', ['active', 'paused'])
       .maybeSingle()
@@ -340,8 +356,10 @@ export function createDungeonRunPersistenceService(
         p_max_floor: input.maxFloor,
         p_started_at: input.startedAt,
         p_dungeon_id: input.dungeonId,
+        p_mode_id: input.modeId,
         p_class_id: input.characterClassId,
         p_game_version: input.gameVersion,
+        p_preparation: input.preparation,
         p_initial_payload: input.checkpoint,
       })
       if (response.error) {
@@ -369,7 +387,7 @@ export function createDungeonRunPersistenceService(
         getClient()
           .from('dungeon_runs')
           .select(
-            'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
+            'id, status, mode_id, preparation, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
           )
           .eq('id', input.runId)
           .single(),
@@ -413,7 +431,7 @@ export function createDungeonRunPersistenceService(
       const rowResponse = await getClient()
         .from('dungeon_runs')
         .select(
-          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
+          'id, status, mode_id, preparation, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
         )
         .eq('id', input.runId)
         .single()
@@ -447,7 +465,7 @@ export function createDungeonRunPersistenceService(
       const rowResponse = await getClient()
         .from('dungeon_runs')
         .select(
-          'id, status, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
+          'id, status, mode_id, preparation, contract_id, world_modifier_ids, seed, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, updated_at',
         )
         .eq('id', runId)
         .single()

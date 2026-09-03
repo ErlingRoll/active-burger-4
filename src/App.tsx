@@ -4,6 +4,8 @@ import type { RunResultSnapshot, RunConfig, GameCheckpoint } from './game'
 import {
   DEFAULT_DUNGEON_CONFIG,
   DEFAULT_DUNGEON_ID,
+  DEFAULT_RUN_MODE_ID,
+  EMPTY_RUN_PREPARATION_SNAPSHOT,
   createGameFromCheckpoint,
   createInitialGameCheckpoint,
   isValidCheckpoint,
@@ -645,6 +647,8 @@ function App() {
       settings.selectedDungeonMaxFloorContractId === DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID
     return {
       seed: runSeed,
+      modeId: DEFAULT_RUN_MODE_ID,
+      preparation: EMPTY_RUN_PREPARATION_SNAPSHOT,
       behaviorProfileId: settings.selectedBehaviorProfileId,
       characterClassId: settings.selectedCharacterClassId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
@@ -980,8 +984,10 @@ function App() {
         maxFloor: checkpoint.gameState.run.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor,
         startedAt: new Date().toISOString(),
         dungeonId: checkpoint.gameState.run.dungeonId ?? DEFAULT_DUNGEON_ID,
+        modeId: config.modeId ?? DEFAULT_RUN_MODE_ID,
         characterClassId: checkpoint.gameState.player.characterClassId ?? config.characterClassId ?? 'knight',
         gameVersion: RUN_GAME_VERSION,
+        preparation: config.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
         checkpoint,
       })
       setRunSeed(seed)

@@ -185,6 +185,11 @@ import {
   type BehaviorProfileDefinition,
   type BehaviorProfileId,
 } from '../content/behaviors/BehaviorProfiles'
+import {
+  DEFAULT_RUN_MODE_ID,
+  EMPTY_RUN_PREPARATION_SNAPSHOT,
+  isRunModeId,
+} from './RunModes'
 
 export { FIXED_STEP_SECONDS } from './engine/GameClock'
 export { MAX_FRAME_SECONDS } from './engine/GameClock'
@@ -282,6 +287,10 @@ function normalizeRunConfig(config: RunConfig): RunConfig {
   const characterClassId = currentConfig.characterClassId ?? legacyCharacterClassId
   return {
     ...currentConfig,
+    modeId: isRunModeId(currentConfig.modeId)
+      ? currentConfig.modeId
+      : DEFAULT_RUN_MODE_ID,
+    preparation: currentConfig.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
     characterClassId: isCharacterClassId(characterClassId)
       ? characterClassId
       : DEFAULT_CHARACTER_CLASS_ID,
@@ -290,6 +299,9 @@ function normalizeRunConfig(config: RunConfig): RunConfig {
 
 function normalizeCheckpointState(state: GameState): GameState {
   const normalizedState = JSON.parse(JSON.stringify(state)) as GameState
+  if (!isRunModeId(normalizedState.run.modeId)) {
+    normalizedState.run.modeId = DEFAULT_RUN_MODE_ID
+  }
   const player = normalizedState.player as LegacyClassPlayerState
   if (!isCharacterClassId(player.characterClassId)) {
     player.characterClassId = isCharacterClassId(player.playstyleId)
@@ -327,6 +339,9 @@ export class Game {
   constructor(config: RunConfig) {
     assertValidContent()
     const runConfig = normalizeRunConfig(config)
+    if (runConfig.modeId !== DEFAULT_RUN_MODE_ID) {
+      throw new Error(`Run mode "${runConfig.modeId}" is not implemented yet.`)
+    }
     this.runConfig = runConfig
     this.idAllocator = createEntityIdAllocator()
     this.random = new Random(runConfig.seed)
@@ -375,6 +390,7 @@ export class Game {
       run: {
         phase: 'loading',
         seed: runConfig.seed,
+        modeId: runConfig.modeId,
         dungeonId: this.dungeon.id,
         ...(runConfig.dungeonMaxFloorContractId
           ? { dungeonMaxFloorContractId: runConfig.dungeonMaxFloorContractId }

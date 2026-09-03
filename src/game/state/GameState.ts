@@ -32,6 +32,10 @@ import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
 import type { CharacterClassId } from '../../content/classes/CharacterClasses'
 import type { Rarity } from '../../content/rarity/Rarity'
+import type {
+  RunModeId,
+  RunPreparationSnapshot,
+} from '../RunModes'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined
@@ -135,6 +139,10 @@ export interface BehaviorControllerState {
 /** Configuration required to start a new deterministic run. */
 export interface RunConfig {
   seed: number
+  /** Identifies the ruleset used by this run. */
+  modeId?: RunModeId
+  /** Immutable pre-run item selections and resolved effects. */
+  preparation?: RunPreparationSnapshot
   /** Initial behavior policy for this run. */
   behaviorProfileId?: BehaviorProfileId
   /** Whether direct player movement starts enabled; defaults to true. */
@@ -165,6 +173,8 @@ export interface RunConfig {
 export interface RunState {
   phase: RunPhase
   seed: number
+  /** Identifies the ruleset used by this run. */
+  modeId?: RunModeId
   dungeonId?: DungeonDefinitionId
   dungeonMaxFloorContractId?: string
   dungeonMaxFloor?: number
