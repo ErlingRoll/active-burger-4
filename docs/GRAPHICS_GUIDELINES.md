@@ -29,6 +29,97 @@ The game favors a refined action-roguelike look:
 - Distinct silhouettes for distinct skills. Reusing a color is acceptable;
   reusing the same shape language is not.
 
+## Infinite Abyss visual direction
+
+The Infinite Abyss has a distinct **dark-purple void** identity. Its interface,
+entry flow, Champion selection, floor decisions, reward feedback, and world
+effects should feel like the player is descending into an ancient, unstable
+dimension rather than entering another normal dungeon.
+
+### Palette
+
+Use these as the starting design tokens. Individual surfaces may adjust
+opacity, but should remain within this visual family:
+
+| Role | Token |
+| --- | --- |
+| Void background | `#0f0920` |
+| Deep violet surface | `#171126` |
+| Raised violet surface | `#24153f` |
+| Purple gradient accent | `#6d28d9` |
+| Primary violet | `#7c3aed` |
+| Focus/hover violet | `#a78bfa` |
+| Highlight lavender | `#c4b5fd` |
+| Bright text | `#f5f3ff` |
+
+The Abyss entry action should use a restrained violet gradient and a subtle
+lift/glow on hover. The shared **Game modes** panel should use deep violet
+surfaces with lavender selection borders. Champion selection should use the
+same language so the mode, roster, and run state read as one connected feature.
+
+Purple is not a replacement for mechanical danger colors. Hostile telegraphs
+continue to use the dedicated deep-crimson danger palette, pale warning edges,
+and explicit `DANGER`/`DODGE` labels so players can distinguish “Abyss
+identity” from “incoming damage.”
+
+### Abyss UI
+
+- The dashboard action beneath **Start a dungeon run** uses the Abyss purple
+  accent and an infinity/void motif.
+- The **Game modes** screen presents normal dungeon and Infinite Abyss as
+  sibling choices. The selected Abyss mode receives a violet border, inner
+  glow, and clear text label; selection must not rely on color alone.
+- Champion selection uses dark raised cards, lavender focus rings, preserved
+  build details, and a visible availability/exhaustion state.
+- The persistent modifier dialog uses a violet void surface, angular card
+  borders, danger-score badges, and a restrained pulsing background. It must
+  show the selected floor and the mechanical effect before confirmation.
+- Abyss loot-box reward feedback uses violet framing and a brighter rarity
+  highlight. Rarity colors remain distinct from the Abyss chrome.
+- Purple accents should support hierarchy, not flood every element. Keep body
+  text bright enough for contrast and reserve the brightest lavender for
+  selection, focus, and important state changes.
+
+### Abyss world and effect language
+
+The Abyss world layer may add:
+
+- Deep-purple fog, void gradients, and low-opacity radial bands.
+- Angular rifts, nested polygons, broken rings, and inward-pointing glyphs.
+- Small violet motes and shard particles that drift toward or away from a
+  modifier source.
+- A faint purple aura around Abyss-specific modifiers and reward objects.
+- Short birth/peak/decay pulses when entering a new floor or confirming a
+  modifier.
+
+Avoid generic purple circles as the complete identity of an Abyss effect.
+Prefer fractured polygons, asymmetric sigils, void apertures, and layered
+facets. Abyss effects may be visually intense, but must not obscure player
+silhouettes, health bars, enemy telegraphs, stairs, or `DANGER`/`DODGE`
+labels.
+
+Enemy and boss silhouettes remain authored and readable. An Abyss modifier can
+add a purple rim, glyph, or void trail, but must not erase the enemy's normal
+elemental or attack identity.
+
+### Motion and determinism
+
+- Use slow, restrained ambient pulses for the Abyss background and UI chrome.
+- Use sharper angular expansion and contraction for modifier confirmation.
+- Use violet particles for reward and transition feedback, with short lifetimes
+  and clear decay.
+- Do not use screenshake, hit-stop, camera jolts, or time dilation.
+- Derive particle variation from stable entity IDs, modifier IDs, floor number,
+  and simulation time. Rendering must remain a pure projection and must not
+  introduce random values.
+
+### Accessibility
+
+Purple must never be the only indicator of mode, selection, exhaustion,
+danger, or reward rarity. Pair it with text, icons, borders, labels, or shape
+changes. Maintain readable contrast for lavender text on deep-violet surfaces,
+and preserve the existing explicit danger language for hostile attacks.
+
 ## Non-negotiable rules
 
 - Do not use a plain filled circle as the final visual for a new skill.

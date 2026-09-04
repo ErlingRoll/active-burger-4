@@ -23,9 +23,6 @@ import {
   createDungeonRunPersistenceService,
   type ActiveDungeonRun,
 } from './persistence'
-import {
-  AbyssScreen,
-} from './abyss'
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   AuthPanel,
@@ -87,8 +84,10 @@ import {
 } from './fishing'
 import {
   ChampionManagementScreen,
+  ChampionDetails,
   createCharacterService,
   type CharacterBuildSnapshot,
+  type ChampionSnapshot,
   type CharacterService,
 } from './characters'
 import {
@@ -99,7 +98,7 @@ import {
 } from './inventory'
 import {
   createLootBoxService,
-  LootBoxScreen,
+  InventoryScreen,
   type LootBoxService,
 } from './loot'
 import type { RunPreparationSnapshot } from './game'
@@ -134,8 +133,7 @@ type AppScreen =
   | 'meta-progression'
   | 'fishing'
   | 'champions'
-  | 'abyss'
-  | 'loot-boxes'
+  | 'inventory'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -149,8 +147,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'meta-progression': '/store',
   fishing: '/fishing',
   champions: '/champions',
-  abyss: '/abyss',
-  'loot-boxes': '/loot-boxes',
+  inventory: '/inventory',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -172,11 +169,8 @@ function getScreenForPath(pathname: string): AppScreen {
   if (normalizedPath === APP_ROUTE_PATHS['nickname-moderation']) {
     return 'nickname-moderation'
   }
-  if (normalizedPath === APP_ROUTE_PATHS.abyss) {
-    return 'abyss'
-  }
-  if (normalizedPath === APP_ROUTE_PATHS['loot-boxes']) {
-    return 'loot-boxes'
+  if (normalizedPath === APP_ROUTE_PATHS.inventory) {
+    return 'inventory'
   }
   if (normalizedPath === APP_ROUTE_PATHS.wiki) {
     return 'wiki'
@@ -534,6 +528,9 @@ function App() {
   const [metaLoadedAttempt, setMetaLoadedAttempt] = useState(0)
   const [writeError, setWriteError] = useState<string | null>(null)
   const [activeRun, setActiveRun] = useState<ActiveDungeonRun | null>(null)
+  const [championAvailability, setChampionAvailability] = useState<
+    'loading' | 'available' | 'none' | 'error'
+  >(() => characters.service ? 'loading' : 'error')
   const [runLoadState, setRunLoadState] = useState<RunLoadState>('loading')
   const [runLoadError, setRunLoadError] = useState<string | null>(null)
   const [runStartState, setRunStartState] = useState<RunWriteState>('idle')
@@ -671,6 +668,34 @@ function App() {
   ])
 
   useEffect(() => {
+    const accountId = authentication.account?.id
+    if (!accountId) {
+      setChampionAvailability('none')
+      return
+    }
+    if (!characters.service) {
+      setChampionAvailability('error')
+      return
+    }
+    let cancelled = false
+    setChampionAvailability('loading')
+    void characters.service.loadCharacters()
+      .then((collection) => {
+        if (!cancelled) {
+          setChampionAvailability(collection.champions.length > 0 ? 'available' : 'none')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setChampionAvailability('error')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [authentication.account?.id, characters.service])
+
+  useEffect(() => {
     let cancelled = false
     void Promise.all([repository.getSettings(), repository.getBasicProfile()])
       .then(async ([loadedSettings, profile]) => {
@@ -716,6 +741,7 @@ function App() {
     const service = dungeonRunPersistence.service
     if (!accountId) {
       setActiveRun(null)
+      setChampionAvailability('none')
       setRunLoadState('ready')
       setRunLoadError(null)
       return
@@ -903,6 +929,23 @@ function App() {
       showToast('Continue or forfeit your current dungeon run before starting a new one.', 'error')
       return
     }
+    setRunMode(DEFAULT_RUN_MODE_ID)
+    setRunChampion(null)
+    setRunChampionId(null)
+    navigateToScreen('run-setup')
+  }, [activeRun, authentication.account, navigateToScreen, runLoadState, showToast])
+
+  const openAbyssSetup = useCallback((): void => {
+    if (!authentication.account || runLoadState !== 'ready') {
+      return
+    }
+    if (activeRun !== null) {
+      showToast('Continue or forfeit your current dungeon run before entering the Abyss.', 'error')
+      return
+    }
+    setRunMode('infinite-abyss')
+    setRunChampion(null)
+    setRunChampionId(null)
     navigateToScreen('run-setup')
   }, [activeRun, authentication.account, navigateToScreen, runLoadState, showToast])
 
@@ -1370,6 +1413,7 @@ function App() {
         contentVersion: RUN_GAME_VERSION,
       })
       pendingChampionIdRef.current = null
+      setChampionAvailability('available')
       setChampionSaveState('saved')
     } catch (error: unknown) {
       setChampionSaveState('error')
@@ -1522,12 +1566,8 @@ function App() {
     navigateToScreen('champions')
   }, [navigateToScreen])
 
-  const openAbyss = useCallback((): void => {
-    navigateToScreen('abyss')
-  }, [navigateToScreen])
-
-  const openLootBoxes = useCallback((): void => {
-    navigateToScreen('loot-boxes')
+  const openInventory = useCallback((): void => {
+    navigateToScreen('inventory')
   }, [navigateToScreen])
 
   const openAdmin = useCallback((): void => {
@@ -1760,8 +1800,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
-          onOpenAbyss={openAbyss}
-          onOpenLootBoxes={openLootBoxes}
+          onOpenInventory={openInventory}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1784,8 +1823,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
-          onOpenAbyss={openAbyss}
-          onOpenLootBoxes={openLootBoxes}
+          onOpenInventory={openInventory}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1811,8 +1849,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
-          onOpenAbyss={openAbyss}
-          onOpenLootBoxes={openLootBoxes}
+          onOpenInventory={openInventory}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1852,8 +1889,7 @@ function App() {
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
-          onOpenAbyss={openAbyss}
-          onOpenLootBoxes={openLootBoxes}
+          onOpenInventory={openInventory}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1868,8 +1904,9 @@ function App() {
           onOpenMetaProgression={openMetaProgression}
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
-          onOpenAbyss={openAbyss}
-          onOpenLootBoxes={openLootBoxes}
+          onOpenInventory={openInventory}
+          onOpenAbyss={openAbyssSetup}
+          championAvailability={championAvailability}
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
@@ -1914,7 +1951,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'abyss' || screen === 'loot-boxes') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'inventory') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1931,7 +1968,10 @@ function App() {
           startState={runStartState}
           inventoryService={inventory.service}
           inventoryError={inventory.configurationError}
-          onStart={(preparation) => startRun({ preparation })}
+          characterService={characters.service}
+          characterError={characters.configurationError}
+          initialMode={runMode}
+          onStart={startRun}
           onSelectCharacterClass={selectCharacterClass}
           onToggleWorldModifier={toggleWorldModifier}
           onBack={closeRunSetup}
@@ -1967,20 +2007,8 @@ function App() {
           onBack={returnToDashboard}
         />
       ) : null}
-      {screen === 'abyss' && authentication.account ? (
-        <AbyssScreen
-          service={characters.service}
-          configurationError={characters.configurationError}
-          onBack={returnToDashboard}
-          onStart={(champion) => startRun({
-            modeId: 'infinite-abyss',
-            championId: champion.championId,
-            champion: champion.build,
-          })}
-        />
-      ) : null}
-      {screen === 'loot-boxes' && authentication.account ? (
-        <LootBoxScreen
+      {screen === 'inventory' && authentication.account ? (
+        <InventoryScreen
           inventoryService={inventory.service}
           lootBoxService={lootBoxes.service}
           configurationError={lootBoxes.configurationError ?? inventory.configurationError}
@@ -2035,8 +2063,7 @@ interface AppHeaderProps {
   onOpenNicknameModeration: () => void
   onOpenFishing: () => void
   onOpenChampions: () => void
-  onOpenAbyss: () => void
-  onOpenLootBoxes: () => void
+  onOpenInventory: () => void
 }
 
 function AppHeader({
@@ -2049,8 +2076,7 @@ function AppHeader({
   onOpenNicknameModeration,
   onOpenFishing,
   onOpenChampions,
-  onOpenAbyss,
-  onOpenLootBoxes,
+  onOpenInventory,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -2072,8 +2098,7 @@ function AppHeader({
         <a className="app-wiki-link" href="/wiki">Wiki</a>
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
         <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
-        <button className="app-admin-link" type="button" onClick={onOpenAbyss}>Abyss</button>
-        <button className="app-admin-link" type="button" onClick={onOpenLootBoxes}>Loot boxes</button>
+        <button className="app-admin-link" type="button" onClick={onOpenInventory}>Inventory</button>
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -2122,8 +2147,9 @@ interface GameDashboardProps {
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
   onOpenChampions: () => void
+  onOpenInventory: () => void
   onOpenAbyss: () => void
-  onOpenLootBoxes: () => void
+  championAvailability: 'loading' | 'available' | 'none' | 'error'
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
 }
@@ -2140,8 +2166,9 @@ function GameDashboard({
   onOpenMetaProgression,
   onOpenFishing,
   onOpenChampions,
+  onOpenInventory,
   onOpenAbyss,
-  onOpenLootBoxes,
+  championAvailability,
   onContinueRun,
   onForfeitRun,
 }: GameDashboardProps) {
@@ -2154,6 +2181,13 @@ function GameDashboard({
       (characterClass) => characterClass.id === activeRun.characterClassId,
     )
     : undefined
+  const abyssEntryMessage = championAvailability === 'none'
+    ? 'Complete a dungeon run and save a Champion before entering the Abyss.'
+    : championAvailability === 'loading'
+      ? 'Checking for available Champions.'
+      : championAvailability === 'error'
+        ? 'Champion availability is currently unavailable.'
+        : undefined
 
   const confirmForfeit = (): void => {
     if (forfeiting) {
@@ -2221,50 +2255,18 @@ function GameDashboard({
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
             <button
-              className="game-dashboard-action game-dashboard-action-secondary"
+              className="game-dashboard-action game-dashboard-action-primary"
               type="button"
-              onClick={onOpenLootBoxes}
+              onClick={onOpenInventory}
               disabled={runLoadState !== 'ready'}
               title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening loot boxes.'
+                ? 'Checking the current dungeon run before opening Inventory.'
                 : undefined}
             >
               <span className="game-dashboard-action-icon" aria-hidden="true">▣</span>
               <span>
-                <strong>Loot boxes</strong>
-                <small>Open earned boxes for fish and fishing gear.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button
-              className="game-dashboard-action game-dashboard-action-primary"
-              type="button"
-              onClick={onOpenAbyss}
-              disabled={runLoadState !== 'ready'}
-              title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening the Abyss.'
-                : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">∞</span>
-              <span>
-                <strong>Enter Infinite Abyss</strong>
-                <small>Push one completed Champion past the normal dungeon.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button
-              className="game-dashboard-action game-dashboard-action-secondary"
-              type="button"
-              onClick={onOpenChampions}
-              disabled={runLoadState !== 'ready'}
-              title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening Champions.'
-                : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">◆</span>
-              <span>
-                <strong>Champions</strong>
-                <small>View completed builds for future Abyss attempts.</small>
+                <strong>Inventory</strong>
+                <small>View fish, rods, bait, and unopened loot boxes.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
@@ -2281,6 +2283,22 @@ function GameDashboard({
               <span>
                 <strong>Go fishing</strong>
                 <small>Catch fish for future run meals and recovery.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+              className="game-dashboard-action game-dashboard-action-secondary"
+              type="button"
+              onClick={onOpenChampions}
+              disabled={runLoadState !== 'ready'}
+              title={runLoadState !== 'ready'
+                ? 'Checking the current dungeon run before opening Champions.'
+                : undefined}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">◆</span>
+              <span>
+                <strong>Champions</strong>
+                <small>View completed builds for future Abyss attempts.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>
@@ -2332,7 +2350,8 @@ function GameDashboard({
                   {forfeitError ? <p className="persistence-error" role="alert">{forfeitError}</p> : null}
                 </div>
               ) : (
-                <button
+                <>
+                  <button
                   className="game-dashboard-action game-dashboard-action-primary"
                   type="button"
                   onClick={onOpenRunSetup}
@@ -2343,7 +2362,33 @@ function GameDashboard({
                     <small>Descend into the dungeon. Slay increasingly stronger monsters for valuable essence.</small>
                   </span>
                   <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-                </button>
+                  </button>
+                  <div className="abyss-entry-tooltip-wrapper">
+                    <button
+                      className="game-dashboard-action game-dashboard-action-secondary abyss-entry-action"
+                      type="button"
+                      onClick={onOpenAbyss}
+                      disabled={runLoadState !== 'ready' || championAvailability !== 'available'}
+                      aria-describedby={abyssEntryMessage ? 'abyss-entry-tooltip' : undefined}
+                    >
+                  <span className="game-dashboard-action-icon" aria-hidden="true">∞</span>
+                  <span>
+                    <strong>Infinite Abyss</strong>
+                    <small>Choose a completed Champion and push beyond normal dungeon rules.</small>
+                  </span>
+                  <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+                    </button>
+                    {abyssEntryMessage ? (
+                      <span
+                        id="abyss-entry-tooltip"
+                        className={tooltipClassName('abyss-entry-tooltip')}
+                        role="tooltip"
+                      >
+                        {abyssEntryMessage}
+                      </span>
+                    ) : null}
+                  </div>
+                </>
               )}
             </div>
             {activeRun ? (
@@ -2380,7 +2425,10 @@ interface RunSetupScreenProps {
   startState: RunWriteState
   inventoryService: InventoryService | null
   inventoryError: string | null
-  onStart: (preparation: RunPreparationSnapshot) => Promise<void>
+  characterService: CharacterService | null
+  characterError: string | null
+  initialMode: RunModeId
+  onStart: (options: StartRunOptions) => Promise<void>
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onBack: () => void
@@ -2392,6 +2440,9 @@ function RunSetupScreen({
   startState,
   inventoryService,
   inventoryError,
+  characterService,
+  characterError,
+  initialMode,
   onStart,
   onSelectCharacterClass,
   onToggleWorldModifier,
@@ -2404,7 +2455,17 @@ function RunSetupScreen({
   const [fishLoadError, setFishLoadError] = useState<string | null>(
     () => inventoryService ? inventoryError : inventoryError ?? 'Inventory is unavailable.',
   )
-  const [selectedFishIds, setSelectedFishIds] = useState<string[]>([])
+  const [selectedFishIds, setSelectedFishIds] = useState<(string | null)[]>([])
+  const [activeMealSlotIndex, setActiveMealSlotIndex] = useState<number | null>(null)
+  const [selectedMode] = useState<RunModeId>(initialMode)
+  const [champions, setChampions] = useState<ChampionSnapshot[]>([])
+  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(null)
+  const [championLoadState, setChampionLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    () => characterService ? 'idle' : 'error',
+  )
+  const [championLoadError, setChampionLoadError] = useState<string | null>(
+    () => characterService ? characterError : characterError ?? 'Champion storage is unavailable.',
+  )
   useEffect(() => {
     if (!inventoryService) {
       return
@@ -2428,11 +2489,48 @@ function RunSetupScreen({
       cancelled = true
     }
   }, [inventoryService])
-  const selectedFish = useMemo(
-    () => fishItems.filter((item) => selectedFishIds.includes(item.itemInstanceId)),
+  useEffect(() => {
+    if (selectedMode !== 'infinite-abyss' || !characterService) {
+      return
+    }
+    let cancelled = false
+    setChampionLoadState('loading')
+    void characterService.loadCharacters()
+      .then((collection) => {
+        if (!cancelled) {
+          const availableChampions = collection.champions.filter((champion) =>
+            champion.exhaustionUntil === null || Date.parse(champion.exhaustionUntil) <= Date.now(),
+          )
+          setChampions(availableChampions)
+          setSelectedChampionId(availableChampions[0]?.championId ?? null)
+          setChampionLoadState('ready')
+          setChampionLoadError(null)
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setChampionLoadState('error')
+          setChampionLoadError(errorMessage(loadError))
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [characterService, selectedMode])
+  const selectedFishSlots = useMemo(
+    () => selectedFishIds
+      .map((id) => fishItems.find((item) => item.itemInstanceId === id))
+      .map((item) => item ?? null),
     [fishItems, selectedFishIds],
   )
+  const selectedFish = useMemo(
+    () => selectedFishSlots.filter((item): item is InventoryItemInstance => item !== null),
+    [selectedFishSlots],
+  )
   const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
+  const selectedChampion = champions.find((champion) =>
+    champion.championId === selectedChampionId,
+  )
   const worldModifierEffects = resolveWorldModifierEffects(
     settings.selectedWorldModifierIds,
     SPAWN_BALANCE,
@@ -2448,7 +2546,7 @@ function RunSetupScreen({
         </header>
         <div className="run-dashboard-hero">
           <div>
-            <h2 id="dashboard-title">Prepare your descent</h2>
+            <h2 id="dashboard-title">{selectedMode === 'infinite-abyss' ? 'Infinite Abyss' : 'Dungeon run'}</h2>
             <p>
               Shape your fighter before entering the dungeon.
             </p>
@@ -2457,75 +2555,39 @@ function RunSetupScreen({
         <div className="run-dashboard-command">
           <div>
             <span className="run-dashboard-command-label">Run briefing</span>
-            <strong>Dungeon run</strong>
-            <span>Configure your character and risk level.</span>
+            <strong>{selectedMode === 'infinite-abyss' ? 'Infinite Abyss' : 'Dungeon run'}</strong>
+            <span>{selectedMode === 'infinite-abyss'
+              ? 'Push one completed Champion through endless floors.'
+              : 'Configure your character and risk level.'}</span>
           </div>
           <button
             className="primary-action run-dashboard-start"
             type="button"
-            onClick={() => { void onStart(fishMeal.preparation) }}
-            disabled={startState === 'saving'}
+            onClick={() => {
+              void onStart(selectedMode === 'infinite-abyss'
+                ? {
+                    modeId: selectedMode,
+                    championId: selectedChampion?.championId,
+                    champion: selectedChampion?.build,
+                    preparation: fishMeal.preparation,
+                  }
+                : { preparation: fishMeal.preparation })
+            }}
+            disabled={startState === 'saving' ||
+              (selectedMode === 'infinite-abyss' && selectedChampion === undefined)}
           >
             <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
             <span aria-hidden="true">→</span>
           </button>
         </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
-        <section className="run-dashboard-meal" aria-labelledby="fish-meal-title">
+        {selectedMode === 'dungeon' ? (
           <div className="run-dashboard-section-heading">
-            <p className="screen-kicker">Pre-run meal</p>
-            <h3 id="fish-meal-title">Choose up to five fish</h3>
+            <p className="screen-kicker">Choose your fighter</p>
+            <h3>Select your character</h3>
           </div>
-          <p className="fish-meal-summary">
-            {getFishMealLabel(fishMeal.movementSpeedPercent)} · {selectedFish.length}/{5} selected
-          </p>
-          {fishLoadState === 'loading' ? (
-            <p className="fish-meal-muted">Loading fish inventory…</p>
-          ) : fishLoadState === 'error' ? (
-            <p className="persistence-error" role="alert">
-              {fishLoadError ?? 'Fish inventory is unavailable. You can still start without a meal.'}
-            </p>
-          ) : fishItems.length === 0 ? (
-            <p className="fish-meal-muted">No fish available. Visit Fishing to catch some.</p>
-          ) : (
-            <div className="fish-meal-list">
-              {fishItems.map((fish) => {
-                const selected = selectedFishIds.includes(fish.itemInstanceId)
-                return (
-                  <button
-                    className={`fish-meal-item${selected ? ' selected' : ''}`}
-                    type="button"
-                    aria-pressed={selected}
-                    key={fish.itemInstanceId}
-                    onClick={() => {
-                      setSelectedFishIds((current) => selected
-                        ? current.filter((id) => id !== fish.itemInstanceId)
-                        : current.length < 5
-                          ? [...current, fish.itemInstanceId]
-                          : current)
-                    }}
-                  >
-                    <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
-                    <span>
-                      {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} ·{' '}
-                      size {typeof fish.metadata.sizePercentile === 'number'
-                        ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
-                        : 'unknown'}
-                    </span>
-                    <small>{selected ? 'Selected' : 'Select fish'}</small>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          <p className="fish-meal-footnote">
-            Selected fish are consumed when the run starts and cannot be used for recovery.
-          </p>
-        </section>
-        <div className="run-dashboard-section-heading">
-          <p className="screen-kicker">Choose your fighter</p>
-          <h3>Select your character</h3>
-        </div>
+        ) : null}
+        {selectedMode === 'dungeon' ? (
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
           <div className="dashboard-choice-list">
@@ -2623,7 +2685,152 @@ function RunSetupScreen({
             })}
           </div>
         </fieldset>
-        <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">
+        ) : null}
+         {selectedMode === 'infinite-abyss' ? (
+           <section className="run-abyss-champion" aria-labelledby="abyss-champion-title">
+             <div className="run-dashboard-section-heading">
+               <p className="screen-kicker">Abyss character</p>
+               <h3 id="abyss-champion-title">Choose your Champion</h3>
+             </div>
+             {championLoadState === 'loading' ? (
+               <span>Loading available Champions…</span>
+             ) : championLoadState === 'error' ? (
+               <span className="persistence-error">{championLoadError}</span>
+             ) : selectedChampion ? (
+               <>
+                 <div className="run-abyss-champion-list">
+                   {champions.map((champion) => (
+                     <button
+                       className={`game-mode-choice${champion.championId === selectedChampionId ? ' selected' : ''}`}
+                       type="button"
+                       aria-pressed={champion.championId === selectedChampionId}
+                       key={champion.championId}
+                       onClick={() => setSelectedChampionId(champion.championId)}
+                     >
+                       <strong>{champion.name}</strong>
+                       <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
+                     </button>
+                   ))}
+                 </div>
+                 <ChampionDetails champion={selectedChampion} />
+               </>
+             ) : (
+               <span>Complete a dungeon and save a Champion before entering the Abyss.</span>
+             )}
+           </section>
+         ) : null}
+         <section className="run-dashboard-meal" aria-labelledby="fish-meal-title">
+           <div className="run-dashboard-section-heading">
+             <p className="screen-kicker">Pre-run meal</p>
+             <h3 id="fish-meal-title">Choose up to five fish</h3>
+           </div>
+           <p className="fish-meal-summary">
+             {getFishMealLabel(fishMeal.movementSpeedPercent)} · {selectedFish.length}/{5} selected
+           </p>
+           {fishLoadState === 'loading' ? (
+             <p className="fish-meal-muted">Loading fish inventory…</p>
+           ) : fishLoadState === 'error' ? (
+             <p className="persistence-error" role="alert">
+               {fishLoadError ?? 'Fish inventory is unavailable. You can still start without a meal.'}
+             </p>
+           ) : fishItems.length === 0 ? (
+             <p className="fish-meal-muted">No fish available. Visit Fishing to catch some.</p>
+           ) : (
+             <>
+               <div className="fish-meal-slots" aria-label="Five fish meal slots">
+               {Array.from({ length: 5 }, (_, index) => {
+                 const fish = selectedFishSlots[index]
+                 return (
+                   <button
+                     className={`fish-meal-slot${fish ? ' filled' : ''}`}
+                     type="button"
+                     aria-label={fish
+                       ? `Meal slot ${index + 1}: ${getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}`
+                       : `Meal slot ${index + 1}: empty`}
+                     onClick={() => setActiveMealSlotIndex(index)}
+                     key={index}
+                   >
+                     <span className="fish-meal-slot-number">{index + 1}</span>
+                     {fish ? (
+                       <>
+                         <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
+                         <small>
+                           {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
+                           {typeof fish.metadata.sizePercentile === 'number'
+                             ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
+                             : 'unknown'}
+                         </small>
+                       </>
+                     ) : (
+                       <span className="fish-meal-slot-empty">Click to select</span>
+                     )}
+                   </button>
+                 )
+               })}
+               </div>
+               {activeMealSlotIndex !== null ? (
+               <div className="fish-meal-picker" aria-label="Eligible fish">
+                 <strong>Select a fish for slot {activeMealSlotIndex + 1}</strong>
+                 <div className="fish-meal-picker-list">
+                   {fishItems
+                     .filter((fish) =>
+                       !selectedFishIds.filter((id): id is string => id !== null).includes(fish.itemInstanceId) ||
+                       selectedFishIds[activeMealSlotIndex] === fish.itemInstanceId,
+                     )
+                     .map((fish) => (
+                       <button
+                         className="fish-meal-picker-item"
+                         type="button"
+                         key={fish.itemInstanceId}
+                         onClick={() => {
+                           setSelectedFishIds((current) => {
+                             const next = Array.from({ length: 5 }, (_, index) => current[index] ?? null)
+                             next[activeMealSlotIndex] = fish.itemInstanceId
+                             return next
+                           })
+                           setActiveMealSlotIndex(null)
+                         }}
+                       >
+                         <span>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</span>
+                         <small>
+                           {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
+                           {typeof fish.metadata.sizePercentile === 'number'
+                             ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
+                             : 'unknown'}
+                         </small>
+                       </button>
+                     ))}
+                   <button
+                     className="fish-meal-picker-clear"
+                     type="button"
+                     onClick={() => {
+                       setSelectedFishIds((current) =>
+                         Array.from({ length: 5 }, (_, index) =>
+                           index === activeMealSlotIndex ? null : current[index] ?? null,
+                         ),
+                       )
+                       setActiveMealSlotIndex(null)
+                     }}
+                   >
+                     Clear this slot
+                   </button>
+                   <button
+                     className="secondary-action"
+                     type="button"
+                     onClick={() => setActiveMealSlotIndex(null)}
+                   >
+                     Cancel
+                   </button>
+                 </div>
+               </div>
+               ) : null}
+             </>
+           )}
+           <p className="fish-meal-footnote">
+             Selected fish are consumed when the run starts and cannot be used for recovery.
+           </p>
+         </section>
+         <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">
           <p className="screen-kicker">Raise the heat</p>
           <h3>Pick your arena conditions</h3>
         </div>

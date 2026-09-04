@@ -26,7 +26,7 @@ function formatExhaustion(exhaustionUntil: string | null): string {
   return `${remainingHours}h ${remainingMinutes}m remaining`
 }
 
-function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
+export function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
   const equippedItems = Object.entries(champion.build.equipment)
   return (

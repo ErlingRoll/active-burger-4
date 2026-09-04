@@ -7726,8 +7726,8 @@
   overflow: auto;
   padding: clamp(1rem, 4vw, 3.5rem);
   background:
-    radial-gradient(circle at 78% 12%, rgb(127 29 29 / 24%), transparent 28rem),
-    linear-gradient(145deg, #180a0a 0%, #27131b 52%, #111827 100%);
+    radial-gradient(circle at 78% 12%, rgb(124 58 237 / 28%), transparent 28rem),
+    linear-gradient(145deg, #0f0920 0%, #21133d 52%, #111827 100%);
 }
 
 .abyss-panel {
@@ -7749,14 +7749,14 @@
 
 .abyss-entry-card {
   padding: 1rem;
-  color: #fecaca;
-  background: rgb(127 29 29 / 22%);
-  border: 1px solid rgb(248 113 113 / 30%);
+  color: #ddd6fe;
+  background: rgb(76 29 149 / 22%);
+  border: 1px solid rgb(167 139 250 / 36%);
   border-radius: 0.55rem;
 }
 
 .abyss-entry-card strong {
-  color: #fca5a5;
+  color: #c4b5fd;
 }
 
 .abyss-entry-card ul {
@@ -7767,7 +7767,7 @@
 }
 
 .abyss-modifier-overlay .level-up-panel {
-  border-color: rgb(248 113 113 / 40%);
+  border-color: rgb(167 139 250 / 55%);
 }
 
 .abyss-modifier-choice {
@@ -7777,19 +7777,19 @@
   gap: 1rem;
   min-height: 5rem;
   padding: 0.9rem 1rem;
-  color: #fee2e2;
+  color: #ede9fe;
   text-align: left;
-  background: linear-gradient(110deg, rgb(127 29 29 / 46%), transparent 75%), #1c1917;
-  border: 1px solid rgb(248 113 113 / 40%);
+  background: linear-gradient(110deg, rgb(76 29 149 / 48%), transparent 75%), #171126;
+  border: 1px solid rgb(167 139 250 / 45%);
   border-radius: 0.5rem;
   cursor: pointer;
 }
 
 .abyss-modifier-choice:hover,
 .abyss-modifier-choice:focus-visible {
-  background: linear-gradient(110deg, rgb(153 27 27 / 65%), transparent 75%), #292524;
-  border-color: #fca5a5;
-  outline: 3px solid rgb(248 113 113 / 22%);
+  background: linear-gradient(110deg, rgb(91 33 182 / 68%), transparent 75%), #24153f;
+  border-color: #c4b5fd;
+  outline: 3px solid rgb(167 139 250 / 25%);
   outline-offset: 2px;
 }
 
@@ -7799,16 +7799,33 @@
 }
 
 .abyss-modifier-choice small {
-  color: #fecaca;
+  color: #ddd6fe;
   line-height: 1.4;
 }
 
 .abyss-modifier-choice em {
   flex: 0 0 auto;
-  color: #fca5a5;
+  color: #c4b5fd;
   font-size: 0.75rem;
   font-style: normal;
   font-weight: 800;
+}
+
+.abyss-entry-action {
+  color: #f5f3ff;
+  background:
+    linear-gradient(110deg, rgb(109 40 217 / 44%), transparent 72%),
+    #27183f;
+  border-color: rgb(167 139 250 / 55%);
+}
+
+.abyss-entry-action:hover,
+.abyss-entry-action:focus-visible {
+  color: #ffffff;
+  background:
+    linear-gradient(110deg, rgb(124 58 237 / 62%), transparent 72%),
+    #362052;
+  border-color: #c4b5fd;
 }
 
 .run-dashboard-meal {
@@ -8067,6 +8084,226 @@
   color: #fcd34d;
 }
 
+.run-dashboard-modes {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1.75rem 0 2rem;
+  padding: 1rem;
+  background:
+    linear-gradient(135deg, rgb(124 58 237 / 16%), transparent 72%),
+    rgb(30 27 75 / 46%);
+  border: 1px solid rgb(196 181 253 / 25%);
+  border-radius: 0.7rem;
+}
+
+.run-dashboard-modes .run-dashboard-section-heading {
+  margin-bottom: 0;
+}
+
+.game-mode-list,
+.run-abyss-champion-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.game-mode-choice {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  color: #ddd6fe;
+  text-align: left;
+  background: rgb(30 27 75 / 78%);
+  border: 1px solid rgb(196 181 253 / 20%);
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.game-mode-choice:hover,
+.game-mode-choice:focus-visible {
+  border-color: #a78bfa;
+  outline: 3px solid rgb(196 181 253 / 20%);
+  outline-offset: 2px;
+}
+
+.game-mode-choice.selected {
+  color: #f5f3ff;
+  background: rgb(91 33 182 / 38%);
+  border-color: #c4b5fd;
+}
+
+.game-mode-choice span {
+  color: #a5b4fc;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.run-abyss-champion {
+  display: grid;
+  gap: 0.5rem;
+  color: #ddd6fe;
+}
+
+.run-abyss-champion > span {
+  color: #c4b5fd;
+  font-size: 0.82rem;
+}
+
+.run-abyss-champion-list {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.fish-meal-slots {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.fish-meal-slot {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 6.5rem;
+  padding: 0.7rem;
+  color: #94a3b8;
+  text-align: left;
+  background:
+    repeating-linear-gradient(135deg, rgb(148 163 184 / 5%) 0 2px, transparent 2px 8px),
+    rgb(15 23 42 / 70%);
+  border: 1px dashed rgb(148 163 184 / 42%);
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.fish-meal-slot:hover,
+.fish-meal-slot:focus-visible {
+  color: #e2e8f0;
+  border-color: #67e8f9;
+  outline: 3px solid rgb(103 232 249 / 18%);
+  outline-offset: 2px;
+}
+
+.fish-meal-slot.filled {
+  color: #ecfeff;
+  background:
+    linear-gradient(135deg, rgb(14 116 144 / 38%), transparent 75%),
+    #0f2940;
+  border-style: solid;
+  border-color: #22d3ee;
+}
+
+.fish-meal-slot-number {
+  color: #67e8f9;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.fish-meal-slot strong {
+  color: #f8fafc;
+  font-size: 0.82rem;
+}
+
+.fish-meal-slot small {
+  color: #a5f3fc;
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+.fish-meal-slot-empty {
+  align-self: center;
+  justify-self: center;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.fish-meal-picker {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  background: rgb(30 41 59 / 80%);
+  border: 1px solid rgb(103 232 249 / 30%);
+  border-radius: 0.45rem;
+}
+
+.fish-meal-picker > strong {
+  color: #cffafe;
+}
+
+.fish-meal-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fish-meal-picker-item,
+.fish-meal-picker-clear {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 9rem;
+  padding: 0.55rem 0.7rem;
+  color: #e2e8f0;
+  text-align: left;
+  background: #172033;
+  border: 1px solid rgb(148 163 184 / 25%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.fish-meal-picker-item:hover,
+.fish-meal-picker-item:focus-visible,
+.fish-meal-picker-clear:hover,
+.fish-meal-picker-clear:focus-visible {
+  border-color: #67e8f9;
+  outline: 2px solid rgb(103 232 249 / 18%);
+  outline-offset: 1px;
+}
+
+.fish-meal-picker-item small {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+.fish-meal-picker-clear {
+  color: #fecaca;
+  border-color: rgb(248 113 113 / 35%);
+}
+
+.abyss-entry-tooltip-wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.abyss-entry-tooltip-wrapper .abyss-entry-action {
+  width: 100%;
+}
+
+.app-tooltip.abyss-entry-tooltip {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  display: block;
+  width: min(24rem, 90vw);
+  padding: 0.65rem 0.75rem;
+  color: #ddd6fe;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  background: #171126;
+  border-color: #a78bfa;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.25rem);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+}
+
+.abyss-entry-tooltip-wrapper:hover .abyss-entry-tooltip,
+.abyss-entry-tooltip-wrapper:focus-within .abyss-entry-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
 @media (max-width: 700px) {
   .game-dashboard-hero {
     align-items: stretch;
@@ -8106,8 +8343,16 @@
     grid-template-columns: 1fr;
   }
 
+  .game-mode-list {
+    grid-template-columns: 1fr;
+  }
+
   .fishing-inventory-list li {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .fish-meal-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .champion-management-layout,

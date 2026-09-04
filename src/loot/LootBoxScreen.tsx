@@ -11,13 +11,13 @@ interface LootBoxScreenProps {
   onBack: () => void
 }
 
-export function LootBoxScreen({
+export function InventoryScreen({
   inventoryService,
   lootBoxService,
   configurationError,
   onBack,
 }: LootBoxScreenProps) {
-  const [boxes, setBoxes] = useState<InventoryItemInstance[]>([])
+  const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
   )
@@ -35,8 +35,7 @@ export function LootBoxScreen({
     if (!inventoryService) {
       return
     }
-    const items = await inventoryService.loadInventory('loot-box')
-    setBoxes(items)
+    setItems(await inventoryService.loadInventory())
     setLoadState('ready')
   }
 
@@ -45,10 +44,10 @@ export function LootBoxScreen({
       return
     }
     let cancelled = false
-    void inventoryService.loadInventory('loot-box')
-      .then((items) => {
+    void inventoryService.loadInventory()
+      .then((loadedItems) => {
         if (!cancelled) {
-          setBoxes(items)
+          setItems(loadedItems)
           setLoadState('ready')
           setError(null)
         }
@@ -63,6 +62,10 @@ export function LootBoxScreen({
       cancelled = true
     }
   }, [inventoryService])
+
+  const boxes = items.filter((item) =>
+    getInventoryItemDefinition(item.definitionId)?.category === 'loot-box',
+  )
 
   const openBox = async (box: InventoryItemInstance): Promise<void> => {
     if (!lootBoxService || !inventoryService || opening) {
@@ -86,12 +89,12 @@ export function LootBoxScreen({
   }
 
   return (
-    <section className="dashboard loot-box-screen" aria-labelledby="loot-box-title">
+    <section className="dashboard inventory-screen loot-box-screen" aria-labelledby="loot-box-title">
       <div className="dashboard-panel loot-box-panel">
         <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
         <p className="screen-kicker">Inventory</p>
-        <h2 id="loot-box-title">Loot Boxes</h2>
-        <p>Open boxes to receive a server-resolved reward from their rarity pool.</p>
+        <h2 id="loot-box-title">Inventory</h2>
+        <p>View fish, bait, rods, loot boxes, and other meta items.</p>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
         {lastOpening ? (
           <section className="loot-box-result" aria-live="polite">
@@ -102,32 +105,58 @@ export function LootBoxScreen({
         ) : null}
         {loadState === 'loading' ? (
           <p role="status">Loading loot boxes…</p>
-        ) : boxes.length === 0 ? (
-          <section className="champion-empty-state">
-            <h3>No unopened boxes</h3>
-            <p>Complete Abyss floors to earn loot boxes.</p>
-          </section>
         ) : (
-          <ul className="loot-box-list">
-            {boxes.map((box) => (
-              <li key={box.itemInstanceId}>
-                <div>
-                  <strong>{getInventoryItemDefinition(box.definitionId)?.name ?? box.definitionId}</strong>
-                  <span>×{box.quantity}</span>
-                </div>
-                <button
-                  className="primary-action"
-                  type="button"
-                  onClick={() => { void openBox(box) }}
-                  disabled={opening}
-                >
-                  {opening ? 'Opening…' : 'Open one'}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <section className="inventory-section" aria-labelledby="inventory-items-title">
+              <p className="screen-kicker">Meta items</p>
+              <h3 id="inventory-items-title">Owned items</h3>
+              {items.length === 0 ? (
+                <p className="champion-empty-state">No meta items yet.</p>
+              ) : (
+                <ul className="inventory-item-list">
+                  {items.map((item) => (
+                    <li key={item.itemInstanceId}>
+                      <strong>{getInventoryItemDefinition(item.definitionId)?.name ?? item.definitionId}</strong>
+                      <span>×{item.quantity}</span>
+                      {typeof item.metadata.rarity === 'string'
+                        ? <small>{item.metadata.rarity}</small>
+                        : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section className="inventory-section" aria-labelledby="loot-box-title">
+              <p className="screen-kicker">Rewards</p>
+              <h3 id="loot-box-title">Unopened loot boxes</h3>
+              {boxes.length === 0 ? (
+                <p className="fishing-muted">Complete Abyss floors to earn loot boxes.</p>
+              ) : (
+                <ul className="loot-box-list">
+                  {boxes.map((box) => (
+                    <li key={box.itemInstanceId}>
+                      <div>
+                        <strong>{getInventoryItemDefinition(box.definitionId)?.name ?? box.definitionId}</strong>
+                        <span>×{box.quantity}</span>
+                      </div>
+                      <button
+                        className="primary-action"
+                        type="button"
+                        onClick={() => { void openBox(box) }}
+                        disabled={opening}
+                      >
+                        {opening ? 'Opening…' : 'Open one'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
         )}
       </div>
     </section>
   )
 }
+
+export const LootBoxScreen = InventoryScreen
