@@ -91,4 +91,34 @@ describe('CharacterService', () => {
       p_name: 'Renamed Champion',
     })
   })
+
+  it('maps Revival Koi recovery results', async () => {
+    const client = fakeClient([{
+      id: 'champion-1',
+      name: 'First Champion',
+      source_run_id: 'run-1',
+      content_version: 'test',
+      build,
+      exhaustion_until: null,
+      archived: false,
+      created_at: '2026-09-04T00:00:00.000Z',
+      fish_instance_id: 'fish-1',
+      exhaustion_reduction_seconds: 14400,
+      was_processed: true,
+    }])
+    const service = createService(client)
+
+    await expect(service.reviveChampion('revival-1', 'champion-1', 'fish-1'))
+      .resolves.toMatchObject({
+        championId: 'champion-1',
+        fishInstanceId: 'fish-1',
+        exhaustionReductionSeconds: 14400,
+        wasProcessed: true,
+      })
+    expect(client.rpc).toHaveBeenCalledWith('revive_champion_with_fish', {
+      p_operation_id: 'revival-1',
+      p_champion_id: 'champion-1',
+      p_fish_instance_id: 'fish-1',
+    })
+  })
 })

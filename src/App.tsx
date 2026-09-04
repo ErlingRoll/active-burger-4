@@ -1961,6 +1961,8 @@ function App() {
       {screen === 'champions' && authentication.account ? (
         <ChampionManagementScreen
           service={characters.service}
+          inventoryService={inventory.service}
+          inventoryError={inventory.configurationError}
           configurationError={characters.configurationError}
           onBack={returnToDashboard}
         />

@@ -65,6 +65,12 @@ export interface CreateChampionInput {
   contentVersion: string
 }
 
+export interface ChampionRevivalResult extends ChampionSnapshot {
+  fishInstanceId: string
+  exhaustionReductionSeconds: number
+  wasProcessed: boolean
+}
+
 export interface CharacterService {
   loadCharacters(): Promise<{
     characters: CharacterRecipe[]
@@ -74,6 +80,11 @@ export interface CharacterService {
   saveCharacter(input: SaveCharacterInput): Promise<CharacterRevision>
   createChampionFromRun(input: CreateChampionInput): Promise<ChampionSnapshot>
   renameChampion(championId: string, name: string): Promise<ChampionSnapshot>
+  reviveChampion(
+    operationId: string,
+    championId: string,
+    fishInstanceId: string,
+  ): Promise<ChampionRevivalResult>
   archiveCharacter(characterId: string): Promise<void>
   archiveChampion(championId: string): Promise<void>
 }

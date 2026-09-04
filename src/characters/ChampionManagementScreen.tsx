@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
 import { getSkillDefinition } from '../content/skills/Skills'
 import { getItemDefinition } from '../content/gear/Items'
+import type { InventoryItemInstance, InventoryService } from '../inventory'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
 
 interface ChampionManagementScreenProps {
   service: CharacterService | null
+  inventoryService: InventoryService | null
+  inventoryError: string | null
   configurationError: string | null
   onBack: () => void
 }
@@ -87,6 +90,8 @@ function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
 
 export function ChampionManagementScreen({
   service,
+  inventoryService,
+  inventoryError,
   configurationError,
   onBack,
 }: ChampionManagementScreenProps) {
@@ -96,11 +101,15 @@ export function ChampionManagementScreen({
     () => service ? 'loading' : 'error',
   )
   const [error, setError] = useState<string | null>(
-    () => service ? configurationError : configurationError ?? 'Champion storage is unavailable.',
+    () => service && inventoryService
+      ? configurationError
+      : configurationError ?? inventoryError ?? 'Champion storage is unavailable.',
   )
   const [renameValue, setRenameValue] = useState<string | null>(null)
   const [actionState, setActionState] = useState<'idle' | 'saving' | 'deleting'>('idle')
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null)
+  const [revivalFish, setRevivalFish] = useState<InventoryItemInstance[]>([])
+  const [recovering, setRecovering] = useState(false)
 
   useEffect(() => {
     if (!service) {
@@ -130,6 +139,27 @@ export function ChampionManagementScreen({
       cancelled = true
     }
   }, [service])
+
+  useEffect(() => {
+    if (!inventoryService) {
+      return
+    }
+    let cancelled = false
+    void inventoryService.loadInventory('fish')
+      .then((items) => {
+        if (!cancelled) {
+          setRevivalFish(items.filter((item) => item.definitionId === 'revival-koi'))
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load Revival Koi.')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [inventoryService])
 
   const selectedChampion = useMemo(
     () => champions.find((champion) => champion.championId === selectedChampionId) ?? null,
@@ -174,6 +204,30 @@ export function ChampionManagementScreen({
     } catch (deleteError: unknown) {
       setActionState('idle')
       setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete Champion.')
+    }
+  }
+
+  const reviveChampion = async (): Promise<void> => {
+    const fish = revivalFish[0]
+    if (!service || !selectedChampion || !fish || recovering) {
+      return
+    }
+    setRecovering(true)
+    setError(null)
+    try {
+      const result = await service.reviveChampion(
+        crypto.randomUUID(),
+        selectedChampion.championId,
+        fish.itemInstanceId,
+      )
+      setChampions((current) => current.map((champion) =>
+        champion.championId === result.championId ? result : champion,
+      ))
+      setRevivalFish((current) => current.filter((item) => item.itemInstanceId !== result.fishInstanceId))
+    } catch (recoveryError: unknown) {
+      setError(recoveryError instanceof Error ? recoveryError.message : 'Unable to use Revival Koi.')
+    } finally {
+      setRecovering(false)
     }
   }
 
@@ -240,6 +294,31 @@ export function ChampionManagementScreen({
                   >
                     Delete Champion
                   </button>
+                  {selectedChampion.exhaustionUntil &&
+                  Date.parse(selectedChampion.exhaustionUntil) > Date.now() ? (
+                    <div className="champion-revival-panel">
+                      <strong>Champion exhausted</strong>
+                      <span>{formatExhaustion(selectedChampion.exhaustionUntil)}</span>
+                      {revivalFish.length > 0 ? (
+                        <>
+                          <small>
+                            Revival Koi available: {revivalFish.length}. The selected fish will
+                            reduce the remaining timer based on its rarity and size.
+                          </small>
+                          <button
+                            className="champion-revival-action"
+                            type="button"
+                            onClick={() => { void reviveChampion() }}
+                            disabled={recovering || actionState !== 'idle'}
+                          >
+                            {recovering ? 'Using Revival Koi…' : 'Use Revival Koi'}
+                          </button>
+                        </>
+                      ) : (
+                        <small>Catch a Revival Koi to reduce this timer.</small>
+                      )}
+                    </div>
+                  ) : null}
                 </section>
               </div>
             ) : null}

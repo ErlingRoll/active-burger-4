@@ -7,6 +7,7 @@ import type {
   CharacterBuildSnapshot,
   CharacterRevision,
   CharacterRecipe,
+  ChampionRevivalResult,
   CharacterService,
   ChampionSnapshot,
   CreateChampionInput,
@@ -41,6 +42,12 @@ interface ChampionRow {
   exhaustion_until: string | null
   archived: boolean
   created_at: string
+}
+
+interface ChampionRevivalRow extends ChampionRow {
+  fish_instance_id: string
+  exhaustion_reduction_seconds: number
+  was_processed: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -84,6 +91,16 @@ function isChampionRow(value: unknown): value is ChampionRow {
     (value.exhaustion_until === null || isNonEmptyString(value.exhaustion_until)) &&
     typeof value.archived === 'boolean' &&
     isNonEmptyString(value.created_at)
+}
+
+function isChampionRevivalRow(value: unknown): value is ChampionRevivalRow {
+  return isRecord(value) &&
+    isChampionRow(value) &&
+    isNonEmptyString(value.fish_instance_id) &&
+    typeof value.exhaustion_reduction_seconds === 'number' &&
+    Number.isSafeInteger(value.exhaustion_reduction_seconds) &&
+    value.exhaustion_reduction_seconds >= 0 &&
+    typeof value.was_processed === 'boolean'
 }
 
 function invalidResponse(message: string): Error {
@@ -225,6 +242,35 @@ export function createCharacterService(
         throw invalidResponse('renamed Champion')
       }
       return mapChampion(response.data[0])
+    },
+
+    async reviveChampion(
+      operationId: string,
+      championId: string,
+      fishInstanceId: string,
+    ): Promise<ChampionRevivalResult> {
+      if (!isNonEmptyString(operationId) ||
+        !isNonEmptyString(championId) ||
+        !isNonEmptyString(fishInstanceId)) {
+        throw new Error('Champion revival input is invalid.')
+      }
+      const response = await getClient().rpc('revive_champion_with_fish', {
+        p_operation_id: operationId,
+        p_champion_id: championId,
+        p_fish_instance_id: fishInstanceId,
+      })
+      if (response.error) throw response.error
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isChampionRevivalRow(response.data[0])) {
+        throw invalidResponse('revived Champion')
+      }
+      const row = response.data[0]
+      return {
+        ...mapChampion(row),
+        fishInstanceId: row.fish_instance_id,
+        exhaustionReductionSeconds: row.exhaustion_reduction_seconds,
+        wasProcessed: row.was_processed,
+      }
     },
 
     async archiveCharacter(characterId: string): Promise<void> {
