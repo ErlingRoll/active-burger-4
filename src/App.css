@@ -8134,12 +8134,15 @@
 }
 
 .fishing-pond-scene.fishing-phase-casting .pond-fishing-rod,
+.fishing-pond-scene.fishing-phase-manual .pond-fishing-rod,
 .fishing-pond-scene.fishing-phase-catching .pond-fishing-rod {
   animation: pond-rod-twitch 700ms ease-in-out infinite;
 }
 
 .fishing-pond-scene.fishing-phase-waiting .pond-ripple-one,
 .fishing-pond-scene.fishing-phase-waiting .pond-ripple-two,
+.fishing-pond-scene.fishing-phase-manual .pond-ripple-one,
+.fishing-pond-scene.fishing-phase-manual .pond-ripple-two,
 .fishing-pond-scene.fishing-phase-catching .pond-ripple-one,
 .fishing-pond-scene.fishing-phase-catching .pond-ripple-two {
   opacity: 1;
@@ -8372,6 +8375,7 @@
   z-index: 1;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   color: #a5f3fc;
@@ -8445,6 +8449,7 @@
 }
 
 .pond-bait-status {
+  flex: 1 1 13rem;
   padding: 0.55rem 0.75rem;
   color: #bae6fd;
   background: rgb(14 116 144 / 18%);
@@ -9027,6 +9032,7 @@
   .pond-ripple,
   .pond-lantern,
   .fishing-pond-scene.fishing-phase-casting .pond-fishing-rod,
+  .fishing-pond-scene.fishing-phase-manual .pond-fishing-rod,
   .fishing-pond-scene.fishing-phase-catching .pond-fishing-rod {
     animation: none;
   }

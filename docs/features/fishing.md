@@ -28,12 +28,13 @@ The fishing screen presents a stylized pond rather than a plain form:
 - The Cast line action remains server-authoritative and deterministic; visual
   fish movement must never affect catch resolution.
 
-The scene fills the available area below the shared navbar. The pond is the
-primary visual surface, while spot information is kept in the pond header and
-the rest of the screen is reserved for fishing controls, catch feedback, and a
-compact inventory summary. The scene should remain readable at small screen
-sizes and respect `prefers-reduced-motion`. Fish and ambient effects must not
-obscure the catch result, inventory, or fishing controls.
+The scene fills the available area below the shared navbar. Moonwater Pond is a
+fixed fishing environment; players do not select between fishing spots. The
+pond is the primary visual surface, while the rest of the screen is reserved
+for fishing controls, catch feedback, and a compact inventory summary. The
+scene should remain readable at small screen sizes and respect
+`prefers-reduced-motion`. Fish and ambient effects must not obscure the catch
+result, inventory, or fishing controls.
 
 ## Fishing screen interaction states
 
@@ -54,7 +55,7 @@ the Inventory screen.
 
 ## Fishing loop
 
-1. Choose an unlocked fishing spot, rod, bait, and fishing mode.
+1. Choose a rod, bait, and fishing mode for the fixed Moonwater Pond.
 2. Start an attempt.
 3. Wait for a deterministic catch result.
 4. In manual mode, complete the fishing interaction before the timeout.

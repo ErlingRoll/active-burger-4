@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { FishingService } from './FishingService'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  FishingAttemptPreparation,
+  FishingService,
+} from './FishingService'
 import {
   DEFAULT_FISHING_BAIT_ID,
-  DEFAULT_FISHING_SPOT_ID,
+  FISHING_BAITS,
+  FISHING_MODES,
+  isFishingMode,
+  type FishingMode,
 } from './FishingContent'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
@@ -22,12 +28,13 @@ function formatSizePercentile(value: unknown): string {
   return typeof value === 'number' ? `${Math.round(value * 100)}%` : 'Unknown'
 }
 
-type FishingPhase = 'idle' | 'casting' | 'waiting' | 'catching'
+type FishingPhase = 'idle' | 'casting' | 'waiting' | 'manual' | 'catching'
 
 const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
   idle: 'Ready to cast',
   casting: 'Casting line…',
   waiting: 'Watching the float…',
+  manual: 'Reel in now',
   catching: 'Catch on the line!',
 }
 
@@ -35,6 +42,10 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, milliseconds)
   })
+}
+
+async function waitUntil(timestamp: string): Promise<void> {
+  await delay(Math.max(0, Date.parse(timestamp) - Date.now()))
 }
 
 export function FishingScreen({
@@ -51,23 +62,63 @@ export function FishingScreen({
     () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
   )
   const [fishingPhase, setFishingPhase] = useState<FishingPhase>('idle')
+  const [selectedMode, setSelectedMode] = useState<FishingMode>('auto')
+  const [selectedBaitId, setSelectedBaitId] = useState(DEFAULT_FISHING_BAIT_ID)
   const [selectedRodId, setSelectedRodId] = useState<string | null>(null)
+  const [pendingAttempt, setPendingAttempt] = useState<FishingAttemptPreparation | null>(null)
   const [lastCatch, setLastCatch] = useState<{
     definitionId: string
     metadata: Record<string, unknown>
   } | null>(null)
+  const phaseRef = useRef<FishingPhase>('idle')
+  const pendingAttemptRef = useRef<FishingAttemptPreparation | null>(null)
+  const pityTimerRef = useRef<number | null>(null)
+  const mountedRef = useRef(true)
+
+  const setPhase = (phase: FishingPhase) => {
+    phaseRef.current = phase
+    if (mountedRef.current) {
+      setFishingPhase(phase)
+    }
+  }
 
   const rods = useMemo(
     () => items.filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'rod'),
     [items],
   )
-  const selectedRod = selectedRodId
-    ? rods.find((rod) => rod.itemInstanceId === selectedRodId)
+  const baits = useMemo(
+    () => items.filter((item) =>
+      getInventoryItemDefinition(item.definitionId)?.category === 'bait' &&
+      item.definitionId !== DEFAULT_FISHING_BAIT_ID,
+    ),
+    [items],
+  )
+  const effectiveSelectedBaitId = selectedBaitId === DEFAULT_FISHING_BAIT_ID ||
+    baits.some((bait) => bait.itemInstanceId === selectedBaitId)
+    ? selectedBaitId
+    : DEFAULT_FISHING_BAIT_ID
+  const selectedBait = baits.find((bait) => bait.itemInstanceId === effectiveSelectedBaitId)
+  const effectiveSelectedRodId = selectedRodId &&
+    rods.some((rod) => rod.itemInstanceId === selectedRodId)
+    ? selectedRodId
+    : null
+  const selectedRod = effectiveSelectedRodId
+    ? rods.find((rod) => rod.itemInstanceId === effectiveSelectedRodId)
     : undefined
   const fishCount = items.filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'fish').length
   const boxCount = items
     .filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'loot-box')
     .reduce((total, item) => total + item.quantity, 0)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (pityTimerRef.current !== null) {
+        window.clearTimeout(pityTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!inventoryService) {
@@ -93,33 +144,98 @@ export function FishingScreen({
     }
   }, [configurationError, inventoryService])
 
-  const startFishing = async (): Promise<void> => {
-    if (!fishingService || !inventoryService || fishingPhase !== 'idle') {
+  const resolveFishingAttempt = async (
+    attemptId: string,
+    manualSuccess: boolean,
+    preparation = pendingAttempt,
+  ): Promise<void> => {
+    if (!fishingService || !inventoryService || !preparation ||
+      preparation.attemptId !== attemptId ||
+      pendingAttemptRef.current?.attemptId !== attemptId ||
+      (phaseRef.current !== 'waiting' && phaseRef.current !== 'manual')) {
       return
     }
-    setFishingPhase('casting')
-    setError(null)
+    if (pityTimerRef.current !== null) {
+      window.clearTimeout(pityTimerRef.current)
+      pityTimerRef.current = null
+    }
+    setPhase('catching')
     try {
-      await delay(400)
-      setFishingPhase('waiting')
-      await delay(800)
-      const result = await fishingService.startAttempt({
-        attemptId: createAttemptId(),
-        spotId: DEFAULT_FISHING_SPOT_ID,
-        baitDefinitionId: DEFAULT_FISHING_BAIT_ID,
-        rodInstanceId: selectedRod?.itemInstanceId ?? null,
+      const result = await fishingService.resolveAttempt({
+        attemptId,
+        manualSuccess,
       })
-      setFishingPhase('catching')
+      if (!mountedRef.current) {
+        return
+      }
       setLastCatch({
         definitionId: result.definitionId,
         metadata: result.metadata,
       })
-      setItems(await inventoryService.loadInventory())
+      const loadedItems = await inventoryService.loadInventory()
+      if (!mountedRef.current) {
+        return
+      }
+      setItems(loadedItems)
       await delay(700)
     } catch (fishingError: unknown) {
-      setError(fishingError instanceof Error ? fishingError.message : 'Unable to complete fishing attempt.')
+      if (mountedRef.current) {
+        setError(fishingError instanceof Error ? fishingError.message : 'Unable to complete fishing attempt.')
+      }
     } finally {
-      setFishingPhase('idle')
+      if (pendingAttemptRef.current?.attemptId === attemptId) {
+        pendingAttemptRef.current = null
+        if (mountedRef.current) {
+          setPendingAttempt(null)
+          setPhase('idle')
+        }
+      }
+    }
+  }
+
+  const startFishing = async (): Promise<void> => {
+    if (!fishingService || !inventoryService || fishingPhase !== 'idle') {
+      return
+    }
+    setPhase('casting')
+    setError(null)
+    try {
+      await delay(400)
+      if (!mountedRef.current) {
+        return
+      }
+      const preparation = await fishingService.beginAttempt({
+        attemptId: createAttemptId(),
+        mode: selectedMode,
+        baitDefinitionId: selectedBait?.definitionId ?? DEFAULT_FISHING_BAIT_ID,
+        baitInstanceId: selectedBait?.itemInstanceId ?? null,
+        rodInstanceId: selectedRod?.itemInstanceId ?? null,
+      })
+      if (!mountedRef.current) {
+        return
+      }
+      pendingAttemptRef.current = preparation
+      setPendingAttempt(preparation)
+      setPhase('waiting')
+      await waitUntil(preparation.resolveAt)
+      if (!mountedRef.current || pendingAttemptRef.current?.attemptId !== preparation.attemptId) {
+        return
+      }
+      if (preparation.mode === 'manual') {
+        setPhase('manual')
+        pityTimerRef.current = window.setTimeout(() => {
+          void resolveFishingAttempt(preparation.attemptId, false, preparation)
+        }, Math.max(0, Date.parse(preparation.pityAt) - Date.now()))
+      } else {
+        await resolveFishingAttempt(preparation.attemptId, false, preparation)
+      }
+    } catch (fishingError: unknown) {
+      if (mountedRef.current) {
+        setError(fishingError instanceof Error ? fishingError.message : 'Unable to complete fishing attempt.')
+        pendingAttemptRef.current = null
+        setPendingAttempt(null)
+        setPhase('idle')
+      }
     }
   }
 
@@ -169,7 +285,7 @@ export function FishingScreen({
             <div className="fishing-hud-topbar">
               <div className="pond-scene-header">
                 <div>
-                  <p className="screen-kicker">Downtime activity · Quiet River Bank</p>
+                  <p className="screen-kicker">Downtime activity · Moonwater Pond</p>
                   <h2 id="fishing-title">Fishing · <span id="fishing-pond-title">Moonwater Pond</span></h2>
                 </div>
                 <span className="pond-scene-status">{FISHING_PHASE_LABELS[fishingPhase]}</span>
@@ -185,9 +301,42 @@ export function FishingScreen({
               </section>
               <div className="pond-scene-actions">
                 <label className="pond-loadout-control">
+                  <span>Mode</span>
+                  <select
+                    value={selectedMode}
+                    onChange={(event) => {
+                      if (isFishingMode(event.target.value)) {
+                        setSelectedMode(event.target.value)
+                      }
+                    }}
+                    disabled={fishingPhase !== 'idle'}
+                  >
+                    {Object.values(FISHING_MODES).map((mode) => (
+                      <option value={mode.id} key={mode.id}>{mode.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="pond-loadout-control">
+                  <span>Bait</span>
+                  <select
+                    value={effectiveSelectedBaitId}
+                    onChange={(event) => setSelectedBaitId(event.target.value)}
+                    disabled={fishingPhase !== 'idle'}
+                  >
+                    <option value={DEFAULT_FISHING_BAIT_ID}>
+                      {FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · unlimited
+                    </option>
+                    {baits.map((bait) => (
+                      <option value={bait.itemInstanceId} key={bait.itemInstanceId}>
+                        {getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · {bait.quantity}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="pond-loadout-control">
                   <span>Rod</span>
                   <select
-                    value={selectedRodId ?? ''}
+                    value={effectiveSelectedRodId ?? ''}
                     onChange={(event) => setSelectedRodId(event.target.value || null)}
                     disabled={fishingPhase !== 'idle'}
                   >
@@ -199,14 +348,28 @@ export function FishingScreen({
                     ))}
                   </select>
                 </label>
-                <span className="pond-bait-status">Basic bait is unlimited</span>
+                <span className="pond-bait-status">
+                  {selectedMode === 'manual'
+                    ? FISHING_MODES.manual.description
+                    : FISHING_MODES.auto.description}
+                </span>
                 <button
                   className="primary-action pond-cast-button"
                   type="button"
-                  onClick={() => { void startFishing() }}
-                  disabled={fishingPhase !== 'idle' || loadState !== 'ready' || fishingService === null}
+                  onClick={() => {
+                    if (fishingPhase === 'manual' && pendingAttempt) {
+                      void resolveFishingAttempt(pendingAttempt.attemptId, true)
+                    } else {
+                      void startFishing()
+                    }
+                  }}
+                  disabled={
+                    (fishingPhase !== 'idle' && fishingPhase !== 'manual') ||
+                    loadState !== 'ready' ||
+                    fishingService === null
+                  }
                 >
-                  {FISHING_PHASE_LABELS[fishingPhase]}
+                  {fishingPhase === 'manual' ? 'Reel in' : FISHING_PHASE_LABELS[fishingPhase]}
                 </button>
               </div>
             </div>
