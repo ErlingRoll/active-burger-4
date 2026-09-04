@@ -202,7 +202,7 @@ function aggregateGearEffects(
     }),
     critChance: player.critChance ?? DEFAULT_PLAYER_CRITICAL_STRIKE.chance,
     critMultiplier: player.critMultiplier ?? DEFAULT_PLAYER_CRITICAL_STRIKE.multiplier,
-    cooldownReduction: 0,
+    cooldownReduction: Math.max(0, player.preparationCooldownReductionPercent ?? 0),
     areaOfEffect: 0,
     globalExtraProjectiles: 0,
     basicAttackExtraProjectiles: 0,

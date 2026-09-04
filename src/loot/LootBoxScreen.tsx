@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
+import { getFishDefinition } from '../fishing'
 import type { LootBoxService } from './LootBoxService'
 import { getAbyssLootBoxRarityLabel } from './LootBoxes'
 
@@ -9,6 +10,31 @@ interface LootBoxScreenProps {
   lootBoxService: LootBoxService | null
   configurationError: string | null
   onBack: () => void
+}
+
+function getInventoryItemIcon(item: InventoryItemInstance): string {
+  const definition = getInventoryItemDefinition(item.definitionId)
+  return getFishDefinition(item.definitionId)?.visual.icon ??
+    ({
+      fish: '🐟',
+      bait: '◉',
+      rod: '🎣',
+      'loot-box': '▣',
+      artifact: '◇',
+      material: '◆',
+      utility: '✦',
+    }[definition?.category ?? 'utility'] ?? '✦')
+}
+
+function getInventoryItemDetail(item: InventoryItemInstance): string {
+  const definition = getInventoryItemDefinition(item.definitionId)
+  if (definition?.unlimited) {
+    return 'Unlimited'
+  }
+  if (typeof item.metadata.rarity === 'string') {
+    return item.metadata.rarity
+  }
+  return definition?.category.replace('-', ' ') ?? 'item'
 }
 
 export function InventoryScreen({
@@ -113,14 +139,18 @@ export function InventoryScreen({
               {items.length === 0 ? (
                 <p className="champion-empty-state">No meta items yet.</p>
               ) : (
-                <ul className="inventory-item-list">
+                <ul className="inventory-item-grid">
                   {items.map((item) => (
-                    <li key={item.itemInstanceId}>
-                      <strong>{getInventoryItemDefinition(item.definitionId)?.name ?? item.definitionId}</strong>
-                      <span>×{item.quantity}</span>
-                      {typeof item.metadata.rarity === 'string'
-                        ? <small>{item.metadata.rarity}</small>
-                        : null}
+                    <li
+                      className={`inventory-item-card category-${getInventoryItemDefinition(item.definitionId)?.category ?? 'utility'}`}
+                      key={item.itemInstanceId}
+                    >
+                      <span className="inventory-item-icon" aria-hidden="true">{getInventoryItemIcon(item)}</span>
+                      <div>
+                        <strong>{getInventoryItemDefinition(item.definitionId)?.name ?? item.definitionId}</strong>
+                        <small>{getInventoryItemDetail(item)}</small>
+                      </div>
+                      <span className="inventory-item-quantity">×{item.quantity}</span>
                     </li>
                   ))}
                 </ul>

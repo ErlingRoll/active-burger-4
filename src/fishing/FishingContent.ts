@@ -62,43 +62,190 @@ export interface FishingCatch {
   }
 }
 
+export type FishEffectFamily =
+  | 'movement-speed'
+  | 'attack-speed'
+  | 'increased-healing'
+  | 'max-hp'
+  | 'attack-damage'
+  | 'cooldown-reduction'
+  | 'physical-resistance'
+  | 'elite-damage'
+  | 'emergency-revive'
+  | 'abyss-exhaustion'
+
+export interface FishDefinition {
+  id: InventoryItemDefinitionId
+  name: string
+  rarity: RarityValue
+  effect: {
+    family: FishEffectFamily
+    label: string
+    description: string
+    baseValue: number
+    runMealEligible: boolean
+  }
+  visual: {
+    icon: string
+    accent: string
+    glow: string
+  }
+}
+
 export const FISH_DEFINITIONS = {
   'river-minnow': {
     id: 'river-minnow',
     name: 'River Minnow',
     rarity: Rarity.Common,
+    effect: {
+      family: 'movement-speed',
+      label: 'Swift Current',
+      description: '+2% movement speed',
+      baseValue: 2,
+      runMealEligible: true,
+    },
+    visual: { icon: '🐟', accent: '#67e8f9', glow: '#0891b2' },
+  },
+  'reed-darter': {
+    id: 'reed-darter',
+    name: 'Reed Darter',
+    rarity: Rarity.Common,
+    effect: {
+      family: 'attack-speed',
+      label: 'Quick Fins',
+      description: '+3% attack speed',
+      baseValue: 3,
+      runMealEligible: true,
+    },
+    visual: { icon: '🐠', accent: '#86efac', glow: '#15803d' },
+  },
+  'glassfin-trout': {
+    id: 'glassfin-trout',
+    name: 'Glassfin Trout',
+    rarity: Rarity.Common,
+    effect: {
+      family: 'increased-healing',
+      label: 'Clearwater',
+      description: '+5% healing received',
+      baseValue: 5,
+      runMealEligible: true,
+    },
+    visual: { icon: '🫧', accent: '#bae6fd', glow: '#0284c7' },
   },
   'silver-perch': {
     id: 'silver-perch',
     name: 'Silver Perch',
     rarity: Rarity.Uncommon,
+    effect: {
+      family: 'max-hp',
+      label: 'Steady Scales',
+      description: '+4% maximum health',
+      baseValue: 4,
+      runMealEligible: true,
+    },
+    visual: { icon: '🐟', accent: '#d1d5db', glow: '#64748b' },
+  },
+  'lantern-pike': {
+    id: 'lantern-pike',
+    name: 'Lantern Pike',
+    rarity: Rarity.Uncommon,
+    effect: {
+      family: 'attack-damage',
+      label: 'Ambush Predator',
+      description: '+3% attack damage',
+      baseValue: 3,
+      runMealEligible: true,
+    },
+    visual: { icon: '🏮', accent: '#fde68a', glow: '#d97706' },
   },
   'moon-carp': {
     id: 'moon-carp',
     name: 'Moon Carp',
     rarity: Rarity.Rare,
+    effect: {
+      family: 'cooldown-reduction',
+      label: 'Moonlit Focus',
+      description: '+5% skill cooldown recovery',
+      baseValue: 5,
+      runMealEligible: true,
+    },
+    visual: { icon: '🌙', accent: '#c4b5fd', glow: '#7c3aed' },
+  },
+  'tideback-catfish': {
+    id: 'tideback-catfish',
+    name: 'Tideback Catfish',
+    rarity: Rarity.Rare,
+    effect: {
+      family: 'physical-resistance',
+      label: 'Heavy Scales',
+      description: '+4% physical resistance',
+      baseValue: 4,
+      runMealEligible: true,
+    },
+    visual: { icon: '🐡', accent: '#f0abfc', glow: '#a21caf' },
   },
   'revival-koi': {
     id: 'revival-koi',
     name: 'Revival Koi',
     rarity: Rarity.Epic,
+    effect: {
+      family: 'abyss-exhaustion',
+      label: 'Second Breath',
+      description: 'Reduces Champion Abyss exhaustion by up to 4 hours',
+      baseValue: 4,
+      runMealEligible: false,
+    },
+    visual: { icon: '鯉', accent: '#fb7185', glow: '#be123c' },
+  },
+  'comet-eel': {
+    id: 'comet-eel',
+    name: 'Comet Eel',
+    rarity: Rarity.Epic,
+    effect: {
+      family: 'elite-damage',
+      label: 'Abyss Current',
+      description: '+8% damage against elite and boss enemies',
+      baseValue: 8,
+      runMealEligible: true,
+    },
+    visual: { icon: '⚡', accent: '#f0abfc', glow: '#c026d3' },
   },
   'star-koi': {
     id: 'star-koi',
     name: 'Star Koi',
     rarity: Rarity.Legendary,
+    effect: {
+      family: 'emergency-revive',
+      label: 'Astral Grace',
+      description: 'Prevents the first lethal hit and leaves you at 20% health',
+      baseValue: 20,
+      runMealEligible: true,
+    },
+    visual: { icon: '✦', accent: '#fef08a', glow: '#ca8a04' },
   },
-} as const
+} as const satisfies Record<string, FishDefinition>
 
-const SPECIES_BY_RARITY: Record<RarityValue, InventoryItemDefinitionId> = {
-  [Rarity.Common]: 'river-minnow',
-  [Rarity.Uncommon]: 'silver-perch',
-  [Rarity.Rare]: 'moon-carp',
-  [Rarity.Epic]: 'revival-koi',
-  [Rarity.Legendary]: 'star-koi',
-}
+export const FISH_DROP_TABLE = [
+  { definitionId: 'river-minnow', baseDropChance: 29 },
+  { definitionId: 'reed-darter', baseDropChance: 15 },
+  { definitionId: 'glassfin-trout', baseDropChance: 12 },
+  { definitionId: 'silver-perch', baseDropChance: 10 },
+  { definitionId: 'lantern-pike', baseDropChance: 9 },
+  { definitionId: 'moon-carp', baseDropChance: 8 },
+  { definitionId: 'tideback-catfish', baseDropChance: 6 },
+  { definitionId: 'revival-koi', baseDropChance: 5 },
+  { definitionId: 'comet-eel', baseDropChance: 4 },
+  { definitionId: 'star-koi', baseDropChance: 2 },
+] as const satisfies readonly {
+  definitionId: InventoryItemDefinitionId
+  baseDropChance: number
+}[]
 
 export const DEFAULT_FISHING_BAIT_ID = 'basic-bait'
+
+export function getFishDefinition(definitionId: string): FishDefinition | undefined {
+  return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
+}
 
 export interface FishingCatchOptions {
   mode?: FishingMode
@@ -118,22 +265,26 @@ export function resolveFishingCatch(
 ): FishingCatch {
   const normalizedSeed = normalizeSeed(seed)
   const manualBonus = options.mode === 'manual' && options.manualSuccess ? 15 : 0
-  const rarityRoll = Math.max(0, normalizedSeed % 100 - manualBonus)
-  const rarity = rarityRoll < 60
-    ? Rarity.Common
-    : rarityRoll < 85
-      ? Rarity.Uncommon
-      : rarityRoll < 96
-        ? Rarity.Rare
-        : rarityRoll < 99
-          ? Rarity.Epic
-          : Rarity.Legendary
+  const roll = Math.max(0, (normalizedSeed % 10000) / 100 - manualBonus)
+  let cumulativeChance = 0
+  let selectedFishId = FISH_DROP_TABLE[FISH_DROP_TABLE.length - 1].definitionId
+  for (const entry of FISH_DROP_TABLE) {
+    cumulativeChance += entry.baseDropChance
+    if (roll < cumulativeChance) {
+      selectedFishId = entry.definitionId
+      break
+    }
+  }
+  const selectedFish = getFishDefinition(selectedFishId)
+  if (!selectedFish) {
+    throw new Error(`Unknown fishing table entry: ${selectedFishId}.`)
+  }
   const sizeBonus = options.mode === 'manual' && options.manualSuccess ? 0.05 : 0
   return {
-    definitionId: SPECIES_BY_RARITY[rarity],
+    definitionId: selectedFish.id,
     metadata: {
-      speciesId: SPECIES_BY_RARITY[rarity],
-      rarity,
+      speciesId: selectedFish.id,
+      rarity: selectedFish.rarity,
       sizePercentile: Math.min(0.99, 0.1 + (normalizedSeed % 8000) / 10000 + sizeBonus),
     },
   }

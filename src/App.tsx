@@ -77,11 +77,12 @@ import {
 } from './bug-report'
 import {
   createFishingService,
-  getFishMealLabel,
+  getFishMealEffectSummary,
   resolveFishMeal,
   FishingScreen,
   type FishingService,
 } from './fishing'
+import { getFishDefinition } from './fishing/FishingContent'
 import {
   ChampionManagementScreen,
   ChampionDetails,
@@ -2004,7 +2005,11 @@ function App() {
           fishingService={fishing.service}
           inventoryService={inventory.service}
           configurationError={fishing.configurationError ?? inventory.configurationError}
+          activityPlayerId={authentication.account.id}
+          activityPlayerName={authentication.account.displayName ?? 'Anonymous fisher'}
+          characterClassId={settings.selectedCharacterClassId}
           onBack={returnToDashboard}
+          onOpenInventory={() => navigateToScreen('inventory')}
         />
       ) : null}
       {screen === 'champions' && authentication.account ? (
@@ -2536,6 +2541,10 @@ function RunSetupScreen({
     () => selectedFishSlots.filter((item): item is InventoryItemInstance => item !== null),
     [selectedFishSlots],
   )
+  const eligibleFishItems = useMemo(
+    () => fishItems.filter((fish) => getFishDefinition(fish.definitionId)?.effect.runMealEligible),
+    [fishItems],
+  )
   const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
   const selectedChampion = champions.find((champion) =>
     champion.championId === selectedChampionId,
@@ -2734,7 +2743,7 @@ function RunSetupScreen({
              <h3 id="fish-meal-title">Choose up to five fish</h3>
            </div>
            <p className="fish-meal-summary">
-             {getFishMealLabel(fishMeal.movementSpeedPercent)} · {selectedFish.length}/{5} selected
+             {getFishMealEffectSummary(fishMeal.effects)} · {selectedFish.length}/{5} selected
            </p>
            {fishLoadState === 'loading' ? (
              <p className="fish-meal-muted">Loading fish inventory…</p>
@@ -2742,16 +2751,21 @@ function RunSetupScreen({
              <p className="persistence-error" role="alert">
                {fishLoadError ?? 'Fish inventory is unavailable. You can still start without a meal.'}
              </p>
-           ) : fishItems.length === 0 ? (
+           ) : eligibleFishItems.length === 0 ? (
              <p className="fish-meal-muted">No fish available. Visit Fishing to catch some.</p>
            ) : (
              <>
                <div className="fish-meal-slots" aria-label="Five fish meal slots">
                {Array.from({ length: 5 }, (_, index) => {
                  const fish = selectedFishSlots[index]
+                 const definition = fish ? getFishDefinition(fish.definitionId) : undefined
                  return (
                    <button
-                     className={`fish-meal-slot${fish ? ' filled' : ''}`}
+                     className={`fish-meal-slot${fish ? ' filled' : ''}${definition ? ` fish-${definition.id}` : ''}`}
+                     style={definition ? {
+                       borderColor: definition.visual.accent,
+                       boxShadow: `0 0 18px ${definition.visual.glow}55`,
+                     } : undefined}
                      type="button"
                      aria-label={fish
                        ? `Meal slot ${index + 1}: ${getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}`
@@ -2762,6 +2776,9 @@ function RunSetupScreen({
                      <span className="fish-meal-slot-number">{index + 1}</span>
                      {fish ? (
                        <>
+                         <span className="fish-meal-slot-icon" aria-hidden="true">
+                           {definition?.visual.icon ?? '🐟'}
+                         </span>
                          <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
@@ -2781,14 +2798,18 @@ function RunSetupScreen({
                <div className="fish-meal-picker" aria-label="Eligible fish">
                  <strong>Select a fish for slot {activeMealSlotIndex + 1}</strong>
                  <div className="fish-meal-picker-list">
-                   {fishItems
+                   {eligibleFishItems
                      .filter((fish) =>
                        !selectedFishIds.filter((id): id is string => id !== null).includes(fish.itemInstanceId) ||
                        selectedFishIds[activeMealSlotIndex] === fish.itemInstanceId,
                      )
                      .map((fish) => (
                        <button
-                         className="fish-meal-picker-item"
+                         className={`fish-meal-picker-item${getFishDefinition(fish.definitionId) ? ` fish-${fish.definitionId}` : ''}`}
+                         style={getFishDefinition(fish.definitionId) ? {
+                       borderColor: getFishDefinition(fish.definitionId)?.visual.accent,
+                       boxShadow: `0 0 16px ${getFishDefinition(fish.definitionId)?.visual.glow}44`,
+                         } : undefined}
                          type="button"
                          key={fish.itemInstanceId}
                          onClick={() => {
@@ -2800,13 +2821,19 @@ function RunSetupScreen({
                            setActiveMealSlotIndex(null)
                          }}
                        >
-                         <span>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</span>
+                         <span className="fish-meal-picker-item-heading">
+                           <span className="fish-meal-picker-item-icon" aria-hidden="true">
+                             {getFishDefinition(fish.definitionId)?.visual.icon ?? '🐟'}
+                           </span>
+                           <span>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</span>
+                         </span>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
                            {typeof fish.metadata.sizePercentile === 'number'
                              ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
                              : 'unknown'}
                          </small>
+                         <em>{getFishDefinition(fish.definitionId)?.effect.description}</em>
                        </button>
                      ))}
                    <button
@@ -2836,7 +2863,7 @@ function RunSetupScreen({
              </>
            )}
            <p className="fish-meal-footnote">
-             Selected fish are consumed when the run starts and cannot be used for recovery.
+             Selected fish are consumed when the run starts. Revival Koi is reserved for Champion recovery.
            </p>
          </section>
          <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">

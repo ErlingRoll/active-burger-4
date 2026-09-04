@@ -19,9 +19,15 @@ The fishing screen presents a stylized pond rather than a plain form:
   pond atmosphere.
 - The player is shown seated at a fishing spot around the pond with a visible
   rod.
-- Additional seated angler silhouettes make the pond feel inhabited. These are
-  presentation-only local markers, not networked players or multiplayer
-  entities.
+- Each authenticated player is rendered at a deterministic position along the
+  pond perimeter when their shared activity is received. Anglers are
+  data-driven rather than limited to a fixed set of presentation slots, so the
+  pond can accommodate any number of active fishers.
+- Authenticated players on the pond receive lightweight realtime cast and catch
+  activity. Other anglers animate their rods when a player casts and show a
+  catch sparkle plus a shared activity notice when a fish is landed. These
+  events are visual-only and never contain inventory IDs, fish size, or private
+  progression data.
 - The entire Fishing viewport uses a dark cosmic backdrop with sparse stars and
   subtle blue/violet nebula gradients. The pond is a brighter foreground focal
   layer within that space.
@@ -130,6 +136,21 @@ value. Size affects visual scale, shop value, and effect potency. Effects should
 use normalized size rather than raw kilograms so different species remain
 balanceable.
 
+The initial weighted catch table is:
+
+| Fish | Base chance | Run effect |
+| --- | ---: | --- |
+| River Minnow | 29% | Movement speed |
+| Reed Darter | 15% | Attack speed |
+| Glassfin Trout | 12% | Healing received |
+| Silver Perch | 10% | Maximum health |
+| Lantern Pike | 9% | Attack damage |
+| Moon Carp | 8% | Skill cooldown recovery |
+| Tideback Catfish | 6% | Physical resistance |
+| Revival Koi | 5% | Champion Abyss exhaustion recovery |
+| Comet Eel | 4% | Elite and boss damage |
+| Star Koi | 2% | One-time lethal-hit prevention |
+
 Most fish have no enchantment. The initial target enchantment chance is 5%,
 subject to later balance changes. Enchantments are a later expansion and are not
 required for the first fishing implementation.
@@ -152,8 +173,9 @@ loadout. This can be done with one-slot-per-family rules or diminishing returns.
 
 ### Revival fish
 
-Eligible fish, including Revival Koi, can reduce a Champion's Abyss exhaustion.
-Revival use consumes the fish and cannot be combined with run-meal use.
+Revival Koi can reduce a Champion's Abyss exhaustion. It is reserved for
+recovery and cannot be selected as a run meal. Revival use consumes the fish and
+cannot be combined with run-meal use.
 
 Revival power is based on rarity and normalized size:
 

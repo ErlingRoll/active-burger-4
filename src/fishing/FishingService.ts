@@ -1,5 +1,5 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { isRarity, type Rarity } from '../content/rarity/Rarity'
 import {
   isFishingMode,
@@ -21,6 +21,8 @@ export interface FishingAttemptPreparation {
   status: 'pending' | 'completed'
   resolveAt: string
   pityAt: string
+  resolveAtClientTime: number
+  pityAtClientTime: number
   wasProcessed: boolean
 }
 
@@ -35,9 +37,27 @@ export interface FishingAttemptResult extends FishingCatch {
   wasProcessed: boolean
 }
 
+export type FishingActivityKind = 'cast' | 'catch'
+
+export interface FishingActivityEvent {
+  eventId: string
+  attemptId: string
+  playerId: string
+  playerName: string
+  kind: FishingActivityKind
+  fishDefinitionId?: string
+  rarity?: Rarity
+  occurredAt: string
+}
+
 export interface FishingService {
   beginAttempt(input: BeginFishingInput): Promise<FishingAttemptPreparation>
   resolveAttempt(input: ResolveFishingInput): Promise<FishingAttemptResult>
+  publishActivity(event: FishingActivityEvent): Promise<void>
+  subscribeToActivity(
+    listener: (event: FishingActivityEvent) => void,
+    onError: (error: Error) => void,
+  ): () => void
 }
 
 interface RpcFishingPreparationRow {
@@ -46,6 +66,7 @@ interface RpcFishingPreparationRow {
   status: 'pending' | 'completed'
   resolve_at: string
   pity_at: string
+  server_time: string
   was_processed: boolean
 }
 
@@ -69,6 +90,27 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function isFishingActivityKind(value: unknown): value is FishingActivityKind {
+  return value === 'cast' || value === 'catch'
+}
+
+function isFishingActivityEvent(value: unknown): value is FishingActivityEvent {
+  if (!isRecord(value) ||
+    !isNonEmptyString(value.eventId) ||
+    !isNonEmptyString(value.attemptId) ||
+    !isNonEmptyString(value.playerId) ||
+    !isNonEmptyString(value.playerName) ||
+    !isFishingActivityKind(value.kind) ||
+    !isNonEmptyString(value.occurredAt) ||
+    !Number.isFinite(Date.parse(value.occurredAt))) {
+    return false
+  }
+  if (value.kind === 'catch') {
+    return isNonEmptyString(value.fishDefinitionId) && isRarity(value.rarity)
+  }
+  return value.fishDefinitionId === undefined && value.rarity === undefined
+}
+
 function isAttemptStatus(value: unknown): value is 'pending' | 'completed' {
   return value === 'pending' || value === 'completed'
 }
@@ -82,6 +124,8 @@ function isRpcFishingPreparationRow(value: unknown): value is RpcFishingPreparat
     Number.isFinite(Date.parse(value.resolve_at)) &&
     isNonEmptyString(value.pity_at) &&
     Number.isFinite(Date.parse(value.pity_at)) &&
+    isNonEmptyString(value.server_time) &&
+    Number.isFinite(Date.parse(value.server_time)) &&
     typeof value.was_processed === 'boolean'
 }
 
@@ -121,6 +165,16 @@ export function createFishingService(
 ): FishingService {
   const defaultClient = getSupabaseClient(environment)
   const getClient = (): SupabaseClient => resolveClient?.() ?? defaultClient
+  let activityChannel: RealtimeChannel | null = null
+
+  const getActivityChannel = (): RealtimeChannel => {
+    if (!activityChannel) {
+      activityChannel = getClient().channel('fishing-pond', {
+        config: { broadcast: { self: false } },
+      })
+    }
+    return activityChannel
+  }
 
   return {
     async beginAttempt(input): Promise<FishingAttemptPreparation> {
@@ -149,12 +203,18 @@ export function createFishingService(
         throw invalidResponse('expected one preparation row')
       }
       const row = response.data[0]
+      const receivedAt = Date.now()
+      const serverTime = Date.parse(row.server_time)
+      const resolveAt = Date.parse(row.resolve_at)
+      const pityAt = Date.parse(row.pity_at)
       return {
         attemptId: row.attempt_id,
         mode: row.mode_id,
         status: row.status,
         resolveAt: row.resolve_at,
         pityAt: row.pity_at,
+        resolveAtClientTime: receivedAt + Math.max(0, resolveAt - serverTime),
+        pityAtClientTime: receivedAt + Math.max(0, pityAt - serverTime),
         wasProcessed: row.was_processed,
       }
     },
@@ -183,6 +243,43 @@ export function createFishingService(
         definitionId: row.fish_definition_id,
         metadata: row.fish_metadata,
         wasProcessed: row.was_processed,
+      }
+    },
+
+    async publishActivity(event): Promise<void> {
+      if (!isFishingActivityEvent(event)) {
+        throw new Error('Fishing activity event is invalid.')
+      }
+      const status = await getActivityChannel().send({
+        type: 'broadcast',
+        event: 'fishing-activity',
+        payload: event,
+      })
+      if (status !== 'ok') {
+        throw new Error(`Fishing activity broadcast failed: ${status}.`)
+      }
+    },
+
+    subscribeToActivity(listener, onError): () => void {
+      const client = getClient()
+      const channel = getActivityChannel()
+      let active = true
+      channel.on('broadcast', { event: 'fishing-activity' }, ({ payload }) => {
+        if (active && isFishingActivityEvent(payload)) {
+          listener(payload)
+        }
+      })
+      channel.subscribe((status) => {
+        if (active && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) {
+          onError(new Error(`Shared pond activity is unavailable (${status}).`))
+        }
+      })
+      return () => {
+        active = false
+        if (activityChannel === channel) {
+          activityChannel = null
+        }
+        void client.removeChannel(channel)
       }
     },
   }

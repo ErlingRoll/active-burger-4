@@ -2,15 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { resolveFishMeal } from './FishMeals'
 import type { InventoryItemInstance } from '../inventory/InventoryTypes'
 
-function fish(id: string, sizePercentile = 0.5): InventoryItemInstance {
+function fish(
+  id: string,
+  sizePercentile = 0.5,
+  definitionId = 'river-minnow',
+  rarity = 'common',
+): InventoryItemInstance {
   return {
     itemInstanceId: id,
-    definitionId: 'river-minnow',
+    definitionId,
     quantity: 1,
     bound: false,
     metadata: {
-      speciesId: 'river-minnow',
-      rarity: 'common',
+      speciesId: definitionId,
+      rarity,
       sizePercentile,
     },
     source: { type: 'fishing', id: `attempt-${id}` },
@@ -47,5 +52,23 @@ describe('FishMeals', () => {
       fish('fish-5'),
       fish('fish-6'),
     ])).toThrow(/at most 5/)
+  })
+
+  it('resolves distinct fish families and rejects recovery-only fish', () => {
+    const result = resolveFishMeal([
+      fish('speed', 0.5, 'reed-darter'),
+      fish('health', 0.5, 'silver-perch', 'uncommon'),
+      fish('damage', 0.5, 'lantern-pike', 'uncommon'),
+      fish('defense', 0.5, 'tideback-catfish', 'rare'),
+      fish('grace', 0.5, 'star-koi', 'legendary'),
+    ])
+
+    expect(result.effects.attackSpeedPercent).toBeGreaterThan(0)
+    expect(result.effects.maxHpPercent).toBeGreaterThan(0)
+    expect(result.effects.attackDamagePercent).toBeGreaterThan(0)
+    expect(result.effects.physicalResistancePercent).toBeGreaterThan(0)
+    expect(result.effects.emergencyRevivePercent).toBe(1)
+    expect(() => resolveFishMeal([fish('recovery', 0.5, 'revival-koi', 'epic')]))
+      .toThrow(/Champion recovery/)
   })
 })

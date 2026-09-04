@@ -281,6 +281,12 @@ export interface PlayerState {
   whirlwindLeech?: number
   /** Additive percentage applied to all healing received. */
   increasedHealing?: number
+  /** Additive skill cooldown reduction supplied by run preparation. */
+  preparationCooldownReductionPercent?: number
+  /** Bonus damage dealt to elite and boss enemies supplied by run preparation. */
+  preparationEliteDamagePercent?: number
+  /** Whether a one-time run preparation survival effect is still available. */
+  preparationEmergencyReviveAvailable?: boolean
   /** Global percentage multiplier applied to damage-over-time effects. */
   dotMultiplier?: number
   /** Repeatable Raise Skeleton upgrade count. */

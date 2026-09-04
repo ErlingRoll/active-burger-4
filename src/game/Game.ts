@@ -22,6 +22,7 @@ import { SpawnDirector } from './spawning/SpawnDirector'
 import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { HEALING_POTION_MAX_HP_FRACTION } from '../content/progression/HealingPotions'
 import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
+import { RESISTANCE_CAP } from '../content/stats/Damage'
 import {
   DEFAULT_CHARACTER_CLASS_ID,
   isCharacterClassId,
@@ -464,19 +465,51 @@ export class Game {
     const preparationEffects = resolveRunPreparationEffects(
       runConfig.preparation ?? EMPTY_RUN_PREPARATION_SNAPSHOT,
     )
-    if (preparationEffects.movementSpeedPercent > 0) {
+    const preparationStatModifiers = [
+      ['movementSpeed', preparationEffects.movementSpeedPercent],
+      ['attackSpeed', preparationEffects.attackSpeedPercent],
+      ['maxHp', preparationEffects.maxHpPercent],
+      ['attackDamage', preparationEffects.attackDamagePercent],
+    ] as const
+    const fishStatModifiers = preparationStatModifiers
+      .filter(([, value]) => value > 0)
+      .map(([stat, value]) => ({
+        stat,
+        operation: 'multiply' as const,
+        value: 1 + value / 100,
+        sourceId: 'run-preparation:fish-meal',
+      }))
+    if (fishStatModifiers.length > 0) {
       this.gameState.player.statModifiers = [
         ...(this.gameState.player.statModifiers ?? []),
-        {
-          stat: 'movementSpeed',
-          operation: 'multiply',
-          value: 1 + preparationEffects.movementSpeedPercent / 100,
-          sourceId: 'run-preparation:fish-meal',
-        },
+        ...fishStatModifiers,
       ]
     }
     if (preparationEffects.increasedHealingPercent > 0) {
-      this.gameState.player.increasedHealing = preparationEffects.increasedHealingPercent
+      this.gameState.player.increasedHealing =
+        (this.gameState.player.increasedHealing ?? 0) +
+        preparationEffects.increasedHealingPercent
+    }
+    if (preparationEffects.cooldownReductionPercent > 0) {
+      this.gameState.player.preparationCooldownReductionPercent =
+        preparationEffects.cooldownReductionPercent
+    }
+    if (preparationEffects.eliteDamagePercent > 0) {
+      this.gameState.player.preparationEliteDamagePercent =
+        preparationEffects.eliteDamagePercent
+    }
+    if (preparationEffects.physicalResistancePercent > 0) {
+      this.gameState.player.resistances = {
+        ...(this.gameState.player.resistances ?? {}),
+        physical: Math.min(
+          RESISTANCE_CAP,
+          (this.gameState.player.resistances?.physical ?? 0) +
+            preparationEffects.physicalResistancePercent,
+        ),
+      }
+    }
+    if (preparationEffects.emergencyRevivePercent > 0) {
+      this.gameState.player.preparationEmergencyReviveAvailable = true
     }
     refreshPlayerDerivedStats(this.gameState.player)
     this.gameState.player.hp = this.gameState.player.maxHp
@@ -1419,8 +1452,16 @@ export class Game {
     applyDamageEvents(this.gameState, damageEvents, this.random, this.idAllocator)
     removeDeadSummons(this.gameState)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
-      this.transitionTo('defeat')
-      return
+      if (this.gameState.player.preparationEmergencyReviveAvailable) {
+        this.gameState.player.preparationEmergencyReviveAvailable = false
+        this.gameState.player.hp = Math.max(
+          1,
+          Math.ceil(this.gameState.player.maxHp * 0.2),
+        )
+      } else {
+        this.transitionTo('defeat')
+        return
+      }
     }
     const defeatedBosses = (this.gameState.bosses ?? []).filter(
       (boss) => boss.hp <= 0,

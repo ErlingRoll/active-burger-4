@@ -1975,6 +1975,10 @@ export function applyDamageEvents(
       }
       const enemyDamageMultiplier =
         (shatters ? 1.5 : 1) *
+        (isPlayerOwnedDirectHit(state, event) &&
+        ((enemy.eliteModifier !== undefined) || (enemy.eliteModifiers?.length ?? 0) > 0)
+          ? 1 + (state.player.preparationEliteDamagePercent ?? 0) / 100
+          : 1) *
         getElitePhaseboundDamageMultiplier(
           enemy,
           state.time,
@@ -2060,9 +2064,14 @@ export function applyDamageEvents(
       if (shatters) {
         boss.frozenRemainingDuration = 0
       }
-      const bossEvent = shatters
-        ? { ...event, damage: scaleDamageValues(event.damage, 1.5) }
-        : event
+      const bossDamageMultiplier =
+        (shatters ? 1.5 : 1) *
+        (isPlayerOwnedDirectHit(state, event)
+          ? 1 + (state.player.preparationEliteDamagePercent ?? 0) / 100
+          : 1)
+      const bossEvent = bossDamageMultiplier === 1
+        ? event
+        : { ...event, damage: scaleDamageValues(event.damage, bossDamageMultiplier) }
       const resolvedDamage = resolveEventDamage(state, bossEvent, boss.resistances, rng)
       const actualDamage = Math.min(
         boss.hp,

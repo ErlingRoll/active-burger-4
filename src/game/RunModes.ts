@@ -18,7 +18,14 @@ export interface RunPreparationSnapshot {
 
 export interface RunPreparationEffects {
   movementSpeedPercent: number
+  attackSpeedPercent: number
   increasedHealingPercent: number
+  maxHpPercent: number
+  attackDamagePercent: number
+  cooldownReductionPercent: number
+  physicalResistancePercent: number
+  eliteDamagePercent: number
+  emergencyRevivePercent: number
 }
 
 export const EMPTY_RUN_PREPARATION_SNAPSHOT: RunPreparationSnapshot = {
@@ -72,24 +79,86 @@ export function resolveRunPreparationEffects(
 ): RunPreparationEffects {
   const effects: RunPreparationEffects = {
     movementSpeedPercent: 0,
+    attackSpeedPercent: 0,
     increasedHealingPercent: 0,
+    maxHpPercent: 0,
+    attackDamagePercent: 0,
+    cooldownReductionPercent: 0,
+    physicalResistancePercent: 0,
+    eliteDamagePercent: 0,
+    emergencyRevivePercent: 0,
+  }
+  const caps: Record<keyof RunPreparationEffects, number> = {
+    movementSpeedPercent: 6,
+    attackSpeedPercent: 9,
+    increasedHealingPercent: 12,
+    maxHpPercent: 12,
+    attackDamagePercent: 9,
+    cooldownReductionPercent: 12,
+    physicalResistancePercent: 10,
+    eliteDamagePercent: 16,
+    emergencyRevivePercent: 1,
   }
   for (const item of preparation.items) {
     const effect = item.resolvedEffect
     if (!effect) {
       continue
     }
-    if (effect.type === 'fish-meal' &&
-      effect.family === 'movement-speed' &&
-      typeof effect.movementSpeedPercent === 'number' &&
-      Number.isFinite(effect.movementSpeedPercent)) {
-      effects.movementSpeedPercent += Math.max(0, effect.movementSpeedPercent)
+    if (effect.type !== 'fish-meal' || typeof effect.family !== 'string') {
+      continue
     }
-    if (effect.type === 'fish-meal' &&
-      effect.family === 'increased-healing' &&
-      typeof effect.increasedHealingPercent === 'number' &&
-      Number.isFinite(effect.increasedHealingPercent)) {
-      effects.increasedHealingPercent += Math.max(0, effect.increasedHealingPercent)
+    const effectKey = ({
+      'movement-speed': 'movementSpeedPercent',
+      'attack-speed': 'attackSpeedPercent',
+      'increased-healing': 'increasedHealingPercent',
+      'max-hp': 'maxHpPercent',
+      'attack-damage': 'attackDamagePercent',
+      'cooldown-reduction': 'cooldownReductionPercent',
+      'physical-resistance': 'physicalResistancePercent',
+      'elite-damage': 'eliteDamagePercent',
+      'emergency-revive': 'emergencyRevivePercent',
+    } as Record<string, keyof RunPreparationEffects>)[effect.family]
+    if (!effectKey) {
+      continue
+    }
+    const value = effect[effectKey]
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      continue
+    }
+    const nextValue = effectKey === 'emergencyRevivePercent'
+      ? Math.max(effects.emergencyRevivePercent, value > 0 ? 1 : 0)
+      : Math.min(
+        caps[effectKey],
+        effects[effectKey] + Math.max(0, value),
+      )
+    switch (effectKey) {
+      case 'movementSpeedPercent':
+        effects.movementSpeedPercent = nextValue
+        break
+      case 'attackSpeedPercent':
+        effects.attackSpeedPercent = nextValue
+        break
+      case 'increasedHealingPercent':
+        effects.increasedHealingPercent = nextValue
+        break
+      case 'maxHpPercent':
+        effects.maxHpPercent = nextValue
+        break
+      case 'attackDamagePercent':
+        effects.attackDamagePercent = nextValue
+        break
+      case 'cooldownReductionPercent':
+        effects.cooldownReductionPercent = nextValue
+        break
+      case 'physicalResistancePercent':
+        effects.physicalResistancePercent = nextValue
+        break
+      case 'eliteDamagePercent':
+        effects.eliteDamagePercent = nextValue
+        break
+      case 'emergencyRevivePercent':
+        effects.emergencyRevivePercent = nextValue
+        break
     }
   }
   return effects
