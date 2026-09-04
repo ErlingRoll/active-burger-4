@@ -1,5 +1,6 @@
 import { getSupabaseClient, type AuthEnvironment } from '../../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isLootBoxRarity, type LootBoxRarity } from '../../loot'
 import {
   isRunModeId,
   isRunPreparationSnapshot,
@@ -40,6 +41,13 @@ export interface DungeonRunSnapshotRecord {
 
 export interface ActiveDungeonRun extends DungeonRunMetadata {
   checkpoint: DungeonRunSnapshotRecord
+  floorReward?: AbyssFloorReward
+}
+
+export interface AbyssFloorReward {
+  completedFloor: number
+  boxInstanceId: string
+  boxRarity: LootBoxRarity
 }
 
 export interface CreateDungeonRunInput {
@@ -122,6 +130,12 @@ interface DungeonRunSnapshotRow {
   saved_at: string
 }
 
+interface AbyssFloorRewardRow {
+  completed_floor: number
+  box_instance_id: string
+  box_rarity: LootBoxRarity
+}
+
 interface RpcCheckpointRow {
   run_id: string
   floor_number: number
@@ -195,6 +209,16 @@ function isDungeonRunSnapshotRow(value: unknown): value is DungeonRunSnapshotRow
     value.floor_number >= 1 &&
     'payload' in value &&
     typeof value.saved_at === 'string'
+}
+
+function isAbyssFloorRewardRow(value: unknown): value is AbyssFloorRewardRow {
+  return isRecord(value) &&
+    typeof value.completed_floor === 'number' &&
+    Number.isSafeInteger(value.completed_floor) &&
+    value.completed_floor >= 1 &&
+    typeof value.box_instance_id === 'string' &&
+    value.box_instance_id.length > 0 &&
+    isLootBoxRarity(value.box_rarity)
 }
 
 function toMetadata(row: DungeonRunRow): DungeonRunMetadata {
@@ -399,7 +423,33 @@ export function createDungeonRunPersistenceService(
       if (!isDungeonRunRow(runResponse.data)) {
         throw invalidResponse('updated run row shape')
       }
-      return { ...toMetadata(runResponse.data), checkpoint }
+      let floorReward: AbyssFloorReward | undefined
+      if (runResponse.data.mode_id === 'infinite-abyss' && input.floor > 1) {
+        const rewardResponse = await getClient()
+          .from('abyss_floor_rewards')
+          .select('completed_floor, box_instance_id, box_rarity')
+          .eq('run_id', input.runId)
+          .eq('completed_floor', input.floor - 1)
+          .maybeSingle()
+        if (rewardResponse.error) {
+          throw rewardResponse.error
+        }
+        if (rewardResponse.data !== null) {
+          if (!isAbyssFloorRewardRow(rewardResponse.data)) {
+            throw invalidResponse('Abyss floor reward row shape')
+          }
+          floorReward = {
+            completedFloor: rewardResponse.data.completed_floor,
+            boxInstanceId: rewardResponse.data.box_instance_id,
+            boxRarity: rewardResponse.data.box_rarity,
+          }
+        }
+      }
+      return {
+        ...toMetadata(runResponse.data),
+        checkpoint,
+        ...(floorReward ? { floorReward } : {}),
+      }
     },
 
     async pauseRun(runId): Promise<void> {

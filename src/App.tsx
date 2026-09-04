@@ -1197,7 +1197,13 @@ function App() {
       checkpoint,
     })
     setActiveRun(updated)
-  }, [activeRunSubmission, dungeonRunPersistence.service])
+    if (updated.floorReward) {
+      showToast(
+        `Abyss floor ${updated.floorReward.completedFloor} reward: ${updated.floorReward.boxRarity} loot box.`,
+        'info',
+      )
+    }
+  }, [activeRunSubmission, dungeonRunPersistence.service, showToast])
 
   const saveAndQuitRun = useCallback(async (): Promise<void> => {
     const service = dungeonRunPersistence.service
