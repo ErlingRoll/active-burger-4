@@ -97,6 +97,11 @@ import {
   type InventoryItemInstance,
   type InventoryService,
 } from './inventory'
+import {
+  createLootBoxService,
+  LootBoxScreen,
+  type LootBoxService,
+} from './loot'
 import type { RunPreparationSnapshot } from './game'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
 import {
@@ -130,6 +135,7 @@ type AppScreen =
   | 'fishing'
   | 'champions'
   | 'abyss'
+  | 'loot-boxes'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -144,6 +150,7 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   fishing: '/fishing',
   champions: '/champions',
   abyss: '/abyss',
+  'loot-boxes': '/loot-boxes',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -167,6 +174,9 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   if (normalizedPath === APP_ROUTE_PATHS.abyss) {
     return 'abyss'
+  }
+  if (normalizedPath === APP_ROUTE_PATHS['loot-boxes']) {
+    return 'loot-boxes'
   }
   if (normalizedPath === APP_ROUTE_PATHS.wiki) {
     return 'wiki'
@@ -409,6 +419,22 @@ function App() {
     try {
       return {
         service: createInventoryService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const lootBoxes = useMemo<{ service: LootBoxService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createLootBoxService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         }, () => authenticationService.service?.getClient()),
@@ -1500,6 +1526,10 @@ function App() {
     navigateToScreen('abyss')
   }, [navigateToScreen])
 
+  const openLootBoxes = useCallback((): void => {
+    navigateToScreen('loot-boxes')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1731,6 +1761,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenAbyss={openAbyss}
+          onOpenLootBoxes={openLootBoxes}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1754,6 +1785,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenAbyss={openAbyss}
+          onOpenLootBoxes={openLootBoxes}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1780,6 +1812,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenAbyss={openAbyss}
+          onOpenLootBoxes={openLootBoxes}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1820,6 +1853,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenAbyss={openAbyss}
+          onOpenLootBoxes={openLootBoxes}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1835,6 +1869,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenAbyss={openAbyss}
+          onOpenLootBoxes={openLootBoxes}
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
@@ -1879,7 +1914,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'abyss') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'abyss' || screen === 'loot-boxes') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1942,6 +1977,14 @@ function App() {
           })}
         />
       ) : null}
+      {screen === 'loot-boxes' && authentication.account ? (
+        <LootBoxScreen
+          inventoryService={inventory.service}
+          lootBoxService={lootBoxes.service}
+          configurationError={lootBoxes.configurationError ?? inventory.configurationError}
+          onBack={returnToDashboard}
+        />
+      ) : null}
       {screen === 'gameplay' ? (
         <GameCanvas
           key={runId}
@@ -1991,6 +2034,7 @@ interface AppHeaderProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenAbyss: () => void
+  onOpenLootBoxes: () => void
 }
 
 function AppHeader({
@@ -2004,6 +2048,7 @@ function AppHeader({
   onOpenFishing,
   onOpenChampions,
   onOpenAbyss,
+  onOpenLootBoxes,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -2026,6 +2071,7 @@ function AppHeader({
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
         <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
         <button className="app-admin-link" type="button" onClick={onOpenAbyss}>Abyss</button>
+        <button className="app-admin-link" type="button" onClick={onOpenLootBoxes}>Loot boxes</button>
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -2075,6 +2121,7 @@ interface GameDashboardProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenAbyss: () => void
+  onOpenLootBoxes: () => void
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
 }
@@ -2092,6 +2139,7 @@ function GameDashboard({
   onOpenFishing,
   onOpenChampions,
   onOpenAbyss,
+  onOpenLootBoxes,
   onContinueRun,
   onForfeitRun,
 }: GameDashboardProps) {
@@ -2167,6 +2215,22 @@ function GameDashboard({
               <span>
                 <strong>Essence store</strong>
                 <small>Turn Essence into permanent power.</small>
+              </span>
+              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
+            </button>
+            <button
+              className="game-dashboard-action game-dashboard-action-secondary"
+              type="button"
+              onClick={onOpenLootBoxes}
+              disabled={runLoadState !== 'ready'}
+              title={runLoadState !== 'ready'
+                ? 'Checking the current dungeon run before opening loot boxes.'
+                : undefined}
+            >
+              <span className="game-dashboard-action-icon" aria-hidden="true">▣</span>
+              <span>
+                <strong>Loot boxes</strong>
+                <small>Open earned boxes for fish and fishing gear.</small>
               </span>
               <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
             </button>

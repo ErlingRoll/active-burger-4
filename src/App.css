@@ -7957,6 +7957,74 @@
   color: #94a3b8;
 }
 
+.loot-box-screen {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    radial-gradient(circle at 80% 10%, rgb(251 191 36 / 18%), transparent 28rem),
+    linear-gradient(145deg, #1c1308 0%, #292019 52%, #111827 100%);
+}
+
+.loot-box-panel {
+  display: grid;
+  gap: 1.1rem;
+  width: min(58rem, 100%);
+  margin: 0 auto;
+}
+
+.loot-box-panel > .secondary-action {
+  justify-self: start;
+}
+
+.loot-box-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loot-box-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  color: #fef3c7;
+  background: rgb(68 64 60 / 72%);
+  border: 1px solid rgb(251 191 36 / 28%);
+  border-radius: 0.55rem;
+}
+
+.loot-box-list li > div {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.loot-box-list li span {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+
+.loot-box-result {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  color: #fef3c7;
+  background: linear-gradient(135deg, rgb(180 83 9 / 34%), transparent 75%), #292524;
+  border: 1px solid #f59e0b;
+  border-radius: 0.55rem;
+}
+
+.loot-box-result .screen-kicker {
+  color: #fbbf24;
+}
+
+.loot-box-result span {
+  color: #fcd34d;
+}
+
 @media (max-width: 700px) {
   .game-dashboard-hero {
     align-items: stretch;
@@ -8007,6 +8075,11 @@
 
   .abyss-modifier-choice {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .loot-box-list li {
+    align-items: stretch;
     flex-direction: column;
   }
 }
