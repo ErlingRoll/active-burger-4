@@ -10,6 +10,48 @@ Fishing is not part of the combat simulation. A fishing attempt is resolved
 before the next attempt begins, and its result is added to the player's
 inventory.
 
+## Pond presentation
+
+The fishing screen presents a stylized pond rather than a plain form:
+
+- Fish silhouettes swim through the water using renderer/UI-only animation.
+- Ripples, water shimmer, shoreline vegetation, and lantern glows establish the
+  pond atmosphere.
+- The player is shown seated at a fishing spot around the pond with a visible
+  rod.
+- Additional seated angler silhouettes make the pond feel inhabited. These are
+  presentation-only local markers, not networked players or multiplayer
+  entities.
+- The entire Fishing viewport uses a dark cosmic backdrop with sparse stars and
+  subtle blue/violet nebula gradients. The pond is a brighter foreground focal
+  layer within that space.
+- The Cast line action remains server-authoritative and deterministic; visual
+  fish movement must never affect catch resolution.
+
+The scene fills the available area below the shared navbar. The pond is the
+primary visual surface, while spot information is kept in the pond header and
+the rest of the screen is reserved for fishing controls, catch feedback, and a
+compact inventory summary. The scene should remain readable at small screen
+sizes and respect `prefers-reduced-motion`. Fish and ambient effects must not
+obscure the catch result, inventory, or fishing controls.
+
+## Fishing screen interaction states
+
+The screen uses explicit presentation states around the server request:
+
+- **Ready to cast:** the player is seated and the cast action is available.
+- **Casting:** the rod and line animate as the cast begins.
+- **Watching the float:** fish continue swimming while the player waits.
+- **Catch on the line:** the pond emphasizes the bite before the result card
+  appears.
+
+The visual sequence is presentation-only. It must not change the server result,
+seed, ownership checks, or deterministic catch resolver.
+
+Players can select an owned rod before casting. The fishing screen shows only a
+compact summary of owned fish, rods, and boxes; the full collection belongs on
+the Inventory screen.
+
 ## Fishing loop
 
 1. Choose an unlocked fishing spot, rod, bait, and fishing mode.

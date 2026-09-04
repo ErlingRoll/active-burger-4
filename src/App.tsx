@@ -163,6 +163,9 @@ function getScreenForPath(pathname: string): AppScreen {
   if (normalizedPath === APP_ROUTE_PATHS['meta-progression']) {
     return 'meta-progression'
   }
+  if (normalizedPath === APP_ROUTE_PATHS.fishing) {
+    return 'fishing'
+  }
   if (normalizedPath === APP_ROUTE_PATHS.admin) {
     return 'admin'
   }
@@ -1877,7 +1880,13 @@ function App() {
   }
 
   return (
-    <main className={`app-shell${screen === 'gameplay' ? ' app-shell-gameplay' : ''}`}>
+    <main className={`app-shell${
+      screen === 'gameplay'
+        ? ' app-shell-gameplay'
+        : screen === 'fishing'
+          ? ' app-shell-fishing'
+          : ''
+    }`}>
       {screen !== 'gameplay' ? (
         <AppHeader
           authentication={authentication}
