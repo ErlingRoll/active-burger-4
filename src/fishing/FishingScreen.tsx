@@ -914,9 +914,6 @@ export function FishingScreen({
                 </button>
               </div>
             </div>
-            <p className="fishing-hud-description">
-              {FISHING_PHASE_DESCRIPTIONS[fishingPhase]}
-            </p>
             {activityNotice ? (
               <p className="fishing-activity-notice" role="status" aria-live="polite">
                 <span aria-hidden="true">◉</span> {activityNotice.message}
