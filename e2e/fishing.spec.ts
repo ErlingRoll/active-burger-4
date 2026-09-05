@@ -60,6 +60,8 @@ test('resolves an authenticated manual fishing attempt', async ({ page }) => {
 
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: 'Inventory', exact: true })).toBeVisible()
+  const firstFish = page.getByRole('listitem', { name: /Weight: \d+\.\d+ kg/ }).first()
+  await firstFish.click()
   const salvageButton = page.getByRole('button', { name: 'Salvage', exact: true }).first()
   await expect(salvageButton).toBeVisible()
   await salvageButton.click()

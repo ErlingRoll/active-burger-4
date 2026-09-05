@@ -34,6 +34,18 @@ The first release should use a small set of effect families and guard against
 stacking five copies of the strongest effect. Use either family slots,
 diminishing returns, or explicit per-effect caps.
 
+The supported meal families are movement speed, attack speed, increased healing,
+maximum health, attack damage, cooldown reduction, physical resistance,
+elite/boss damage, and one-time emergency revival. Each family has a
+content-defined base value and cap. Repeated fish in the same family use
+diminishing returns before the remaining family cap is applied.
+
+The run-start RPC resolves the meal from the owned fish definition and instance
+metadata. It ignores browser-provided effects and enchantment values, rejects
+recovery-only fish, and stores the canonical effects in the run and initial
+checkpoint. This keeps normal dungeon and Infinite Abyss runs deterministic
+after reconnects and prevents forged preparation data from changing a run.
+
 Fish used for a meal cannot also be used as revival fish. A fish is consumed at
 most once.
 

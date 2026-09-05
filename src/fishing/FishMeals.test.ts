@@ -72,6 +72,54 @@ describe('FishMeals', () => {
       .toThrow(/Champion recovery/)
   })
 
+  it('resolves every run-meal family and keeps each family within its cap', () => {
+    const result = resolveFishMeal([
+      fish('speed', 0.5, 'river-minnow'),
+      fish('attack-speed', 0.5, 'reed-darter'),
+      fish('healing', 0.5, 'glassfin-trout'),
+      fish('health', 0.5, 'silver-perch', 'uncommon'),
+      fish('damage', 0.5, 'lantern-pike', 'uncommon'),
+    ])
+    const remainingFamilies = resolveFishMeal([
+      fish('cooldown', 0.5, 'moon-carp', 'rare'),
+      fish('resistance', 0.5, 'tideback-catfish', 'rare'),
+      fish('elite', 0.5, 'comet-eel', 'epic'),
+      fish('revive', 0.5, 'star-koi', 'legendary'),
+    ])
+
+    expect(result.effects.movementSpeedPercent).toBeGreaterThan(0)
+    expect(result.effects.attackSpeedPercent).toBeGreaterThan(0)
+    expect(result.effects.increasedHealingPercent).toBeGreaterThan(0)
+    expect(result.effects.maxHpPercent).toBeGreaterThan(0)
+    expect(result.effects.attackDamagePercent).toBeGreaterThan(0)
+    expect(remainingFamilies.effects.cooldownReductionPercent).toBeGreaterThan(0)
+    expect(remainingFamilies.effects.physicalResistancePercent).toBeGreaterThan(0)
+    expect(remainingFamilies.effects.eliteDamagePercent).toBeGreaterThan(0)
+    expect(remainingFamilies.effects.emergencyRevivePercent).toBe(1)
+  })
+
+  it('applies the cap cumulatively before adding a repeated family contribution', () => {
+    const result = resolveFishMeal([
+      fish('eel-1', 1, 'comet-eel', 'legendary'),
+      fish('eel-2', 1, 'comet-eel', 'legendary'),
+      fish('eel-3', 1, 'comet-eel', 'legendary'),
+      fish('eel-4', 1, 'comet-eel', 'legendary'),
+      fish('eel-5', 1, 'comet-eel', 'legendary'),
+    ])
+
+    expect(result.effects.eliteDamagePercent).toBe(16)
+    expect(result.preparation.items.map((item) =>
+      (item.resolvedEffect?.eliteDamagePercent as number),
+    )).toEqual([16, 0, 0, 0, 0])
+  })
+
+  it('uses the fish definition rarity instead of client-provided rarity metadata', () => {
+    const common = resolveFishMeal([fish('common', 0.5, 'river-minnow', 'common')])
+    const forged = resolveFishMeal([fish('forged', 0.5, 'river-minnow', 'legendary')])
+
+    expect(forged.movementSpeedPercent).toBe(common.movementSpeedPercent)
+  })
+
   it('amplifies an enchanted fish meal without changing its family', () => {
     const plain = resolveFishMeal([fish('plain', 0.5)])
     const enchanted = resolveFishMeal([{

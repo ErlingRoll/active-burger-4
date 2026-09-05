@@ -2657,7 +2657,7 @@ function RunSetupScreen({
                         aria-label={`Starting skill: ${startingSkill.name}. ${startingSkill.description}`}
                         aria-describedby={`character-class-${characterClass.id}-starting-skill-tooltip`}
                       >
-                        <small>Starting skill</small>
+                        <small className="character-class-card-label">Starting skill</small>
                         <strong>
                           <SkillIcon skillId={startingSkill.id} size={18} />
                           {startingSkill.name}
@@ -2675,7 +2675,7 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Maximum health: ${characterClass.baseStats.maxHp}`}
                       >
-                        <small>Max HP</small>
+                        <small className="character-class-card-label">Max HP</small>
                         <strong>{characterClass.baseStats.maxHp}</strong>
                       </span>
                       <span
@@ -2683,7 +2683,7 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Base physical damage: ${characterClass.baseStats.attackDamage}`}
                       >
-                        <small>Phys. damage</small>
+                        <small className="character-class-card-label">Phys. damage</small>
                         <strong>{characterClass.baseStats.attackDamage}</strong>
                       </span>
                       <span
@@ -2691,7 +2691,7 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Movement speed: ${characterClass.baseStats.movementSpeed} units per second`}
                       >
-                        <small>Move speed</small>
+                        <small className="character-class-card-label">Move speed</small>
                         <strong>{characterClass.baseStats.movementSpeed} units/s</strong>
                       </span>
                       <span
@@ -2699,7 +2699,7 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Attack speed: ${characterClass.baseStats.attackSpeed} attacks per second`}
                       >
-                        <small>Atk speed</small>
+                        <small className="character-class-card-label">Atk speed</small>
                         <strong>{characterClass.baseStats.attackSpeed} atk/s</strong>
                       </span>
                       <span
@@ -2707,7 +2707,9 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Resonance: ${RESONANCE_DESCRIPTION}`}
                       >
-                        <small><KeywordText text="Resonance" /></small>
+                        <small className="character-class-card-label character-class-card-label-keyword">
+                          <KeywordText text="Resonance" />
+                        </small>
                         <strong>{characterClass.baseStats.resonance} attacks</strong>
                       </span>
                       <span
@@ -2715,7 +2717,9 @@ function RunSetupScreen({
                         tabIndex={0}
                         aria-label={`Attunement: ${ATTUNEMENT_DESCRIPTION}`}
                       >
-                        <small><KeywordText text="Attunement" /></small>
+                        <small className="character-class-card-label character-class-card-label-keyword">
+                          <KeywordText text="Attunement" />
+                        </small>
                         <strong>{characterClass.baseStats.attunement}%</strong>
                       </span>
                     </span>

@@ -253,9 +253,21 @@ The selected fish are removed or reserved atomically with run creation. A
 checkpoint stores the selected fish IDs and resolved effects so reconnecting
 cannot recalculate or consume them twice.
 
-The first implementation should use a small number of effect families and
-prevent five copies of one offensive effect from becoming the universal optimal
-loadout. This can be done with one-slot-per-family rules or diminishing returns.
+The server resolves the meal from authoritative fish definition metadata:
+rarity, effect family, base value, and meal eligibility. It ignores
+browser-provided resolved effects and enchantment values. The supported meal
+families are movement speed, attack speed, increased healing, maximum health,
+attack damage, cooldown reduction, physical resistance, elite/boss damage, and
+one-time emergency revival.
+
+Each family uses the content-defined base value, rarity and size multipliers,
+the authoritative enchantment bonus, and diminishing returns for repeated fish
+in that family. The result is limited by the remaining family cap. The
+canonical result is stored in both the run and its initial checkpoint, so the
+same effects are used by normal dungeon and Infinite Abyss runs after
+reconnects.
+
+Revival Koi remains recovery-only and is rejected by the run-start operation.
 
 ### Revival fish
 

@@ -9,6 +9,11 @@ const testUserPassword = testEnvironment.VITE_TEST_USER_PASSWORD
 test.describe.configure({ mode: 'serial' })
 
 async function clearExistingRun(page: Page): Promise<void> {
+  await expect(page.locator('.game-dashboard')).toHaveAttribute(
+    'data-run-persistence-state',
+    /ready|error|unavailable/,
+    { timeout: 15_000 },
+  )
   const currentDungeon = page.getByRole('heading', { name: 'Current dungeon' })
   const startRunLink = page.getByRole('button', { name: /Start a dungeon run/i })
   await expect.poll(

@@ -1173,11 +1173,11 @@
   align-items: baseline;
   gap: 0.3rem;
   padding: 0.22rem 0.45rem 0.2rem;
-  color: #fbbf24;
-  background: linear-gradient(135deg, rgb(251 191 36 / 22%), rgb(180 83 9 / 30%));
-  border: 1px solid rgb(251 191 36 / 55%);
+  color: #93c5fd;
+  background: linear-gradient(135deg, rgb(96 165 250 / 22%), rgb(30 64 175 / 30%));
+  border: 1px solid rgb(96 165 250 / 55%);
   border-radius: 999px;
-  box-shadow: 0 0 0.8rem rgb(251 191 36 / 18%), inset 0 1px rgb(255 255 255 / 12%);
+  box-shadow: 0 0 0.8rem rgb(96 165 250 / 18%), inset 0 1px rgb(255 255 255 / 12%);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1187,7 +1187,7 @@
 
 .inventory-item-tooltip-essence strong {
   padding-right: 0;
-  color: #fef3c7;
+  color: #dbeafe;
   font-size: 0.85rem;
   letter-spacing: 0;
 }

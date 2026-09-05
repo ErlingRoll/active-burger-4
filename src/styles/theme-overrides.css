@@ -795,14 +795,25 @@
     gap: 0.1rem;
   }
 
-  .run-dashboard .character-class-card-detail small {
+  .run-dashboard .character-class-card-detail > .character-class-card-label {
     color: color-mix(in srgb, var(--character-class-outline) 80%, #fef3c7);
-    font-size: 0.4rem;
+    font-size: 0.55rem;
     font-weight: 850;
     letter-spacing: 0.02em;
     line-height: 1.2;
     text-transform: uppercase;
     white-space: nowrap;
+  }
+
+  .run-dashboard .character-class-card-detail > .character-class-card-label-keyword .keyword-term-wrap {
+    display: inline-flex;
+    line-height: 1.2;
+    vertical-align: top;
+  }
+
+  .run-dashboard .character-class-card-detail > .character-class-card-label-keyword .keyword-term {
+    font-size: 0.55rem;
+    line-height: 1.2;
   }
 
   .run-dashboard .character-class-card-title strong {

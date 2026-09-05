@@ -1,4 +1,4 @@
-import { RARITY_ORDER, Rarity, isRarity } from '../content/rarity/Rarity'
+import { RARITY_ORDER, Rarity } from '../content/rarity/Rarity'
 import type {
   InventoryItemInstance,
 } from '../inventory/InventoryTypes'
@@ -40,11 +40,7 @@ function getFishSize(item: InventoryItemInstance): number {
     : 0.5
 }
 
-function getFishRarityFactor(item: InventoryItemInstance): number {
-  const rarity = item.metadata.rarity
-  if (!isRarity(rarity)) {
-    return 1
-  }
+function getFishRarityFactor(rarity: Rarity): number {
   return 1 + RARITY_ORDER[rarity] * 0.25
 }
 
@@ -138,6 +134,26 @@ function createResolvedEffect(
   return values
 }
 
+function getFishEffectKey(
+  family: keyof typeof MAX_FISH_MEAL_EFFECTS,
+): keyof RunPreparationEffects {
+  const effectKey = ({
+    'movement-speed': 'movementSpeedPercent',
+    'attack-speed': 'attackSpeedPercent',
+    'increased-healing': 'increasedHealingPercent',
+    'max-hp': 'maxHpPercent',
+    'attack-damage': 'attackDamagePercent',
+    'cooldown-reduction': 'cooldownReductionPercent',
+    'physical-resistance': 'physicalResistancePercent',
+    'elite-damage': 'eliteDamagePercent',
+    'emergency-revive': 'emergencyRevivePercent',
+  } as Record<string, keyof RunPreparationEffects>)[family]
+  if (!effectKey) {
+    throw new Error(`Unsupported fish meal family: ${family}.`)
+  }
+  return effectKey
+}
+
 export function resolveFishMeal(
   selectedFish: readonly InventoryItemInstance[],
 ): ResolvedFishMeal {
@@ -167,12 +183,13 @@ export function resolveFishMeal(
     const previousCount = familyCounts.get(family) ?? 0
     const enchantment = getFishingEnchantmentDefinition(fish.metadata.enchantmentId)
     const contribution = definition.effect.baseValue *
-      getFishRarityFactor(fish) *
+      getFishRarityFactor(definition.rarity) *
       (0.75 + getFishSize(fish) * 0.5) *
       getFishEnchantmentFactor(fish) *
       getDiminishingMultiplier(previousCount)
+    const effectKey = getFishEffectKey(family)
     const appliedContribution = Math.min(
-      Math.max(0, MAX_FISH_MEAL_EFFECTS[family] ?? contribution),
+      Math.max(0, (MAX_FISH_MEAL_EFFECTS[family] ?? contribution) - effects[effectKey]),
       Math.max(0, contribution),
     )
     familyCounts.set(family, previousCount + 1)
