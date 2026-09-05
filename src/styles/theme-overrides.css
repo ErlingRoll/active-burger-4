@@ -374,10 +374,8 @@
   }
 
   .gear-upgrade-card {
-    background:
-      linear-gradient(145deg, rgb(20 83 45 / 42%), transparent 58%),
-      #1c2f24;
-    border-color: #15803d;
+    background: #27272a;
+    border-color: #22c55e;
   }
 
   .choice-card.skill-removal-card {
@@ -389,9 +387,16 @@
 
   .choice-card.gear-rarity-floor-card {
     background:
-      linear-gradient(145deg, rgb(161 98 7 / 48%), transparent 58%),
-      #3a2918;
-    border-color: #d97706;
+      linear-gradient(145deg, rgb(22 101 52 / 48%), transparent 58%),
+      #1c2f24;
+    border-color: #15803d;
+  }
+
+  .choice-card.gear-rarity-floor-card.rarity-rare {
+    background:
+      linear-gradient(145deg, rgb(30 64 175 / 48%), transparent 58%),
+      #17223d;
+    border-color: #2563eb;
   }
 
   .choice-card.gear-xp-blessing-card {
