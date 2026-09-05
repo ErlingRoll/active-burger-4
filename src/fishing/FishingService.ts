@@ -186,6 +186,8 @@ function invalidResponse(message: string): Error {
   return new Error(`Fishing persistence returned an invalid response: ${message}`)
 }
 
+const PRESENCE_TRACK_RETRY_DELAYS_MS = [250, 750] as const
+
 function assertAttemptId(attemptId: string): void {
   if (!isNonEmptyString(attemptId)) {
     throw new Error('Fishing attempt ID must be non-empty.')
@@ -209,6 +211,7 @@ export function createFishingService(
   let subscriptionReady: Promise<void> | null = null
   let resolveSubscription: (() => void) | null = null
   let rejectSubscription: ((error: Error) => void) | null = null
+  let presenceUpdateQueue: Promise<void> = Promise.resolve()
 
   const getActivityChannel = (): RealtimeChannel => {
     if (!activityChannel) {
@@ -346,9 +349,26 @@ export function createFishingService(
       if (!isFishingAnglerPresence(presence)) {
         throw new Error('Fishing angler presence is invalid.')
       }
-      await waitForActivityChannel()
-      const status = await getActivityChannel().track(presence)
-      assertRealtimeStatus(status, 'presence update')
+      const update = presenceUpdateQueue
+        .catch(() => undefined)
+        .then(async () => {
+          await waitForActivityChannel()
+          for (let attempt = 0; ; attempt += 1) {
+            const status = await getActivityChannel().track(presence)
+            if (status === 'ok') {
+              return
+            }
+            const retryDelay = PRESENCE_TRACK_RETRY_DELAYS_MS[attempt]
+            if (status !== 'timed out' || retryDelay === undefined) {
+              assertRealtimeStatus(status, 'presence update')
+              return
+            }
+            await new Promise<void>((resolve) => setTimeout(resolve, retryDelay))
+            await waitForActivityChannel()
+          }
+        })
+      presenceUpdateQueue = update
+      await update
     },
 
     subscribeToActivity(listener, onError, onPresence): () => void {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   FishingAttemptPreparation,
   FishingAttemptResult,
@@ -104,6 +104,7 @@ const MAX_NOT_READY_RETRIES = 90
 const CATCH_NOTICE_DURATION_MS = 5000
 const REMOTE_CATCH_DISPLAY_DURATION_MS = 2400
 const ACTIVE_ANGLER_RECONCILIATION_INTERVAL_MS = 2000
+const REMOTE_ANGLER_PRESENCE_GRACE_MS = 5000
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -190,6 +191,43 @@ function reconcileRemoteAnglers(
   ]
 }
 
+function reconcileRemoteAnglersWithPresenceGrace(
+  currentAnglers: RemoteAngler[],
+  presentAnglers: FishingAnglerPresence[],
+  activityPlayerId: string,
+  missingSince: Map<string, number>,
+  now: number,
+  protectedPlayerIds = new Set<string>(),
+): RemoteAngler[] {
+  const presentPlayerIds = new Set(
+    presentAnglers
+      .filter((angler) => angler.playerId !== activityPlayerId)
+      .map((angler) => angler.playerId),
+  )
+  for (const playerId of presentPlayerIds) {
+    missingSince.delete(playerId)
+  }
+  const reconciledAnglers = reconcileRemoteAnglers(
+    currentAnglers,
+    presentAnglers,
+    activityPlayerId,
+    false,
+  )
+  return reconciledAnglers.filter((angler) => {
+    if (presentPlayerIds.has(angler.playerId) || protectedPlayerIds.has(angler.playerId)) {
+      missingSince.delete(angler.playerId)
+      return true
+    }
+    const absentSince = missingSince.get(angler.playerId) ?? now
+    missingSince.set(angler.playerId, absentSince)
+    if (now - absentSince < REMOTE_ANGLER_PRESENCE_GRACE_MS) {
+      return true
+    }
+    missingSince.delete(angler.playerId)
+    return false
+  })
+}
+
 function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) {
   return (
     <>
@@ -236,6 +274,8 @@ export function FishingScreen({
   const activityNoticeTimerRef = useRef<number | null>(null)
   const catchNoticeTimerRef = useRef<number | null>(null)
   const presenceClearTimerRef = useRef<number | null>(null)
+  const remoteAnglerMissingSinceRef = useRef(new Map<string, number>())
+  const remoteAnglerPresenceRef = useRef<FishingAnglerPresence[] | null>(null)
   const mountedRef = useRef(true)
 
   const setPhase = (phase: FishingPhase) => {
@@ -269,8 +309,28 @@ export function FishingScreen({
     ? rods.find((rod) => rod.itemInstanceId === effectiveSelectedRodId)
     : undefined
   const activityPlayerPosition = getPondPlayerPosition(activityPlayerId)
+  const trackActivityPresence = useCallback((presence: FishingAnglerPresence): void => {
+    if (!fishingService) {
+      return
+    }
+    void fishingService.trackAngler(presence)
+      .then(() => {
+        if (mountedRef.current) {
+          setActivityError(null)
+        }
+      })
+      .catch((activityTrackError: unknown) => {
+        if (mountedRef.current) {
+          setActivityError(activityTrackError instanceof Error
+            ? activityTrackError.message
+            : 'Shared pond activity is unavailable.')
+        }
+      })
+  }, [fishingService])
+
   useEffect(() => {
     mountedRef.current = true
+    const remoteAnglerMissingSince = remoteAnglerMissingSinceRef.current
     return () => {
       mountedRef.current = false
       clearTimer(pityTimerRef)
@@ -278,6 +338,8 @@ export function FishingScreen({
       clearTimer(activityNoticeTimerRef)
       clearTimer(catchNoticeTimerRef)
       clearTimer(presenceClearTimerRef)
+      remoteAnglerMissingSince.clear()
+      remoteAnglerPresenceRef.current = null
     }
   }, [])
 
@@ -308,6 +370,7 @@ export function FishingScreen({
         if (event.playerId === activityPlayerId) {
           return
         }
+        remoteAnglerMissingSinceRef.current.delete(event.playerId)
         const phase: RemoteAnglerPhase = event.kind === 'cast' ? 'casting' : 'catching'
         const catchInfo = event.kind === 'catch' && event.fishDefinitionId && event.rarity
           ? { definitionId: event.fishDefinitionId, rarity: event.rarity }
@@ -362,24 +425,25 @@ export function FishingScreen({
         if (!mountedRef.current) {
           return
         }
+        remoteAnglerPresenceRef.current = presentAnglers
         setRemoteAnglers((current) =>
-          reconcileRemoteAnglers(current, presentAnglers, activityPlayerId))
+          reconcileRemoteAnglersWithPresenceGrace(
+            current,
+            presentAnglers,
+            activityPlayerId,
+            remoteAnglerMissingSinceRef.current,
+            Date.now(),
+          ))
       },
     )
-    void fishingService.trackAngler({
+    trackActivityPresence({
       attemptId: `pond:${activityPlayerId}`,
       playerId: activityPlayerId,
       playerName: activityPlayerName,
       phase: 'idle',
-    }).catch((activityTrackError: unknown) => {
-      if (mountedRef.current) {
-        setActivityError(activityTrackError instanceof Error
-          ? activityTrackError.message
-          : 'Shared pond activity is unavailable.')
-      }
     })
     return unsubscribe
-  }, [activityPlayerId, activityPlayerName, fishingService])
+  }, [activityPlayerId, activityPlayerName, fishingService, trackActivityPresence])
 
   useEffect(() => {
     if (!fishingService) {
@@ -390,8 +454,26 @@ export function FishingScreen({
       void fishingService.loadActiveAnglers()
         .then((activeAnglers) => {
           if (!cancelled) {
-            setRemoteAnglers((current) =>
-              reconcileRemoteAnglers(current, activeAnglers, activityPlayerId, false))
+            const presenceSnapshot = remoteAnglerPresenceRef.current
+            const activePlayerIds = new Set(activeAnglers.map((angler) => angler.playerId))
+            setRemoteAnglers((current) => {
+              const reconciledAnglers = reconcileRemoteAnglers(
+                current,
+                activeAnglers,
+                activityPlayerId,
+                false,
+              )
+              return presenceSnapshot
+                ? reconcileRemoteAnglersWithPresenceGrace(
+                    reconciledAnglers,
+                    presenceSnapshot,
+                    activityPlayerId,
+                    remoteAnglerMissingSinceRef.current,
+                    Date.now(),
+                    activePlayerIds,
+                  )
+                : reconciledAnglers
+            })
           }
         })
         .catch((activityLoadError: unknown) => {
@@ -485,19 +567,13 @@ export function FishingScreen({
         metadata: result.metadata,
         isDismissing: false,
       })
-      void fishingService.trackAngler({
+      trackActivityPresence({
         attemptId,
         playerId: activityPlayerId,
         playerName: activityPlayerName,
         phase: 'catching',
         fishDefinitionId: result.definitionId,
         rarity: result.metadata.rarity,
-      }).catch((activityBroadcastError: unknown) => {
-        if (mountedRef.current) {
-          setActivityError(activityBroadcastError instanceof Error
-            ? activityBroadcastError.message
-            : 'Shared pond activity is unavailable.')
-        }
       })
       void fishingService.publishActivity({
         eventId: `${attemptId}:catch`,
@@ -526,17 +602,11 @@ export function FishingScreen({
         if (pendingAttemptRef.current !== null) {
           return
         }
-        void fishingService.trackAngler({
+        trackActivityPresence({
           attemptId: `pond:${activityPlayerId}`,
           playerId: activityPlayerId,
           playerName: activityPlayerName,
           phase: 'idle',
-        }).catch((activityBroadcastError: unknown) => {
-          if (mountedRef.current) {
-            setActivityError(activityBroadcastError instanceof Error
-              ? activityBroadcastError.message
-              : 'Shared pond activity is unavailable.')
-          }
         })
       }, REMOTE_CATCH_DISPLAY_DURATION_MS - 700)
     } catch (fishingError: unknown) {
@@ -578,17 +648,11 @@ export function FishingScreen({
       pendingAttemptRef.current = preparation
       setPendingAttempt(preparation)
       setPhase('waiting')
-      void fishingService.trackAngler({
+      trackActivityPresence({
         attemptId: preparation.attemptId,
         playerId: activityPlayerId,
         playerName: activityPlayerName,
         phase: 'waiting',
-      }).catch((activityBroadcastError: unknown) => {
-        if (mountedRef.current) {
-          setActivityError(activityBroadcastError instanceof Error
-            ? activityBroadcastError.message
-            : 'Shared pond activity is unavailable.')
-        }
       })
       void fishingService.publishActivity({
         eventId: `${preparation.attemptId}:cast`,

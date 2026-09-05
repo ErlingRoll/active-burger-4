@@ -213,7 +213,9 @@ describe('FishingService', () => {
         return channel
       }),
       send: vi.fn(async () => 'ok'),
-      track: vi.fn(async () => 'ok'),
+      track: vi.fn()
+        .mockResolvedValueOnce('timed out')
+        .mockResolvedValue('ok'),
       presenceState: vi.fn(() => presenceState),
     } as unknown as RealtimeChannel
     const client = {
@@ -268,6 +270,7 @@ describe('FishingService', () => {
       playerName: 'Mira',
       phase: 'idle',
     })
+    expect(channel.track).toHaveBeenCalledTimes(3)
 
     unsubscribe()
     expect(client.removeChannel).toHaveBeenCalledWith(channel)
