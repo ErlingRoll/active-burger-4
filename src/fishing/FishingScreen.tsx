@@ -247,7 +247,22 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
       <span className="pond-angler-head" />
       <span className="pond-angler-hat">✦</span>
       <i className="pond-fishing-rod">
-        {showCastLine ? <i className="pond-cast-line" aria-hidden="true" /> : null}
+        {showCastLine ? (
+          <svg
+            className="pond-cast-line"
+            viewBox="0 0 160 80"
+            role="presentation"
+            aria-hidden="true"
+          >
+            <path
+              className="pond-cast-line-path"
+              pathLength="1"
+              d="M 1 40 C 38 40, 82 43, 112 50 C 131 54, 146 59, 158 64"
+            />
+            <circle className="pond-cast-lure" cx="158" cy="64" r="4" />
+            <circle className="pond-cast-splash" cx="158" cy="64" r="7" />
+          </svg>
+        ) : null}
       </i>
     </>
   )

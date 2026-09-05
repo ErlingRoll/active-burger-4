@@ -31,6 +31,9 @@
   .fishing-pond-scene.fishing-phase-manual .pond-fishing-rod,
   .fishing-pond-scene.fishing-phase-catching .pond-fishing-rod,
   .fishing-pond-scene.fishing-phase-casting .pond-cast-line,
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-line-path,
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-lure,
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-splash,
   .remote-angler-casting .pond-fishing-rod,
   .remote-angler-catching .pond-fishing-rod,
   .pond-remote-catch-display {
@@ -39,7 +42,19 @@
 
   .fishing-pond-scene.fishing-phase-casting .pond-cast-line {
     opacity: 0.82;
-    transform: translateY(-50%) rotate(-2deg) scaleX(1);
+    transform: translateY(-50%) rotate(-2deg) scale(1);
+  }
+
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-line-path {
+    stroke-dashoffset: 0;
+  }
+
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-lure {
+    opacity: 1;
+  }
+
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-splash {
+    opacity: 0;
   }
 }
 @media (max-width: 700px) {

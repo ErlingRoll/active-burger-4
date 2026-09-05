@@ -283,11 +283,23 @@
   animation: pond-line-throw 850ms cubic-bezier(0.22, 0.78, 0.32, 1) both;
 }
 
+.fishing-pond-scene.fishing-phase-casting .pond-angler-you .pond-cast-line-path {
+  animation: pond-line-draw 850ms cubic-bezier(0.22, 0.78, 0.32, 1) both;
+}
+
+.fishing-pond-scene.fishing-phase-casting .pond-angler-you .pond-cast-lure {
+  animation: pond-lure-throw 850ms cubic-bezier(0.22, 0.78, 0.32, 1) both;
+}
+
+.fishing-pond-scene.fishing-phase-casting .pond-angler-you .pond-cast-splash {
+  animation: pond-cast-splash 850ms ease-out both;
+}
+
 .fishing-pond-scene.fishing-phase-waiting .pond-angler-you .pond-cast-line,
 .fishing-pond-scene.fishing-phase-manual .pond-angler-you .pond-cast-line,
 .fishing-pond-scene.fishing-phase-catching .pond-angler-you .pond-cast-line {
   opacity: 0.82;
-  transform: translateY(-50%) rotate(-2deg) scaleX(1);
+  transform: translateY(-50%) rotate(-2deg) scale(1);
 }
 
 .fishing-pond-scene.fishing-phase-waiting .pond-ripple-one,
@@ -535,7 +547,11 @@
 }
 
 .pond-angler-facing-left .pond-fishing-rod {
-  transform: scaleX(-1) rotate(-20deg);
+  transform: rotate(-160deg);
+}
+
+.pond-angler-facing-left .pond-cast-line {
+  left: calc(100% - 2rem);
 }
 
 .pond-fishing-rod::after {
@@ -556,26 +572,41 @@
   top: 50%;
   left: 100%;
   width: clamp(7rem, 18vw, 14rem);
-  height: 0.12rem;
+  height: clamp(3.5rem, 7vw, 5rem);
+  overflow: visible;
   opacity: 0;
-  background: linear-gradient(90deg, rgb(224 242 254 / 80%), rgb(165 243 252 / 30%));
-  transform: translateY(-50%) rotate(-2deg) scaleX(0);
-  transform-origin: left center;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(-2deg);
+  transform-origin: 0 50%;
   filter: drop-shadow(0 0 0.2rem rgb(165 243 252 / 45%));
 }
 
-.pond-cast-line::after {
-  position: absolute;
-  top: 50%;
-  right: -0.3rem;
-  width: 0.6rem;
-  height: 0.6rem;
-  content: '';
-  background: #fef08a;
-  border: 2px solid #cffafe;
-  border-radius: 50%;
-  box-shadow: 0 0 0.65rem rgb(250 204 21 / 85%);
-  transform: translateY(-50%);
+.pond-cast-line-path {
+  fill: none;
+  stroke: rgb(224 242 254 / 88%);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  vector-effect: non-scaling-stroke;
+}
+
+.pond-cast-lure {
+  fill: #fef08a;
+  stroke: #cffafe;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 0.35rem rgb(250 204 21 / 90%));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pond-cast-splash {
+  fill: none;
+  stroke: rgb(165 243 252 / 86%);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .pond-angler-you {
@@ -868,25 +899,67 @@
 }
 
 @keyframes pond-player-cast {
-  0% { rotate: -20deg; }
-  25% { rotate: -58deg; }
-  58% { rotate: 14deg; }
-  78%, 100% { rotate: -20deg; }
+  0%, 100% { rotate: 0deg; }
+  25% { rotate: -38deg; }
+  58% { rotate: 34deg; }
+  78% { rotate: 0deg; }
 }
 
 @keyframes pond-line-throw {
   0% {
     opacity: 0;
-    transform: translateY(-50%) rotate(-2deg) scaleX(0);
+    transform: translateY(-50%) rotate(-7deg) scale(0.9);
   }
-  46% {
-    opacity: 0.9;
-    transform: translateY(-50%) rotate(-2deg) scaleX(0.18);
+  24% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(3deg) scale(1.02);
   }
   100% {
     opacity: 0.82;
-    transform: translateY(-50%) rotate(-2deg) scaleX(1);
+    transform: translateY(-50%) rotate(-2deg) scale(1);
   }
+}
+
+@keyframes pond-line-draw {
+  0% { stroke-dashoffset: 1; }
+  18% { stroke-dashoffset: 0.78; }
+  48% { stroke-dashoffset: 0.48; }
+  72% { stroke-dashoffset: 0.21; }
+  88% { stroke-dashoffset: 0.08; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes pond-lure-throw {
+  0% {
+    opacity: 0;
+    transform: translate(-157px, -24px) scale(0.3);
+  }
+  18% {
+    opacity: 0.72;
+    transform: translate(-124px, -23px) scale(0.72);
+  }
+  48% {
+    opacity: 1;
+    transform: translate(-72px, -19px) scale(0.92);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-38px, -13px) scale(1.08);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(-14px, -5px) scale(1.35);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes pond-cast-splash {
+  0%, 70% { opacity: 0; transform: scale(0.2); }
+  82% { opacity: 0.9; transform: scale(0.75); }
+  100% { opacity: 0; transform: scale(1.8); }
 }
 
 @keyframes pond-remote-rod-cast {

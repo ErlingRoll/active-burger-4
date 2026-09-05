@@ -8,6 +8,7 @@ import {
 } from '../rendering/TooltipShell'
 import { isRarity } from '../content/rarity/Rarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
+import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
 import { sortInventoryItems, type InventoryItemComparator } from './InventorySorting'
 import type { InventoryItemInstance } from './InventoryTypes'
 
@@ -42,6 +43,7 @@ export function PaginatedInventoryGrid({
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({})
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
+  const seenItemInstanceIds = useSeenInventoryItemIds()
   const sortedItems = sortInventoryItems(items, {
     getEssence: getItemEssence,
     precedingComparators: precedingSortComparators,
@@ -95,6 +97,7 @@ export function PaginatedInventoryGrid({
   }, [activeItem])
 
   const showItemTooltip = (itemInstanceId: string): void => {
+    markInventoryItemAsSeen(itemInstanceId)
     closeAllTooltips()
     setActiveItemInstanceId(itemInstanceId)
   }
@@ -126,10 +129,11 @@ export function PaginatedInventoryGrid({
           const rarity = isRarity(item.metadata.rarity) ? item.metadata.rarity : null
           const itemName = definition?.name ?? item.definitionId
           const isActive = activeItem?.itemInstanceId === item.itemInstanceId
+          const isUnseen = !seenItemInstanceIds.has(item.itemInstanceId)
           const tooltipId = `inventory-item-tooltip-${item.itemInstanceId}`
           return (
             <li
-              className={`inventory-item-card category-${definition?.category ?? 'utility'}`}
+              className={`inventory-item-card category-${definition?.category ?? 'utility'}${isUnseen ? ' inventory-item-card-unseen' : ''}`}
               data-rarity={rarity ?? undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
