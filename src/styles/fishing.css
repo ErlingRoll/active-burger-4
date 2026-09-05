@@ -740,12 +740,20 @@
   min-width: 0;
 }
 
-.pond-loadout-control select {
+.fishing-dropdown-anchor {
+  position: relative;
+}
+
+.fishing-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-height: 2.45rem;
   width: 100%;
   max-width: none;
   padding: 0.35rem 0.65rem;
   color: #e0f2fe;
+  cursor: pointer;
   font: inherit;
   font-size: 0.75rem;
   letter-spacing: 0;
@@ -756,14 +764,60 @@
   box-shadow: inset 0 1px rgb(255 255 255 / 6%);
 }
 
-.pond-loadout-control select:hover:not(:disabled),
-.pond-loadout-control select:focus-visible {
+.fishing-dropdown-trigger:hover:not(:disabled),
+.fishing-dropdown-trigger:focus-visible {
   border-color: #67e8f9;
   outline: 3px solid rgb(103 232 249 / 16%);
   outline-offset: 1px;
 }
 
-.pond-loadout-control select:disabled {
+.fishing-dropdown-chevron {
+  margin-left: 0.5rem;
+  color: #a5f3fc;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.fishing-dropdown-menu {
+  position: absolute;
+  z-index: 8;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  display: grid;
+  gap: 0.2rem;
+  max-height: min(14rem, 45vh);
+  padding: 0.3rem;
+  overflow-y: auto;
+  background: rgb(7 20 36 / 98%);
+  border: 1px solid rgb(103 232 249 / 65%);
+  border-radius: 0.4rem;
+  box-shadow: 0 0.7rem 1.5rem rgb(0 0 0 / 42%), 0 0 1rem rgb(34 211 238 / 12%);
+}
+
+.fishing-dropdown-option {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  color: #dbeafe;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.fishing-dropdown-option:hover,
+.fishing-dropdown-option:focus-visible,
+.fishing-dropdown-option.selected {
+  color: #f0fdfa;
+  background: rgb(30 64 88 / 92%);
+  border-color: rgb(103 232 249 / 45%);
+  outline: none;
+}
+
+.fishing-dropdown-trigger:disabled {
   cursor: not-allowed;
   opacity: 0.72;
 }

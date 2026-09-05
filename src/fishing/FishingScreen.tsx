@@ -251,6 +251,107 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
   )
 }
 
+interface FishingDropdownOption {
+  value: string
+  label: string
+}
+
+interface FishingDropdownProps {
+  icon: string
+  label: string
+  value: string
+  options: readonly FishingDropdownOption[]
+  disabled: boolean
+  onChange: (value: string) => void
+}
+
+function FishingDropdown({
+  icon,
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: FishingDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+    const closeOnOutsidePointer = (event: PointerEvent): void => {
+      if (event.target instanceof Node && !dropdownRef.current?.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false)
+    }
+  }, [disabled])
+
+  return (
+    <div className="pond-loadout-control fishing-dropdown" ref={dropdownRef}>
+      <span><span aria-hidden="true">{icon}</span> {label}</span>
+      <div className="fishing-dropdown-anchor">
+        <button
+          className="fishing-dropdown-trigger"
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          disabled={disabled}
+          onClick={() => setIsOpen((current) => !current)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              setIsOpen(true)
+            }
+          }}
+        >
+          <span>{selectedOption?.label ?? 'Select an option'}</span>
+          <span className="fishing-dropdown-chevron" aria-hidden="true">⌄</span>
+        </button>
+        {isOpen ? (
+          <div className="fishing-dropdown-menu" role="listbox" aria-label={label}>
+            {options.map((option) => (
+              <button
+                className={`fishing-dropdown-option${
+                  option.value === value ? ' selected' : ''
+                }`}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value)
+                  setIsOpen(false)
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export function FishingScreen({
   fishingService,
   inventoryService,
@@ -801,6 +902,9 @@ export function FishingScreen({
                 </button>
               </div>
             </div>
+            <p className="fishing-hud-description">
+              {FISHING_PHASE_DESCRIPTIONS[fishingPhase]}
+            </p>
             {activityNotice ? (
               <p className="fishing-activity-notice" role="status" aria-live="polite">
                 <span aria-hidden="true">◉</span> {activityNotice.message}
@@ -857,54 +961,52 @@ export function FishingScreen({
               </div>
               <div className="pond-scene-actions">
                 <div className="pond-loadout-controls">
-                  <label className="pond-loadout-control">
-                    <span><span aria-hidden="true">◈</span> Mode</span>
-                    <select
-                      value={selectedMode}
-                      onChange={(event) => {
-                        if (isFishingMode(event.target.value)) {
-                          setSelectedMode(event.target.value)
-                        }
-                      }}
-                      disabled={fishingPhase !== 'idle'}
-                    >
-                      {Object.values(FISHING_MODES).map((mode) => (
-                        <option value={mode.id} key={mode.id}>{mode.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="pond-loadout-control">
-                    <span><span aria-hidden="true">⌁</span> Rod</span>
-                    <select
-                      value={effectiveSelectedRodId ?? ''}
-                      onChange={(event) => setSelectedRodId(event.target.value || null)}
-                      disabled={fishingPhase !== 'idle'}
-                    >
-                      <option value="">No rod</option>
-                      {rods.map((rod) => (
-                        <option value={rod.itemInstanceId} key={rod.itemInstanceId}>
-                          {getInventoryItemDefinition(rod.definitionId)?.name ?? rod.definitionId}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="pond-loadout-control">
-                    <span><span aria-hidden="true">●</span> Bait</span>
-                    <select
-                      value={effectiveSelectedBaitId}
-                      onChange={(event) => setSelectedBaitId(event.target.value)}
-                      disabled={fishingPhase !== 'idle'}
-                    >
-                      <option value={DEFAULT_FISHING_BAIT_ID}>
-                        {FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · unlimited
-                      </option>
-                      {baits.map((bait) => (
-                        <option value={bait.itemInstanceId} key={bait.itemInstanceId}>
-                          {getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · {bait.quantity}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FishingDropdown
+                    icon="◈"
+                    label="Mode"
+                    value={selectedMode}
+                    options={Object.values(FISHING_MODES).map((mode) => ({
+                      value: mode.id,
+                      label: mode.name,
+                    }))}
+                    disabled={fishingPhase !== 'idle'}
+                    onChange={(value) => {
+                      if (isFishingMode(value)) {
+                        setSelectedMode(value)
+                      }
+                    }}
+                  />
+                  <FishingDropdown
+                    icon="⌁"
+                    label="Rod"
+                    value={effectiveSelectedRodId ?? ''}
+                    options={[
+                      { value: '', label: 'No rod' },
+                      ...rods.map((rod) => ({
+                        value: rod.itemInstanceId,
+                        label: getInventoryItemDefinition(rod.definitionId)?.name ?? rod.definitionId,
+                      })),
+                    ]}
+                    disabled={fishingPhase !== 'idle'}
+                    onChange={(value) => setSelectedRodId(value || null)}
+                  />
+                  <FishingDropdown
+                    icon="●"
+                    label="Bait"
+                    value={effectiveSelectedBaitId}
+                    options={[
+                      {
+                        value: DEFAULT_FISHING_BAIT_ID,
+                        label: `${FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · unlimited`,
+                      },
+                      ...baits.map((bait) => ({
+                        value: bait.itemInstanceId,
+                        label: `${getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · ${bait.quantity}`,
+                      })),
+                    ]}
+                    disabled={fishingPhase !== 'idle'}
+                    onChange={setSelectedBaitId}
+                  />
                 </div>
                 <button
                   className="primary-action pond-cast-button"
