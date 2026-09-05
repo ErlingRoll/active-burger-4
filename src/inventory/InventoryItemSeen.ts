@@ -89,6 +89,17 @@ export function markInventoryItemAsSeen(itemInstanceId: string): void {
   notifyListeners()
 }
 
+export function markInventoryItemAsUnseen(itemInstanceId: string): void {
+  const currentIds = getSeenItemInstanceIds()
+  if (!currentIds.has(itemInstanceId)) {
+    return
+  }
+  seenItemInstanceIds = new Set(currentIds)
+  seenItemInstanceIds.delete(itemInstanceId)
+  persistSeenItemInstanceIds(seenItemInstanceIds)
+  notifyListeners()
+}
+
 export function useSeenInventoryItemIds(): ReadonlySet<string> {
   return useSyncExternalStore(subscribe, getSeenItemInstanceIds, getSeenItemInstanceIds)
 }

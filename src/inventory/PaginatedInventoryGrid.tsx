@@ -236,6 +236,7 @@ export function PaginatedInventoryGrid({
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation()
+                  closeAllTooltips()
                   onSalvage(activeItem)
                 }}
                 disabled={salvagingItemInstanceId !== null}

@@ -29,6 +29,18 @@ test('resolves an authenticated manual fishing attempt', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: /Fishing · Moonwater Pond/i }),
   ).toBeVisible()
+  const fishingInventoryToggle = page.locator('.fishing-inventory-toggle')
+  await fishingInventoryToggle.click()
+  const fishingInventoryCards = page.locator(
+    '#fishing-inventory .inventory-item-card:not(.inventory-item-card-empty)',
+  )
+  await expect(fishingInventoryCards.first()).toBeVisible()
+  for (let index = 0; index < await fishingInventoryCards.count(); index += 1) {
+    await fishingInventoryCards.nth(index).hover()
+  }
+  await expect(page.locator('#fishing-inventory .inventory-item-card-unseen')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
+
   const castButton = page.getByRole('button', { name: 'Cast' })
   await expect(castButton).toBeEnabled({ timeout: 15_000 })
 
@@ -57,6 +69,10 @@ test('resolves an authenticated manual fishing attempt', async ({ page }) => {
   })
   await expect(page.getByText(/Size \d+\.\d+ kg/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Cast' })).toBeEnabled()
+
+  await fishingInventoryToggle.click()
+  await expect(page.locator('#fishing-inventory .inventory-item-card-unseen').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
 
   await page.goto('/inventory')
   await expect(page.getByRole('heading', { name: 'Inventory', exact: true })).toBeVisible()

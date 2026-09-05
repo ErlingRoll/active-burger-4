@@ -24,6 +24,7 @@ import {
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
+import { markInventoryItemAsUnseen } from '../inventory/InventoryItemSeen'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
@@ -719,6 +720,7 @@ export function FishingScreen({
             : 'Shared pond activity is unavailable.')
         }
       })
+      markInventoryItemAsUnseen(result.itemInstanceId)
       const loadedItems = await inventoryService.loadInventory()
       if (!mountedRef.current) {
         return
@@ -1093,7 +1095,7 @@ export function FishingScreen({
       {pendingSalvage ? (
         <ConfirmationDialog
           title="Salvage fish?"
-          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} consumes one fish and awards server-calculated Essence.`}
+          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} for Essence.`}
           confirmLabel="Salvage fish"
           onCancel={() => setPendingSalvage(null)}
           onConfirm={() => {

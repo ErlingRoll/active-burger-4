@@ -236,7 +236,7 @@ export function InventoryScreen({
       {pendingSalvage ? (
         <ConfirmationDialog
           title="Salvage fish?"
-          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} consumes one fish and awards server-calculated Essence.`}
+          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} for Essence.`}
           confirmLabel="Salvage fish"
           onCancel={() => setPendingSalvage(null)}
           onConfirm={() => {
