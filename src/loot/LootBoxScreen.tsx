@@ -24,8 +24,12 @@ interface LootBoxScreenProps {
 }
 
 function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
-  const definition = getInventoryItemDefinition(item.definitionId)
-  const fish = getFishDefinition(item.definitionId)
+  return getRewardIcon(item.definitionId)
+}
+
+function getRewardIcon(definitionId: string): ReactNode {
+  const definition = getInventoryItemDefinition(definitionId)
+  const fish = getFishDefinition(definitionId)
   return fish ? <FishIcon icon={fish.visual.icon} color={fish.visual.accent} /> :
     ({
       fish: '🐟',
@@ -67,7 +71,7 @@ export function InventoryScreen({
   configurationError,
   onBack,
 }: LootBoxScreenProps) {
-  const { showToast } = useToaster()
+  const { showLootToast } = useToaster()
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
@@ -76,11 +80,6 @@ export function InventoryScreen({
     () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
   )
   const [opening, setOpening] = useState(false)
-  const [lastOpening, setLastOpening] = useState<{
-    definitionId: string
-    quantity: number
-    boxRarity: string
-  } | null>(null)
   const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
   const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
 
@@ -128,10 +127,13 @@ export function InventoryScreen({
     setError(null)
     try {
       const result = await lootBoxService.openBox(crypto.randomUUID(), box.itemInstanceId)
-      setLastOpening({
-        definitionId: result.definitionId,
-        quantity: result.quantity,
-        boxRarity: getAbyssLootBoxRarityLabel(result.boxRarity),
+      showLootToast({
+        title: `${getAbyssLootBoxRarityLabel(result.boxRarity)} box opened`,
+        itemName: getInventoryItemDefinition(result.definitionId)?.name ?? result.definitionId,
+        icon: getRewardIcon(result.definitionId),
+        accentColor: '#c084fc',
+        glowColor: '#7c3aed',
+        reward: `×${result.quantity}`,
       })
       await refresh()
     } catch (openError: unknown) {
@@ -154,7 +156,17 @@ export function InventoryScreen({
         fish.itemInstanceId,
         1,
       )
-      showToast(`Fish salvaged\n${itemName}\n+${result.essenceAwarded} Essence`)
+      const fishDefinition = getFishDefinition(fish.definitionId)
+      showLootToast({
+        title: 'Fish salvaged',
+        itemName,
+        icon: fishDefinition ? (
+          <FishIcon icon={fishDefinition.visual.icon} color={fishDefinition.visual.accent} />
+        ) : '🐟',
+        accentColor: fishDefinition?.visual.accent,
+        glowColor: fishDefinition?.visual.glow,
+        reward: `+${result.essenceAwarded} Essence`,
+      })
       await refresh()
     } catch (salvageError: unknown) {
       setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
@@ -171,13 +183,6 @@ export function InventoryScreen({
         <h2 id="loot-box-title">Inventory</h2>
         <p>View fish, bait, rods, loot boxes, and other meta items.</p>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
-        {lastOpening ? (
-          <section className="loot-box-result" aria-live="polite">
-            <p className="screen-kicker">{lastOpening.boxRarity} box opened</p>
-            <strong>{getInventoryItemDefinition(lastOpening.definitionId)?.name ?? lastOpening.definitionId}</strong>
-            <span>×{lastOpening.quantity}</span>
-          </section>
-        ) : null}
         {loadState === 'loading' ? (
           <p role="status">Loading loot boxes…</p>
         ) : (

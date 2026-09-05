@@ -362,7 +362,7 @@ export function FishingScreen({
   activityPlayerApprovedNickname,
   activityPlayerProviderName,
 }: FishingScreenProps) {
-  const { showToast } = useToaster()
+  const { showLootToast } = useToaster()
   const activityPlayerName = getPlayerDisplayName({
     approvedNickname: activityPlayerApprovedNickname,
     providerDisplayName: activityPlayerProviderName,
@@ -663,15 +663,23 @@ export function FishingScreen({
       const fishDefinition = getFishDefinition(result.definitionId)
       const fishName = getInventoryItemDefinition(result.definitionId)?.name ?? result.definitionId
       const enchantment = formatFishingEnchantment(result.metadata)
-      showToast([
-        'Catch received',
-        `${fishName} · ${fishDefinition?.effect.description ?? 'A mysterious pond catch'}`,
-        `${result.metadata.rarity} · Size ${formatFishSizeKg(
-          result.metadata.sizePercentile,
-          fishDefinition?.weightRangeKg,
-        )}`,
-        enchantment ? `Enchanted · ${enchantment}` : null,
-      ].filter((detail): detail is string => detail !== null).join('\n'))
+      showLootToast({
+        title: 'Catch received',
+        itemName: fishName,
+        icon: fishDefinition ? (
+          <FishIcon icon={fishDefinition.visual.icon} color={fishDefinition.visual.accent} />
+        ) : '🐟',
+        accentColor: fishDefinition?.visual.accent,
+        glowColor: fishDefinition?.visual.glow,
+        effect: fishDefinition?.effect.description ?? 'A mysterious pond catch',
+        details: [
+          `${RARITY_VISUALS[result.metadata.rarity].label} · Size ${formatFishSizeKg(
+            result.metadata.sizePercentile,
+            fishDefinition?.weightRangeKg,
+          )}`,
+          ...(enchantment ? [`Enchanted · ${enchantment}`] : []),
+        ],
+      })
       trackActivityPresence({
         attemptId,
         playerId: activityPlayerId,
@@ -742,7 +750,17 @@ export function FishingScreen({
         fish.itemInstanceId,
         1,
       )
-      showToast(`Fish salvaged\n${itemName}\n+${result.essenceAwarded} Essence`)
+      const fishDefinition = getFishDefinition(fish.definitionId)
+      showLootToast({
+        title: 'Fish salvaged',
+        itemName,
+        icon: fishDefinition ? (
+          <FishIcon icon={fishDefinition.visual.icon} color={fishDefinition.visual.accent} />
+        ) : '🐟',
+        accentColor: fishDefinition?.visual.accent,
+        glowColor: fishDefinition?.visual.glow,
+        reward: `+${result.essenceAwarded} Essence`,
+      })
       setItems(await inventoryService.loadInventory())
     } catch (salvageError: unknown) {
       setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')

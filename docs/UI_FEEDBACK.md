@@ -8,32 +8,40 @@ top-right location, so feature screens should not create their own transient
 success card or banner.
 
 Inside a React component, obtain the toaster with `useToaster` and call
-`showToast`:
+`showLootToast` for structured reward feedback:
 
 ```tsx
 import { useToaster } from '../ui/ToasterContext'
 
 function RewardScreen() {
-  const { showToast } = useToaster()
+  const { showLootToast } = useToaster()
 
   function onRewardReceived(itemName: string, quantity: number) {
-    showToast(`Loot received\n${itemName}\n×${quantity}`)
+    showLootToast({
+      title: 'Loot received',
+      itemName,
+      icon: <span aria-hidden="true">✦</span>,
+      reward: `×${quantity}`,
+    })
   }
 
   // ...
 }
 ```
 
-`showToast(message, kind)` accepts `info` (the default) or `error`. Multi-line
-messages are supported and preserve line breaks in the toast.
+Use `showToast(message, kind)` for ordinary text feedback. It accepts `info`
+(the default) or `error`. Use `showLootToast(options)` for rewards so the
+shared presentation can retain icons, accent colors, and content hierarchy.
 
 ### Loot toast conventions
 
-- Use the first line for the event, such as `Catch received`, `Loot received`,
-  or `Fish salvaged`.
-- Use the second line for the item or reward name.
-- Put quantity, effect, rarity, size, enchantment, or Essence details on later
-  lines.
+- Use `title` for the event, such as `Catch received`, `Loot received`, or
+  `Fish salvaged`.
+- Use `itemName` for the item or reward name.
+- Use `icon` plus `accentColor` and `glowColor` when the reward has a
+  species- or rarity-specific visual.
+- Put quantity or Essence in `reward`, the item effect in `effect`, and rarity,
+  size, or enchantment in `details`.
 - Show the toast only after the server or service operation succeeds.
 - Keep operation failures explicit and use `showToast(message, 'error')` when
   the failure is transient user-facing feedback.
