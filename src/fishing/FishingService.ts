@@ -50,13 +50,25 @@ export interface FishingActivityEvent {
   occurredAt: string
 }
 
+export interface FishingAnglerPresence {
+  attemptId: string
+  playerId: string
+  playerName: string
+  phase: 'idle' | 'waiting' | 'catching'
+  fishDefinitionId?: string
+  rarity?: Rarity
+}
+
 export interface FishingService {
   beginAttempt(input: BeginFishingInput): Promise<FishingAttemptPreparation>
   resolveAttempt(input: ResolveFishingInput): Promise<FishingAttemptResult>
   publishActivity(event: FishingActivityEvent): Promise<void>
+  loadActiveAnglers(): Promise<FishingAnglerPresence[]>
+  trackAngler(presence: FishingAnglerPresence): Promise<void>
   subscribeToActivity(
     listener: (event: FishingActivityEvent) => void,
     onError: (error: Error) => void,
+    onPresence: (anglers: FishingAnglerPresence[]) => void,
   ): () => void
 }
 
@@ -80,6 +92,12 @@ interface RpcFishingResultRow {
     sizePercentile: number
   }
   was_processed: boolean
+}
+
+interface RpcActiveFishingAnglerRow {
+  attempt_id: string
+  player_id: string
+  player_name: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -109,6 +127,27 @@ function isFishingActivityEvent(value: unknown): value is FishingActivityEvent {
     return isNonEmptyString(value.fishDefinitionId) && isRarity(value.rarity)
   }
   return value.fishDefinitionId === undefined && value.rarity === undefined
+}
+
+function isFishingAnglerPresence(value: unknown): value is FishingAnglerPresence {
+  if (!isRecord(value) ||
+    !isNonEmptyString(value.attemptId) ||
+    !isNonEmptyString(value.playerId) ||
+    !isNonEmptyString(value.playerName) ||
+    (value.phase !== 'idle' && value.phase !== 'waiting' && value.phase !== 'catching')) {
+    return false
+  }
+  if (value.phase === 'catching') {
+    return isNonEmptyString(value.fishDefinitionId) && isRarity(value.rarity)
+  }
+  return value.fishDefinitionId === undefined && value.rarity === undefined
+}
+
+function isRpcActiveFishingAnglerRow(value: unknown): value is RpcActiveFishingAnglerRow {
+  return isRecord(value) &&
+    isNonEmptyString(value.attempt_id) &&
+    isNonEmptyString(value.player_id) &&
+    isNonEmptyString(value.player_name)
 }
 
 function isAttemptStatus(value: unknown): value is 'pending' | 'completed' {
@@ -166,14 +205,40 @@ export function createFishingService(
   const defaultClient = getSupabaseClient(environment)
   const getClient = (): SupabaseClient => resolveClient?.() ?? defaultClient
   let activityChannel: RealtimeChannel | null = null
+  let isActivityChannelSubscribed = false
+  let subscriptionReady: Promise<void> | null = null
+  let resolveSubscription: (() => void) | null = null
+  let rejectSubscription: ((error: Error) => void) | null = null
 
   const getActivityChannel = (): RealtimeChannel => {
     if (!activityChannel) {
       activityChannel = getClient().channel('fishing-pond', {
-        config: { broadcast: { self: false } },
+        config: {
+          broadcast: { self: false },
+          presence: { enabled: true },
+        },
       })
     }
     return activityChannel
+  }
+
+  const waitForActivityChannel = (): Promise<void> => {
+    if (isActivityChannelSubscribed) {
+      return Promise.resolve()
+    }
+    if (!subscriptionReady) {
+      subscriptionReady = new Promise<void>((resolve, reject) => {
+        resolveSubscription = resolve
+        rejectSubscription = reject
+      })
+    }
+    return subscriptionReady
+  }
+
+  const assertRealtimeStatus = (status: string, operation: string): void => {
+    if (status !== 'ok') {
+      throw new Error(`Fishing angler ${operation} failed: ${status}.`)
+    }
   }
 
   return {
@@ -250,6 +315,7 @@ export function createFishingService(
       if (!isFishingActivityEvent(event)) {
         throw new Error('Fishing activity event is invalid.')
       }
+      await waitForActivityChannel()
       const status = await getActivityChannel().send({
         type: 'broadcast',
         event: 'fishing-activity',
@@ -260,7 +326,32 @@ export function createFishingService(
       }
     },
 
-    subscribeToActivity(listener, onError): () => void {
+    async loadActiveAnglers(): Promise<FishingAnglerPresence[]> {
+      const response = await getClient().rpc('get_active_fishing_anglers')
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || !response.data.every(isRpcActiveFishingAnglerRow)) {
+        throw invalidResponse('expected active fishing angler rows')
+      }
+      return response.data.map((row) => ({
+        attemptId: row.attempt_id,
+        playerId: row.player_id,
+        playerName: row.player_name,
+        phase: 'waiting',
+      }))
+    },
+
+    async trackAngler(presence): Promise<void> {
+      if (!isFishingAnglerPresence(presence)) {
+        throw new Error('Fishing angler presence is invalid.')
+      }
+      await waitForActivityChannel()
+      const status = await getActivityChannel().track(presence)
+      assertRealtimeStatus(status, 'presence update')
+    },
+
+    subscribeToActivity(listener, onError, onPresence): () => void {
       const client = getClient()
       const channel = getActivityChannel()
       let active = true
@@ -269,13 +360,40 @@ export function createFishingService(
           listener(payload)
         }
       })
+      channel.on('presence', { event: 'sync' }, () => {
+        if (!active) {
+          return
+        }
+        const anglers = Object.values(channel.presenceState<FishingAnglerPresence>())
+          .flat()
+          .filter(isFishingAnglerPresence)
+        onPresence(anglers)
+      })
       channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          isActivityChannelSubscribed = true
+          resolveSubscription?.()
+          resolveSubscription = null
+          rejectSubscription = null
+          return
+        }
         if (active && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) {
-          onError(new Error(`Shared pond activity is unavailable (${status}).`))
+          const error = new Error(`Shared pond activity is unavailable (${status}).`)
+          isActivityChannelSubscribed = false
+          rejectSubscription?.(error)
+          subscriptionReady = null
+          resolveSubscription = null
+          rejectSubscription = null
+          onError(error)
         }
       })
       return () => {
         active = false
+        isActivityChannelSubscribed = false
+        rejectSubscription?.(new Error('Shared pond activity subscription ended.'))
+        subscriptionReady = null
+        resolveSubscription = null
+        rejectSubscription = null
         if (activityChannel === channel) {
           activityChannel = null
         }

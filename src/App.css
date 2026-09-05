@@ -8339,9 +8339,8 @@
 .pond-angler {
   position: absolute;
   z-index: 5;
-  display: grid;
-  justify-items: center;
-  width: 3.8rem;
+  width: 5rem;
+  height: 3rem;
   color: #cbd5e1;
   font-size: 0.65rem;
   font-weight: 800;
@@ -8349,48 +8348,87 @@
 }
 
 .pond-angler strong {
-  margin-top: 0.15rem;
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.35rem);
+  left: 50%;
+  min-width: max-content;
+  margin: 0;
+  transform: translateX(-50%);
 }
 
 .pond-angler-chair {
   position: absolute;
-  bottom: 0.85rem;
-  width: 2rem;
+  z-index: 1;
+  bottom: 0;
+  left: 50%;
+  width: 2.35rem;
   height: 1.1rem;
-  background: #713f12;
-  border: 2px solid #a16207;
-  border-radius: 0.25rem;
+  background: linear-gradient(145deg, #713f12, #3f1d0b);
+  border: 1px solid #d97706;
+  border-radius: 0.35rem 0.35rem 0.2rem 0.2rem;
+  box-shadow: inset 0 0.15rem rgb(254 243 199 / 20%);
+  transform: translateX(-50%);
 }
 
 .pond-angler-body {
-  position: relative;
-  z-index: 1;
-  width: 1rem;
-  height: 1.2rem;
-  background: #475569;
-  border: 2px solid #cbd5e1;
-  border-radius: 0.5rem 0.5rem 0.25rem 0.25rem;
-}
-
-.pond-angler-avatar {
-  position: relative;
-  z-index: 3;
-  display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
-  place-items: center;
-  color: #f8fafc;
-  font-size: 1.45rem;
-  line-height: 1;
-  background: rgb(30 41 59 / 92%);
-  border: 2px solid #fef3c7;
-  border-radius: 0.7rem 0.7rem 0.9rem 0.9rem;
-  box-shadow: 0 0 0.8rem rgb(103 232 249 / 45%), inset 0 0 0.45rem rgb(255 255 255 / 12%);
-}
-
-.pond-angler-you .pond-angler-body {
   position: absolute;
-  opacity: 0;
+  z-index: 3;
+  bottom: 0.38rem;
+  left: 50%;
+  width: 1.6rem;
+  height: 1.7rem;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(224 231 255 / 50%) 0 0.12rem, transparent 0.15rem),
+    linear-gradient(145deg, #312e81, #0f172a 72%);
+  border: 1px solid #818cf8;
+  border-radius: 0.8rem 0.8rem 0.35rem 0.35rem;
+  box-shadow: inset 0.22rem 0 rgb(196 181 253 / 20%), 0 0 0.55rem rgb(129 140 248 / 38%);
+  transform: translateX(-50%);
+}
+
+.pond-angler-head {
+  position: absolute;
+  z-index: 4;
+  bottom: 1.68rem;
+  left: 50%;
+  width: 1.15rem;
+  height: 1.15rem;
+  background: radial-gradient(circle at 35% 30%, #f8fafc, #a5b4fc 65%, #4f46e5);
+  border: 1px solid #e0e7ff;
+  border-radius: 50%;
+  box-shadow: 0 0 0.65rem rgb(165 180 252 / 82%);
+  transform: translateX(-50%);
+}
+
+.pond-angler-head::after {
+  position: absolute;
+  top: 0.46rem;
+  right: 0.2rem;
+  width: 0.22rem;
+  height: 0.14rem;
+  content: '';
+  background: #312e81;
+  border-radius: 50%;
+  box-shadow: 0 0 0.2rem rgb(49 46 129 / 70%);
+}
+
+.pond-angler-facing-left .pond-angler-head::after {
+  right: auto;
+  left: 0.2rem;
+}
+
+.pond-angler-halo {
+  position: absolute;
+  z-index: 2;
+  bottom: 1.28rem;
+  left: 50%;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid rgb(196 181 253 / 75%);
+  border-radius: 50%;
+  box-shadow: 0 0 0.9rem rgb(129 140 248 / 42%);
+  transform: translateX(-50%);
 }
 
 .pond-angler-you .pond-fishing-rod::after {
@@ -8399,21 +8437,28 @@
 
 .pond-angler-hat {
   position: absolute;
-  z-index: 2;
-  top: -0.65rem;
-  color: #fbbf24;
-  font-size: 1rem;
+  z-index: 5;
+  bottom: 2.55rem;
+  left: 50%;
+  color: #fef08a;
+  font-size: 0.7rem;
+  text-shadow: 0 0 0.45rem rgb(250 204 21 / 90%);
+  transform: translateX(-50%);
 }
 
 .pond-fishing-rod {
   position: absolute;
-  top: 0.15rem;
-  left: 2.2rem;
+  top: 1.23rem;
+  left: 50%;
   width: 3.7rem;
   height: 0.1rem;
   background: #fde68a;
   transform: rotate(-20deg);
   transform-origin: left center;
+}
+
+.pond-angler-facing-left .pond-fishing-rod {
+  transform: scaleX(-1) rotate(-20deg);
 }
 
 .pond-fishing-rod::after {
@@ -8473,19 +8518,44 @@
   transform: translate(-50%, -50%) scale(0.72);
 }
 
+.pond-angler-remote strong {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 0.4rem);
+  left: 50%;
+  min-width: max-content;
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.1rem;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 0 0.35rem #020617, 0 1px 0 #020617;
+  transform: translateX(-50%);
+}
+
 .remote-angler-casting .pond-fishing-rod,
 .remote-angler-catching .pond-fishing-rod {
   animation: pond-remote-rod-cast 850ms ease-in-out infinite;
 }
 
-.pond-catch-burst {
+.pond-remote-catch-display {
   position: absolute;
-  top: -1.15rem;
-  left: 2.75rem;
-  color: #fef08a;
-  font-size: 1.4rem;
-  text-shadow: 0 0 0.8rem rgb(250 204 21 / 80%);
-  animation: pond-remote-catch 900ms ease-out both;
+  z-index: 4;
+  top: -3.35rem;
+  left: 50%;
+  display: grid;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  padding: 0 0.3rem;
+  font-size: 1.45rem;
+  line-height: 1;
+  background: rgb(15 23 42 / 94%);
+  border: 2px solid;
+  border-radius: 0.6rem;
+  text-shadow: 0 0 0.6rem currentcolor;
+  transform: translateX(-50%);
+  animation: pond-remote-fish-catch 2.4s ease-out both;
 }
 
 .pond-lantern {
@@ -8654,10 +8724,11 @@
   50% { rotate: -8deg; }
 }
 
-@keyframes pond-remote-catch {
-  0% { opacity: 0; scale: 0.5; rotate: -20deg; }
-  35% { opacity: 1; scale: 1.15; rotate: 10deg; }
-  100% { opacity: 0; scale: 1.35; rotate: 25deg; }
+@keyframes pond-remote-fish-catch {
+  0% { opacity: 0; transform: translate(-50%, 0.5rem) scale(0.5) rotate(-12deg); }
+  18% { opacity: 1; transform: translate(-50%, 0) scale(1.18) rotate(6deg); }
+  68% { opacity: 1; transform: translate(-50%, -0.15rem) scale(1); rotate: 0deg; }
+  100% { opacity: 0; transform: translate(-50%, -0.65rem) scale(1.08); rotate: 4deg; }
 }
 
 .fishing-panel h3 {
@@ -9438,7 +9509,7 @@
   .fishing-pond-scene.fishing-phase-casting .pond-cast-line,
   .remote-angler-casting .pond-fishing-rod,
   .remote-angler-catching .pond-fishing-rod,
-  .pond-catch-burst {
+  .pond-remote-catch-display {
     animation: none;
   }
 

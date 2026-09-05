@@ -19,15 +19,16 @@ The fishing screen presents a stylized pond rather than a plain form:
   pond atmosphere.
 - The player is shown seated at a fishing spot around the pond with a visible
   rod.
-- Each authenticated player is rendered at a deterministic position along the
-  pond perimeter when their shared activity is received. Anglers are
-  data-driven rather than limited to a fixed set of presentation slots, so the
-  pond can accommodate any number of active fishers.
+- Each authenticated player currently at the pond is tracked through realtime
+  presence and rendered at a deterministic position along the pond perimeter.
+  The active-attempt refresh recovers fishers if a realtime event is missed.
+  Anglers are data-driven rather than limited to a fixed set of presentation
+  slots, so the pond can accommodate any number of visitors.
 - Authenticated players on the pond receive lightweight realtime cast and catch
-  activity. Other anglers animate their rods when a player casts and show a
-  catch sparkle plus a shared activity notice when a fish is landed. These
-  events are visual-only and never contain inventory IDs, fish size, or private
-  progression data.
+  activity. Other anglers animate their rods when a player casts and briefly
+  show the caught fish above their head, with a rarity-colored highlight and
+  glow. These events are visual-only and never contain inventory IDs, fish
+  size, or private progression data.
 - The entire Fishing viewport uses a dark cosmic backdrop with sparse stars and
   subtle blue/violet nebula gradients. The pond is a brighter foreground focal
   layer within that space.
@@ -209,6 +210,6 @@ fishing output.
 Trading fish and rods is a later server-backed feature. Sharing catches and
 public collection displays can follow the inventory implementation.
 
-Real-time fishing ponds, player presence, emotes, and inspecting another
-player's equipment are optional future social features. They are not required
-for the first fishing release.
+Realtime fishing-pond presence and shared catch announcements are available.
+Emotes and inspecting another player's equipment remain optional future social
+features.

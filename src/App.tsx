@@ -2007,7 +2007,6 @@ function App() {
           configurationError={fishing.configurationError ?? inventory.configurationError}
           activityPlayerId={authentication.account.id}
           activityPlayerName={authentication.account.displayName ?? 'Anonymous fisher'}
-          characterClassId={settings.selectedCharacterClassId}
         />
       ) : null}
       {screen === 'champions' && authentication.account ? (

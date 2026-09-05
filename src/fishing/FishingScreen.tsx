@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   FishingAttemptPreparation,
   FishingAttemptResult,
+  FishingAnglerPresence,
   FishingService,
 } from './FishingService'
 import {
@@ -15,7 +16,7 @@ import {
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
-import { getCharacterClassDefinition, type CharacterClassId } from '../content/classes/CharacterClasses'
+import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 
 interface FishingScreenProps {
   fishingService: FishingService | null
@@ -23,7 +24,6 @@ interface FishingScreenProps {
   configurationError: string | null
   activityPlayerId: string
   activityPlayerName: string
-  characterClassId: CharacterClassId
 }
 
 function createAttemptId(): string {
@@ -35,13 +35,17 @@ function formatSizePercentile(value: unknown): string {
 }
 
 type FishingPhase = 'idle' | 'casting' | 'waiting' | 'manual' | 'catching'
-type RemoteAnglerPhase = 'casting' | 'waiting' | 'catching'
+type RemoteAnglerPhase = 'idle' | 'casting' | 'waiting' | 'catching'
 
 interface RemoteAngler {
   playerId: string
   playerName: string
   phase: RemoteAnglerPhase
   eventId: string
+  catch: {
+    definitionId: string
+    rarity: Rarity
+  } | null
 }
 
 interface FishingActivityNotice {
@@ -93,6 +97,8 @@ const SERVER_TIME_SAFETY_BUFFER_MS = 750
 const NOT_READY_RETRY_DELAY_MS = 500
 const MAX_NOT_READY_RETRIES = 90
 const CATCH_NOTICE_DURATION_MS = 5000
+const REMOTE_CATCH_DISPLAY_DURATION_MS = 2400
+const ACTIVE_ANGLER_RECONCILIATION_INTERVAL_MS = 2000
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -142,13 +148,60 @@ function isNotReadyError(error: unknown): boolean {
   return typeof message === 'string' && /not ready to resolve/i.test(message)
 }
 
+function reconcileRemoteAnglers(
+  currentAnglers: RemoteAngler[],
+  presentAnglers: FishingAnglerPresence[],
+  activityPlayerId: string,
+  removeAbsentAnglers = true,
+): RemoteAngler[] {
+  const reconciledAnglers = presentAnglers
+    .filter((angler) => angler.playerId !== activityPlayerId)
+    .map((angler) => {
+      const existing = currentAnglers.find((remoteAngler) => remoteAngler.playerId === angler.playerId)
+      if (existing && existing.phase !== 'idle' && angler.phase !== 'idle') {
+        return existing
+      }
+      return {
+        playerId: angler.playerId,
+        playerName: angler.playerName,
+        phase: angler.phase,
+        eventId: `${angler.attemptId}:presence`,
+        catch: angler.phase === 'catching' && angler.fishDefinitionId && angler.rarity
+          ? { definitionId: angler.fishDefinitionId, rarity: angler.rarity }
+          : null,
+      }
+    })
+  if (removeAbsentAnglers) {
+    return reconciledAnglers
+  }
+  const reconciledPlayerIds = new Set(reconciledAnglers.map((angler) => angler.playerId))
+  return [
+    ...currentAnglers.filter((angler) => !reconciledPlayerIds.has(angler.playerId)),
+    ...reconciledAnglers,
+  ]
+}
+
+function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) {
+  return (
+    <>
+      <span className="pond-angler-halo" />
+      <span className="pond-angler-chair" />
+      <span className="pond-angler-body" />
+      <span className="pond-angler-head" />
+      <span className="pond-angler-hat">✦</span>
+      <i className="pond-fishing-rod">
+        {showCastLine ? <i className="pond-cast-line" aria-hidden="true" /> : null}
+      </i>
+    </>
+  )
+}
+
 export function FishingScreen({
   fishingService,
   inventoryService,
   configurationError,
   activityPlayerId,
   activityPlayerName,
-  characterClassId,
 }: FishingScreenProps) {
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
@@ -173,6 +226,7 @@ export function FishingScreen({
   const remoteAnimationTimersRef = useRef(new Map<string, number>())
   const activityNoticeTimerRef = useRef<number | null>(null)
   const catchNoticeTimerRef = useRef<number | null>(null)
+  const presenceClearTimerRef = useRef<number | null>(null)
   const mountedRef = useRef(true)
 
   const setPhase = (phase: FishingPhase) => {
@@ -205,8 +259,6 @@ export function FishingScreen({
   const selectedRod = effectiveSelectedRodId
     ? rods.find((rod) => rod.itemInstanceId === effectiveSelectedRodId)
     : undefined
-  const characterClass = getCharacterClassDefinition(characterClassId)
-
   useEffect(() => {
     mountedRef.current = true
     return () => {
@@ -215,6 +267,7 @@ export function FishingScreen({
       clearTimerMap(remoteAnimationTimersRef)
       clearTimer(activityNoticeTimerRef)
       clearTimer(catchNoticeTimerRef)
+      clearTimer(presenceClearTimerRef)
     }
   }, [])
 
@@ -240,15 +293,24 @@ export function FishingScreen({
     if (!fishingService) {
       return
     }
-    return fishingService.subscribeToActivity(
+    const unsubscribe = fishingService.subscribeToActivity(
       (event) => {
         if (event.playerId === activityPlayerId) {
           return
         }
         const phase: RemoteAnglerPhase = event.kind === 'cast' ? 'casting' : 'catching'
+        const catchInfo = event.kind === 'catch' && event.fishDefinitionId && event.rarity
+          ? { definitionId: event.fishDefinitionId, rarity: event.rarity }
+          : null
         setRemoteAnglers((current) => [
           ...current.filter((angler) => angler.playerId !== event.playerId),
-          { playerId: event.playerId, playerName: event.playerName, phase, eventId: event.eventId },
+          {
+            playerId: event.playerId,
+            playerName: event.playerName,
+            phase,
+            eventId: event.eventId,
+            catch: catchInfo,
+          },
         ])
         const message = event.kind === 'cast'
           ? `${event.playerName} cast a line.`
@@ -275,7 +337,7 @@ export function FishingScreen({
           }
           setRemoteAnglers((current) => current.map((angler) =>
             angler.playerId === event.playerId && angler.eventId === event.eventId
-              ? { ...angler, phase: 'waiting' }
+              ? { ...angler, phase: event.kind === 'cast' ? 'waiting' : 'idle', catch: null }
               : angler,
           ))
         }, event.kind === 'cast' ? 1400 : 2400)
@@ -286,7 +348,59 @@ export function FishingScreen({
           setActivityError(activitySubscriptionError.message)
         }
       },
+      (presentAnglers) => {
+        if (!mountedRef.current) {
+          return
+        }
+        setRemoteAnglers((current) =>
+          reconcileRemoteAnglers(current, presentAnglers, activityPlayerId))
+      },
     )
+    void fishingService.trackAngler({
+      attemptId: `pond:${activityPlayerId}`,
+      playerId: activityPlayerId,
+      playerName: activityPlayerName,
+      phase: 'idle',
+    }).catch((activityTrackError: unknown) => {
+      if (mountedRef.current) {
+        setActivityError(activityTrackError instanceof Error
+          ? activityTrackError.message
+          : 'Shared pond activity is unavailable.')
+      }
+    })
+    return unsubscribe
+  }, [activityPlayerId, activityPlayerName, fishingService])
+
+  useEffect(() => {
+    if (!fishingService) {
+      return
+    }
+    let cancelled = false
+    const reconcileActiveAnglers = (): void => {
+      void fishingService.loadActiveAnglers()
+        .then((activeAnglers) => {
+          if (!cancelled) {
+            setRemoteAnglers((current) =>
+              reconcileRemoteAnglers(current, activeAnglers, activityPlayerId, false))
+          }
+        })
+        .catch((activityLoadError: unknown) => {
+          if (!cancelled) {
+            setActivityError(activityLoadError instanceof Error
+              ? activityLoadError.message
+              : 'Unable to load active fishers.')
+          }
+        })
+    }
+    reconcileActiveAnglers()
+    const interval = window.setInterval(
+      reconcileActiveAnglers,
+      ACTIVE_ANGLER_RECONCILIATION_INTERVAL_MS,
+    )
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
   }, [activityPlayerId, fishingService])
 
   useEffect(() => {
@@ -361,6 +475,20 @@ export function FishingScreen({
         metadata: result.metadata,
         isDismissing: false,
       })
+      void fishingService.trackAngler({
+        attemptId,
+        playerId: activityPlayerId,
+        playerName: activityPlayerName,
+        phase: 'catching',
+        fishDefinitionId: result.definitionId,
+        rarity: result.metadata.rarity,
+      }).catch((activityBroadcastError: unknown) => {
+        if (mountedRef.current) {
+          setActivityError(activityBroadcastError instanceof Error
+            ? activityBroadcastError.message
+            : 'Shared pond activity is unavailable.')
+        }
+      })
       void fishingService.publishActivity({
         eventId: `${attemptId}:catch`,
         attemptId,
@@ -383,6 +511,24 @@ export function FishingScreen({
       }
       setItems(loadedItems)
       await delay(700)
+      presenceClearTimerRef.current = window.setTimeout(() => {
+        presenceClearTimerRef.current = null
+        if (pendingAttemptRef.current !== null) {
+          return
+        }
+        void fishingService.trackAngler({
+          attemptId: `pond:${activityPlayerId}`,
+          playerId: activityPlayerId,
+          playerName: activityPlayerName,
+          phase: 'idle',
+        }).catch((activityBroadcastError: unknown) => {
+          if (mountedRef.current) {
+            setActivityError(activityBroadcastError instanceof Error
+              ? activityBroadcastError.message
+              : 'Shared pond activity is unavailable.')
+          }
+        })
+      }, REMOTE_CATCH_DISPLAY_DURATION_MS - 700)
     } catch (fishingError: unknown) {
       if (mountedRef.current) {
         setError(fishingError instanceof Error ? fishingError.message : 'Unable to complete fishing attempt.')
@@ -422,6 +568,18 @@ export function FishingScreen({
       pendingAttemptRef.current = preparation
       setPendingAttempt(preparation)
       setPhase('waiting')
+      void fishingService.trackAngler({
+        attemptId: preparation.attemptId,
+        playerId: activityPlayerId,
+        playerName: activityPlayerName,
+        phase: 'waiting',
+      }).catch((activityBroadcastError: unknown) => {
+        if (mountedRef.current) {
+          setActivityError(activityBroadcastError instanceof Error
+            ? activityBroadcastError.message
+            : 'Shared pond activity is unavailable.')
+        }
+      })
       void fishingService.publishActivity({
         eventId: `${preparation.attemptId}:cast`,
         attemptId: preparation.attemptId,
@@ -482,33 +640,44 @@ export function FishingScreen({
               <span className="pond-ripple pond-ripple-two" />
               <span className="pond-ripple pond-ripple-three" />
             </div>
-            <div className="pond-angler pond-angler-you">
-              <span className="pond-angler-chair" />
-              <span className="pond-angler-body" />
-              <span className="pond-angler-avatar" title={characterClass.name}>
-                {characterClass.visual.icon}
-              </span>
-              <span className="pond-angler-hat">▲</span>
-              <strong>You · {characterClass.name}</strong>
-              <i className="pond-fishing-rod">
-                <i className="pond-cast-line" aria-hidden="true" />
-              </i>
+            <div className="pond-angler pond-angler-you pond-angler-facing-right">
+              <PondAnglerSprite showCastLine />
+              <strong>{activityPlayerName}</strong>
             </div>
             {remoteAnglers.map((angler) => {
               const position = getPondPerimeterPosition(angler.playerId)
+              const caughtFish = angler.catch ? getFishDefinition(angler.catch.definitionId) : undefined
+              const catchRarityVisual = angler.catch ? RARITY_VISUALS[angler.catch.rarity] : undefined
               return (
                 <div
-                  className={`pond-angler pond-angler-remote remote-angler-${angler.phase}`}
+                  className={`pond-angler pond-angler-remote remote-angler-${angler.phase} ${
+                    position.left > 50 ? 'pond-angler-facing-left' : 'pond-angler-facing-right'
+                  }`}
                   key={angler.playerId}
                   style={{ left: `${position.left}%`, top: `${position.top}%` }}
-                  aria-label={`${angler.playerName} is ${angler.phase === 'catching' ? 'landing a fish' : 'fishing'}`}
+                  aria-label={`${angler.playerName} is ${
+                    angler.phase === 'catching'
+                      ? 'landing a fish'
+                      : angler.phase === 'idle'
+                        ? 'at the pond'
+                        : 'fishing'
+                  }`}
                 >
-                  <span className="pond-angler-chair" />
-                  <span className="pond-angler-body" />
-                  <span className="pond-angler-hat">▲</span>
+                  <PondAnglerSprite />
                   <strong>{angler.playerName}</strong>
-                  <i className="pond-fishing-rod" />
-                  {angler.phase === 'catching' ? <span className="pond-catch-burst" aria-hidden="true">✦</span> : null}
+                  {angler.phase === 'catching' && catchRarityVisual ? (
+                    <span
+                      className="pond-remote-catch-display"
+                      style={{
+                        color: catchRarityVisual.color,
+                        borderColor: catchRarityVisual.color,
+                        boxShadow: `0 0 0.45rem ${catchRarityVisual.color}, 0 0 1.35rem ${catchRarityVisual.color}`,
+                      }}
+                      title={caughtFish?.name ?? 'Fish caught'}
+                    >
+                      {caughtFish?.visual.icon ?? '🐟'}
+                    </span>
+                  ) : null}
                 </div>
               )
             })}

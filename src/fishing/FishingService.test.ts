@@ -6,7 +6,7 @@ import {
   FISH_DROP_TABLE,
   resolveFishingCatch,
 } from './FishingContent'
-import { createFishingService } from './FishingService'
+import { createFishingService, type FishingAnglerPresence } from './FishingService'
 
 function fakeClient(rpcResult: unknown): SupabaseClient {
   return {
@@ -157,11 +157,49 @@ describe('FishingService', () => {
     })).rejects.toThrow(/invalid response/)
   })
 
+  it('loads validated active fishing anglers', async () => {
+    const client = {
+      rpc: vi.fn(async () => ({
+        data: [{
+          attempt_id: 'attempt-1',
+          player_id: 'c9a03b84-1264-42cf-ae8a-3c754d194eca',
+          player_name: 'Mira',
+        }],
+        error: null,
+      })),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+
+    await expect(service.loadActiveAnglers()).resolves.toEqual([{
+      attemptId: 'attempt-1',
+      playerId: 'c9a03b84-1264-42cf-ae8a-3c754d194eca',
+      playerName: 'Mira',
+      phase: 'waiting',
+    }])
+    expect(client.rpc).toHaveBeenCalledWith('get_active_fishing_anglers')
+  })
+
   it('publishes and receives validated shared pond activity', async () => {
     let broadcastHandler: ((message: { payload: unknown }) => void) | undefined
+    let presenceSyncHandler: (() => void) | undefined
+    const presence = {
+      attemptId: 'attempt-1',
+      playerId: 'player-1',
+      playerName: 'Mira',
+      phase: 'catching',
+      fishDefinitionId: 'moon-carp',
+      rarity: Rarity.Rare,
+    } satisfies FishingAnglerPresence
+    const presenceState = {
+      'presence-1': [presence],
+    }
     const channel = {
-      on: vi.fn((_type: string, _filter: unknown, handler: typeof broadcastHandler) => {
-        broadcastHandler = handler
+      on: vi.fn((type: string, _filter: unknown, handler: typeof broadcastHandler) => {
+        if (type === 'broadcast') {
+          broadcastHandler = handler
+        } else {
+          presenceSyncHandler = handler as () => void
+        }
         return channel
       }),
       subscribe: vi.fn((callback: (status: string) => void) => {
@@ -169,6 +207,8 @@ describe('FishingService', () => {
         return channel
       }),
       send: vi.fn(async () => 'ok'),
+      track: vi.fn(async () => 'ok'),
+      presenceState: vi.fn(() => presenceState),
     } as unknown as RealtimeChannel
     const client = {
       rpc: vi.fn(),
@@ -187,14 +227,18 @@ describe('FishingService', () => {
       occurredAt: '2026-09-04T16:00:05.000Z',
     }
     const received: unknown[] = []
+    const presentAnglers: unknown[][] = []
 
     const unsubscribe = service.subscribeToActivity((activity) => {
       received.push(activity)
     }, () => {
       throw new Error('unexpected activity subscription error')
+    }, (anglers) => {
+      presentAnglers.push(anglers)
     })
     await service.publishActivity(event)
     broadcastHandler?.({ payload: event })
+    presenceSyncHandler?.()
 
     expect(channel.send).toHaveBeenCalledWith({
       type: 'broadcast',
@@ -202,6 +246,23 @@ describe('FishingService', () => {
       payload: event,
     })
     expect(received).toEqual([event])
+    expect(presentAnglers).toEqual([presenceState['presence-1']])
+
+    await service.trackAngler(presenceState['presence-1'][0])
+    expect(channel.track).toHaveBeenCalledWith(presenceState['presence-1'][0])
+    await service.trackAngler({
+      attemptId: 'pond:player-1',
+      playerId: 'player-1',
+      playerName: 'Mira',
+      phase: 'idle',
+    })
+    expect(channel.track).toHaveBeenLastCalledWith({
+      attemptId: 'pond:player-1',
+      playerId: 'player-1',
+      playerName: 'Mira',
+      phase: 'idle',
+    })
+
     unsubscribe()
     expect(client.removeChannel).toHaveBeenCalledWith(channel)
   })
