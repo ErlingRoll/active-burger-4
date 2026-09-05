@@ -783,7 +783,7 @@ export function FishingScreen({
                   <p className="screen-kicker">Downtime activity · Moonwater Pond</p>
                   <h2 id="fishing-title">Fishing · <span id="fishing-pond-title">Moonwater Pond</span></h2>
                   <div className="pond-scene-subline">
-                    <span><i className="pond-live-dot" aria-hidden="true" /> Shared pond</span>
+                    <span><i className="pond-live-dot" aria-hidden="true" /> World pond</span>
                     <span>{remoteAnglers.length + 1} anglers online</span>
                   </div>
                 </div>
@@ -801,9 +801,6 @@ export function FishingScreen({
                 </button>
               </div>
             </div>
-            <p className="fishing-hud-description">
-              {FISHING_PHASE_DESCRIPTIONS[fishingPhase]}
-            </p>
             {activityNotice ? (
               <p className="fishing-activity-notice" role="status" aria-live="polite">
                 <span aria-hidden="true">◉</span> {activityNotice.message}

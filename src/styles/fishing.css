@@ -125,12 +125,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.95rem 1.1rem;
-  background:
-    linear-gradient(105deg, rgb(2 6 23 / 88%), rgb(8 47 73 / 56%)),
-    rgb(2 6 23 / 42%);
-  border: 1px solid rgb(165 243 252 / 25%);
   border-radius: 0.7rem;
-  box-shadow: 0 0.9rem 2.5rem rgb(2 6 23 / 35%), inset 0 1px rgb(255 255 255 / 9%);
   backdrop-filter: blur(0.55rem);
 }
 
