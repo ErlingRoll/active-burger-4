@@ -10,6 +10,7 @@ import {
   FISH_DROP_TABLE,
   formatFishingBaitEffect,
   formatFishingEnchantment,
+  formatFishingFishDetail,
   formatFishingRodModifiers,
   formatFishingSalvageValue,
   formatFishSizeKg,
@@ -36,6 +37,7 @@ function createService(client: SupabaseClient) {
 describe('FishingContent', () => {
   it('formats fish size as kilograms for player-facing labels', () => {
     expect(formatFishSizeKg(0.5345)).toBe('0.53 kg')
+    expect(formatFishSizeKg(0.75, FISH_DEFINITIONS['moon-carp'].weightRangeKg)).toBe('11.00 kg')
     expect(formatFishSizeKg(undefined)).toBe('Unknown')
   })
 
@@ -146,6 +148,12 @@ describe('FishingContent', () => {
     expect(formatFishingSalvageValue('river-minnow', {
       sizePercentile: 2,
     })).toBe('Salvage value unavailable')
+  })
+
+  it('includes fish weight and salvage value in inventory details', () => {
+    expect(formatFishingFishDetail('river-minnow', {
+      sizePercentile: 0.5345,
+    })).toBe('Weight: 0.11 kg · Salvage value: 2 Essence')
   })
 })
 

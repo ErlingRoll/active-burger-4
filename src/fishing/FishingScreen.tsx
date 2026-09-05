@@ -10,7 +10,7 @@ import {
   DEFAULT_FISHING_BAIT_ID,
   FISHING_BAITS,
   formatFishingEnchantment,
-  formatFishingSalvageValue,
+  formatFishingFishDetail,
   formatFishingBaitEffect,
   formatFishingRodModifiers,
   formatFishSizeKg,
@@ -86,7 +86,7 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
     return 'Unlimited'
   }
   if (category === 'fish') {
-    return formatFishingSalvageValue(item.definitionId, item.metadata)
+    return formatFishingFishDetail(item.definitionId, item.metadata)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (category === 'rod') {
@@ -1112,7 +1112,10 @@ export function FishingScreen({
                   {typeof lastCatch.metadata.rarity === 'string'
                     ? `${lastCatch.metadata.rarity} · `
                     : ''}
-                  Size {formatFishSizeKg(lastCatch.metadata.sizePercentile)}
+                  Size {formatFishSizeKg(
+                    lastCatch.metadata.sizePercentile,
+                    getFishDefinition(lastCatch.definitionId)?.weightRangeKg,
+                  )}
                 </p>
                 {formatFishingEnchantment(lastCatch.metadata) ? (
                   <p className="fishing-catch-enchantment">

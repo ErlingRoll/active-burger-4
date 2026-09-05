@@ -165,6 +165,10 @@ export interface FishDefinition {
   id: InventoryItemDefinitionId
   name: string
   rarity: RarityValue
+  weightRangeKg: {
+    min: number
+    max: number
+  }
   effect: {
     family: FishEffectFamily
     label: string
@@ -184,6 +188,7 @@ export const FISH_DEFINITIONS = {
     id: 'river-minnow',
     name: 'River Minnow',
     rarity: Rarity.Common,
+    weightRangeKg: { min: 0.02, max: 0.18 },
     effect: {
       family: 'movement-speed',
       label: 'Swift Current',
@@ -197,6 +202,7 @@ export const FISH_DEFINITIONS = {
     id: 'reed-darter',
     name: 'Reed Darter',
     rarity: Rarity.Common,
+    weightRangeKg: { min: 0.08, max: 0.45 },
     effect: {
       family: 'attack-speed',
       label: 'Quick Fins',
@@ -210,6 +216,7 @@ export const FISH_DEFINITIONS = {
     id: 'glassfin-trout',
     name: 'Glassfin Trout',
     rarity: Rarity.Common,
+    weightRangeKg: { min: 0.25, max: 2.5 },
     effect: {
       family: 'increased-healing',
       label: 'Clearwater',
@@ -223,6 +230,7 @@ export const FISH_DEFINITIONS = {
     id: 'silver-perch',
     name: 'Silver Perch',
     rarity: Rarity.Uncommon,
+    weightRangeKg: { min: 0.4, max: 3.2 },
     effect: {
       family: 'max-hp',
       label: 'Steady Scales',
@@ -236,6 +244,7 @@ export const FISH_DEFINITIONS = {
     id: 'lantern-pike',
     name: 'Lantern Pike',
     rarity: Rarity.Uncommon,
+    weightRangeKg: { min: 1.5, max: 8 },
     effect: {
       family: 'attack-damage',
       label: 'Ambush Predator',
@@ -249,6 +258,7 @@ export const FISH_DEFINITIONS = {
     id: 'moon-carp',
     name: 'Moon Carp',
     rarity: Rarity.Rare,
+    weightRangeKg: { min: 2, max: 14 },
     effect: {
       family: 'cooldown-reduction',
       label: 'Moonlit Focus',
@@ -262,6 +272,7 @@ export const FISH_DEFINITIONS = {
     id: 'tideback-catfish',
     name: 'Tideback Catfish',
     rarity: Rarity.Rare,
+    weightRangeKg: { min: 3, max: 18 },
     effect: {
       family: 'physical-resistance',
       label: 'Heavy Scales',
@@ -275,6 +286,7 @@ export const FISH_DEFINITIONS = {
     id: 'revival-koi',
     name: 'Revival Koi',
     rarity: Rarity.Epic,
+    weightRangeKg: { min: 1, max: 7 },
     effect: {
       family: 'abyss-exhaustion',
       label: 'Second Breath',
@@ -288,6 +300,7 @@ export const FISH_DEFINITIONS = {
     id: 'comet-eel',
     name: 'Comet Eel',
     rarity: Rarity.Epic,
+    weightRangeKg: { min: 0.8, max: 9 },
     effect: {
       family: 'elite-damage',
       label: 'Abyss Current',
@@ -301,6 +314,7 @@ export const FISH_DEFINITIONS = {
     id: 'star-koi',
     name: 'Star Koi',
     rarity: Rarity.Legendary,
+    weightRangeKg: { min: 4, max: 24 },
     effect: {
       family: 'emergency-revive',
       label: 'Astral Grace',
@@ -423,14 +437,33 @@ export function formatFishingSalvageValue(
   return `Salvage value: ${essence} Essence`
 }
 
+export function formatFishingFishDetail(
+  definitionId: string,
+  metadata: Record<string, unknown>,
+): string {
+  const fish = getFishDefinition(definitionId)
+  return `Weight: ${formatFishSizeKg(metadata.sizePercentile, fish?.weightRangeKg)} · ${formatFishingSalvageValue(
+    definitionId,
+    metadata,
+  )}`
+}
+
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {
   return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
 }
 
-export function formatFishSizeKg(value: unknown): string {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? `${Math.max(0, value).toFixed(2)} kg`
-    : 'Unknown'
+export function formatFishSizeKg(
+  value: unknown,
+  weightRange?: FishDefinition['weightRangeKg'],
+): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 'Unknown'
+  }
+  const normalizedSize = Math.min(1, Math.max(0, value))
+  const weight = weightRange
+    ? weightRange.min + (weightRange.max - weightRange.min) * normalizedSize
+    : normalizedSize
+  return `${weight.toFixed(2)} kg`
 }
 
 export interface FishingCatchOptions {
