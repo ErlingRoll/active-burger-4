@@ -4,6 +4,7 @@ import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import {
   formatFishingBaitEffect,
+  formatFishingEnchantment,
   formatFishingRodModifiers,
   getFishDefinition,
 } from '../fishing'
@@ -39,6 +40,11 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
   }
   if (definition?.category === 'bait') {
     return formatFishingBaitEffect(item.definitionId)
+  }
+  if (definition?.category === 'fish') {
+    return formatFishingEnchantment(item.metadata) ?? (
+      typeof item.metadata.rarity === 'string' ? item.metadata.rarity : definition.name
+    )
   }
   if (typeof item.metadata.rarity === 'string') {
     if (definition?.category === 'rod') {

@@ -3,7 +3,10 @@ import type {
   InventoryItemInstance,
 } from '../inventory/InventoryTypes'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
-import { getFishDefinition } from './FishingContent'
+import {
+  getFishingEnchantmentDefinition,
+  getFishDefinition,
+} from './FishingContent'
 import {
   RUN_PREPARATION_SCHEMA_VERSION,
   type RunPreparationEffects,
@@ -47,6 +50,11 @@ function getFishRarityFactor(item: InventoryItemInstance): number {
 
 function getDiminishingMultiplier(previousCount: number): number {
   return 1 / (previousCount + 1)
+}
+
+function getFishEnchantmentFactor(item: InventoryItemInstance): number {
+  const enchantment = getFishingEnchantmentDefinition(item.metadata.enchantmentId)
+  return enchantment ? 1 + enchantment.effectBonusPercent / 100 : 1
 }
 
 function createEmptyEffects(): RunPreparationEffects {
@@ -102,6 +110,8 @@ function applyFishEffect(
 function createResolvedEffect(
   family: keyof typeof MAX_FISH_MEAL_EFFECTS,
   value: number,
+  enchantmentId?: string,
+  enchantmentValue?: number,
 ): Record<string, unknown> {
   const values: Record<string, unknown> = {
     type: 'fish-meal',
@@ -120,6 +130,10 @@ function createResolvedEffect(
   }[family]
   if (effectKey) {
     values[effectKey] = value
+  }
+  if (enchantmentId && enchantmentValue !== undefined) {
+    values.enchantmentId = enchantmentId
+    values.enchantmentValue = enchantmentValue
   }
   return values
 }
@@ -151,9 +165,11 @@ export function resolveFishMeal(
     }
     const family = definition.effect.family
     const previousCount = familyCounts.get(family) ?? 0
+    const enchantment = getFishingEnchantmentDefinition(fish.metadata.enchantmentId)
     const contribution = definition.effect.baseValue *
       getFishRarityFactor(fish) *
       (0.75 + getFishSize(fish) * 0.5) *
+      getFishEnchantmentFactor(fish) *
       getDiminishingMultiplier(previousCount)
     const appliedContribution = Math.min(
       Math.max(0, MAX_FISH_MEAL_EFFECTS[family] ?? contribution),
@@ -165,7 +181,12 @@ export function resolveFishMeal(
       itemInstanceId: fish.itemInstanceId,
       definitionId: fish.definitionId,
       quantity: 1,
-      resolvedEffect: createResolvedEffect(family, appliedContribution),
+      resolvedEffect: createResolvedEffect(
+        family,
+        appliedContribution,
+        enchantment?.id,
+        enchantment?.effectBonusPercent,
+      ),
     })
   })
   return {

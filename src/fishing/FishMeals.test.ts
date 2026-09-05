@@ -71,4 +71,41 @@ describe('FishMeals', () => {
     expect(() => resolveFishMeal([fish('recovery', 0.5, 'revival-koi', 'epic')]))
       .toThrow(/Champion recovery/)
   })
+
+  it('amplifies an enchanted fish meal without changing its family', () => {
+    const plain = resolveFishMeal([fish('plain', 0.5)])
+    const enchanted = resolveFishMeal([{
+      ...fish('enchanted', 0.5),
+      metadata: {
+        ...fish('enchanted', 0.5).metadata,
+        enchantmentId: 'bright-scales',
+        enchantmentValue: 15,
+      },
+    }])
+
+    expect(enchanted.movementSpeedPercent).toBeGreaterThan(plain.movementSpeedPercent)
+    expect(enchanted.preparation.items[0].resolvedEffect).toMatchObject({
+      type: 'fish-meal',
+      family: 'movement-speed',
+      enchantmentId: 'bright-scales',
+      enchantmentValue: 15,
+    })
+  })
+
+  it('ignores unknown enchantments and client-forged enchantment values', () => {
+    const plain = resolveFishMeal([fish('plain', 0.5)])
+    const forged = resolveFishMeal([{
+      ...fish('forged', 0.5),
+      metadata: {
+        ...fish('forged', 0.5).metadata,
+        enchantmentId: 'bright-scales',
+        enchantmentValue: 999,
+      },
+    }])
+
+    expect(forged.movementSpeedPercent).toBeGreaterThan(plain.movementSpeedPercent)
+    expect(forged.movementSpeedPercent).toBeLessThan(
+      plain.movementSpeedPercent * 2,
+    )
+  })
 })

@@ -132,7 +132,7 @@ those values without rerolling the rod:
 - Quick Line reduces the server-calculated wait time.
 - Bait Keeper can preserve non-unlimited bait after resolution.
 - Treasure Sense increases the chance of a fishing loot box.
-- Enchanter stores an enchantment chance for the later enchantment expansion.
+- Enchanter rolls a deterministic chance for a fish enchantment.
 
 The rolled metadata is displayed with the rod in the fishing and inventory
 screens. Existing rods without modifier metadata are enriched by the migration
@@ -169,9 +169,21 @@ The initial weighted catch table is:
 | Comet Eel | 4% | Elite and boss damage |
 | Star Koi | 2% | One-time lethal-hit prevention |
 
-Most fish have no enchantment. The initial target enchantment chance is 5%,
-subject to later balance changes. Enchantments are a later expansion and are not
-required for the first fishing implementation.
+Most fish have no enchantment. Rod Enchanter rolls use a deterministic
+server-side chance of 1% to 5% based on rod rarity. Enchantments initially apply
+only to run-meal-eligible fish; Revival Koi remains reserved for Champion
+recovery.
+
+The initial enchantment pool is:
+
+| Enchantment | Meal effect bonus |
+| --- | ---: |
+| Bright Scales | +15% |
+| Deep Current | +25% |
+| Astral Mark | +40% |
+
+The enchantment ID and value are stored on the fish instance, shown in the
+catch and inventory views, and included in the resolved run-meal snapshot.
 
 ## Fish uses
 
@@ -188,7 +200,8 @@ Essence. It does not trust a client-provided value:
 ```text
 base value = Common 2, Uncommon 5, Rare 10, Epic 20, Legendary 40
 size factor = 0.5 + normalized size percentile
-essence = floor(base value * size factor)
+enchantment factor = 1 + enchantment value / 100, or 1 when unenchanted
+essence = floor(base value * size factor * enchantment factor)
 ```
 
 Fish definitions store their authoritative rarity on the server, and a fish

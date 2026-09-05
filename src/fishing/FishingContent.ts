@@ -342,11 +342,60 @@ export function formatFishingBaitEffect(
   if (!bait || bait.id === DEFAULT_FISHING_BAIT_ID) {
     return 'Unlimited · common fish'
   }
+
   return [
     `rarity +${bait.rarityBonusPercent}%`,
     `size +${bait.sizeBonusPercent}%`,
     bait.lootBoxChancePercent > 0 ? `loot boxes +${bait.lootBoxChancePercent}%` : null,
   ].filter((value): value is string => value !== null).join(' · ')
+}
+
+export type FishingEnchantmentId = 'bright-scales' | 'deep-current' | 'astral-mark'
+
+export interface FishingEnchantmentDefinition {
+  id: FishingEnchantmentId
+  name: string
+  description: string
+  effectBonusPercent: number
+}
+
+export const FISHING_ENCHANTMENTS = {
+  'bright-scales': {
+    id: 'bright-scales',
+    name: 'Bright Scales',
+    description: 'Increases this fish meal effect by 15%.',
+    effectBonusPercent: 15,
+  },
+  'deep-current': {
+    id: 'deep-current',
+    name: 'Deep Current',
+    description: 'Increases this fish meal effect by 25%.',
+    effectBonusPercent: 25,
+  },
+  'astral-mark': {
+    id: 'astral-mark',
+    name: 'Astral Mark',
+    description: 'Increases this fish meal effect by 40%.',
+    effectBonusPercent: 40,
+  },
+} as const satisfies Record<FishingEnchantmentId, FishingEnchantmentDefinition>
+
+export function getFishingEnchantmentDefinition(
+  enchantmentId: unknown,
+): FishingEnchantmentDefinition | undefined {
+  return typeof enchantmentId === 'string' &&
+    Object.prototype.hasOwnProperty.call(FISHING_ENCHANTMENTS, enchantmentId)
+    ? FISHING_ENCHANTMENTS[enchantmentId as FishingEnchantmentId]
+    : undefined
+}
+
+export function formatFishingEnchantment(
+  metadata: Record<string, unknown>,
+): string | null {
+  const enchantment = getFishingEnchantmentDefinition(metadata.enchantmentId)
+  return enchantment
+    ? `${enchantment.name} · +${enchantment.effectBonusPercent}% meal effect`
+    : null
 }
 
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {

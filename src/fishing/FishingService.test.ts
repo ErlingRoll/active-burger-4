@@ -5,9 +5,11 @@ import {
   FISHING_ROD_MODIFIER_COUNT_BY_RARITY,
   FISHING_ROD_MODIFIERS,
   FISHING_BAITS,
+  FISHING_ENCHANTMENTS,
   FISH_DEFINITIONS,
   FISH_DROP_TABLE,
   formatFishingBaitEffect,
+  formatFishingEnchantment,
   formatFishingRodModifiers,
   formatFishSizeKg,
   resolveFishingCatch,
@@ -107,6 +109,22 @@ describe('FishingContent', () => {
     expect(premiumCatch.metadata.sizePercentile).toBeGreaterThan(basicCatch.metadata.sizePercentile)
     expect(['moon-carp', 'tideback-catfish', 'revival-koi', 'comet-eel', 'star-koi'])
       .toContain(premiumCatch.definitionId)
+  })
+
+  it('defines and formats the server-known enchantment pool', () => {
+    expect(Object.keys(FISHING_ENCHANTMENTS)).toEqual([
+      'bright-scales',
+      'deep-current',
+      'astral-mark',
+    ])
+    expect(formatFishingEnchantment({
+      enchantmentId: 'deep-current',
+      enchantmentValue: 25,
+    })).toBe('Deep Current · +25% meal effect')
+    expect(formatFishingEnchantment({
+      enchantmentId: 'unknown',
+      enchantmentValue: 99,
+    })).toBeNull()
   })
 })
 
