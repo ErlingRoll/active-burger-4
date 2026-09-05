@@ -5,7 +5,9 @@ import {
 } from '../../content/spawning/SpawnBalance'
 import { Random } from '../random/Random'
 import {
+  ACTIVE_ENEMY_CAP,
   calculateThreatPerSecond,
+  REINFORCEMENT_INTERVAL_SECONDS,
   SpawnDirector,
   type SpawnDirectorState,
 } from './SpawnDirector'
@@ -130,6 +132,43 @@ describe('SpawnDirector', () => {
     const director = new SpawnDirector(new Random(2))
 
     expect(director.update(createState(0, 30), 10).length).toBeGreaterThan(0)
+  })
+
+  it('caps active enemies while keeping delayed reinforcements alive', () => {
+    const director = new SpawnDirector(new Random(7))
+
+    expect(director.update(createState(0, ACTIVE_ENEMY_CAP), 10)).toEqual([])
+
+    const firstReinforcement = director.update(
+      createState(10, ACTIVE_ENEMY_CAP - 1),
+      1 / 60,
+    )
+    expect(firstReinforcement).toHaveLength(1)
+
+    expect(
+      director.update(createState(10, ACTIVE_ENEMY_CAP - 1), 1 / 60),
+    ).toEqual([])
+
+    expect(
+      director.update(
+        createState(10, ACTIVE_ENEMY_CAP - 1),
+        REINFORCEMENT_INTERVAL_SECONDS,
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('preserves the selected enemy type when entering reinforcement mode', () => {
+    const cappedDirector = new SpawnDirector(new Random(8))
+    const uncappedDirector = new SpawnDirector(new Random(8))
+
+    cappedDirector.update(createState(0, ACTIVE_ENEMY_CAP), 10)
+    const cappedRequest = cappedDirector.update(
+      createState(0, ACTIVE_ENEMY_CAP - 1),
+      1 / 60,
+    )[0]
+    const uncappedRequest = uncappedDirector.update(createState(0), 10)[0]
+
+    expect(cappedRequest?.definitionId).toBe(uncappedRequest?.definitionId)
   })
 
   it('leaves enemy spawning unconstrained by the player arena wall', () => {

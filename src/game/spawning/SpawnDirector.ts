@@ -23,6 +23,9 @@ export interface SpawnRequest {
   eliteModifiers?: readonly EliteModifierId[]
 }
 
+export const ACTIVE_ENEMY_CAP = 220
+export const REINFORCEMENT_INTERVAL_SECONDS = 0.125
+
 export type SpawnDirectorState = Pick<GameState, 'time'> & {
   player: Pick<PlayerState, 'x' | 'y'>
   enemies: readonly Pick<EnemyState, 'id' | 'hp'>[]
@@ -42,6 +45,8 @@ export class SpawnDirector {
   private readonly fastStartThreatMultiplier: number
   private readonly fastStartDurationSeconds: number
   private threatBudget = 0
+  private reinforcementMode = false
+  private reinforcementCooldownRemaining = 0
   private pendingEntry:
     | SpawnBalance['spawnEntries'][number]
     | undefined
@@ -66,6 +71,8 @@ export class SpawnDirector {
     threatBudget: number
     pendingEntryIndex: number | null
     introducedEntryIndices: number[]
+    reinforcementMode: boolean
+    reinforcementCooldownRemaining: number
   } {
     return {
       threatBudget: this.threatBudget,
@@ -75,6 +82,8 @@ export class SpawnDirector {
       introducedEntryIndices: [...this.introducedEntries].map(
         (entry) => this.balance.spawnEntries.indexOf(entry),
       ),
+      reinforcementMode: this.reinforcementMode,
+      reinforcementCooldownRemaining: this.reinforcementCooldownRemaining,
     }
   }
 
@@ -83,6 +92,8 @@ export class SpawnDirector {
     threatBudget: number
     pendingEntryIndex: number | null
     introducedEntryIndices: number[]
+    reinforcementMode?: boolean
+    reinforcementCooldownRemaining?: number
   }): void {
     this.threatBudget = snapshot.threatBudget
     this.pendingEntry =
@@ -96,6 +107,9 @@ export class SpawnDirector {
         this.introducedEntries.add(entry)
       }
     }
+    this.reinforcementMode = snapshot.reinforcementMode ?? false
+    this.reinforcementCooldownRemaining =
+      snapshot.reinforcementCooldownRemaining ?? 0
   }
 
   /**
@@ -111,6 +125,17 @@ export class SpawnDirector {
       return []
     }
     const delta = Math.max(0, deltaSeconds)
+    if (state.enemies.length >= ACTIVE_ENEMY_CAP) {
+      this.reinforcementMode = true
+    }
+    const availableSlots = Math.max(0, ACTIVE_ENEMY_CAP - state.enemies.length)
+    const isReinforcementUpdate = this.reinforcementMode
+    if (isReinforcementUpdate) {
+      this.reinforcementCooldownRemaining = Math.max(
+        0,
+        this.reinforcementCooldownRemaining - delta,
+      )
+    }
     const fastStartActive = state.time < this.fastStartDurationSeconds
     const floorDifficulty = getFloorDifficultyProfile(state.run?.floor ?? 1)
     this.threatBudget +=
@@ -120,7 +145,13 @@ export class SpawnDirector {
       delta
 
     const requests: SpawnRequest[] = []
-    while (true) {
+    while (requests.length < availableSlots) {
+      if (
+        isReinforcementUpdate &&
+        this.reinforcementCooldownRemaining > 0
+      ) {
+        break
+      }
       if (this.threatBudget < this.minimumThreatCost(state.time)) {
         break
       }
@@ -162,6 +193,9 @@ export class SpawnDirector {
             }
           : {}),
       })
+      if (isReinforcementUpdate) {
+          this.reinforcementCooldownRemaining = REINFORCEMENT_INTERVAL_SECONDS
+      }
     }
 
     return requests

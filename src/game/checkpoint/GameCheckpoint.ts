@@ -31,6 +31,8 @@ export interface SpawnDirectorSnapshot {
   threatBudget: number
   pendingEntryIndex: number | null
   introducedEntryIndices: number[]
+  reinforcementMode?: boolean
+  reinforcementCooldownRemaining?: number
 }
 
 export interface GameCheckpoint {
@@ -122,7 +124,11 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
     (spawnDirector.pendingEntryIndex === null ||
       isFiniteInteger(spawnDirector.pendingEntryIndex, 0)) &&
     Array.isArray(spawnDirector.introducedEntryIndices) &&
-    spawnDirector.introducedEntryIndices.every((index) => isFiniteInteger(index, 0))
+    spawnDirector.introducedEntryIndices.every((index) => isFiniteInteger(index, 0)) &&
+    (spawnDirector.reinforcementMode === undefined ||
+      typeof spawnDirector.reinforcementMode === 'boolean') &&
+    (spawnDirector.reinforcementCooldownRemaining === undefined ||
+      isFiniteNumber(spawnDirector.reinforcementCooldownRemaining, 0))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
