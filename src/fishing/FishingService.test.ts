@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { Rarity } from '../content/rarity/Rarity'
 import {
+  FISHING_ROD_MODIFIER_COUNT_BY_RARITY,
+  FISHING_ROD_MODIFIERS,
   FISH_DEFINITIONS,
   FISH_DROP_TABLE,
+  formatFishingRodModifiers,
   formatFishSizeKg,
   resolveFishingCatch,
 } from './FishingContent'
@@ -61,6 +64,24 @@ describe('FishingContent', () => {
         id: fish.definitionId,
       })
     }
+  })
+
+  it('defines a unique modifier pool for every rod rarity', () => {
+    expect(Object.keys(FISHING_ROD_MODIFIERS)).toHaveLength(5)
+    expect(FISHING_ROD_MODIFIER_COUNT_BY_RARITY).toEqual({
+      common: 1,
+      uncommon: 2,
+      rare: 3,
+      epic: 4,
+      legendary: 5,
+    })
+  })
+
+  it('formats only known rod modifiers from inventory metadata', () => {
+    expect(formatFishingRodModifiers({
+      modifierIds: ['speed', 'bait-retention', 'unknown'],
+    })).toBe('Quick Line, Bait Keeper')
+    expect(formatFishingRodModifiers({ modifierIds: [] })).toBe('No modifiers')
   })
 })
 

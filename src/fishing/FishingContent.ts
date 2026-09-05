@@ -53,12 +53,71 @@ export type FishingRodModifierId =
   | 'loot-box'
   | 'enchantment'
 
+export interface FishingRodModifierDefinition {
+  id: FishingRodModifierId
+  label: string
+  description: string
+}
+
+export const FISHING_ROD_MODIFIERS = {
+  rarity: {
+    id: 'rarity',
+    label: 'Fortune',
+    description: 'Improves the chance of higher-rarity fish.',
+  },
+  speed: {
+    id: 'speed',
+    label: 'Quick Line',
+    description: 'Reduces the time before the float can be resolved.',
+  },
+  'bait-retention': {
+    id: 'bait-retention',
+    label: 'Bait Keeper',
+    description: 'Can preserve non-unlimited bait after a catch.',
+  },
+  'loot-box': {
+    id: 'loot-box',
+    label: 'Treasure Sense',
+    description: 'Improves the chance of finding a fishing loot box.',
+  },
+  enchantment: {
+    id: 'enchantment',
+    label: 'Enchanter',
+    description: 'Improves the chance of an enchanted catch.',
+  },
+} as const satisfies Record<FishingRodModifierId, FishingRodModifierDefinition>
+
+export const FISHING_ROD_MODIFIER_COUNT_BY_RARITY = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+  legendary: 5,
+} as const satisfies Record<RarityValue, number>
+
+function isFishingRodModifierId(value: unknown): value is FishingRodModifierId {
+  return typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(FISHING_ROD_MODIFIERS, value)
+}
+
+export function formatFishingRodModifiers(metadata: Record<string, unknown>): string {
+  if (!Array.isArray(metadata.modifierIds)) {
+    return 'No modifiers'
+  }
+  const labels = metadata.modifierIds
+    .filter(isFishingRodModifierId)
+    .map((modifierId) => FISHING_ROD_MODIFIERS[modifierId].label)
+  return labels.length > 0 ? labels.join(', ') : 'No modifiers'
+}
+
 export interface FishingCatch {
   definitionId: InventoryItemDefinitionId
   metadata: {
     speciesId: string
     rarity: RarityValue
     sizePercentile: number
+    enchantmentId?: string
+    enchantmentValue?: number
   }
 }
 

@@ -8,6 +8,7 @@ import type {
 import {
   DEFAULT_FISHING_BAIT_ID,
   FISHING_BAITS,
+  formatFishingRodModifiers,
   formatFishSizeKg,
   getFishDefinition,
   FISHING_MODES,
@@ -73,11 +74,18 @@ function getInventoryItemIcon(item: InventoryItemInstance): string {
 
 function getInventoryItemDetail(item: InventoryItemInstance): string {
   const definition = getInventoryItemDefinition(item.definitionId)
+  const category = definition?.category
   if (definition?.unlimited) {
     return 'Unlimited'
   }
   if (typeof item.metadata.rarity === 'string') {
+    if (category === 'rod') {
+      return `${item.metadata.rarity} · ${formatFishingRodModifiers(item.metadata)}`
+    }
     return item.metadata.rarity
+  }
+  if (category === 'rod') {
+    return formatFishingRodModifiers(item.metadata)
   }
   return definition?.category.replace('-', ' ') ?? 'item'
 }

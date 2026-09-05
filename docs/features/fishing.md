@@ -121,6 +121,20 @@ Modifier values use the existing tier convention, but final ranges must be
 validated against catch-rate simulations. Rod bonuses must not allow an
 unbounded supply of high-rarity loot.
 
+Rod metadata is rolled once when the inventory instance is created. The server
+stores the rolled modifier IDs and derived values, and fishing attempts read
+those values without rerolling the rod:
+
+- Fortune shifts the deterministic fish roll toward higher-rarity entries.
+- Quick Line reduces the server-calculated wait time.
+- Bait Keeper can preserve non-unlimited bait after resolution.
+- Treasure Sense increases the chance of a fishing loot box.
+- Enchanter stores an enchantment chance for the later enchantment expansion.
+
+The rolled metadata is displayed with the rod in the fishing and inventory
+screens. Existing rods without modifier metadata are enriched by the migration
+when the feature is deployed.
+
 ## Fish data
 
 Each fish instance contains:
