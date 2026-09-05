@@ -82,11 +82,14 @@ Initial target timings:
 ## Bait
 
 - Basic bait has unlimited use.
-- Basic bait catches only very common, small fish.
-- The shop pays only a small amount of Essence for basic fish. This is an
-  introductory sink, not a replacement for dungeon progression.
-- Better bait comes from dungeon runs, Abyss loot boxes, fishing rewards, and
-  trading.
+- Basic bait favors very common, small fish.
+- River Worm improves rarity by 10 percentage points.
+- Glow Grub improves rarity by 18 percentage points, increases normalized size
+  by 5 percentage points, and adds 1 percentage point to the loot-box chance.
+- Moonwater Lure improves rarity by 26 percentage points, increases normalized
+  size by 10 percentage points, and adds 2 percentage points to the loot-box
+  chance.
+- Better bait comes from loot boxes and remains tradeable.
 - Bait is consumed per attempt unless the equipped rod rolls a bait-retention
   result.
 

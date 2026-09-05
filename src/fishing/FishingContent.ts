@@ -29,6 +29,9 @@ export interface FishingBaitDefinition {
   name: string
   description: string
   unlimited: boolean
+  rarityBonusPercent: number
+  sizeBonusPercent: number
+  lootBoxChancePercent: number
 }
 
 export const FISHING_BAITS = {
@@ -37,12 +40,36 @@ export const FISHING_BAITS = {
     name: 'Basic Bait',
     description: 'Unlimited bait for common river fish.',
     unlimited: true,
+    rarityBonusPercent: 0,
+    sizeBonusPercent: 0,
+    lootBoxChancePercent: 0,
   },
   'river-worm': {
     id: 'river-worm',
     name: 'River Worm',
     description: 'Improves the chance of uncommon and rare fish.',
     unlimited: false,
+    rarityBonusPercent: 10,
+    sizeBonusPercent: 0,
+    lootBoxChancePercent: 0,
+  },
+  'glow-grub': {
+    id: 'glow-grub',
+    name: 'Glow Grub',
+    description: 'Draws larger fish and slightly improves loot-box finds.',
+    unlimited: false,
+    rarityBonusPercent: 18,
+    sizeBonusPercent: 5,
+    lootBoxChancePercent: 1,
+  },
+  'moonwater-lure': {
+    id: 'moonwater-lure',
+    name: 'Moonwater Lure',
+    description: 'A premium lure for high-rarity, high-quality catches.',
+    unlimited: false,
+    rarityBonusPercent: 26,
+    sizeBonusPercent: 10,
+    lootBoxChancePercent: 2,
   },
 } as const satisfies Record<string, FishingBaitDefinition>
 
@@ -302,6 +329,26 @@ export const FISH_DROP_TABLE = [
 
 export const DEFAULT_FISHING_BAIT_ID = 'basic-bait'
 
+export function getFishingBaitDefinition(
+  baitDefinitionId: string,
+): FishingBaitDefinition | undefined {
+  return FISHING_BAITS[baitDefinitionId as keyof typeof FISHING_BAITS]
+}
+
+export function formatFishingBaitEffect(
+  baitDefinitionId: string,
+): string {
+  const bait = getFishingBaitDefinition(baitDefinitionId)
+  if (!bait || bait.id === DEFAULT_FISHING_BAIT_ID) {
+    return 'Unlimited · common fish'
+  }
+  return [
+    `rarity +${bait.rarityBonusPercent}%`,
+    `size +${bait.sizeBonusPercent}%`,
+    bait.lootBoxChancePercent > 0 ? `loot boxes +${bait.lootBoxChancePercent}%` : null,
+  ].filter((value): value is string => value !== null).join(' · ')
+}
+
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {
   return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
 }
@@ -315,6 +362,7 @@ export function formatFishSizeKg(value: unknown): string {
 export interface FishingCatchOptions {
   mode?: FishingMode
   manualSuccess?: boolean
+  baitDefinitionId?: string
 }
 
 function normalizeSeed(seed: number): number {
@@ -330,7 +378,13 @@ export function resolveFishingCatch(
 ): FishingCatch {
   const normalizedSeed = normalizeSeed(seed)
   const manualBonus = options.mode === 'manual' && options.manualSuccess ? 15 : 0
-  const roll = Math.max(0, (normalizedSeed % 10000) / 100 - manualBonus)
+  const baitBonus = getFishingBaitDefinition(options.baitDefinitionId ?? DEFAULT_FISHING_BAIT_ID)
+  const roll = Math.min(
+    99.99,
+    (normalizedSeed % 10000) / 100 +
+      manualBonus +
+      (baitBonus?.rarityBonusPercent ?? 0),
+  )
   let cumulativeChance = 0
   let selectedFishId = FISH_DROP_TABLE[FISH_DROP_TABLE.length - 1].definitionId
   for (const entry of FISH_DROP_TABLE) {
@@ -344,7 +398,9 @@ export function resolveFishingCatch(
   if (!selectedFish) {
     throw new Error(`Unknown fishing table entry: ${selectedFishId}.`)
   }
-  const sizeBonus = options.mode === 'manual' && options.manualSuccess ? 0.05 : 0
+  const sizeBonus =
+    (options.mode === 'manual' && options.manualSuccess ? 0.05 : 0) +
+    (baitBonus?.sizeBonusPercent ?? 0) / 100
   return {
     definitionId: selectedFish.id,
     metadata: {

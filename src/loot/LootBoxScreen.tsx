@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
-import { formatFishingRodModifiers, getFishDefinition } from '../fishing'
+import {
+  formatFishingBaitEffect,
+  formatFishingRodModifiers,
+  getFishDefinition,
+} from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import type { LootBoxService } from './LootBoxService'
 import { getAbyssLootBoxRarityLabel } from './LootBoxes'
@@ -32,6 +36,9 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
   const definition = getInventoryItemDefinition(item.definitionId)
   if (definition?.unlimited) {
     return 'Unlimited'
+  }
+  if (definition?.category === 'bait') {
+    return formatFishingBaitEffect(item.definitionId)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (definition?.category === 'rod') {

@@ -4,8 +4,10 @@ import { Rarity } from '../content/rarity/Rarity'
 import {
   FISHING_ROD_MODIFIER_COUNT_BY_RARITY,
   FISHING_ROD_MODIFIERS,
+  FISHING_BAITS,
   FISH_DEFINITIONS,
   FISH_DROP_TABLE,
+  formatFishingBaitEffect,
   formatFishingRodModifiers,
   formatFishSizeKg,
   resolveFishingCatch,
@@ -51,8 +53,8 @@ describe('FishingContent', () => {
       mode: 'manual',
       manualSuccess: true,
     })
-    expect(manualCatch.metadata.rarity).toBe(Rarity.Uncommon)
-    expect(manualCatch.definitionId).toBe('silver-perch')
+    expect(manualCatch.metadata.rarity).toBe(Rarity.Epic)
+    expect(manualCatch.definitionId).toBe('comet-eel')
     expect(manualCatch.metadata.sizePercentile).toBeCloseTo(0.1599)
   })
 
@@ -82,6 +84,29 @@ describe('FishingContent', () => {
       modifierIds: ['speed', 'bait-retention', 'unknown'],
     })).toBe('Quick Line, Bait Keeper')
     expect(formatFishingRodModifiers({ modifierIds: [] })).toBe('No modifiers')
+  })
+
+  it('defines bait tiers with deterministic player-facing effects', () => {
+    expect(Object.keys(FISHING_BAITS)).toEqual([
+      'basic-bait',
+      'river-worm',
+      'glow-grub',
+      'moonwater-lure',
+    ])
+    expect(formatFishingBaitEffect('glow-grub')).toBe(
+      'rarity +18% · size +5% · loot boxes +1%',
+    )
+    expect(formatFishingBaitEffect('basic-bait')).toBe('Unlimited · common fish')
+  })
+
+  it('applies bait quality to deterministic local catch resolution', () => {
+    const basicCatch = resolveFishingCatch(8999)
+    const premiumCatch = resolveFishingCatch(8999, {
+      baitDefinitionId: 'moonwater-lure',
+    })
+    expect(premiumCatch.metadata.sizePercentile).toBeGreaterThan(basicCatch.metadata.sizePercentile)
+    expect(['moon-carp', 'tideback-catfish', 'revival-koi', 'comet-eel', 'star-koi'])
+      .toContain(premiumCatch.definitionId)
   })
 })
 

@@ -8,6 +8,7 @@ import type {
 import {
   DEFAULT_FISHING_BAIT_ID,
   FISHING_BAITS,
+  formatFishingBaitEffect,
   formatFishingRodModifiers,
   formatFishSizeKg,
   getFishDefinition,
@@ -83,6 +84,9 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
       return `${item.metadata.rarity} · ${formatFishingRodModifiers(item.metadata)}`
     }
     return item.metadata.rarity
+  }
+  if (category === 'bait') {
+    return formatFishingBaitEffect(item.definitionId)
   }
   if (category === 'rod') {
     return formatFishingRodModifiers(item.metadata)
@@ -997,11 +1001,11 @@ export function FishingScreen({
                     options={[
                       {
                         value: DEFAULT_FISHING_BAIT_ID,
-                        label: `${FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · unlimited`,
+                        label: `${FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · ${formatFishingBaitEffect(DEFAULT_FISHING_BAIT_ID)}`,
                       },
                       ...baits.map((bait) => ({
                         value: bait.itemInstanceId,
-                        label: `${getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · ${bait.quantity}`,
+                        label: `${getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · ${bait.quantity} · ${formatFishingBaitEffect(bait.definitionId)}`,
                       })),
                     ]}
                     disabled={fishingPhase !== 'idle'}
