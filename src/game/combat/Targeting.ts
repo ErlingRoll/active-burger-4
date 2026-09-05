@@ -43,20 +43,20 @@ export function findNearestEnemy(
   let nearest: EnemyState | BossState | undefined
   let nearestDistanceSquared = Number.POSITIVE_INFINITY
 
-  for (const enemy of spatialHash.queryRadiusUnsorted(
+  spatialHash.forEachRadiusUnsorted(
     query.originX,
     query.originY,
     query.maxRange,
-  )) {
+    (enemy) => {
     if (enemy.id === query.excludeTargetId) {
-      continue
+      return
     }
     const offsetX = enemy.x - query.originX
     const offsetY = enemy.y - query.originY
     const distanceSquared = offsetX * offsetX + offsetY * offsetY
 
     if (distanceSquared > maxRangeSquared) {
-      continue
+      return
     }
 
     if (
@@ -67,7 +67,8 @@ export function findNearestEnemy(
       nearest = enemy
       nearestDistanceSquared = distanceSquared
     }
-  }
+    },
+  )
 
   return nearest
 }

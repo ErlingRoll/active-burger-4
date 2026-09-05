@@ -58,20 +58,33 @@ export function selectMovementCandidate(
     'combat-range': 8,
     hold: 9,
   }
-  return candidates
-    .map((candidate, index) => ({ candidate, index }))
-    .filter(({ candidate }) =>
-      Number.isFinite(candidate.priority) &&
-      Number.isFinite(candidate.directionX) &&
-      Number.isFinite(candidate.directionY) &&
-      Number.isFinite(candidate.speed) &&
-      candidate.speed >= 0,
-    )
-    .sort(({ candidate: left, index: leftIndex }, { candidate: right, index: rightIndex }) =>
-      right.priority - left.priority ||
-      sourceOrder[left.source] - sourceOrder[right.source] ||
-      leftIndex - rightIndex,
-    )[0]?.candidate
+  let selected: PlayerMovementCandidate | undefined
+  let selectedIndex = -1
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]
+    if (
+      !candidate ||
+      !Number.isFinite(candidate.priority) ||
+      !Number.isFinite(candidate.directionX) ||
+      !Number.isFinite(candidate.directionY) ||
+      !Number.isFinite(candidate.speed) ||
+      candidate.speed < 0
+    ) {
+      continue
+    }
+    if (
+      selected === undefined ||
+      candidate.priority > selected.priority ||
+      (candidate.priority === selected.priority &&
+        (sourceOrder[candidate.source] < sourceOrder[selected.source] ||
+          (sourceOrder[candidate.source] === sourceOrder[selected.source] &&
+            index < selectedIndex)))
+    ) {
+      selected = candidate
+      selectedIndex = index
+    }
+  }
+  return selected
 }
 
 function committedCandidate(

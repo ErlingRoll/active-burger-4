@@ -527,14 +527,13 @@ function getSeparationVector(
 ): Vector2 {
   let separationX = 0
   let separationY = 0
-  const nearby = movementIndex.queryRadiusUnsorted(
+  movementIndex.forEachRadiusUnsorted(
     enemy.x,
     enemy.y,
     ENEMY_SEPARATION_RADIUS + enemy.radius,
-  )
-  for (const candidate of nearby) {
+    (candidate) => {
     if (candidate.id === enemy.id) {
-      continue
+      return
     }
     const offsetX = enemy.x - candidate.x
     const offsetY = enemy.y - candidate.y
@@ -544,7 +543,7 @@ function getSeparationVector(
       enemy.radius + candidate.radius + ENEMY_SEPARATION_PADDING,
     )
     if (distance >= influenceRadius) {
-      continue
+      return
     }
     const influence = (influenceRadius - distance) / influenceRadius
     const away = distance > 0
@@ -552,7 +551,8 @@ function getSeparationVector(
       : getOverlapDirection(enemy.id, candidate.id)
     separationX += away.x * influence
     separationY += away.y * influence
-  }
+      },
+  )
   return { x: separationX, y: separationY }
 }
 

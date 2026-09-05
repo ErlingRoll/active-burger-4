@@ -9,6 +9,7 @@ import type {
   EnemyState,
   GameState,
   PlayerMovementCandidate,
+  SkillEffectState,
 } from '../../state/GameState'
 import {
   getEffectivePlayerMovementSpeed,
@@ -62,7 +63,6 @@ function livingThreats(state: GameState): ThreatEntity[] {
     ...(state.bosses ?? []),
   ]
     .filter((entity) => entity.hp > 0)
-    .sort((left, right) => left.id - right.id)
 }
 
 function distanceSquared(
@@ -111,17 +111,23 @@ function threatScore(
 ): number {
   if (spatialHash) {
     const radiusSquared = Math.max(0, packRadius) ** 2
-    const nearbyPackSize = spatialHash.queryRadiusUnsorted(
+    let nearbyPackSize = 0
+    spatialHash.forEachRadiusUnsorted(
       entity.x,
       entity.y,
       Math.max(0, packRadius),
-    ).filter((candidate) => {
+      (candidate) => {
       if (candidate.id === entity.id || candidate.hp <= 0) {
-        return false
+        return
       }
-      return distanceSquared(entity.x, entity.y, candidate.x, candidate.y) <=
+      if (
+        distanceSquared(entity.x, entity.y, candidate.x, candidate.y) <=
         radiusSquared
-    }).length
+      ) {
+        nearbyPackSize += 1
+      }
+      },
+    )
     return getEntityThreatScore(entity, nearbyPackSize)
   }
   return getEntityPackThreatScore(entity, threats, packRadius)
@@ -161,13 +167,22 @@ function bestPickup(
   state: GameState,
   kind: CollectiblePickupKind,
 ): GameState['pickups'][number] | undefined {
-  return [...(state.pickups ?? [])]
-    .filter((pickup) => pickup.kind === kind)
-    .sort((left, right) =>
-      pickupDistance(state, left) - pickupValue(state, left) -
-        (pickupDistance(state, right) - pickupValue(state, right)) ||
-      left.id - right.id,
-    )[0]
+  let best: GameState['pickups'][number] | undefined
+  let bestScore = Number.POSITIVE_INFINITY
+  for (const pickup of state.pickups ?? []) {
+    if (pickup.kind !== kind) {
+      continue
+    }
+    const score = pickupDistance(state, pickup) - pickupValue(state, pickup)
+    if (
+      score < bestScore ||
+      (score === bestScore && (best === undefined || pickup.id < best.id))
+    ) {
+      best = pickup
+      bestScore = score
+    }
+  }
+  return best
 }
 
 function chooseCombatTarget(
@@ -696,15 +711,30 @@ function createBannerCandidate(
   if (state.player.maxHp <= 0 || state.player.hp >= state.player.maxHp) {
     return undefined
   }
-  const banner = [...state.effects]
-    .filter((effect) =>
-      effect.skillId === RALLYING_BANNER_SKILL_ID && effect.remainingLifetime > 0
+  let banner: SkillEffectState | undefined
+  let bannerDistanceSquared = Number.POSITIVE_INFINITY
+  for (const effect of state.effects) {
+    if (
+      effect.skillId !== RALLYING_BANNER_SKILL_ID ||
+      effect.remainingLifetime <= 0
+    ) {
+      continue
+    }
+    const effectDistanceSquared = distanceSquared(
+      state.player.x,
+      state.player.y,
+      effect.x,
+      effect.y,
     )
-    .sort((left, right) =>
-      distanceSquared(state.player.x, state.player.y, left.x, left.y) -
-        distanceSquared(state.player.x, state.player.y, right.x, right.y) ||
-      left.id - right.id,
-    )[0]
+    if (
+      effectDistanceSquared < bannerDistanceSquared ||
+      (effectDistanceSquared === bannerDistanceSquared &&
+        (banner === undefined || effect.id < banner.id))
+    ) {
+      banner = effect
+      bannerDistanceSquared = effectDistanceSquared
+    }
+  }
   if (!banner) {
     return undefined
   }

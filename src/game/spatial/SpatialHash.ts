@@ -93,6 +93,55 @@ export class SpatialHash<T> {
     return this.queryRadiusInternal(x, y, radius, false)
   }
 
+  /**
+   * Visits broad-phase candidates without materializing a result array.
+   * Entries are deduplicated but are not visited in a stable order.
+   */
+  forEachRadiusUnsorted(
+    x: number,
+    y: number,
+    radius: number,
+    callback: (value: T) => void,
+  ): void {
+    if (
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      Number.isNaN(radius) ||
+      radius < 0
+    ) {
+      return
+    }
+
+    if (radius === Number.POSITIVE_INFINITY) {
+      for (const entry of this.entries.values()) {
+        callback(entry.value)
+      }
+      return
+    }
+
+    const minCellX = this.cellFor(x - radius)
+    const maxCellX = this.cellFor(x + radius)
+    const minCellY = this.cellFor(y - radius)
+    const maxCellY = this.cellFor(y + radius)
+    const candidateEntries = new Set<SpatialEntry<T>>()
+
+    for (let cellY = minCellY; cellY <= maxCellY; cellY += 1) {
+      for (let cellX = minCellX; cellX <= maxCellX; cellX += 1) {
+        const entries = this.cells.get(this.keyFor(cellX, cellY))
+        if (!entries) {
+          continue
+        }
+        for (const entry of entries) {
+          candidateEntries.add(entry)
+        }
+      }
+    }
+
+    for (const entry of candidateEntries) {
+      callback(entry.value)
+    }
+  }
+
   private queryRadiusInternal(
     x: number,
     y: number,

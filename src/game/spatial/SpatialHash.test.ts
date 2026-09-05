@@ -46,6 +46,20 @@ describe('SpatialHash', () => {
     ])
   })
 
+  it('visits each unsorted candidate once without materializing a result array', () => {
+    const hash = new SpatialHash<TestEntity>(10)
+    hash.insert(2, 9, 0, 3, entity('spans-boundary'))
+    hash.insert(1, 0, 0, 1, entity('nearby'))
+
+    const labels: string[] = []
+    hash.forEachRadiusUnsorted(12, 0, 0, (value) => {
+      labels.push(value.label)
+    })
+
+    expect(labels).toHaveLength(1)
+    expect(labels).toContain('spans-boundary')
+  })
+
   it('replaces an existing id and clears all indexed cells', () => {
     const hash = new SpatialHash<TestEntity>(10)
     hash.insert(1, 0, 0, 12, entity('old'))

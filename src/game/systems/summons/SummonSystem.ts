@@ -479,10 +479,9 @@ export function updateSummons(
     }
     return statsCache.get(skillId)
   }
-  const targets = [...state.enemies, ...(state.bosses ?? [])]
-    .filter((enemy) => enemy.hp > 0)
-    .filter((enemy) => isInsidePlayArea(enemy))
-    .sort((left, right) => left.id - right.id)
+  const targets = [...state.enemies, ...(state.bosses ?? [])].filter(
+    (enemy) => enemy.hp > 0 && isInsidePlayArea(enemy),
+  )
 
   state.summons.forEach((summon, index) => {
     if (summon.hp <= 0) {
