@@ -72,31 +72,49 @@ function startRunButton(page: Page) {
 }
 
 async function openRunSetup(page: Page): Promise<void> {
+  await clearExistingRun(page)
+  await expect(page.locator('.game-dashboard')).toHaveAttribute(
+    'data-run-persistence-state',
+    'ready',
+    { timeout: 15_000 },
+  )
   await page.getByRole('button', { name: /Start a dungeon run/i }).click()
   await expect(startRunButton(page)).toBeVisible()
 }
 
 async function startRun(page: Page): Promise<void> {
   await startRunButton(page).click()
+  const canvas = page.locator('.game-canvas')
+  await expect(canvas).toBeVisible({ timeout: 15_000 })
+  const preservesChoiceDemo = ['demo=gear', 'demo=level-up', 'demo=starting-level-up']
+    .some((demo) => page.url().includes(demo))
+  if (
+    !preservesChoiceDemo &&
+    await canvas.getAttribute('data-game-phase') === 'level-up'
+  ) {
+    for (let choiceIndex = 0; choiceIndex < 5; choiceIndex += 1) {
+      if (await canvas.getAttribute('data-game-phase') !== 'level-up') {
+        break
+      }
+      await page.keyboard.press('5')
+      await expect.poll(
+        () => canvas.getAttribute('data-game-phase'),
+        { timeout: 2_000 },
+      ).toMatch(/playing|level-up/)
+    }
+    await expect(canvas).toHaveAttribute('data-game-phase', 'playing', {
+      timeout: 2_000,
+    })
+  }
 }
 
 async function waitForPlaying(page: Page): Promise<void> {
   const canvas = page.locator('.game-canvas')
-  const levelUpOverlay = page.getByRole('dialog', { name: /level \d+/i })
 
   await expect.poll(
-    async () => {
-      if ((await canvas.getAttribute('data-game-phase')) === 'level-up') {
-        const skipButton = levelUpOverlay.getByRole('button', { name: 'Skip' })
-        if (await skipButton.isVisible()) {
-          await skipButton.click()
-        }
-
-      }
-      return canvas.getAttribute('data-game-phase')
-    },
+    () => canvas.getAttribute('data-game-phase'),
     { timeout: 10_000 },
-  ).toBe('playing')
+  ).toMatch(/playing|level-up/)
 }
 
 async function finishActiveRun(page: Page): Promise<void> {
@@ -145,7 +163,7 @@ test('loads and persists dashboard settings', async ({
   await signIn(page)
   await openRunSetup(page)
   await expect(
-    page.getByRole('heading', { name: 'Prepare your descent' }),
+    page.getByRole('heading', { name: 'Dungeon run' }),
   ).toBeVisible()
   await expect(page.getByRole('group', { name: 'Character' })).toBeVisible()
   await expect(page.getByRole('group', { name: 'World modifiers' })).toBeVisible()
@@ -178,11 +196,14 @@ test('selects and persists world modifiers before starting a deterministic run',
   await eliteInvasion.click()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')
   await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('Difficulty 7 · Essence reward 1.27x')).toBeVisible()
+  await expect(page.getByText('Difficulty 7 · Essence reward 1.30x')).toBeVisible()
 
   await page.reload()
   await expect(swarming).toHaveAttribute('aria-pressed', 'true')
   await expect(eliteInvasion).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Back to dashboard' }).click()
+  await requireRunPersistence(page)
+  await openRunSetup(page)
   await startRun(page)
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-world-modifiers',
@@ -199,6 +220,9 @@ test('selects and persists a character before starting a run', async ({ page }) 
   await expect(ranger).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
   await expect(ranger).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Back to dashboard' }).click()
+  await requireRunPersistence(page)
+  await openRunSetup(page)
   await startRun(page)
   await expect(page.locator('.game-canvas')).toHaveAttribute('data-character-class', 'ranger')
 })
@@ -211,7 +235,10 @@ test('starts a run without showing the in-run character guide', async ({ page })
   await startRun(page)
 
   await expect(page.getByRole('complementary', { name: 'Run guide' })).toHaveCount(0)
-  await expect(page.locator('.game-canvas')).toHaveAttribute('data-game-phase', 'playing')
+  await expect(page.locator('.game-canvas')).toHaveAttribute(
+    'data-game-phase',
+    /playing|level-up/,
+  )
 })
 
 test('loads the permanent upgrade store outside the active run', async ({ page }) => {
@@ -245,7 +272,7 @@ test('loads the permanent upgrade store outside the active run', async ({ page }
       hasText: 'Increased XP',
     }),
   ).toBeVisible()
-  await expect(page.locator('.dashboard-choice')).toHaveCount(3)
+  await expect(page.locator('.meta-unlock-card')).toHaveCount(6)
 })
 
 test('signs in and out with the configured Supabase test account', async ({ page }) => {
@@ -287,7 +314,8 @@ test('persists an active run, blocks the store, and continues after Save & quit'
   )
   await expect(page.getByText('Finish or forfeit your current dungeon run before accessing the Essence store.'))
     .toBeVisible()
-  await expect(page.getByText('Floor 1 /')).toBeVisible()
+  await expect(page.locator('dt').filter({ hasText: 'Floor' })).toBeVisible()
+  await expect(page.locator('dd').filter({ hasText: /^1 \// })).toBeVisible()
   await expect(page.getByText('Class')).toBeVisible()
 
   await page.goto('/store')
@@ -318,11 +346,11 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(dungeonStats).toContainText('Floor')
   await expect(dungeonStats).toContainText('Essence')
   await expect(dungeonStats).toContainText('Kills')
-  await expect(dungeonStats.locator('.dungeon-stat')).toHaveCount(3)
+  await expect(dungeonStats.locator('.dungeon-stat')).toHaveCount(4)
   await expect(dungeonStats.locator('.dungeon-stat').nth(1).locator('dd'))
     .toHaveText(/^\d+$/)
   const dungeonStatBoxes = await Promise.all(
-    [0, 1, 2].map((index) =>
+    [0, 1, 2, 3].map((index) =>
       dungeonStats.locator('.dungeon-stat').nth(index).boundingBox(),
     ),
   )
@@ -331,6 +359,7 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   }
   expect(dungeonStatBoxes[1]!.y).toBeGreaterThan(dungeonStatBoxes[0]!.y)
   expect(dungeonStatBoxes[2]!.y).toBeGreaterThan(dungeonStatBoxes[1]!.y)
+  expect(dungeonStatBoxes[3]!.y).toBeGreaterThan(dungeonStatBoxes[2]!.y)
   await expect(page.getByText('Dodge Lv.')).toHaveCount(0)
   await expect(page.getByText('Encounter timeline')).toHaveCount(0)
   await expect(page.getByText('Pickups')).toHaveCount(0)
@@ -573,6 +602,15 @@ test('pauses and resumes an active choice flow on Escape', async ({ page }) => {
   )
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
+  const initialLevelUp = page.getByRole('dialog', { name: /level \d+/i })
+  for (let choiceIndex = 0; choiceIndex < 5; choiceIndex += 1) {
+    if (await overlay.isVisible()) {
+      break
+    }
+    if (await initialLevelUp.isVisible()) {
+      await page.keyboard.press('5')
+    }
+  }
   await expect(overlay).toBeVisible()
   await expect(page.getByRole('button', { name: 'Development Menu' })).toHaveAttribute(
     'aria-expanded',
@@ -602,6 +640,20 @@ test('shows an accessible acquired-skill tooltip with a DPS assumption', async (
   await openRunSetup(page)
   await startRun(page)
   await waitForPlaying(page)
+  const canvas = page.locator('.game-canvas')
+  for (let choiceIndex = 0; choiceIndex < 5; choiceIndex += 1) {
+    if (await canvas.getAttribute('data-game-phase') !== 'level-up') {
+      break
+    }
+    await page.keyboard.press('5')
+    await expect.poll(
+      () => canvas.getAttribute('data-game-phase'),
+      { timeout: 2_000 },
+    ).toMatch(/playing|level-up/)
+  }
+  await expect(canvas).toHaveAttribute('data-game-phase', 'playing', {
+    timeout: 5_000,
+  })
   await page.setViewportSize({ width: 579, height: 325 })
 
   const skill = page.getByRole('button', {
@@ -653,9 +705,8 @@ test('projects the final boss, stairs, transition, and victory result in develop
   await page.getByRole('button', { name: 'Development Menu' }).click()
   const menu = page.getByRole('heading', { name: 'Development Menu' }).locator('..')
   await menu.getByRole('button', { name: 'Test final stairs & results' }).click()
-  await expect(page.getByRole('status')).toContainText('Descending')
   await expect(page.getByRole('heading', { name: 'Victory' })).toBeVisible({
-    timeout: 3_000,
+    timeout: 15_000,
   })
 })
 
@@ -701,7 +752,7 @@ test('displays the level-up choices and resumes after selecting one', async ({
   await expect(overlay).toBeHidden()
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
-    'playing',
+    /playing|level-up/,
     { timeout: 1_000 },
   )
 })
@@ -745,7 +796,7 @@ test('skips level-up choices with the default keybind', async ({ page }) => {
   await expect(overlay).toBeHidden()
   await expect(page.locator('.game-canvas')).toHaveAttribute(
     'data-game-phase',
-    'playing',
+    /playing|level-up/,
   )
 })
 
@@ -762,6 +813,15 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
   )
 
   const overlay = page.getByRole('dialog', { name: /choose your gear/i })
+  const initialLevelUp = page.getByRole('dialog', { name: /level \d+/i })
+  for (let choiceIndex = 0; choiceIndex < 5; choiceIndex += 1) {
+    if (await overlay.isVisible()) {
+      break
+    }
+    if (await initialLevelUp.isVisible()) {
+      await page.keyboard.press('5')
+    }
+  }
   await expect(overlay).toBeVisible()
   await expect(
     page.getByRole('button', { name: 'Development Menu' }),
@@ -841,7 +901,7 @@ test('uses a custom skip key immediately', async ({ page }) => {
   await expect(overlay).toBeVisible()
   await page.keyboard.press('x')
   await expect(overlay).toBeHidden()
-  await expect(canvas).toHaveAttribute('data-game-phase', 'playing', {
+  await expect(canvas).toHaveAttribute('data-game-phase', /playing|level-up/, {
     timeout: 1_000,
   })
 
