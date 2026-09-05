@@ -110,14 +110,6 @@ const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
   catching: 'Catch on the line!',
 }
 
-const FISHING_PHASE_DESCRIPTIONS: Record<FishingPhase, string> = {
-  idle: 'Set your loadout, then cast into the moonlit water.',
-  casting: 'Your line is cutting through the surface.',
-  waiting: 'Stay alert. The next bite can happen at any moment.',
-  manual: 'The float is moving. Reel in before the moment passes.',
-  catching: 'The pond is resolving your catch.',
-}
-
 const SERVER_TIME_SAFETY_BUFFER_MS = 750
 const NOT_READY_RETRY_DELAY_MS = 500
 const MAX_NOT_READY_RETRIES = 90

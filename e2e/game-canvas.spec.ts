@@ -10,6 +10,16 @@ test.describe.configure({ mode: 'serial' })
 
 async function clearExistingRun(page: Page): Promise<void> {
   const currentDungeon = page.getByRole('heading', { name: 'Current dungeon' })
+  const startRunLink = page.getByRole('button', { name: /Start a dungeon run/i })
+  await expect.poll(
+    async () => {
+      if (await currentDungeon.count() > 0 || await startRunLink.count() > 0) {
+        return true
+      }
+      return false
+    },
+    { timeout: 15_000 },
+  ).toBe(true)
   if (await currentDungeon.count() === 0) {
     return
   }
@@ -22,6 +32,7 @@ async function clearExistingRun(page: Page): Promise<void> {
   await confirmation.getByRole('button', { name: 'Forfeit run' }).click()
   await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
   await page.getByRole('button', { name: 'Return to Dashboard' }).click()
+  await expect(startRunLink).toBeVisible()
 }
 
 async function requireRunPersistence(page: Page): Promise<void> {
