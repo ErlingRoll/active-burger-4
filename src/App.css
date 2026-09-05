@@ -8099,10 +8099,27 @@
 
 .fishing-topbar-actions {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 1 clamp(11rem, 20vw, 16rem);
   flex-wrap: wrap;
   justify-content: end;
   gap: 0.5rem;
+}
+
+.fishing-inventory-toggle {
+  width: 100%;
+  min-height: 3.15rem;
+  justify-content: center;
+  gap: 0.55rem;
+  color: #fef3c7;
+  background: linear-gradient(135deg, #b45309, #78350f);
+  border-color: #fbbf24;
+  box-shadow: 0 0.2rem 0 #78350f, 0 0.7rem 1.5rem rgb(245 158 11 / 20%);
+}
+
+.fishing-inventory-toggle:hover:not(:disabled),
+.fishing-inventory-toggle:focus-visible {
+  background: linear-gradient(135deg, #d97706, #92400e);
+  box-shadow: 0 0.15rem 0 #78350f, 0 0.85rem 1.8rem rgb(245 158 11 / 32%);
 }
 
 .pond-scene-status {
@@ -8318,23 +8335,6 @@
 .pond-ripple-one { top: 28%; left: 25%; }
 .pond-ripple-two { top: 62%; left: 62%; animation-delay: -1.6s; }
 .pond-ripple-three { top: 48%; left: 44%; animation-delay: -2.8s; }
-
-.pond-shore {
-  position: absolute;
-  z-index: 3;
-  width: 40%;
-  height: 18%;
-  background:
-    radial-gradient(circle at 10% 40%, #a3e635 0 0.12rem, transparent 0.18rem),
-    radial-gradient(circle at 28% 70%, #bef264 0 0.1rem, transparent 0.16rem),
-    linear-gradient(160deg, #365314, #1a2e05);
-  border: 1px solid rgb(163 230 53 / 40%);
-  border-radius: 50%;
-  opacity: 0.85;
-}
-
-.pond-shore-top { top: 0; left: 28%; transform: rotate(3deg); }
-.pond-shore-bottom { bottom: 0; left: 30%; transform: rotate(-4deg); }
 
 .pond-angler {
   position: absolute;
@@ -8718,6 +8718,23 @@
     #1c1917;
 }
 
+.fishing-catch-card-dismissing {
+  pointer-events: none;
+  animation: fishing-catch-dismiss 650ms ease-in forwards;
+}
+
+@keyframes fishing-catch-dismiss {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 2.5rem));
+  }
+}
+
 .fishing-catch-card .screen-kicker {
   color: #fbbf24;
 }
@@ -8749,28 +8766,162 @@
   border-color: rgb(148 163 184 / 25%);
 }
 
-.fishing-inventory-list {
+.fishing-inventory-drawer {
+  position: absolute;
+  z-index: 2;
+  top: clamp(6.25rem, 11vw, 7.5rem);
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  left: clamp(0.75rem, 2vw, 1.5rem);
+  width: auto;
+  max-height: calc(100% - 8rem);
+  overflow: auto;
+  background:
+    linear-gradient(135deg, rgb(14 116 144 / 28%), transparent 65%),
+    rgb(15 23 42 / 96%);
+  box-shadow: 0 1rem 2.5rem rgb(2 6 23 / 48%), inset 0 1px rgb(255 255 255 / 7%);
+  backdrop-filter: blur(0.75rem);
+}
+
+.fishing-inventory-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fishing-inventory-header h3 {
+  margin: 0.2rem 0 0;
+}
+
+.fishing-inventory-close {
+  min-height: auto;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.inventory-paged-grid {
   display: grid;
   gap: 0.55rem;
+}
+
+.inventory-item-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 2.75rem);
+  justify-content: center;
+  gap: 0.35rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.fishing-inventory-list li {
+.inventory-item-card {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.7rem 0.8rem;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 0.3rem;
   color: #e2e8f0;
   background: rgb(30 41 59 / 55%);
   border: 1px solid rgb(148 163 184 / 16%);
   border-radius: 0.4rem;
 }
 
-.fishing-inventory-list small {
+.inventory-item-card-empty {
+  background: rgb(15 23 42 / 38%);
+  border-color: rgb(148 163 184 / 10%);
+}
+
+.inventory-item-card:not(.inventory-item-card-empty) {
+  cursor: help;
+}
+
+.inventory-item-card:not(.inventory-item-card-empty):hover,
+.inventory-item-card:not(.inventory-item-card-empty):focus-visible {
+  border-color: #fef08a;
+  outline: 2px solid rgb(254 240 138 / 35%);
+  outline-offset: 1px;
+}
+
+.inventory-item-card strong,
+.inventory-item-card small {
+  display: none;
+}
+
+.inventory-item-card .inventory-item-icon {
+  width: min(2.5rem, 100%);
+  height: min(2.5rem, 100%);
+  font-size: clamp(0.95rem, 1.5vw, 1.3rem);
+}
+
+.inventory-item-card .inventory-item-quantity {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.1rem;
+  color: #67e8f9;
+  font-size: clamp(0.55rem, 0.8vw, 0.78rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.inventory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.inventory-pagination .secondary-action {
+  min-height: auto;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.inventory-item-tooltip {
+  position: fixed;
+  z-index: 30;
+  width: min(16rem, calc(100vw - 1.5rem));
+  padding: 0.8rem;
+}
+
+.inventory-item-tooltip strong {
+  color: #f8fafc;
+}
+
+.inventory-item-tooltip p {
+  margin: 0.35rem 0 0;
+  color: #bfdbfe;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.inventory-item-tooltip dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.7rem 0 0;
+}
+
+.inventory-item-tooltip div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.inventory-item-tooltip dt {
   color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-item-tooltip dd {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 0.78rem;
   text-transform: capitalize;
 }
 
@@ -8799,45 +8950,10 @@
   justify-self: start;
 }
 
-.inventory-item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-  gap: 0.65rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .inventory-item-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 4.5rem;
-  padding: 0.7rem;
-  color: #e2e8f0;
   background: rgb(30 41 59 / 72%);
-  border: 1px solid rgb(148 163 184 / 24%);
+  border-color: rgb(148 163 184 / 24%);
   border-radius: 0.55rem;
-}
-
-.inventory-item-card > div {
-  display: grid;
-  min-width: 0;
-  gap: 0.2rem;
-}
-
-.inventory-item-card strong {
-  overflow: hidden;
-  color: #f8fafc;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inventory-item-card small {
-  color: #94a3b8;
-  font-size: 0.72rem;
-  text-transform: capitalize;
 }
 
 .inventory-item-card.category-fish {
@@ -9215,9 +9331,8 @@
     width: 100%;
   }
 
-  .fishing-topbar-actions .secondary-action {
-    flex: 1 1 auto;
-    justify-content: center;
+  .fishing-inventory-toggle {
+    min-height: 2.8rem;
   }
 
   .fishing-hud-description {
@@ -9254,8 +9369,8 @@
     grid-template-columns: 1fr;
   }
 
-  .fishing-inventory-list li {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .inventory-item-grid {
+    grid-template-columns: repeat(8, 2.75rem);
   }
 
   .fish-meal-slots {
@@ -9284,7 +9399,7 @@
   }
 
   .inventory-item-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(6, 2.75rem);
   }
 }
 

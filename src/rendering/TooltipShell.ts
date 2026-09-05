@@ -8,6 +8,7 @@ export const TOOLTIP_VARIANT_CLASSES = [
   'gear-comparison',
   'character-class-card-tooltip',
   'abyss-entry-tooltip',
+  'inventory-item-tooltip',
 ] as const
 
 type TooltipCloser = () => boolean

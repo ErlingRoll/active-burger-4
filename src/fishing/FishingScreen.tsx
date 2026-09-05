@@ -14,6 +14,7 @@ import {
 } from './FishingContent'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
+import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { getCharacterClassDefinition, type CharacterClassId } from '../content/classes/CharacterClasses'
 
 interface FishingScreenProps {
@@ -23,8 +24,6 @@ interface FishingScreenProps {
   activityPlayerId: string
   activityPlayerName: string
   characterClassId: CharacterClassId
-  onBack: () => void
-  onOpenInventory: () => void
 }
 
 function createAttemptId(): string {
@@ -50,6 +49,38 @@ interface FishingActivityNotice {
   message: string
 }
 
+interface FishingCatchNotice {
+  eventId: string
+  definitionId: string
+  metadata: Record<string, unknown>
+  isDismissing: boolean
+}
+
+function getInventoryItemIcon(item: InventoryItemInstance): string {
+  const category = getInventoryItemDefinition(item.definitionId)?.category
+  return getFishDefinition(item.definitionId)?.visual.icon ??
+    ({
+      fish: '🐟',
+      bait: '◉',
+      rod: '🎣',
+      'loot-box': '▣',
+      artifact: '◇',
+      material: '◆',
+      utility: '✦',
+    }[category ?? 'utility'] ?? '✦')
+}
+
+function getInventoryItemDetail(item: InventoryItemInstance): string {
+  const definition = getInventoryItemDefinition(item.definitionId)
+  if (definition?.unlimited) {
+    return 'Unlimited'
+  }
+  if (typeof item.metadata.rarity === 'string') {
+    return item.metadata.rarity
+  }
+  return definition?.category.replace('-', ' ') ?? 'item'
+}
+
 const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
   idle: 'Ready to cast',
   casting: 'Casting line…',
@@ -61,6 +92,7 @@ const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
 const SERVER_TIME_SAFETY_BUFFER_MS = 750
 const NOT_READY_RETRY_DELAY_MS = 500
 const MAX_NOT_READY_RETRIES = 90
+const CATCH_NOTICE_DURATION_MS = 5000
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -117,8 +149,6 @@ export function FishingScreen({
   activityPlayerId,
   activityPlayerName,
   characterClassId,
-  onBack,
-  onOpenInventory,
 }: FishingScreenProps) {
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
@@ -132,10 +162,8 @@ export function FishingScreen({
   const [selectedBaitId, setSelectedBaitId] = useState(DEFAULT_FISHING_BAIT_ID)
   const [selectedRodId, setSelectedRodId] = useState<string | null>(null)
   const [pendingAttempt, setPendingAttempt] = useState<FishingAttemptPreparation | null>(null)
-  const [lastCatch, setLastCatch] = useState<{
-    definitionId: string
-    metadata: Record<string, unknown>
-  } | null>(null)
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false)
+  const [lastCatch, setLastCatch] = useState<FishingCatchNotice | null>(null)
   const [remoteAnglers, setRemoteAnglers] = useState<RemoteAngler[]>([])
   const [activityNotice, setActivityNotice] = useState<FishingActivityNotice | null>(null)
   const [activityError, setActivityError] = useState<string | null>(null)
@@ -144,6 +172,7 @@ export function FishingScreen({
   const pityTimerRef = useRef<number | null>(null)
   const remoteAnimationTimersRef = useRef(new Map<string, number>())
   const activityNoticeTimerRef = useRef<number | null>(null)
+  const catchNoticeTimerRef = useRef<number | null>(null)
   const mountedRef = useRef(true)
 
   const setPhase = (phase: FishingPhase) => {
@@ -185,8 +214,27 @@ export function FishingScreen({
       clearTimer(pityTimerRef)
       clearTimerMap(remoteAnimationTimersRef)
       clearTimer(activityNoticeTimerRef)
+      clearTimer(catchNoticeTimerRef)
     }
   }, [])
+
+  useEffect(() => {
+    if (!lastCatch) {
+      return
+    }
+    const { eventId } = lastCatch
+    catchNoticeTimerRef.current = window.setTimeout(() => {
+      catchNoticeTimerRef.current = null
+      if (!mountedRef.current) {
+        return
+      }
+      setLastCatch((current) =>
+        current?.eventId === eventId ? { ...current, isDismissing: true } : current)
+    }, CATCH_NOTICE_DURATION_MS)
+    return () => {
+      clearTimer(catchNoticeTimerRef)
+    }
+  }, [lastCatch?.eventId])
 
   useEffect(() => {
     if (!fishingService) {
@@ -308,8 +356,10 @@ export function FishingScreen({
         return
       }
       setLastCatch({
+        eventId: attemptId,
         definitionId: result.definitionId,
         metadata: result.metadata,
+        isDismissing: false,
       })
       void fishingService.publishActivity({
         eventId: `${attemptId}:catch`,
@@ -432,8 +482,6 @@ export function FishingScreen({
               <span className="pond-ripple pond-ripple-two" />
               <span className="pond-ripple pond-ripple-three" />
             </div>
-            <div className="pond-shore pond-shore-top" />
-            <div className="pond-shore pond-shore-bottom" />
             <div className="pond-angler pond-angler-you">
               <span className="pond-angler-chair" />
               <span className="pond-angler-body" />
@@ -477,8 +525,16 @@ export function FishingScreen({
                 <span className="pond-scene-status">{FISHING_PHASE_LABELS[fishingPhase]}</span>
               </div>
               <div className="fishing-topbar-actions">
-                <button className="secondary-action" type="button" onClick={onOpenInventory}>Inventory</button>
-                <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
+                <button
+                  className="primary-action fishing-inventory-toggle"
+                  type="button"
+                  aria-controls="fishing-inventory"
+                  aria-expanded={isInventoryOpen}
+                  onClick={() => setIsInventoryOpen((current) => !current)}
+                >
+                  <span aria-hidden="true">▣</span>
+                  {isInventoryOpen ? 'Close inventory' : 'Inventory'}
+                </button>
               </div>
             </div>
             {activityNotice ? (
@@ -487,6 +543,39 @@ export function FishingScreen({
               </p>
             ) : null}
             {activityError ? <p className="fishing-activity-error" role="status">{activityError}</p> : null}
+            {isInventoryOpen ? (
+              <section
+                className="fishing-inventory fishing-inventory-drawer"
+                id="fishing-inventory"
+                aria-labelledby="fishing-inventory-title"
+              >
+                <div className="fishing-inventory-header">
+                  <div>
+                    <p className="screen-kicker">Equipment and catches</p>
+                    <h3 id="fishing-inventory-title">Inventory</h3>
+                  </div>
+                  <button
+                    className="secondary-action fishing-inventory-close"
+                    type="button"
+                    onClick={() => setIsInventoryOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+                {loadState === 'loading' ? (
+                  <p role="status">Loading inventory…</p>
+                ) : items.length === 0 ? (
+                  <p className="fishing-muted">No items yet. Cast a line to get started.</p>
+                ) : (
+                  <PaginatedInventoryGrid
+                    items={items}
+                    label="Fishing inventory"
+                    getItemIcon={getInventoryItemIcon}
+                    getItemDetail={getInventoryItemDetail}
+                  />
+                )}
+              </section>
+            ) : null}
             <div className="fishing-hud-bottom">
               <div className="pond-scene-actions">
                 <div className="pond-loadout-controls">
@@ -566,8 +655,17 @@ export function FishingScreen({
             {error ? <p className="persistence-error" role="alert">{error}</p> : null}
             {lastCatch ? (
               <section
-                className="fishing-catch-card"
+                className={`fishing-catch-card${
+                  lastCatch.isDismissing ? ' fishing-catch-card-dismissing' : ''
+                }`}
                 aria-live="polite"
+                onAnimationEnd={(event) => {
+                  if (event.animationName !== 'fishing-catch-dismiss') {
+                    return
+                  }
+                  setLastCatch((current) =>
+                    current?.eventId === lastCatch.eventId ? null : current)
+                }}
                 style={{
                   borderColor: getFishDefinition(lastCatch.definitionId)?.visual.accent ?? '#fbbf24',
                   boxShadow: `0 0 26px ${getFishDefinition(lastCatch.definitionId)?.visual.glow ?? '#d97706'}66`,

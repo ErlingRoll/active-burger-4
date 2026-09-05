@@ -2008,8 +2008,6 @@ function App() {
           activityPlayerId={authentication.account.id}
           activityPlayerName={authentication.account.displayName ?? 'Anonymous fisher'}
           characterClassId={settings.selectedCharacterClassId}
-          onBack={returnToDashboard}
-          onOpenInventory={() => navigateToScreen('inventory')}
         />
       ) : null}
       {screen === 'champions' && authentication.account ? (

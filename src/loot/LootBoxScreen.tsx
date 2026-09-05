@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
+import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { getFishDefinition } from '../fishing'
 import type { LootBoxService } from './LootBoxService'
 import { getAbyssLootBoxRarityLabel } from './LootBoxes'
@@ -139,21 +140,12 @@ export function InventoryScreen({
               {items.length === 0 ? (
                 <p className="champion-empty-state">No meta items yet.</p>
               ) : (
-                <ul className="inventory-item-grid">
-                  {items.map((item) => (
-                    <li
-                      className={`inventory-item-card category-${getInventoryItemDefinition(item.definitionId)?.category ?? 'utility'}`}
-                      key={item.itemInstanceId}
-                    >
-                      <span className="inventory-item-icon" aria-hidden="true">{getInventoryItemIcon(item)}</span>
-                      <div>
-                        <strong>{getInventoryItemDefinition(item.definitionId)?.name ?? item.definitionId}</strong>
-                        <small>{getInventoryItemDetail(item)}</small>
-                      </div>
-                      <span className="inventory-item-quantity">×{item.quantity}</span>
-                    </li>
-                  ))}
-                </ul>
+                <PaginatedInventoryGrid
+                  items={items}
+                  label="Owned items"
+                  getItemIcon={getInventoryItemIcon}
+                  getItemDetail={getInventoryItemDetail}
+                />
               )}
             </section>
             <section className="inventory-section" aria-labelledby="loot-box-title">
