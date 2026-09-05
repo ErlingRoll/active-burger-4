@@ -90,6 +90,14 @@ const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
   catching: 'Catch on the line!',
 }
 
+const FISHING_PHASE_DESCRIPTIONS: Record<FishingPhase, string> = {
+  idle: 'Set your loadout, then cast into the moonlit water.',
+  casting: 'Your line is cutting through the surface.',
+  waiting: 'Stay alert. The next bite can happen at any moment.',
+  manual: 'The float is moving. Reel in before the moment passes.',
+  catching: 'The pond is resolving your catch.',
+}
+
 const SERVER_TIME_SAFETY_BUFFER_MS = 750
 const NOT_READY_RETRY_DELAY_MS = 500
 const MAX_NOT_READY_RETRIES = 90
@@ -687,8 +695,11 @@ export function FishingScreen({
                 <div>
                   <p className="screen-kicker">Downtime activity · Moonwater Pond</p>
                   <h2 id="fishing-title">Fishing · <span id="fishing-pond-title">Moonwater Pond</span></h2>
+                  <div className="pond-scene-subline">
+                    <span><i className="pond-live-dot" aria-hidden="true" /> Shared pond</span>
+                    <span>{remoteAnglers.length + 1} anglers online</span>
+                  </div>
                 </div>
-                <span className="pond-scene-status">{FISHING_PHASE_LABELS[fishingPhase]}</span>
               </div>
               <div className="fishing-topbar-actions">
                 <button
@@ -703,6 +714,9 @@ export function FishingScreen({
                 </button>
               </div>
             </div>
+            <p className="fishing-hud-description">
+              {FISHING_PHASE_DESCRIPTIONS[fishingPhase]}
+            </p>
             {activityNotice ? (
               <p className="fishing-activity-notice" role="status" aria-live="polite">
                 <span aria-hidden="true">◉</span> {activityNotice.message}
@@ -720,13 +734,18 @@ export function FishingScreen({
                     <p className="screen-kicker">Equipment and catches</p>
                     <h3 id="fishing-inventory-title">Inventory</h3>
                   </div>
-                  <button
-                    className="secondary-action fishing-inventory-close"
-                    type="button"
-                    onClick={() => setIsInventoryOpen(false)}
-                  >
-                    Close
-                  </button>
+                  <div className="fishing-inventory-header-actions">
+                    <span className="fishing-inventory-count">
+                      {items.length} {items.length === 1 ? 'item' : 'items'}
+                    </span>
+                    <button
+                      className="secondary-action fishing-inventory-close"
+                      type="button"
+                      onClick={() => setIsInventoryOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
                 {loadState === 'loading' ? (
                   <p role="status">Loading inventory…</p>
@@ -743,10 +762,19 @@ export function FishingScreen({
               </section>
             ) : null}
             <div className="fishing-hud-bottom">
+              <div className="pond-loadout-heading">
+                <div>
+                  <p className="screen-kicker">Fishing loadout</p>
+                  <strong>Prepare your next cast</strong>
+                </div>
+                <span className="pond-loadout-state">
+                  {fishingPhase === 'idle' ? 'Ready' : FISHING_PHASE_LABELS[fishingPhase]}
+                </span>
+              </div>
               <div className="pond-scene-actions">
                 <div className="pond-loadout-controls">
                   <label className="pond-loadout-control">
-                    <span>Mode</span>
+                    <span><span aria-hidden="true">◈</span> Mode</span>
                     <select
                       value={selectedMode}
                       onChange={(event) => {
@@ -762,7 +790,7 @@ export function FishingScreen({
                     </select>
                   </label>
                   <label className="pond-loadout-control">
-                    <span>Rod</span>
+                    <span><span aria-hidden="true">⌁</span> Rod</span>
                     <select
                       value={effectiveSelectedRodId ?? ''}
                       onChange={(event) => setSelectedRodId(event.target.value || null)}
@@ -777,7 +805,7 @@ export function FishingScreen({
                     </select>
                   </label>
                   <label className="pond-loadout-control">
-                    <span>Bait</span>
+                    <span><span aria-hidden="true">●</span> Bait</span>
                     <select
                       value={effectiveSelectedBaitId}
                       onChange={(event) => setSelectedBaitId(event.target.value)}
