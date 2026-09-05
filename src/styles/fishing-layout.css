@@ -42,11 +42,15 @@
 
   .fishing-pond-scene.fishing-phase-casting .pond-cast-line {
     opacity: 0.82;
-    transform: translateY(-50%) rotate(-2deg) scale(1);
+    transform:
+      rotate(var(--pond-cast-line-rest-angle))
+      scale(1)
+      var(--pond-cast-line-direction);
   }
 
   .fishing-pond-scene.fishing-phase-casting .pond-cast-line-path {
     stroke-dashoffset: 0;
+    stroke-dasharray: 1 0;
   }
 
   .fishing-pond-scene.fishing-phase-casting .pond-cast-lure {

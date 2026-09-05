@@ -299,7 +299,10 @@
 .fishing-pond-scene.fishing-phase-manual .pond-angler-you .pond-cast-line,
 .fishing-pond-scene.fishing-phase-catching .pond-angler-you .pond-cast-line {
   opacity: 0.82;
-  transform: translateY(-50%) rotate(-2deg) scale(1);
+  transform:
+  rotate(var(--pond-cast-line-rest-angle))
+  scale(1)
+  var(--pond-cast-line-direction);
 }
 
 .fishing-pond-scene.fishing-phase-waiting .pond-ripple-one,
@@ -551,7 +554,15 @@
 }
 
 .pond-angler-facing-left .pond-cast-line {
-  left: calc(100% - 2rem);
+  --pond-cast-line-direction: scaleX(-1);
+  --pond-cast-line-rest-angle: 158deg;
+  top: 0.9rem;
+  left: calc(100% - 1.9rem);
+}
+
+.pond-angler-facing-right .pond-cast-line {
+  top: -0.65rem;
+  left: calc(100% - 1.9rem);
 }
 
 .pond-fishing-rod::after {
@@ -567,17 +578,22 @@
 }
 
 .pond-cast-line {
+  --pond-cast-line-direction: scaleX(1);
+  --pond-cast-line-rest-angle: 18deg;
   position: absolute;
   z-index: 2;
-  top: 50%;
+  top: 0;
   left: 100%;
   width: clamp(7rem, 18vw, 14rem);
   height: clamp(3.5rem, 7vw, 5rem);
   overflow: visible;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-50%) rotate(-2deg);
-  transform-origin: 0 50%;
+  transform:
+    rotate(var(--pond-cast-line-rest-angle))
+    scale(1)
+    var(--pond-cast-line-direction);
+  transform-origin: 0 0;
   filter: drop-shadow(0 0 0.2rem rgb(165 243 252 / 45%));
 }
 
@@ -586,8 +602,8 @@
   stroke: rgb(224 242 254 / 88%);
   stroke-width: 1.8;
   stroke-linecap: round;
-  stroke-dasharray: 1;
   stroke-dashoffset: 0;
+  stroke-dasharray: 1 0;
   vector-effect: non-scaling-stroke;
 }
 
@@ -908,25 +924,34 @@
 @keyframes pond-line-throw {
   0% {
     opacity: 0;
-    transform: translateY(-50%) rotate(-7deg) scale(0.9);
+    transform:
+      rotate(calc(var(--pond-cast-line-rest-angle) - 25deg))
+      scale(0.9)
+      var(--pond-cast-line-direction);
   }
   24% {
     opacity: 1;
-    transform: translateY(-50%) rotate(3deg) scale(1.02);
+    transform:
+      rotate(calc(var(--pond-cast-line-rest-angle) + 5deg))
+      scale(1.02)
+      var(--pond-cast-line-direction);
   }
   100% {
     opacity: 0.82;
-    transform: translateY(-50%) rotate(-2deg) scale(1);
+    transform:
+      rotate(var(--pond-cast-line-rest-angle))
+      scale(1)
+      var(--pond-cast-line-direction);
   }
 }
 
 @keyframes pond-line-draw {
-  0% { stroke-dashoffset: 1; }
-  18% { stroke-dashoffset: 0.78; }
-  48% { stroke-dashoffset: 0.48; }
-  72% { stroke-dashoffset: 0.21; }
-  88% { stroke-dashoffset: 0.08; }
-  100% { stroke-dashoffset: 0; }
+  0% { stroke-dasharray: 0 1; }
+  18% { stroke-dasharray: 0.22 1; }
+  48% { stroke-dasharray: 0.52 1; }
+  72% { stroke-dasharray: 0.79 1; }
+  88% { stroke-dasharray: 0.92 1; }
+  100% { stroke-dasharray: 1 0; }
 }
 
 @keyframes pond-lure-throw {
@@ -936,19 +961,19 @@
   }
   18% {
     opacity: 0.72;
-    transform: translate(-124px, -23px) scale(0.72);
+    transform: translate(-132px, -12px) scale(0.72);
   }
   48% {
     opacity: 1;
-    transform: translate(-72px, -19px) scale(0.92);
+    transform: translate(-84px, 1px) scale(0.92);
   }
   72% {
     opacity: 1;
-    transform: translate(-38px, -13px) scale(1.08);
+    transform: translate(-42px, 5px) scale(1.08);
   }
   88% {
     opacity: 1;
-    transform: translate(-14px, -5px) scale(1.35);
+    transform: translate(-18px, 3px) scale(1.35);
   }
   100% {
     opacity: 1;

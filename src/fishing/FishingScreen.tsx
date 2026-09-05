@@ -257,10 +257,10 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
             <path
               className="pond-cast-line-path"
               pathLength="1"
-              d="M 1 40 C 38 40, 82 43, 112 50 C 131 54, 146 59, 158 64"
+              d="M 0 0 C 44 24, 111 36, 158 24"
             />
-            <circle className="pond-cast-lure" cx="158" cy="64" r="4" />
-            <circle className="pond-cast-splash" cx="158" cy="64" r="7" />
+            <circle className="pond-cast-lure" cx="158" cy="24" r="4" />
+            <circle className="pond-cast-splash" cx="158" cy="24" r="7" />
           </svg>
         ) : null}
       </i>
