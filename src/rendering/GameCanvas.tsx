@@ -369,9 +369,20 @@ export function GameCanvas({
       return
     }
 
+    const demo = new URLSearchParams(window.location.search).get('demo')
     const game = initialCheckpointRef.current
       ? createGameFromCheckpoint(initialCheckpointRef.current)
-      : createGame(initialRunConfigRef.current)
+      : createGame(
+          import.meta.env.DEV && demo === 'starting-level-up'
+            ? {
+                ...initialRunConfigRef.current,
+                startingLevel: Math.max(
+                  2,
+                  initialRunConfigRef.current.startingLevel ?? 1,
+                ),
+              }
+            : initialRunConfigRef.current,
+        )
     applyInitialTimeScale(game)
     const pixiGame = new PixiGame(game)
     let disposed = false
@@ -395,10 +406,6 @@ export function GameCanvas({
     }
 
     publishSnapshot()
-    choiceFlowRef.current = null
-    setChoiceFlow(null)
-    choiceFlowKeyRef.current = null
-    const demo = new URLSearchParams(window.location.search).get('demo')
 
     // This deterministic setup is only for browser smoke tests and local
     // development; normal runs retain the standard combat-driven progression.

@@ -706,6 +706,26 @@ test('displays the level-up choices and resumes after selecting one', async ({
   )
 })
 
+test('shows starting level-up choices without requiring Escape', async ({
+  page,
+}) => {
+  await page.goto('/?demo=starting-level-up')
+  await signIn(page)
+  await openRunSetup(page)
+  await startRun(page)
+
+  const canvas = page.locator('.game-canvas')
+  await expect(canvas).toHaveAttribute('data-game-phase', 'level-up')
+  const overlay = page.getByRole('dialog', { name: /level 2/i })
+  await expect(overlay).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Pause menu' })).toHaveCount(0)
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Pause menu' })).toBeVisible()
+  await page.getByRole('button', { name: 'Resume run' }).click()
+  await expect(overlay).toBeVisible()
+})
+
 test('skips level-up choices with the default keybind', async ({ page }) => {
   await page.goto('/?demo=level-up')
   await signIn(page)
