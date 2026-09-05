@@ -8,6 +8,7 @@ import type {
 import {
   DEFAULT_FISHING_BAIT_ID,
   FISHING_BAITS,
+  formatFishSizeKg,
   getFishDefinition,
   FISHING_MODES,
   isFishingMode,
@@ -28,10 +29,6 @@ interface FishingScreenProps {
 
 function createAttemptId(): string {
   return crypto.randomUUID()
-}
-
-function formatSizePercentile(value: unknown): string {
-  return typeof value === 'number' ? `${Math.round(value * 100)}%` : 'Unknown'
 }
 
 type FishingPhase = 'idle' | 'casting' | 'waiting' | 'manual' | 'catching'
@@ -856,7 +853,7 @@ export function FishingScreen({
                   {typeof lastCatch.metadata.rarity === 'string'
                     ? `${lastCatch.metadata.rarity} · `
                     : ''}
-                  Size {formatSizePercentile(lastCatch.metadata.sizePercentile)}
+                  Size {formatFishSizeKg(lastCatch.metadata.sizePercentile)}
                 </p>
               </section>
             ) : null}

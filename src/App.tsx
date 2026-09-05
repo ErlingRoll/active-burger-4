@@ -77,6 +77,7 @@ import {
 } from './bug-report'
 import {
   createFishingService,
+  formatFishSizeKg,
   getFishMealEffectSummary,
   resolveFishMeal,
   FishingScreen,
@@ -2779,9 +2780,7 @@ function RunSetupScreen({
                          <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
-                           {typeof fish.metadata.sizePercentile === 'number'
-                             ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
-                             : 'unknown'}
+                           {formatFishSizeKg(fish.metadata.sizePercentile)}
                          </small>
                        </>
                      ) : (
@@ -2826,9 +2825,7 @@ function RunSetupScreen({
                          </span>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
-                           {typeof fish.metadata.sizePercentile === 'number'
-                             ? `${Math.round(fish.metadata.sizePercentile * 100)}%`
-                             : 'unknown'}
+                           {formatFishSizeKg(fish.metadata.sizePercentile)}
                          </small>
                          <em>{getFishDefinition(fish.definitionId)?.effect.description}</em>
                        </button>

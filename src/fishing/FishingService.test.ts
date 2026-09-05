@@ -4,6 +4,7 @@ import { Rarity } from '../content/rarity/Rarity'
 import {
   FISH_DEFINITIONS,
   FISH_DROP_TABLE,
+  formatFishSizeKg,
   resolveFishingCatch,
 } from './FishingContent'
 import { createFishingService, type FishingAnglerPresence } from './FishingService'
@@ -25,6 +26,11 @@ function createService(client: SupabaseClient) {
 }
 
 describe('FishingContent', () => {
+  it('formats fish size as kilograms for player-facing labels', () => {
+    expect(formatFishSizeKg(0.5345)).toBe('0.53 kg')
+    expect(formatFishSizeKg(undefined)).toBe('Unknown')
+  })
+
   it('resolves the same catch metadata for the same seed', () => {
     expect(resolveFishingCatch(12345)).toEqual(resolveFishingCatch(12345))
     expect(resolveFishingCatch(12345)).toEqual({

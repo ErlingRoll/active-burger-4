@@ -247,6 +247,12 @@ export function getFishDefinition(definitionId: string): FishDefinition | undefi
   return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
 }
 
+export function formatFishSizeKg(value: unknown): string {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${Math.max(0, value).toFixed(2)} kg`
+    : 'Unknown'
+}
+
 export interface FishingCatchOptions {
   mode?: FishingMode
   manualSuccess?: boolean
