@@ -172,6 +172,28 @@ required for the first fishing implementation.
 
 ## Fish uses
 
+### Essence salvage
+
+Fish can be salvaged from the Inventory screen as a one-way conversion into
+Essence. Salvaging consumes exactly one fish instance and uses the existing
+idempotent inventory operation, so retries cannot consume or award the same
+fish twice.
+
+The server validates the fish definition and normalized size before awarding
+Essence. It does not trust a client-provided value:
+
+```text
+base value = Common 2, Uncommon 5, Rare 10, Epic 20, Legendary 40
+size factor = 0.5 + normalized size percentile
+essence = floor(base value * size factor)
+```
+
+Fish definitions store their authoritative rarity on the server, and a fish
+must contain a normalized size from `0` through `1`. Invalid fish metadata is
+rejected rather than silently converted. The confirmation flow makes the
+one-way consumption explicit, and the result displays the Essence awarded
+after the inventory refreshes.
+
 ### Run meal
 
 Fish are consumed before a dungeon or Abyss run. The player can select up to
@@ -204,9 +226,9 @@ provide only a small reduction or be ineligible.
 
 ### Shop and other sinks
 
-Fish have deliberately low shop value. Their primary value comes from run
+Fish have deliberately low salvage value. Their primary value comes from run
 effects, Champion recovery, crafting or collection objectives, and trading.
-Shop sales must not become an infinite Essence farm.
+Salvage must not become an infinite Essence farm.
 
 ## Fishing loot boxes
 

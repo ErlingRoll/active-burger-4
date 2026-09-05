@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closeAllTooltips,
@@ -18,6 +18,7 @@ interface PaginatedInventoryGridProps {
   label: string
   getItemIcon: (item: InventoryItemInstance) => string
   getItemDetail: (item: InventoryItemInstance) => string
+  getItemActions?: (item: InventoryItemInstance) => ReactNode
 }
 
 export function PaginatedInventoryGrid({
@@ -25,6 +26,7 @@ export function PaginatedInventoryGrid({
   label,
   getItemIcon,
   getItemDetail,
+  getItemActions,
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [activeItemInstanceId, setActiveItemInstanceId] = useState<string | null>(null)
@@ -116,6 +118,7 @@ export function PaginatedInventoryGrid({
               <strong>{itemName}</strong>
               <small>{getItemDetail(item)}</small>
               <span className="inventory-item-quantity">×{item.quantity}</span>
+              {getItemActions?.(item)}
             </li>
           )
         })}

@@ -3,6 +3,7 @@ import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { formatFishingRodModifiers, getFishDefinition } from '../fishing'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import type { LootBoxService } from './LootBoxService'
 import { getAbyssLootBoxRarityLabel } from './LootBoxes'
 
@@ -63,6 +64,12 @@ export function InventoryScreen({
     quantity: number
     boxRarity: string
   } | null>(null)
+  const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
+  const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
+  const [lastSalvage, setLastSalvage] = useState<{
+    itemName: string
+    essenceAwarded: number
+  } | null>(null)
 
   const refresh = async (): Promise<void> => {
     if (!inventoryService) {
@@ -121,6 +128,28 @@ export function InventoryScreen({
     }
   }
 
+  const salvageFish = async (fish: InventoryItemInstance): Promise<void> => {
+    if (!inventoryService || salvagingItemInstanceId) {
+      return
+    }
+    const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
+    setSalvagingItemInstanceId(fish.itemInstanceId)
+    setError(null)
+    try {
+      const result = await inventoryService.salvageItem(
+        crypto.randomUUID(),
+        fish.itemInstanceId,
+        1,
+      )
+      setLastSalvage({ itemName, essenceAwarded: result.essenceAwarded })
+      await refresh()
+    } catch (salvageError: unknown) {
+      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
+    } finally {
+      setSalvagingItemInstanceId(null)
+    }
+  }
+
   return (
     <section className="dashboard inventory-screen loot-box-screen" aria-labelledby="loot-box-title">
       <div className="dashboard-panel loot-box-panel">
@@ -134,6 +163,13 @@ export function InventoryScreen({
             <p className="screen-kicker">{lastOpening.boxRarity} box opened</p>
             <strong>{getInventoryItemDefinition(lastOpening.definitionId)?.name ?? lastOpening.definitionId}</strong>
             <span>×{lastOpening.quantity}</span>
+          </section>
+        ) : null}
+        {lastSalvage ? (
+          <section className="loot-box-result inventory-salvage-result" aria-live="polite">
+            <p className="screen-kicker">Fish salvaged</p>
+            <strong>{lastSalvage.itemName}</strong>
+            <span>+{lastSalvage.essenceAwarded} Essence</span>
           </section>
         ) : null}
         {loadState === 'loading' ? (
@@ -151,6 +187,19 @@ export function InventoryScreen({
                   label="Owned items"
                   getItemIcon={getInventoryItemIcon}
                   getItemDetail={getInventoryItemDetail}
+                  getItemActions={(item) => getInventoryItemDefinition(item.definitionId)?.category === 'fish' ? (
+                    <button
+                      className="inventory-item-salvage"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setPendingSalvage(item)
+                      }}
+                      disabled={salvagingItemInstanceId !== null}
+                    >
+                      {salvagingItemInstanceId === item.itemInstanceId ? 'Salvaging…' : 'Salvage'}
+                    </button>
+                  ) : null}
                 />
               )}
             </section>
@@ -183,6 +232,19 @@ export function InventoryScreen({
           </>
         )}
       </div>
+      {pendingSalvage ? (
+        <ConfirmationDialog
+          title="Salvage fish?"
+          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} consumes one fish and awards server-calculated Essence.`}
+          confirmLabel="Salvage fish"
+          onCancel={() => setPendingSalvage(null)}
+          onConfirm={() => {
+            const fish = pendingSalvage
+            setPendingSalvage(null)
+            void salvageFish(fish)
+          }}
+        />
+      ) : null}
     </section>
   )
 }

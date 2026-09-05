@@ -37,7 +37,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 2,
   },
   'reed-darter': {
     id: 'reed-darter',
@@ -48,7 +48,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 2,
   },
   'glassfin-trout': {
     id: 'glassfin-trout',
@@ -59,7 +59,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 2,
   },
   'silver-perch': {
     id: 'silver-perch',
@@ -70,7 +70,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 5,
   },
   'lantern-pike': {
     id: 'lantern-pike',
@@ -81,7 +81,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 5,
   },
   'moon-carp': {
     id: 'moon-carp',
@@ -92,7 +92,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 10,
   },
   'tideback-catfish': {
     id: 'tideback-catfish',
@@ -103,7 +103,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 10,
   },
   'revival-koi': {
     id: 'revival-koi',
@@ -114,7 +114,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 20,
   },
   'comet-eel': {
     id: 'comet-eel',
@@ -125,7 +125,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 20,
   },
   'star-koi': {
     id: 'star-koi',
@@ -136,7 +136,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     tradeable: true,
     bindOnEquip: false,
     unlimited: false,
-    salvageEssence: 0,
+    salvageEssence: 40,
   },
   'starter-fishing-rod': {
     id: 'starter-fishing-rod',
