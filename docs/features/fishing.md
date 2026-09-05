@@ -169,6 +169,22 @@ The initial weighted catch table is:
 | Comet Eel | 4% | Elite and boss damage |
 | Star Koi | 2% | One-time lethal-hit prevention |
 
+Display weight is derived from each fish's normalized size percentile and its
+species range, so larger species can weigh several kilograms or more:
+
+| Fish | Display weight range |
+| --- | ---: |
+| River Minnow | 0.02–0.18 kg |
+| Reed Darter | 0.08–0.45 kg |
+| Glassfin Trout | 0.25–2.50 kg |
+| Silver Perch | 0.40–3.20 kg |
+| Lantern Pike | 1.50–8.00 kg |
+| Moon Carp | 2.00–14.00 kg |
+| Tideback Catfish | 3.00–18.00 kg |
+| Revival Koi | 1.00–7.00 kg |
+| Comet Eel | 0.80–9.00 kg |
+| Star Koi | 4.00–24.00 kg |
+
 Most fish have no enchantment. Rod Enchanter rolls use a deterministic
 server-side chance of 1% to 5% based on rod rarity. Enchantments initially apply
 only to run-meal-eligible fish; Revival Koi remains reserved for Champion

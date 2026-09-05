@@ -2783,7 +2783,7 @@ function RunSetupScreen({
                          <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
-                           {formatFishSizeKg(fish.metadata.sizePercentile)}
+                           {formatFishSizeKg(fish.metadata.sizePercentile, definition?.weightRangeKg)}
                          </small>
                        </>
                      ) : (
@@ -2833,7 +2833,10 @@ function RunSetupScreen({
                          </span>
                          <small>
                            {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
-                           {formatFishSizeKg(fish.metadata.sizePercentile)}
+                           {formatFishSizeKg(
+                             fish.metadata.sizePercentile,
+                             getFishDefinition(fish.definitionId)?.weightRangeKg,
+                           )}
                          </small>
                          <em>{getFishDefinition(fish.definitionId)?.effect.description}</em>
                        </button>
