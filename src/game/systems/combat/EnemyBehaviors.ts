@@ -527,7 +527,7 @@ function getSeparationVector(
 ): Vector2 {
   let separationX = 0
   let separationY = 0
-  const nearby = movementIndex.queryRadius(
+  const nearby = movementIndex.queryRadiusUnsorted(
     enemy.x,
     enemy.y,
     ENEMY_SEPARATION_RADIUS + enemy.radius,

@@ -1464,18 +1464,35 @@ export function resolvePlayerTarget(
   if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
     return
   }
-  const targets = [...state.enemies, ...(state.bosses ?? [])]
-    .filter((target) =>
-      target.hp > 0 &&
-      isBasicAttackTargetInRange(state, target)
+  let nearestTarget: EnemyState | BossState | undefined
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY
+  const considerTarget = (target: EnemyState | BossState): void => {
+    if (target.hp <= 0 || !isBasicAttackTargetInRange(state, target)) {
+      return
+    }
+    const targetDistanceSquared = distanceSquared(
+      player.x,
+      player.y,
+      target.x,
+      target.y,
     )
-    .sort((left, right) =>
-      distanceSquared(player.x, player.y, left.x, left.y) -
-        distanceSquared(player.x, player.y, right.x, right.y) ||
-      left.id - right.id,
-    )
+    if (
+      targetDistanceSquared < nearestDistanceSquared ||
+      (targetDistanceSquared === nearestDistanceSquared &&
+        (nearestTarget === undefined || target.id < nearestTarget.id))
+    ) {
+      nearestTarget = target
+      nearestDistanceSquared = targetDistanceSquared
+    }
+  }
+  for (const enemy of state.enemies) {
+    considerTarget(enemy)
+  }
+  for (const boss of state.bosses ?? []) {
+    considerTarget(boss)
+  }
 
-  player.targetId = targets[0]?.id
+  player.targetId = nearestTarget?.id
 }
 
 export function performBasicAttackIfReady(

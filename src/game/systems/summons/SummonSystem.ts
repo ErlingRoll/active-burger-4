@@ -1,6 +1,8 @@
 import type { EntityIdAllocator } from '../../ids'
 import type {
+  BossState,
   DamageEvent,
+  EnemyState,
   GameState,
   SkillState,
   SummonState,
@@ -63,6 +65,34 @@ const SUMMON_AGGRO_RANGE = 560
 const PHANTOM_FOLLOW_DISTANCE = 240
 const SUMMON_MOVEMENT_SPEED = 180
 const SUMMON_RADIUS = 16
+type SummonTarget = EnemyState | BossState
+
+function findNearestSummonTarget(
+  targets: readonly SummonTarget[],
+  originX: number,
+  originY: number,
+  maxRange: number,
+): SummonTarget | undefined {
+  const maxRangeSquared = maxRange * maxRange
+  let nearest: SummonTarget | undefined
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY
+  for (const enemy of targets) {
+    const offsetX = enemy.x - originX
+    const offsetY = enemy.y - originY
+    const distanceSquared = offsetX * offsetX + offsetY * offsetY
+    if (
+      distanceSquared > maxRangeSquared ||
+      (distanceSquared > nearestDistanceSquared) ||
+      (distanceSquared === nearestDistanceSquared &&
+        (nearest === undefined || enemy.id >= nearest.id))
+    ) {
+      continue
+    }
+    nearest = enemy
+    nearestDistanceSquared = distanceSquared
+  }
+  return nearest
+}
 
 function getSummonSkillId(summon: Readonly<SummonState>): SkillId {
   return summon.skillId ?? RAISE_SKELETON_SKILL_ID
@@ -484,15 +514,12 @@ export function updateSummons(
       0,
       summon.attackCooldownRemaining - fixedStepSeconds,
     )
-    const target = targets
-      .map((enemy) => ({
-        enemy,
-        distanceSquared: (enemy.x - summon.x) ** 2 + (enemy.y - summon.y) ** 2,
-      }))
-      .filter((candidate) => candidate.distanceSquared <= SUMMON_AGGRO_RANGE ** 2)
-      .sort((left, right) =>
-        left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
-      )[0]?.enemy
+    const target = findNearestSummonTarget(
+      targets,
+      summon.x,
+      summon.y,
+      SUMMON_AGGRO_RANGE,
+    )
     const distanceToPlayer = Math.hypot(
       state.player.x - summon.x,
       state.player.y - summon.y,
@@ -514,15 +541,12 @@ export function updateSummons(
     if (summon.attackCooldownRemaining > 0) {
       return
     }
-    const attackTarget = targets
-      .map((enemy) => ({
-        enemy,
-        distanceSquared: (enemy.x - summon.x) ** 2 + (enemy.y - summon.y) ** 2,
-      }))
-      .filter((candidate) => candidate.distanceSquared <= stats.attackRange ** 2)
-      .sort((left, right) =>
-        left.distanceSquared - right.distanceSquared || left.enemy.id - right.enemy.id,
-      )[0]?.enemy
+    const attackTarget = findNearestSummonTarget(
+      targets,
+      summon.x,
+      summon.y,
+      stats.attackRange,
+    )
     if (!attackTarget) {
       return
     }

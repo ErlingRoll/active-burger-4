@@ -73,6 +73,8 @@ import { ARENA_BOUNDS } from '../game-config/arena'
 const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
 const STATUS_EFFECT_ICON_SIZE = 10
 const STATUS_EFFECT_ICON_GAP = 2
+const ENEMY_VIEWPORT_PADDING = 128
+const ENEMY_LABEL_RANGE = 260
 const ALLY_HP_BAR_COLORS = {
   background: '#14532d',
   fill: '#22c55e',
@@ -660,6 +662,7 @@ export class PixiGame {
       statusEffects,
       poisonAura,
       hitFlash,
+      hasEliteModifier: getEliteModifierIds(enemy).length > 0,
     }
   }
 
@@ -3548,6 +3551,22 @@ export class PixiGame {
     }
 
     const activeEnemyIds = new Set<EntityId>()
+    const summonById = new Map(state.summons.map((summon) => [summon.id, summon]))
+    const phaseboundEnemyIds = new Set<EntityId>()
+    for (const telegraph of state.telegraphs ?? []) {
+      if (
+        telegraph.sourceKind === 'enemy' &&
+        telegraph.remainingDuration > 0
+      ) {
+        phaseboundEnemyIds.add(telegraph.sourceId)
+      }
+    }
+    const viewportHalfWidth = this.app.renderer.width / (2 * this.cameraScale)
+    const viewportHalfHeight = this.app.renderer.height / (2 * this.cameraScale)
+    const viewportLeft = this.cameraFocusX - viewportHalfWidth - ENEMY_VIEWPORT_PADDING
+    const viewportRight = this.cameraFocusX + viewportHalfWidth + ENEMY_VIEWPORT_PADDING
+    const viewportTop = this.cameraFocusY - viewportHalfHeight - ENEMY_VIEWPORT_PADDING
+    const viewportBottom = this.cameraFocusY + viewportHalfHeight + ENEMY_VIEWPORT_PADDING
     for (const enemy of state.enemies) {
       activeEnemyIds.add(enemy.id)
       let enemyView = this.enemyViews.get(enemy.id)
@@ -3559,13 +3578,20 @@ export class PixiGame {
       }
 
       enemyView.root.position.set(enemy.x, enemy.y)
-      if (
-        enemyView.lastHp !== undefined &&
-        enemy.hp < enemyView.lastHp
-      ) {
+      const previousHp = enemyView.lastHp
+      enemyView.lastHp = enemy.hp
+      const enemyIsVisible =
+        enemy.x + enemy.radius >= viewportLeft &&
+        enemy.x - enemy.radius <= viewportRight &&
+        enemy.y + enemy.radius >= viewportTop &&
+        enemy.y - enemy.radius <= viewportBottom
+      enemyView.root.visible = enemyIsVisible
+      if (!enemyIsVisible) {
+        continue
+      }
+      if (previousHp !== undefined && enemy.hp < previousHp) {
         enemyView.hitFlashUntil = state.time + 0.12
       }
-      enemyView.lastHp = enemy.hp
       const hitPulse = Math.max(
         0,
         Math.min(1, ((enemyView.hitFlashUntil ?? 0) - state.time) / 0.12),
@@ -3597,10 +3623,11 @@ export class PixiGame {
           enemyStatuses,
         )
       }
-      enemyView.label.text = getEnemyDisplayLabel(
-        enemy.definitionId,
-        getEliteModifierIds(enemy),
-      )
+      const playerOffsetX = enemy.x - state.player.x
+      const playerOffsetY = enemy.y - state.player.y
+      enemyView.label.visible = enemyView.hasEliteModifier ||
+        playerOffsetX * playerOffsetX + playerOffsetY * playerOffsetY <=
+        ENEMY_LABEL_RANGE * ENEMY_LABEL_RANGE
       const attackProgress = getEnemyMeleeAttackAnimationProgress(
         state.time,
         enemy.lastMeleeAttackTime,
@@ -3610,7 +3637,7 @@ export class PixiGame {
         : Math.sin(attackProgress * Math.PI)
       const target = enemy.targetId === state.player.id
         ? state.player
-        : state.summons.find((summon) => summon.id === enemy.targetId) ?? state.player
+        : summonById.get(enemy.targetId) ?? state.player
       const directionX = target.x - enemy.x
       const directionY = target.y - enemy.y
       const directionLength = Math.hypot(directionX, directionY)
@@ -3626,12 +3653,7 @@ export class PixiGame {
       enemyView.body.alpha = isElitePhaseboundActive(
         enemy,
         state.time,
-        (state.telegraphs ?? []).some(
-          (telegraph) =>
-            telegraph.sourceKind === 'enemy' &&
-            telegraph.sourceId === enemy.id &&
-            telegraph.remainingDuration > 0,
-        ),
+        phaseboundEnemyIds.has(enemy.id),
       )
         ? 0.42
         : 1
@@ -3646,23 +3668,35 @@ export class PixiGame {
         0,
         barY - STATUS_EFFECT_ICON_SIZE - STATUS_EFFECT_ICON_GAP,
       )
-      this.drawHealthBar(
-        enemyView.hpBar,
-        enemyBarWidth,
-        4,
-        barY,
-        enemy.hp,
-        enemy.maxHp,
-        ENEMY_HP_BAR_COLORS,
-      )
-      this.drawShieldBar(
-        enemyView.shieldBar,
-        enemyBarWidth,
-        3,
-        barY - 5,
-        enemy.wardHp ?? 0,
-        enemy.wardMaxHp ?? 0,
-      )
+      const hpRatio = enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) : 0
+      if (enemyView.hpRatio !== hpRatio) {
+        enemyView.hpRatio = hpRatio
+        this.drawHealthBar(
+          enemyView.hpBar,
+          enemyBarWidth,
+          4,
+          barY,
+          enemy.hp,
+          enemy.maxHp,
+          ENEMY_HP_BAR_COLORS,
+        )
+      }
+      const shieldAmount = enemy.wardHp ?? 0
+      const shieldMaxAmount = enemy.wardMaxHp ?? 0
+      const shieldRatio = shieldMaxAmount > 0
+        ? Math.max(0, Math.min(1, shieldAmount / shieldMaxAmount))
+        : 0
+      if (enemyView.shieldRatio !== shieldRatio) {
+        enemyView.shieldRatio = shieldRatio
+        this.drawShieldBar(
+          enemyView.shieldBar,
+          enemyBarWidth,
+          3,
+          barY - 5,
+          shieldAmount,
+          shieldMaxAmount,
+        )
+      }
     }
 
     for (const [enemyId, enemyView] of this.enemyViews) {
@@ -4123,7 +4157,10 @@ export class PixiGame {
       chillStacks > 0 || frozen || shockStacks > 0
     view.visible = hasStatus
     if (!hasStatus) {
-      view.clear()
+      if (view.visible) {
+        view.clear()
+      }
+      view.visible = false
       return
     }
     view.clear()
@@ -4547,6 +4584,9 @@ interface EnemyView {
   statusEffects: Container
   statusEffectSignature?: string
   poisonAura: Graphics
+  hasEliteModifier: boolean
+  hpRatio?: number
+  shieldRatio?: number
   lastHp?: number
   hitFlashUntil?: number
 }
