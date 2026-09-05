@@ -709,15 +709,6 @@
   border-radius: 999px;
 }
 
-.fishing-hud .fishing-catch-card {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  left: 50%;
-  width: min(22rem, calc(100% - 2rem));
-  transform: translate(-50%, -50%);
-}
-
 .fishing-hud > .persistence-error {
   position: absolute;
   z-index: 2;
@@ -916,7 +907,6 @@
 }
 
 .fishing-spot-card,
-.fishing-catch-card,
 .fishing-inventory {
   display: grid;
   gap: 0.7rem;
@@ -928,8 +918,7 @@
   border-radius: 0.7rem;
 }
 
-.fishing-spot-card p,
-.fishing-catch-card p {
+.fishing-spot-card p {
   margin: 0;
   color: #cbd5e1;
   line-height: 1.5;
@@ -959,57 +948,6 @@
 .fishing-spot-card dd {
   margin: 0.25rem 0 0;
   color: #f8fafc;
-}
-
-.fishing-catch-card {
-  border-color: rgb(251 191 36 / 50%);
-  background:
-    linear-gradient(135deg, rgb(180 83 9 / 24%), transparent 72%),
-    #1c1917;
-}
-
-.fishing-catch-card-dismissing {
-  pointer-events: none;
-  animation: fishing-catch-dismiss 650ms ease-in forwards;
-}
-
-@keyframes fishing-catch-dismiss {
-  from {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-
-  to {
-    opacity: 0;
-    transform: translate(-50%, calc(-50% + 2.5rem));
-  }
-}
-
-.fishing-catch-card .screen-kicker {
-  color: #fbbf24;
-}
-
-.fishing-catch-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.fishing-catch-icon {
-  display: grid;
-  width: 3rem;
-  height: 3rem;
-  place-items: center;
-  font-size: 1.8rem;
-  background: rgb(251 191 36 / 12%);
-  border: 1px solid rgb(251 191 36 / 45%);
-  border-radius: 0.7rem;
-}
-
-.fishing-catch-effect {
-  margin-top: 0.2rem !important;
-  color: #fde68a !important;
-  font-size: 0.78rem;
 }
 
 .fishing-inventory {

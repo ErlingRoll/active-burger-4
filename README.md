@@ -50,3 +50,7 @@ npm run build
 See [PLAN.md](PLAN.md), [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md),
 the [graphics guidelines](docs/GRAPHICS_GUIDELINES.md), and
 [docs/decisions/](docs/decisions/).
+
+For transient success, error, and loot feedback, follow the shared toast
+guidance in [docs/UI_FEEDBACK.md](docs/UI_FEEDBACK.md). Agent-specific
+conventions are in [AGENTS.md](AGENTS.md).

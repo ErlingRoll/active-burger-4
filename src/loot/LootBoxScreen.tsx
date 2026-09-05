@@ -12,6 +12,7 @@ import {
   getFishDefinition,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
+import { useToaster } from '../ui/ToasterContext'
 import type { LootBoxService } from './LootBoxService'
 import { getAbyssLootBoxRarityLabel } from './LootBoxes'
 
@@ -66,6 +67,7 @@ export function InventoryScreen({
   configurationError,
   onBack,
 }: LootBoxScreenProps) {
+  const { showToast } = useToaster()
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
@@ -81,10 +83,6 @@ export function InventoryScreen({
   } | null>(null)
   const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
   const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
-  const [lastSalvage, setLastSalvage] = useState<{
-    itemName: string
-    essenceAwarded: number
-  } | null>(null)
 
   const refresh = async (): Promise<void> => {
     if (!inventoryService) {
@@ -156,7 +154,7 @@ export function InventoryScreen({
         fish.itemInstanceId,
         1,
       )
-      setLastSalvage({ itemName, essenceAwarded: result.essenceAwarded })
+      showToast(`Fish salvaged\n${itemName}\n+${result.essenceAwarded} Essence`)
       await refresh()
     } catch (salvageError: unknown) {
       setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
@@ -178,13 +176,6 @@ export function InventoryScreen({
             <p className="screen-kicker">{lastOpening.boxRarity} box opened</p>
             <strong>{getInventoryItemDefinition(lastOpening.definitionId)?.name ?? lastOpening.definitionId}</strong>
             <span>×{lastOpening.quantity}</span>
-          </section>
-        ) : null}
-        {lastSalvage ? (
-          <section className="loot-box-result inventory-salvage-result" aria-live="polite">
-            <p className="screen-kicker">Fish salvaged</p>
-            <strong>{lastSalvage.itemName}</strong>
-            <span>+{lastSalvage.essenceAwarded} Essence</span>
           </section>
         ) : null}
         {loadState === 'loading' ? (

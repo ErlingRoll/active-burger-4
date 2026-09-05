@@ -26,6 +26,7 @@ import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
+import { useToaster } from '../ui/ToasterContext'
 import { FishIcon } from './FishIcon'
 
 interface FishingScreenProps {
@@ -57,13 +58,6 @@ interface RemoteAngler {
 interface FishingActivityNotice {
   eventId: string
   message: string
-}
-
-interface FishingCatchNotice {
-  eventId: string
-  definitionId: string
-  metadata: Record<string, unknown>
-  isDismissing: boolean
 }
 
 function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
@@ -116,7 +110,6 @@ const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
 const SERVER_TIME_SAFETY_BUFFER_MS = 750
 const NOT_READY_RETRY_DELAY_MS = 500
 const MAX_NOT_READY_RETRIES = 90
-const CATCH_NOTICE_DURATION_MS = 3000
 const REMOTE_CATCH_DISPLAY_DURATION_MS = 2400
 const ACTIVE_ANGLER_RECONCILIATION_INTERVAL_MS = 2000
 const REMOTE_ANGLER_PRESENCE_GRACE_MS = 5000
@@ -366,6 +359,7 @@ export function FishingScreen({
   activityPlayerId,
   activityPlayerName,
 }: FishingScreenProps) {
+  const { showToast } = useToaster()
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
@@ -381,11 +375,6 @@ export function FishingScreen({
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
   const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
   const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
-  const [lastSalvage, setLastSalvage] = useState<{
-    itemName: string
-    essenceAwarded: number
-  } | null>(null)
-  const [lastCatch, setLastCatch] = useState<FishingCatchNotice | null>(null)
   const [remoteAnglers, setRemoteAnglers] = useState<RemoteAngler[]>([])
   const [activityNotice, setActivityNotice] = useState<FishingActivityNotice | null>(null)
   const [activityError, setActivityError] = useState<string | null>(null)
@@ -394,7 +383,6 @@ export function FishingScreen({
   const pityTimerRef = useRef<number | null>(null)
   const remoteAnimationTimersRef = useRef(new Map<string, number>())
   const activityNoticeTimerRef = useRef<number | null>(null)
-  const catchNoticeTimerRef = useRef<number | null>(null)
   const presenceClearTimerRef = useRef<number | null>(null)
   const remoteAnglerMissingSinceRef = useRef(new Map<string, number>())
   const remoteAnglerPresenceRef = useRef<FishingAnglerPresence[] | null>(null)
@@ -458,30 +446,11 @@ export function FishingScreen({
       clearTimer(pityTimerRef)
       clearTimerMap(remoteAnimationTimersRef)
       clearTimer(activityNoticeTimerRef)
-      clearTimer(catchNoticeTimerRef)
       clearTimer(presenceClearTimerRef)
       remoteAnglerMissingSince.clear()
       remoteAnglerPresenceRef.current = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!lastCatch) {
-      return
-    }
-    const { eventId } = lastCatch
-    catchNoticeTimerRef.current = window.setTimeout(() => {
-      catchNoticeTimerRef.current = null
-      if (!mountedRef.current) {
-        return
-      }
-      setLastCatch((current) =>
-        current?.eventId === eventId ? { ...current, isDismissing: true } : current)
-    }, CATCH_NOTICE_DURATION_MS)
-    return () => {
-      clearTimer(catchNoticeTimerRef)
-    }
-  }, [lastCatch?.eventId])
 
   useEffect(() => {
     if (!fishingService) {
@@ -683,12 +652,18 @@ export function FishingScreen({
       if (!mountedRef.current) {
         return
       }
-      setLastCatch({
-        eventId: attemptId,
-        definitionId: result.definitionId,
-        metadata: result.metadata,
-        isDismissing: false,
-      })
+      const fishDefinition = getFishDefinition(result.definitionId)
+      const fishName = getInventoryItemDefinition(result.definitionId)?.name ?? result.definitionId
+      const enchantment = formatFishingEnchantment(result.metadata)
+      showToast([
+        'Catch received',
+        `${fishName} · ${fishDefinition?.effect.description ?? 'A mysterious pond catch'}`,
+        `${result.metadata.rarity} · Size ${formatFishSizeKg(
+          result.metadata.sizePercentile,
+          fishDefinition?.weightRangeKg,
+        )}`,
+        enchantment ? `Enchanted · ${enchantment}` : null,
+      ].filter((detail): detail is string => detail !== null).join('\n'))
       trackActivityPresence({
         attemptId,
         playerId: activityPlayerId,
@@ -759,7 +734,7 @@ export function FishingScreen({
         fish.itemInstanceId,
         1,
       )
-      setLastSalvage({ itemName, essenceAwarded: result.essenceAwarded })
+      showToast(`Fish salvaged\n${itemName}\n+${result.essenceAwarded} Essence`)
       setItems(await inventoryService.loadInventory())
     } catch (salvageError: unknown) {
       setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
@@ -945,12 +920,6 @@ export function FishingScreen({
               </p>
             ) : null}
             {activityError ? <p className="fishing-activity-error" role="status">{activityError}</p> : null}
-            {lastSalvage ? (
-              <section className="fishing-activity-notice" aria-live="polite">
-                <strong>{lastSalvage.itemName} salvaged</strong>
-                <span>+{lastSalvage.essenceAwarded} Essence</span>
-              </section>
-            ) : null}
             {isInventoryOpen ? (
               <section
                 className="fishing-inventory fishing-inventory-drawer"
@@ -1076,57 +1045,6 @@ export function FishingScreen({
               </div>
             </div>
             {error ? <p className="persistence-error" role="alert">{error}</p> : null}
-            {lastCatch ? (
-              <section
-                className={`fishing-catch-card${
-                  lastCatch.isDismissing ? ' fishing-catch-card-dismissing' : ''
-                }`}
-                aria-live="polite"
-                onAnimationEnd={(event) => {
-                  if (event.animationName !== 'fishing-catch-dismiss') {
-                    return
-                  }
-                  setLastCatch((current) =>
-                    current?.eventId === lastCatch.eventId ? null : current)
-                }}
-                style={{
-                  borderColor: getFishDefinition(lastCatch.definitionId)?.visual.accent ?? '#fbbf24',
-                  boxShadow: `0 0 26px ${getFishDefinition(lastCatch.definitionId)?.visual.glow ?? '#d97706'}66`,
-                }}
-              >
-                <p className="screen-kicker">Catch received</p>
-                <div className="fishing-catch-heading">
-                  <span className="fishing-catch-icon" aria-hidden="true">
-                    {getFishDefinition(lastCatch.definitionId) ? (
-                      <FishIcon
-                        icon={getFishDefinition(lastCatch.definitionId)!.visual.icon}
-                        color={getFishDefinition(lastCatch.definitionId)!.visual.accent}
-                      />
-                    ) : '🐟'}
-                  </span>
-                  <div>
-                    <h3>{getInventoryItemDefinition(lastCatch.definitionId)?.name ?? lastCatch.definitionId}</h3>
-                    <p className="fishing-catch-effect">
-                      {getFishDefinition(lastCatch.definitionId)?.effect.description ?? 'A mysterious pond catch'}
-                    </p>
-                  </div>
-                </div>
-                <p>
-                  {typeof lastCatch.metadata.rarity === 'string'
-                    ? `${lastCatch.metadata.rarity} · `
-                    : ''}
-                  Size {formatFishSizeKg(
-                    lastCatch.metadata.sizePercentile,
-                    getFishDefinition(lastCatch.definitionId)?.weightRangeKg,
-                  )}
-                </p>
-                {formatFishingEnchantment(lastCatch.metadata) ? (
-                  <p className="fishing-catch-enchantment">
-                    Enchanted · {formatFishingEnchantment(lastCatch.metadata)}
-                  </p>
-                ) : null}
-              </section>
-            ) : null}
           </div>
         </section>
       </div>
