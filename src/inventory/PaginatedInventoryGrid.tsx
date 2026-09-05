@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closeAllTooltips,
@@ -18,7 +18,8 @@ interface PaginatedInventoryGridProps {
   label: string
   getItemIcon: (item: InventoryItemInstance) => string
   getItemDetail: (item: InventoryItemInstance) => string
-  getItemActions?: (item: InventoryItemInstance) => ReactNode
+  onSalvage?: (item: InventoryItemInstance) => void
+  salvagingItemInstanceId?: string | null
 }
 
 export function PaginatedInventoryGrid({
@@ -26,7 +27,8 @@ export function PaginatedInventoryGrid({
   label,
   getItemIcon,
   getItemDetail,
-  getItemActions,
+  onSalvage,
+  salvagingItemInstanceId = null,
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [activeItemInstanceId, setActiveItemInstanceId] = useState<string | null>(null)
@@ -198,9 +200,21 @@ export function PaginatedInventoryGrid({
               <dd>{activeItem.source.type.replace('-', ' ')}</dd>
             </div>
           </dl>
-          {selectedItemInstanceId === activeItem.itemInstanceId && getItemActions ? (
+          {selectedItemInstanceId === activeItem.itemInstanceId &&
+          onSalvage &&
+          getInventoryItemDefinition(activeItem.definitionId)?.category === 'fish' ? (
             <div className="inventory-item-tooltip-actions">
-              {getItemActions(activeItem)}
+              <button
+                className="inventory-item-salvage"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onSalvage(activeItem)
+                }}
+                disabled={salvagingItemInstanceId !== null}
+              >
+                {salvagingItemInstanceId === activeItem.itemInstanceId ? 'Salvaging…' : 'Salvage'}
+              </button>
             </div>
           ) : null}
         </div>,

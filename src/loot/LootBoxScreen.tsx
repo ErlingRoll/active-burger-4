@@ -4,7 +4,7 @@ import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import {
   formatFishingBaitEffect,
-  formatFishingEnchantment,
+  formatFishingSalvageValue,
   formatFishingRodModifiers,
   getFishDefinition,
 } from '../fishing'
@@ -42,9 +42,7 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
     return formatFishingBaitEffect(item.definitionId)
   }
   if (definition?.category === 'fish') {
-    return formatFishingEnchantment(item.metadata) ?? (
-      typeof item.metadata.rarity === 'string' ? item.metadata.rarity : definition.name
-    )
+    return formatFishingSalvageValue(item.definitionId, item.metadata)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (definition?.category === 'rod') {
@@ -200,19 +198,8 @@ export function InventoryScreen({
                   label="Owned items"
                   getItemIcon={getInventoryItemIcon}
                   getItemDetail={getInventoryItemDetail}
-                  getItemActions={(item) => getInventoryItemDefinition(item.definitionId)?.category === 'fish' ? (
-                    <button
-                      className="inventory-item-salvage"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setPendingSalvage(item)
-                      }}
-                      disabled={salvagingItemInstanceId !== null}
-                    >
-                      {salvagingItemInstanceId === item.itemInstanceId ? 'Salvaging…' : 'Salvage'}
-                    </button>
-                  ) : null}
+                  onSalvage={(item) => setPendingSalvage(item)}
+                  salvagingItemInstanceId={salvagingItemInstanceId}
                 />
               )}
             </section>

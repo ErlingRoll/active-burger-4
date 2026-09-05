@@ -398,6 +398,30 @@ export function formatFishingEnchantment(
     : null
 }
 
+export function formatFishingSalvageValue(
+  definitionId: string,
+  metadata: Record<string, unknown>,
+): string {
+  const fish = getFishDefinition(definitionId)
+  const size = metadata.sizePercentile
+  if (!fish || typeof size !== 'number' || !Number.isFinite(size) || size < 0 || size > 1) {
+    return 'Salvage value unavailable'
+  }
+  const baseValue = {
+    common: 2,
+    uncommon: 5,
+    rare: 10,
+    epic: 20,
+    legendary: 40,
+  }[fish.rarity]
+  const enchantment = getFishingEnchantmentDefinition(metadata.enchantmentId)
+  const enchantmentFactor = enchantment
+    ? 1 + enchantment.effectBonusPercent / 100
+    : 1
+  const essence = Math.floor(baseValue * (0.5 + size) * enchantmentFactor)
+  return `Salvage value: ${essence} Essence`
+}
+
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {
   return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
 }

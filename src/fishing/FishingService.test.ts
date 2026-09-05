@@ -11,6 +11,7 @@ import {
   formatFishingBaitEffect,
   formatFishingEnchantment,
   formatFishingRodModifiers,
+  formatFishingSalvageValue,
   formatFishSizeKg,
   resolveFishingCatch,
 } from './FishingContent'
@@ -125,6 +126,19 @@ describe('FishingContent', () => {
       enchantmentId: 'unknown',
       enchantmentValue: 99,
     })).toBeNull()
+  })
+
+  it('formats the authoritative salvage value from fish metadata', () => {
+    expect(formatFishingSalvageValue('revival-koi', {
+      sizePercentile: 0.5,
+    })).toBe('Salvage value: 20 Essence')
+    expect(formatFishingSalvageValue('river-minnow', {
+      sizePercentile: 0.5,
+      enchantmentId: 'bright-scales',
+    })).toBe('Salvage value: 2 Essence')
+    expect(formatFishingSalvageValue('river-minnow', {
+      sizePercentile: 2,
+    })).toBe('Salvage value unavailable')
   })
 })
 

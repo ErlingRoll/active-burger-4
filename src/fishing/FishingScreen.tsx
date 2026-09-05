@@ -9,6 +9,7 @@ import {
   DEFAULT_FISHING_BAIT_ID,
   FISHING_BAITS,
   formatFishingEnchantment,
+  formatFishingSalvageValue,
   formatFishingBaitEffect,
   formatFishingRodModifiers,
   formatFishSizeKg,
@@ -21,6 +22,7 @@ import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 
 interface FishingScreenProps {
   fishingService: FishingService | null
@@ -81,11 +83,7 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
     return 'Unlimited'
   }
   if (category === 'fish') {
-    const enchantment = formatFishingEnchantment(item.metadata)
-    return [
-      typeof item.metadata.rarity === 'string' ? item.metadata.rarity : null,
-      enchantment,
-    ].filter(Boolean).join(' · ') || category
+    return formatFishingSalvageValue(item.definitionId, item.metadata)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (category === 'rod') {
@@ -376,6 +374,12 @@ export function FishingScreen({
   const [selectedRodId, setSelectedRodId] = useState<string | null>(null)
   const [pendingAttempt, setPendingAttempt] = useState<FishingAttemptPreparation | null>(null)
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
+  const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
+  const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
+  const [lastSalvage, setLastSalvage] = useState<{
+    itemName: string
+    essenceAwarded: number
+  } | null>(null)
   const [lastCatch, setLastCatch] = useState<FishingCatchNotice | null>(null)
   const [remoteAnglers, setRemoteAnglers] = useState<RemoteAngler[]>([])
   const [activityNotice, setActivityNotice] = useState<FishingActivityNotice | null>(null)
@@ -737,6 +741,28 @@ export function FishingScreen({
     }
   }
 
+  const salvageFish = async (fish: InventoryItemInstance): Promise<void> => {
+    if (!inventoryService || salvagingItemInstanceId) {
+      return
+    }
+    const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
+    setSalvagingItemInstanceId(fish.itemInstanceId)
+    setError(null)
+    try {
+      const result = await inventoryService.salvageItem(
+        crypto.randomUUID(),
+        fish.itemInstanceId,
+        1,
+      )
+      setLastSalvage({ itemName, essenceAwarded: result.essenceAwarded })
+      setItems(await inventoryService.loadInventory())
+    } catch (salvageError: unknown) {
+      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
+    } finally {
+      setSalvagingItemInstanceId(null)
+    }
+  }
+
   const startFishing = async (): Promise<void> => {
     if (!fishingService || !inventoryService || fishingPhase !== 'idle') {
       return
@@ -912,6 +938,12 @@ export function FishingScreen({
               </p>
             ) : null}
             {activityError ? <p className="fishing-activity-error" role="status">{activityError}</p> : null}
+            {lastSalvage ? (
+              <section className="fishing-activity-notice" aria-live="polite">
+                <strong>{lastSalvage.itemName} salvaged</strong>
+                <span>+{lastSalvage.essenceAwarded} Essence</span>
+              </section>
+            ) : null}
             {isInventoryOpen ? (
               <section
                 className="fishing-inventory fishing-inventory-drawer"
@@ -946,6 +978,8 @@ export function FishingScreen({
                     label="Fishing inventory"
                     getItemIcon={getInventoryItemIcon}
                     getItemDetail={getInventoryItemDetail}
+                    onSalvage={(item) => setPendingSalvage(item)}
+                    salvagingItemInstanceId={salvagingItemInstanceId}
                   />
                 )}
               </section>
@@ -1080,6 +1114,19 @@ export function FishingScreen({
           </div>
         </section>
       </div>
+      {pendingSalvage ? (
+        <ConfirmationDialog
+          title="Salvage fish?"
+          message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} consumes one fish and awards server-calculated Essence.`}
+          confirmLabel="Salvage fish"
+          onCancel={() => setPendingSalvage(null)}
+          onConfirm={() => {
+            const fish = pendingSalvage
+            setPendingSalvage(null)
+            void salvageFish(fish)
+          }}
+        />
+      ) : null}
     </section>
   )
 }

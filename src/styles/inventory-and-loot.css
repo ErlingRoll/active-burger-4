@@ -25,6 +25,10 @@
   border-radius: 0.55rem;
 }
 
+.inventory-item-card:hover {
+  cursor: pointer;
+}
+
 .inventory-item-card.category-fish {
   border-color: rgb(103 232 249 / 30%);
 }
