@@ -30,6 +30,7 @@ export function PaginatedInventoryGrid({
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [activeItemInstanceId, setActiveItemInstanceId] = useState<string | null>(null)
+  const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<string | null>(null)
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({})
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
@@ -44,6 +45,7 @@ export function PaginatedInventoryGrid({
       return false
     }
     setActiveItemInstanceId(null)
+    setSelectedItemInstanceId(null)
     return true
   }), [activeItem])
 
@@ -89,6 +91,17 @@ export function PaginatedInventoryGrid({
     setActiveItemInstanceId(null)
   }
 
+  const selectItem = (itemInstanceId: string): void => {
+    closeAllTooltips()
+    if (selectedItemInstanceId === itemInstanceId) {
+      setSelectedItemInstanceId(null)
+      setActiveItemInstanceId(null)
+      return
+    }
+    setSelectedItemInstanceId(itemInstanceId)
+    setActiveItemInstanceId(itemInstanceId)
+  }
+
   return (
     <div className="inventory-paged-grid">
       <ul className="inventory-item-grid" aria-label={label}>
@@ -110,15 +123,30 @@ export function PaginatedInventoryGrid({
               aria-label={`${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}`}
               aria-describedby={isActive ? tooltipId : undefined}
               onFocus={() => showItemTooltip(item.itemInstanceId)}
-              onBlur={closeItemTooltip}
+              onBlur={() => {
+                if (selectedItemInstanceId !== item.itemInstanceId) {
+                  closeItemTooltip()
+                }
+              }}
               onMouseEnter={() => showItemTooltip(item.itemInstanceId)}
-              onMouseLeave={closeItemTooltip}
+              onMouseLeave={() => {
+                if (selectedItemInstanceId !== item.itemInstanceId) {
+                  closeItemTooltip()
+                }
+              }}
+              onClick={() => selectItem(item.itemInstanceId)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                  return
+                }
+                event.preventDefault()
+                selectItem(item.itemInstanceId)
+              }}
             >
               <span className="inventory-item-icon" aria-hidden="true">{getItemIcon(item)}</span>
               <strong>{itemName}</strong>
               <small>{getItemDetail(item)}</small>
               <span className="inventory-item-quantity">×{item.quantity}</span>
-              {getItemActions?.(item)}
             </li>
           )
         })}
@@ -170,6 +198,11 @@ export function PaginatedInventoryGrid({
               <dd>{activeItem.source.type.replace('-', ' ')}</dd>
             </div>
           </dl>
+          {selectedItemInstanceId === activeItem.itemInstanceId && getItemActions ? (
+            <div className="inventory-item-tooltip-actions">
+              {getItemActions(activeItem)}
+            </div>
+          ) : null}
         </div>,
         document.body,
       ) : null}
