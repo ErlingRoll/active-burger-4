@@ -6,11 +6,13 @@ import {
   registerTooltipCloser,
   tooltipClassName,
 } from '../rendering/TooltipShell'
+import { isRarity } from '../content/rarity/Rarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
+import { sortInventoryItems, type InventoryItemComparator } from './InventorySorting'
 import type { InventoryItemInstance } from './InventoryTypes'
 
 export const INVENTORY_GRID_COLUMNS = 12
-export const INVENTORY_GRID_ROWS = 8
+export const INVENTORY_GRID_ROWS = 10
 export const INVENTORY_PAGE_SIZE = INVENTORY_GRID_COLUMNS * INVENTORY_GRID_ROWS
 
 interface PaginatedInventoryGridProps {
@@ -18,6 +20,8 @@ interface PaginatedInventoryGridProps {
   label: string
   getItemIcon: (item: InventoryItemInstance) => ReactNode
   getItemDetail: (item: InventoryItemInstance) => string
+  getItemEssence?: (item: InventoryItemInstance) => number | null
+  precedingSortComparators?: readonly InventoryItemComparator[]
   onSalvage?: (item: InventoryItemInstance) => void
   salvagingItemInstanceId?: string | null
 }
@@ -27,6 +31,8 @@ export function PaginatedInventoryGrid({
   label,
   getItemIcon,
   getItemDetail,
+  getItemEssence,
+  precedingSortComparators,
   onSalvage,
   salvagingItemInstanceId = null,
 }: PaginatedInventoryGridProps) {
@@ -36,10 +42,14 @@ export function PaginatedInventoryGrid({
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({})
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
-  const pageCount = Math.max(1, Math.ceil(items.length / INVENTORY_PAGE_SIZE))
+  const sortedItems = sortInventoryItems(items, {
+    getEssence: getItemEssence,
+    precedingComparators: precedingSortComparators,
+  })
+  const pageCount = Math.max(1, Math.ceil(sortedItems.length / INVENTORY_PAGE_SIZE))
   const currentPageIndex = Math.min(pageIndex, pageCount - 1)
   const firstItemIndex = currentPageIndex * INVENTORY_PAGE_SIZE
-  const pageItems = items.slice(firstItemIndex, firstItemIndex + INVENTORY_PAGE_SIZE)
+  const pageItems = sortedItems.slice(firstItemIndex, firstItemIndex + INVENTORY_PAGE_SIZE)
   const activeItem = pageItems.find((item) => item.itemInstanceId === activeItemInstanceId) ?? null
 
   useEffect(() => registerTooltipCloser(() => {
@@ -113,12 +123,14 @@ export function PaginatedInventoryGrid({
             return <li className="inventory-item-card inventory-item-card-empty" key={index} aria-hidden="true" />
           }
           const definition = getInventoryItemDefinition(item.definitionId)
+          const rarity = isRarity(item.metadata.rarity) ? item.metadata.rarity : null
           const itemName = definition?.name ?? item.definitionId
           const isActive = activeItem?.itemInstanceId === item.itemInstanceId
           const tooltipId = `inventory-item-tooltip-${item.itemInstanceId}`
           return (
             <li
               className={`inventory-item-card category-${definition?.category ?? 'utility'}`}
+              data-rarity={rarity ?? undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
               tabIndex={0}
@@ -188,6 +200,17 @@ export function PaginatedInventoryGrid({
           ref={itemTooltipRef}
           style={tooltipStyle}
         >
+          {getItemEssence ? (
+            (() => {
+              const essence = getItemEssence(activeItem)
+              return essence === null ? null : (
+                <span className="inventory-item-tooltip-essence">
+                  <span>Essence</span>
+                  <strong>{essence}</strong>
+                </span>
+              )
+            })()
+          ) : null}
           <strong>{getInventoryItemDefinition(activeItem.definitionId)?.name ?? activeItem.definitionId}</strong>
           <p>{getItemDetail(activeItem)}</p>
           <dl>

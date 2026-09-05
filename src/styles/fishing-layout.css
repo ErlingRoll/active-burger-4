@@ -52,7 +52,7 @@
   }
 
   .fishing-inventory-drawer .inventory-item-grid {
-    grid-template-columns: repeat(8, 2.65rem);
+    grid-template-columns: repeat(8, 3rem);
   }
 
   .pond-loadout-heading {
@@ -72,7 +72,7 @@
   }
 
   .fishing-inventory-drawer .inventory-item-grid {
-    grid-template-columns: repeat(6, 2.65rem);
+    grid-template-columns: repeat(6, 3rem);
   }
 
   .pond-loadout-heading {

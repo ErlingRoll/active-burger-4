@@ -25,6 +25,7 @@ export type InventorySourceType =
 export interface InventoryItemDefinition {
   id: InventoryItemDefinitionId
   name: string
+  flavorText: string | null
   category: InventoryItemCategory
   stackable: boolean
   maxStackSize: number

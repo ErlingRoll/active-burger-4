@@ -795,15 +795,14 @@
     gap: 0.1rem;
   }
 
-  .run-dashboard .character-class-card-title small,
-  .run-dashboard .character-class-card-label,
   .run-dashboard .character-class-card-detail small {
     color: color-mix(in srgb, var(--character-class-outline) 80%, #fef3c7);
-    font-size: 0.62rem;
+    font-size: 0.4rem;
     font-weight: 850;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.02em;
     line-height: 1.2;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .run-dashboard .character-class-card-title strong {
@@ -845,14 +844,19 @@
 
   .run-dashboard .character-class-card-details {
     display: grid;
-    gap: 0.45rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .run-dashboard .character-class-card-detail-skill {
+    grid-column: 1 / -1;
   }
 
   .run-dashboard .character-class-card-detail {
     position: relative;
     display: grid;
     gap: 0.2rem;
-    padding: 0.5rem 0.6rem;
+    padding: 0.4rem 0.5rem;
     background: rgb(9 9 11 / 24%);
     border-left: 2px solid color-mix(in srgb, var(--character-class-accent) 68%, transparent);
     border-radius: 0.2rem 0.45rem 0.35rem 0.2rem;
@@ -1012,6 +1016,14 @@
     .run-dashboard .character-class-card {
       min-height: 21rem;
       padding: 1rem;
+    }
+
+    .run-dashboard .character-class-card-details {
+      grid-template-columns: 1fr;
+    }
+
+    .run-dashboard .character-class-card-detail-skill {
+      grid-column: auto;
     }
   }
 

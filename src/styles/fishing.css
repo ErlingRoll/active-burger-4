@@ -1022,7 +1022,7 @@
   top: clamp(6.5rem, 11vw, 8rem);
   right: clamp(0.75rem, 2vw, 1.5rem);
   left: auto;
-  width: min(29rem, calc(100% - 1.5rem));
+  width: min(44rem, calc(100% - 1.5rem));
   max-height: calc(100% - 9.5rem);
   overflow: auto;
   background:
@@ -1033,7 +1033,7 @@
 }
 
 .fishing-inventory-drawer .inventory-item-grid {
-  grid-template-columns: repeat(8, 2.65rem);
+  grid-template-columns: repeat(12, 3rem);
 }
 
 .fishing-inventory-drawer .inventory-item-card {
@@ -1077,7 +1077,7 @@
 
 .inventory-item-grid {
   display: grid;
-  grid-template-columns: repeat(12, 2.75rem);
+  grid-template-columns: repeat(12, 3rem);
   justify-content: center;
   gap: 0.35rem;
   margin: 0;
@@ -1127,8 +1127,9 @@
 
 .inventory-item-card .inventory-item-quantity {
   position: absolute;
-  right: 0.2rem;
-  bottom: 0.1rem;
+  z-index: 1;
+  right: 0.35rem;
+  bottom: 0.25rem;
   color: #67e8f9;
   font-size: clamp(0.55rem, 0.8vw, 0.78rem);
   font-weight: 800;
@@ -1159,7 +1160,36 @@
 }
 
 .inventory-item-tooltip strong {
+  display: block;
+  padding-right: 4.5rem;
   color: #f8fafc;
+}
+
+.inventory-item-tooltip-essence {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.22rem 0.45rem 0.2rem;
+  color: #fbbf24;
+  background: linear-gradient(135deg, rgb(251 191 36 / 22%), rgb(180 83 9 / 30%));
+  border: 1px solid rgb(251 191 36 / 55%);
+  border-radius: 999px;
+  box-shadow: 0 0 0.8rem rgb(251 191 36 / 18%), inset 0 1px rgb(255 255 255 / 12%);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.inventory-item-tooltip-essence strong {
+  padding-right: 0;
+  color: #fef3c7;
+  font-size: 0.85rem;
+  letter-spacing: 0;
 }
 
 .inventory-item-tooltip p {

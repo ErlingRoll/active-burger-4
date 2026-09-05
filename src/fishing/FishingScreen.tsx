@@ -8,8 +8,10 @@ import type {
 } from './FishingService'
 import {
   DEFAULT_FISHING_BAIT_ID,
+  DEFAULT_FISHING_ROD,
   FISHING_BAITS,
   formatFishingEnchantment,
+  getFishingEssenceValue,
   formatFishingFishDetail,
   formatFishingBaitEffect,
   formatFishingRodModifiers,
@@ -983,6 +985,7 @@ export function FishingScreen({
                     label="Fishing inventory"
                     getItemIcon={getInventoryItemIcon}
                     getItemDetail={getInventoryItemDetail}
+                    getItemEssence={(item) => getFishingEssenceValue(item.definitionId, item.metadata)}
                     onSalvage={(item) => setPendingSalvage(item)}
                     salvagingItemInstanceId={salvagingItemInstanceId}
                   />
@@ -1021,7 +1024,7 @@ export function FishingScreen({
                     label="Rod"
                     value={effectiveSelectedRodId ?? ''}
                     options={[
-                      { value: '', label: 'No rod' },
+                      { value: '', label: DEFAULT_FISHING_ROD.name },
                       ...rods.map((rod) => ({
                         value: rod.itemInstanceId,
                         label: getInventoryItemDefinition(rod.definitionId)?.name ?? rod.definitionId,

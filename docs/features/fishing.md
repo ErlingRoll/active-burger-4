@@ -102,6 +102,10 @@ dungeons, not only through a successful Abyss attempt.
 Rods are unique rolled inventory items. A rod is rolled when it is created and
 cannot be upgraded. Rods can be traded while unbound.
 
+The default loadout uses a Wooden rod. It is Common, has no modifiers, and is
+described as: “It's actually just a stick with some spare yarn attached to the
+end.”
+
 Rarity determines the number of modifiers:
 
 | Rarity | Modifiers |
@@ -200,6 +204,19 @@ The initial enchantment pool is:
 
 The enchantment ID and value are stored on the fish instance, shown in the
 catch and inventory views, and included in the resolved run-meal snapshot.
+
+## Inventory ordering
+
+Inventory grids apply any screen-specific sorting priorities first. After those
+priorities, the default fallback is always:
+
+1. Item type/category, alphabetically ascending.
+2. Rarity, from Legendary down to Common.
+3. Essence, from highest to lowest.
+
+Items that remain equal preserve their existing order. Fish Essence includes
+their authoritative size and enchantment modifiers; other item types use their
+defined salvage Essence value when available.
 
 ## Fish uses
 

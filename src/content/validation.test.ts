@@ -517,6 +517,7 @@ describe('content validation', () => {
           {
             id: 'test-item',
             name: 'Test Item',
+            flavorText: null,
             rarity: 'mythic' as never,
             slot: 'backpack' as never,
             modifiers: [

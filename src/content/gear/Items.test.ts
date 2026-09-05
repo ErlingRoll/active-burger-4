@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ALL_ITEM_DEFINITIONS,
   EQUIPMENT_SLOTS,
   getItemDefinition,
   getItemDisplayName,
@@ -36,6 +37,10 @@ import {
 } from '../../game-config/gear-sets'
 
 describe('initial gear content', () => {
+  it('provides flavor text on every item definition', () => {
+    expect(ALL_ITEM_DEFINITIONS.every((item) => 'flavorText' in item)).toBe(true)
+  })
+
   it('covers each equipment slot with stable IDs and no authored base modifiers', () => {
     expect(new Set(INITIAL_ITEMS.map((item) => item.slot))).toEqual(
       new Set(EQUIPMENT_SLOTS),

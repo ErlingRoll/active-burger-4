@@ -9,6 +9,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'basic-bait': {
     id: 'basic-bait',
     name: 'Basic Bait',
+    flavorText: null,
     category: 'bait',
     stackable: false,
     maxStackSize: 1,
@@ -20,6 +21,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'river-worm': {
     id: 'river-worm',
     name: 'River Worm',
+    flavorText: null,
     category: 'bait',
     stackable: true,
     maxStackSize: 99,
@@ -31,6 +33,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'glow-grub': {
     id: 'glow-grub',
     name: 'Glow Grub',
+    flavorText: null,
     category: 'bait',
     stackable: true,
     maxStackSize: 99,
@@ -42,6 +45,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'moonwater-lure': {
     id: 'moonwater-lure',
     name: 'Moonwater Lure',
+    flavorText: null,
     category: 'bait',
     stackable: true,
     maxStackSize: 99,
@@ -53,6 +57,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'river-minnow': {
     id: 'river-minnow',
     name: 'River Minnow',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -64,6 +69,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'reed-darter': {
     id: 'reed-darter',
     name: 'Reed Darter',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -75,6 +81,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'glassfin-trout': {
     id: 'glassfin-trout',
     name: 'Glassfin Trout',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -86,6 +93,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'silver-perch': {
     id: 'silver-perch',
     name: 'Silver Perch',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -97,6 +105,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'lantern-pike': {
     id: 'lantern-pike',
     name: 'Lantern Pike',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -108,6 +117,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'moon-carp': {
     id: 'moon-carp',
     name: 'Moon Carp',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -119,6 +129,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'tideback-catfish': {
     id: 'tideback-catfish',
     name: 'Tideback Catfish',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -130,6 +141,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'revival-koi': {
     id: 'revival-koi',
     name: 'Revival Koi',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -141,6 +153,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'comet-eel': {
     id: 'comet-eel',
     name: 'Comet Eel',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -152,6 +165,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'star-koi': {
     id: 'star-koi',
     name: 'Star Koi',
+    flavorText: null,
     category: 'fish',
     stackable: false,
     maxStackSize: 1,
@@ -162,7 +176,8 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   },
   'starter-fishing-rod': {
     id: 'starter-fishing-rod',
-    name: 'Starter Fishing Rod',
+    name: 'Wooden rod',
+    flavorText: "It's actually just a stick with some spare yarn attached to the end",
     category: 'rod',
     stackable: false,
     maxStackSize: 1,
@@ -174,6 +189,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'loot-box-common': {
     id: 'loot-box-common',
     name: 'Common Loot Box',
+    flavorText: null,
     category: 'loot-box',
     stackable: true,
     maxStackSize: 9999,
@@ -185,6 +201,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'loot-box-uncommon': {
     id: 'loot-box-uncommon',
     name: 'Uncommon Loot Box',
+    flavorText: null,
     category: 'loot-box',
     stackable: true,
     maxStackSize: 9999,
@@ -196,6 +213,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'loot-box-rare': {
     id: 'loot-box-rare',
     name: 'Rare Loot Box',
+    flavorText: null,
     category: 'loot-box',
     stackable: true,
     maxStackSize: 9999,
@@ -207,6 +225,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'loot-box-epic': {
     id: 'loot-box-epic',
     name: 'Epic Loot Box',
+    flavorText: null,
     category: 'loot-box',
     stackable: true,
     maxStackSize: 9999,
@@ -218,6 +237,7 @@ export const INVENTORY_ITEM_DEFINITIONS = {
   'loot-box-legendary': {
     id: 'loot-box-legendary',
     name: 'Legendary Loot Box',
+    flavorText: null,
     category: 'loot-box',
     stackable: true,
     maxStackSize: 9999,

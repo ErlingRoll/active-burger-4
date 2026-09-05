@@ -41,7 +41,39 @@
   border-color: rgb(196 181 253 / 30%);
 }
 
+.inventory-item-card:not(.inventory-item-card-empty)::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0.08rem;
+  content: '';
+  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: 0.32rem;
+}
+
+.inventory-item-card[data-rarity='common']::after {
+  border-color: #d1d5db;
+}
+
+.inventory-item-card[data-rarity='uncommon']::after {
+  border-color: #4ade80;
+}
+
+.inventory-item-card[data-rarity='rare']::after {
+  border-color: #60a5fa;
+}
+
+.inventory-item-card[data-rarity='epic']::after {
+  border-color: #c084fc;
+}
+
+.inventory-item-card[data-rarity='legendary']::after {
+  border-color: #fbbf24;
+}
+
 .inventory-item-icon {
+  position: relative;
+  z-index: 1;
   display: grid;
   width: 2.5rem;
   height: 2.5rem;

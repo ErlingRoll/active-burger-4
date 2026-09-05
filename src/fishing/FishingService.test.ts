@@ -137,23 +137,23 @@ describe('FishingContent', () => {
     })).toBeNull()
   })
 
-  it('formats the authoritative salvage value from fish metadata', () => {
+  it('formats the authoritative Essence value from fish metadata', () => {
     expect(formatFishingSalvageValue('revival-koi', {
       sizePercentile: 0.5,
-    })).toBe('Salvage value: 20 Essence')
+    })).toBe('Essence: 20')
     expect(formatFishingSalvageValue('river-minnow', {
       sizePercentile: 0.5,
       enchantmentId: 'bright-scales',
-    })).toBe('Salvage value: 2 Essence')
+    })).toBe('Essence: 2')
     expect(formatFishingSalvageValue('river-minnow', {
       sizePercentile: 2,
-    })).toBe('Salvage value unavailable')
+    })).toBe('Essence unavailable')
   })
 
-  it('includes fish weight and salvage value in inventory details', () => {
+  it('includes fish weight in inventory details', () => {
     expect(formatFishingFishDetail('river-minnow', {
       sizePercentile: 0.5345,
-    })).toBe('Weight: 0.11 kg · Salvage value: 2 Essence')
+    })).toBe('Weight: 0.11 kg')
   })
 })
 

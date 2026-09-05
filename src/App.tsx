@@ -2673,10 +2673,34 @@ function RunSetupScreen({
                       <span
                         className="character-class-card-detail"
                         tabIndex={0}
+                        aria-label={`Maximum health: ${characterClass.baseStats.maxHp}`}
+                      >
+                        <small>Max HP</small>
+                        <strong>{characterClass.baseStats.maxHp}</strong>
+                      </span>
+                      <span
+                        className="character-class-card-detail"
+                        tabIndex={0}
                         aria-label={`Base physical damage: ${characterClass.baseStats.attackDamage}`}
                       >
-                        <small>Base physical damage</small>
+                        <small>Phys. damage</small>
                         <strong>{characterClass.baseStats.attackDamage}</strong>
+                      </span>
+                      <span
+                        className="character-class-card-detail"
+                        tabIndex={0}
+                        aria-label={`Movement speed: ${characterClass.baseStats.movementSpeed} units per second`}
+                      >
+                        <small>Move speed</small>
+                        <strong>{characterClass.baseStats.movementSpeed} units/s</strong>
+                      </span>
+                      <span
+                        className="character-class-card-detail"
+                        tabIndex={0}
+                        aria-label={`Attack speed: ${characterClass.baseStats.attackSpeed} attacks per second`}
+                      >
+                        <small>Atk speed</small>
+                        <strong>{characterClass.baseStats.attackSpeed} atk/s</strong>
                       </span>
                       <span
                         className="character-class-card-detail"

@@ -8,6 +8,7 @@ import {
   formatFishingFishDetail,
   formatFishingRodModifiers,
   FishIcon,
+  getFishingEssenceValue,
   getFishDefinition,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
@@ -201,6 +202,7 @@ export function InventoryScreen({
                   label="Owned items"
                   getItemIcon={getInventoryItemIcon}
                   getItemDetail={getInventoryItemDetail}
+                  getItemEssence={(item) => getFishingEssenceValue(item.definitionId, item.metadata)}
                   onSalvage={(item) => setPendingSalvage(item)}
                   salvagingItemInstanceId={salvagingItemInstanceId}
                 />

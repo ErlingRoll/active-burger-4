@@ -90,7 +90,7 @@
   }
 
   .inventory-item-grid {
-    grid-template-columns: repeat(8, 2.75rem);
+    grid-template-columns: repeat(8, 3rem);
   }
 
   .fish-meal-slots {
@@ -119,6 +119,6 @@
   }
 
   .inventory-item-grid {
-    grid-template-columns: repeat(6, 2.75rem);
+    grid-template-columns: repeat(6, 3rem);
   }
 }

@@ -31,6 +31,7 @@ export const WEAPON_ARCHETYPES = [
 interface ItemDefinitionBase {
   id: ItemId
   name: string
+  flavorText: string | null
   rarity: RarityValue
   modifiers: readonly GearModifier[]
   implicitModifiers?: readonly ItemImplicitModifier[]
@@ -76,6 +77,7 @@ export const ITEM_DEFINITIONS = {
   'knight-training-sword': {
     id: 'knight-training-sword',
     name: 'Knight Training Sword',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
@@ -85,6 +87,7 @@ export const ITEM_DEFINITIONS = {
   'ranger-training-bow': {
     id: 'ranger-training-bow',
     name: 'Ranger Training Bow',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
@@ -95,6 +98,7 @@ export const ITEM_DEFINITIONS = {
   'necromancer-training-wand': {
     id: 'necromancer-training-wand',
     name: 'Necromancer Training Wand',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
@@ -104,6 +108,7 @@ export const ITEM_DEFINITIONS = {
   'necromancer-bone-staff': {
     id: 'necromancer-bone-staff',
     name: 'Necromancer Bone Staff',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
@@ -113,6 +118,7 @@ export const ITEM_DEFINITIONS = {
   'frost-warden-training-wand': {
     id: 'frost-warden-training-wand',
     name: 'Frost Warden Training Wand',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
@@ -122,6 +128,7 @@ export const ITEM_DEFINITIONS = {
   'ashen-alchemist-training-staff': {
     id: 'ashen-alchemist-training-staff',
     name: 'Ashen Alchemist Training Staff',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
@@ -131,6 +138,7 @@ export const ITEM_DEFINITIONS = {
   'war-shepherd-training-sword': {
     id: 'war-shepherd-training-sword',
     name: 'War Shepherd Training Sword',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
@@ -140,6 +148,7 @@ export const ITEM_DEFINITIONS = {
   'iron-cleaver': {
     id: 'iron-cleaver',
     name: 'Cleaver',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'sword',
@@ -148,6 +157,7 @@ export const ITEM_DEFINITIONS = {
   'hunters-bow': {
     id: 'hunters-bow',
     name: 'Bow',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'bow',
@@ -157,6 +167,7 @@ export const ITEM_DEFINITIONS = {
   'starcall-wand': {
     id: 'starcall-wand',
     name: 'Wand',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'wand',
@@ -165,6 +176,7 @@ export const ITEM_DEFINITIONS = {
   'ritual-staff': {
     id: 'ritual-staff',
     name: 'Staff',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Weapon,
     weaponArchetype: 'staff',
@@ -173,6 +185,7 @@ export const ITEM_DEFINITIONS = {
   helmet: {
     id: 'helmet',
     name: 'Helmet',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Helmet,
     modifiers: [],
@@ -180,6 +193,7 @@ export const ITEM_DEFINITIONS = {
   armor: {
     id: 'armor',
     name: 'Armor',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Armor,
     modifiers: [],
@@ -187,6 +201,7 @@ export const ITEM_DEFINITIONS = {
   boots: {
     id: 'boots',
     name: 'Boots',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Boots,
     modifiers: [],
@@ -194,6 +209,7 @@ export const ITEM_DEFINITIONS = {
   ring: {
     id: 'ring',
     name: 'Ring',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Ring,
     modifiers: [],
@@ -201,6 +217,7 @@ export const ITEM_DEFINITIONS = {
   amulet: {
     id: 'amulet',
     name: 'Amulet',
+    flavorText: null,
     rarity: Rarity.Common,
     slot: EquipmentSlot.Amulet,
     modifiers: [],

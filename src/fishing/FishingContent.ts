@@ -28,6 +28,7 @@ export function isFishingMode(value: unknown): value is FishingMode {
 export interface FishingBaitDefinition {
   id: InventoryItemDefinitionId
   name: string
+  flavorText: string | null
   description: string
   unlimited: boolean
   rarityBonusPercent: number
@@ -39,6 +40,7 @@ export const FISHING_BAITS = {
   'basic-bait': {
     id: 'basic-bait',
     name: 'Basic Bait',
+    flavorText: null,
     description: 'Unlimited bait for common river fish.',
     unlimited: true,
     rarityBonusPercent: 0,
@@ -48,6 +50,7 @@ export const FISHING_BAITS = {
   'river-worm': {
     id: 'river-worm',
     name: 'River Worm',
+    flavorText: null,
     description: 'Improves the chance of uncommon and rare fish.',
     unlimited: false,
     rarityBonusPercent: 10,
@@ -57,6 +60,7 @@ export const FISHING_BAITS = {
   'glow-grub': {
     id: 'glow-grub',
     name: 'Glow Grub',
+    flavorText: null,
     description: 'Draws larger fish and slightly improves loot-box finds.',
     unlimited: false,
     rarityBonusPercent: 18,
@@ -66,6 +70,7 @@ export const FISHING_BAITS = {
   'moonwater-lure': {
     id: 'moonwater-lure',
     name: 'Moonwater Lure',
+    flavorText: null,
     description: 'A premium lure for high-rarity, high-quality catches.',
     unlimited: false,
     rarityBonusPercent: 26,
@@ -114,6 +119,22 @@ export const FISHING_ROD_MODIFIERS = {
     description: 'Improves the chance of an enchanted catch.',
   },
 } as const satisfies Record<FishingRodModifierId, FishingRodModifierDefinition>
+
+export interface FishingRodDefinition {
+  id: InventoryItemDefinitionId
+  name: string
+  rarity: RarityValue
+  modifierIds: readonly FishingRodModifierId[]
+  flavorText: string | null
+}
+
+export const DEFAULT_FISHING_ROD = {
+  id: 'starter-fishing-rod',
+  name: 'Wooden rod',
+  rarity: Rarity.Common,
+  modifierIds: [],
+  flavorText: "It's actually just a stick with some spare yarn attached to the end",
+} as const satisfies FishingRodDefinition
 
 export const FISHING_ROD_MODIFIER_COUNT_BY_RARITY = {
   common: 1,
@@ -164,6 +185,7 @@ export type FishEffectFamily =
 export interface FishDefinition {
   id: InventoryItemDefinitionId
   name: string
+  flavorText: string | null
   rarity: RarityValue
   weightRangeKg: {
     min: number
@@ -187,6 +209,7 @@ export const FISH_DEFINITIONS = {
   'river-minnow': {
     id: 'river-minnow',
     name: 'River Minnow',
+    flavorText: null,
     rarity: Rarity.Common,
     weightRangeKg: { min: 0.02, max: 0.18 },
     effect: {
@@ -201,6 +224,7 @@ export const FISH_DEFINITIONS = {
   'reed-darter': {
     id: 'reed-darter',
     name: 'Reed Darter',
+    flavorText: null,
     rarity: Rarity.Common,
     weightRangeKg: { min: 0.08, max: 0.45 },
     effect: {
@@ -215,6 +239,7 @@ export const FISH_DEFINITIONS = {
   'glassfin-trout': {
     id: 'glassfin-trout',
     name: 'Glassfin Trout',
+    flavorText: null,
     rarity: Rarity.Common,
     weightRangeKg: { min: 0.25, max: 2.5 },
     effect: {
@@ -229,6 +254,7 @@ export const FISH_DEFINITIONS = {
   'silver-perch': {
     id: 'silver-perch',
     name: 'Silver Perch',
+    flavorText: null,
     rarity: Rarity.Uncommon,
     weightRangeKg: { min: 0.4, max: 3.2 },
     effect: {
@@ -243,6 +269,7 @@ export const FISH_DEFINITIONS = {
   'lantern-pike': {
     id: 'lantern-pike',
     name: 'Lantern Pike',
+    flavorText: null,
     rarity: Rarity.Uncommon,
     weightRangeKg: { min: 1.5, max: 8 },
     effect: {
@@ -257,6 +284,7 @@ export const FISH_DEFINITIONS = {
   'moon-carp': {
     id: 'moon-carp',
     name: 'Moon Carp',
+    flavorText: null,
     rarity: Rarity.Rare,
     weightRangeKg: { min: 2, max: 14 },
     effect: {
@@ -271,6 +299,7 @@ export const FISH_DEFINITIONS = {
   'tideback-catfish': {
     id: 'tideback-catfish',
     name: 'Tideback Catfish',
+    flavorText: null,
     rarity: Rarity.Rare,
     weightRangeKg: { min: 3, max: 18 },
     effect: {
@@ -285,6 +314,7 @@ export const FISH_DEFINITIONS = {
   'revival-koi': {
     id: 'revival-koi',
     name: 'Revival Koi',
+    flavorText: null,
     rarity: Rarity.Epic,
     weightRangeKg: { min: 1, max: 7 },
     effect: {
@@ -299,6 +329,7 @@ export const FISH_DEFINITIONS = {
   'comet-eel': {
     id: 'comet-eel',
     name: 'Comet Eel',
+    flavorText: null,
     rarity: Rarity.Epic,
     weightRangeKg: { min: 0.8, max: 9 },
     effect: {
@@ -313,6 +344,7 @@ export const FISH_DEFINITIONS = {
   'star-koi': {
     id: 'star-koi',
     name: 'Star Koi',
+    flavorText: null,
     rarity: Rarity.Legendary,
     weightRangeKg: { min: 4, max: 24 },
     effect: {
@@ -417,10 +449,18 @@ export function formatFishingSalvageValue(
   definitionId: string,
   metadata: Record<string, unknown>,
 ): string {
+  const essence = getFishingEssenceValue(definitionId, metadata)
+  return essence === null ? 'Essence unavailable' : `Essence: ${essence}`
+}
+
+export function getFishingEssenceValue(
+  definitionId: string,
+  metadata: Record<string, unknown>,
+): number | null {
   const fish = getFishDefinition(definitionId)
   const size = metadata.sizePercentile
   if (!fish || typeof size !== 'number' || !Number.isFinite(size) || size < 0 || size > 1) {
-    return 'Salvage value unavailable'
+    return null
   }
   const baseValue = {
     common: 2,
@@ -433,8 +473,7 @@ export function formatFishingSalvageValue(
   const enchantmentFactor = enchantment
     ? 1 + enchantment.effectBonusPercent / 100
     : 1
-  const essence = Math.floor(baseValue * (0.5 + size) * enchantmentFactor)
-  return `Salvage value: ${essence} Essence`
+  return Math.floor(baseValue * (0.5 + size) * enchantmentFactor)
 }
 
 export function formatFishingFishDetail(
@@ -442,10 +481,7 @@ export function formatFishingFishDetail(
   metadata: Record<string, unknown>,
 ): string {
   const fish = getFishDefinition(definitionId)
-  return `Weight: ${formatFishSizeKg(metadata.sizePercentile, fish?.weightRangeKg)} · ${formatFishingSalvageValue(
-    definitionId,
-    metadata,
-  )}`
+  return `Weight: ${formatFishSizeKg(metadata.sizePercentile, fish?.weightRangeKg)}`
 }
 
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {
