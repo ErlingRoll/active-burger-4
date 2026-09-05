@@ -312,7 +312,12 @@ describe('FishingService', () => {
       presenceState: vi.fn(() => presenceState),
     } as unknown as RealtimeChannel
     const client = {
-      rpc: vi.fn(),
+      rpc: vi.fn(async (functionName: string) => functionName === 'get_player_display_names'
+        ? {
+            data: [{ player_id: 'player-1', player_name: 'Approved Mira' }],
+            error: null,
+          }
+        : { data: null, error: null }),
       channel: vi.fn(() => channel),
       removeChannel: vi.fn(async () => 'ok'),
     } as unknown as SupabaseClient
@@ -340,14 +345,17 @@ describe('FishingService', () => {
     await service.publishActivity(event)
     broadcastHandler?.({ payload: event })
     presenceSyncHandler?.()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
     expect(channel.send).toHaveBeenCalledWith({
       type: 'broadcast',
       event: 'fishing-activity',
       payload: event,
     })
-    expect(received).toEqual([event])
-    expect(presentAnglers).toEqual([presenceState['presence-1']])
+    expect(received).toEqual([{ ...event, playerName: 'Approved Mira' }])
+    expect(presentAnglers).toEqual([[
+      { ...presenceState['presence-1'][0], playerName: 'Approved Mira' },
+    ]])
 
     await service.trackAngler(presenceState['presence-1'][0])
     expect(channel.track).toHaveBeenCalledWith(presenceState['presence-1'][0])

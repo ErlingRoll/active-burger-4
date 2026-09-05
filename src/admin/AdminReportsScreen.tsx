@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { BugReport, BugReportFloorSnapshot } from '../bug-report'
+import { getPlayerDisplayName } from '../auth'
 
 interface AdminReportsScreenProps {
   reports: readonly BugReport[]
@@ -111,7 +112,10 @@ export function AdminReportsScreen({
                     </div>
                     <div className="admin-report-card-controls">
                       <strong className="admin-report-username">
-                        {report.username ?? report.userId}
+                        {getPlayerDisplayName({
+                          providerDisplayName: report.username,
+                          fallback: report.userId,
+                        })}
                       </strong>
                       <code>{report.userId}</code>
                       <button

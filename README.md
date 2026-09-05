@@ -37,6 +37,10 @@ An approved nickname takes priority. Until then, the player's Discord display
 name is used as the public fallback; only players without either name appear as
 Anonymous player.
 
+All player-facing names use the shared resolver documented in
+[docs/PLAYER_NAMES.md](docs/PLAYER_NAMES.md). New components must use
+`getPlayerDisplayName` instead of reading an account or nickname field directly.
+
 ## Validation
 
 ```bash

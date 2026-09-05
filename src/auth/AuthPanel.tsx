@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { AuthAccount, SignInOptions, SignUpResult } from './AuthService'
+import { getPlayerDisplayName } from './PlayerName'
 
 export type AuthenticationStatus = 'unavailable' | 'loading' | 'ready' | 'error'
 
@@ -85,7 +86,10 @@ export function AuthPanel({
         <p className="screen-kicker">Account</p>
         <h3 id="account-title">Signed in</h3>
         <p className="account-email">
-          {authentication.account.displayName ?? authentication.account.email ?? 'Account unavailable'}
+          {getPlayerDisplayName({
+            providerDisplayName: authentication.account.displayName,
+            fallback: authentication.account.email,
+          })}
         </p>
         {authentication.error ? (
           <p className="persistence-error" role="alert">{authentication.error}</p>

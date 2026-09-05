@@ -24,3 +24,8 @@ export type {
   NicknameService,
   NicknameState,
 } from './NicknameService'
+export {
+  DEFAULT_PLAYER_DISPLAY_NAME,
+  getPlayerDisplayName,
+} from './PlayerName'
+export type { PlayerNameSources } from './PlayerName'

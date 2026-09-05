@@ -1,4 +1,5 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
+import { getPlayerDisplayName } from '../auth'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { isRarity, type Rarity } from '../content/rarity/Rarity'
 import {
@@ -100,6 +101,11 @@ interface RpcActiveFishingAnglerRow {
   player_name: string
 }
 
+interface RpcPlayerNameRow {
+  player_id: string
+  player_name: string
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -146,6 +152,12 @@ function isFishingAnglerPresence(value: unknown): value is FishingAnglerPresence
 function isRpcActiveFishingAnglerRow(value: unknown): value is RpcActiveFishingAnglerRow {
   return isRecord(value) &&
     isNonEmptyString(value.attempt_id) &&
+    isNonEmptyString(value.player_id) &&
+    isNonEmptyString(value.player_name)
+}
+
+function isRpcPlayerNameRow(value: unknown): value is RpcPlayerNameRow {
+  return isRecord(value) &&
     isNonEmptyString(value.player_id) &&
     isNonEmptyString(value.player_name)
 }
@@ -243,6 +255,30 @@ export function createFishingService(
       throw new Error(`Fishing angler ${operation} failed: ${status}.`)
     }
   }
+
+  const loadPlayerNames = async (playerIds: readonly string[]): Promise<Map<string, string>> => {
+    const uniquePlayerIds = [...new Set(playerIds.filter(isNonEmptyString))]
+    if (uniquePlayerIds.length === 0) {
+      return new Map()
+    }
+    const response = await getClient().rpc('get_player_display_names', {
+      p_player_ids: uniquePlayerIds,
+    })
+    if (response.error) {
+      throw response.error
+    }
+    if (!Array.isArray(response.data) || !response.data.every(isRpcPlayerNameRow)) {
+      throw invalidResponse('expected player name rows')
+    }
+    return new Map(response.data.map((row) => [row.player_id, row.player_name]))
+  }
+
+  const resolvePlayerName = (
+    playerId: string,
+    names: ReadonlyMap<string, string>,
+  ): string => getPlayerDisplayName({
+    providerDisplayName: names.get(playerId),
+  })
 
   return {
     async beginAttempt(input): Promise<FishingAttemptPreparation> {
@@ -376,9 +412,25 @@ export function createFishingService(
       const channel = getActivityChannel()
       let active = true
       channel.on('broadcast', { event: 'fishing-activity' }, ({ payload }) => {
-        if (active && isFishingActivityEvent(payload)) {
-          listener(payload)
+        if (!active || !isFishingActivityEvent(payload)) {
+          return
         }
+        void loadPlayerNames([payload.playerId])
+          .then((names) => {
+            if (active) {
+              listener({
+                ...payload,
+                playerName: resolvePlayerName(payload.playerId, names),
+              })
+            }
+          })
+          .catch((error: unknown) => {
+            if (active) {
+              onError(error instanceof Error
+                ? error
+                : new Error('Unable to resolve fishing player names.'))
+            }
+          })
       })
       channel.on('presence', { event: 'sync' }, () => {
         if (!active) {
@@ -387,7 +439,22 @@ export function createFishingService(
         const anglers = Object.values(channel.presenceState<FishingAnglerPresence>())
           .flat()
           .filter(isFishingAnglerPresence)
-        onPresence(anglers)
+        void loadPlayerNames(anglers.map((angler) => angler.playerId))
+          .then((names) => {
+            if (active) {
+              onPresence(anglers.map((angler) => ({
+                ...angler,
+                playerName: resolvePlayerName(angler.playerId, names),
+              })))
+            }
+          })
+          .catch((error: unknown) => {
+            if (active) {
+              onError(error instanceof Error
+                ? error
+                : new Error('Unable to resolve fishing player names.'))
+            }
+          })
       })
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {

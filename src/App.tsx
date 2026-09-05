@@ -29,6 +29,7 @@ import {
   AccountSettingsMenu,
   createAuthenticationService,
   createNicknameService,
+  getPlayerDisplayName,
   type AuthenticationState,
   type AuthenticationService,
   type NicknameChangeRequest,
@@ -869,9 +870,10 @@ function App() {
     }
     await bugReport.service.submit({
       userId: authentication.account.id,
-      username: nickname.displayName ??
-        authentication.account.displayName ??
-        'Anonymous player',
+      username: getPlayerDisplayName({
+        approvedNickname: nickname.displayName,
+        providerDisplayName: authentication.account.displayName,
+      }),
       description,
       image,
       dungeon,
@@ -884,6 +886,7 @@ function App() {
     authentication.account,
     bugReport.configurationError,
     bugReport.service,
+    nickname.displayName,
     showToast,
   ])
 
@@ -2008,7 +2011,8 @@ function App() {
           inventoryService={inventory.service}
           configurationError={fishing.configurationError ?? inventory.configurationError}
           activityPlayerId={authentication.account.id}
-          activityPlayerName={authentication.account.displayName ?? 'Anonymous fisher'}
+          activityPlayerApprovedNickname={nickname.displayName}
+          activityPlayerProviderName={authentication.account.displayName}
         />
       ) : null}
       {screen === 'champions' && authentication.account ? (
@@ -2117,9 +2121,10 @@ function AppHeader({
         <div className="app-account">
           <span className="app-account-label">Signed in</span>
           <strong className="app-account-email">
-            {nickname.displayName ??
-              authentication.account.displayName ??
-              'Anonymous player'}
+            {getPlayerDisplayName({
+              approvedNickname: nickname.displayName,
+              providerDisplayName: authentication.account.displayName,
+            })}
           </strong>
           {authentication.error ? (
             <span className="app-account-error">{authentication.error}</span>

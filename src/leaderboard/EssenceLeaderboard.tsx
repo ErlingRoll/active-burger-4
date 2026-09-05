@@ -3,6 +3,7 @@ import type {
   EssenceLeaderboardEntry,
   EssenceLeaderboardService,
 } from './EssenceLeaderboardService'
+import { getPlayerDisplayName } from '../auth'
 
 const LEADERBOARD_REFRESH_INTERVAL_MS = 30_000
 
@@ -106,7 +107,7 @@ export function EssenceLeaderboard({
             >
               <span className="essence-leaderboard-rank">#{entry.rank}</span>
               <span className="essence-leaderboard-player">
-                {entry.displayName}
+                {getPlayerDisplayName({ providerDisplayName: entry.displayName })}
                 {entry.profileId === accountId ? (
                   <small aria-label="Your ranking">You</small>
                 ) : null}

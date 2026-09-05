@@ -27,6 +27,7 @@ import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
+import { getPlayerDisplayName } from '../auth'
 import { FishIcon } from './FishIcon'
 
 interface FishingScreenProps {
@@ -34,7 +35,8 @@ interface FishingScreenProps {
   inventoryService: InventoryService | null
   configurationError: string | null
   activityPlayerId: string
-  activityPlayerName: string
+  activityPlayerApprovedNickname: string | null
+  activityPlayerProviderName: string | null
 }
 
 function createAttemptId(): string {
@@ -181,7 +183,7 @@ function reconcileRemoteAnglers(
       }
       return {
         playerId: angler.playerId,
-        playerName: angler.playerName,
+        playerName: getPlayerDisplayName({ providerDisplayName: angler.playerName }),
         phase: angler.phase,
         eventId: `${angler.attemptId}:presence`,
         catch: angler.phase === 'catching' && angler.fishDefinitionId && angler.rarity
@@ -357,9 +359,14 @@ export function FishingScreen({
   inventoryService,
   configurationError,
   activityPlayerId,
-  activityPlayerName,
+  activityPlayerApprovedNickname,
+  activityPlayerProviderName,
 }: FishingScreenProps) {
   const { showToast } = useToaster()
+  const activityPlayerName = getPlayerDisplayName({
+    approvedNickname: activityPlayerApprovedNickname,
+    providerDisplayName: activityPlayerProviderName,
+  })
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
@@ -466,19 +473,20 @@ export function FishingScreen({
         const catchInfo = event.kind === 'catch' && event.fishDefinitionId && event.rarity
           ? { definitionId: event.fishDefinitionId, rarity: event.rarity }
           : null
+        const playerName = getPlayerDisplayName({ providerDisplayName: event.playerName })
         setRemoteAnglers((current) => [
           ...current.filter((angler) => angler.playerId !== event.playerId),
           {
             playerId: event.playerId,
-            playerName: event.playerName,
+            playerName,
             phase,
             eventId: event.eventId,
             catch: catchInfo,
           },
         ])
         const message = event.kind === 'cast'
-          ? `${event.playerName} cast a line.`
-          : `${event.playerName} caught a ${getInventoryItemDefinition(event.fishDefinitionId ?? '')?.name ?? 'fish'} (${event.rarity ?? 'common'}).`
+          ? `${playerName} cast a line.`
+          : `${playerName} caught a ${getInventoryItemDefinition(event.fishDefinitionId ?? '')?.name ?? 'fish'} (${event.rarity ?? 'common'}).`
         setActivityNotice({ eventId: event.eventId, message })
         if (activityNoticeTimerRef.current !== null) {
           window.clearTimeout(activityNoticeTimerRef.current)
@@ -849,6 +857,7 @@ export function FishingScreen({
             </div>
             {remoteAnglers.map((angler) => {
               const position = getPondPlayerPosition(angler.playerId)
+              const playerName = getPlayerDisplayName({ providerDisplayName: angler.playerName })
               const caughtFish = angler.catch ? getFishDefinition(angler.catch.definitionId) : undefined
               const catchRarityVisual = angler.catch ? RARITY_VISUALS[angler.catch.rarity] : undefined
               return (
@@ -858,7 +867,7 @@ export function FishingScreen({
                   }`}
                   key={angler.playerId}
                   style={{ left: `${position.left}%`, top: `${position.top}%` }}
-                  aria-label={`${angler.playerName} is ${
+                  aria-label={`${playerName} is ${
                     angler.phase === 'catching'
                       ? 'landing a fish'
                       : angler.phase === 'idle'
@@ -867,7 +876,7 @@ export function FishingScreen({
                   }`}
                 >
                   <PondAnglerSprite />
-                  <strong>{angler.playerName}</strong>
+                  <strong>{playerName}</strong>
                   {angler.phase === 'catching' && catchRarityVisual ? (
                     <span
                       className="pond-remote-catch-display"
