@@ -80,6 +80,7 @@ import {
   formatFishSizeKg,
   getFishMealEffectSummary,
   resolveFishMeal,
+  FishIcon,
   FishingScreen,
   type FishingService,
 } from './fishing'
@@ -2775,7 +2776,9 @@ function RunSetupScreen({
                      {fish ? (
                        <>
                          <span className="fish-meal-slot-icon" aria-hidden="true">
-                           {definition?.visual.icon ?? '🐟'}
+                           {definition ? (
+                             <FishIcon icon={definition.visual.icon} color={definition.visual.accent} />
+                           ) : '🐟'}
                          </span>
                          <strong>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</strong>
                          <small>
@@ -2819,7 +2822,12 @@ function RunSetupScreen({
                        >
                          <span className="fish-meal-picker-item-heading">
                            <span className="fish-meal-picker-item-icon" aria-hidden="true">
-                             {getFishDefinition(fish.definitionId)?.visual.icon ?? '🐟'}
+                             {getFishDefinition(fish.definitionId) ? (
+                               <FishIcon
+                                 icon={getFishDefinition(fish.definitionId)!.visual.icon}
+                                 color={getFishDefinition(fish.definitionId)!.visual.accent}
+                               />
+                             ) : '🐟'}
                            </span>
                            <span>{getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId}</span>
                          </span>

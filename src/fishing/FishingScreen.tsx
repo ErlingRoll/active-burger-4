@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type {
   FishingAttemptPreparation,
   FishingAttemptResult,
@@ -23,6 +24,7 @@ import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
+import { FishIcon } from './FishIcon'
 
 interface FishingScreenProps {
   fishingService: FishingService | null
@@ -62,9 +64,10 @@ interface FishingCatchNotice {
   isDismissing: boolean
 }
 
-function getInventoryItemIcon(item: InventoryItemInstance): string {
+function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
   const category = getInventoryItemDefinition(item.definitionId)?.category
-  return getFishDefinition(item.definitionId)?.visual.icon ??
+  const fish = getFishDefinition(item.definitionId)
+  return fish ? <FishIcon icon={fish.visual.icon} color={fish.visual.accent} /> :
     ({
       fish: '🐟',
       bait: '◉',
@@ -898,7 +901,9 @@ export function FishingScreen({
                       }}
                       title={caughtFish?.name ?? 'Fish caught'}
                     >
-                      {caughtFish?.visual.icon ?? '🐟'}
+                      {caughtFish ? (
+                        <FishIcon icon={caughtFish.visual.icon} color={caughtFish.visual.accent} />
+                      ) : '🐟'}
                     </span>
                   ) : null}
                 </div>
@@ -1089,7 +1094,12 @@ export function FishingScreen({
                 <p className="screen-kicker">Catch received</p>
                 <div className="fishing-catch-heading">
                   <span className="fishing-catch-icon" aria-hidden="true">
-                    {getFishDefinition(lastCatch.definitionId)?.visual.icon ?? '🐟'}
+                    {getFishDefinition(lastCatch.definitionId) ? (
+                      <FishIcon
+                        icon={getFishDefinition(lastCatch.definitionId)!.visual.icon}
+                        color={getFishDefinition(lastCatch.definitionId)!.visual.accent}
+                      />
+                    ) : '🐟'}
                   </span>
                   <div>
                     <h3>{getInventoryItemDefinition(lastCatch.definitionId)?.name ?? lastCatch.definitionId}</h3>

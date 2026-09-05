@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
@@ -6,6 +7,7 @@ import {
   formatFishingBaitEffect,
   formatFishingSalvageValue,
   formatFishingRodModifiers,
+  FishIcon,
   getFishDefinition,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
@@ -19,9 +21,10 @@ interface LootBoxScreenProps {
   onBack: () => void
 }
 
-function getInventoryItemIcon(item: InventoryItemInstance): string {
+function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
   const definition = getInventoryItemDefinition(item.definitionId)
-  return getFishDefinition(item.definitionId)?.visual.icon ??
+  const fish = getFishDefinition(item.definitionId)
+  return fish ? <FishIcon icon={fish.visual.icon} color={fish.visual.accent} /> :
     ({
       fish: '🐟',
       bait: '◉',

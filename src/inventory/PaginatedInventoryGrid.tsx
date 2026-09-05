@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closeAllTooltips,
@@ -16,7 +16,7 @@ export const INVENTORY_PAGE_SIZE = INVENTORY_GRID_COLUMNS * INVENTORY_GRID_ROWS
 interface PaginatedInventoryGridProps {
   items: readonly InventoryItemInstance[]
   label: string
-  getItemIcon: (item: InventoryItemInstance) => string
+  getItemIcon: (item: InventoryItemInstance) => ReactNode
   getItemDetail: (item: InventoryItemInstance) => string
   onSalvage?: (item: InventoryItemInstance) => void
   salvagingItemInstanceId?: string | null

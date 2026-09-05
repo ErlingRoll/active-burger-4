@@ -71,6 +71,13 @@ describe('FishingContent', () => {
     }
   })
 
+  it('uses a distinct icon for every fish visual', () => {
+    const icons = Object.values(FISH_DEFINITIONS).map((definition) => definition.visual.icon)
+
+    expect(new Set(icons).size).toBe(Object.keys(FISH_DEFINITIONS).length)
+    expect(FISH_DEFINITIONS['lantern-pike'].visual.icon).toBe('lantern-pike')
+  })
+
   it('defines a unique modifier pool for every rod rarity', () => {
     expect(Object.keys(FISHING_ROD_MODIFIERS)).toHaveLength(5)
     expect(FISHING_ROD_MODIFIER_COUNT_BY_RARITY).toEqual({

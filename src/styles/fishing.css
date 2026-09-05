@@ -15,6 +15,12 @@
     linear-gradient(145deg, #04050d 0%, #0a0d1f 48%, #11132b 100%);
 }
 
+.fish-icon {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
 .fishing-screen::before {
   position: fixed;
   z-index: 0;

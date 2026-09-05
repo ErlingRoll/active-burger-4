@@ -1,5 +1,6 @@
 import { Rarity, type Rarity as RarityValue } from '../content/rarity/Rarity'
 import type { InventoryItemDefinitionId } from '../inventory/InventoryTypes'
+import type { FishIconId } from './FishIcon'
 
 export type FishingMode = 'auto' | 'manual'
 
@@ -172,7 +173,7 @@ export interface FishDefinition {
     runMealEligible: boolean
   }
   visual: {
-    icon: string
+    icon: FishIconId
     accent: string
     glow: string
   }
@@ -190,7 +191,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 2,
       runMealEligible: true,
     },
-    visual: { icon: '🐟', accent: '#67e8f9', glow: '#0891b2' },
+    visual: { icon: 'river-minnow', accent: '#67e8f9', glow: '#0891b2' },
   },
   'reed-darter': {
     id: 'reed-darter',
@@ -203,7 +204,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 3,
       runMealEligible: true,
     },
-    visual: { icon: '🐠', accent: '#86efac', glow: '#15803d' },
+    visual: { icon: 'reed-darter', accent: '#86efac', glow: '#15803d' },
   },
   'glassfin-trout': {
     id: 'glassfin-trout',
@@ -216,7 +217,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 5,
       runMealEligible: true,
     },
-    visual: { icon: '🫧', accent: '#bae6fd', glow: '#0284c7' },
+    visual: { icon: 'glassfin-trout', accent: '#bae6fd', glow: '#0284c7' },
   },
   'silver-perch': {
     id: 'silver-perch',
@@ -229,7 +230,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 4,
       runMealEligible: true,
     },
-    visual: { icon: '🐟', accent: '#d1d5db', glow: '#64748b' },
+    visual: { icon: 'silver-perch', accent: '#d1d5db', glow: '#64748b' },
   },
   'lantern-pike': {
     id: 'lantern-pike',
@@ -242,7 +243,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 3,
       runMealEligible: true,
     },
-    visual: { icon: '🏮', accent: '#fde68a', glow: '#d97706' },
+    visual: { icon: 'lantern-pike', accent: '#fde68a', glow: '#d97706' },
   },
   'moon-carp': {
     id: 'moon-carp',
@@ -255,7 +256,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 5,
       runMealEligible: true,
     },
-    visual: { icon: '🌙', accent: '#c4b5fd', glow: '#7c3aed' },
+    visual: { icon: 'moon-carp', accent: '#c4b5fd', glow: '#7c3aed' },
   },
   'tideback-catfish': {
     id: 'tideback-catfish',
@@ -268,7 +269,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 4,
       runMealEligible: true,
     },
-    visual: { icon: '🐡', accent: '#f0abfc', glow: '#a21caf' },
+    visual: { icon: 'tideback-catfish', accent: '#f0abfc', glow: '#a21caf' },
   },
   'revival-koi': {
     id: 'revival-koi',
@@ -281,7 +282,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 4,
       runMealEligible: false,
     },
-    visual: { icon: '鯉', accent: '#fb7185', glow: '#be123c' },
+    visual: { icon: 'revival-koi', accent: '#fb7185', glow: '#be123c' },
   },
   'comet-eel': {
     id: 'comet-eel',
@@ -294,7 +295,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 8,
       runMealEligible: true,
     },
-    visual: { icon: '⚡', accent: '#f0abfc', glow: '#c026d3' },
+    visual: { icon: 'comet-eel', accent: '#f0abfc', glow: '#c026d3' },
   },
   'star-koi': {
     id: 'star-koi',
@@ -307,7 +308,7 @@ export const FISH_DEFINITIONS = {
       baseValue: 20,
       runMealEligible: true,
     },
-    visual: { icon: '✦', accent: '#fef08a', glow: '#ca8a04' },
+    visual: { icon: 'star-koi', accent: '#fef08a', glow: '#ca8a04' },
   },
 } as const satisfies Record<string, FishDefinition>
 
