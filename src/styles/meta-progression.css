@@ -1,0 +1,260 @@
+/* Meta-progression shop. */
+.meta-progression-screen {
+  position: relative;
+  overflow: hidden;
+  place-items: start center;
+  padding-block: clamp(1rem, 4vw, 3rem);
+  background:
+    repeating-linear-gradient(112deg, rgb(255 255 255 / 1.8%) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 91% 8%, rgb(245 158 11 / 17%), transparent 25rem),
+    radial-gradient(circle at 7% 90%, rgb(194 65 12 / 13%), transparent 24rem),
+    linear-gradient(135deg, #111315 0%, #211b1a 46%, #101113 100%);
+}
+
+.meta-shop-panel {
+  width: min(72rem, 100%);
+  padding: clamp(1.25rem, 4vw, 3rem);
+  color: #e7e5e4;
+  background:
+    linear-gradient(110deg, rgb(255 255 255 / 2%), transparent 38%),
+    rgb(24 24 27 / 91%);
+  border-color: rgb(245 158 11 / 24%);
+  border-radius: 0.65rem 1.1rem 0.8rem 0.95rem;
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 48%), inset 0 1px rgb(255 255 255 / 4%);
+}
+
+.meta-progression-screen .screen-kicker {
+  color: #fbbf24;
+}
+
+.meta-shop-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.meta-shop-header h2 {
+  margin: 0.35rem 0 0.7rem;
+  color: #fafaf9;
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.meta-shop-header p:last-child {
+  max-width: 38rem;
+  margin: 0;
+  color: #d6d3d1;
+  line-height: 1.55;
+}
+
+.meta-progression-screen .secondary-action,
+.meta-progression-screen .primary-action {
+  color: #fef3c7;
+  background: #292524;
+  border-color: rgb(251 146 60 / 55%);
+  border-radius: 0.3rem;
+}
+
+.meta-progression-screen .secondary-action:hover,
+.meta-progression-screen .secondary-action:focus-visible,
+.meta-progression-screen .primary-action:hover,
+.meta-progression-screen .primary-action:focus-visible {
+  background: #3f3531;
+  border-color: #fb923c;
+  outline-color: rgb(251 146 60 / 22%);
+}
+
+.meta-shop-back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meta-wallet {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 2.25rem 0;
+}
+
+.meta-progression-screen .results-stats div {
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+    #27272a;
+  border-color: rgb(245 158 11 / 17%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.meta-progression-screen .results-stats dt {
+  color: #fbbf24;
+  letter-spacing: 0.08em;
+}
+
+.meta-progression-screen .results-stats dd {
+  color: #fef3c7;
+}
+
+.meta-wallet div:first-child {
+  background:
+    linear-gradient(135deg, rgb(245 158 11 / 24%), transparent 65%),
+    #3a2d1e;
+  border-color: rgb(251 191 36 / 55%);
+}
+
+.meta-wallet div:first-child dd {
+  color: #fbbf24;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+}
+
+.meta-shop-unlocks {
+  margin-top: 2.75rem;
+  padding-top: 2.25rem;
+  border-top: 1px solid rgb(245 158 11 / 17%);
+}
+
+.meta-shop-section-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.meta-shop-section-heading h3 {
+  margin: 0;
+  color: #fafaf9;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  letter-spacing: -0.03em;
+}
+
+.meta-progression-screen .persistence-status {
+  color: #e7e5e4;
+  background: rgb(39 39 42 / 78%);
+  border-color: rgb(245 158 11 / 24%);
+  border-left-color: #fbbf24;
+}
+
+.meta-progression-screen .dashboard-choice-list {
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+}
+
+.meta-progression-screen .meta-unlock-card {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  min-height: 11rem;
+  padding: 1rem;
+  color: #d6d3d1;
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+    #27272a;
+  border-color: rgb(245 158 11 / 17%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.meta-progression-screen .meta-unlock-card,
+.meta-progression-screen .meta-unlock-card:hover {
+  cursor: default;
+}
+
+.meta-progression-screen .meta-unlock-card:hover {
+  color: #d6d3d1;
+  background:
+    linear-gradient(120deg, rgb(255 255 255 / 3%), transparent 42%),
+    #27272a;
+  border-color: rgb(245 158 11 / 17%);
+}
+
+.meta-unlock-card-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.meta-unlock-card-multiplier {
+  display: grid;
+  gap: 0.15rem;
+  margin-bottom: 0.9rem;
+}
+
+.meta-unlock-card-multiplier span {
+  color: #fbbf24;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meta-unlock-card-multiplier strong {
+  color: #fef3c7;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  line-height: 1;
+}
+
+.meta-unlock-card strong {
+  color: #fafaf9;
+  overflow-wrap: anywhere;
+}
+
+.meta-unlock-card-multiplier strong {
+  color: #fef3c7;
+}
+
+.meta-unlock-card-heading span,
+.meta-unlock-state {
+  color: #a8a29e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.meta-unlock-description {
+  margin: 0.65rem 0 0;
+  color: #d6d3d1;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.meta-unlock-card-benefit {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.8rem 0;
+  padding: 0.6rem 0.7rem;
+  background: rgb(245 158 11 / 13%);
+  border: 1px solid rgb(251 191 36 / 42%);
+  border-radius: 0.35rem;
+}
+
+.meta-unlock-card-benefit strong {
+  color: #fbbf24;
+  font-size: 1.05rem;
+}
+
+.meta-unlock-card-benefit span {
+  color: #fef3c7;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.meta-unlock-state {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.meta-progression-screen .meta-purchase-action {
+  width: 100%;
+  margin-top: auto;
+  color: #18181b;
+  background: #fbbf24;
+  border-color: #fef3c7;
+  box-shadow: 0 0.24rem 0 #92400e;
+}
+
+.meta-progression-screen .meta-purchase-action:hover:not(:disabled),
+.meta-progression-screen .meta-purchase-action:focus-visible {
+  background: #fde68a;
+}
+
+.meta-progression-screen .meta-purchase-action:disabled {
+  color: #a8a29e;
+  background: #292524;
+  border-color: rgb(168 162 158 / 30%);
+  box-shadow: none;
+}

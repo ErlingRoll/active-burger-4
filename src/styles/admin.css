@@ -1,0 +1,361 @@
+/* Bug-report and nickname-moderation administration. */
+.admin-reports-screen {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    radial-gradient(circle at 12% 10%, rgb(251 191 36 / 10%), transparent 24rem),
+    linear-gradient(145deg, #090d17 0%, #111827 52%, #0b1120 100%);
+}
+
+.admin-reports-panel {
+  width: min(70rem, 100%);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  color: #dbeafe;
+  background: #111827;
+  border: 1px solid #475569;
+  border-radius: 0.75rem;
+  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 40%);
+}
+
+.admin-reports-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #334155;
+}
+
+.admin-reports-header h2 {
+  margin: 0.35rem 0 0.5rem;
+  color: #f8fafc;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+}
+
+.admin-reports-header p:not(.screen-kicker) {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.admin-reports-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.admin-reports-actions .primary-action,
+.admin-reports-actions .secondary-action {
+  width: auto;
+}
+
+.admin-reports-status {
+  margin: 1.5rem 0 0;
+  color: #cbd5e1;
+}
+
+.admin-reports-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.nickname-review-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.nickname-review-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  color: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+}
+
+.nickname-review-card > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.nickname-review-card strong {
+  color: #fef3c7;
+}
+
+.nickname-review-card span,
+.nickname-review-card code {
+  overflow-wrap: anywhere;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.nickname-review-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.45rem;
+}
+
+.nickname-review-actions button:first-child {
+  color: #fecaca;
+  background: #7f1d1d;
+  border-color: #f87171;
+}
+
+.nickname-review-actions button:first-child:hover,
+.nickname-review-actions button:first-child:focus-visible {
+  background: #991b1b;
+  outline-color: rgb(248 113 113 / 35%);
+}
+
+.admin-report-card {
+  padding: 1rem;
+  color: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+}
+
+.admin-report-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.admin-report-card-header > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-report-card-header strong {
+  color: #fef3c7;
+}
+
+.admin-report-card-header span,
+.admin-report-card-header code {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.admin-report-card-header code {
+  max-width: 50%;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.admin-report-card-controls {
+  display: grid;
+  justify-items: end;
+  gap: 0.4rem;
+}
+
+.admin-report-hide {
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+  color: #fef3c7;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: #713f12;
+  border: 1px solid #fbbf24;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.admin-report-hide:hover,
+.admin-report-hide:focus-visible {
+  background: #854d0e;
+  outline: 3px solid rgb(251 191 36 / 25%);
+  outline-offset: 2px;
+}
+
+.admin-report-bug {
+  margin: 1rem 0;
+  color: #f8fafc;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.admin-report-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.75fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-report-details {
+  min-width: 0;
+}
+
+.admin-report-details .admin-report-bug {
+  margin-top: 0;
+}
+
+.admin-report-context {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.admin-report-context div {
+  min-width: 0;
+  padding: 0.65rem;
+  background: #1e293b;
+  border-radius: 0.35rem;
+}
+
+.admin-report-context dt {
+  color: #93c5fd;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-report-context dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+}
+
+.admin-report-username {
+  color: #fef3c7;
+  font-size: 0.8rem;
+}
+
+.admin-report-floor-link {
+  padding: 0;
+  color: #fbbf24;
+  font: inherit;
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.admin-report-floor-link:hover,
+.admin-report-floor-link:focus-visible {
+  color: #fde68a;
+  outline: 3px solid rgb(251 191 36 / 25%);
+  outline-offset: 2px;
+}
+
+.admin-report-floor-json {
+  max-height: 24rem;
+  overflow: auto;
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 0.35rem;
+}
+
+.admin-report-floor-json p {
+  margin: 0;
+}
+
+.admin-report-floor-json pre {
+  margin: 0;
+  color: #cbd5e1;
+  font: 0.7rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-report-media {
+  min-width: 0;
+}
+
+.admin-report-image {
+  display: block;
+  width: 100%;
+  max-width: 36rem;
+  max-height: 24rem;
+  margin: 0 auto;
+  object-fit: contain;
+  border: 1px solid #475569;
+  border-radius: 0.35rem;
+}
+
+.admin-report-no-image {
+  display: block;
+  padding: 2rem 1rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-align: center;
+  border: 1px dashed #334155;
+  border-radius: 0.35rem;
+}
+
+.admin-report-attachment {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 700px) {
+  .meta-progression-screen {
+    padding: 0.75rem;
+  }
+
+  .meta-shop-header {
+    flex-direction: column;
+  }
+
+  .meta-wallet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .meta-shop-back {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .admin-reports-header {
+    flex-direction: column;
+  }
+
+  .admin-reports-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .admin-reports-actions button {
+    flex: 1;
+  }
+
+  .admin-report-card-header {
+    flex-direction: column;
+  }
+
+  .admin-report-card-header code {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .admin-report-body {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-report-card-controls {
+    justify-items: start;
+  }
+
+  .nickname-review-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

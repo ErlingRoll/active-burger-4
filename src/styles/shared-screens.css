@@ -1,0 +1,450 @@
+/* Shared dashboard, authentication, result, and persistence surfaces. */
+.dashboard,
+.results-screen,
+.auth-gateway {
+  display: grid;
+  min-height: 0;
+  place-items: center;
+  padding: clamp(1.25rem, 5vw, 4rem);
+  background:
+    radial-gradient(circle at top, rgb(30 64 175 / 22%), transparent 60%),
+    #0f172a;
+}
+
+.victory-screen {
+  background:
+    radial-gradient(circle at top, rgb(146 64 14 / 32%), transparent 60%),
+    #0f172a;
+}
+
+.victory-screen .screen-kicker {
+  color: #fbbf24;
+}
+
+.victory-screen .results-panel {
+  border-color: #f59e0b;
+}
+
+.dashboard-panel,
+.results-panel {
+  width: min(42rem, 100%);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  color: #dbeafe;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 1rem;
+  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 35%);
+}
+
+.screen-kicker {
+  margin: 0;
+  color: #60a5fa;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-panel h2,
+.results-panel h2 {
+  margin: 0.45rem 0 1rem;
+  color: #f8fafc;
+  font-size: clamp(1.75rem, 5vw, 3rem);
+}
+
+.account-panel {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  color: #cbd5e1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.account-summary {
+  display: grid;
+  gap: 0.3rem;
+  margin: 1.25rem 0 1rem;
+  padding: 0.95rem 1rem;
+  color: #cbd5e1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.account-summary h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.05rem;
+}
+
+.account-panel h3 {
+  margin: 0.35rem 0;
+  color: #f8fafc;
+  font-size: 1.1rem;
+}
+
+.account-panel > p:not(.screen-kicker):not(.persistence-error) {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.account-email {
+  overflow-wrap: anywhere;
+}
+
+.primary-action.discord-sign-in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
+  color: #ffffff;
+  background: #5865f2;
+  border-color: #5865f2;
+  box-shadow: none;
+}
+
+.primary-action.discord-sign-in:hover,
+.primary-action.discord-sign-in:focus-visible {
+  background: #4752c4;
+  border-color: #4752c4;
+}
+
+.discord-sign-in .discord-icon {
+  flex-shrink: 0;
+}
+
+.sign-in-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sign-in-divider::before,
+.sign-in-divider::after {
+  flex: 1;
+  height: 1px;
+  content: '';
+  background: #334155;
+}
+
+.sign-in-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.sign-in-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.sign-in-form input:not([type='checkbox']) {
+  min-height: 2.5rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  color: #f8fafc;
+  font: inherit;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.4rem;
+}
+
+.sign-in-form .remember-session {
+  display: flex;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sign-in-form .remember-session input {
+  width: 1rem;
+  height: 1rem;
+  min-height: 0;
+  margin: 0;
+  accent-color: #60a5fa;
+}
+
+.sign-in-form input:focus-visible {
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 1px;
+}
+
+.auth-success {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #86efac;
+  line-height: 1.5;
+}
+
+.text-action {
+  width: fit-content;
+  padding: 0;
+  color: #93c5fd;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.text-action:hover,
+.text-action:focus-visible {
+  color: #dbeafe;
+}
+
+.text-action:focus-visible {
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 3px;
+}
+
+.text-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.dashboard-panel p:not(.screen-kicker),
+.results-summary {
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.control-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.5rem 0 2rem;
+  padding-left: 1.25rem;
+  color: #cbd5e1;
+}
+
+.control-list strong {
+  color: #f8fafc;
+}
+
+.dashboard-choice-group {
+  margin: 1.5rem 0;
+  padding: 0;
+  border: 0;
+}
+
+.dashboard-choice-group legend {
+  margin-bottom: 0.65rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.dashboard-choice-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.dashboard-choice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  color: #cbd5e1;
+  text-align: left;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.dashboard-choice:hover:not(:disabled),
+.dashboard-choice:focus-visible,
+.dashboard-choice.selected {
+  color: #eff6ff;
+  background: #1d4ed8;
+  border-color: #93c5fd;
+  outline: none;
+}
+
+.dashboard-choice:disabled {
+  color: #64748b;
+  background: #0f172a;
+  border-color: #334155;
+  cursor: not-allowed;
+}
+
+.dashboard-choice span {
+  font-size: 0.82rem;
+}
+
+.character-class-affinity {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.persistence-status,
+.persistence-error {
+  margin: 1rem 0;
+  color: #bfdbfe;
+  font-size: 0.9rem;
+}
+
+.persistence-status {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 0.9rem;
+  color: #dbeafe;
+  background: rgb(15 23 42 / 88%);
+  border: 1px solid #475569;
+  border-left: 4px solid #60a5fa;
+  border-radius: 0.6rem;
+}
+
+.essence-receipt {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 0.75rem;
+}
+
+.death-combat-log {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #0f172a;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.75rem;
+}
+
+.death-combat-log-heading {
+  margin-bottom: 0.75rem;
+}
+
+.death-combat-log-heading h3 {
+  margin: 0.25rem 0 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.death-combat-log ol {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.death-combat-log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: baseline;
+  padding: 0.5rem 0.6rem;
+  color: #fecaca;
+  background: rgb(127 29 29 / 25%);
+  border-left: 3px solid #ef4444;
+}
+
+.death-combat-log-entry.healing {
+  color: #bbf7d0;
+  background: rgb(20 83 45 / 25%);
+  border-left-color: #22c55e;
+}
+
+.death-combat-log-time {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.death-combat-log-entry strong {
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.death-combat-log-empty {
+  margin: 0;
+  color: #94a3b8;
+}
+
+@media (max-width: 700px) {
+  .death-combat-log-entry {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .death-combat-log-entry > span:nth-child(3) {
+    grid-column: 2 / -1;
+  }
+}
+
+.essence-receipt-heading {
+  margin-bottom: 0.75rem;
+}
+
+.essence-receipt-heading h3 {
+  margin: 0.25rem 0 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.essence-receipt-calculation {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.essence-receipt-calculation div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #cbd5e1;
+}
+
+.essence-receipt-calculation dt {
+  font-size: 0.9rem;
+}
+
+.essence-receipt-calculation dd {
+  margin: 0;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.essence-receipt-calculation .essence-receipt-subtotal {
+  padding-top: 0.45rem;
+  border-top: 1px solid #334155;
+}
+
+.essence-receipt-calculation .essence-receipt-total {
+  padding-top: 0.6rem;
+  color: #fef3c7;
+  border-top: 1px solid #f59e0b;
+}
+
+.essence-receipt-calculation .essence-receipt-total dd {
+  color: #fbbf24;
+  font-size: 1.2rem;
+}
+
+.persistence-status strong {
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.persistence-error {
+  color: #fecaca;
+}

@@ -1,0 +1,62 @@
+/* Global toast notifications and application navigation controls. */
+.global-toaster {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: grid;
+  gap: 0.65rem;
+  width: min(24rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.global-toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  color: #fef3c7;
+  background: #292524;
+  border: 1px solid rgb(245 158 11 / 40%);
+  border-left: 0.25rem solid #fbbf24;
+  border-radius: 0.35rem;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 28%);
+  pointer-events: auto;
+}
+
+.global-toast-error {
+  color: #fee2e2;
+  border-color: rgb(248 113 113 / 55%);
+  border-left-color: #f87171;
+}
+
+.global-toast button {
+  flex: 0 0 auto;
+  padding: 0;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.app-admin-link {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.8rem;
+  color: #fef3c7;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #713f12;
+  border: 1px solid #fbbf24;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.app-admin-link:hover,
+.app-admin-link:focus-visible {
+  background: #854d0e;
+  outline: 3px solid rgb(251 191 36 / 30%);
+  outline-offset: 2px;
+}

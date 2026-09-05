@@ -1,0 +1,124 @@
+/* Cross-feature responsive adjustments. */
+@media (max-width: 700px) {
+  .game-dashboard-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .game-dashboard-layout {
+    grid-template-columns: 1fr;
+    width: min(100%, 42rem);
+  }
+
+  .game-dashboard-stats,
+  .game-dashboard-overview,
+  .game-dashboard-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-dashboard-stat {
+    min-height: 6rem;
+  }
+
+  .run-setup-topbar {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .run-setup-back {
+    justify-content: center;
+  }
+
+  .essence-leaderboard-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .fishing-spot-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .pond-world {
+    min-height: 0;
+  }
+
+  .fishing-hud-topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fishing-topbar-actions {
+    width: 100%;
+  }
+
+  .fishing-inventory-toggle {
+    min-height: 2.8rem;
+  }
+
+  .fishing-hud-description {
+    top: 8.5rem;
+  }
+
+  .pond-angler-you {
+    top: 66%;
+    left: 13%;
+    bottom: auto;
+  }
+
+  .fishing-activity-notice {
+    top: 11rem;
+    width: max-content;
+    max-width: calc(100% - 1.5rem);
+    text-align: center;
+  }
+
+  .pond-scene-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pond-loadout-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pond-cast-button {
+    width: 100%;
+  }
+
+  .game-mode-list {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-item-grid {
+    grid-template-columns: repeat(8, 2.75rem);
+  }
+
+  .fish-meal-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .champion-management-layout,
+  .champion-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .abyss-modifier-choice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .loot-box-list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .pond-loadout-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-item-grid {
+    grid-template-columns: repeat(6, 2.75rem);
+  }
+}

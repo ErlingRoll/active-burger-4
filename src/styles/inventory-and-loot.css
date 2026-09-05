@@ -1,0 +1,104 @@
+/* Inventory grid and loot-box opening flow. */
+.loot-box-screen {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3.5rem);
+  background:
+    radial-gradient(circle at 80% 10%, rgb(251 191 36 / 18%), transparent 28rem),
+    linear-gradient(145deg, #1c1308 0%, #292019 52%, #111827 100%);
+}
+
+.loot-box-panel {
+  display: grid;
+  gap: 1.1rem;
+  width: min(58rem, 100%);
+  margin: 0 auto;
+}
+
+.loot-box-panel > .secondary-action {
+  justify-self: start;
+}
+
+.inventory-item-card {
+  background: rgb(30 41 59 / 72%);
+  border-color: rgb(148 163 184 / 24%);
+  border-radius: 0.55rem;
+}
+
+.inventory-item-card.category-fish {
+  border-color: rgb(103 232 249 / 30%);
+}
+
+.inventory-item-card.category-rod {
+  border-color: rgb(251 191 36 / 30%);
+}
+
+.inventory-item-card.category-loot-box {
+  border-color: rgb(196 181 253 / 30%);
+}
+
+.inventory-item-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  font-size: 1.3rem;
+  background: rgb(2 6 23 / 45%);
+  border: 1px solid rgb(148 163 184 / 22%);
+  border-radius: 0.45rem;
+}
+
+.inventory-item-quantity {
+  align-self: start;
+  color: #67e8f9;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.loot-box-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loot-box-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  color: #fef3c7;
+  background: rgb(68 64 60 / 72%);
+  border: 1px solid rgb(251 191 36 / 28%);
+  border-radius: 0.55rem;
+}
+
+.loot-box-list li > div {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.loot-box-list li span {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+
+.loot-box-result {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  color: #fef3c7;
+  background: linear-gradient(135deg, rgb(180 83 9 / 34%), transparent 75%), #292524;
+  border: 1px solid #f59e0b;
+  border-radius: 0.55rem;
+}
+
+.loot-box-result .screen-kicker {
+  color: #fbbf24;
+}
+
+.loot-box-result span {
+  color: #fcd34d;
+}

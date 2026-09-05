@@ -1,0 +1,240 @@
+/* Fishing shell, reduced-motion support, and final HUD layout refinements. */
+.dashboard.fishing-screen {
+  width: 100%;
+  min-width: 0;
+  justify-items: stretch;
+}
+
+.dashboard.fishing-screen .fishing-panel {
+  width: 100%;
+  max-width: none;
+}
+
+.app-shell-fishing .fishing-screen {
+  background: transparent;
+}
+
+.app-shell-fishing .app-header,
+.app-shell-fishing .fishing-screen {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-fishing::before,
+  .fishing-screen::before,
+  .pond-water::before,
+  .pond-fish,
+  .pond-ripple,
+  .pond-lantern,
+  .fishing-pond-scene.fishing-phase-casting .pond-fishing-rod,
+  .fishing-pond-scene.fishing-phase-manual .pond-fishing-rod,
+  .fishing-pond-scene.fishing-phase-catching .pond-fishing-rod,
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-line,
+  .remote-angler-casting .pond-fishing-rod,
+  .remote-angler-catching .pond-fishing-rod,
+  .pond-remote-catch-display {
+    animation: none;
+  }
+
+  .fishing-pond-scene.fishing-phase-casting .pond-cast-line {
+    opacity: 0.82;
+    transform: translateY(-50%) rotate(-2deg) scaleX(1);
+  }
+}
+
+/* Fishing HUD refinement: keep the scene visible while making the next action obvious. */
+.fishing-hud-topbar {
+  padding: 0.95rem 1.1rem;
+  background:
+    linear-gradient(105deg, rgb(2 6 23 / 88%), rgb(8 47 73 / 56%)),
+    rgb(2 6 23 / 42%);
+  border-color: rgb(165 243 252 / 25%);
+  box-shadow: 0 0.9rem 2.5rem rgb(2 6 23 / 35%), inset 0 1px rgb(255 255 255 / 9%);
+}
+
+.pond-scene-header {
+  align-items: center;
+}
+
+.pond-scene-header h2 {
+  font-size: clamp(1.45rem, 3vw, 2.4rem);
+}
+
+.fishing-hud-description {
+  top: clamp(6.4rem, 12vh, 8.2rem);
+  padding: 0.5rem 0.75rem;
+  color: #dbeafe;
+  background: rgb(2 6 23 / 52%);
+  border-color: rgb(165 243 252 / 18%);
+  box-shadow: 0 0.45rem 1.2rem rgb(2 6 23 / 16%);
+}
+
+.fishing-activity-notice {
+  top: clamp(9.25rem, 19vh, 11.5rem);
+  color: #ecfeff;
+  background: rgb(14 116 144 / 72%);
+  border-color: rgb(103 232 249 / 46%);
+}
+
+.fishing-inventory-drawer {
+  top: clamp(6.5rem, 11vw, 8rem);
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  left: auto;
+  width: min(29rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 9.5rem);
+  padding: 1rem;
+  border-color: rgb(103 232 249 / 38%);
+  box-shadow: 0 1.2rem 3rem rgb(2 6 23 / 62%), inset 0 1px rgb(255 255 255 / 9%);
+}
+
+.fishing-inventory-header {
+  align-items: center;
+}
+
+.fishing-inventory-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fishing-inventory-count {
+  color: #a5f3fc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.fishing-inventory-drawer .inventory-item-grid {
+  grid-template-columns: repeat(8, 2.65rem);
+}
+
+.fishing-inventory-drawer .inventory-item-card {
+  background: rgb(30 41 59 / 82%);
+}
+
+.fishing-hud-bottom {
+  padding: 0.85rem 0.9rem 0.9rem;
+  background:
+    linear-gradient(105deg, rgb(2 6 23 / 91%), rgb(8 47 73 / 64%)),
+    rgb(2 6 23 / 52%);
+  border-color: rgb(165 243 252 / 25%);
+  box-shadow: 0 0.9rem 2.5rem rgb(2 6 23 / 38%), inset 0 1px rgb(255 255 255 / 9%);
+}
+
+.pond-loadout-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.7rem;
+  color: #f8fafc;
+}
+
+.pond-loadout-heading .screen-kicker {
+  color: #67e8f9;
+}
+
+.pond-loadout-heading strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+.pond-loadout-state {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.6rem;
+  color: #fef3c7;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgb(180 83 9 / 32%);
+  border: 1px solid rgb(251 191 36 / 42%);
+  border-radius: 999px;
+}
+
+.pond-scene-actions {
+  align-items: end;
+}
+
+.pond-loadout-control > span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pond-loadout-control > span > span {
+  color: #67e8f9;
+  font-size: 0.72rem;
+}
+
+.pond-loadout-control select {
+  min-height: 2.45rem;
+  padding-inline: 0.65rem;
+  background: rgb(15 41 64 / 92%);
+  border-color: rgb(103 232 249 / 48%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 6%);
+}
+
+.pond-loadout-control select:hover:not(:disabled),
+.pond-loadout-control select:focus-visible {
+  border-color: #67e8f9;
+  outline: 3px solid rgb(103 232 249 / 16%);
+  outline-offset: 1px;
+}
+
+.pond-loadout-control select:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.pond-cast-button {
+  min-height: 2.75rem;
+  min-width: 9.5rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 700px) {
+  .fishing-inventory-drawer {
+    top: 8.75rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    max-height: calc(100% - 16rem);
+  }
+
+  .fishing-inventory-drawer .inventory-item-grid {
+    grid-template-columns: repeat(8, 2.65rem);
+  }
+
+  .pond-loadout-heading {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .fishing-inventory-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fishing-inventory-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .fishing-inventory-drawer .inventory-item-grid {
+    grid-template-columns: repeat(6, 2.65rem);
+  }
+
+  .pond-loadout-heading {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pond-loadout-state {
+    align-self: stretch;
+    text-align: center;
+  }
+}
