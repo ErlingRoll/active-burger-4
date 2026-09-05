@@ -125,16 +125,20 @@ function clearTimerMap(timerRef: { current: Map<string, number> }): void {
   timerRef.current.clear()
 }
 
-function getPondPerimeterPosition(playerId: string): { left: number; top: number } {
+function getPondPlayerPosition(playerId: string): { left: number; top: number } {
   let hash = 2166136261
   for (const character of playerId) {
     hash ^= character.charCodeAt(0)
     hash = Math.imul(hash, 16777619)
   }
-  const angle = ((hash >>> 0) % 360) * (Math.PI / 180)
+  const angleRandom = (hash >>> 0) / 0x100000000
+  const radiusRandom = (Math.imul(hash, 1597334677) >>> 0) / 0x100000000
+  const angle = angleRandom * Math.PI * 2
+  const radius = Math.sqrt(radiusRandom)
   return {
-    left: 50 + Math.cos(angle) * 38,
-    top: 45 + Math.sin(angle) * 28,
+    // Keep the sprite and its label within the pond's visible inner area.
+    left: 50 + Math.cos(angle) * 26 * radius,
+    top: 45 + Math.sin(angle) * 21 * radius,
   }
 }
 
@@ -264,6 +268,7 @@ export function FishingScreen({
   const selectedRod = effectiveSelectedRodId
     ? rods.find((rod) => rod.itemInstanceId === effectiveSelectedRodId)
     : undefined
+  const activityPlayerPosition = getPondPlayerPosition(activityPlayerId)
   useEffect(() => {
     mountedRef.current = true
     return () => {
@@ -645,12 +650,22 @@ export function FishingScreen({
               <span className="pond-ripple pond-ripple-two" />
               <span className="pond-ripple pond-ripple-three" />
             </div>
-            <div className="pond-angler pond-angler-you pond-angler-facing-right">
+            <div
+              className={`pond-angler pond-angler-you ${
+                activityPlayerPosition.left > 50
+                  ? 'pond-angler-facing-left'
+                  : 'pond-angler-facing-right'
+              }`}
+              style={{
+                left: `${activityPlayerPosition.left}%`,
+                top: `${activityPlayerPosition.top}%`,
+              }}
+            >
               <PondAnglerSprite showCastLine />
               <strong>{activityPlayerName}</strong>
             </div>
             {remoteAnglers.map((angler) => {
-              const position = getPondPerimeterPosition(angler.playerId)
+              const position = getPondPlayerPosition(angler.playerId)
               const caughtFish = angler.catch ? getFishDefinition(angler.catch.definitionId) : undefined
               const catchRarityVisual = angler.catch ? RARITY_VISUALS[angler.catch.rarity] : undefined
               return (

@@ -130,6 +130,61 @@ describe('enemy variety behaviors', () => {
     expect(flanking.y).not.toBe(0)
   })
 
+  it('locks a flank destination while the player keeps moving', () => {
+    const game = createGame({ seed: 112 })
+    const flankerId = game.spawnEnemy(
+      FLANKER_DEFINITION_ID,
+      { x: 300, y: 0 },
+    )
+    game.state.player.movementVelocityX = 190
+
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+    const flanker = game.state.enemies.find((enemy) => enemy.id === flankerId)
+    if (!flanker) {
+      throw new Error('Expected Flanker to exist')
+    }
+    const target = getEnemyCombatTarget(game.state, flanker)
+    const lockedPoint = getEnemyInterceptPoint(flanker, target, 190, 0)
+    if (!lockedPoint) {
+      throw new Error('Expected Flanker to have an intercept point')
+    }
+    expect(flanker.interceptPoint).toEqual(lockedPoint)
+
+    game.state.player.x += 190 * FIXED_STEP_SECONDS
+    updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+
+    const updatedTarget = getEnemyCombatTarget(game.state, flanker)
+    expect(getEnemyInterceptPoint(flanker, updatedTarget, 190, 0)).toEqual(lockedPoint)
+  })
+
+  it('falls back to direct chase when a flank attempt takes too long', () => {
+    const game = createGame({ seed: 113 })
+    const flankerId = game.spawnEnemy(
+      FLANKER_DEFINITION_ID,
+      { x: 1_000, y: 0 },
+    )
+    game.state.player.movementVelocityX = 190
+
+    for (let tick = 0; tick < 240; tick += 1) {
+      game.state.player.x += 190 * FIXED_STEP_SECONDS
+      updateEnemyChase(game.state, FIXED_STEP_SECONDS)
+    }
+
+    const flanker = game.state.enemies.find((enemy) => enemy.id === flankerId)
+    if (!flanker) {
+      throw new Error('Expected Flanker to exist')
+    }
+    expect(flanker.interceptDisabled).toBe(true)
+    expect(flanker.interceptPoint).toBeUndefined()
+    expect(getEnemyInterceptPoint(
+      flanker,
+      getEnemyCombatTarget(game.state, flanker),
+      190,
+      0,
+    )).toBeUndefined()
+  })
+
   it('uses regular chase movement during Flanker re-engagement cooldowns', () => {
     const simulate = (
       definitionId: typeof FLANKER_DEFINITION_ID | typeof SLIME_DEFINITION_ID,

@@ -429,6 +429,12 @@ export interface EnemyState {
   abilityCooldownRemaining?: number
   /** Seconds before an intercept behavior may attempt another flank. */
   interceptCooldownRemaining?: number
+  /** Fixed destination for the current flank attempt. */
+  interceptPoint?: { x: number; y: number }
+  /** Seconds remaining before an unfinished flank falls back to direct chase. */
+  interceptAttemptRemaining?: number
+  /** Prevents repeated flank attempts after one has timed out. */
+  interceptDisabled?: boolean
   /** Simulation time of the most recent contact attack, for rendering feedback. */
   lastMeleeAttackTime?: number
   /** Latest resolved hit presentation for renderer feedback. */

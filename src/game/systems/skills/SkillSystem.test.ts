@@ -1478,6 +1478,31 @@ describe('skill system', () => {
       expect(game.state.traps?.[0]?.fuseRemaining).toBe(0)
     })
 
+    it('keeps the fuse for Resonant Mines while doubling their explosion radius', () => {
+      const game = createGame({ seed: 87 })
+      game.state.player.skills = [{
+        skillId: CINDER_MINE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+        resonanceAttackCount: game.state.player.resonance,
+      }]
+      const targetId = game.spawnSlime({ x: 100, y: 0 })
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.traps?.[0]?.radius).toBeCloseTo(130)
+      expect(game.state.traps?.[0]?.fuseRemaining).toBeCloseTo(CINDER_MINE_FUSE_SECONDS)
+      expect(updateCinderMineTraps(game.state, 0.05, allocator)).toEqual([])
+
+      const events = updateCinderMineTraps(
+        game.state,
+        CINDER_MINE_FUSE_SECONDS,
+        allocator,
+      )
+      expect(events).toHaveLength(1)
+      expect(events[0]?.targetId).toBe(targetId)
+    })
+
     it('deploys a second, weaker mine with Cluster Charges', () => {
       const game = createGame({ seed: 84 })
       game.state.player.skills = [{

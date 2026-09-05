@@ -51,6 +51,7 @@ const ENEMY_SEPARATION_PADDING = 8
 const ENEMY_SEPARATION_STRENGTH = 0.85
 const MAX_INTERCEPT_PREDICTION_SECONDS = 1.5
 const INTERCEPT_REENGAGEMENT_COOLDOWN_SECONDS = 2.5
+const INTERCEPT_MAX_ATTEMPT_SECONDS = 3
 const INTERCEPT_DISTANCE_EPSILON = 1e-6
 
 export function getEffectiveEnemyBehavior(
@@ -310,9 +311,13 @@ export function getEnemyInterceptPoint(
   const behavior = getEffectiveEnemyBehavior(enemy)
   if (
     behavior.kind !== 'intercept' ||
+    enemy.interceptDisabled ||
     Math.max(0, finiteValue(enemy.interceptCooldownRemaining)) > 0
   ) {
     return undefined
+  }
+  if (enemy.interceptPoint) {
+    return enemy.interceptPoint
   }
   return getInterceptPointForVelocity(
     target,
@@ -346,7 +351,23 @@ function updateInterceptBehavior(
   movementIndex: SpatialHash<EnemyMovementSnapshot>,
 ): void {
   const target = getEnemyCombatTarget(state, enemy)
+  const previousTargetId = enemy.targetId
   enemy.targetId = target.id
+  if (previousTargetId !== target.id) {
+    enemy.interceptPoint = undefined
+    enemy.interceptAttemptRemaining = undefined
+  }
+  if (enemy.interceptDisabled) {
+    moveTowardTarget(
+      state,
+      target,
+      enemy,
+      target.radius + enemy.radius,
+      fixedStepSeconds,
+      movementIndex,
+    )
+    return
+  }
   const interceptCooldownRemaining = Math.max(
     0,
     finiteValue(enemy.interceptCooldownRemaining),
@@ -356,6 +377,8 @@ function updateInterceptBehavior(
       0,
       interceptCooldownRemaining - Math.max(0, fixedStepSeconds),
     )
+    enemy.interceptPoint = undefined
+    enemy.interceptAttemptRemaining = undefined
     moveTowardTarget(
       state,
       target,
@@ -367,7 +390,8 @@ function updateInterceptBehavior(
     return
   }
 
-  const interceptPoint = getInterceptPoint(state, target, enemy, behavior)
+  enemy.interceptPoint ??= getInterceptPoint(state, target, enemy, behavior)
+  const interceptPoint = enemy.interceptPoint
   const interceptDistance = Math.hypot(
     interceptPoint.x - enemy.x,
     interceptPoint.y - enemy.y,
@@ -376,6 +400,8 @@ function updateInterceptBehavior(
     interceptDistance <=
     behavior.engagementDistance + INTERCEPT_DISTANCE_EPSILON
   ) {
+    enemy.interceptPoint = undefined
+    enemy.interceptAttemptRemaining = undefined
     enemy.interceptCooldownRemaining = INTERCEPT_REENGAGEMENT_COOLDOWN_SECONDS
     moveTowardTarget(
       state,
@@ -387,6 +413,24 @@ function updateInterceptBehavior(
     )
     return
   }
+  const attemptRemaining = enemy.interceptAttemptRemaining === undefined
+    ? INTERCEPT_MAX_ATTEMPT_SECONDS
+    : Math.max(0, finiteValue(enemy.interceptAttemptRemaining))
+  if (attemptRemaining <= 0) {
+    enemy.interceptPoint = undefined
+    enemy.interceptAttemptRemaining = undefined
+    enemy.interceptDisabled = true
+    moveTowardTarget(
+      state,
+      target,
+      enemy,
+      target.radius + enemy.radius,
+      fixedStepSeconds,
+      movementIndex,
+    )
+    return
+  }
+  enemy.interceptAttemptRemaining = attemptRemaining - Math.max(0, fixedStepSeconds)
   moveTowardPoint(
     state,
     enemy,

@@ -579,8 +579,7 @@
 }
 
 .pond-angler-you {
-  top: 73%;
-  left: 15%;
+  transform: translate(-50%, -50%);
   bottom: auto;
   z-index: 7;
   width: 7.5rem;

@@ -92,6 +92,7 @@ export const CINDER_MINE_FUSE_SECONDS = 1.1
 export const CINDER_MINE_BURNING_DURATION_SECONDS = 3
 export const CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO = 0.4
 export const CINDER_MINE_INFERNO_RADIUS_BONUS = 30
+export const CINDER_MINE_RESONANCE_RADIUS_MULTIPLIER = 2
 export const CINDER_MINE_INFERNO_BURNING_RATIO_BONUS = 0.2
 export const CINDER_MINE_CLUSTER_OFFSET = 46
 export const CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER = 0.65
@@ -747,9 +748,9 @@ export const SKILL_DEFINITIONS = {
       outlineColor: '#ffedd5',
     },
     resonanceEffect: {
-      id: 'cinder-mine-quick-fuse',
-      name: 'Quick Fuse',
-      description: 'The first mine arms immediately.',
+      id: 'cinder-mine-expanded-blast',
+      name: 'Expanded Blast',
+      description: 'Cinder Mines have 100% increased explosion radius.',
     },
   },
   [STORM_RELAY_SKILL_ID]: {

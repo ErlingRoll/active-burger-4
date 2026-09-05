@@ -73,6 +73,7 @@ import {
   CINDER_MINE_BURNING_DURATION_SECONDS,
   CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO,
   CINDER_MINE_INFERNO_RADIUS_BONUS,
+  CINDER_MINE_RESONANCE_RADIUS_MULTIPLIER,
   CINDER_MINE_INFERNO_BURNING_RATIO_BONUS,
   CINDER_MINE_CLUSTER_OFFSET,
   CINDER_MINE_CLUSTER_DAMAGE_MULTIPLIER,
@@ -1412,6 +1413,7 @@ function placeCinderMineIfReady(
   const playerStats = getDerivedPlayerStats(state.player)
   const inferno = state.run.selectedUpgradeIds.includes('cinder-mine-inferno')
   const cluster = state.run.selectedUpgradeIds.includes('cinder-mine-cluster')
+  const resonant = isSkillResonant(state, skill.skillId)
   const damage = getSkillDamage(definition, skill.level)
   const damageIncreasePercent = getSkillDamageIncreasePercent(
     skill.skillId,
@@ -1431,7 +1433,7 @@ function placeCinderMineIfReady(
   const radius = calculateAreaValue(
     (definition.radius ?? 0) + (inferno ? CINDER_MINE_INFERNO_RADIUS_BONUS : 0),
     playerStats.areaOfEffect,
-  )
+  ) * (resonant ? CINDER_MINE_RESONANCE_RADIUS_MULTIPLIER : 1)
   const burningApplication = {
     durationSeconds: CINDER_MINE_BURNING_DURATION_SECONDS,
     fireDamageRatio: CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO +
@@ -1449,7 +1451,7 @@ function placeCinderMineIfReady(
     x: state.player.x,
     y: state.player.y,
     radius,
-    fuseRemaining: isSkillResonant(state, skill.skillId) ? 0 : CINDER_MINE_FUSE_SECONDS,
+    fuseRemaining: CINDER_MINE_FUSE_SECONDS,
     damage: mineDamage,
     criticalStrike: outgoingDamage.criticalStrike,
     burningApplication,
