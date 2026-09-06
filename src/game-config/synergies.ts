@@ -218,7 +218,7 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     'synergy-basic-attack-rift-javelin',
     'Returning Rhythm',
     `Every fourth Basic Attack hit primes the next Rift Javelin return for ${BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT}% bonus damage.`,
-    `Basic Attack grants +${BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT}% return damage`,
+    `Basic Attack grants +${BASIC_ATTACK_RIFT_RETURN_BONUS_PERCENT}% more return damage`,
     [BASIC_ATTACK_SKILL_ID, RIFT_JAVELIN_SKILL_ID],
     [],
   ),
@@ -442,7 +442,7 @@ export const SYNERGY_UPGRADES: readonly SynergyUpgradeDefinition[] = [
     'synergy-phantom-arsenal-rift-javelin',
     'Ghost Volley',
     `Phantom Arsenal hits prime the next Rift Javelin return for ${PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT}% bonus damage.`,
-    `Phantom Arsenal grants +${PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT}% return damage`,
+    `Phantom Arsenal grants +${PHANTOM_ARSENAL_RIFT_JAVELIN_RETURN_BONUS_PERCENT}% more return damage`,
     [PHANTOM_ARSENAL_SKILL_ID, RIFT_JAVELIN_SKILL_ID],
   ),
   createSynergyUpgrade(
