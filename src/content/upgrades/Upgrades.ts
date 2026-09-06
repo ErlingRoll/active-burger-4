@@ -59,6 +59,7 @@ export type UpgradeId =
   | 'lancers-charge-impaler'
   | 'rallying-banner-unlock'
   | 'rallying-banner-level'
+  | 'rallying-banner-area-of-effect'
   | 'rallying-banner-commander'
   | 'rallying-banner-bulwark'
   | 'gravity-well-unlock'
@@ -342,6 +343,8 @@ export interface UpgradeDefinition {
   summonMaxCountIncrease?: number
   /** Percentage-point cooldown reduction added for one skill per rank. */
   skillCooldownReductionPercent?: number
+  /** Percentage area-of-effect increase added to Rallying Banner per rank. */
+  rallyingBannerAreaOfEffectPercent?: number
   /** Percentage of max HP added to each Vitality cast. */
   vitalityMaxHpHealingPercent?: number
   /** Multiplier applied to Vitality healing while critically injured. */
@@ -619,4 +622,17 @@ export function getSkillCooldownReductionPercent(
   }
   return selectedUpgradeIds.filter((upgradeId) => upgradeId === upgrade.id).length *
     upgrade.skillCooldownReductionPercent
+}
+
+export function getRallyingBannerAreaOfEffectPercent(
+  selectedUpgradeIds: readonly UpgradeId[],
+): number {
+  const upgrade = INITIAL_UPGRADES.find(
+    (candidate) => candidate.rallyingBannerAreaOfEffectPercent !== undefined,
+  )
+  if (!upgrade?.rallyingBannerAreaOfEffectPercent) {
+    return 0
+  }
+  return selectedUpgradeIds.filter((upgradeId) => upgradeId === upgrade.id).length *
+    upgrade.rallyingBannerAreaOfEffectPercent
 }

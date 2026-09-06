@@ -1149,6 +1149,14 @@ function validateDefinitions(
         'positive',
       )
     }
+    if (upgrade.rallyingBannerAreaOfEffectPercent !== undefined) {
+      validateFiniteNumber(
+        errors,
+        `upgrades[${index}].rallyingBannerAreaOfEffectPercent`,
+        upgrade.rallyingBannerAreaOfEffectPercent,
+        'positive',
+      )
+    }
     if (
       upgrade.category === 'passive' &&
       (upgrade.stat === undefined || !VALID_UPGRADE_STATS.has(upgrade.stat)) &&
@@ -1182,6 +1190,7 @@ function validateDefinitions(
           upgrade.skeletonLegion === undefined &&
           upgrade.skeletonRottingBones === undefined &&
           upgrade.skillCooldownReductionPercent === undefined &&
+          upgrade.rallyingBannerAreaOfEffectPercent === undefined &&
           upgrade.vitalityMaxHpHealingPercent === undefined &&
           upgrade.vitalityLowHpHealingMultiplier === undefined &&
           upgrade.vitalityLowHpDamageReductionPercent === undefined &&

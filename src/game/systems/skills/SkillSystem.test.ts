@@ -24,6 +24,7 @@ import {
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
   RALLYING_BANNER_BASE_DURATION_SECONDS,
+  RALLYING_BANNER_AREA_OF_EFFECT_PER_RANK,
   RALLYING_BANNER_EFFECT_RADIUS,
   RALLYING_BANNER_BULWARK_DURATION_BONUS_SECONDS,
   RALLYING_BANNER_SYNERGY_MAX_DURATION_SECONDS,
@@ -979,6 +980,26 @@ describe('skill system', () => {
         lifetime: RALLYING_BANNER_BASE_DURATION_SECONDS,
         remainingLifetime: RALLYING_BANNER_BASE_DURATION_SECONDS,
       })
+    })
+
+    it('increases the radius for each repeatable area enhancement rank', () => {
+      const game = createGame({ seed: 671 })
+      game.state.player.skills = [{
+        skillId: RALLYING_BANNER_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.state.run.selectedUpgradeIds.push(
+        'rallying-banner-area-of-effect',
+        'rallying-banner-area-of-effect',
+      )
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.effects[0]?.radius).toBeCloseTo(
+        RALLYING_BANNER_EFFECT_RADIUS *
+          (1 + (2 * RALLYING_BANNER_AREA_OF_EFFECT_PER_RANK) / 100),
+      )
     })
 
     it('heals living allies inside the banner area on each healing pulse', () => {

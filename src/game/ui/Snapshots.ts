@@ -83,6 +83,7 @@ import {
 } from '../../game-config/skills'
 import {
   getSkillDamageIncreasePercent,
+  getRallyingBannerAreaOfEffectPercent,
   getUpgradeDescription,
 } from '../../content/upgrades/Upgrades'
 import {
@@ -647,6 +648,17 @@ function getSkillModifierSummaries(
         duration,
         `${formatStatNumber(duration)} sec`,
       )
+      const areaOfEffect = getRallyingBannerAreaOfEffectPercent(
+        selectedUpgradeIds,
+      )
+      if (areaOfEffect > 0) {
+        addSummary(
+          'area-of-effect',
+          'Area of effect',
+          areaOfEffect,
+          formatUnsignedPercent(areaOfEffect),
+        )
+      }
       const damageReduction = RALLYING_BANNER_BASE_DAMAGE_REDUCTION_PERCENT +
         (selectedUpgradeIds.includes('rallying-banner-bulwark')
           ? RALLYING_BANNER_BULWARK_DAMAGE_REDUCTION_BONUS_PERCENT

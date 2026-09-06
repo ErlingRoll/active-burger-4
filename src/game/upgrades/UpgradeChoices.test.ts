@@ -305,6 +305,28 @@ describe('upgrade choice generation', () => {
     })).toBe(true)
   })
 
+  it('defines Expansive Banner as a repeatable area enhancement', () => {
+    const expansiveBanner = getUpgrade('rallying-banner-area-of-effect')
+
+    expect(expansiveBanner).toMatchObject({
+      skillId: 'rallying-banner',
+      repeatable: true,
+      rallyingBannerAreaOfEffectPercent: 15,
+    })
+    expect(getSkillChoiceType(expansiveBanner)).toBe('upgrade')
+    expect(getSkillUpgradeType(expansiveBanner)).toBe('enhancement')
+    expect(expansiveBanner.isEligible({
+      playerLevel: 2,
+      selectedUpgradeIds: [
+        'rallying-banner-area-of-effect',
+        'rallying-banner-area-of-effect',
+      ],
+      ownedSkillIds: ['rallying-banner'],
+      skillLevels: { 'rallying-banner': 1 },
+      skillSlotCount: 6,
+    })).toBe(true)
+  })
+
   it('defines mutually exclusive Raise Skeleton evolutions', () => {
     const legion = getUpgrade('raise-skeleton-legion')
     const rot = getUpgrade('raise-skeleton-rotting-bones')

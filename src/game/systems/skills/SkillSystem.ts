@@ -28,6 +28,7 @@ import {
   PRISM_HALO_SKILL_ID,
 } from '../../../content/skills/Skills'
 import {
+  getRallyingBannerAreaOfEffectPercent,
   getSkillCooldownReductionPercent,
   getSkillDamageIncreasePercent,
 } from '../../../content/upgrades/Upgrades'
@@ -1077,6 +1078,10 @@ function collectRallyingBannerEffect(
 ): DamageEvent[] {
   const definition = getSkillDefinition(RALLYING_BANNER_SKILL_ID)
   const bulwark = state.run.selectedUpgradeIds.includes('rallying-banner-bulwark')
+  const radius = calculateAreaValue(
+    RALLYING_BANNER_EFFECT_RADIUS,
+    getRallyingBannerAreaOfEffectPercent(state.run.selectedUpgradeIds),
+  )
   const healing = getSkillHealing(definition, skill.level)
   healPlayer(
     state,
@@ -1107,7 +1112,7 @@ function collectRallyingBannerEffect(
     allocator,
     skill.skillId,
     [{ x: state.player.x, y: state.player.y }],
-    RALLYING_BANNER_EFFECT_RADIUS,
+    radius,
     duration,
     undefined,
     healing,
