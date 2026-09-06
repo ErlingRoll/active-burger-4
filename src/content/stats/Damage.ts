@@ -59,6 +59,7 @@ export type DamageIncreaseType =
   | 'elemental'
   | 'chaos'
   | 'projectile'
+  | 'area'
 
 export const DAMAGE_INCREASE_TYPES = [
   'global',
@@ -66,12 +67,14 @@ export const DAMAGE_INCREASE_TYPES = [
   'elemental',
   'chaos',
   'projectile',
+  'area',
 ] as const satisfies readonly DamageIncreaseType[]
 
 export type DamageIncreaseValues = { [K in DamageIncreaseType]: number }
 
 export interface DamageIncreaseContext {
   isProjectile?: boolean
+  isArea?: boolean
 }
 
 export interface DamageConversion {
@@ -131,6 +134,7 @@ export const DEFAULT_DAMAGE_INCREASE_VALUES = Object.freeze({
   elemental: 0,
   chaos: 0,
   projectile: 0,
+  area: 0,
 } as const satisfies DamageIncreaseValues)
 
 export const DEFAULT_PLAYER_CRITICAL_STRIKE = Object.freeze({
@@ -192,6 +196,7 @@ export function createDamageIncreaseValues(
     elemental: values.elemental ?? 0,
     chaos: values.chaos ?? 0,
     projectile: values.projectile ?? 0,
+    area: values.area ?? 0,
   }
 }
 
@@ -257,16 +262,17 @@ function increasedDamageForType(
 ): number {
   const normalized = createDamageIncreaseValues(increased)
   const projectileDamage = context.isProjectile ? normalized.projectile : 0
+  const areaDamage = context.isArea ? normalized.area : 0
   if (ELEMENTAL_DAMAGE_TYPES.includes(damageType as (typeof ELEMENTAL_DAMAGE_TYPES)[number])) {
-    return normalized.global + normalized.elemental + projectileDamage
+    return normalized.global + normalized.elemental + projectileDamage + areaDamage
   }
   if (damageType === 'physical') {
-    return normalized.global + normalized.physical + projectileDamage
+    return normalized.global + normalized.physical + projectileDamage + areaDamage
   }
   if (damageType === 'chaos') {
-    return normalized.global + normalized.chaos + projectileDamage
+    return normalized.global + normalized.chaos + projectileDamage + areaDamage
   }
-  return normalized.global + projectileDamage
+  return normalized.global + projectileDamage + areaDamage
 }
 
 export function applyIncreasedDamage(
@@ -457,8 +463,10 @@ function increasedDamageForHistory(
 ): number {
   const normalized = createDamageIncreaseValues(increased)
   const projectileDamage = context.isProjectile ? normalized.projectile : 0
+  const areaDamage = context.isArea ? normalized.area : 0
   return normalized.global +
     projectileDamage +
+    areaDamage +
     (history.includes('physical') ? normalized.physical : 0) +
     (history.some((damageType) =>
       ELEMENTAL_DAMAGE_TYPES.includes(

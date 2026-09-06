@@ -823,6 +823,7 @@ const DAMAGE_INCREASE_LABELS: Record<DamageIncreaseType, string> = {
   elemental: 'Elemental damage',
   chaos: 'Chaos damage',
   projectile: 'Projectile damage',
+  area: 'Area damage',
 }
 
 const RESISTANCE_LABELS: Record<DamageResistanceType, string> = {

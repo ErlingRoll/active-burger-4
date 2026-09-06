@@ -51,6 +51,7 @@ export interface PlayerStats extends StatValues {
   resonance: number
   attunement: number
   basicAttackIsProjectile: boolean
+  basicAttackIsArea: boolean
   flatDamage: DamageValues
   increasedDamage: DamageIncreaseValues
   resistances: DamageResistanceValues
@@ -92,11 +93,27 @@ function getBasicAttackIsProjectile(
   if (!equippedWeapon) {
     return getBasicAttackVariant().tags.includes('projectile')
   }
+
   const definition = itemDefinitions.find(
     (candidate) => candidate.id === equippedWeapon.itemId,
   ) ?? getItemDefinition(equippedWeapon.itemId)
   return definition.slot === EquipmentSlot.Weapon &&
     getBasicAttackVariant(definition.weaponArchetype).tags.includes('projectile')
+}
+
+function getBasicAttackIsArea(
+  player: Readonly<PlayerState>,
+  itemDefinitions: readonly ItemDefinition[],
+): boolean {
+  const equippedWeapon = player.equipment?.weapon
+  if (!equippedWeapon) {
+    return getBasicAttackVariant().tags.includes('area')
+  }
+  const definition = itemDefinitions.find(
+    (candidate) => candidate.id === equippedWeapon.itemId,
+  ) ?? getItemDefinition(equippedWeapon.itemId)
+  return definition.slot === EquipmentSlot.Weapon &&
+    getBasicAttackVariant(definition.weaponArchetype).tags.includes('area')
 }
 
 function getEquippedWeaponAttackRange(
@@ -373,6 +390,7 @@ export function getDerivedPlayerStats(
         (player.attunementBonusPercent ?? 0),
     ),
     basicAttackIsProjectile: getBasicAttackIsProjectile(player, itemDefinitions),
+    basicAttackIsArea: getBasicAttackIsArea(player, itemDefinitions),
     flatDamage: gearEffects.flatDamage,
     increasedDamage: gearEffects.increasedDamage,
     resistances: gearEffects.resistances,

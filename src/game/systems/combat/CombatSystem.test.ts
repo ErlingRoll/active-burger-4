@@ -717,6 +717,7 @@ describe('performBasicAttackIfReady', () => {
           elemental: 0,
           chaos: 0,
           projectile: 0,
+          area: 0,
         },
         critChance: 0,
         critMultiplier: 200,
@@ -746,6 +747,7 @@ describe('performBasicAttackIfReady', () => {
           elemental: 0,
           chaos: 0,
           projectile: 0,
+          area: 0,
         },
         critChance: 0,
         critMultiplier: 200,
@@ -783,6 +785,7 @@ describe('performBasicAttackIfReady', () => {
         elemental: 0,
         chaos: 0,
         projectile: 0,
+        area: 0,
       },
     }
 
@@ -816,6 +819,7 @@ describe('performBasicAttackIfReady', () => {
         elemental: 0,
         chaos: 0,
         projectile: 0,
+        area: 0,
       },
     }
     const conversionContext = {

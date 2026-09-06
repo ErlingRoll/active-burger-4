@@ -44,6 +44,24 @@ describe('damage model', () => {
     })
   })
 
+  it('adds area damage increases only to area-tagged damage sources', () => {
+    expect(applyIncreasedDamage(
+      { physical: 10, lightning: 10 },
+      { area: 25, elemental: 20 },
+      { isArea: true },
+    )).toMatchObject({
+      physical: 12.5,
+      lightning: 14.5,
+    })
+    expect(applyIncreasedDamage(
+      { physical: 10, lightning: 10 },
+      { area: 25, elemental: 20 },
+    )).toMatchObject({
+      physical: 10,
+      lightning: 12,
+    })
+  })
+
   it('applies more damage after increases', () => {
     expect(applyMoreDamage(
       applyIncreasedDamage({ physical: 100 }, { physical: 50 }),

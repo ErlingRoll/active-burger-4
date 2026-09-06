@@ -104,4 +104,20 @@ describe('Basic Attack more damage', () => {
 
     expect(profile.damage).toMatchObject({ fire: 165 })
   })
+
+  it('applies area damage increases from area source tags', () => {
+    const profile = createPlayerDamageProfileFromStats(
+      {
+        attackDamage: 0,
+        critChance: 0,
+        critMultiplier: 200,
+        flatDamage: createDamageValues(),
+        increasedDamage: createDamageIncreaseValues({ area: 25 }),
+      },
+      { physical: 100 },
+      { sourceTags: ['physical', 'area'] },
+    )
+
+    expect(profile.damage.physical).toBe(125)
+  })
 })

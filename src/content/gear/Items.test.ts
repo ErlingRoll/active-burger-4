@@ -219,6 +219,11 @@ describe('initial gear content', () => {
       ),
     ).toBe(true)
     expect(
+      getAvailableGearModifiersForItem(sword).some(
+        (modifier) => modifier.id === 'increased-area-damage',
+      ),
+    ).toBe(true)
+    expect(
       getAvailableGearModifiersForItem(bow).some(
         (modifier) => modifier.id === 'increased-projectile-damage',
       ),
@@ -362,6 +367,11 @@ describe('initial gear content', () => {
       tier: 4,
       value: 14,
     })).toBe('T4 +14% Increased projectile damage')
+    expect(formatGearModifier({
+      id: 'increased-area-damage',
+      tier: 4,
+      value: 14,
+    })).toBe('T4 +14% Increased area damage')
     expect(formatGearModifier({
       id: 'area-of-effect',
       tier: 2,

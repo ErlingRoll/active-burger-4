@@ -49,6 +49,7 @@ export type GearModifierId =
   | 'dot-multiplier'
   | 'frost-application'
   | 'increased-projectile-damage'
+  | 'increased-area-damage'
   | 'crit-chance'
   | 'crit-multiplier'
   | 'physical-resistance'
@@ -205,6 +206,9 @@ const ALL_SLOTS = [
 const PROJECTILE_WEAPON_ARCHETYPES = [
   'bow',
   'wand',
+] as const satisfies readonly WeaponArchetype[]
+const AREA_WEAPON_ARCHETYPES = [
+  'sword',
 ] as const satisfies readonly WeaponArchetype[]
 
 function defineTiers(
@@ -554,6 +558,23 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     availableSlots: [EquipmentSlot.Weapon],
     availableWeaponArchetypes: PROJECTILE_WEAPON_ARCHETYPES,
     sortOrder: 145,
+    tiers: defineTiers(
+      { min: 27, max: 32 },
+      { min: 22, max: 26 },
+      { min: 17, max: 21 },
+      { min: 11, max: 16 },
+      { min: 6, max: 10 },
+    ),
+  },
+  'increased-area-damage': {
+    id: 'increased-area-damage',
+    kind: 'increased-damage',
+    increaseType: 'area',
+    label: 'Increased area damage',
+    valueType: 'percent',
+    availableSlots: [EquipmentSlot.Weapon],
+    availableWeaponArchetypes: AREA_WEAPON_ARCHETYPES,
+    sortOrder: 146,
     tiers: defineTiers(
       { min: 27, max: 32 },
       { min: 22, max: 26 },
@@ -935,7 +956,8 @@ export function doesGearModifierAffectSkill(
   }
   if (definition.kind === 'increased-damage') {
     return skillId !== VITALITY_SKILL_ID &&
-      (definition.increaseType !== 'projectile' || tags.has('projectile'))
+      (definition.increaseType !== 'projectile' || tags.has('projectile')) &&
+      (definition.increaseType !== 'area' || tags.has('area'))
   }
   if (definition.kind === 'cooldown-reduction') {
     return skillId !== BASIC_ATTACK_SKILL_ID

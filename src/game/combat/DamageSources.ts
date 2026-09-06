@@ -127,7 +127,7 @@ export function getBasicAttackDamageBeforeCritFromStats(
   stats: Pick<
     PlayerStats,
     'flatDamage' | 'increasedDamage'
-  > & Partial<Pick<PlayerStats, 'attackDamage' | 'basicAttackIsProjectile'>>,
+  > & Partial<Pick<PlayerStats, 'attackDamage' | 'basicAttackIsProjectile' | 'basicAttackIsArea'>>,
   additionalIncreasedDamage: AttunementSourceDamageContext = {},
   basicAttackDamageConversionType?: BasicAttackDamageConversionType,
 ): DamageValues {
@@ -145,7 +145,10 @@ export function getBasicAttackDamageBeforeCritFromStats(
         damageTypes: ['physical'],
         percent: additionalIncreasedDamage.basicAttackMorePhysicalDamagePercent ?? 0,
       }],
-      increaseContext: { isProjectile: stats.basicAttackIsProjectile },
+      increaseContext: {
+        isProjectile: stats.basicAttackIsProjectile,
+        isArea: stats.basicAttackIsArea,
+      },
     },
   )
 }
@@ -154,7 +157,7 @@ export function getAttunementDamageFromStats(
   stats: Pick<
     PlayerStats,
     'flatDamage' | 'increasedDamage'
-  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile'>>,
+  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile' | 'basicAttackIsArea'>>,
   additionalIncreasedDamage: AttunementSourceDamageContext = {},
 ): DamageValues {
   const basicAttackDamage = getBasicAttackDamageBeforeCritFromStats(
@@ -176,7 +179,7 @@ export function createPlayerDamageProfileFromStats(
   stats: Pick<
     PlayerStats,
     'flatDamage' | 'increasedDamage' | 'critChance' | 'critMultiplier'
-  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile'>>,
+  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile' | 'basicAttackIsArea'>>,
   baseDamage: Readonly<PartialDamageValues>,
   context: PlayerDamageProfileContext = {},
 ): ResolvedOutgoingDamage {
@@ -222,7 +225,10 @@ export function createPlayerDamageProfileFromStats(
       gainAsExtra: context.gainAsExtraDamage,
       increased: increasedDamage,
       moreModifiers: moreDamageModifiers,
-      increaseContext: { isProjectile: context.isProjectile },
+      increaseContext: {
+        isProjectile: context.isProjectile,
+        isArea: context.sourceTags?.includes('area'),
+      },
     },
   )
   const damage = context.isBasicAttack
@@ -259,7 +265,7 @@ export function createPlayerDamageEventFromStats(
   stats: Pick<
     PlayerStats,
     'flatDamage' | 'increasedDamage' | 'critChance' | 'critMultiplier'
-  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile'>>,
+  > & Partial<Pick<PlayerStats, 'attackDamage' | 'attunement' | 'basicAttackIsProjectile' | 'basicAttackIsArea'>>,
   sourceId: number,
   targetId: number,
   sourceSkillId: SkillId | undefined,
