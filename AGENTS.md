@@ -1,5 +1,15 @@
 # Agent guidance
 
+## Subagent model policy
+
+When using subagents:
+
+- NEVER specify a `model` when calling `runSubagent`.
+- Always allow the subagent to inherit the model of the current parent chat.
+- Never switch a subagent to a different or more expensive model.
+- Never invoke a custom agent that forces a different model.
+- Do not increase reasoning/thinking effort for subagents.
+
 ## Shared loot toast
 
 Use the shared global toast for transient loot feedback such as catches,
