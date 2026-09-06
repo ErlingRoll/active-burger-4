@@ -573,4 +573,24 @@ describe('data-driven player behavior intents', () => {
     })
     expect(kite?.directionX).toBeLessThan(0)
   })
+
+  it('leaves a corner instead of following either arena wall while kiting', () => {
+    for (const profileId of ['balanced', 'cautious'] as const) {
+      const state = createState([
+        enemy(2, 'brute', 1_400, 1_400),
+        enemy(3, 'brute', 1_390, 1_410),
+      ])
+      const bounds = getPlayerArenaBounds(state.player.radius)
+      state.player.x = bounds.maxX
+      state.player.y = bounds.maxY
+      state.player.behaviorController = { profileId }
+
+      const kite = getPlayerBehaviorCandidates(state).find(
+        (candidate) => candidate.source === 'kite',
+      )
+      expect(kite).toMatchObject({ source: 'kite' })
+      expect(kite?.directionX).toBeLessThan(0)
+      expect(kite?.directionY).toBeLessThan(0)
+    }
+  })
 })

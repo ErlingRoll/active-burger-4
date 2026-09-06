@@ -42,6 +42,7 @@ const KITE_PREDICTION_SECONDS = 0.75
 const PROJECTILE_ROUTE_CLEARANCE = 28
 const FLANKER_INTERCEPT_CLEARANCE = 72
 const IMMINENT_PROJECTILE_RISK = 10_000
+const KITE_WALL_RISK_WEIGHT = 12
 const PICKUP_DISTANCE_COST = 0.35
 const PICKUP_PRIORITY_BONUS = 150
 const BANNER_APPROACH_MARGIN = 120
@@ -411,10 +412,12 @@ function kiteRiskAt(
     y - bounds.minY,
     bounds.maxY - y,
   )
+  const wallPressure = Math.max(0, KITE_WALL_MARGIN - wallDistance) /
+    KITE_WALL_MARGIN
   let risk = telegraphRiskAt(state, x, y) +
     hostileProjectileRiskAt(state, x, y) +
     flankerInterceptRiskAt(state, x, y, threats, threatScores) +
-    Math.max(0, KITE_WALL_MARGIN - wallDistance) / KITE_WALL_MARGIN
+    wallPressure * wallPressure * KITE_WALL_RISK_WEIGHT
 
   for (const threat of threats) {
     const distance = Math.max(1, Math.hypot(x - threat.x, y - threat.y))
