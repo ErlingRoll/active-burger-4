@@ -1,8 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
-import { getSkillDefinition } from '../content/skills/Skills'
-import { getItemDefinition } from '../content/gear/Items'
+import {
+  getSkillDamage,
+  getSkillDefinition,
+  getSkillHealing,
+  getSkillShieldAmount,
+  type SkillDefinition,
+} from '../content/skills/Skills'
+import {
+  EQUIPMENT_SLOTS,
+  EquipmentSlot,
+  getItemDefinition,
+  getItemDisplayName,
+} from '../content/gear/Items'
+import {
+  formatGearModifier,
+  sortGearModifiers,
+} from '../content/gear/ModifierPools'
+import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { getGearSetDefinition } from '../game-config/gear-sets'
+import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
+import { SkillIcon } from '../rendering/SkillIcon'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
 
 interface ChampionManagementScreenProps {
@@ -26,64 +45,255 @@ function formatExhaustion(exhaustionUntil: string | null): string {
   return `${remainingHours}h ${remainingMinutes}m remaining`
 }
 
+const EQUIPMENT_SLOT_LABELS: Record<EquipmentSlot, string> = {
+  [EquipmentSlot.Weapon]: 'Weapon',
+  [EquipmentSlot.Helmet]: 'Helmet',
+  [EquipmentSlot.Armor]: 'Armor',
+  [EquipmentSlot.Boots]: 'Boots',
+  [EquipmentSlot.Ring]: 'Ring',
+  [EquipmentSlot.Amulet]: 'Amulet',
+}
+
+function formatValue(value: number): string {
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(1).replace(/\.0$/, '')
+}
+
+function getSkillStats(definition: SkillDefinition, level: number): readonly {
+  label: string
+  value: string
+}[] {
+  const damage = Object.entries(getSkillDamage(definition, level))
+    .filter(([, value]) => value !== undefined && value !== 0)
+    .map(([type, value]) => `${formatValue(value ?? 0)} ${type}`)
+  return [
+    { label: 'Cooldown', value: `${formatValue(definition.cooldown)}s` },
+    ...(damage.length > 0 ? [{ label: 'Base damage', value: damage.join(' · ') }] : []),
+    ...(definition.baseHealing !== undefined
+      ? [{ label: 'Healing', value: String(getSkillHealing(definition, level)) }]
+      : []),
+    ...(definition.shieldBaseAmount !== undefined
+      ? [{ label: 'Shield', value: String(getSkillShieldAmount(definition, level)) }]
+      : []),
+    ...(definition.radius !== undefined
+      ? [{ label: 'Radius', value: formatValue(definition.radius) }]
+      : []),
+    ...(definition.maxRange !== undefined
+      ? [{ label: 'Range', value: formatValue(definition.maxRange) }]
+      : []),
+    ...(definition.maxTargets !== undefined
+      ? [{ label: 'Targets', value: String(definition.maxTargets) }]
+      : []),
+  ]
+}
+
+function ChampionSkillCard({
+  skill,
+}: {
+  skill: ChampionSnapshot['build']['skills'][number]
+}) {
+  const definition = getSkillDefinition(skill.skillId)
+  const tooltipId = `champion-skill-tooltip-${skill.skillId}`
+  return (
+    <li className="champion-skill-card">
+      <div
+        className="champion-inspectable"
+        tabIndex={0}
+        aria-label={`${definition.name}, level ${skill.level}. Inspect skill details.`}
+        aria-describedby={tooltipId}
+      >
+        <span className="champion-skill-icon" aria-hidden="true">
+          <SkillIcon skillId={skill.skillId} size={25} />
+        </span>
+        <span className="champion-skill-copy">
+          <strong>{definition.name}</strong>
+          <span>{definition.kind}</span>
+        </span>
+        <span className="champion-skill-level">Lv. {skill.level}</span>
+        <span className="champion-inspect-hint" aria-hidden="true">Inspect</span>
+        <div
+          className="app-tooltip champion-inspect-tooltip champion-skill-tooltip"
+          id={tooltipId}
+          role="tooltip"
+        >
+          <header>
+            <span className="champion-tooltip-kicker">Skill details</span>
+            <strong>{definition.name}</strong>
+            <span>Level {skill.level} · {definition.kind}</span>
+          </header>
+          <p>{definition.description}</p>
+          <dl className="champion-tooltip-stats">
+            {getSkillStats(definition, skill.level).map((stat) => (
+              <div key={stat.label}>
+                <dt>{stat.label}</dt>
+                <dd>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <ul className="champion-skill-tags" aria-label={`${definition.name} tags`}>
+            {definition.tags.map((tag) => <li key={tag}>{tag}</li>)}
+          </ul>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function ChampionGearCard({
+  slot,
+  item,
+}: {
+  slot: EquipmentSlot
+  item: EquippedItem | undefined
+}) {
+  const definition = item ? getItemDefinition(item.itemId) : null
+  const rarity = definition ? item?.rarity ?? definition.rarity : null
+  const modifiers = definition
+    ? sortGearModifiers(item?.modifiers ?? definition.modifiers)
+    : []
+  const setId = item?.setId ?? definition?.setId
+  const tooltipId = `champion-gear-tooltip-${slot}`
+  const itemName = definition ? getItemDisplayName(definition, setId) : 'Empty slot'
+  return (
+    <li className={`champion-gear-card${rarity ? ` rarity-${rarity}` : ''}`}>
+      <div
+        className="champion-inspectable"
+        tabIndex={0}
+        aria-label={
+          definition
+            ? `${EQUIPMENT_SLOT_LABELS[slot]}: ${itemName}. Inspect item details.`
+            : `${EQUIPMENT_SLOT_LABELS[slot]} slot empty.`
+        }
+        aria-describedby={definition ? tooltipId : undefined}
+      >
+        <span className="champion-gear-slot" aria-hidden="true">
+          {EQUIPMENT_SLOT_LABELS[slot].slice(0, 3)}
+        </span>
+        <span className="champion-gear-copy">
+          <span>{EQUIPMENT_SLOT_LABELS[slot]}</span>
+          <strong>{itemName}</strong>
+        </span>
+        {rarity ? (
+          <span className="champion-gear-rarity" data-rarity={rarity}>
+            {RARITY_VISUALS[rarity].label}
+          </span>
+        ) : (
+          <span className="champion-gear-empty">Empty</span>
+        )}
+        {definition ? <span className="champion-inspect-hint" aria-hidden="true">Inspect</span> : null}
+        {definition && rarity ? (
+          <div
+            className="app-tooltip champion-inspect-tooltip champion-gear-tooltip"
+            id={tooltipId}
+            role="tooltip"
+          >
+            <header>
+              <span className="champion-tooltip-kicker">{EQUIPMENT_SLOT_LABELS[slot]}</span>
+              <strong>{itemName}</strong>
+              <span className="champion-tooltip-rarity" data-rarity={rarity}>
+                {RARITY_VISUALS[rarity].icon} {RARITY_VISUALS[rarity].label}
+              </span>
+            </header>
+            {definition.flavorText ? <p>{definition.flavorText}</p> : null}
+            {setId ? (
+              <p className="champion-tooltip-set">{getGearSetDefinition(setId).name} set piece</p>
+            ) : null}
+            {definition.implicitModifiers?.length ? (
+              <section className="champion-tooltip-modifier-group">
+                <h5>Implicit</h5>
+                <ul>
+                  {definition.implicitModifiers.map((modifier) => (
+                    <li key={modifier.id}>
+                      <strong>{modifier.label}</strong>
+                      <span>{modifier.description}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            <section className="champion-tooltip-modifier-group">
+              <h5>Saved modifiers</h5>
+              {modifiers.length > 0 ? (
+                <ul>
+                  {modifiers.map((modifier) => (
+                    <li key={`${modifier.sourceId}-${modifier.id}`}>
+                      {formatGearModifier(modifier)}
+                    </li>
+                  ))}
+                </ul>
+              ) : <p>No modifiers recorded.</p>}
+            </section>
+          </div>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
 export function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
-  const equippedItems = Object.entries(champion.build.equipment)
   return (
     <section className="champion-details" aria-labelledby="champion-details-title">
-      <div className="champion-details-heading">
-        <p className="screen-kicker">Immutable build snapshot</p>
-        <h3 id="champion-details-title">{champion.name}</h3>
-        <span>{classDefinition.name} · {formatExhaustion(champion.exhaustionUntil)}</span>
-      </div>
-      <dl className="champion-details-grid">
+      <header className="champion-details-heading">
+        <span className="champion-class-emblem" aria-hidden="true">
+          {classDefinition.name.slice(0, 2)}
+        </span>
         <div>
-          <dt>Class</dt>
-          <dd>{classDefinition.name}</dd>
+          <p className="screen-kicker">Immutable build snapshot</p>
+          <h3 id="champion-details-title">{champion.name}</h3>
+          <span>{classDefinition.name}</span>
         </div>
+        <span className={`champion-availability${champion.exhaustionUntil ? ' exhausted' : ''}`}>
+          {formatExhaustion(champion.exhaustionUntil)}
+        </span>
+      </header>
+      <dl className="champion-overview-stats">
         <div>
-          <dt>Behavior</dt>
+          <dt>Behavior profile</dt>
           <dd>{champion.build.behaviorProfileId}</dd>
         </div>
         <div>
-          <dt>Source run</dt>
-          <dd>{champion.sourceRunId}</dd>
-        </div>
-        <div>
-          <dt>Content version</dt>
-          <dd>{champion.contentVersion}</dd>
+          <dt>Build upgrades</dt>
+          <dd>{champion.build.selectedUpgradeIds.length}</dd>
         </div>
       </dl>
-      <div className="champion-detail-list">
-        <h4>Skills</h4>
-        <ul>
+      <section className="champion-build-section" aria-labelledby="champion-skills-title">
+        <header className="champion-build-section-heading">
+          <div>
+            <span>Selected abilities</span>
+            <h4 id="champion-skills-title">Skills</h4>
+          </div>
+          <small>Hover or focus to inspect</small>
+        </header>
+        <ul className="champion-skill-grid">
           {champion.build.skills.map((skill) => (
-            <li key={skill.skillId}>
-              <span>{getSkillDefinition(skill.skillId).name}</span>
-              <strong>Level {skill.level}</strong>
-            </li>
+            <ChampionSkillCard key={skill.skillId} skill={skill} />
           ))}
         </ul>
-      </div>
-      <div className="champion-detail-list">
-        <h4>Equipped gear</h4>
-        {equippedItems.length > 0 ? (
-          <ul>
-            {equippedItems.map(([slot, item]) => (
-              <li key={slot}>
-                <span>{slot}</span>
-                <strong>{getItemDefinition(item.itemId).name}</strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No additional gear recorded.</p>
-        )}
-      </div>
-      <div className="champion-detail-list">
-        <h4>Run upgrades</h4>
-        <p>{champion.build.selectedUpgradeIds.length} upgrades preserved from the source run.</p>
-      </div>
+      </section>
+      <section className="champion-build-section" aria-labelledby="champion-gear-title">
+        <header className="champion-build-section-heading">
+          <div>
+            <span>Preserved equipment</span>
+            <h4 id="champion-gear-title">Loadout</h4>
+          </div>
+          <small>Hover or focus to inspect</small>
+        </header>
+        <ul className="champion-gear-grid">
+          {EQUIPMENT_SLOTS.map((slot) => (
+            <ChampionGearCard
+              key={slot}
+              slot={slot}
+              item={champion.build.equipment[slot]}
+            />
+          ))}
+        </ul>
+      </section>
+      <footer className="champion-build-meta">
+        <span><strong>Source run</strong>{champion.sourceRunId}</span>
+        <span><strong>Content version</strong>{champion.contentVersion}</span>
+      </footer>
     </section>
   )
 }

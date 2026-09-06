@@ -98,8 +98,32 @@
   }
 
   .champion-management-layout,
-  .champion-details-grid {
+  .champion-skill-grid {
     grid-template-columns: 1fr;
+  }
+
+  .champion-gear-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .champion-details-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .champion-availability {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .champion-skill-grid li:nth-child(even) .champion-inspect-tooltip,
+  .champion-gear-grid li:nth-child(3n) .champion-inspect-tooltip {
+    right: auto;
+    left: 0;
+  }
+
+  .champion-gear-grid li:nth-child(even) .champion-inspect-tooltip {
+    right: 0;
+    left: auto;
   }
 
   .abyss-modifier-choice {
