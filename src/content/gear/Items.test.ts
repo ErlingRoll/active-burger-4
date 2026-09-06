@@ -149,11 +149,11 @@ describe('initial gear content', () => {
       5: { min: 1, max: 1 },
     })
     expect(getGearModifierDefinition('max-summons').tiers).toEqual({
-      1: { min: 1, max: 1 },
-      2: { min: 1, max: 1 },
+      1: { min: 3, max: 3 },
+      2: { min: 2, max: 2 },
       3: { min: 1, max: 1 },
-      4: { min: 2, max: 2 },
-      5: { min: 3, max: 3 },
+      4: { min: 1, max: 1 },
+      5: { min: 1, max: 1 },
     })
     expect(
       getAvailableGearModifiersForItem(getItemDefinition('ritual-staff')).some(

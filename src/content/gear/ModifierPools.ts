@@ -414,11 +414,11 @@ export const GEAR_MODIFIER_DEFINITIONS = {
     availableWeaponArchetypes: ['staff'],
     sortOrder: 66,
     tiers: defineTiers(
-      { min: 1, max: 1 },
-      { min: 1, max: 1 },
-      { min: 1, max: 1 },
-      { min: 2, max: 2 },
       { min: 3, max: 3 },
+      { min: 2, max: 2 },
+      { min: 1, max: 1 },
+      { min: 1, max: 1 },
+      { min: 1, max: 1 },
     ),
   },
   'flat-physical-damage': {

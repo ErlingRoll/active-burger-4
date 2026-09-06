@@ -284,7 +284,7 @@ describe('updateSummons', () => {
   it('applies staff maximum summons to each summon skill independently', () => {
     const game = createGame({ seed: 22, characterClassId: 'necromancer' })
     equipRolledItem(game.state.player, 'ritual-staff', Rarity.Common, [
-      createGearModifier('ritual-staff', 'max-summons', 5, 3),
+      createGearModifier('ritual-staff', 'max-summons', 1, 3),
     ])
     game.state.player.skills.push({
       skillId: PHANTOM_ARSENAL_SKILL_ID,
