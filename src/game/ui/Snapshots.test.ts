@@ -238,7 +238,7 @@ describe('UI snapshots', () => {
       (upgrade) => upgrade.upgradeId === 'aegis-pulse-bulwark',
     )).toMatchObject({
       valueLabel: '+12 shield, +2s duration',
-      description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield. Each additional rank: +8% damage, +6 shield.',
+      description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield. Each additional rank: +8% increased damage, +6 shield.',
       evolution: 'aegis-pulse-bulwark',
     })
     expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)
@@ -406,7 +406,7 @@ describe('UI snapshots', () => {
       .find((skill) => skill.skillId === BASIC_ATTACK_SKILL_ID)
       ?.upgrades.find((candidate) => candidate.upgradeId === 'basic-attack-level')
 
-    expect(upgrade?.valueLabel).toBe('+20% Basic Attack damage')
+    expect(upgrade?.valueLabel).toBe('+20% increased Basic Attack damage')
   })
 
   it('shows the selected Basic Attack damage conversion evolution', () => {

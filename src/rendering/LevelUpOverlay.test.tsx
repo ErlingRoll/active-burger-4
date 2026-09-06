@@ -137,7 +137,7 @@ describe('LevelUpOverlay', () => {
 
     expect(markup).toContain('Upgrade:<span class="upgrade-action-skill">')
     expect(markup).toContain('+1 Level to Basic Attack')
-    expect(markup).toContain('+10% Basic Attack damage')
+    expect(markup).toContain('+10% increased Basic Attack damage')
     expect(markup).not.toContain('Upgrade level:')
   })
 
@@ -171,7 +171,7 @@ describe('LevelUpOverlay', () => {
     expect(markup).toContain('Basic Attack deals 10% more ')
     expect(markup).toContain(' after increases. This also increases ')
     expect(markup).not.toContain('Each additional rank:')
-    expect(markup).not.toContain('+10% Basic Attack damage')
+    expect(markup).not.toContain('+10% increased Basic Attack damage')
   })
 
   it('shows only the equipped item rarity for an item upgrade', () => {

@@ -180,6 +180,31 @@ describe('upgrade choice generation', () => {
     }
   })
 
+  it('labels additive skill damage bonuses as increased damage', () => {
+    const damageLevelUpgrades = INITIAL_UPGRADES.filter(
+      (upgrade) =>
+        upgrade.skillDamageIncreasePercent !== undefined &&
+        /damage/i.test(upgrade.valueLabel),
+    )
+
+    for (const upgrade of damageLevelUpgrades) {
+      expect(upgrade.valueLabel).toMatch(/increased .*damage/i)
+    }
+  })
+
+  it('labels multiplicative skill damage bonuses as more damage', () => {
+    for (const upgradeId of [
+      'fiery-touch-ember',
+      'glacial-orb-ice-lance',
+      'gravity-well-event-horizon',
+      'rift-javelin-homeward',
+      'phantom-arsenal-marksman',
+      'sigil-of-ruin-execution-protocol',
+    ]) {
+      expect(getUpgrade(upgradeId).valueLabel).toMatch(/more .*damage/i)
+    }
+  })
+
   it('defines five non-repeatable Basic Attack evolutions', () => {
     const evolutions = [
      getUpgrade('basic-attack-lightning-attunement'),
