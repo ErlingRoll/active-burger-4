@@ -34,6 +34,8 @@ export interface BehaviorProfileThresholds {
 export interface BehaviorProfilePolicy {
   intentPriorities: Readonly<Record<BehaviorIntentSource, number>>
   thresholds: BehaviorProfileThresholds
+  /** Whether contact with an otherwise manageable enemy should trigger kiting. */
+  avoidContact: boolean
   commitmentSeconds: number
   hysteresisPriority: number
 }
@@ -81,6 +83,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
       safeGearThreatScore: 0,
       kiteThreatScore: 1_000_000,
     },
+    avoidContact: false,
     commitmentSeconds: 0.2,
     hysteresisPriority: 25,
   },
@@ -105,6 +108,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
       safeGearThreatScore: 3,
       kiteThreatScore: 4,
     },
+    avoidContact: true,
     commitmentSeconds: 0.2,
     hysteresisPriority: 25,
   },
@@ -129,6 +133,7 @@ export const BEHAVIOR_PROFILE_DEFINITIONS = {
       safeGearThreatScore: 2,
       kiteThreatScore: 1.5,
     },
+    avoidContact: true,
     commitmentSeconds: 0.25,
     hysteresisPriority: 35,
   },

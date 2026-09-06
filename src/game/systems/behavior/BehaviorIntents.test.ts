@@ -235,6 +235,29 @@ describe('data-driven player behavior intents', () => {
     expect(updatePlayerBehavior(state, 1 / 60)?.source).not.toBe('kite')
   })
 
+  it('escapes contact with a lone manageable threat for Balanced and Cautious', () => {
+    for (const profileId of ['balanced', 'cautious'] as const) {
+      const state = createState([enemy(4, 'slime', 30)])
+      state.player.behaviorController = { profileId }
+
+      expect(getPlayerBehaviorCandidates(state)[0]).toMatchObject({
+        source: 'kite',
+        targetId: 4,
+      })
+      expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('kite')
+    }
+  })
+
+  it('keeps Aggressive in combat against a lone contact threat', () => {
+    const state = createState([enemy(4, 'slime', 30)])
+    state.player.behaviorController = { profileId: 'aggressive' }
+
+    expect(getPlayerBehaviorCandidates(state).some(
+      (candidate) => candidate.source === 'kite',
+    )).toBe(false)
+    expect(updatePlayerBehavior(state, 1 / 60)?.source).toBe('hold')
+  })
+
   it('uses the equipped staff range after a knight swaps weapons', () => {
     const state = createState([enemy(4, 'slime', 80)])
     equipItem(state.player, 'ritual-staff')

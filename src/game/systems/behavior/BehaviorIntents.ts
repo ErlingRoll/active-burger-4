@@ -599,7 +599,16 @@ function createKiteCandidate(
     policy.thresholds,
     threatScores,
   )
-  if (totalThreatScore < policy.thresholds.kiteThreatScore) {
+  const isInContact = policy.avoidContact && nearby.some((entity) => {
+    const contactDistance = state.player.radius + entity.radius
+    return distanceSquared(
+      state.player.x,
+      state.player.y,
+      entity.x,
+      entity.y,
+    ) <= contactDistance * contactDistance
+  })
+  if (!isInContact && totalThreatScore < policy.thresholds.kiteThreatScore) {
     return undefined
   }
 
