@@ -95,7 +95,7 @@ describe('DungeonRunPersistenceService', () => {
     })
   })
 
-  it('sends the initial checkpoint through the atomic start RPC', async () => {
+  it('sends the abyss unbounded floor sentinel through the atomic start RPC', async () => {
     const rpc = vi.fn((name: string) => name === 'start_dungeon_run'
       ? [{
           run_id: 'run-1',
@@ -111,11 +111,11 @@ describe('DungeonRunPersistenceService', () => {
     await service.createRun({
       runId: 'run-1',
       seed: 42,
-      modeId: 'dungeon',
+      modeId: 'infinite-abyss',
       preparation: { version: 1, items: [] },
       contractId: activeRow.contract_id,
       worldModifierIds: activeRow.world_modifier_ids,
-      maxFloor: 30,
+      maxFloor: Number.MAX_SAFE_INTEGER,
       startedAt: activeRow.started_at,
       dungeonId: activeRow.dungeon_id,
       characterClassId: activeRow.class_id,
@@ -127,9 +127,10 @@ describe('DungeonRunPersistenceService', () => {
       p_run_id: 'run-1',
       p_initial_payload: checkpoint,
       p_dungeon_id: 'default-dungeon',
-      p_mode_id: 'dungeon',
+      p_mode_id: 'infinite-abyss',
       p_class_id: 'ranger',
       p_preparation: { version: 1, items: [] },
+      p_max_floor: Number.MAX_SAFE_INTEGER,
     }))
   })
 
