@@ -128,6 +128,43 @@ describe('InventoryService', () => {
     })
   })
 
+  it('maps development inventory grants through the grant RPC', async () => {
+    const rpc = vi.fn((name: string) => {
+      expect(name).toBe('grant_development_inventory_items')
+      return [{
+        item_instance_id: 'item-2',
+        definition_id: 'loot-box-common',
+        quantity: 3,
+        bound: false,
+        metadata: {},
+        source_type: 'system',
+        source_id: 'development-menu',
+        created_at: itemRow.created_at,
+        updated_at: itemRow.updated_at,
+        was_processed: true,
+      }]
+    })
+    const service = createService(fakeClient({ rpc }))
+
+    await expect(service.grantDevelopmentItems('grant-1', [{
+      definitionId: 'loot-box-common',
+      quantity: 3,
+    }])).resolves.toEqual([{
+      itemInstanceId: 'item-2',
+      definitionId: 'loot-box-common',
+      quantity: 3,
+      bound: false,
+      metadata: {},
+      source: {
+        type: 'system',
+        id: 'development-menu',
+      },
+      createdAt: itemRow.created_at,
+      updatedAt: itemRow.updated_at,
+      wasProcessed: true,
+    }])
+  })
+
   it('rejects invalid local requests before making an RPC call', async () => {
     const client = fakeClient()
     const service = createService(client)

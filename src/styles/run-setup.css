@@ -65,7 +65,114 @@
 }
 
 .run-abyss-champion-list {
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: 1fr;
+}
+
+.run-abyss-champion-card {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  background: rgb(15 23 42 / 35%);
+  border: 1px solid rgb(196 181 253 / 20%);
+  border-radius: 0.5rem;
+}
+
+.run-abyss-champion-card.selected {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 2px rgb(196 181 253 / 18%), 0 0.6rem 1.25rem rgb(76 29 149 / 20%);
+}
+
+.run-abyss-champion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 4.8rem;
+  border: 0;
+  border-radius: 0;
+}
+
+.run-abyss-champion-trigger-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.run-abyss-champion-trigger-copy small {
+  color: #c4b5fd;
+  font-size: 0.72rem;
+}
+
+.run-abyss-champion-list .game-mode-choice.exhausted {
+  border-color: rgb(251 191 36 / 50%);
+}
+
+.run-abyss-champion-list .game-mode-choice.exhausted small {
+  color: #fcd34d;
+}
+
+.run-abyss-champion-trigger-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #a5b4fc;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.run-abyss-champion-card.selected .run-abyss-champion-trigger-state {
+  color: #e9d5ff;
+}
+
+.run-abyss-champion-chevron {
+  color: #c4b5fd;
+  font-size: 1.15rem;
+}
+
+.run-abyss-champion-panel {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0 0.65rem 0.65rem;
+  background: rgb(15 23 42 / 70%);
+  border-top: 1px solid rgb(196 181 253 / 25%);
+}
+
+.run-abyss-champion-panel .champion-details {
+  padding: 0.65rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.run-abyss-revival-panel {
+  margin-top: 0.5rem;
+}
+
+.run-abyss-revival-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.run-abyss-revival-action {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 10rem;
+  text-align: left;
+}
+
+.run-abyss-revival-action span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.run-abyss-revival-action small {
+  color: #78350f;
+  font-size: 0.7rem;
+  text-transform: capitalize;
 }
 
 .fish-meal-slots {

@@ -96,6 +96,10 @@ export interface InventorySalvageResult {
 
 export interface InventoryService {
   loadInventory(category?: InventoryItemCategory): Promise<InventoryItemInstance[]>
+  grantDevelopmentItems(
+    operationId: InventoryOperationId,
+    items: readonly InventoryItemGrant[],
+  ): Promise<InventoryGrantResult[]>
   consumeItems(
     operationId: InventoryOperationId,
     items: readonly InventoryItemConsumption[],

@@ -170,3 +170,112 @@
   outline: 3px solid rgb(251 191 36 / 30%);
   outline-offset: 2px;
 }
+
+.development-inventory-menu {
+  position: relative;
+}
+
+.development-inventory-toggle {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.8rem;
+  color: #cffafe;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #164e63;
+  border: 1px solid #67e8f9;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.development-inventory-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.development-inventory-toggle::after {
+  margin-left: 0.45rem;
+  content: '▾';
+}
+
+.development-inventory-menu[open] .development-inventory-toggle::after {
+  content: '▴';
+}
+
+.development-inventory-toggle:hover,
+.development-inventory-toggle:focus-visible {
+  background: #155e75;
+  outline: 3px solid rgb(103 232 249 / 30%);
+  outline-offset: 2px;
+}
+
+.development-inventory-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  display: grid;
+  gap: 0.65rem;
+  width: min(17rem, calc(100vw - 2rem));
+  padding: 0.9rem;
+  color: #e0f2fe;
+  background: #0f172a;
+  border: 1px solid #67e8f9;
+  border-radius: 0.65rem;
+  box-shadow: 0 1rem 2rem rgb(2 6 23 / 48%);
+}
+
+.development-inventory-kicker {
+  margin: 0;
+  color: #67e8f9;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.development-inventory-panel label {
+  display: grid;
+  gap: 0.25rem;
+  color: #bae6fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.development-inventory-panel select,
+.development-inventory-panel input {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.45rem;
+  color: #f8fafc;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 0.35rem;
+}
+
+.development-inventory-grant {
+  min-height: 2.2rem;
+  padding: 0.4rem 0.7rem;
+  color: #082f49;
+  font-weight: 800;
+  background: #67e8f9;
+  border: 1px solid #cffafe;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.development-inventory-grant:hover,
+.development-inventory-grant:focus-visible {
+  background: #a5f3fc;
+  outline: 3px solid rgb(103 232 249 / 28%);
+  outline-offset: 2px;
+}
+
+.development-inventory-grant:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.development-inventory-error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.75rem;
+}

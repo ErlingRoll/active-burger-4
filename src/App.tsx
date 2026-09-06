@@ -96,6 +96,7 @@ import {
 } from './characters'
 import {
   createInventoryService,
+  DevelopmentInventoryMenu,
   getInventoryItemDefinition,
   type InventoryItemInstance,
   type InventoryService,
@@ -152,7 +153,7 @@ type PersistenceLoadState = 'loading' | 'ready' | 'error'
 
 const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   dashboard: '/',
-  'run-setup': '/prepare',
+  'run-setup': '/prepare/dungeon',
   'meta-progression': '/store',
   fishing: '/fishing',
   champions: '/champions',
@@ -164,9 +165,16 @@ const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   wiki: '/wiki',
 }
 
+const RUN_SETUP_ABYSS_PATH = '/prepare/abyss'
+const LEGACY_RUN_SETUP_PATH = '/prepare'
+
 function getScreenForPath(pathname: string): AppScreen {
   const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-  if (normalizedPath === APP_ROUTE_PATHS['run-setup']) {
+  if (
+    normalizedPath === APP_ROUTE_PATHS['run-setup'] ||
+    normalizedPath === RUN_SETUP_ABYSS_PATH ||
+    normalizedPath === LEGACY_RUN_SETUP_PATH
+  ) {
     return 'run-setup'
   }
   if (normalizedPath === APP_ROUTE_PATHS['meta-progression']) {
@@ -188,6 +196,18 @@ function getScreenForPath(pathname: string): AppScreen {
     return 'wiki'
   }
   return 'dashboard'
+}
+
+function getRunModeForPath(pathname: string): RunModeId {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  return normalizedPath === RUN_SETUP_ABYSS_PATH ? 'infinite-abyss' : DEFAULT_RUN_MODE_ID
+}
+
+function getCanonicalPath(pathname: string): string {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  return normalizedPath === RUN_SETUP_ABYSS_PATH
+    ? RUN_SETUP_ABYSS_PATH
+    : APP_ROUTE_PATHS[getScreenForPath(pathname)]
 }
 
 function getMusicPlaylistId(
@@ -291,6 +311,24 @@ function errorMessage(error: unknown): string {
     return error.message
   }
   return 'Unable to access local persistence.'
+}
+
+function isChampionExhausted(champion: ChampionSnapshot, now = Date.now()): boolean {
+  return champion.exhaustionUntil !== null &&
+    Date.parse(champion.exhaustionUntil) > now
+}
+
+function formatChampionExhaustion(exhaustionUntil: string | null, now = Date.now()): string {
+  if (!exhaustionUntil) {
+    return 'Available'
+  }
+  const remainingMilliseconds = Date.parse(exhaustionUntil) - now
+  if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
+    return 'Available'
+  }
+  const remainingHours = Math.floor(remainingMilliseconds / 3_600_000)
+  const remainingMinutes = Math.ceil((remainingMilliseconds % 3_600_000) / 60_000)
+  return `${remainingHours}h ${remainingMinutes}m remaining`
 }
 
 function parseGameCheckpoint(value: unknown): GameCheckpoint {
@@ -537,7 +575,9 @@ function App() {
   )
   const [runId, setRunId] = useState(0)
   const [runSeed, setRunSeed] = useState(createRunSeed)
-  const [runMode, setRunMode] = useState<RunModeId>(DEFAULT_RUN_MODE_ID)
+  const [runMode, setRunMode] = useState<RunModeId>(() =>
+    typeof window === 'undefined' ? DEFAULT_RUN_MODE_ID : getRunModeForPath(window.location.pathname),
+  )
   const [runChampion, setRunChampion] = useState<CharacterBuildSnapshot | null>(null)
   const [runChampionId, setRunChampionId] = useState<string | null>(null)
   const [activeRunSubmission, setActiveRunSubmission] = useState<MetaRunResultInput | null>(null)
@@ -588,8 +628,12 @@ function App() {
   const pendingRunIdRef = useRef<string | null>(null)
   const pendingChampionIdRef = useRef<string | null>(null)
 
-  const navigateToScreen = useCallback((nextScreen: AppScreen, replace = false): void => {
-    const nextPath = APP_ROUTE_PATHS[nextScreen]
+  const navigateToScreen = useCallback((
+    nextScreen: AppScreen,
+    replace = false,
+    path = APP_ROUTE_PATHS[nextScreen],
+  ): void => {
+    const nextPath = path
     if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
       const nextUrl = `${nextPath}${window.location.search}`
       if (replace) {
@@ -605,12 +649,16 @@ function App() {
     if (typeof window === 'undefined') {
       return
     }
-    const routePath = APP_ROUTE_PATHS[getScreenForPath(window.location.pathname)]
+    const routePath = getCanonicalPath(window.location.pathname)
     if (window.location.pathname !== routePath) {
       window.history.replaceState(null, '', routePath)
     }
     const handlePopState = (): void => {
-      setScreen(getScreenForPath(window.location.pathname))
+      const nextScreen = getScreenForPath(window.location.pathname)
+      setScreen(nextScreen)
+      if (nextScreen === 'run-setup') {
+        setRunMode(getRunModeForPath(window.location.pathname))
+      }
     }
     window.addEventListener('popstate', handlePopState)
     return () => {
@@ -980,7 +1028,7 @@ function App() {
     setRunMode('infinite-abyss')
     setRunChampion(null)
     setRunChampionId(null)
-    navigateToScreen('run-setup')
+    navigateToScreen('run-setup', false, RUN_SETUP_ABYSS_PATH)
   }, [activeRun, authentication.account, navigateToScreen, runLoadState, showToast])
 
   const closeRunSetup = useCallback((): void => {
@@ -1845,6 +1893,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          inventoryService={inventory.service}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1868,6 +1917,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          inventoryService={inventory.service}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1894,6 +1944,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          inventoryService={inventory.service}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1940,6 +1991,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          inventoryService={inventory.service}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -2118,6 +2170,7 @@ interface AppHeaderProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
+  inventoryService: InventoryService | null
 }
 
 function AppHeader({
@@ -2131,6 +2184,7 @@ function AppHeader({
   onOpenFishing,
   onOpenChampions,
   onOpenInventory,
+  inventoryService,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -2153,6 +2207,9 @@ function AppHeader({
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
         <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
         <button className="app-admin-link" type="button" onClick={onOpenInventory}>Inventory</button>
+        {import.meta.env.DEV && authentication.account?.isAdmin ? (
+          <DevelopmentInventoryMenu inventoryService={inventoryService} />
+        ) : null}
       </nav>
       {authentication.account ? (
         <div className="app-account">
@@ -2525,6 +2582,9 @@ function RunSetupScreen({
   const [championLoadError, setChampionLoadError] = useState<string | null>(
     () => characterService ? characterError : characterError ?? 'Champion storage is unavailable.',
   )
+  const [revivalState, setRevivalState] = useState<'idle' | 'saving'>('idle')
+  const [revivalError, setRevivalError] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
   useEffect(() => {
     if (!inventoryService) {
       return
@@ -2549,6 +2609,13 @@ function RunSetupScreen({
     }
   }, [inventoryService])
   useEffect(() => {
+    if (selectedMode !== 'infinite-abyss') {
+      return
+    }
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [selectedMode])
+  useEffect(() => {
     if (selectedMode !== 'infinite-abyss' || !characterService) {
       return
     }
@@ -2557,11 +2624,13 @@ function RunSetupScreen({
     void characterService.loadCharacters()
       .then((collection) => {
         if (!cancelled) {
-          const availableChampions = collection.champions.filter((champion) =>
-            champion.exhaustionUntil === null || Date.parse(champion.exhaustionUntil) <= Date.now(),
+          setChampions(collection.champions)
+          setSelectedChampionId((current) =>
+            collection.champions.some((champion) => champion.championId === current)
+              ? current
+              : collection.champions.find((champion) => !isChampionExhausted(champion))?.championId ??
+                collection.champions[0]?.championId ?? null,
           )
-          setChampions(availableChampions)
-          setSelectedChampionId(availableChampions[0]?.championId ?? null)
           setChampionLoadState('ready')
           setChampionLoadError(null)
         }
@@ -2590,10 +2659,44 @@ function RunSetupScreen({
     () => fishItems.filter((fish) => getFishDefinition(fish.definitionId)?.effect.runMealEligible),
     [fishItems],
   )
+  const revivalFishItems = useMemo(
+    () => fishItems.filter((fish) => fish.definitionId === 'revival-koi'),
+    [fishItems],
+  )
   const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
   const selectedChampion = champions.find((champion) =>
     champion.championId === selectedChampionId,
   )
+  const selectedChampionExhausted = selectedChampion
+    ? isChampionExhausted(selectedChampion, currentTime)
+    : false
+  const reviveChampion = async (fish: InventoryItemInstance): Promise<void> => {
+    if (!characterService || !selectedChampion || !selectedChampionExhausted || revivalState === 'saving') {
+      return
+    }
+    setRevivalState('saving')
+    setRevivalError(null)
+    try {
+      const result = await characterService.reviveChampion(
+        crypto.randomUUID(),
+        selectedChampion.championId,
+        fish.itemInstanceId,
+      )
+      setChampions((current) => current.map((champion) =>
+        champion.championId === result.championId ? result : champion,
+      ))
+      setFishItems((current) => current.flatMap((item) => {
+        if (item.itemInstanceId !== result.fishInstanceId) {
+          return [item]
+        }
+        return item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []
+      }))
+    } catch (error: unknown) {
+      setRevivalError(errorMessage(error))
+    } finally {
+      setRevivalState('idle')
+    }
+  }
   const worldModifierEffects = resolveWorldModifierEffects(
     settings.selectedWorldModifierIds,
     SPAWN_BALANCE,
@@ -2640,7 +2743,8 @@ function RunSetupScreen({
                   })
             }}
             disabled={startState === 'saving' ||
-              (selectedMode === 'infinite-abyss' && selectedChampion === undefined)}
+              (selectedMode === 'infinite-abyss' &&
+                (selectedChampion === undefined || selectedChampionExhausted))}
           >
             <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
             <span aria-hidden="true">→</span>
@@ -2819,20 +2923,96 @@ function RunSetupScreen({
              ) : selectedChampion ? (
                <>
                  <div className="run-abyss-champion-list">
-                   {champions.map((champion) => (
-                     <button
-                       className={`game-mode-choice${champion.championId === selectedChampionId ? ' selected' : ''}`}
-                       type="button"
-                       aria-pressed={champion.championId === selectedChampionId}
-                       key={champion.championId}
-                       onClick={() => setSelectedChampionId(champion.championId)}
-                     >
-                       <strong>{champion.name}</strong>
-                       <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                     </button>
-                   ))}
+                   {champions.map((champion) => {
+                     const isSelected = champion.championId === selectedChampionId
+                     const isExhausted = isChampionExhausted(champion, currentTime)
+                     const panelId = `abyss-champion-panel-${champion.championId}`
+                     const triggerId = `abyss-champion-trigger-${champion.championId}`
+                     return (
+                       <article className={`run-abyss-champion-card${isSelected ? ' selected' : ''}`} key={champion.championId}>
+                         <button
+                           className={`game-mode-choice run-abyss-champion-trigger${isSelected ? ' selected' : ''}${isExhausted ? ' exhausted' : ''}`}
+                           id={triggerId}
+                           type="button"
+                           aria-expanded={isSelected}
+                           aria-controls={panelId}
+                           aria-pressed={isSelected}
+                           onClick={() => {
+                             setSelectedChampionId(champion.championId)
+                             setRevivalError(null)
+                           }}
+                         >
+                           <span className="run-abyss-champion-trigger-copy">
+                             <strong>{champion.name}</strong>
+                             <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
+                             <small>
+                               {isExhausted
+                                 ? `Exhausted · ${formatChampionExhaustion(champion.exhaustionUntil, currentTime)}`
+                                 : 'Available'}
+                             </small>
+                           </span>
+                           <span className="run-abyss-champion-trigger-state" aria-hidden="true">
+                             <span>{isSelected ? 'Selected for run' : 'Select Champion'}</span>
+                             <span className="run-abyss-champion-chevron">{isSelected ? '▴' : '▾'}</span>
+                           </span>
+                         </button>
+                         {isSelected ? (
+                           <div
+                             className="run-abyss-champion-panel"
+                             id={panelId}
+                             role="region"
+                             aria-labelledby={triggerId}
+                           >
+                             <ChampionDetails champion={champion} />
+                             {selectedChampionExhausted ? (
+                               <section className="champion-revival-panel run-abyss-revival-panel" aria-labelledby="run-abyss-revival-title">
+                                 <strong id="run-abyss-revival-title">Champion exhausted</strong>
+                                 <span>{formatChampionExhaustion(champion.exhaustionUntil, currentTime)}</span>
+                                 {revivalError ? <small role="alert">{revivalError}</small> : null}
+                                 {revivalFishItems.length > 0 ? (
+                                   <>
+                                     <small>
+                                       Feed a Revival Koi here to reduce the remaining Abyss exhaustion.
+                                       The reduction depends on its rarity and size.
+                                     </small>
+                                     <div className="run-abyss-revival-list" aria-label="Available Revival Koi">
+                                       {revivalFishItems.map((fish) => {
+                                         const definition = getFishDefinition(fish.definitionId)
+                                         const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
+                                         return (
+                                           <button
+                                             className="champion-revival-action run-abyss-revival-action"
+                                             type="button"
+                                             key={fish.itemInstanceId}
+                                             onClick={() => { void reviveChampion(fish) }}
+                                             disabled={revivalState === 'saving'}
+                                           >
+                                             <span>
+                                               {definition ? (
+                                                 <FishIcon icon={definition.visual.icon} color={definition.visual.accent} />
+                                               ) : null}
+                                               {' '}{itemName}
+                                             </span>
+                                             <small>
+                                               {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
+                                               {formatFishSizeKg(fish.metadata.sizePercentile, definition?.weightRangeKg)}
+                                             </small>
+                                           </button>
+                                         )
+                                       })}
+                                     </div>
+                                   </>
+                                 ) : (
+                                   <small>Catch a Revival Koi to reduce this timer before entering.</small>
+                                 )}
+                               </section>
+                             ) : null}
+                           </div>
+                         ) : null}
+                       </article>
+                     )
+                   })}
                  </div>
-                 <ChampionDetails champion={selectedChampion} />
                </>
              ) : (
                <span>Complete a dungeon and save a Champion before entering the Abyss.</span>

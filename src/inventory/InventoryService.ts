@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import type {
   InventoryConsumptionResult,
+  InventoryGrantResult,
+  InventoryItemGrant,
   InventoryItemCategory,
   InventoryItemConsumption,
   InventoryItemInstance,
@@ -31,6 +33,19 @@ interface InventoryItemRow {
 interface RpcConsumptionRow {
   item_instance_id: string
   quantity_consumed: number
+  was_processed: boolean
+}
+
+interface RpcGrantRow {
+  item_instance_id: string
+  definition_id: string
+  quantity: number
+  bound: boolean
+  metadata: Record<string, unknown>
+  source_type: InventorySourceType
+  source_id: string | null
+  created_at: string
+  updated_at: string
   was_processed: boolean
 }
 
@@ -96,6 +111,20 @@ function isRpcConsumptionRow(value: unknown): value is RpcConsumptionRow {
     typeof value.was_processed === 'boolean'
 }
 
+function isRpcGrantRow(value: unknown): value is RpcGrantRow {
+  return isRecord(value) &&
+    isNonEmptyString(value.item_instance_id) &&
+    isNonEmptyString(value.definition_id) &&
+    isPositiveInteger(value.quantity) &&
+    typeof value.bound === 'boolean' &&
+    isRecord(value.metadata) &&
+    isInventorySourceType(value.source_type) &&
+    (value.source_id === null || isNonEmptyString(value.source_id)) &&
+    isNonEmptyString(value.created_at) &&
+    isNonEmptyString(value.updated_at) &&
+    typeof value.was_processed === 'boolean'
+}
+
 function isRpcReservationRow(value: unknown): value is RpcReservationRow {
   return isRecord(value) &&
     isNonEmptyString(value.reservation_id) &&
@@ -149,6 +178,21 @@ function assertConsumptionItems(
   }
 }
 
+function assertGrantItems(items: readonly InventoryItemGrant[]): void {
+  assertItems(items)
+  for (const item of items) {
+    if (!isNonEmptyString(item.definitionId) || !isPositiveInteger(item.quantity)) {
+      throw new Error('Inventory item grant is invalid.')
+    }
+    if (item.bound !== undefined && typeof item.bound !== 'boolean') {
+      throw new Error('Inventory item grant binding is invalid.')
+    }
+    if (item.metadata !== undefined && !isRecord(item.metadata)) {
+      throw new Error('Inventory item grant metadata is invalid.')
+    }
+  }
+}
+
 function toItemInstance(row: InventoryItemRow): InventoryItemInstance {
   return {
     itemInstanceId: row.id,
@@ -189,6 +233,44 @@ export function createInventoryService(
       return category
         ? instances.filter((item) => getInventoryItemDefinition(item.definitionId)?.category === category)
         : instances
+    },
+
+    async grantDevelopmentItems(
+      operationId: InventoryOperationId,
+      items: readonly InventoryItemGrant[],
+    ): Promise<InventoryGrantResult[]> {
+      assertOperationId(operationId)
+      assertGrantItems(items)
+      const response = await getClient().rpc('grant_development_inventory_items', {
+        p_operation_id: operationId,
+        p_items: items,
+      })
+      if (response.error) {
+        if (response.error.code === 'PGRST202') {
+          throw new Error(
+            'Development inventory grants are unavailable in this Supabase project. ' +
+            'Apply the latest Supabase migrations and reload the app.',
+          )
+        }
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || !response.data.every(isRpcGrantRow)) {
+        throw invalidResponse('expected granted item rows')
+      }
+      return response.data.map((row) => ({
+        itemInstanceId: row.item_instance_id,
+        definitionId: row.definition_id,
+        quantity: row.quantity,
+        bound: row.bound,
+        metadata: row.metadata,
+        source: {
+          type: row.source_type,
+          id: row.source_id,
+        },
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        wasProcessed: row.was_processed,
+      }))
     },
 
     async consumeItems(

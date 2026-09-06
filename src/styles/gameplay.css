@@ -669,13 +669,18 @@
 }
 
 .app-navigation {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
   align-self: center;
   margin-left: auto;
+  overflow: visible;
   padding-right: 0.75rem;
 }
 
 .app-navigation button {
-  margin-left: 0.5rem;
+  margin-left: 0;
 }
 
 .app-wiki-link:hover,
