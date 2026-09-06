@@ -88,7 +88,7 @@ export function AuthPanel({
         <p className="account-email">
           {getPlayerDisplayName({
             providerDisplayName: authentication.account.displayName,
-            fallback: authentication.account.email,
+            email: authentication.account.email,
           })}
         </p>
         {authentication.error ? (

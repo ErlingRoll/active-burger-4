@@ -20,10 +20,21 @@ describe('player display names', () => {
     })).toBe('Discord Name')
   })
 
+  it('uses only the email local part when no public name exists', () => {
+    expect(getPlayerDisplayName({
+      email: '  pond.knight@example.com ',
+    })).toBe('pond.knight')
+    expect(getPlayerDisplayName({
+      email: 'angler@example.com',
+      fallback: 'Unknown angler',
+    })).toBe('angler')
+  })
+
   it('uses the configured fallback and then the default name', () => {
     expect(getPlayerDisplayName({
       approvedNickname: ' ',
       providerDisplayName: null,
+      email: null,
       fallback: 'Unknown angler',
     })).toBe('Unknown angler')
     expect(getPlayerDisplayName({})).toBe(DEFAULT_PLAYER_DISPLAY_NAME)

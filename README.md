@@ -34,8 +34,8 @@ offensive or hateful names from being displayed even if a browser client is
 modified or bypasses the UI.
 
 An approved nickname takes priority. Until then, the player's Discord display
-name is used as the public fallback; only players without either name appear as
-Anonymous player.
+name is used, followed by the local part of an email address (without the
+domain); only players without either name appear as Anonymous player.
 
 All player-facing names use the shared resolver documented in
 [docs/PLAYER_NAMES.md](docs/PLAYER_NAMES.md). New components must use

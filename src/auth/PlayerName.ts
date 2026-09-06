@@ -3,6 +3,7 @@ export const DEFAULT_PLAYER_DISPLAY_NAME = 'Anonymous player'
 export interface PlayerNameSources {
   approvedNickname?: string | null
   providerDisplayName?: string | null
+  email?: string | null
   fallback?: string | null
 }
 
@@ -13,9 +14,13 @@ export interface PlayerNameSources {
 export function getPlayerDisplayName({
   approvedNickname,
   providerDisplayName,
+  email,
   fallback,
 }: PlayerNameSources): string {
-  for (const candidate of [approvedNickname, providerDisplayName, fallback]) {
+  const emailLocalPart = typeof email === 'string'
+    ? email.trim().split('@', 1)[0]?.trim()
+    : undefined
+  for (const candidate of [approvedNickname, providerDisplayName, emailLocalPart, fallback]) {
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
       return candidate.trim()
     }

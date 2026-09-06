@@ -38,6 +38,7 @@ interface FishingScreenProps {
   activityPlayerId: string
   activityPlayerApprovedNickname: string | null
   activityPlayerProviderName: string | null
+  activityPlayerEmail: string | null
 }
 
 function createAttemptId(): string {
@@ -377,11 +378,13 @@ export function FishingScreen({
   activityPlayerId,
   activityPlayerApprovedNickname,
   activityPlayerProviderName,
+  activityPlayerEmail,
 }: FishingScreenProps) {
   const { showLootToast } = useToaster()
   const activityPlayerName = getPlayerDisplayName({
     approvedNickname: activityPlayerApprovedNickname,
     providerDisplayName: activityPlayerProviderName,
+    email: activityPlayerEmail,
   })
   const [items, setItems] = useState<InventoryItemInstance[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(

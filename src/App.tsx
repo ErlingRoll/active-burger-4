@@ -874,6 +874,7 @@ function App() {
       username: getPlayerDisplayName({
         approvedNickname: nickname.displayName,
         providerDisplayName: authentication.account.displayName,
+        email: authentication.account.email,
       }),
       description,
       image,
@@ -2016,6 +2017,7 @@ function App() {
           activityPlayerId={authentication.account.id}
           activityPlayerApprovedNickname={nickname.displayName}
           activityPlayerProviderName={authentication.account.displayName}
+          activityPlayerEmail={authentication.account.email}
         />
       ) : null}
       {screen === 'champions' && authentication.account ? (
@@ -2127,6 +2129,7 @@ function AppHeader({
             {getPlayerDisplayName({
               approvedNickname: nickname.displayName,
               providerDisplayName: authentication.account.displayName,
+              email: authentication.account.email,
             })}
           </strong>
           {authentication.error ? (
