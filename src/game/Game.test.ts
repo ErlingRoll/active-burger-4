@@ -5,6 +5,7 @@ import {
   DEFAULT_DUNGEON_CONFIG,
   DEFAULT_TIME_SCALE,
   FIXED_STEP_SECONDS,
+  getAutomaticTimeScale,
   MAX_FRAME_SECONDS,
   MAX_TIME_SCALE,
   MIN_TIME_SCALE,
@@ -557,6 +558,40 @@ describe('Game', () => {
       expect(result.ok).toBe(false)
       expect(game.timeScale).toBe(MAX_TIME_SCALE)
     }
+  })
+
+  it('scales dungeon and abyss runs from 1x to 2x by floor 30', () => {
+    expect(getAutomaticTimeScale(1)).toBe(1)
+    expect(getAutomaticTimeScale(10)).toBeCloseTo(1 + 9 / 29)
+    expect(getAutomaticTimeScale(20)).toBeCloseTo(1 + 19 / 29)
+    expect(getAutomaticTimeScale(30)).toBe(2)
+    expect(getAutomaticTimeScale(100)).toBe(2)
+
+    const abyss = createGame({
+      seed: 4,
+      modeId: 'infinite-abyss',
+      champion: {
+        schemaVersion: 1,
+        classId: 'knight',
+        behaviorProfileId: 'balanced',
+        equipment: {},
+        skills: [
+          { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+          { skillId: 'whirlwind', level: 1 },
+        ],
+        selectedUpgradeIds: [],
+      },
+    })
+    abyss.state.run.floor = 30
+    expect(abyss.timeScale).toBe(2)
+  })
+
+  it('keeps a manually selected time scale across floor changes', () => {
+    const game = createGame({ seed: 5 })
+    expect(game.setTimeScale(3).ok).toBe(true)
+    game.state.run.floor = 30
+
+    expect(game.timeScale).toBe(3)
   })
 
   it('applies 10x to a clamped raw frame delta before fixed-step accumulation', () => {
@@ -1118,7 +1153,7 @@ describe('Game', () => {
       game.state.run.floor = game.dungeon.defaultMaxFloor
       game.state.run.floorStartedAt =
         game.state.time - game.dungeon.floorDurationSeconds
-      game.update(FIXED_STEP_SECONDS)
+      game.update(FIXED_STEP_SECONDS / 2)
       const boss = game.state.bosses?.[0]
       expect(boss).toBeDefined()
       if (!boss) {
@@ -1128,7 +1163,7 @@ describe('Game', () => {
       game.state.player.y = boss.y
       boss.hp = 0
 
-      game.update(FIXED_STEP_SECONDS)
+      game.update(FIXED_STEP_SECONDS / 2)
 
       expect(game.state.stairs).toBeUndefined()
       expect(game.state.floorTransition).toMatchObject({

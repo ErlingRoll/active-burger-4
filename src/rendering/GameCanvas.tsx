@@ -276,13 +276,9 @@ function isFreeMovementKey(
 
 function applyInitialTimeScale(game: Game): void {
   if (!import.meta.env.DEV) {
-    game.setTimeScale(DEFAULT_TIME_SCALE)
     return
   }
-  const storedTimeScale = getStoredDevelopmentTimeScale()
-  if (storedTimeScale !== null) {
-    game.setTimeScale(storedTimeScale)
-  }
+  game.setTimeScale(getStoredDevelopmentTimeScale() ?? DEFAULT_TIME_SCALE)
 }
 
 export function GameCanvas({

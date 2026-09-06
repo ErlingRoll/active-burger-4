@@ -4,6 +4,7 @@ import {
   createGameFromCheckpoint,
   createInitialGameCheckpoint,
   FIXED_STEP_SECONDS,
+  getAutomaticTimeScale,
   Game,
 } from '../Game'
 import { CHECKPOINT_VERSION, isValidCheckpoint } from '../checkpoint/GameCheckpoint'
@@ -385,6 +386,19 @@ describe('GameCheckpoint', () => {
   })
 
   describe('time scale preservation', () => {
+    it('restores the automatic floor scale for saves between floors 1 and 30', () => {
+      for (const floor of [1, 15, 29, 30]) {
+        const game = createGame({ seed: 701 + floor })
+        game.state.run.floor = floor
+        const restored = Game.restoreFromCheckpoint(
+          JSON.parse(JSON.stringify(game.createCheckpoint())),
+        )
+
+        expect(restored.state.run.floor).toBe(floor)
+        expect(restored.timeScale).toBeCloseTo(getAutomaticTimeScale(floor))
+      }
+    })
+
     it('preserves non-default time scale', () => {
       const game = createGame({ seed: 700 })
       game.setTimeScale(3)

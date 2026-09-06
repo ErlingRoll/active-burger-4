@@ -278,6 +278,7 @@ export type GameStateListener = (state: Readonly<GameState>) => void
 export const MIN_TIME_SCALE = 0.1
 export const MAX_TIME_SCALE = 10
 export const DEFAULT_TIME_SCALE = 1
+export const AUTOMATIC_TIME_SCALE_MAX_FLOOR = 30
 export const DEBUG_SPAWN_COUNTS = [100, 500, 1000] as const
 export type DebugSpawnCount = (typeof DEBUG_SPAWN_COUNTS)[number]
 
@@ -291,6 +292,17 @@ export type DevelopmentGrantResult =
 
 type LegacyClassRunConfig = RunConfig & { playstyleId?: unknown }
 type LegacyClassPlayerState = GameState['player'] & { playstyleId?: unknown }
+
+export function getAutomaticTimeScale(floor: number | undefined): number {
+  const normalizedFloor = typeof floor === 'number' && Number.isFinite(floor)
+    ? Math.max(1, floor)
+    : 1
+  const floorProgress = Math.min(
+    1,
+    (normalizedFloor - 1) / (AUTOMATIC_TIME_SCALE_MAX_FLOOR - 1),
+  )
+  return DEFAULT_TIME_SCALE + floorProgress
+}
 
 function normalizeRunConfig(config: RunConfig): RunConfig {
   const { playstyleId: legacyCharacterClassId, ...currentConfig } =
@@ -342,6 +354,7 @@ export class Game {
   readonly dungeon: DungeonDefinition
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
+  private timeScaleOverride = false
   private resumePhase: RunPhase | undefined
   private choiceFlows: PendingChoiceFlow[] = []
   private readonly collectedGearPickups: GearPickupState[] = []
@@ -576,6 +589,18 @@ export class Game {
     }
   }
 
+  private getEffectiveTimeScale(): number {
+    if (this.timeScaleOverride) {
+      return this.currentTimeScale
+    }
+
+    const modeId = this.gameState.run.modeId
+    if (modeId !== 'dungeon' && modeId !== 'infinite-abyss') {
+      return this.currentTimeScale
+    }
+    return getAutomaticTimeScale(this.gameState.run.floor)
+  }
+
   /** Read-only projection of the current simulation state. */
   get state(): Readonly<GameState> {
     return this.gameState
@@ -590,7 +615,7 @@ export class Game {
   }
 
   get timeScale(): number {
-    return this.currentTimeScale
+    return this.getEffectiveTimeScale()
   }
 
   get behaviorProfileId(): BehaviorProfileId {
@@ -770,6 +795,7 @@ export class Game {
     }
 
     this.currentTimeScale = value
+    this.timeScaleOverride = true
     return { ok: true, value }
   }
 
@@ -1225,7 +1251,7 @@ export class Game {
         this.gameState.floorTransition?.savePending !== true)
     this.clock.advance(
       rawDeltaSeconds,
-      this.currentTimeScale,
+      this.getEffectiveTimeScale(),
       canAdvance,
       () => this.step(),
     )
@@ -1834,6 +1860,7 @@ export class Game {
         getNextEntityIdFromState(this.gameState),
       clockAccumulatedSeconds: this.clock.getAccumulatedSeconds(),
       currentTimeScale: this.currentTimeScale,
+      timeScaleOverride: this.timeScaleOverride,
       resumePhase: this.resumePhase ?? null,
       choiceFlows: JSON.parse(JSON.stringify(this.choiceFlows)),
       collectedGearPickups: JSON.parse(JSON.stringify(this.collectedGearPickups)),
@@ -1884,6 +1911,8 @@ export class Game {
     game.idAllocator.setNextId(checkpoint.nextEntityId)
     game.clock.setAccumulatedSeconds(checkpoint.clockAccumulatedSeconds)
     game.currentTimeScale = checkpoint.currentTimeScale
+    game.timeScaleOverride = checkpoint.timeScaleOverride ??
+      checkpoint.currentTimeScale !== DEFAULT_TIME_SCALE
     game.resumePhase = checkpoint.resumePhase ?? undefined
     game.choiceFlows = JSON.parse(JSON.stringify(checkpoint.choiceFlows))
     game.collectedGearPickups.length = 0

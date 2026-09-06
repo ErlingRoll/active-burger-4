@@ -61,6 +61,8 @@ export interface GameCheckpoint {
 
   /** Game-level private fields. */
   currentTimeScale: number
+  /** Whether the development menu has overridden automatic floor scaling. */
+  timeScaleOverride?: boolean
   resumePhase: RunPhase | null
   choiceFlows: PendingChoiceFlow[]
   collectedGearPickups: GearPickupState[]
@@ -87,6 +89,8 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
     !isFiniteInteger(record.nextEntityId, 1) ||
     !isFiniteNumber(record.clockAccumulatedSeconds, 0) ||
     !isFiniteNumber(record.currentTimeScale, 0.1) ||
+    (record.timeScaleOverride !== undefined &&
+      typeof record.timeScaleOverride !== 'boolean') ||
     (record.resumePhase !== null &&
       (typeof record.resumePhase !== 'string' || !RUN_PHASES.has(record.resumePhase))) ||
     !isRecord(record.runConfig) ||
