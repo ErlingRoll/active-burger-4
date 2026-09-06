@@ -29,7 +29,9 @@ export const DEFAULT_AUDIO_SETTINGS: Readonly<AudioSettings> = Object.freeze({
  */
 export const MUSIC_PLAYLISTS: Readonly<Record<MusicPlaylistId, readonly string[]>> = {
   dashboard: [],
-  fishing: [],
+  fishing: [
+    '/audio/music/fishing/space_waves.mp3'
+  ],
   dungeon: [],
   abyss: [],
 }
@@ -92,8 +94,11 @@ class BrowserAudioSystem {
   private playlistId: MusicPlaylistId | null = null
   private trackIndex = -1
   private audio: HTMLAudioElement | null = null
+  private incomingAudio: HTMLAudioElement | null = null
   private fadeGain = 0
-  private fadeRequest = 0
+  private incomingFadeGain = 0
+  private readonly fadeRequests = new Map<HTMLAudioElement, number>()
+  private playlistGeneration = 0
   private transitioning = false
 
   constructor() {
@@ -106,7 +111,7 @@ class BrowserAudioSystem {
         void audio.play()
           .then(() => {
             if (this.fadeGain === 0) {
-              this.fadeTo(1, MUSIC_FADE_SECONDS)
+              this.fadeAudio(audio, 1, MUSIC_FADE_SECONDS)
             }
           })
           .catch(() => undefined)
@@ -175,20 +180,28 @@ class BrowserAudioSystem {
     if (this.audio) {
       this.audio.volume = this.getMusicVolume() * this.fadeGain
     }
+    if (this.incomingAudio) {
+      this.incomingAudio.volume = this.getMusicVolume() * this.incomingFadeGain
+    }
   }
 
   private stopTrack(): void {
-    this.fadeRequest += 1
+    this.playlistGeneration += 1
     this.transitioning = false
-    if (!this.audio) {
-      return
+    for (const track of [this.audio, this.incomingAudio]) {
+      if (!track) {
+        continue
+      }
+      track.removeEventListener('ended', this.handleTrackEnded)
+      track.removeEventListener('timeupdate', this.handleTrackTimeUpdate)
+      track.pause()
+      track.src = ''
     }
-    this.audio.removeEventListener('ended', this.handleTrackEnded)
-    this.audio.removeEventListener('timeupdate', this.handleTrackTimeUpdate)
-    this.audio.pause()
-    this.audio.src = ''
     this.audio = null
+    this.incomingAudio = null
     this.fadeGain = 0
+    this.incomingFadeGain = 0
+    this.fadeRequests.clear()
   }
 
   private startTrack(index: number): void {
@@ -205,9 +218,12 @@ class BrowserAudioSystem {
     audio.addEventListener('timeupdate', this.handleTrackTimeUpdate)
     this.audio = audio
     this.fadeGain = 0
+    const generation = this.playlistGeneration
     void audio.play()
       .then(() => {
-        this.fadeTo(1, MUSIC_FADE_SECONDS)
+        if (this.audio === audio && this.playlistGeneration === generation) {
+          this.fadeAudio(audio, 1, MUSIC_FADE_SECONDS)
+        }
       })
       .catch(() => undefined)
   }
@@ -239,37 +255,110 @@ class BrowserAudioSystem {
     }
     this.transitioning = true
     const previousAudio = this.audio
-    this.fadeTo(0, MUSIC_FADE_SECONDS, () => {
-      if (this.audio !== previousAudio) {
-        return
-      }
-      previousAudio.pause()
-      previousAudio.removeEventListener('ended', this.handleTrackEnded)
-      previousAudio.removeEventListener('timeupdate', this.handleTrackTimeUpdate)
-      const nextIndex = (this.trackIndex + 1) % playlist.length
-      this.audio = null
+    const nextIndex = (this.trackIndex + 1) % playlist.length
+    const source = playlist[nextIndex]
+    if (!source || typeof Audio === 'undefined') {
       this.transitioning = false
-      this.startTrack(nextIndex)
-    })
-  }
-
-  private fadeTo(target: number, durationSeconds: number, onComplete?: () => void): void {
-    if (!this.audio || typeof window === 'undefined') {
       return
     }
-    const request = ++this.fadeRequest
-    const initial = this.fadeGain
+
+    const nextAudio = new Audio(source)
+    nextAudio.preload = 'auto'
+    nextAudio.volume = 0
+    this.incomingAudio = nextAudio
+    this.incomingFadeGain = 0
+    const generation = this.playlistGeneration
+
+    void nextAudio.play()
+      .then(() => {
+        if (
+          this.audio !== previousAudio ||
+          this.incomingAudio !== nextAudio ||
+          this.playlistGeneration !== generation
+        ) {
+          return
+        }
+        this.fadeAudio(
+          previousAudio,
+          0,
+          MUSIC_FADE_SECONDS,
+          () => this.finishCrossfade(previousAudio, nextAudio, nextIndex, generation),
+        )
+        this.fadeAudio(nextAudio, 1, MUSIC_FADE_SECONDS)
+      })
+      .catch(() => {
+        if (this.incomingAudio !== nextAudio || this.playlistGeneration !== generation) {
+          return
+        }
+        nextAudio.pause()
+        nextAudio.src = ''
+        this.incomingAudio = null
+        this.incomingFadeGain = 0
+        this.transitioning = false
+      })
+  }
+
+  private finishCrossfade(
+    previousAudio: HTMLAudioElement,
+    nextAudio: HTMLAudioElement,
+    nextIndex: number,
+    generation: number,
+  ): void {
+    if (
+      this.audio !== previousAudio ||
+      this.incomingAudio !== nextAudio ||
+      this.playlistGeneration !== generation
+    ) {
+      return
+    }
+    previousAudio.pause()
+    previousAudio.removeEventListener('ended', this.handleTrackEnded)
+    previousAudio.removeEventListener('timeupdate', this.handleTrackTimeUpdate)
+    previousAudio.src = ''
+    nextAudio.addEventListener('ended', this.handleTrackEnded)
+    nextAudio.addEventListener('timeupdate', this.handleTrackTimeUpdate)
+    this.audio = nextAudio
+    this.incomingAudio = null
+    this.trackIndex = nextIndex
+    this.fadeGain = 1
+    this.incomingFadeGain = 0
+    this.transitioning = false
+  }
+
+  private fadeAudio(
+    audio: HTMLAudioElement,
+    target: number,
+    durationSeconds: number,
+    onComplete?: () => void,
+  ): void {
+    if (
+      (audio !== this.audio && audio !== this.incomingAudio) ||
+      typeof window === 'undefined'
+    ) {
+      return
+    }
+    const request = (this.fadeRequests.get(audio) ?? 0) + 1
+    this.fadeRequests.set(audio, request)
+    const initial = audio === this.incomingAudio ? this.incomingFadeGain : this.fadeGain
     const startedAt = performance.now()
     const durationMs = durationSeconds * 1000
     const step = (now: number): void => {
-      if (request !== this.fadeRequest || !this.audio) {
+      if (
+        this.fadeRequests.get(audio) !== request ||
+        (audio !== this.audio && audio !== this.incomingAudio)
+      ) {
         return
       }
       const progress = durationMs === 0
         ? 1
         : Math.min(1, (now - startedAt) / durationMs)
-      this.fadeGain = initial + (target - initial) * progress
-      this.applyMusicVolume()
+      const gain = initial + (target - initial) * progress
+      if (audio === this.incomingAudio) {
+        this.incomingFadeGain = gain
+      } else {
+        this.fadeGain = gain
+      }
+      audio.volume = this.getMusicVolume() * gain
       if (progress >= 1) {
         onComplete?.()
         return

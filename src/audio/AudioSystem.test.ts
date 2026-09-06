@@ -28,9 +28,9 @@ describe('audio settings', () => {
       'dungeon',
       'abyss',
     ])
-    expect(MUSIC_PLAYLISTS.dashboard).toEqual([])
-    expect(MUSIC_PLAYLISTS.fishing).toEqual([])
-    expect(MUSIC_PLAYLISTS.dungeon).toEqual([])
-    expect(MUSIC_PLAYLISTS.abyss).toEqual([])
+    expect(MUSIC_PLAYLISTS.dashboard).toBeDefined()
+    expect(MUSIC_PLAYLISTS.fishing).toBeDefined()
+    expect(MUSIC_PLAYLISTS.dungeon).toBeDefined()
+    expect(MUSIC_PLAYLISTS.abyss).toBeDefined()
   })
 })

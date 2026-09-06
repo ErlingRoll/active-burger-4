@@ -14,7 +14,11 @@
   background: transparent;
 }
 
-.app-shell-fishing .app-header,
+.app-shell-fishing .app-header {
+  position: relative;
+  z-index: 2;
+}
+
 .app-shell-fishing .fishing-screen {
   position: relative;
   z-index: 1;
