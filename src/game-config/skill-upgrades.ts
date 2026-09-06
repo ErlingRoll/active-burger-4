@@ -557,6 +557,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: `+${VITALITY_MAX_HP_HEALING_PERCENT}% max HP healing per cast`,
     skillId: VITALITY_SKILL_ID,
     evolution: 'vitality-renewal',
+    evolutionRankValueLabel: `+${VITALITY_MAX_HP_HEALING_PERCENT}% max HP healing per cast`,
     vitalityMaxHpHealingPercent: VITALITY_MAX_HP_HEALING_PERCENT,
     isEligible: (state) =>
       state.ownedSkillIds.includes(VITALITY_SKILL_ID) &&
@@ -572,6 +573,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     valueLabel: '2x low-health healing, 20% low-health damage reduction',
     skillId: VITALITY_SKILL_ID,
     evolution: 'vitality-last-stand',
+    evolutionRankValueLabel: `+${VITALITY_HEALING_PER_LEVEL} HP per cast`,
     vitalityLowHpHealingMultiplier: VITALITY_LOW_HP_HEALING_MULTIPLIER,
     vitalityLowHpDamageReductionPercent: VITALITY_LOW_HP_DAMAGE_REDUCTION_PERCENT,
     isEligible: (state) =>

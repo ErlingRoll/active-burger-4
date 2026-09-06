@@ -341,6 +341,15 @@ describe('upgrade choice generation', () => {
     )
   })
 
+  it('uses the correct later-rank effect for Vitality evolutions', () => {
+    expect(getUpgradeDescription(getUpgrade('vitality-renewal'))).toBe(
+      'Vitality also heals 3% of your maximum HP on each cast. Each additional rank: +3% max HP healing per cast.',
+    )
+    expect(getUpgradeDescription(getUpgrade('vitality-last-stand'))).toBe(
+      'Below 40% health, Vitality heals for twice as much and you take 20% less damage. Each additional rank: +5 HP per cast.',
+    )
+  })
+
   it('makes Empowered Attack an Uncommon upgrade', () => {
     expect(getUpgrade('basic-attack-level').rarity).toBe(Rarity.Uncommon)
   })

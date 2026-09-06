@@ -324,6 +324,8 @@ export interface UpgradeDefinition {
   skillId?: SkillId
   skillAction?: SkillUpgradeAction
   evolution?: SkillEvolutionId
+  /** Optional later-rank effect when it differs from the skill's level upgrade. */
+  evolutionRankValueLabel?: string
   /** Status or mechanic tags added or modified by a skill evolution. */
   evolutionTags?: readonly KeywordId[]
   isEligible: (state: Readonly<UpgradeEligibilityState>) => boolean
@@ -531,7 +533,8 @@ export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
     )
   }
 
-  const rankEffect = skillRankUpgrade.valueLabel.replace(/\s+per level$/i, '')
+  const rankEffect = upgrade.evolutionRankValueLabel ??
+    skillRankUpgrade.valueLabel.replace(/\s+per level$/i, '')
   return `${upgrade.description} Each additional rank: ${rankEffect}.`
 }
 

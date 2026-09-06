@@ -45,6 +45,8 @@ milestones in order unless an ADR documents an exception.
 - For a normal evolution, that later-rank effect is the skill's regular level
   upgrade. The shared formatter derives it from the skill's `skillAction:
   'level'` definition.
+- A normal evolution may set `evolutionRankValueLabel` when its later-rank
+  effect needs wording different from the skill's regular level upgrade.
 - For a repeatable evolution, the later-rank effect belongs to the evolution
   itself. Mark the definition with `repeatable: true` and make its
   `valueLabel` describe one rank of that repeatable effect.
