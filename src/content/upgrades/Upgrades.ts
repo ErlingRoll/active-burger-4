@@ -1,5 +1,5 @@
 import type { StatModifier, StatKey } from '../stats/Stats'
-import type { SkillId } from '../skills/Skills'
+import { getSkillDefinition, type SkillId } from '../skills/Skills'
 import type { KeywordId } from '../glossary/Keywords'
 import type { DamageType } from '../stats/Damage'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
@@ -501,6 +501,12 @@ export function getUpgradeDefinition(upgradeId: UpgradeId): UpgradeDefinition {
 }
 
 export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
+  if (upgrade.skillAction === 'level') {
+    if (!upgrade.skillId) {
+      throw new Error(`Level upgrade ${upgrade.id} must reference a skill.`)
+    }
+    return `+1 Level to ${getSkillDefinition(upgrade.skillId).name}`
+  }
   if (!upgrade.evolution) {
     return upgrade.description
   }

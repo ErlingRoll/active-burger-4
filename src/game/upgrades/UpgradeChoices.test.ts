@@ -164,6 +164,21 @@ describe('upgrade choice generation', () => {
     expect(ids).not.toContain('whirlwind-unlock')
   })
 
+  it('describes every generic level upgrade as a level increase', () => {
+    const levelUpgrades = INITIAL_UPGRADES.filter(
+      (upgrade) => upgrade.skillAction === 'level',
+    )
+
+    for (const upgrade of levelUpgrades) {
+      if (!upgrade.skillId) {
+        throw new Error(`Expected level upgrade ${upgrade.id} to reference a skill.`)
+      }
+      expect(getUpgradeDescription(upgrade)).toBe(
+        `+1 Level to ${SKILL_DEFINITIONS[upgrade.skillId].name}`,
+      )
+    }
+  })
+
   it('defines five non-repeatable Basic Attack evolutions', () => {
     const evolutions = [
      getUpgrade('basic-attack-lightning-attunement'),

@@ -34,6 +34,9 @@ milestones in order unless an ADR documents an exception.
 
 ## Skill upgrade description contract
 
+- A generic level-up card keeps its `valueLabel` as the stat delta and uses the
+  exact choice description format `+1 Level to [skill]`. Do not repeat the
+  numeric stat change in that description.
 - An evolution's `description` describes the one-time mechanic that the
   evolution adds.
 - The generated evolution description must use the wording

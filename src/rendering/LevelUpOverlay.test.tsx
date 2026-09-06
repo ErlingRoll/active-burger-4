@@ -136,6 +136,7 @@ describe('LevelUpOverlay', () => {
     )
 
     expect(markup).toContain('Upgrade:<span class="upgrade-action-skill">')
+    expect(markup).toContain('+1 Level to Basic Attack')
     expect(markup).not.toContain('Upgrade level:')
   })
 
