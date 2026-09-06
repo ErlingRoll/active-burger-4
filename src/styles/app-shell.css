@@ -177,7 +177,7 @@
   z-index: 10;
   top: calc(100% + 0.35rem);
   right: 0;
-  min-width: 11rem;
+  min-width: min(19rem, calc(100vw - 2rem));
   padding: 0.35rem;
   background: #0f172a;
   border: 1px solid #475569;
@@ -206,6 +206,74 @@
   background: #1e293b;
   outline: 2px solid rgb(147 197 253 / 35%);
   outline-offset: -2px;
+}
+
+.audio-settings-panel {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+  margin: 0.2rem 0 0.45rem;
+  padding: 0.7rem;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 0.4rem;
+}
+
+.audio-settings-panel legend {
+  padding: 0 0.3rem;
+  color: #f8fafc;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.audio-channel-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.audio-channel-row {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.audio-channel-row label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.audio-channel-row output {
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-channel-row input {
+  width: 100%;
+  accent-color: #60a5fa;
+}
+
+.audio-mute-button {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.6rem;
+  color: #eff6ff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: #1e293b;
+  border: 1px solid #64748b;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.audio-mute-button:hover,
+.audio-mute-button:focus-visible {
+  background: #334155;
+  border-color: #93c5fd;
+  outline: 3px solid rgb(147 197 253 / 35%);
+  outline-offset: 2px;
 }
 
 .nickname-dialog-backdrop {

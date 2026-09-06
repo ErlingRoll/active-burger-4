@@ -12,6 +12,7 @@ import {
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { ReportBugModal } from './ReportBugModal'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
+import { AudioSettingsPanel } from '../audio'
 
 interface PauseMenuProps {
   keybinds: GameKeybinds
@@ -171,6 +172,7 @@ export function PauseMenu({
         >
           {saving ? 'Saving…' : 'Save & quit'}
         </button>
+        <AudioSettingsPanel />
         <a
           className="pause-wiki-link"
           href="/wiki"

@@ -126,6 +126,10 @@ import {
   calculateEssenceReward,
   type EssenceRewardCalculation,
 } from './meta/EssenceRewards'
+import {
+  useMusicPlaylist,
+  type MusicPlaylistId,
+} from './audio'
 import './App.css'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
@@ -184,6 +188,23 @@ function getScreenForPath(pathname: string): AppScreen {
   }
   return 'dashboard'
 }
+
+function getMusicPlaylistId(
+  screen: AppScreen,
+  runMode: RunModeId,
+): MusicPlaylistId | null {
+  if (screen === 'dashboard') {
+    return 'dashboard'
+  }
+  if (screen === 'fishing') {
+    return 'fishing'
+  }
+  if (screen === 'gameplay') {
+    return runMode === 'infinite-abyss' ? 'abyss' : 'dungeon'
+  }
+  return null
+}
+
 interface PersistenceState {
   loadState: PersistenceLoadState
   settings: SettingsDto | null
@@ -826,6 +847,7 @@ function App() {
           }),
     }
   }, [activeRun, metaProgression.snapshot, profile, runChampion, runChampionId, runMode, runSeed, settings])
+  useMusicPlaylist(getMusicPlaylistId(screen, runConfig?.modeId ?? runMode))
 
   const persistSettings = useCallback(
     async (patch: SettingsPatch): Promise<void> => {

@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { validateNickname } from './NicknameService'
+import { AudioSettingsPanel } from '../audio'
 
 interface AccountSettingsMenuProps {
   displayName: string | null
@@ -66,6 +67,7 @@ export function AccountSettingsMenu({
         </button>
         {menuOpen ? (
           <div className="account-settings-menu" role="menu">
+            <AudioSettingsPanel />
             <button role="menuitem" type="button" onClick={openNicknameDialog}>
               Change nickname
             </button>
