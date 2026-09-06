@@ -2289,6 +2289,7 @@ function GameDashboard({
   const [forfeiting, setForfeiting] = useState(false)
   const [forfeitError, setForfeitError] = useState<string | null>(null)
   const storeBlocked = activeRun !== null || runLoadState !== 'ready'
+  const isAbyssRun = activeRun?.modeId === 'infinite-abyss'
   const activeCharacterClass = activeRun
     ? Object.values(CHARACTER_CLASS_DEFINITIONS).find(
       (characterClass) => characterClass.id === activeRun.characterClassId,
@@ -2417,9 +2418,9 @@ function GameDashboard({
             </button>
           </div>
 
-          <section className="game-dashboard-actions" aria-labelledby="current-dungeon-title">
+          <section className="game-dashboard-actions" aria-labelledby="current-run-title">
             <div className="game-dashboard-section-heading">
-              <h3 id="current-dungeon-title">Current dungeon</h3>
+              <h3 id="current-run-title">{isAbyssRun ? 'Current abyss' : 'Current dungeon'}</h3>
             </div>
             <div className="game-dashboard-action-grid">
               {activeRun ? (
@@ -2427,14 +2428,14 @@ function GameDashboard({
                   <div className="current-dungeon-card-heading">
                     <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
                     <span>
-                      <strong>Dungeon run in progress</strong>
+                      <strong>{isAbyssRun ? 'Abyss run in progress' : 'Dungeon run in progress'}</strong>
                       <small>Continue your descent from the latest saved floor.</small>
                     </span>
                   </div>
                   <dl className="current-dungeon-details">
                     <div>
                       <dt>Floor</dt>
-                      <dd>{activeRun.currentFloor} / {activeRun.maxFloor}</dd>
+                      <dd>{isAbyssRun ? activeRun.currentFloor : `${activeRun.currentFloor} / ${activeRun.maxFloor}`}</dd>
                     </div>
                     <div>
                       <dt>Class</dt>
@@ -2447,7 +2448,7 @@ function GameDashboard({
                     onClick={onContinueRun}
                   >
                     <span>
-                      <strong>Continue dungeon</strong>
+                      <strong>{isAbyssRun ? 'Continue abyss' : 'Continue dungeon'}</strong>
                       <small>Restart from the saved floor checkpoint.</small>
                     </span>
                     <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>

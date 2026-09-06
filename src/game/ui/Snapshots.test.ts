@@ -1075,6 +1075,21 @@ describe('UI snapshots', () => {
     expect(transitionSnapshot.phase).toBe('floor-transition')
   })
 
+  it('projects a bounded encounter timeline for an Infinite Abyss run', () => {
+    const game = createGame({ seed: 77 })
+    game.state.run.modeId = 'infinite-abyss'
+    game.state.run.dungeonMaxFloor = Number.MAX_SAFE_INTEGER
+
+    const snapshot = game.getUiSnapshot()
+
+    expect(snapshot.timeline).toHaveLength(11)
+    expect(snapshot.timeline.at(-1)).toMatchObject({
+      floorNumber: 11,
+      name: 'Inferno Warden',
+      status: 'upcoming',
+    })
+  })
+
   it('projects queued choices without exposing mutable simulation arrays', () => {
     const game = createGame({ seed: 75 })
     game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))

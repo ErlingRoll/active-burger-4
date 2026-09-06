@@ -1865,12 +1865,14 @@ export function createUiSnapshot(
     worldModifierRewardMultiplier,
   ).projectedReward
   const completedEncounterIds = new Set(state.run.completedEncounterIds ?? [])
-  const encounterTimeline = state.run.dungeonMaxFloor === undefined ||
-    state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
-    ? dungeon.encounterTimeline
-    : createDungeonEncounterTimeline(
-      state.run.dungeonMaxFloor,
-    )
+  const encounterTimeline = state.run.modeId === 'infinite-abyss'
+    ? createDungeonEncounterTimeline(Math.max(floor + 10, 10))
+    : state.run.dungeonMaxFloor === undefined ||
+      state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
+      ? dungeon.encounterTimeline
+      : createDungeonEncounterTimeline(
+        state.run.dungeonMaxFloor,
+      )
   const timeline = encounterTimeline.map((event) =>
     createEncounterTimelineSnapshot(
       event,
