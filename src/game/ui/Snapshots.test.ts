@@ -329,10 +329,10 @@ describe('UI snapshots', () => {
     game.state.player.level = 4
     game.state.run.killCount = 25
 
-    expect(createUiSnapshot(game.state).estimatedEssence).toBe(6)
+    expect(createUiSnapshot(game.state).estimatedEssence).toBe(36)
 
     game.state.run.killCount = 30
-    expect(createUiSnapshot(game.state).estimatedEssence).toBe(7)
+    expect(createUiSnapshot(game.state).estimatedEssence).toBe(37)
   })
 
   it('projects the shortened normal-floor duration', () => {

@@ -500,7 +500,7 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
               </section>
               <section className="wiki-card">
                 <h3>Essence reward</h3>
-                <p className="wiki-formula">floor((level + floor(kills / 10)) × modifier multiplier × victory multiplier)</p>
+                <p className="wiki-formula">floor(((1 + 10 × max(0, level - 1)) + floor(kills / 10)) × modifier multiplier × victory multiplier)</p>
                 <p>At level 20 with 100 kills, 1.2× modifiers, and a victory: <strong>{essenceExample.projectedReward} essence</strong>.</p>
               </section>
             </div>

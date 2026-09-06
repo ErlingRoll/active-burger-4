@@ -13,7 +13,7 @@ export function calculateEssenceReward(
   modifierMultiplier: number,
   isVictory = false,
 ): EssenceRewardCalculation {
-  const levelReward = Math.max(1, level)
+  const levelReward = 1 + Math.max(0, Math.max(1, level) - 1) * 10
   const killReward = Math.floor(Math.max(0, killCount) / 10)
   const baseEssence = levelReward + killReward
   const victoryMultiplier = isVictory ? 1.1 : 1
