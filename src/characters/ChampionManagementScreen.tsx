@@ -167,9 +167,6 @@ function ChampionGearCard({
         }
         aria-describedby={definition ? tooltipId : undefined}
       >
-        <span className="champion-gear-slot" aria-hidden="true">
-          {EQUIPMENT_SLOT_LABELS[slot].slice(0, 3)}
-        </span>
         <span className="champion-gear-copy">
           <span>{EQUIPMENT_SLOT_LABELS[slot]}</span>
           <strong>{itemName}</strong>
@@ -250,8 +247,8 @@ export function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
       </header>
       <dl className="champion-overview-stats">
         <div>
-          <dt>Behavior profile</dt>
-          <dd>{champion.build.behaviorProfileId}</dd>
+          <dt>Level</dt>
+          <dd>{champion.build.level ?? '—'}</dd>
         </div>
         <div>
           <dt>Build upgrades</dt>

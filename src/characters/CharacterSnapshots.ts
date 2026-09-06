@@ -26,6 +26,7 @@ export function isCharacterBuildSnapshot(
   if (!isRecord(value) ||
     value.schemaVersion !== CHARACTER_SCHEMA_VERSION ||
     !isCharacterClassId(value.classId) ||
+    (value.level !== undefined && !isPositiveInteger(value.level)) ||
     !Array.isArray(value.skills) ||
     !Array.isArray(value.selectedUpgradeIds) ||
     !isRecord(value.equipment) ||
@@ -71,6 +72,7 @@ export function createCharacterBuildSnapshot(
   })
   return {
     schemaVersion: CHARACTER_SCHEMA_VERSION,
+    level: player.level,
     classId: characterClassId,
     skills,
     selectedUpgradeIds: [...checkpoint.gameState.run.selectedUpgradeIds],

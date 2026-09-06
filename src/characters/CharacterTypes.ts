@@ -13,6 +13,8 @@ export interface CharacterBuildSkill {
 
 export interface CharacterBuildSnapshot {
   schemaVersion: typeof CHARACTER_SCHEMA_VERSION
+  /** Character level at the time this build was captured. Older snapshots may omit it. */
+  level?: number
   classId: CharacterClassId
   skills: readonly CharacterBuildSkill[]
   selectedUpgradeIds: readonly UpgradeId[]
