@@ -389,9 +389,25 @@ export class Game {
       Number.isFinite(runConfig.dungeonMaxFloorBonus)
       ? Math.max(0, Math.floor(runConfig.dungeonMaxFloorBonus))
       : 0
+    const maximumUnlockedFloor = contractMaxFloor + dungeonMaxFloorBonus
+    if (
+      !isAbyss &&
+      runConfig.selectedDungeonMaxFloor !== undefined &&
+      (
+        !Number.isInteger(runConfig.selectedDungeonMaxFloor) ||
+        runConfig.selectedDungeonMaxFloor < dungeon.defaultMaxFloor ||
+        runConfig.selectedDungeonMaxFloor > maximumUnlockedFloor ||
+        runConfig.selectedDungeonMaxFloor % 5 !== 0
+      )
+    ) {
+      throw new Error(
+        `Selected dungeon maximum floor must be a multiple of 5 between ` +
+        `${dungeon.defaultMaxFloor} and ${maximumUnlockedFloor}.`,
+      )
+    }
     const dungeonMaxFloor = isAbyss
       ? Number.MAX_SAFE_INTEGER
-      : contractMaxFloor + dungeonMaxFloorBonus
+      : runConfig.selectedDungeonMaxFloor ?? maximumUnlockedFloor
     this.dungeon = isAbyss || dungeonMaxFloor === dungeon.defaultMaxFloor
       ? dungeon
       : {

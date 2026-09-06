@@ -92,6 +92,8 @@ export function isValidCheckpoint(value: unknown): value is GameCheckpoint {
     !isRecord(record.runConfig) ||
     !isFiniteNumberValue(record.runConfig.seed) ||
     (record.runConfig.modeId !== undefined && !isRunModeId(record.runConfig.modeId)) ||
+    (record.runConfig.selectedDungeonMaxFloor !== undefined &&
+      !isFiniteInteger(record.runConfig.selectedDungeonMaxFloor, 1)) ||
     (record.runConfig.preparation !== undefined &&
       !isRunPreparationSnapshot(record.runConfig.preparation)) ||
     (record.runConfig.champion !== undefined &&

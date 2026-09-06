@@ -80,7 +80,7 @@ const WIKI_SECTIONS: readonly WikiSection[] = [
   { id: 'synergies', title: 'Synergies', summary: 'Skill synergy upgrades and their requirements.' },
   { id: 'gear', title: 'Gear and upgrades', summary: 'Items, rarities, modifiers, sets, blessings, and drops.' },
   { id: 'progression', title: 'Progression', summary: 'Experience, essence, and meta progression.' },
-  { id: 'floors', title: 'Floors and encounters', summary: 'Dungeon contracts, scaling, threat, and bosses.' },
+  { id: 'floors', title: 'Floors and encounters', summary: 'Run lengths, scaling, threat, and bosses.' },
   { id: 'enemies', title: 'Enemies and elites', summary: 'Enemy stats, abilities, behaviors, and modifiers.' },
   { id: 'world-modifiers', title: 'World modifiers', summary: 'Difficulty contracts and their rewards.' },
   { id: 'glossary', title: 'Glossary', summary: 'Definitions for highlighted game terminology.' },
@@ -522,8 +522,12 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                 <p>At 120 seconds: <strong>{formatNumber(calculateThreatPerSecond(120))} threat/sec</strong>. Elites begin at {SPAWN_BALANCE.eliteStartTimeSeconds}s with a {formatWikiPercentage(SPAWN_BALANCE.eliteChance)} base chance.</p>
               </section>
               <section className="wiki-card">
-                <h3>Contracts</h3>
-                <p>{DEFAULT_DUNGEON_CONFIG.maximumFloorContracts.map((contract) => `${contract.maxFloor} floors`).join(' · ')}</p>
+                <h3>Selectable run lengths</h3>
+                <p>
+                  Every run starts at {DEFAULT_DUNGEON_CONFIG.defaultMaxFloor} floors. Each
+                  Deeper Dungeon upgrade in the Essence store raises the upper limit by 5 floors;
+                  the preparation screen lets you choose any 5-floor increment up to that limit.
+                </p>
               </section>
             </div>
             <h3 className="wiki-subheading">Difficulty profile samples</h3>

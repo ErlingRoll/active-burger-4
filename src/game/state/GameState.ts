@@ -157,6 +157,8 @@ export interface RunConfig {
   dungeonId?: DungeonDefinitionId
   /** Optional maximum-floor contract; omitted runs use the default maximum floor. */
   dungeonMaxFloorContractId?: string
+  /** Per-run maximum floor selected in the preparation screen. */
+  selectedDungeonMaxFloor?: number
   /** Dungeon unlock IDs supplied by local progression state. */
   unlockedDungeonMaxFloorIds?: readonly string[]
   /** Purchased permanent XP multiplier level, from 0 through 10. */

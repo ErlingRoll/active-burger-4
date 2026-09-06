@@ -483,6 +483,28 @@ describe('Game', () => {
     })
   })
 
+  it('uses the selected maximum floor instead of the unlocked upper limit', () => {
+    const game = createGame({
+      seed: 107,
+      dungeonMaxFloorBonus: 20,
+      selectedDungeonMaxFloor: 35,
+    })
+
+    expect(game.state.run.dungeonMaxFloor).toBe(35)
+    expect(game.dungeon.encounterTimeline.at(-1)).toMatchObject({
+      floorNumber: 35,
+      isFinal: true,
+    })
+  })
+
+  it('rejects a selected maximum floor outside the unlocked increments', () => {
+    expect(() => createGame({
+      seed: 108,
+      dungeonMaxFloorBonus: 5,
+      selectedDungeonMaxFloor: 40,
+    })).toThrow(/between 30 and 35/)
+  })
+
   it('runs headlessly: no renderer is required to advance the simulation', () => {
     // Mirrors PLAN.md section 79's deterministic simulation test: the
     // simulation can run for a full minute of ticks with nothing but the

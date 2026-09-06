@@ -962,7 +962,10 @@
 }
 
 .run-dashboard-meal .run-dashboard-section-heading {
+  margin-top: 0;
   margin-bottom: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .fish-meal-summary,

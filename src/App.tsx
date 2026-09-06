@@ -210,6 +210,7 @@ interface StartRunOptions {
   preparation?: RunPreparationSnapshot
   champion?: CharacterBuildSnapshot
   championId?: string
+  selectedDungeonMaxFloor?: number
 }
 
 type RunLoadState = 'loading' | 'ready' | 'error' | 'unavailable'
@@ -1176,6 +1177,7 @@ function App() {
       preparation,
       champion: options.champion ?? runChampion ?? undefined,
       championId: options.championId ?? runChampionId ?? undefined,
+      selectedDungeonMaxFloor: options.selectedDungeonMaxFloor,
       characterClassId: options.champion?.classId ?? runConfig.characterClassId,
     }
     const durableRunId = pendingRunIdRef.current ?? crypto.randomUUID()
@@ -1985,6 +1987,7 @@ function App() {
           inventoryError={inventory.configurationError}
           characterService={characters.service}
           characterError={characters.configurationError}
+          maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
           initialMode={runMode}
           onStart={startRun}
           onSelectCharacterClass={selectCharacterClass}
@@ -2445,6 +2448,7 @@ interface RunSetupScreenProps {
   inventoryError: string | null
   characterService: CharacterService | null
   characterError: string | null
+  maximumDungeonFloor: number
   initialMode: RunModeId
   onStart: (options: StartRunOptions) => Promise<void>
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
@@ -2460,6 +2464,7 @@ function RunSetupScreen({
   inventoryError,
   characterService,
   characterError,
+  maximumDungeonFloor,
   initialMode,
   onStart,
   onSelectCharacterClass,
@@ -2476,6 +2481,7 @@ function RunSetupScreen({
   const [selectedFishIds, setSelectedFishIds] = useState<(string | null)[]>([])
   const [activeMealSlotIndex, setActiveMealSlotIndex] = useState<number | null>(null)
   const [selectedMode] = useState<RunModeId>(initialMode)
+  const [selectedDungeonMaxFloor, setSelectedDungeonMaxFloor] = useState(maximumDungeonFloor)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
   const [selectedChampionId, setSelectedChampionId] = useState<string | null>(null)
   const [championLoadState, setChampionLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
@@ -2593,7 +2599,10 @@ function RunSetupScreen({
                     champion: selectedChampion?.build,
                     preparation: fishMeal.preparation,
                   }
-                : { preparation: fishMeal.preparation })
+                : {
+                    preparation: fishMeal.preparation,
+                    selectedDungeonMaxFloor,
+                  })
             }}
             disabled={startState === 'saving' ||
               (selectedMode === 'infinite-abyss' && selectedChampion === undefined)}
@@ -2735,6 +2744,32 @@ function RunSetupScreen({
             })}
           </div>
         </fieldset>
+        ) : null}
+        {selectedMode === 'dungeon' ? (
+          <fieldset className="dashboard-choice-group run-dashboard-choice-group">
+            <legend>Dungeon length</legend>
+            <p>
+              Choose between {DEFAULT_DUNGEON_CONFIG.defaultMaxFloor} floors and your highest
+              unlocked floor in increments of 5.
+            </p>
+            <div className="dashboard-choice-list">
+              {Array.from(
+                { length: Math.floor((maximumDungeonFloor - DEFAULT_DUNGEON_CONFIG.defaultMaxFloor) / 5) + 1 },
+                (_, index) => DEFAULT_DUNGEON_CONFIG.defaultMaxFloor + index * 5,
+              ).map((maxFloor) => (
+                <button
+                  className={`dashboard-choice${selectedDungeonMaxFloor === maxFloor ? ' selected' : ''}`}
+                  type="button"
+                  aria-pressed={selectedDungeonMaxFloor === maxFloor}
+                  key={maxFloor}
+                  onClick={() => setSelectedDungeonMaxFloor(maxFloor)}
+                >
+                  <strong>{maxFloor} floors</strong>
+                  <span>{maxFloor === maximumDungeonFloor ? 'Highest unlocked floor' : 'Set as run maximum'}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
         ) : null}
          {selectedMode === 'infinite-abyss' ? (
            <section className="run-abyss-champion" aria-labelledby="abyss-champion-title">

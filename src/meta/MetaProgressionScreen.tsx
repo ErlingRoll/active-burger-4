@@ -504,10 +504,11 @@ export function MetaProgressionScreen({
                   <span>Rank {nextDungeonMaxFloorRank} of {DUNGEON_MAX_FLOOR_MAX_RANK}</span>
                 </div>
                 <p className="meta-unlock-description">
-                  Extends every future dungeon run with more floors, encounters, and rewards.
+                  Raises the upper limit for future dungeon runs. You can choose a shorter run when
+                  you want to build a new Champion.
                 </p>
                 <div className="meta-unlock-card-benefit">
-                  <strong>+{nextDungeonMaxFloorBonus} maximum floors</strong>
+                  <strong>+{nextDungeonMaxFloorBonus} selectable floors</strong>
                   <span>{snapshot.dungeonMaxFloor} → {nextDungeonMaxFloor} floors</span>
                 </div>
                 <span className="meta-unlock-state">{nextDungeonMaxFloorUpgradeState.label}</span>
