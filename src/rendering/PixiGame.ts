@@ -75,6 +75,7 @@ const STATUS_EFFECT_ICON_SIZE = 10
 const STATUS_EFFECT_ICON_GAP = 2
 const ENEMY_VIEWPORT_PADDING = 128
 const ENEMY_LABEL_RANGE = 260
+const GROUND_COVERAGE_PADDING = 960
 const ALLY_HP_BAR_COLORS = {
   background: '#14532d',
   fill: '#22c55e',
@@ -88,6 +89,49 @@ const ENEMY_HP_BAR_COLORS = {
 type HealthBarColors =
   | typeof ALLY_HP_BAR_COLORS
   | typeof ENEMY_HP_BAR_COLORS
+
+interface WorldTheme {
+  canvas: string
+  ground: string
+  grid: string
+  boundaryOuter: string
+  boundaryMiddle: string
+  boundaryInner: string
+  boundaryDash: string
+  boundaryCorner: string
+  boundaryCore: string
+}
+
+interface GroundCoverage {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+const DUNGEON_WORLD_THEME: WorldTheme = {
+  canvas: '#11151d',
+  ground: '#1d252d',
+  grid: '#35404a',
+  boundaryOuter: '#26313a',
+  boundaryMiddle: '#52616a',
+  boundaryInner: '#b8c7c7',
+  boundaryDash: '#dce8e5',
+  boundaryCorner: '#1a2027',
+  boundaryCore: '#94a3b8',
+}
+
+const ABYSS_WORLD_THEME: WorldTheme = {
+  canvas: '#100718',
+  ground: '#211135',
+  grid: '#3c2056',
+  boundaryOuter: '#3b1264',
+  boundaryMiddle: '#6b21a8',
+  boundaryInner: '#d8b4fe',
+  boundaryDash: '#f0abfc',
+  boundaryCorner: '#2e1065',
+  boundaryCore: '#e879f9',
+}
 
 function hasWorldSpaceEffectGeometry(
   effect: Pick<SkillEffectState, 'points' | 'impactPoint' | 'impactPoints'>,
@@ -231,6 +275,8 @@ export class PixiGame {
   private prismHaloView: Graphics | undefined
   private readonly summonViews = new Map<EntityId, SummonView>()
   private readonly stairsViews = new Map<EntityId, StairsView>()
+  private groundView: Graphics | undefined
+  private groundCoverage: GroundCoverage | undefined
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
   private skillObjectLayer: Container | undefined
@@ -257,7 +303,7 @@ export class PixiGame {
   async initialize(host: HTMLElement): Promise<void> {
     await this.app.init({
       antialias: true,
-      backgroundColor: '#0f172a',
+      backgroundColor: this.worldTheme.canvas,
       resizeTo: host,
     })
 
@@ -298,7 +344,6 @@ export class PixiGame {
     const world = new Container()
     world.sortableChildren = true
     const ground = new Container()
-    const decorations = new Container()
     const pickups = new Container()
     this.pickupLayer = pickups
     const stairs = new Container()
@@ -322,7 +367,6 @@ export class PixiGame {
     this.worldUiLayer = worldUi
 
     ground.zIndex = 0
-    decorations.zIndex = 10
     pickups.zIndex = 20
     stairs.zIndex = 25
     skillObjects.zIndex = 30
@@ -338,7 +382,6 @@ export class PixiGame {
     this.camera.addChild(world)
     world.addChild(
       ground,
-      decorations,
       pickups,
       stairs,
       telegraphs,
@@ -358,37 +401,89 @@ export class PixiGame {
     player.addChild(this.playerView.root)
   }
 
+  private get worldTheme(): WorldTheme {
+    return this.game.state.run.modeId === 'infinite-abyss'
+      ? ABYSS_WORLD_THEME
+      : DUNGEON_WORLD_THEME
+  }
+
   private createGround(): Graphics {
     const ground = new Graphics()
-    const extent = 2_000
-    const gridSize = 100
+    this.groundView = ground
+    this.updateGroundCoverage(true)
+    return ground
+  }
 
-    ground.rect(-extent, -extent, extent * 2, extent * 2).fill('#162033')
-
-    for (let coordinate = -extent; coordinate <= extent; coordinate += gridSize) {
-      ground
-        .moveTo(coordinate, -extent)
-        .lineTo(coordinate, extent)
-        .stroke({ color: '#26354f', width: 1 })
-      ground
-        .moveTo(-extent, coordinate)
-        .lineTo(extent, coordinate)
-        .stroke({ color: '#26354f', width: 1 })
+  private updateGroundCoverage(force = false): void {
+    const ground = this.groundView
+    if (!ground) {
+      return
     }
 
-    return ground
+    const viewportHalfWidth = this.app.renderer.width / (2 * this.cameraScale)
+    const viewportHalfHeight = this.app.renderer.height / (2 * this.cameraScale)
+    const visibleBounds: GroundCoverage = {
+      minX: this.cameraFocusX - viewportHalfWidth,
+      maxX: this.cameraFocusX + viewportHalfWidth,
+      minY: this.cameraFocusY - viewportHalfHeight,
+      maxY: this.cameraFocusY + viewportHalfHeight,
+    }
+    const coverage = this.groundCoverage
+    if (
+      !force &&
+      coverage &&
+      visibleBounds.minX >= coverage.minX + GROUND_COVERAGE_PADDING / 2 &&
+      visibleBounds.maxX <= coverage.maxX - GROUND_COVERAGE_PADDING / 2 &&
+      visibleBounds.minY >= coverage.minY + GROUND_COVERAGE_PADDING / 2 &&
+      visibleBounds.maxY <= coverage.maxY - GROUND_COVERAGE_PADDING / 2
+    ) {
+      return
+    }
+
+    const nextCoverage: GroundCoverage = {
+      minX: visibleBounds.minX - GROUND_COVERAGE_PADDING,
+      maxX: visibleBounds.maxX + GROUND_COVERAGE_PADDING,
+      minY: visibleBounds.minY - GROUND_COVERAGE_PADDING,
+      maxY: visibleBounds.maxY + GROUND_COVERAGE_PADDING,
+    }
+    const theme = this.worldTheme
+    const width = nextCoverage.maxX - nextCoverage.minX
+    const height = nextCoverage.maxY - nextCoverage.minY
+    ground.clear()
+    ground
+      .rect(nextCoverage.minX, nextCoverage.minY, width, height)
+      .fill(theme.ground)
+
+    const gridSize = 100
+    const startX = Math.floor(nextCoverage.minX / gridSize) * gridSize
+    const startY = Math.floor(nextCoverage.minY / gridSize) * gridSize
+    for (let x = startX; x <= nextCoverage.maxX; x += gridSize) {
+      ground
+        .moveTo(x, nextCoverage.minY)
+        .lineTo(x, nextCoverage.maxY)
+        .stroke({ color: theme.grid, width: 1, alpha: 0.8 })
+    }
+    for (let y = startY; y <= nextCoverage.maxY; y += gridSize) {
+      ground
+        .moveTo(nextCoverage.minX, y)
+        .lineTo(nextCoverage.maxX, y)
+        .stroke({ color: theme.grid, width: 1, alpha: 0.8 })
+    }
+
+    this.groundCoverage = nextCoverage
   }
 
   private createArenaBoundary(): Graphics {
     const width = ARENA_BOUNDS.maxX - ARENA_BOUNDS.minX
     const height = ARENA_BOUNDS.maxY - ARENA_BOUNDS.minY
+    const theme = this.worldTheme
     const boundary = new Graphics()
       .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
-      .stroke({ color: '#22d3ee', width: 42, alpha: 0.1 })
+      .stroke({ color: theme.boundaryOuter, width: 42, alpha: 0.42 })
       .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
-      .stroke({ color: '#0891b2', width: 18, alpha: 0.5 })
+      .stroke({ color: theme.boundaryMiddle, width: 18, alpha: 0.72 })
       .rect(ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, width, height)
-      .stroke({ color: '#a5f3fc', width: 4, alpha: 0.95 })
+      .stroke({ color: theme.boundaryInner, width: 4, alpha: 0.95 })
 
     const edges: readonly [number, number, number, number][] = [
       [ARENA_BOUNDS.minX, ARENA_BOUNDS.minY, ARENA_BOUNDS.maxX, ARENA_BOUNDS.minY],
@@ -397,7 +492,7 @@ export class PixiGame {
       [ARENA_BOUNDS.minX, ARENA_BOUNDS.maxY, ARENA_BOUNDS.minX, ARENA_BOUNDS.minY],
     ]
     for (const [startX, startY, endX, endY] of edges) {
-      drawDashedBoundaryEdge(boundary, startX, startY, endX, endY)
+      drawDashedBoundaryEdge(boundary, startX, startY, endX, endY, theme.boundaryDash)
     }
 
     for (const [x, y] of [
@@ -408,10 +503,10 @@ export class PixiGame {
     ]) {
       boundary
         .circle(x, y, 24)
-        .fill({ color: '#082f49', alpha: 0.95 })
-        .stroke({ color: '#cffafe', width: 3, alpha: 0.95 })
+        .fill({ color: theme.boundaryCorner, alpha: 0.95 })
+        .stroke({ color: theme.boundaryInner, width: 3, alpha: 0.95 })
         .circle(x, y, 8)
-        .fill('#67e8f9')
+        .fill(theme.boundaryCore)
     }
 
     return boundary
@@ -4090,6 +4185,7 @@ export class PixiGame {
       this.app.renderer.width / 2 - this.cameraFocusX * this.cameraScale,
       this.app.renderer.height / 2 - this.cameraFocusY * this.cameraScale,
     )
+    this.updateGroundCoverage()
   }
 
   private drawHealthBar(
@@ -4555,6 +4651,7 @@ function drawDashedBoundaryEdge(
   startY: number,
   endX: number,
   endY: number,
+  color: string,
 ): void {
   const length = Math.hypot(endX - startX, endY - startY)
   if (length <= 0) {
@@ -4570,7 +4667,7 @@ function drawDashedBoundaryEdge(
     graphics
       .moveTo(startX + directionX * offset, startY + directionY * offset)
       .lineTo(startX + directionX * dashEnd, startY + directionY * dashEnd)
-      .stroke({ color: '#ecfeff', width: 3, alpha: 0.9 })
+      .stroke({ color, width: 3, alpha: 0.9 })
   }
 }
 

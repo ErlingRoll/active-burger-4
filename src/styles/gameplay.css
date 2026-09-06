@@ -26,6 +26,11 @@
 .game-canvas {
   min-height: 0;
   position: relative;
+  background: #11151d;
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] {
+  background: #100718;
 }
 
 .game-renderer {
@@ -47,6 +52,65 @@
 
 .game-renderer canvas {
   display: block;
+}
+
+.game-canvas[data-run-mode='dungeon'] .hud-stat,
+.game-canvas[data-run-mode='dungeon'] .dungeon-stats,
+.game-canvas[data-run-mode='dungeon'] .floor-hud,
+.game-canvas[data-run-mode='dungeon'] .choice-hud,
+.game-canvas[data-run-mode='dungeon'] .skill-hud,
+.game-canvas[data-run-mode='dungeon'] .behavior-hud-profile {
+  background: rgb(20 29 22 / 90%);
+  border-color: rgb(154 137 80 / 72%);
+}
+
+.game-canvas[data-run-mode='dungeon'] .hud-stat dt,
+.game-canvas[data-run-mode='dungeon'] .dungeon-stats h3,
+.game-canvas[data-run-mode='dungeon'] .dungeon-stat dt,
+.game-canvas[data-run-mode='dungeon'] .floor-hud > span,
+.game-canvas[data-run-mode='dungeon'] .behavior-hud-heading,
+.game-canvas[data-run-mode='dungeon'] .skill-hud-heading span:last-child {
+  color: #e8d58d;
+}
+
+.game-canvas[data-run-mode='dungeon'] .floor-hud progress {
+  accent-color: #d6a94a;
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] .hud-stat,
+.game-canvas[data-run-mode='infinite-abyss'] .dungeon-stats,
+.game-canvas[data-run-mode='infinite-abyss'] .floor-hud,
+.game-canvas[data-run-mode='infinite-abyss'] .choice-hud,
+.game-canvas[data-run-mode='infinite-abyss'] .skill-hud,
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-profile {
+  color: #f3e8ff;
+  background: rgb(35 16 55 / 91%);
+  border-color: rgb(192 132 252 / 62%);
+  box-shadow: 0 0 1.2rem rgb(126 34 206 / 18%);
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] .hud-stat dt,
+.game-canvas[data-run-mode='infinite-abyss'] .dungeon-stats h3,
+.game-canvas[data-run-mode='infinite-abyss'] .dungeon-stat dt,
+.game-canvas[data-run-mode='infinite-abyss'] .floor-hud > span,
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-heading,
+.game-canvas[data-run-mode='infinite-abyss'] .skill-hud-heading span:last-child {
+  color: #d8b4fe;
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] .floor-hud progress {
+  accent-color: #c084fc;
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-profile:hover,
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-profile:focus-visible,
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-profile.selected {
+  border-color: #e9d5ff;
+  outline-color: rgb(216 180 254 / 30%);
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] .behavior-hud-profile.selected {
+  background: #4c1d72;
 }
 
 .damage-flash-overlay {

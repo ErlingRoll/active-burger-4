@@ -715,6 +715,11 @@ export function GameCanvas({
     <div
       className="game-canvas"
       data-game-phase={phase}
+      data-run-mode={
+        initialCheckpoint?.gameState.run.modeId ??
+        runConfig?.modeId ??
+        'dungeon'
+      }
       data-world-modifiers={(initialCheckpoint?.gameState.run.worldModifierIds ??
         runConfig?.worldModifierIds ??
         []).join(',')}
