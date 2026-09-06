@@ -13,8 +13,9 @@ selected Champion replaces the active character for an Abyss attempt.
 ## Creation
 
 The only way to create a Champion is by completing a dungeon successfully. After
-victory, the player may save the resulting build as a Champion. The Champion
-stores a build recipe and a revision snapshot,
+victory, the resulting build is automatically saved as a Champion, so leaving
+the results screen cannot discard it. The Champion stores a build recipe and a
+revision snapshot,
 including:
 
 - Stable class ID.

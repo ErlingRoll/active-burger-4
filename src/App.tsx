@@ -134,6 +134,7 @@ import './App.css'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION
 const RUN_GAME_VERSION = APP_VERSION ?? 'development'
+const DEFAULT_CHAMPION_NAME = 'My Champion'
 
 type AppScreen =
   | 'dashboard'
@@ -1192,6 +1193,9 @@ function App() {
     setRunStartError(null)
     setResult(null)
     setWriteError(null)
+    setChampionSaveState('idle')
+    setChampionSaveError(null)
+    pendingChampionIdRef.current = null
     const seed = createRunSeed()
     const config: RunConfig = {
       ...runConfig,
@@ -1356,6 +1360,49 @@ function App() {
     }
   }, [authentication.account, metaProgressionService.service])
 
+  const saveChampion = useCallback(async (
+    name = DEFAULT_CHAMPION_NAME,
+    submissionOverride?: MetaRunResultInput,
+  ): Promise<void> => {
+    const submission = submissionOverride ?? activeRunSubmission
+    if (submission?.outcome !== 'victory') {
+      return
+    }
+    if (!characters.service) {
+      setChampionSaveState('error')
+      setChampionSaveError(characters.configurationError ?? 'Champion storage is unavailable.')
+      return
+    }
+    const trimmedName = name.trim()
+    if (trimmedName.length < 1 || trimmedName.length > 32) {
+      setChampionSaveState('error')
+      setChampionSaveError('Champion names must be between 1 and 32 characters.')
+      return
+    }
+    const championId = pendingChampionIdRef.current ?? crypto.randomUUID()
+    pendingChampionIdRef.current = championId
+    setChampionSaveState('saving')
+    setChampionSaveError(null)
+    try {
+      await characters.service.createChampionFromRun({
+        championId,
+        sourceRunId: submission.runId,
+        name: trimmedName,
+        contentVersion: RUN_GAME_VERSION,
+      })
+      pendingChampionIdRef.current = null
+      setChampionAvailability('available')
+      setChampionSaveState('saved')
+    } catch (error: unknown) {
+      setChampionSaveState('error')
+      setChampionSaveError(errorMessage(error))
+    }
+  }, [
+    activeRunSubmission,
+    characters.configurationError,
+    characters.service,
+  ])
+
   const saveTerminalRun = useCallback(async (
     submission: MetaRunResultInput,
     checkpoint: GameCheckpoint,
@@ -1380,12 +1427,15 @@ function App() {
       })
       setActiveRun(null)
       setTerminalSaveState('saved')
+      if (submission.outcome === 'victory') {
+        await saveChampion(DEFAULT_CHAMPION_NAME, submission)
+      }
       await submitRunReward(submission)
     } catch (error: unknown) {
       setTerminalSaveState('error')
       setTerminalSaveError(errorMessage(error))
     }
-  }, [dungeonRunPersistence.service, submitRunReward])
+  }, [dungeonRunPersistence.service, saveChampion, submitRunReward])
 
   const handleRunEnd = useCallback((
     runResult: RunResultSnapshot,
@@ -1419,46 +1469,6 @@ function App() {
       void saveTerminalRun(activeRunSubmission, terminalCheckpoint)
     }
   }, [activeRunSubmission, saveTerminalRun, terminalCheckpoint])
-
-  const saveChampion = useCallback(async (name: string): Promise<void> => {
-    if (result?.outcome !== 'victory' || !activeRunSubmission) {
-      return
-    }
-    if (!characters.service) {
-      setChampionSaveState('error')
-      setChampionSaveError(characters.configurationError ?? 'Champion storage is unavailable.')
-      return
-    }
-    const trimmedName = name.trim()
-    if (trimmedName.length < 1 || trimmedName.length > 32) {
-      setChampionSaveState('error')
-      setChampionSaveError('Champion names must be between 1 and 32 characters.')
-      return
-    }
-    const championId = pendingChampionIdRef.current ?? crypto.randomUUID()
-    pendingChampionIdRef.current = championId
-    setChampionSaveState('saving')
-    setChampionSaveError(null)
-    try {
-      await characters.service.createChampionFromRun({
-        championId,
-        sourceRunId: activeRunSubmission.runId,
-        name: trimmedName,
-        contentVersion: RUN_GAME_VERSION,
-      })
-      pendingChampionIdRef.current = null
-      setChampionAvailability('available')
-      setChampionSaveState('saved')
-    } catch (error: unknown) {
-      setChampionSaveState('error')
-      setChampionSaveError(errorMessage(error))
-    }
-  }, [
-    activeRunSubmission,
-    characters.configurationError,
-    characters.service,
-    result,
-  ])
 
   const forfeitActiveRun = useCallback(async (): Promise<void> => {
     const service = dungeonRunPersistence.service
@@ -3051,7 +3061,7 @@ interface ResultsScreenProps {
   championSaveState: 'idle' | 'saving' | 'saved' | 'error'
   championSaveError: string | null
   championConfigurationError: string | null
-  onSaveChampion: (name: string) => Promise<void>
+  onSaveChampion: (name?: string) => Promise<void>
   onReturn: () => void
   onRetryTerminalSave: () => void
   onRetryReward: () => void
@@ -3072,7 +3082,6 @@ function ResultsScreen({
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
   const essenceReceipt = createEssenceReceipt(result)
-  const [championName, setChampionName] = useState('My Champion')
   return (
     <section
       className={`results-screen${victory ? ' victory-screen' : ''}`}
@@ -3208,20 +3217,13 @@ function ResultsScreen({
           <section className="champion-save-panel" aria-labelledby="champion-save-title">
             <div>
               <p className="screen-kicker">Preserve the build</p>
-              <h3 id="champion-save-title">Save as Champion</h3>
+              <h3 id="champion-save-title">Champion saved automatically</h3>
             </div>
             <p>
-              Save this completed build for a future Infinite Abyss attempt.
+              This completed build is saved automatically as <strong>{DEFAULT_CHAMPION_NAME}</strong>
+              for a future Infinite Abyss attempt.
               Runtime HP, cooldowns, and positions are not copied.
             </p>
-            <label htmlFor="champion-name">Champion name</label>
-            <input
-              id="champion-name"
-              value={championName}
-              maxLength={32}
-              onChange={(event) => setChampionName(event.target.value)}
-              disabled={championSaveState === 'saving' || championSaveState === 'saved'}
-            />
             {championSaveError || championConfigurationError ? (
               <p className="persistence-error" role="alert">
                 {championSaveError ?? championConfigurationError}
@@ -3229,15 +3231,19 @@ function ResultsScreen({
             ) : null}
             {championSaveState === 'saved' ? (
               <p className="persistence-status" role="status">Champion saved.</p>
-            ) : (
+            ) : championSaveState === 'saving' ? (
+              <p className="persistence-status" role="status">Saving Champion…</p>
+            ) : championSaveState === 'error' ? (
               <button
                 className="secondary-action"
                 type="button"
-                onClick={() => { void onSaveChampion(championName) }}
-                disabled={terminalSaveState !== 'saved' || championSaveState === 'saving'}
+                onClick={() => { void onSaveChampion() }}
+                disabled={terminalSaveState !== 'saved'}
               >
-                {championSaveState === 'saving' ? 'Saving Champion…' : 'Save Champion'}
+                Retry Champion save
               </button>
+            ) : (
+              <p className="persistence-status" role="status">Preparing automatic Champion save…</p>
             )}
           </section>
         ) : null}
