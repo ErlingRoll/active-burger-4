@@ -363,6 +363,13 @@ describe('upgrade choice generation', () => {
     )
   })
 
+  it('describes Commander cooldown reduction for minions', () => {
+    const commander = getUpgrade('rallying-banner-commander')
+
+    expect(getUpgradeDescription(commander)).toContain('minion attacks')
+    expect(commander.valueLabel).toContain('minion cooldown')
+  })
+
   it('uses the correct later-rank effect for Vitality evolutions', () => {
     expect(getUpgradeDescription(getUpgrade('vitality-renewal'))).toBe(
       'Vitality also heals 3% of your maximum HP on each cast. Each additional rank: +3% max HP healing per cast.',

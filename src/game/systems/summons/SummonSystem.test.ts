@@ -18,7 +18,10 @@ import { applyUpgrade } from '../upgrades/UpgradeSystem'
 import { equipRolledItem } from '../../equipment/EquipmentState'
 import { Rarity } from '../../../content/rarity/Rarity'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
-import { PHANTOM_ARSENAL_SKILL_ID } from '../../../content/skills/Skills'
+import {
+  PHANTOM_ARSENAL_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
+} from '../../../content/skills/Skills'
 import { createDamageValues } from '../../../content/stats/Damage'
 import {
   getFloorDifficultyProfile,
@@ -209,6 +212,28 @@ describe('updateSummons', () => {
         getFloorStatMultiplier(20) *
         getFloorDifficultyProfile(20).ordinaryEnemyHpMultiplier,
     )
+  })
+
+  it("applies Commander's cooldown reduction to Phantom Arsenal minions", () => {
+    const game = createGame({ seed: 23, characterClassId: 'ranger' })
+    const allocator = createEntityIdAllocator()
+    game.state.player.skills = [{
+      skillId: RALLYING_BANNER_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    }]
+    game.state.run.selectedUpgradeIds.push('rallying-banner-commander')
+
+    collectSkillDamage(game.state, allocator)
+    game.state.player.skills.push({
+      skillId: PHANTOM_ARSENAL_SKILL_ID,
+      level: 1,
+      cooldownRemaining: 0,
+    })
+    collectSkillDamage(game.state, allocator)
+
+    expect(game.state.player.skills[1]?.cooldownRemaining).toBeCloseTo(6 * 0.88)
+    expect(getPhantomArsenalStats(game.state)?.attackCooldown).toBeCloseTo(1.3 * 0.88)
   })
 
   it('does not emit a duplicate contact hit for a skeleton', () => {

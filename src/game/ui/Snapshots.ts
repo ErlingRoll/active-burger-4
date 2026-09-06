@@ -674,7 +674,7 @@ function getSkillModifierSummaries(
       ) {
         addSummary(
           'skill-cooldown-reduction',
-          'Skill and skeleton cooldown reduction while active',
+          'Skill and minion cooldown reduction while active',
           RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT,
           formatUnsignedPercent(RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT),
         )

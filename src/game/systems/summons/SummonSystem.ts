@@ -9,6 +9,7 @@ import type {
 } from '../../state/GameState'
 import {
   getSkillDefinition,
+  getEffectiveSkillCooldown,
   RAISE_SKELETON_SKILL_ID,
   PHANTOM_ARSENAL_SKILL_ID,
   type SkillId,
@@ -443,10 +444,10 @@ function summonIfReady(
       ? { expiryRemaining: stats.expiryDuration }
       : {}),
   })
-  skill.cooldownRemaining = Math.max(
-    0.1,
-    (definition.cooldown ?? 5) *
-      (1 - Math.max(0, playerStats.cooldownReduction) / 100),
+  skill.cooldownRemaining = getEffectiveSkillCooldown(
+    definition.cooldown ?? 5,
+    playerStats.cooldownReduction +
+      getRallyingBannerCooldownReductionPercent(state),
   )
   return true
 }

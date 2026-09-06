@@ -780,11 +780,11 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
   {
     id: 'rallying-banner-commander',
     name: 'Commander',
-    description: `While the banner is active, skills and skeleton attacks gain ${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% cooldown reduction.`,
+    description: `While the banner is active, skills and minion attacks gain ${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% cooldown reduction.`,
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: 1,
-    valueLabel: `${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and skeleton cooldown reduction while active`,
+    valueLabel: `${RALLYING_BANNER_COMMANDER_COOLDOWN_REDUCTION_PERCENT}% skill and minion cooldown reduction while active`,
     skillId: RALLYING_BANNER_SKILL_ID,
     evolution: 'rallying-banner-commander',
     evolutionTags: ['cooldown-reduction'],
