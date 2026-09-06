@@ -895,8 +895,9 @@ describe('Game', () => {
     expect(game.state.pickups).toEqual(pickups)
   })
 
-  it('clears combat state before creating the next-floor checkpoint', () => {
+  it('preserves enemies while clearing transient combat state before the next-floor checkpoint', () => {
     const game = createGame({ seed: 20260834 })
+    const enemyId = game.spawnSlime({ x: 1_000, y: 0 })
     game.state.player.skills.push({
       skillId: CINDER_MINE_SKILL_ID,
       level: 1,
@@ -930,6 +931,16 @@ describe('Game', () => {
     game.update(FIXED_STEP_SECONDS)
 
     expect(game.phase).toBe('floor-transition')
+    expect(game.state.enemies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: enemyId }),
+      ]),
+    )
+    expect(game.getFloorCheckpointSnapshot()?.gameState.enemies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: enemyId }),
+      ]),
+    )
     expect(game.state.traps).toEqual([])
     expect(game.state.effects).toEqual([])
     expect(cinderSkill.resonanceAttackCount).toBe(0)

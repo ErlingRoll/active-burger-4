@@ -499,6 +499,7 @@ export const INITIAL_UPGRADES: readonly UpgradeDefinition[] = [
     category: 'skill',
     rarity: Rarity.Uncommon,
     amount: FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT,
+    repeatable: true,
     valueLabel: `+${FIERY_TOUCH_COOLDOWN_REDUCTION_PERCENT}% Fiery Touch cooldown reduction`,
     skillId: FIERY_TOUCH_SKILL_ID,
     evolution: 'fiery-touch-frequency',

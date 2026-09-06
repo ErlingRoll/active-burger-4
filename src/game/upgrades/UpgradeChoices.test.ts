@@ -276,15 +276,21 @@ describe('upgrade choice generation', () => {
     )
   })
 
-  it('describes the per-level effect for every evolution', () => {
+  it('describes the per-rank effect for every evolution', () => {
     const evolutions = INITIAL_UPGRADES.filter((upgrade) => upgrade.evolution)
 
     expect(evolutions).toHaveLength(48)
     for (const evolution of evolutions) {
-      expect(getUpgradeDescription(evolution)).toContain(
-        'Each additional skill level:',
-      )
+      expect(getUpgradeDescription(evolution)).toContain('Each additional rank:')
     }
+  })
+
+  it('describes Rapid Ignition ranks as cooldown reduction', () => {
+    const rapidIgnition = getUpgrade('fiery-touch-cooldown-reduction')
+
+    expect(getUpgradeDescription(rapidIgnition)).toBe(
+      'Reduce Fiery Touch cooldown by 5%. This upgrade is repeatable. Each additional rank: +5% Fiery Touch cooldown reduction.',
+    )
   })
 
   it('makes Empowered Attack an Uncommon upgrade', () => {

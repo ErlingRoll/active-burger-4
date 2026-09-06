@@ -32,6 +32,22 @@ milestones in order unless an ADR documents an exception.
 - [ ] Add focused tests for deterministic rules and run applicable validation.
 - [ ] Record material architecture changes in `docs/decisions/`.
 
+## Skill upgrade description contract
+
+- An evolution's `description` describes the one-time mechanic that the
+  evolution adds.
+- The generated evolution description must use the wording
+  `Each additional rank:` for the effect gained from a later rank.
+- For a normal evolution, that later-rank effect is the skill's regular level
+  upgrade. The shared formatter derives it from the skill's `skillAction:
+  'level'` definition.
+- For a repeatable evolution, the later-rank effect belongs to the evolution
+  itself. Mark the definition with `repeatable: true` and make its
+  `valueLabel` describe one rank of that repeatable effect.
+- Do not append a level-up effect to a repeatable evolution; this was the
+  source of incorrect text such as Rapid Ignition claiming to add Fiery Touch
+  damage instead of cooldown reduction.
+
 ## Duration Renewal Rules
 
 - Duration renewals must use a fixed maximum: Rallying Banner is capped at 12

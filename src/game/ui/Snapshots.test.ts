@@ -238,7 +238,7 @@ describe('UI snapshots', () => {
       (upgrade) => upgrade.upgradeId === 'aegis-pulse-bulwark',
     )).toMatchObject({
       valueLabel: '+12 shield, +2s duration',
-      description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield. Each additional skill level: +8% damage, +6 shield.',
+      description: 'Aegis Pulse adds 12 shield and 2 seconds to each shield. Each additional rank: +8% damage, +6 shield.',
       evolution: 'aegis-pulse-bulwark',
     })
     expect(whirlwind?.cooldownSeconds).toBeCloseTo(2.2)

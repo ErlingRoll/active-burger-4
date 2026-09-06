@@ -1,15 +1,15 @@
 import type { GameState } from '../../state/GameState'
 
 /**
- * Removes combat state that must not cross a floor boundary.
+ * Removes transient combat state that must not cross a floor boundary.
  *
  * Progression, equipment, pickups, skill levels, and cooldowns intentionally
  * remain part of the run. The boss-death pickup magnet also remains active
- * across the boundary. Runtime combat state is cleared here so new skills and
- * effects have one boundary-reset contract to follow.
+ * across the boundary. Ordinary enemies remain active across the boundary;
+ * transient combat state is cleared here so new skills and effects have one
+ * boundary-reset contract to follow.
  */
 export function resetFloorCombatState(state: GameState): void {
-  state.enemies = []
   state.bosses = []
   state.telegraphs = []
   state.projectiles = []

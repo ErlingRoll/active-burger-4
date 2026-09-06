@@ -504,22 +504,25 @@ export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
   if (!upgrade.evolution) {
     return upgrade.description
   }
+  if (upgrade.repeatable) {
+    return `${upgrade.description} Each additional rank: ${upgrade.valueLabel}.`
+  }
   if (!upgrade.skillId) {
     throw new Error(`Evolution ${upgrade.id} must reference a skill.`)
   }
 
-  const levelUpgrade = INITIAL_UPGRADES.find(
+  const skillRankUpgrade = INITIAL_UPGRADES.find(
     (candidate) =>
       candidate.skillId === upgrade.skillId && candidate.skillAction === 'level',
   )
-  if (!levelUpgrade) {
+  if (!skillRankUpgrade) {
     throw new Error(
       `Evolution ${upgrade.id} has no level upgrade for skill ${upgrade.skillId}.`,
     )
   }
 
-  const levelEffect = levelUpgrade.valueLabel.replace(/\s+per level$/i, '')
-  return `${upgrade.description} Each additional skill level: ${levelEffect}.`
+  const rankEffect = skillRankUpgrade.valueLabel.replace(/\s+per level$/i, '')
+  return `${upgrade.description} Each additional rank: ${rankEffect}.`
 }
 
 export function getBasicAttackDamageConversionType(
