@@ -10,7 +10,8 @@ milestones in order unless an ADR documents an exception.
   Playwright
 - [x] Oxlint; do not add ESLint redundantly
 - [x] GitHub Actions CI; Vercel previews and production deployment
-- [x] MIT source-code license; record third-party asset provenance before use
+- [x] Proprietary, all-rights-reserved original materials; record third-party
+      asset provenance before use
 - [x] No telemetry; opt-in authenticated progression sync only
 - [ ] Protect `main` with required PR review and passing CI checks
 - [ ] Create separate development and production Supabase projects and configure

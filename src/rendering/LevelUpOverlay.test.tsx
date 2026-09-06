@@ -137,7 +137,41 @@ describe('LevelUpOverlay', () => {
 
     expect(markup).toContain('Upgrade:<span class="upgrade-action-skill">')
     expect(markup).toContain('+1 Level to Basic Attack')
+    expect(markup).toContain('+10% Basic Attack damage')
     expect(markup).not.toContain('Upgrade level:')
+  })
+
+  it('keeps Basic Attack evolution choices separate from the level upgrade', () => {
+    const flow: LevelUpChoiceFlow = {
+      type: 'level-up',
+      level: 4,
+      choices: [{
+        upgradeId: 'basic-attack-brutality',
+        rarity: Rarity.Rare,
+      }],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LevelUpOverlay
+        flow={flow}
+        equipment={{}}
+        gearSets={[]}
+        keybinds={DEFAULT_GAME_KEYBINDS}
+        characterClassId={DEFAULT_CHARACTER_CLASS_ID}
+        ownedSkillIds={['basic-attack']}
+        rerollsRemaining={0}
+        banishesRemaining={0}
+        onSelect={() => {}}
+        onBanish={() => {}}
+        onReroll={() => {}}
+        onSkip={() => {}}
+      />,
+    )
+
+    expect(markup).toContain('Basic Attack deals 10% more ')
+    expect(markup).toContain(' after increases. This also increases ')
+    expect(markup).not.toContain('Each additional rank:')
+    expect(markup).not.toContain('+10% Basic Attack damage')
   })
 
   it('shows only the equipped item rarity for an item upgrade', () => {

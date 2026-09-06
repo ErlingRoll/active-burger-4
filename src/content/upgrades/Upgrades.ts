@@ -1,5 +1,9 @@
 import type { StatModifier, StatKey } from '../stats/Stats'
-import { getSkillDefinition, type SkillId } from '../skills/Skills'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  getSkillDefinition,
+  type SkillId,
+} from '../skills/Skills'
 import type { KeywordId } from '../glossary/Keywords'
 import type { DamageType } from '../stats/Damage'
 import { INITIAL_UPGRADES } from '../../game-config/skill-upgrades'
@@ -529,6 +533,17 @@ export function getUpgradeDescription(upgrade: UpgradeDefinition): string {
 
   const rankEffect = skillRankUpgrade.valueLabel.replace(/\s+per level$/i, '')
   return `${upgrade.description} Each additional rank: ${rankEffect}.`
+}
+
+export function getUpgradeChoiceDescription(upgrade: UpgradeDefinition): string {
+  if (
+    upgrade.skillId === BASIC_ATTACK_SKILL_ID &&
+    upgrade.evolution !== undefined &&
+    upgrade.repeatable !== true
+  ) {
+    return upgrade.description
+  }
+  return getUpgradeDescription(upgrade)
 }
 
 export function getBasicAttackDamageConversionType(

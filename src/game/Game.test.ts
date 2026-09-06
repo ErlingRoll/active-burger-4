@@ -1331,6 +1331,28 @@ describe('Game', () => {
     expect(firstId).not.toBe(secondId)
   })
 
+  it('removes a dead Volatile enemy when its explosion telegraph was cleared', () => {
+    const game = createGame({ seed: 141 })
+    const enemyId = game.spawnEnemy(
+      SLIME_DEFINITION_ID,
+      { x: 0, y: 0 },
+      undefined,
+      'volatile',
+    )
+    const enemy = game.state.enemies.find((candidate) => candidate.id === enemyId)
+    if (!enemy) {
+      throw new Error('Expected a spawned Volatile enemy')
+    }
+    enemy.hp = 0
+    enemy.volatileExplosionTelegraphId = 999
+    enemy.volatileExplosionTelegraphId = 999
+
+    removeDeadEntities(game.state, () => {})
+
+    expect(game.state.enemies).toHaveLength(0)
+    expect(game.state.run.killCount).toBe(1)
+  })
+
   it('creates exactly one XP pickup for each enemy death', () => {
     const game = createGame({ seed: 15 })
     const firstId = game.spawnSlime({ x: 100, y: 0 })

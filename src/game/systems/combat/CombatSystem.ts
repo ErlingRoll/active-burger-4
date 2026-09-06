@@ -3045,10 +3045,16 @@ export function removeDeadEntities(
   ).spawnBalance
   let killCount = 0
   for (const enemy of state.enemies) {
+    const hasActiveVolatileExplosion = enemy.volatileExplosionTelegraphId !== undefined &&
+      !enemy.volatileExplosionResolved &&
+      (state.telegraphs ?? []).some(
+        (telegraph) =>
+          telegraph.id === enemy.volatileExplosionTelegraphId &&
+          telegraph.skillId === 'elite-volatile',
+      )
     if (
       enemy.hp > 0 ||
-      (enemy.volatileExplosionTelegraphId !== undefined &&
-        !enemy.volatileExplosionResolved)
+      hasActiveVolatileExplosion
     ) {
       livingEnemies.push(enemy)
     } else {

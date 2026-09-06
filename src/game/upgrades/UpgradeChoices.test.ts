@@ -173,6 +173,7 @@ describe('upgrade choice generation', () => {
       if (!upgrade.skillId) {
         throw new Error(`Expected level upgrade ${upgrade.id} to reference a skill.`)
       }
+      expect(upgrade.valueLabel).not.toMatch(/per level/i)
       expect(getUpgradeDescription(upgrade)).toBe(
         `+1 Level to ${SKILL_DEFINITIONS[upgrade.skillId].name}`,
       )
@@ -208,6 +209,13 @@ describe('upgrade choice generation', () => {
      'basic-attack-chaos-attunement',
      'basic-attack-brutality',
     ])
+    expect(evolutions.every((upgrade) => upgrade.repeatable !== true)).toBe(true)
+    const levelUpgrade = getUpgrade('basic-attack-level')
+    expect(levelUpgrade.evolution).toBeUndefined()
+    expect(levelUpgrade).toMatchObject({
+     skillAction: 'level',
+     skillDamageIncreasePercent: 10,
+    })
     expect(evolutions.at(-1)).toMatchObject({
      basicAttackMorePhysicalDamagePercent: 10,
      valueLabel: '10% more Physical damage',

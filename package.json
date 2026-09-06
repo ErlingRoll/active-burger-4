@@ -1,6 +1,7 @@
 {
   "name": "active-burger-4",
   "private": true,
+  "license": "UNLICENSED",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

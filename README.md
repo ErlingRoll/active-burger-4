@@ -4,6 +4,17 @@ Active Burger 4 is a deterministic browser roguelike RPG. React owns the UI,
 PixiJS renders simulation state, and the TypeScript game simulation remains
 independent of browser and network APIs.
 
+## License
+
+The original code, game content, visual designs, artwork, documentation, and
+other original materials in this repository are proprietary and
+**all rights reserved**. No copying, modification, redistribution, commercial
+use, or derivative work is permitted without prior written permission from
+Erling.
+
+Third-party dependencies and other third-party materials remain under their
+respective licenses.
+
 ## Development
 
 Requires Node.js 22 LTS and npm.

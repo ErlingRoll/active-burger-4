@@ -15,8 +15,10 @@ path.
 - Use GitHub Actions for lint, unit-test, and build validation.
 - Deploy the static frontend to Vercel, with preview deployments for pull
   requests and a protected production deployment from `main`.
-- License source code under MIT. Before non-code assets are added, document
-  their provenance and license in a third-party notices file.
+- Keep the original source code, game content, designs, artwork, and
+  documentation proprietary and all rights reserved. Before non-code assets
+  are added, document their provenance and license in a third-party notices
+  file.
 - Collect no product telemetry. Local gameplay is anonymous; authenticated
   Supabase syncing is opt-in and stores only account/progression data needed
   for the feature.
