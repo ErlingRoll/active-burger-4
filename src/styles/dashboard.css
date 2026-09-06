@@ -586,7 +586,7 @@
     linear-gradient(145deg, #0c0a1f 0%, #171334 52%, #0f172a 100%);
 }
 
-.champion-management-panel {
+.champion-management-screen .dashboard-panel.champion-management-panel {
   display: grid;
   gap: 1.1rem;
   width: min(70rem, 100%);
