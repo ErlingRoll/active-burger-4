@@ -3090,7 +3090,8 @@
   font-weight: 700;
 }
 
-.skill-damage-results {
+.skill-damage-results,
+.skill-healing-results {
   display: grid;
   gap: 0.65rem;
   margin: 0 0 2rem;
@@ -3105,7 +3106,8 @@
   color: #f8fafc;
 }
 
-.skill-damage-results ul {
+.skill-damage-results ul,
+.skill-healing-results ul {
   display: grid;
   gap: 0.4rem;
   margin: 0;
@@ -3113,7 +3115,8 @@
   list-style: none;
 }
 
-.skill-damage-results li {
+.skill-damage-results li,
+.skill-healing-results li {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -3123,7 +3126,8 @@
   border-radius: 0.35rem;
 }
 
-.skill-damage-results strong {
+.skill-damage-results strong,
+.skill-healing-results strong {
   color: #fef08a;
 }
 
@@ -3133,7 +3137,8 @@
   gap: 0.4rem;
 }
 
-.skill-damage-results-empty {
+.skill-damage-results-empty,
+.skill-healing-results-empty {
   margin: 0;
   color: #94a3b8;
 }
