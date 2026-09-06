@@ -1148,6 +1148,55 @@ describe('Game', () => {
       expect(game.getRunResultSnapshot().phase).toBe('results')
   })
 
+  it('jumps directly to the configured final floor and starts its final encounter', () => {
+      const game = createGame({ seed: 20260830 })
+
+      expect(game.jumpToFinalFloor()).toBe(true)
+      expect(game.state.run.floor).toBe(game.dungeon.defaultMaxFloor)
+      expect(game.state.run.floorStartedAt).toBe(
+        game.state.time -
+          (game.state.run.floorDurationSeconds ?? game.dungeon.floorDurationSeconds),
+      )
+
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.encounter).toMatchObject({
+        status: 'active',
+        floorNumber: game.dungeon.defaultMaxFloor,
+        isFinal: true,
+      })
+      expect(game.state.bosses).toHaveLength(1)
+  })
+
+  it('godmode prevents incoming damage and deals aura damage to nearby enemies', () => {
+      const game = createGame({ seed: 20260831 })
+      const enemyId = game.spawnSlime({ x: 100, y: 0 })
+      const enemy = game.state.enemies.find((candidate) => candidate.id === enemyId)
+      expect(enemy).toBeDefined()
+      if (!enemy) {
+        throw new Error('Expected the godmode aura target to exist')
+      }
+      enemy.hp = 100_000
+      game.state.player.attackCooldownRemaining = 999
+      for (const skill of game.state.player.skills) {
+        skill.cooldownRemaining = 999
+      }
+      game.state.player.hp = game.state.player.maxHp / 2
+
+      expect(game.toggleGodMode()).toBe(true)
+      expect(game.godModeEnabled).toBe(true)
+      expect(game.state.player.hp).toBe(game.state.player.maxHp)
+
+      const expectedAuraDamage = 10_000 * FIXED_STEP_SECONDS
+      game.update(FIXED_STEP_SECONDS)
+
+      expect(game.state.player.hp).toBe(game.state.player.maxHp)
+      expect(enemy.hp).toBeCloseTo(100_000 - expectedAuraDamage)
+
+      expect(game.toggleGodMode()).toBe(false)
+      expect(game.godModeEnabled).toBe(false)
+  })
+
   it('keeps the final floor through final-boss stairs before ending the run', () => {
       const game = createGame({ seed: 20260829 })
       game.state.run.floor = game.dungeon.defaultMaxFloor

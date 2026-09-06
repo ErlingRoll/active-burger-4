@@ -43,6 +43,10 @@ function clampVolume(value: unknown, fallback: number): number {
   return Math.min(1, Math.max(0, value))
 }
 
+export function clampAudioVolume(value: number): number {
+  return clampVolume(value, 0)
+}
+
 export function normalizeAudioSettings(value: unknown): AudioSettings {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return { ...DEFAULT_AUDIO_SETTINGS }
@@ -166,22 +170,28 @@ class BrowserAudioSystem {
       return
     }
     const effect = new Audio(source)
-    effect.volume = this.settings.masterVolume * this.settings.effectsVolume
+    effect.volume = clampAudioVolume(
+      this.settings.masterVolume * this.settings.effectsVolume,
+    )
     void effect.play().catch(() => undefined)
   }
 
   private getMusicVolume(): number {
-    return this.settings.muted
-      ? 0
-      : this.settings.masterVolume * this.settings.musicVolume
+    return clampAudioVolume(
+      this.settings.muted
+        ? 0
+        : this.settings.masterVolume * this.settings.musicVolume,
+    )
   }
 
   private applyMusicVolume(): void {
     if (this.audio) {
-      this.audio.volume = this.getMusicVolume() * this.fadeGain
+      this.audio.volume = clampAudioVolume(this.getMusicVolume() * this.fadeGain)
     }
     if (this.incomingAudio) {
-      this.incomingAudio.volume = this.getMusicVolume() * this.incomingFadeGain
+      this.incomingAudio.volume = clampAudioVolume(
+        this.getMusicVolume() * this.incomingFadeGain,
+      )
     }
   }
 
@@ -339,7 +349,9 @@ class BrowserAudioSystem {
     }
     const request = (this.fadeRequests.get(audio) ?? 0) + 1
     this.fadeRequests.set(audio, request)
-    const initial = audio === this.incomingAudio ? this.incomingFadeGain : this.fadeGain
+    const initial = clampAudioVolume(
+      audio === this.incomingAudio ? this.incomingFadeGain : this.fadeGain,
+    )
     const startedAt = performance.now()
     const durationMs = durationSeconds * 1000
     const step = (now: number): void => {
@@ -352,13 +364,13 @@ class BrowserAudioSystem {
       const progress = durationMs === 0
         ? 1
         : Math.min(1, (now - startedAt) / durationMs)
-      const gain = initial + (target - initial) * progress
+      const gain = clampAudioVolume(initial + (target - initial) * progress)
       if (audio === this.incomingAudio) {
         this.incomingFadeGain = gain
       } else {
         this.fadeGain = gain
       }
-      audio.volume = this.getMusicVolume() * gain
+      audio.volume = clampAudioVolume(this.getMusicVolume() * gain)
       if (progress >= 1) {
         onComplete?.()
         return

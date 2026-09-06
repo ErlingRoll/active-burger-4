@@ -1990,6 +1990,21 @@ function DevelopmentMenu({
     }
   }
 
+  const jumpToFinalFloor = (): void => {
+    if (
+      snapshot.phase !== 'playing' ||
+      (game.state.bosses?.length ?? 0) > 0 ||
+      game.state.stairs !== undefined
+    ) {
+      return
+    }
+    game.jumpToFinalFloor()
+  }
+
+  const toggleGodMode = (): void => {
+    game.toggleGodMode()
+  }
+
   const spawnStairsAtPlayer = (isFinal: boolean): void => {
     if (
       snapshot.phase !== 'playing' ||
@@ -2134,6 +2149,34 @@ function DevelopmentMenu({
           >
             Spawn Inferno Warden
           </button>
+          <button
+            className="debug-spawn-button debug-spawn-final-button"
+            type="button"
+            onClick={jumpToFinalFloor}
+            disabled={
+              snapshot.phase !== 'playing' ||
+              (game.state.bosses?.length ?? 0) > 0 ||
+              game.state.stairs !== undefined
+            }
+          >
+            Jump to final floor
+          </button>
+          <button
+            className="debug-spawn-button debug-spawn-final-button"
+            type="button"
+            aria-pressed={game.godModeEnabled}
+            onClick={toggleGodMode}
+            disabled={
+              snapshot.phase !== 'playing' &&
+              snapshot.phase !== 'paused' &&
+              snapshot.phase !== 'level-up'
+            }
+          >
+            Godmode: {game.godModeEnabled ? 'ON' : 'OFF'}
+          </button>
+          <p className="input-help">
+            Invulnerable; aura deals 10,000 physical damage per second within 144 units.
+          </p>
           <div className="debug-transition-control">
             <p className="development-control-label">Run-flow preview</p>
             <div className="debug-spawn-actions">

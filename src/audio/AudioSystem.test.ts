@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
+  clampAudioVolume,
   DEFAULT_AUDIO_SETTINGS,
   MUSIC_PLAYLISTS,
   normalizeAudioSettings,
 } from './AudioSystem'
+
+describe('audio volume', () => {
+  it('keeps values within the range accepted by HTMLAudioElement.volume', () => {
+    expect(clampAudioVolume(-1)).toBe(0)
+    expect(clampAudioVolume(0.5)).toBe(0.5)
+    expect(clampAudioVolume(2)).toBe(1)
+    expect(clampAudioVolume(Number.NaN)).toBe(0)
+    expect(clampAudioVolume(Number.POSITIVE_INFINITY)).toBe(0)
+  })
+})
 
 describe('audio settings', () => {
   it('normalizes invalid and out-of-range persisted values', () => {

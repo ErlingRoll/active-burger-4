@@ -15,6 +15,7 @@ import { Random } from './random/Random'
 import type { RandomSource } from './random/Random'
 import type { RunPhase } from './state/RunPhase'
 import type {
+  DamageEvent,
   GameState,
   RunConfig,
 } from './state/GameState'
@@ -22,7 +23,10 @@ import { SpawnDirector } from './spawning/SpawnDirector'
 import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { HEALING_POTION_MAX_HP_FRACTION } from '../content/progression/HealingPotions'
 import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
-import { RESISTANCE_CAP } from '../content/stats/Damage'
+import {
+  createDamageValues,
+  RESISTANCE_CAP,
+} from '../content/stats/Damage'
 import {
   DEFAULT_CHARACTER_CLASS_ID,
   isCharacterClassId,
@@ -281,6 +285,8 @@ export const DEFAULT_TIME_SCALE = 1
 export const AUTOMATIC_TIME_SCALE_MAX_FLOOR = 30
 export const DEBUG_SPAWN_COUNTS = [100, 500, 1000] as const
 export type DebugSpawnCount = (typeof DEBUG_SPAWN_COUNTS)[number]
+export const GODMODE_AURA_RADIUS = 144
+export const GODMODE_AURA_DAMAGE_PER_SECOND = 10_000
 
 export type TimeScaleUpdateResult =
   | { ok: true; value: number }
@@ -355,6 +361,7 @@ export class Game {
   private readonly clock = new FixedTimestepClock()
   private currentTimeScale = DEFAULT_TIME_SCALE
   private timeScaleOverride = false
+  private godMode = false
   private resumePhase: RunPhase | undefined
   private choiceFlows: PendingChoiceFlow[] = []
   private readonly collectedGearPickups: GearPickupState[] = []
@@ -773,6 +780,26 @@ export class Game {
     }
     controller.freeMovementDirectionX = Number.isFinite(directionX) ? directionX : 0
     controller.freeMovementDirectionY = Number.isFinite(directionY) ? directionY : 0
+  }
+
+  get godModeEnabled(): boolean {
+    return this.godMode
+  }
+
+  setGodModeEnabled(enabled: boolean): void {
+    if (this.godMode === enabled) {
+      return
+    }
+    this.godMode = enabled
+    if (enabled) {
+      this.gameState.player.hp = this.gameState.player.maxHp
+    }
+    this.notifyStateChanged()
+  }
+
+  toggleGodMode(): boolean {
+    this.setGodModeEnabled(!this.godMode)
+    return this.godMode
   }
 
   /**
@@ -1367,6 +1394,36 @@ export class Game {
       : false
   }
 
+  /** Moves an active development run directly to its configured final floor. */
+  jumpToFinalFloor(): boolean {
+    if (
+      this.gameState.run.phase !== 'playing' ||
+      this.gameState.encounter?.status === 'active' ||
+      this.gameState.floorTransition !== undefined
+    ) {
+      return false
+    }
+
+    const finalFloor =
+      this.gameState.run.dungeonMaxFloor ?? this.dungeon.defaultMaxFloor
+    const floorDuration =
+      this.gameState.run.floorDurationSeconds ?? this.dungeon.floorDurationSeconds
+    this.gameState.run.floor = finalFloor
+    this.gameState.run.floorStartedAt =
+      this.gameState.time - floorDuration
+    this.gameState.enemies = []
+    this.gameState.pickups = []
+    this.gameState.stairs = undefined
+    this.gameState.encounter = {
+      status: 'inactive',
+      normalSpawnsSuspended: false,
+    }
+    resetFloorCombatState(this.gameState)
+    this.gameState.player.hp = this.gameState.player.maxHp
+    this.notifyStateChanged()
+    return true
+  }
+
   /** Adds a pickup through the game's entity allocator. */
   spawnXpPickup(position: WorldPosition, xpAmount: number): EntityId {
     return spawnXpPickup(
@@ -1489,9 +1546,18 @@ export class Game {
       ...updateBurning(this.gameState, FIXED_STEP_SECONDS),
       ...resolveBossTelegraphs(this.gameState),
       ...resolveEnemyTelegraphs(this.gameState, this.idAllocator),
+      ...this.collectGodModeAuraDamage(FIXED_STEP_SECONDS),
     ]
     updateFrost(this.gameState, FIXED_STEP_SECONDS)
-    applyDamageEvents(this.gameState, damageEvents, this.random, this.idAllocator)
+    const appliedDamageEvents = this.godMode
+      ? damageEvents.filter((event) => event.targetId !== this.gameState.player.id)
+      : damageEvents
+    applyDamageEvents(
+      this.gameState,
+      appliedDamageEvents,
+      this.random,
+      this.idAllocator,
+    )
     removeDeadSummons(this.gameState)
     if (this.gameState.player.hp <= 0 && this.gameState.run.phase === 'playing') {
       if (this.gameState.player.preparationEmergencyReviveAvailable) {
@@ -1585,6 +1651,29 @@ export class Game {
       })
     }
     updateSkillEffects(this.gameState, FIXED_STEP_SECONDS, this.random)
+  }
+
+  private collectGodModeAuraDamage(fixedStepSeconds: number): DamageEvent[] {
+    if (!this.godMode) {
+      return []
+    }
+
+    const auraDamage = GODMODE_AURA_DAMAGE_PER_SECOND * fixedStepSeconds
+    return [...this.gameState.enemies, ...(this.gameState.bosses ?? [])]
+      .filter((enemy) =>
+        enemy.hp > 0 &&
+        Math.hypot(
+          enemy.x - this.gameState.player.x,
+          enemy.y - this.gameState.player.y,
+        ) <= GODMODE_AURA_RADIUS + enemy.radius
+      )
+      .sort((left, right) => left.id - right.id)
+      .map((enemy) => ({
+        targetId: enemy.id,
+        sourceLabel: 'Godmode Aura',
+        damageOverTime: true,
+        damage: createDamageValues({ physical: auraDamage }),
+      }))
   }
 
   private beginFloorTransition(
