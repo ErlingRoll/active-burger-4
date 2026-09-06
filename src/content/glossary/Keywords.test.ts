@@ -107,6 +107,19 @@ describe('keyword glossary text', () => {
     ])
   })
 
+  it('links primary target terminology and explains chained targets', () => {
+    expect(
+      splitKeywordText('+100% Basic Attack damage against the primary target.'),
+    ).toEqual([
+      { type: 'text', value: '+100% Basic Attack damage against the ' },
+      { type: 'keyword', value: 'primary target', keywordId: 'primary-target' },
+      { type: 'text', value: '.' },
+    ])
+    expect(KEYWORD_DEFINITIONS['primary-target'].details).toContain(
+      'projectile chains or later retargeting are secondary targets',
+    )
+  })
+
   it('explains named triggered effects without treating skill themes as keywords', () => {
     expect(
       splitKeywordText('Three elements trigger a Prism Burst.'),

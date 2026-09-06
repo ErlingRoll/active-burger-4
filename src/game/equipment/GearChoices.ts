@@ -44,6 +44,8 @@ export const GEAR_CHOICES_PER_PICKUP = 3
 export const GEAR_RARITY_FLOOR_CHANCE = 0.15
 export const EMPTY_SLOT_GEAR_WEIGHT_MULTIPLIER = 2
 const STARTING_WEAPON_TYPE_WEIGHT = 2
+const GEAR_SET_BASE_WEIGHT = 100
+const GEAR_SET_MATCH_WEIGHT = 25
 
 export interface GearItemChoice {
   type: 'gear'
@@ -114,9 +116,10 @@ function rollChoiceFromTemplate(
   definition: ItemDefinition,
   rng: RandomSource,
   minimumRarity: RarityValue,
+  setChoicePool: readonly GearSetId[],
 ): GearItemChoice {
   const rarity = rollRarity(rng, minimumRarity)
-  const setId = rng.pick(ALL_GEAR_SET_DEFINITIONS).id
+  const setId = rng.pick(setChoicePool)
   const modifiers = rollGearModifiersForItem(
     definition,
     rarity,
@@ -133,6 +136,49 @@ function rollChoiceFromTemplate(
     modifiers,
     setId,
   }
+}
+
+function getGearSetChoicePool(
+  state: Readonly<GameState>,
+  itemDefinitions: readonly ItemDefinition[],
+): GearSetId[] {
+  const equippedSetCounts = new Map<GearSetId, number>()
+  let equippedSetCount = 0
+  for (const equipped of Object.values(state.player.equipment ?? {})) {
+    if (!equipped) {
+      continue
+    }
+    const definition = itemDefinitions.find(
+      (candidate) => candidate.id === equipped.itemId,
+    ) ?? getItemDefinition(equipped.itemId)
+    const setId = normalizeGearSetId(equipped.setId) ??
+      definition.setId ??
+      getLegacyItemSetId(equipped.itemId)
+    if (!setId) {
+      continue
+    }
+    equippedSetCounts.set(setId, (equippedSetCounts.get(setId) ?? 0) + 1)
+    equippedSetCount += 1
+  }
+
+  if (equippedSetCount === 0) {
+    return ALL_GEAR_SET_DEFINITIONS.map((set) => set.id)
+  }
+
+  const weightedSets = ALL_GEAR_SET_DEFINITIONS.map((set, index) => ({
+    set,
+    index,
+    weight: GEAR_SET_BASE_WEIGHT + Math.round(
+      ((equippedSetCounts.get(set.id) ?? 0) / equippedSetCount) *
+        GEAR_SET_MATCH_WEIGHT,
+    ),
+  })).sort((left, right) =>
+    right.weight - left.weight || left.index - right.index
+  )
+
+  return weightedSets.flatMap(({ set, weight }) =>
+    Array.from({ length: weight }, () => set.id)
+  )
 }
 
 function getStartingWeaponArchetype(
@@ -336,6 +382,7 @@ export function generateGearChoices(
 
   const remaining = [...itemDefinitions]
   const choices: GearChoice[] = []
+  const setChoicePool = getGearSetChoicePool(state, itemDefinitions)
   while (choices.length < normalCount) {
     const definition = remaining.splice(
       chooseGearTemplateIndex(state, remaining, rng),
@@ -348,6 +395,7 @@ export function generateGearChoices(
       definition,
       rng,
       state.player.gearRarityFloor ?? Rarity.Common,
+      setChoicePool,
     ))
   }
 

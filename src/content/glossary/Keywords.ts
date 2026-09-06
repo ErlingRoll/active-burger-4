@@ -34,6 +34,7 @@ export type KeywordId =
   | 'critical-strike'
   | 'area-of-effect'
   | 'projectile-chain'
+  | 'primary-target'
   | 'resistance'
   | 'physical-damage'
   | 'elemental-damage'
@@ -244,6 +245,13 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     details:
       'A chained projectile can continue from its initial target to additional enemies. It does not create extra hits when no valid target is nearby.',
   },
+  'primary-target': {
+    id: 'primary-target',
+    label: 'Primary target',
+    summary: 'The enemy selected when a projectile is created.',
+    details:
+      'The primary target is the first intended target of a projectile. Targets reached by projectile chains or later retargeting are secondary targets, so effects that mention the primary target apply only when the projectile hits its initially selected enemy.',
+  },
   resistance: {
     id: 'resistance',
     label: 'Resistance',
@@ -336,6 +344,8 @@ const KEYWORD_ALIASES: readonly KeywordAlias[] = [
   { id: 'critical-strike', text: 'critical strike' },
   { id: 'projectile-chain', text: 'projectile chains' },
   { id: 'projectile-chain', text: 'projectile chain' },
+  { id: 'primary-target', text: 'primary targets' },
+  { id: 'primary-target', text: 'primary target' },
   { id: 'physical-damage', text: 'physical damage' },
   { id: 'elemental-damage', text: 'elemental damage' },
   { id: 'chaos-damage', text: 'chaos damage' },

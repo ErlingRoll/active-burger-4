@@ -399,6 +399,36 @@ describe('gear choices', () => {
     )
   })
 
+  it('slightly favors set bonuses represented in equipped gear', () => {
+    const game = createGame({ seed: 407 })
+    for (const itemId of [
+      'iron-cleaver',
+      'watchers-helm',
+      'bastion-plate',
+      'swiftstride-boots',
+      'duelists-band',
+      'giants-amulet',
+    ] as const) {
+      equipItem(game.state.player, itemId)
+    }
+
+    let offeredSetPool: readonly string[] = []
+    const choice = generateGearChoices(game.state, 1, {
+      next: () => 0,
+      int: (min: number) => min,
+      chance: () => false,
+      pick: <T>(items: readonly T[]) => {
+        offeredSetPool = items as readonly string[]
+        return items[0] as T
+      },
+    })[0]
+
+    expect(choice?.type).toBe('gear')
+    expect(offeredSetPool.filter((setId) => setId === 'giant')).toHaveLength(125)
+    expect(offeredSetPool.filter((setId) => setId !== 'giant')).toHaveLength(300)
+    expect(offeredSetPool).toContain('scholar')
+  })
+
   it('can surface every weapon archetype as a distinct gear template', () => {
     const game = createGame({ seed: 404 })
     const choices = generateGearChoices(
