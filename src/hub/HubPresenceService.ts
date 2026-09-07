@@ -30,6 +30,10 @@ export interface HubMovement {
   position: HubPosition
 }
 
+export interface HubPositionRequest {
+  playerId: string
+}
+
 export const HUB_SIGNAL_IDS = [
   'wave',
   'praise-the-sun',
@@ -55,6 +59,11 @@ export interface HubPresenceService {
     onMovement: (movement: HubMovement) => void,
     onError: (error: Error) => void,
   ): () => void
+  requestPositions(request: HubPositionRequest): Promise<void>
+  subscribeToPositionRequests(
+    onRequest: (request: HubPositionRequest) => void,
+    onError: (error: Error) => void,
+  ): () => void
   sendSignal(signal: HubSignal): Promise<void>
   subscribeToSignals(
     onSignal: (signal: HubSignal) => void,
@@ -69,6 +78,7 @@ interface RpcPlayerNameRow {
 
 const HUB_SIGNAL_EVENT = 'campfire-signal'
 const HUB_MOVEMENT_EVENT = 'hub-movement'
+const HUB_POSITION_REQUEST_EVENT = 'hub-position-request'
 const hubSignalIds = new Set<string>(HUB_SIGNAL_IDS)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -104,6 +114,10 @@ function isHubMovement(value: unknown): value is HubMovement {
   return isRecord(value) &&
     isNonEmptyString(value.playerId) &&
     isHubPosition(value.position)
+}
+
+function isHubPositionRequest(value: unknown): value is HubPositionRequest {
+  return isRecord(value) && isNonEmptyString(value.playerId)
 }
 
 function getLegacyVisitorPosition(playerId: string): HubPosition {
@@ -319,6 +333,36 @@ export function createHubPresenceService(
       realtimeChannel.on('broadcast', { event: HUB_MOVEMENT_EVENT }, ({ payload }) => {
         if (active && isHubMovement(payload)) {
           onMovement(payload)
+        }
+      })
+      const unsubscribeFromChannel = subscribeToChannel(onError)
+      return () => {
+        active = false
+        unsubscribeFromChannel()
+      }
+    },
+
+    async requestPositions(request): Promise<void> {
+      if (!isHubPositionRequest(request)) {
+        throw new Error('Hub position request is invalid.')
+      }
+      await waitForSubscription()
+      const status = await getChannel().send({
+        type: 'broadcast',
+        event: HUB_POSITION_REQUEST_EVENT,
+        payload: request,
+      })
+      if (status !== 'ok') {
+        throw new Error(`Hub position request failed: ${status}.`)
+      }
+    },
+
+    subscribeToPositionRequests(onRequest, onError): () => void {
+      const realtimeChannel = getChannel()
+      let active = true
+      realtimeChannel.on('broadcast', { event: HUB_POSITION_REQUEST_EVENT }, ({ payload }) => {
+        if (active && isHubPositionRequest(payload)) {
+          onRequest(payload)
         }
       })
       const unsubscribeFromChannel = subscribeToChannel(onError)

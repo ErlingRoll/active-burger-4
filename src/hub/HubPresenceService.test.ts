@@ -174,6 +174,47 @@ describe('HubPresenceService', () => {
     unsubscribe()
   })
 
+  it('broadcasts and receives position resync requests', async () => {
+    let requestHandler: ((event: { payload: unknown }) => void) | undefined
+    const channel = {
+      on: vi.fn((_type: string, filter: { event?: string }, handler: (event: { payload: unknown }) => void) => {
+        if (filter.event === 'hub-position-request') {
+          requestHandler = handler
+        }
+        return channel
+      }),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+      send: vi.fn(async () => 'ok'),
+    } as unknown as RealtimeChannel
+    const client = {
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(async () => 'ok'),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+    const received: unknown[] = []
+    const unsubscribe = service.subscribeToPositionRequests((request) => {
+      received.push(request)
+    }, () => {
+      throw new Error('unexpected position request error')
+    })
+
+    await service.requestPositions({ playerId: 'joining-player' })
+    requestHandler?.({ payload: { playerId: 'new-player' } })
+    requestHandler?.({ payload: { playerId: ' ' } })
+
+    expect(channel.send).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'hub-position-request',
+      payload: { playerId: 'joining-player' },
+    })
+    expect(received).toEqual([{ playerId: 'new-player' }])
+
+    unsubscribe()
+  })
+
   it('broadcasts approved campfire signals and ignores malformed incoming payloads', async () => {
     let signalHandler: ((event: { payload: unknown }) => void) | undefined
     const channel = {

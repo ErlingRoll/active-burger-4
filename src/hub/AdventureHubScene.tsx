@@ -163,6 +163,7 @@ export function AdventureHubScene({
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const playerPositionRef = useRef<HubPosition>(playerPosition)
   const pendingPositionRef = useRef<HubPosition>(playerPosition)
+  const remoteMovementPositions = useRef(new Map<string, HubPosition>())
   const movementUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const movementUpdateInFlight = useRef(false)
   const movementUpdateGeneration = useRef(0)
@@ -297,6 +298,7 @@ export function AdventureHubScene({
     presenceAccountIdRef.current = accountId
     playerPositionRef.current = spawnPosition
     pendingPositionRef.current = spawnPosition
+    remoteMovementPositions.current.clear()
     lastPositionUpdateAt.current = 0
     setPlayerPosition(spawnPosition)
     setPresenceError(presenceConfigurationError)
@@ -312,13 +314,22 @@ export function AdventureHubScene({
     const unsubscribe = presenceService.subscribeToVisitors(
       (activeVisitors) => {
         if (mounted) {
+          const activeVisitorIds = new Set(activeVisitors.map((visitor) => visitor.playerId))
+          remoteMovementPositions.current.forEach((_position, playerId) => {
+            if (!activeVisitorIds.has(playerId)) {
+              remoteMovementPositions.current.delete(playerId)
+            }
+          })
           setRemoteVisitors((currentVisitors) => activeVisitors.map((visitor) => {
             const currentVisitor = currentVisitors.find(
               (candidate) => candidate.playerId === visitor.playerId,
             )
-            return currentVisitor
-              ? { ...visitor, position: currentVisitor.position }
-              : visitor
+            return {
+              ...visitor,
+              position: remoteMovementPositions.current.get(visitor.playerId) ??
+                currentVisitor?.position ??
+                visitor.position,
+            }
           }))
           setPresenceError(null)
         }
@@ -344,6 +355,7 @@ export function AdventureHubScene({
     const unsubscribeFromMovements = presenceService.subscribeToMovements(
       (movement) => {
         if (mounted && movement.playerId !== accountId) {
+          remoteMovementPositions.current.set(movement.playerId, movement.position)
           setRemoteVisitors((currentVisitors) => currentVisitors.map((visitor) => (
             visitor.playerId === movement.playerId
               ? { ...visitor, position: movement.position }
@@ -357,7 +369,30 @@ export function AdventureHubScene({
         }
       },
     )
+    const unsubscribeFromPositionRequests = presenceService.subscribeToPositionRequests(
+      (request) => {
+        if (mounted && request.playerId !== accountId) {
+          void presenceService.sendMovement({
+            playerId: accountId,
+            position: playerPositionRef.current,
+          }).catch((error: unknown) => {
+            if (mounted) {
+              setPresenceError(error instanceof Error
+                ? error.message
+                : 'Adventure hub presence is unavailable.')
+            }
+          })
+        }
+      },
+      (error) => {
+        if (mounted) {
+          setPresenceError(error.message)
+        }
+      },
+    )
     void presenceService.trackVisitor({ playerId: accountId, position: spawnPosition })
+      .then(() => presenceService.sendMovement({ playerId: accountId, position: spawnPosition }))
+      .then(() => presenceService.requestPositions({ playerId: accountId }))
       .catch((error: unknown) => {
         if (mounted) {
           setPresenceError(error instanceof Error
@@ -368,6 +403,7 @@ export function AdventureHubScene({
     return () => {
       mounted = false
       hubActiveRef.current = false
+      unsubscribeFromPositionRequests()
       unsubscribeFromMovements()
       unsubscribeFromSignals()
       unsubscribe()
