@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
 import {
   getSkillDamage,
@@ -228,7 +229,13 @@ function ChampionGearCard({
   )
 }
 
-export function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
+export function ChampionDetails({
+  champion,
+  headerAction,
+}: {
+  champion: ChampionSnapshot
+  headerAction?: ReactNode
+}) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
   return (
     <section className="champion-details" aria-labelledby="champion-details-title">
@@ -241,8 +248,11 @@ export function ChampionDetails({ champion }: { champion: ChampionSnapshot }) {
           <h3 id="champion-details-title">{champion.name}</h3>
           <span>{classDefinition.name}</span>
         </div>
-        <span className={`champion-availability${champion.exhaustionUntil ? ' exhausted' : ''}`}>
-          {formatExhaustion(champion.exhaustionUntil)}
+        <span className="champion-details-status">
+          <span className={`champion-availability${champion.exhaustionUntil ? ' exhausted' : ''}`}>
+            {formatExhaustion(champion.exhaustionUntil)}
+          </span>
+          {headerAction}
         </span>
       </header>
       <dl className="champion-overview-stats">

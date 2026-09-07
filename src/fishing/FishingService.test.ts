@@ -14,6 +14,7 @@ import {
   formatFishingRodModifiers,
   formatFishingSalvageValue,
   formatFishSizeKg,
+  getChampionRevivalReductionSeconds,
   resolveFishingCatch,
 } from './FishingContent'
 import { createFishingService, type FishingAnglerPresence } from './FishingService'
@@ -154,6 +155,21 @@ describe('FishingContent', () => {
     expect(formatFishingFishDetail('river-minnow', {
       sizePercentile: 0.5345,
     })).toBe('Weight: 0.11 kg')
+  })
+
+  it('calculates Revival Koi recovery from rarity and size metadata', () => {
+    expect(getChampionRevivalReductionSeconds({
+      rarity: Rarity.Common,
+      sizePercentile: 0.5,
+    })).toBe(16_200)
+    expect(getChampionRevivalReductionSeconds({
+      rarity: Rarity.Legendary,
+      sizePercentile: 1,
+    })).toBe(86_400)
+    expect(getChampionRevivalReductionSeconds({
+      rarity: 'unknown',
+      sizePercentile: 'unknown',
+    })).toBe(16_200)
   })
 })
 

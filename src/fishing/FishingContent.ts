@@ -484,6 +484,23 @@ export function formatFishingFishDetail(
   return `Weight: ${formatFishSizeKg(metadata.sizePercentile, fish?.weightRangeKg)}`
 }
 
+export function getChampionRevivalReductionSeconds(
+  metadata: Record<string, unknown>,
+): number {
+  const rarityFactor = {
+    common: 1,
+    uncommon: 1.5,
+    rare: 2,
+    epic: 2.5,
+    legendary: 3,
+  }[metadata.rarity as RarityValue] ?? 1
+  const size = metadata.sizePercentile
+  const sizeFactor = typeof size === 'number' && Number.isFinite(size)
+    ? 0.25 + Math.min(1, Math.max(0, size)) * 1.75
+    : 1.125
+  return Math.floor(14_400 * rarityFactor * sizeFactor)
+}
+
 export function getFishDefinition(definitionId: string): FishDefinition | undefined {
   return FISH_DEFINITIONS[definitionId as keyof typeof FISH_DEFINITIONS]
 }

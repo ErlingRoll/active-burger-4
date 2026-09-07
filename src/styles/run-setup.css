@@ -146,10 +146,6 @@
   box-shadow: none;
 }
 
-.run-abyss-revival-panel {
-  margin-top: 0.5rem;
-}
-
 .run-abyss-revival-list {
   display: flex;
   flex-wrap: wrap;
@@ -159,7 +155,7 @@
 .run-abyss-revival-action {
   display: grid;
   gap: 0.2rem;
-  min-width: 10rem;
+  min-width: 12rem;
   text-align: left;
 }
 

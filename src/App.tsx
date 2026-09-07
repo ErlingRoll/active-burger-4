@@ -79,6 +79,7 @@ import {
 import {
   createFishingService,
   formatFishSizeKg,
+  getChampionRevivalReductionSeconds,
   getFishMealEffectSummary,
   resolveFishMeal,
   FishIcon,
@@ -329,6 +330,14 @@ function formatChampionExhaustion(exhaustionUntil: string | null, now = Date.now
   const remainingHours = Math.floor(remainingMilliseconds / 3_600_000)
   const remainingMinutes = Math.ceil((remainingMilliseconds % 3_600_000) / 60_000)
   return `${remainingHours}h ${remainingMinutes}m remaining`
+}
+
+function formatRevivalReduction(seconds: number): string {
+  const hours = Math.floor(seconds / 3_600)
+  const minutes = Math.floor((seconds % 3_600) / 60)
+  return hours > 0
+    ? `${hours}h ${minutes}m`
+    : `${minutes}m`
 }
 
 function parseGameCheckpoint(value: unknown): GameCheckpoint {
@@ -2661,9 +2670,19 @@ function RunSetupScreen({
     [fishItems],
   )
   const revivalFishItems = useMemo(
-    () => fishItems.filter((fish) => fish.definitionId === 'revival-koi'),
+    () => fishItems.filter((fish) => fish.definitionId === 'revival-koi' && fish.quantity > 0),
     [fishItems],
   )
+  const sortedRevivalFishItems = useMemo(
+    () => [...revivalFishItems].sort((left, right) => {
+      const reductionDifference =
+        getChampionRevivalReductionSeconds(right.metadata) -
+        getChampionRevivalReductionSeconds(left.metadata)
+      return reductionDifference || left.itemInstanceId.localeCompare(right.itemInstanceId)
+    }),
+    [revivalFishItems],
+  )
+  const [revivalPickerOpen, setRevivalPickerOpen] = useState(false)
   const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
   const selectedChampion = champions.find((champion) =>
     champion.championId === selectedChampionId,
@@ -2941,6 +2960,7 @@ function RunSetupScreen({
                            onClick={() => {
                              setSelectedChampionId(champion.championId)
                              setRevivalError(null)
+                             setRevivalPickerOpen(false)
                            }}
                          >
                            <span className="run-abyss-champion-trigger-copy">
@@ -2964,50 +2984,78 @@ function RunSetupScreen({
                              role="region"
                              aria-labelledby={triggerId}
                            >
-                             <ChampionDetails champion={champion} />
-                             {selectedChampionExhausted ? (
-                               <section className="champion-revival-panel run-abyss-revival-panel" aria-labelledby="run-abyss-revival-title">
-                                 <strong id="run-abyss-revival-title">Champion exhausted</strong>
-                                 <span>{formatChampionExhaustion(champion.exhaustionUntil, currentTime)}</span>
-                                 {revivalError ? <small role="alert">{revivalError}</small> : null}
-                                 {revivalFishItems.length > 0 ? (
-                                   <>
-                                     <small>
-                                       Feed a Revival Koi here to reduce the remaining Abyss exhaustion.
-                                       The reduction depends on its rarity and size.
-                                     </small>
-                                     <div className="run-abyss-revival-list" aria-label="Available Revival Koi">
-                                       {revivalFishItems.map((fish) => {
-                                         const definition = getFishDefinition(fish.definitionId)
-                                         const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
-                                         return (
-                                           <button
-                                             className="champion-revival-action run-abyss-revival-action"
-                                             type="button"
-                                             key={fish.itemInstanceId}
-                                             onClick={() => { void reviveChampion(fish) }}
-                                             disabled={revivalState === 'saving'}
-                                           >
-                                             <span>
-                                               {definition ? (
-                                                 <FishIcon icon={definition.visual.icon} color={definition.visual.accent} />
-                                               ) : null}
-                                               {' '}{itemName}
-                                             </span>
-                                             <small>
-                                               {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
-                                               {formatFishSizeKg(fish.metadata.sizePercentile, definition?.weightRangeKg)}
-                                             </small>
-                                           </button>
-                                         )
-                                       })}
+                             <ChampionDetails
+                               champion={champion}
+                               headerAction={selectedChampionExhausted ? (
+                                 <div className="champion-revival-control">
+                                   <button
+                                     className="champion-revive-trigger"
+                                     type="button"
+                                     aria-expanded={revivalPickerOpen}
+                                     aria-controls={`run-abyss-revival-picker-${champion.championId}`}
+                                     onClick={() => {
+                                       setRevivalError(null)
+                                       setRevivalPickerOpen((open) => !open)
+                                     }}
+                                     disabled={revivalState === 'saving'}
+                                   >
+                                     {revivalState === 'saving' ? 'Reviving…' : 'Revive'}
+                                   </button>
+                                   {revivalPickerOpen ? (
+                                     <div
+                                       className="run-abyss-revival-dropdown"
+                                       id={`run-abyss-revival-picker-${champion.championId}`}
+                                       role="region"
+                                       aria-label="Choose a Revival Koi"
+                                     >
+                                       <strong>Choose a Revival Koi</strong>
+                                       {revivalError ? <small role="alert">{revivalError}</small> : null}
+                                       {fishLoadState === 'loading' ? (
+                                         <p>Loading Revival Koi…</p>
+                                       ) : fishLoadState === 'error' ? (
+                                         <small role="alert">
+                                           {fishLoadError ?? 'Fish inventory is unavailable.'}
+                                         </small>
+                                       ) : sortedRevivalFishItems.length > 0 ? (
+                                         <div className="run-abyss-revival-list" aria-label="Available Revival Koi">
+                                           {sortedRevivalFishItems.map((fish) => {
+                                             const definition = getFishDefinition(fish.definitionId)
+                                             const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
+                                             const reduction = getChampionRevivalReductionSeconds(fish.metadata)
+                                             return (
+                                               <button
+                                                 className="champion-revival-action run-abyss-revival-action"
+                                                 type="button"
+                                                 key={fish.itemInstanceId}
+                                                 onClick={() => {
+                                                   setRevivalPickerOpen(false)
+                                                   void reviveChampion(fish)
+                                                 }}
+                                                 disabled={revivalState === 'saving'}
+                                               >
+                                                 <span>
+                                                   {definition ? (
+                                                     <FishIcon icon={definition.visual.icon} color={definition.visual.accent} />
+                                                   ) : null}
+                                                   {' '}{itemName}
+                                                 </span>
+                                                 <small>
+                                                   {typeof fish.metadata.rarity === 'string' ? fish.metadata.rarity : 'unknown'} · size{' '}
+                                                   {formatFishSizeKg(fish.metadata.sizePercentile, definition?.weightRangeKg)}
+                                                 </small>
+                                                 <small>Revives by up to {formatRevivalReduction(reduction)}</small>
+                                               </button>
+                                             )
+                                           })}
+                                         </div>
+                                       ) : (
+                                         <p>You are out of Revival Koi. Go fish</p>
+                                       )}
                                      </div>
-                                   </>
-                                 ) : (
-                                   <small>Catch a Revival Koi to reduce this timer before entering.</small>
-                                 )}
-                               </section>
-                             ) : null}
+                                   ) : null}
+                                 </div>
+                               ) : undefined}
+                             />
                            </div>
                          ) : null}
                        </article>

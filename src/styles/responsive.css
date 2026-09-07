@@ -110,9 +110,14 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .champion-availability {
+  .champion-details-status {
     grid-column: 1 / -1;
-    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  .run-abyss-revival-dropdown {
+    right: auto;
+    left: 0;
   }
 
   .champion-skill-grid li:nth-child(even) .champion-inspect-tooltip,

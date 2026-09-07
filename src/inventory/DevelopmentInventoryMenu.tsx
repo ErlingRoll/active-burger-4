@@ -4,8 +4,13 @@ import {
   ALL_INVENTORY_ITEM_DEFINITIONS,
   getInventoryItemDefinition,
 } from './ItemDefinitions'
-import type { InventoryItemDefinition, InventoryService } from './InventoryTypes'
+import type {
+  InventoryItemDefinition,
+  InventoryItemGrant,
+  InventoryService,
+} from './InventoryTypes'
 import { getFishDefinition, FishIcon } from '../fishing'
+import { RARITIES, RARITY_WEIGHTS, type Rarity } from '../content/rarity/Rarity'
 import { useToaster } from '../ui/ToasterContext'
 
 interface DevelopmentInventoryMenuProps {
@@ -25,6 +30,36 @@ function getItemIcon(definition: InventoryItemDefinition): ReactNode {
     return <FishIcon icon={fish.visual.icon} color={fish.visual.accent} />
   }
   return definition.category === 'bait' ? '◉' : '▣'
+}
+
+function randomFishRarity(): Rarity {
+  const totalWeight = RARITIES.reduce((total, rarity) => total + RARITY_WEIGHTS[rarity], 0)
+  let remainingWeight = Math.random() * totalWeight
+  for (const rarity of RARITIES) {
+    remainingWeight -= RARITY_WEIGHTS[rarity]
+    if (remainingWeight < 0) {
+      return rarity
+    }
+  }
+  return RARITIES[RARITIES.length - 1]
+}
+
+function createDevelopmentGrant(
+  definition: InventoryItemDefinition,
+  quantity: number,
+): InventoryItemGrant {
+  const fish = getFishDefinition(definition.id)
+  return {
+    definitionId: definition.id,
+    quantity,
+    ...(fish ? {
+      metadata: {
+        speciesId: fish.id,
+        rarity: randomFishRarity(),
+        sizePercentile: 0.1 + Math.random() * 0.89,
+      },
+    } : {}),
+  }
 }
 
 export function DevelopmentInventoryMenu({
@@ -53,7 +88,7 @@ export function DevelopmentInventoryMenu({
     try {
       const [result] = await inventoryService.grantDevelopmentItems(
         crypto.randomUUID(),
-        [{ definitionId: selectedDefinition.id, quantity: parsedQuantity }],
+        [createDevelopmentGrant(selectedDefinition, parsedQuantity)],
       )
       if (!result) {
         throw new Error('Inventory grant returned no item.')
