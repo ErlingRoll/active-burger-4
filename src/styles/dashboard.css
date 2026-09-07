@@ -2226,7 +2226,7 @@
 }
 
 .hub-leaderboard-panel {
-  width: min(100%, 17rem);
+  min-width: min(100%, 17rem);
   max-height: none;
   overflow: visible;
   justify-self: end;
