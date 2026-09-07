@@ -8,6 +8,7 @@ import {
   EMPTY_RUN_PREPARATION_SNAPSHOT,
   createGameFromCheckpoint,
   createInitialGameCheckpoint,
+  getDungeonDefinition,
   isRunPreparationSnapshot,
   isValidCheckpoint,
   type BehaviorProfileId,
@@ -925,6 +926,19 @@ function App() {
           }),
     }
   }, [activeRun, metaProgression.snapshot, profile, runChampion, runChampionId, runMode, runSeed, settings])
+  const bugReportDungeon = useMemo<BugReportDungeonContext>(() => {
+    const dungeonId = activeRun?.dungeonId ?? runConfig?.dungeonId ?? DEFAULT_DUNGEON_ID
+    const dungeon = getDungeonDefinition(dungeonId)
+    return {
+      dungeonId,
+      dungeonName: dungeon.name,
+      currentFloor: activeRun?.currentFloor ?? 1,
+      maxFloor: activeRun?.maxFloor ?? runConfig?.selectedDungeonMaxFloor ?? dungeon.defaultMaxFloor,
+      characterClassId: activeRun?.characterClassId ?? runConfig?.characterClassId ?? 'knight',
+      worldModifierIds: runConfig?.worldModifierIds ?? [],
+      runId: activeRun?.runId,
+    }
+  }, [activeRun, runConfig])
   useMusicPlaylist(getMusicPlaylistId(screen, runConfig?.modeId ?? runMode))
 
   const persistSettings = useCallback(
@@ -1815,6 +1829,36 @@ function App() {
     }
   }, [authentication.account, repository, showToast])
 
+  const softDeleteBugReport = useCallback(async (reportId: number): Promise<void> => {
+    if (!authentication.account?.isAdmin) {
+      showToast('Administrator access is required.', 'error')
+      return
+    }
+    if (!bugReport.service) {
+      showToast(
+        `Unable to delete bug report: ${bugReport.configurationError ?? 'Bug reporting is unavailable.'}`,
+        'error',
+      )
+      return
+    }
+    try {
+      await bugReport.service.softDelete(reportId)
+      setAdminReports((current) => ({
+        ...current,
+        reports: current.reports.filter((report) => report.id !== reportId),
+        hiddenReportIds: current.hiddenReportIds.filter((id) => id !== reportId),
+      }))
+      showToast('Bug report deleted.', 'info')
+    } catch (error: unknown) {
+      showToast(`Unable to delete bug report: ${errorMessage(error)}`, 'error')
+    }
+  }, [
+    authentication.account,
+    bugReport.configurationError,
+    bugReport.service,
+    showToast,
+  ])
+
   const loadBugReportFloorSnapshot = useCallback(async (
     snapshotId: number,
   ): Promise<BugReportFloorSnapshot> => {
@@ -1923,6 +1967,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           inventoryService={inventory.service}
+          bugReportDungeon={bugReportDungeon}
+          onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
         <WikiScreen
           appVersion={APP_VERSION}
@@ -1947,6 +1993,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           inventoryService={inventory.service}
+          bugReportDungeon={bugReportDungeon}
+          onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1974,6 +2022,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           inventoryService={inventory.service}
+          bugReportDungeon={bugReportDungeon}
+          onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -2021,6 +2071,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           inventoryService={inventory.service}
+          bugReportDungeon={bugReportDungeon}
+          onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -2059,6 +2111,7 @@ function App() {
           onRefresh={refreshAdminReports}
           onToggleShowHidden={() => { setShowHiddenAdminReports((current) => !current) }}
           onToggleHide={(reportId, hidden) => { void toggleBugReportHidden(reportId, hidden) }}
+          onDelete={(reportId) => { void softDeleteBugReport(reportId) }}
           onLoadFloorSnapshot={loadBugReportFloorSnapshot}
         />
       ) : null}
@@ -2205,6 +2258,8 @@ interface AppHeaderProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   inventoryService: InventoryService | null
+  bugReportDungeon: BugReportDungeonContext
+  onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
 }
 
 function AppHeader({
@@ -2219,6 +2274,8 @@ function AppHeader({
   onOpenChampions,
   onOpenInventory,
   inventoryService,
+  bugReportDungeon,
+  onSubmitBugReport,
 }: AppHeaderProps) {
   return (
     <header className="app-header">
@@ -2272,6 +2329,8 @@ function AppHeader({
             displayName={nickname.displayName}
             pendingNickname={nickname.pendingNickname}
             onRequestNicknameChange={onRequestNicknameChange}
+            bugReportDungeon={bugReportDungeon}
+            onSubmitBugReport={onSubmitBugReport}
           />
           <button className="app-sign-out" type="button" onClick={() => { void onSignOut() }}>
             Sign out

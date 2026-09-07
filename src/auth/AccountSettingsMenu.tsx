@@ -1,20 +1,27 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { validateNickname } from './NicknameService'
 import { AudioSettingsPanel } from '../audio'
+import { ReportBugModal } from '../rendering/ReportBugModal'
+import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
 interface AccountSettingsMenuProps {
   displayName: string | null
   pendingNickname: string | null
   onRequestNicknameChange: (nickname: string) => Promise<void>
+  bugReportDungeon: BugReportDungeonContext
+  onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
 }
 
 export function AccountSettingsMenu({
   displayName,
   pendingNickname,
   onRequestNicknameChange,
+  bugReportDungeon,
+  onSubmitBugReport,
 }: AccountSettingsMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [reportBugOpen, setReportBugOpen] = useState(false)
   const [nickname, setNickname] = useState(displayName ?? '')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -31,6 +38,11 @@ export function AccountSettingsMenu({
   const openNicknameDialog = (): void => {
     setMenuOpen(false)
     setDialogOpen(true)
+  }
+
+  const openBugReport = (): void => {
+    setMenuOpen(false)
+    setReportBugOpen(true)
   }
 
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -70,6 +82,9 @@ export function AccountSettingsMenu({
             <AudioSettingsPanel />
             <button role="menuitem" type="button" onClick={openNicknameDialog}>
               Change nickname
+            </button>
+            <button role="menuitem" type="button" onClick={openBugReport}>
+              Report a bug
             </button>
           </div>
         ) : null}
@@ -118,6 +133,16 @@ export function AccountSettingsMenu({
             </form>
           </section>
         </div>
+      ) : null}
+      {reportBugOpen ? (
+        <ReportBugModal
+          dungeon={bugReportDungeon}
+          onClose={() => { setReportBugOpen(false) }}
+          onSubmit={async (description, image) => {
+            await onSubmitBugReport(description, image)
+            setReportBugOpen(false)
+          }}
+        />
       ) : null}
     </>
   )

@@ -178,6 +178,25 @@
   outline-offset: 2px;
 }
 
+.admin-report-delete {
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+  color: #fecaca;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: #7f1d1d;
+  border: 1px solid #f87171;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.admin-report-delete:hover,
+.admin-report-delete:focus-visible {
+  background: #991b1b;
+  outline: 3px solid rgb(248 113 113 / 35%);
+  outline-offset: 2px;
+}
+
 .admin-report-bug {
   margin: 1rem 0;
   color: #f8fafc;

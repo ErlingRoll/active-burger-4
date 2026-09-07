@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { BugReport, BugReportFloorSnapshot } from '../bug-report'
 import { getPlayerDisplayName } from '../auth'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 
 interface AdminReportsScreenProps {
   reports: readonly BugReport[]
@@ -12,6 +13,7 @@ interface AdminReportsScreenProps {
   onRefresh: () => void
   onToggleShowHidden: () => void
   onToggleHide: (reportId: number, hidden: boolean) => void
+  onDelete: (reportId: number) => void
   onLoadFloorSnapshot: (snapshotId: number) => Promise<BugReportFloorSnapshot>
 }
 
@@ -36,6 +38,7 @@ export function AdminReportsScreen({
   onRefresh,
   onToggleShowHidden,
   onToggleHide,
+  onDelete,
   onLoadFloorSnapshot,
 }: AdminReportsScreenProps) {
   const [floorSnapshot, setFloorSnapshot] = useState<{
@@ -44,6 +47,7 @@ export function AdminReportsScreen({
     snapshot: BugReportFloorSnapshot | null
     error: string | null
   } | null>(null)
+  const [deleteReportId, setDeleteReportId] = useState<number | null>(null)
   const visibleReports = showHidden
     ? reports
     : reports.filter((report) => !hiddenReportIds.has(report.id))
@@ -125,6 +129,13 @@ export function AdminReportsScreen({
                       >
                         {hidden ? 'Show' : 'Hide'}
                       </button>
+                      <button
+                        className="admin-report-delete"
+                        type="button"
+                        onClick={() => { setDeleteReportId(report.id) }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </header>
                     <div className="admin-report-body">
@@ -175,6 +186,18 @@ export function AdminReportsScreen({
                               <pre>{JSON.stringify(floorSnapshot.snapshot?.payload, null, 2)}</pre>
                             )}
                           </div>
+                        ) : null}
+                        {deleteReportId !== null ? (
+                          <ConfirmationDialog
+                            title="Delete bug report?"
+                            message="This will hide the report from the admin list without permanently deleting its data."
+                            confirmLabel="Delete"
+                            onConfirm={() => {
+                              onDelete(deleteReportId)
+                              setDeleteReportId(null)
+                            }}
+                            onCancel={() => { setDeleteReportId(null) }}
+                          />
                         ) : null}
                       </div>
                       <div className="admin-report-media">

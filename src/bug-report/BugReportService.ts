@@ -49,6 +49,7 @@ export interface BugReport {
 export interface BugReportService {
   submit(input: SubmitBugReportInput): Promise<void>
   loadAll(): Promise<BugReport[]>
+  softDelete(reportId: number): Promise<void>
   loadFloorSnapshot(snapshotId: number): Promise<BugReportFloorSnapshot>
 }
 
@@ -164,6 +165,7 @@ export function createBugReportService(
       const response = await getClient()
         .from('bug_reports')
         .select('id, user_id, username, submitted_at, bug, image_data, image_name, image_type, dungeon_info, floor_snapshot_id')
+        .is('deleted_at', null)
         .order('submitted_at', { ascending: false })
       if (response.error) {
         throw response.error
@@ -183,6 +185,17 @@ export function createBugReportService(
         dungeon: parseDungeonContext(row.dungeon_info)!,
         savedFloorId: row.floor_snapshot_id,
       }))
+    },
+
+    async softDelete(reportId): Promise<void> {
+      const response = await getClient()
+        .from('bug_reports')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', reportId)
+        .is('deleted_at', null)
+      if (response.error) {
+        throw response.error
+      }
     },
 
     async loadFloorSnapshot(snapshotId): Promise<BugReportFloorSnapshot> {
