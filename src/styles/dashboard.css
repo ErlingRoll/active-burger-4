@@ -2081,54 +2081,6 @@
   50% { opacity: 1; scale: 1.18; }
 }
 
-@media (max-width: 860px) {
-  .adventure-hub-scene {
-    grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr);
-    grid-template-rows: auto minmax(25rem, 1fr) auto auto;
-  }
-
-  .hub-heading { grid-column: 1 / -1; }
-  .hub-status-panel { grid-column: 2; grid-row: 2; }
-  .hub-utility-stations { grid-column: 1; grid-row: 2; }
-  .hub-expedition-panel { grid-column: 1 / -1; grid-row: 3; }
-  .hub-leaderboard-panel { grid-column: 1 / -1; grid-row: 4; max-height: none; }
-  .hub-dungeon-gate { top: 22%; width: min(46vw, 24rem); height: min(47vw, 25rem); }
-  .hub-torch-left { left: 23%; }
-  .hub-torch-right { right: 23%; }
-}
-
-@media (max-width: 620px) {
-  .adventure-hub {
-    min-height: auto;
-    padding: 0.5rem;
-  }
-
-  .adventure-hub-scene {
-    display: flex;
-    flex-direction: column;
-    min-height: 51rem;
-    padding: 1rem;
-  }
-
-  .hub-heading { max-width: 22rem; }
-  .hub-heading h2 { font-size: clamp(2rem, 13vw, 3.5rem); }
-  .hub-status-panel,
-  .hub-utility-stations,
-  .hub-expedition-panel,
-  .hub-leaderboard-panel { width: 100%; }
-  .hub-status-panel { margin-top: 17rem; }
-  .hub-utility-stations { grid-template-columns: 1fr; }
-  .hub-leaderboard-panel { max-height: none; }
-  .hub-dungeon-gate { top: 8rem; width: 14rem; height: 15rem; }
-  .hub-torch { top: 14.5rem; }
-  .hub-torch-left { left: 16%; }
-  .hub-torch-right { right: 16%; }
-  .hub-bonfire { top: 17rem; scale: 0.8; }
-  .hub-visitors { top: 6rem; bottom: auto; height: 18rem; }
-  .hub-visitor { font-size: 0.53rem; }
-  .hub-presence-error { right: 1rem; bottom: 1rem; left: 1rem; max-width: none; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hub-dungeon-gate-glow,
   .hub-torch i,
@@ -2464,41 +2416,6 @@
   100% { opacity: 0; transform: translate(-20%, -5.5rem) scale(1.35); }
 }
 
-@media (max-width: 860px) {
-  .adventure-hub-scene {
-    min-height: 0;
-  }
-
-  .hub-ruin-left { left: 2%; }
-  .hub-ruin-right { right: 2%; }
-  .hub-banner-left { left: 19%; }
-  .hub-banner-right { right: 19%; }
-  .hub-dungeon-gate { top: 15%; width: min(38vw, 27rem); height: min(44vw, 28rem); }
-  .hub-bonfire { top: 56%; }
-}
-
-@media (max-width: 620px) {
-  .adventure-hub-scene {
-    min-height: 56rem;
-    padding: 1rem;
-  }
-
-  .hub-status-panel,
-  .hub-utility-stations,
-  .hub-expedition-panel,
-  .hub-leaderboard-panel {
-    width: 100%;
-  }
-
-  .hub-status-panel { margin-top: 19rem; }
-  .hub-dungeon-gate { top: 8.5rem; }
-  .hub-bonfire { top: 18.5rem; }
-  .hub-visitors { top: 7rem; height: 19rem; }
-  .hub-ruin { bottom: 32%; opacity: 0.4; }
-  .hub-banner { top: 15rem; }
-  .hub-torch { top: 16.5rem; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hub-fire-embers {
     animation: none;
@@ -2659,8 +2576,4 @@
     left: clamp(1.25rem, 5vw, 5rem);
     width: clamp(17rem, 19vw, 22rem);
   }
-}
-
-@media (max-width: 620px) {
-  .hub-left-dock { width: 100%; }
 }

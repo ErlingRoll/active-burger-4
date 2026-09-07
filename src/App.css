@@ -1,6 +1,6 @@
 /*
  * Styles are loaded in legacy cascade order. Keep additions with their owning
- * feature and place cross-feature viewport rules in responsive.css.
+ * feature.
  */
 @import './styles/app-shell.css';
 @import './styles/shared-screens.css';
@@ -13,5 +13,4 @@
 @import './styles/fishing.css';
 @import './styles/inventory-and-loot.css';
 @import './styles/run-setup.css';
-@import './styles/responsive.css';
 @import './styles/fishing-layout.css';
