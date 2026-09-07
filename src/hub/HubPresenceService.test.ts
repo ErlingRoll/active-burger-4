@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
-import { createHubPresenceService } from './HubPresenceService'
+import { createHubPresenceService, type HubVisitor } from './HubPresenceService'
 
 function createService(client: SupabaseClient) {
   return createHubPresenceService({
@@ -76,9 +76,102 @@ describe('HubPresenceService', () => {
     await expect(service.trackVisitor({ playerId: '  ', position: { x: 50, y: 72 } })).rejects.toThrow(
       'Hub visitor presence is invalid.',
     )
+    await expect(service.trackVisitor({ playerId: 'player-one' })).rejects.toThrow(
+      'Hub visitor presence is invalid.',
+    )
     await expect(service.trackVisitor({ playerId: 'player-one', position: { x: 95, y: 72 } })).rejects.toThrow(
       'Hub visitor presence is invalid.',
     )
+  })
+
+  it('keeps legacy visitors visible with a stable fallback position', async () => {
+    let presenceSyncHandler: (() => void) | undefined
+    const channel = {
+      on: vi.fn((_type: string, _filter: unknown, handler: () => void) => {
+        presenceSyncHandler = handler
+        return channel
+      }),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+      presenceState: vi.fn(() => ({
+        legacySession: [{ playerId: 'legacy-player' }],
+      })),
+    } as unknown as RealtimeChannel
+    const client = {
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(async () => 'ok'),
+      rpc: vi.fn(async () => ({
+        data: [{ player_id: 'legacy-player', player_name: 'Mira' }],
+        error: null,
+      })),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+    const received: HubVisitor[][] = []
+    const unsubscribe = service.subscribeToVisitors((visitors) => {
+      received.push(visitors)
+    }, () => {
+      throw new Error('unexpected presence error')
+    })
+
+    presenceSyncHandler?.()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    expect(received).toHaveLength(1)
+    expect(received[0][0]).toMatchObject({
+      playerId: 'legacy-player',
+      playerName: 'Mira',
+    })
+    expect(received[0][0].position).toEqual(expect.objectContaining({
+      x: expect.any(Number),
+      y: expect.any(Number),
+    }))
+
+    unsubscribe()
+  })
+
+  it('broadcasts and receives validated hub movement', async () => {
+    let movementHandler: ((event: { payload: unknown }) => void) | undefined
+    const channel = {
+      on: vi.fn((_type: string, filter: { event?: string }, handler: (event: { payload: unknown }) => void) => {
+        if (filter.event === 'hub-movement') {
+          movementHandler = handler
+        }
+        return channel
+      }),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+      send: vi.fn(async () => 'ok'),
+    } as unknown as RealtimeChannel
+    const client = {
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(async () => 'ok'),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+    const received: unknown[] = []
+    const unsubscribe = service.subscribeToMovements((movement) => {
+      received.push(movement)
+    }, () => {
+      throw new Error('unexpected movement error')
+    })
+
+    await service.sendMovement({ playerId: 'player-one', position: { x: 51, y: 70 } })
+    movementHandler?.({ payload: { playerId: 'player-two', position: { x: 62, y: 74 } } })
+    movementHandler?.({ payload: { playerId: 'player-two', position: { x: 105, y: 74 } } })
+
+    expect(channel.send).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'hub-movement',
+      payload: { playerId: 'player-one', position: { x: 51, y: 70 } },
+    })
+    expect(received).toEqual([
+      { playerId: 'player-two', position: { x: 62, y: 74 } },
+    ])
+
+    unsubscribe()
   })
 
   it('broadcasts approved campfire signals and ignores malformed incoming payloads', async () => {

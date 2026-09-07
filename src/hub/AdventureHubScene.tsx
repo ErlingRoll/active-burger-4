@@ -20,7 +20,7 @@ const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
 const HUB_MOVEMENT_SPEED = 22
 const HUB_POSITION_UPDATE_INTERVAL_MS = 100
-const HUB_INITIAL_POSITION: HubPosition = { x: 50, y: 72 }
+const HUB_POSITION_RETRY_DELAY_MS = 500
 const HUB_MOVEMENT_KEYS = new Set(['w', 'a', 's', 'd'])
 
 type HubMovementKey = 'w' | 'a' | 's' | 'd'
@@ -44,6 +44,13 @@ function isHubMovementKey(value: string): value is HubMovementKey {
 function isInteractiveElement(target: EventTarget | null): boolean {
   return target instanceof HTMLElement &&
     target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
+}
+
+function createHubSpawnPosition(): HubPosition {
+  return {
+    x: 44 + Math.random() * 13,
+    y: 68 + Math.random() * 7,
+  }
 }
 
 interface AdventureHubSceneProps {
@@ -151,14 +158,17 @@ export function AdventureHubScene({
   const [activeSignals, setActiveSignals] = useState<Partial<Record<string, HubSignalId>>>({})
   const [sendingSignalId, setSendingSignalId] = useState<HubSignalId | null>(null)
   const [signalCooldownUntil, setSignalCooldownUntil] = useState<number | null>(null)
-  const [playerPosition, setPlayerPosition] = useState<HubPosition>(HUB_INITIAL_POSITION)
+  const [playerPosition, setPlayerPosition] = useState<HubPosition>(createHubSpawnPosition)
   const signalTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const playerPositionRef = useRef<HubPosition>(HUB_INITIAL_POSITION)
-  const pendingPositionRef = useRef<HubPosition>(HUB_INITIAL_POSITION)
+  const playerPositionRef = useRef<HubPosition>(playerPosition)
+  const pendingPositionRef = useRef<HubPosition>(playerPosition)
   const movementUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const movementUpdateInFlight = useRef(false)
+  const movementUpdateGeneration = useRef(0)
   const lastPositionUpdateAt = useRef(0)
   const hubActiveRef = useRef(false)
+  const presenceAccountIdRef = useRef(accountId)
   const storeBlocked = activeRun !== null || runLoadState !== 'ready'
   const isAbyssRun = activeRun?.modeId === 'infinite-abyss'
   const abyssEntryMessage = championAvailability === 'none'
@@ -210,6 +220,7 @@ export function AdventureHubScene({
   }, [])
 
   const cancelMovementUpdate = useCallback(() => {
+    movementUpdateGeneration.current += 1
     if (movementUpdateTimer.current !== null) {
       clearTimeout(movementUpdateTimer.current)
       movementUpdateTimer.current = null
@@ -221,34 +232,73 @@ export function AdventureHubScene({
       return
     }
     pendingPositionRef.current = position
-    if (movementUpdateTimer.current !== null) {
-      return
-    }
-    const elapsed = Date.now() - lastPositionUpdateAt.current
-    const delay = Math.max(0, HUB_POSITION_UPDATE_INTERVAL_MS - elapsed)
-    movementUpdateTimer.current = setTimeout(() => {
-      movementUpdateTimer.current = null
-      lastPositionUpdateAt.current = Date.now()
-      void presenceService.trackVisitor({
-        playerId: accountId,
-        position: pendingPositionRef.current,
-      }).catch((error: unknown) => {
-        if (hubActiveRef.current) {
-          setPresenceError(error instanceof Error
-            ? error.message
-            : 'Adventure hub presence is unavailable.')
+    const generation = movementUpdateGeneration.current
+
+    const schedulePositionUpdate = (minimumDelay = 0): void => {
+      if (
+        !hubActiveRef.current ||
+        generation !== movementUpdateGeneration.current ||
+        movementUpdateTimer.current !== null ||
+        movementUpdateInFlight.current
+      ) {
+        return
+      }
+      const elapsed = Date.now() - lastPositionUpdateAt.current
+      const delay = Math.max(minimumDelay, HUB_POSITION_UPDATE_INTERVAL_MS - elapsed)
+      movementUpdateTimer.current = setTimeout(() => {
+        movementUpdateTimer.current = null
+        if (
+          !hubActiveRef.current ||
+          generation !== movementUpdateGeneration.current ||
+          movementUpdateInFlight.current
+        ) {
+          return
         }
-      })
-    }, delay)
+        const positionToTrack = pendingPositionRef.current
+        movementUpdateInFlight.current = true
+        let failed = false
+        void presenceService.sendMovement({
+          playerId: accountId,
+          position: positionToTrack,
+        }).catch((error: unknown) => {
+          failed = true
+          if (hubActiveRef.current && generation === movementUpdateGeneration.current) {
+            setPresenceError(error instanceof Error
+              ? error.message
+              : 'Adventure hub presence is unavailable.')
+          }
+        }).finally(() => {
+          movementUpdateInFlight.current = false
+          lastPositionUpdateAt.current = Date.now()
+          if (!hubActiveRef.current || generation !== movementUpdateGeneration.current) {
+            return
+          }
+          const pendingPosition = pendingPositionRef.current
+          if (
+            failed ||
+            pendingPosition.x !== positionToTrack.x ||
+            pendingPosition.y !== positionToTrack.y
+          ) {
+            schedulePositionUpdate(failed ? HUB_POSITION_RETRY_DELAY_MS : 0)
+          }
+        })
+      }, delay)
+    }
+
+    schedulePositionUpdate()
   }, [accountId, presenceService])
 
   useEffect(() => {
     clearSignalTimers()
     cancelMovementUpdate()
-    playerPositionRef.current = HUB_INITIAL_POSITION
-    pendingPositionRef.current = HUB_INITIAL_POSITION
+    const spawnPosition = presenceAccountIdRef.current === accountId
+      ? playerPositionRef.current
+      : createHubSpawnPosition()
+    presenceAccountIdRef.current = accountId
+    playerPositionRef.current = spawnPosition
+    pendingPositionRef.current = spawnPosition
     lastPositionUpdateAt.current = 0
-    setPlayerPosition(HUB_INITIAL_POSITION)
+    setPlayerPosition(spawnPosition)
     setPresenceError(presenceConfigurationError)
     setRemoteVisitors([])
     setActiveSignals({})
@@ -262,7 +312,14 @@ export function AdventureHubScene({
     const unsubscribe = presenceService.subscribeToVisitors(
       (activeVisitors) => {
         if (mounted) {
-          setRemoteVisitors(activeVisitors)
+          setRemoteVisitors((currentVisitors) => activeVisitors.map((visitor) => {
+            const currentVisitor = currentVisitors.find(
+              (candidate) => candidate.playerId === visitor.playerId,
+            )
+            return currentVisitor
+              ? { ...visitor, position: currentVisitor.position }
+              : visitor
+          }))
           setPresenceError(null)
         }
       },
@@ -284,7 +341,23 @@ export function AdventureHubScene({
         }
       },
     )
-    void presenceService.trackVisitor({ playerId: accountId, position: HUB_INITIAL_POSITION })
+    const unsubscribeFromMovements = presenceService.subscribeToMovements(
+      (movement) => {
+        if (mounted && movement.playerId !== accountId) {
+          setRemoteVisitors((currentVisitors) => currentVisitors.map((visitor) => (
+            visitor.playerId === movement.playerId
+              ? { ...visitor, position: movement.position }
+              : visitor
+          )))
+        }
+      },
+      (error) => {
+        if (mounted) {
+          setPresenceError(error.message)
+        }
+      },
+    )
+    void presenceService.trackVisitor({ playerId: accountId, position: spawnPosition })
       .catch((error: unknown) => {
         if (mounted) {
           setPresenceError(error instanceof Error
@@ -295,6 +368,7 @@ export function AdventureHubScene({
     return () => {
       mounted = false
       hubActiveRef.current = false
+      unsubscribeFromMovements()
       unsubscribeFromSignals()
       unsubscribe()
       clearSignalTimers()
@@ -306,6 +380,7 @@ export function AdventureHubScene({
     clearSignalTimers,
     presenceConfigurationError,
     presenceService,
+    queuePositionUpdate,
     showSignal,
   ])
 
