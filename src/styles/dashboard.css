@@ -2390,19 +2390,6 @@
   border-radius: 0.95rem 0.95rem 0.3rem 0.3rem;
 }
 
-.hub-visitor-body::after {
-  position: absolute;
-  right: -0.58rem;
-  bottom: 0.16rem;
-  width: 0.18rem;
-  height: 2.4rem;
-  content: '';
-  background: #d6b06d;
-  border-radius: 999px;
-  box-shadow: 0 0 0.2rem rgb(254 243 199 / 48%);
-  transform: rotate(-18deg);
-}
-
 .hub-visitor-head {
   bottom: 2.78rem;
   width: 1.5rem;
