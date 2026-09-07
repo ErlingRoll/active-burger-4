@@ -9,6 +9,8 @@ export interface WikiChartPoint {
 
 export const WIKI_SECTION_IDS = [
   'getting-started',
+  'dungeon',
+  'infinite-abyss',
   'classes',
   'combat',
   'skills',

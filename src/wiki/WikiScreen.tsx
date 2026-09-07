@@ -51,6 +51,7 @@ import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { INITIAL_UPGRADES } from '../game-config/skill-upgrades'
 import { getUpgradeDescription } from '../content/upgrades/Upgrades'
 import { SYNERGY_OFFER_CHANCE, SYNERGY_UPGRADES } from '../game-config/synergies'
+import { ABYSS_MODIFIER_DEFINITIONS } from '../abyss/AbyssModifiers'
 import { SkillIcon } from '../rendering/SkillIcon'
 import { KeywordTerm, KeywordText } from '../rendering/KeywordTooltip'
 import {
@@ -74,6 +75,8 @@ interface WikiSection {
 
 const WIKI_SECTIONS: readonly WikiSection[] = [
   { id: 'getting-started', title: 'Getting started', summary: 'Run loop, controls, and behavior profiles.' },
+  { id: 'dungeon', title: 'Dungeon', summary: 'The core run mode, its purpose, structure, and rewards.' },
+  { id: 'infinite-abyss', title: 'Infinite Abyss', summary: 'An endless challenge for completed Champion builds.' },
   { id: 'classes', title: 'Classes', summary: 'Starting stats, equipment, skills, and affinities.' },
   { id: 'combat', title: 'Combat and stats', summary: 'Damage, resistance, crits, healing, and core resources.' },
   { id: 'skills', title: 'Skills and evolutions', summary: 'Every skill, level scaling, evolutions, and Resonance.' },
@@ -286,6 +289,109 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   <p className="wiki-stat-line">Threat radius <strong>{profile.thresholds.threatRadius}</strong> · Kite at <strong>{formatNumber(profile.thresholds.kiteThreatScore)}</strong></p>
                 </section>
               ))}
+            </div>
+          </article>
+
+          <article id="dungeon" className="wiki-article">
+            <WikiSectionHeading id="dungeon" title="Dungeon">
+              The Dungeon is the core run mode: build power during a finite expedition, survive its encounters, and finish strong enough to claim the run's rewards.
+            </WikiSectionHeading>
+            <div className="wiki-card-grid">
+              <section className="wiki-card">
+                <h3>Purpose</h3>
+                <p>
+                  A Dungeon run is the normal route for testing a character build and
+                  earning progression. Experience, level-up choices, skills, and gear
+                  let the build grow during the run; a successful completion also
+                  preserves the victorious build as a Champion for later Abyss attempts.
+                </p>
+              </section>
+              <section className="wiki-card">
+                <h3>Run structure</h3>
+                <p>
+                  The default contract, <strong>{DEFAULT_DUNGEON_CONFIG.name}</strong>,
+                  contains <strong>{DEFAULT_DUNGEON_CONFIG.defaultMaxFloor} normal floors</strong>.
+                  Each normal floor lasts <strong>{DEFAULT_DUNGEON_CONFIG.floorDurationSeconds} seconds</strong>;
+                  the final encounter reserves a <strong>{DEFAULT_DUNGEON_CONFIG.bossFloorDurationSeconds}-second</strong> floor.
+                </p>
+                <p className="wiki-muted">
+                  Deeper Dungeon contracts extend the maximum run length after their
+                  corresponding Essence unlocks.
+                </p>
+              </section>
+              <section className="wiki-card">
+                <h3>What success provides</h3>
+                <ul>
+                  <li>Essence based on level, kills, victory, and selected world modifiers.</li>
+                  <li>A completed build that can be saved as an immutable Champion.</li>
+                  <li>Access to longer Dungeon contracts as those upgrades are unlocked.</li>
+                </ul>
+              </section>
+              <section className="wiki-card">
+                <h3>How difficulty grows</h3>
+                <p>
+                  Enemy stats, spawn threat, abilities, and elite pressure increase
+                  with the floor. Optional world modifiers add further difficulty in
+                  exchange for stronger Essence rewards.
+                </p>
+                <a href="#floors">See floor scaling</a>
+              </section>
+            </div>
+          </article>
+
+          <article id="infinite-abyss" className="wiki-article">
+            <WikiSectionHeading id="infinite-abyss" title="Infinite Abyss">
+              The Infinite Abyss is a high-risk, endlessly escalating challenge that tests a completed Champion through survival, persistent enemy modifiers, and resource management.
+            </WikiSectionHeading>
+            <div className="wiki-card-grid">
+              <section className="wiki-card">
+                <h3>Purpose</h3>
+                <p>
+                  The Abyss is the place to push a finished Dungeon build beyond a
+                  normal run. It starts at floor 1 and has no fixed final floor, so
+                  progress is measured by how far the selected Champion can survive.
+                </p>
+              </section>
+              <section className="wiki-card">
+                <h3>Entry rules</h3>
+                <ul>
+                  <li>Complete a Dungeon and save the victorious build as a Champion first.</li>
+                  <li>Choose one available Champion to replace the active character.</li>
+                  <li>Enemies begin at <strong>10×</strong> normal HP and contact damage.</li>
+                  <li>Normal level-up and gear choices are not offered between floors.</li>
+                </ul>
+              </section>
+              <section className="wiki-card wiki-card-full-width">
+                <h3>Persistent danger choices</h3>
+                <p>
+                  After each completed floor, choose one enemy modifier. The choice
+                  remains active for the attempt and adds Danger Score, turning safer
+                  progress into a trade-off against more punishing encounters.
+                </p>
+                <WikiTable columns={['Modifier', 'Effect', 'Danger']} rows={ABYSS_MODIFIER_DEFINITIONS.map((modifier) => [
+                  modifier.name,
+                  modifier.description,
+                  modifier.dangerScore,
+                ])} />
+              </section>
+              <section className="wiki-card">
+                <h3>The cost of failure</h3>
+                <p>
+                  Committing an Abyss attempt exhausts the selected Champion for
+                  24 hours. The exhaustion persists through victory, defeat, forfeit,
+                  disconnect, or abandonment, so Champion selection is a meaningful
+                  long-term decision.
+                </p>
+              </section>
+              <section className="wiki-card">
+                <h3>Prepare in the Dungeon</h3>
+                <p>
+                  Build and complete another Dungeon character when you want a
+                  different Champion. The Abyss uses the saved build as a snapshot;
+                  it does not turn multiple Champions into a party.
+                </p>
+                <a href="#dungeon">Return to Dungeon overview</a>
+              </section>
             </div>
           </article>
 
