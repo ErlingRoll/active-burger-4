@@ -1,0 +1,17 @@
+{
+  "name": "Active Burger",
+  "short_name": "Active Burger",
+  "description": "A deterministic browser roguelike RPG.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a0f0b",
+  "background_color": "#1a0f0b",
+  "icons": [
+    {
+      "src": "/images/icons/logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
