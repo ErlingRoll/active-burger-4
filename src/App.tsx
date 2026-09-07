@@ -49,7 +49,11 @@ import {
   createEssenceLeaderboardService,
   type EssenceLeaderboardService,
 } from './leaderboard/EssenceLeaderboardService'
-import { EssenceLeaderboard } from './leaderboard/EssenceLeaderboard'
+import { AdventureHubScene } from './hub/AdventureHubScene'
+import {
+  createHubPresenceService,
+  type HubPresenceService,
+} from './hub/HubPresenceService'
 import { GameCanvas } from './rendering/GameCanvas'
 import { KeywordText } from './rendering/KeywordTooltip'
 import { SkillIcon } from './rendering/SkillIcon'
@@ -522,6 +526,22 @@ function App() {
     try {
       return {
         service: createFishingService({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        }, () => authenticationService.service?.getClient()),
+        configurationError: null,
+      }
+    } catch (error: unknown) {
+      return {
+        service: null,
+        configurationError: errorMessage(error),
+      }
+    }
+  }, [authenticationService])
+  const hubPresence = useMemo<{ service: HubPresenceService | null; configurationError: string | null }>(() => {
+    try {
+      return {
+        service: createHubPresenceService({
           supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
           supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         }, () => authenticationService.service?.getClient()),
@@ -2006,7 +2026,12 @@ function App() {
       {screen === 'dashboard' && authentication.account ? (
         <GameDashboard
           accountId={authentication.account.id}
+          approvedNickname={nickname.displayName}
+          providerDisplayName={authentication.account.displayName}
+          email={authentication.account.email}
           essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+          presenceService={hubPresence.service}
+          presenceConfigurationError={hubPresence.configurationError}
           leaderboardService={essenceLeaderboard.service}
           leaderboardConfigurationError={essenceLeaderboard.configurationError}
           activeRun={activeRun}
@@ -2198,7 +2223,7 @@ function AppHeader({
   return (
     <header className="app-header">
       <div>
-        <p className="app-kicker">Active Burger 4</p>
+        <p className="app-kicker">Dungeon Crawler</p>
         <a
           className="app-title-link"
           href="/"
@@ -2259,7 +2284,12 @@ function AppHeader({
 
 interface GameDashboardProps {
   accountId: string
+  approvedNickname: string | null
+  providerDisplayName: string | null
+  email: string | null
   essenceBalance: number | null
+  presenceService: HubPresenceService | null
+  presenceConfigurationError: string | null
   leaderboardService: EssenceLeaderboardService | null
   leaderboardConfigurationError: string | null
   activeRun: ActiveDungeonRun | null
@@ -2278,7 +2308,12 @@ interface GameDashboardProps {
 
 function GameDashboard({
   accountId,
+  approvedNickname,
+  providerDisplayName,
+  email,
   essenceBalance,
+  presenceService,
+  presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
   activeRun,
@@ -2297,21 +2332,11 @@ function GameDashboard({
   const [forfeitConfirmationOpen, setForfeitConfirmationOpen] = useState(false)
   const [forfeiting, setForfeiting] = useState(false)
   const [forfeitError, setForfeitError] = useState<string | null>(null)
-  const storeBlocked = activeRun !== null || runLoadState !== 'ready'
-  const isAbyssRun = activeRun?.modeId === 'infinite-abyss'
   const activeCharacterClass = activeRun
     ? Object.values(CHARACTER_CLASS_DEFINITIONS).find(
       (characterClass) => characterClass.id === activeRun.characterClassId,
     )
     : undefined
-  const abyssEntryMessage = championAvailability === 'none'
-    ? 'Complete a dungeon run and save a Champion before entering the Abyss.'
-    : championAvailability === 'loading'
-      ? 'Checking for available Champions.'
-      : championAvailability === 'error'
-        ? 'Champion availability is currently unavailable.'
-        : undefined
-
   const confirmForfeit = (): void => {
     if (forfeiting) {
       return
@@ -2329,206 +2354,33 @@ function GameDashboard({
   }
 
   return (
-    <section
-      className="dashboard game-dashboard"
-      aria-labelledby="game-dashboard-title"
-      data-run-persistence-state={runLoadState}
-    >
-      <div className="game-dashboard-layout">
-        <div className="dashboard-panel game-dashboard-panel">
-          <header className="game-dashboard-hero">
-            <div className="game-dashboard-hero-copy">
-              <h2 id="game-dashboard-title">The dungeon is waiting.</h2>
-              <p>
-                Prepare your fighter, choose your risk, and descend farther than your last run.
-              </p>
-            </div>
-          </header>
-          {runLoadState === 'error' || runLoadState === 'unavailable' ? (
-            <p className="persistence-error" role="alert">
-              {runLoadError ?? 'Unable to load the current dungeon run.'}
-            </p>
-          ) : null}
-
-          <div className="game-dashboard-overview">
-            <dl className="game-dashboard-stats">
-              <div className="game-dashboard-stat game-dashboard-stat-essence">
-                <dt>Essence</dt>
-                <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
-                <span>Glittering blue value</span>
-              </div>
-            </dl>
-            <button
-              className="game-dashboard-action game-dashboard-action-secondary"
-              type="button"
-              onClick={onOpenMetaProgression}
-              disabled={storeBlocked}
-              title={storeBlocked
-                ? activeRun
-                  ? 'Finish or forfeit your current dungeon run before opening the Essence store.'
-                  : 'Checking the current dungeon run before opening the Essence store.'
-                : undefined}
-              aria-describedby={activeRun ? 'store-blocked-help' : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">✦</span>
-              <span>
-                <strong>Essence store</strong>
-                <small>Turn Essence into permanent power.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button
-              className="game-dashboard-action game-dashboard-action-primary"
-              type="button"
-              onClick={onOpenInventory}
-              disabled={runLoadState !== 'ready'}
-              title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening Inventory.'
-                : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">▣</span>
-              <span>
-                <strong>Inventory</strong>
-                <small>View fish, rods, bait, and unopened loot boxes.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button
-              className="game-dashboard-action game-dashboard-action-secondary"
-              type="button"
-              onClick={onOpenFishing}
-              disabled={runLoadState !== 'ready'}
-              title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening fishing.'
-                : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">≈</span>
-              <span>
-                <strong>Go fishing</strong>
-                <small>Catch fish for future run meals and recovery.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button
-              className="game-dashboard-action game-dashboard-action-secondary"
-              type="button"
-              onClick={onOpenChampions}
-              disabled={runLoadState !== 'ready'}
-              title={runLoadState !== 'ready'
-                ? 'Checking the current dungeon run before opening Champions.'
-                : undefined}
-            >
-              <span className="game-dashboard-action-icon" aria-hidden="true">◆</span>
-              <span>
-                <strong>Champions</strong>
-                <small>View completed builds for future Abyss attempts.</small>
-              </span>
-              <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-            </button>
-          </div>
-
-          <section className="game-dashboard-actions" aria-labelledby="current-run-title">
-            <div className="game-dashboard-section-heading">
-              <h3 id="current-run-title">{isAbyssRun ? 'Current abyss' : 'Current dungeon'}</h3>
-            </div>
-            <div className="game-dashboard-action-grid">
-              {activeRun ? (
-                <div className="current-dungeon-card">
-                  <div className="current-dungeon-card-heading">
-                    <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
-                    <span>
-                      <strong>{isAbyssRun ? 'Abyss run in progress' : 'Dungeon run in progress'}</strong>
-                      <small>Continue your descent from the latest saved floor.</small>
-                    </span>
-                  </div>
-                  <dl className="current-dungeon-details">
-                    <div>
-                      <dt>Floor</dt>
-                      <dd>{isAbyssRun ? activeRun.currentFloor : `${activeRun.currentFloor} / ${activeRun.maxFloor}`}</dd>
-                    </div>
-                    <div>
-                      <dt>Class</dt>
-                      <dd>{activeCharacterClass?.name ?? activeRun.characterClassId}</dd>
-                    </div>
-                  </dl>
-                  <button
-                    className="game-dashboard-action game-dashboard-action-primary current-dungeon-continue"
-                    type="button"
-                    onClick={onContinueRun}
-                  >
-                    <span>
-                      <strong>{isAbyssRun ? 'Continue abyss' : 'Continue dungeon'}</strong>
-                      <small>Restart from the saved floor checkpoint.</small>
-                    </span>
-                    <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-                  </button>
-                  <button
-                    className="current-dungeon-forfeit"
-                    type="button"
-                    onClick={() => setForfeitConfirmationOpen(true)}
-                    disabled={forfeiting}
-                  >
-                    {forfeiting ? 'Forfeiting…' : 'Forfeit run'}
-                  </button>
-                  {forfeitError ? <p className="persistence-error" role="alert">{forfeitError}</p> : null}
-                </div>
-              ) : (
-                <>
-                  <button
-                  className="game-dashboard-action game-dashboard-action-primary"
-                  type="button"
-                  onClick={onOpenRunSetup}
-                >
-                  <span className="game-dashboard-action-icon" aria-hidden="true">↓</span>
-                  <span>
-                    <strong>Start a dungeon run</strong>
-                    <small>Descend into the dungeon. Slay increasingly stronger monsters for valuable essence.</small>
-                  </span>
-                  <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-                  </button>
-                  <div className="abyss-entry-tooltip-wrapper">
-                    <button
-                      className="game-dashboard-action game-dashboard-action-secondary abyss-entry-action"
-                      type="button"
-                      onClick={onOpenAbyss}
-                      disabled={runLoadState !== 'ready' || championAvailability !== 'available'}
-                      aria-describedby={abyssEntryMessage ? 'abyss-entry-tooltip' : undefined}
-                    >
-                  <span className="game-dashboard-action-icon" aria-hidden="true">∞</span>
-                  <span>
-                    <strong>Infinite Abyss</strong>
-                    <small>Choose a completed Champion and push beyond normal dungeon rules.</small>
-                  </span>
-                  <span className="game-dashboard-action-arrow" aria-hidden="true">→</span>
-                    </button>
-                    {abyssEntryMessage ? (
-                      <span
-                        id="abyss-entry-tooltip"
-                        className={tooltipClassName('abyss-entry-tooltip')}
-                        role="tooltip"
-                      >
-                        {abyssEntryMessage}
-                      </span>
-                    ) : null}
-                  </div>
-                </>
-              )}
-            </div>
-            {activeRun ? (
-              <p className="current-dungeon-restriction" id="store-blocked-help">
-                Finish or forfeit your current dungeon run before accessing the Essence store.
-              </p>
-            ) : null}
-          </section>
-        </div>
-        <aside className="dashboard-panel game-dashboard-sidebar">
-          <EssenceLeaderboard
-            accountId={accountId}
-            service={leaderboardService}
-            configurationError={leaderboardConfigurationError}
-          />
-        </aside>
-      </div>
+    <>
+      <AdventureHubScene
+        accountId={accountId}
+        approvedNickname={approvedNickname}
+        providerDisplayName={providerDisplayName}
+        email={email}
+        essenceBalance={essenceBalance}
+        presenceService={presenceService}
+        presenceConfigurationError={presenceConfigurationError}
+        leaderboardService={leaderboardService}
+        leaderboardConfigurationError={leaderboardConfigurationError}
+        activeRun={activeRun}
+        activeCharacterClassName={activeCharacterClass?.name ?? null}
+        runLoadState={runLoadState}
+        runLoadError={runLoadError}
+        championAvailability={championAvailability}
+        forfeiting={forfeiting}
+        forfeitError={forfeitError}
+        onOpenRunSetup={onOpenRunSetup}
+        onOpenMetaProgression={onOpenMetaProgression}
+        onOpenFishing={onOpenFishing}
+        onOpenChampions={onOpenChampions}
+        onOpenInventory={onOpenInventory}
+        onOpenAbyss={onOpenAbyss}
+        onContinueRun={onContinueRun}
+        onRequestForfeit={() => setForfeitConfirmationOpen(true)}
+      />
       {forfeitConfirmationOpen ? (
         <ConfirmationDialog
           title="Forfeit dungeon run?"
@@ -2538,7 +2390,7 @@ function GameDashboard({
           onCancel={() => setForfeitConfirmationOpen(false)}
         />
       ) : null}
-    </section>
+    </>
   )
 }
 
