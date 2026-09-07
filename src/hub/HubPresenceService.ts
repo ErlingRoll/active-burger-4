@@ -11,10 +11,29 @@ export interface HubVisitor {
   playerName: string
 }
 
+export const HUB_SIGNAL_IDS = [
+  'wave',
+  'praise-the-sun',
+  'good-luck-below',
+  'ready-to-descend',
+] as const
+
+export type HubSignalId = (typeof HUB_SIGNAL_IDS)[number]
+
+export interface HubSignal {
+  playerId: string
+  signalId: HubSignalId
+}
+
 export interface HubPresenceService {
   trackVisitor(visitor: HubVisitorPresence): Promise<void>
   subscribeToVisitors(
     onVisitors: (visitors: HubVisitor[]) => void,
+    onError: (error: Error) => void,
+  ): () => void
+  sendSignal(signal: HubSignal): Promise<void>
+  subscribeToSignals(
+    onSignal: (signal: HubSignal) => void,
     onError: (error: Error) => void,
   ): () => void
 }
@@ -23,6 +42,9 @@ interface RpcPlayerNameRow {
   player_id: string
   player_name: string
 }
+
+const HUB_SIGNAL_EVENT = 'campfire-signal'
+const hubSignalIds = new Set<string>(HUB_SIGNAL_IDS)
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -34,6 +56,16 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isHubVisitorPresence(value: unknown): value is HubVisitorPresence {
   return isRecord(value) && isNonEmptyString(value.playerId)
+}
+
+function isHubSignalId(value: unknown): value is HubSignalId {
+  return typeof value === 'string' && hubSignalIds.has(value)
+}
+
+function isHubSignal(value: unknown): value is HubSignal {
+  return isRecord(value) &&
+    isNonEmptyString(value.playerId) &&
+    isHubSignalId(value.signalId)
 }
 
 function isRpcPlayerNameRow(value: unknown): value is RpcPlayerNameRow {
@@ -53,6 +85,8 @@ export function createHubPresenceService(
   let resolveSubscription: (() => void) | null = null
   let rejectSubscription: ((error: Error) => void) | null = null
   let subscribed = false
+  let subscriptionStarted = false
+  const channelErrorHandlers: ((error: Error) => void)[] = []
 
   const getChannel = (): RealtimeChannel => {
     if (!channel) {
@@ -77,6 +111,58 @@ export function createHubPresenceService(
       })
     }
     return subscriptionReady
+  }
+
+  const clearSubscription = (): void => {
+    subscribed = false
+    subscriptionStarted = false
+    subscriptionReady = null
+    resolveSubscription = null
+    rejectSubscription = null
+  }
+
+  const startSubscription = (realtimeChannel: RealtimeChannel): void => {
+    if (subscriptionStarted) {
+      return
+    }
+    subscriptionStarted = true
+    realtimeChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        subscribed = true
+        resolveSubscription?.()
+        resolveSubscription = null
+        rejectSubscription = null
+        return
+      }
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        const error = new Error(`Adventure hub presence is unavailable (${status}).`)
+        subscribed = false
+        rejectSubscription?.(error)
+        subscriptionReady = null
+        resolveSubscription = null
+        rejectSubscription = null
+        channelErrorHandlers.forEach((onError) => onError(error))
+      }
+    })
+  }
+
+  const subscribeToChannel = (onError: (error: Error) => void): (() => void) => {
+    const realtimeChannel = getChannel()
+    channelErrorHandlers.push(onError)
+    startSubscription(realtimeChannel)
+    return () => {
+      const handlerIndex = channelErrorHandlers.indexOf(onError)
+      if (handlerIndex !== -1) {
+        channelErrorHandlers.splice(handlerIndex, 1)
+      }
+      if (channelErrorHandlers.length !== 0 || channel !== realtimeChannel) {
+        return
+      }
+      rejectSubscription?.(new Error('Adventure hub presence subscription ended.'))
+      clearSubscription()
+      channel = null
+      void getClient().removeChannel(realtimeChannel)
+    }
   }
 
   const loadVisitorNames = async (playerIds: readonly string[]): Promise<Map<string, string>> => {
@@ -109,7 +195,6 @@ export function createHubPresenceService(
     },
 
     subscribeToVisitors(onVisitors, onError): () => void {
-      const client = getClient()
       const realtimeChannel = getChannel()
       let active = true
       realtimeChannel.on('presence', { event: 'sync' }, () => {
@@ -138,32 +223,40 @@ export function createHubPresenceService(
             }
           })
       })
-      realtimeChannel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          subscribed = true
-          resolveSubscription?.()
-          resolveSubscription = null
-          rejectSubscription = null
-          return
-        }
-        if (active && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) {
-          const error = new Error(`Adventure hub presence is unavailable (${status}).`)
-          subscribed = false
-          rejectSubscription?.(error)
-          subscriptionReady = null
-          resolveSubscription = null
-          rejectSubscription = null
-          onError(error)
-        }
-      })
+      const unsubscribeFromChannel = subscribeToChannel(onError)
       return () => {
         active = false
-        subscribed = false
-        subscriptionReady = null
-        resolveSubscription = null
-        rejectSubscription = null
-        void client.removeChannel(realtimeChannel)
-        channel = null
+        unsubscribeFromChannel()
+      }
+    },
+
+    async sendSignal(signal): Promise<void> {
+      if (!isHubSignal(signal)) {
+        throw new Error('Hub campfire signal is invalid.')
+      }
+      await waitForSubscription()
+      const status = await getChannel().send({
+        type: 'broadcast',
+        event: HUB_SIGNAL_EVENT,
+        payload: signal,
+      })
+      if (status !== 'ok') {
+        throw new Error(`Hub campfire signal failed: ${status}.`)
+      }
+    },
+
+    subscribeToSignals(onSignal, onError): () => void {
+      const realtimeChannel = getChannel()
+      let active = true
+      realtimeChannel.on('broadcast', { event: HUB_SIGNAL_EVENT }, ({ payload }) => {
+        if (active && isHubSignal(payload)) {
+          onSignal(payload)
+        }
+      })
+      const unsubscribeFromChannel = subscribeToChannel(onError)
+      return () => {
+        active = false
+        unsubscribeFromChannel()
       }
     },
   }

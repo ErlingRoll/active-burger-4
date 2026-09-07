@@ -71,4 +71,75 @@ describe('HubPresenceService', () => {
       'Hub visitor presence is invalid.',
     )
   })
+
+  it('broadcasts approved campfire signals and ignores malformed incoming payloads', async () => {
+    let signalHandler: ((event: { payload: unknown }) => void) | undefined
+    const channel = {
+      on: vi.fn((type: string, _filter: unknown, handler: (event: { payload: unknown }) => void) => {
+        if (type === 'broadcast') {
+          signalHandler = handler
+        }
+        return channel
+      }),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+      send: vi.fn(async () => 'ok'),
+    } as unknown as RealtimeChannel
+    const client = {
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(async () => 'ok'),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+    const received: unknown[] = []
+    const unsubscribe = service.subscribeToSignals((signal) => {
+      received.push(signal)
+    }, () => {
+      throw new Error('unexpected signal error')
+    })
+
+    await service.sendSignal({ playerId: 'player-one', signalId: 'wave' })
+    signalHandler?.({ payload: { playerId: 'player-two', signalId: 'ready-to-descend' } })
+    signalHandler?.({ payload: { playerId: 'player-two', signalId: 'not-an-approved-signal' } })
+
+    expect(channel.send).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'campfire-signal',
+      payload: { playerId: 'player-one', signalId: 'wave' },
+    })
+    expect(received).toEqual([
+      { playerId: 'player-two', signalId: 'ready-to-descend' },
+    ])
+
+    unsubscribe()
+    expect(client.removeChannel).toHaveBeenCalledWith(channel)
+  })
+
+  it('keeps the shared hub channel open until presence and signal listeners both unsubscribe', () => {
+    const channel = {
+      on: vi.fn(() => channel),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+    } as unknown as RealtimeChannel
+    const client = {
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(async () => 'ok'),
+    } as unknown as SupabaseClient
+    const service = createService(client)
+    const onError = () => {
+      throw new Error('unexpected hub error')
+    }
+    const unsubscribeFromVisitors = service.subscribeToVisitors(() => {}, onError)
+    const unsubscribeFromSignals = service.subscribeToSignals(() => {}, onError)
+
+    expect(channel.subscribe).toHaveBeenCalledTimes(1)
+    unsubscribeFromSignals()
+    expect(client.removeChannel).not.toHaveBeenCalled()
+
+    unsubscribeFromVisitors()
+    expect(client.removeChannel).toHaveBeenCalledWith(channel)
+  })
 })

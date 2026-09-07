@@ -1,11 +1,33 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
 import { EssenceLeaderboard } from '../leaderboard/EssenceLeaderboard'
 import type { EssenceLeaderboardService } from '../leaderboard/EssenceLeaderboardService'
-import type { HubPresenceService, HubVisitor } from './HubPresenceService'
+import { useToaster } from '../ui/ToasterContext'
+import {
+  HUB_SIGNAL_IDS,
+  type HubPresenceService,
+  type HubSignal,
+  type HubSignalId,
+  type HubVisitor,
+} from './HubPresenceService'
 import { tooltipClassName } from '../rendering/TooltipShell'
+
+const HUB_SIGNAL_DURATION_MS = 4_000
+const HUB_SIGNAL_COOLDOWN_MS = 5_000
+
+const HUB_SIGNAL_LABELS: Record<HubSignalId, string> = {
+  wave: 'Wave',
+  'praise-the-sun': 'Praise the sun!',
+  'good-luck-below': 'Good luck below',
+  'ready-to-descend': 'Ready to descend',
+}
+
+const HUB_SIGNAL_OPTIONS = HUB_SIGNAL_IDS.map((id) => ({
+  id,
+  label: HUB_SIGNAL_LABELS[id],
+}))
 
 interface AdventureHubSceneProps {
   accountId: string
@@ -70,11 +92,13 @@ function HubVisitorFigure({
   index,
   total,
   currentPlayerId,
+  signalId,
 }: {
   visitor: HubVisitor
   index: number
   total: number
   currentPlayerId: string
+  signalId?: HubSignalId
 }) {
   const isCurrentPlayer = visitor.playerId === currentPlayerId
   return (
@@ -83,6 +107,11 @@ function HubVisitorFigure({
       style={getVisitorStyle(index, total, isCurrentPlayer)}
       aria-label={isCurrentPlayer ? `${visitor.playerName}, you` : visitor.playerName}
     >
+      {signalId ? (
+        <span className="hub-visitor-signal" aria-live="polite">
+          {HUB_SIGNAL_LABELS[signalId]}
+        </span>
+      ) : null}
       <span className="hub-visitor-glow" aria-hidden="true" />
       <span className="hub-visitor-body" aria-hidden="true" />
       <span className="hub-visitor-head" aria-hidden="true" />
@@ -117,6 +146,7 @@ export function AdventureHubScene({
   onContinueRun,
   onRequestForfeit,
 }: AdventureHubSceneProps) {
+  const { showToast } = useToaster()
   const playerName = getPlayerDisplayName({
     approvedNickname,
     providerDisplayName,
@@ -124,6 +154,11 @@ export function AdventureHubScene({
   })
   const [remoteVisitors, setRemoteVisitors] = useState<HubVisitor[]>([])
   const [presenceError, setPresenceError] = useState<string | null>(presenceConfigurationError)
+  const [activeSignals, setActiveSignals] = useState<Partial<Record<string, HubSignalId>>>({})
+  const [sendingSignalId, setSendingSignalId] = useState<HubSignalId | null>(null)
+  const [signalCooldownUntil, setSignalCooldownUntil] = useState<number | null>(null)
+  const signalTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const storeBlocked = activeRun !== null || runLoadState !== 'ready'
   const isAbyssRun = activeRun?.modeId === 'infinite-abyss'
   const abyssEntryMessage = championAvailability === 'none'
@@ -143,9 +178,44 @@ export function AdventureHubScene({
     ]
   }, [accountId, playerName, remoteVisitors])
 
+  const clearSignalTimers = useCallback(() => {
+    signalTimers.current.forEach((timer) => clearTimeout(timer))
+    signalTimers.current.clear()
+    if (cooldownTimer.current !== null) {
+      clearTimeout(cooldownTimer.current)
+      cooldownTimer.current = null
+    }
+  }, [])
+
+  const showSignal = useCallback((signal: HubSignal) => {
+    const existingTimer = signalTimers.current.get(signal.playerId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+    setActiveSignals((currentSignals) => ({
+      ...currentSignals,
+      [signal.playerId]: signal.signalId,
+    }))
+    const timer = setTimeout(() => {
+      setActiveSignals((currentSignals) => {
+        if (currentSignals[signal.playerId] !== signal.signalId) {
+          return currentSignals
+        }
+        const { [signal.playerId]: _, ...remainingSignals } = currentSignals
+        return remainingSignals
+      })
+      signalTimers.current.delete(signal.playerId)
+    }, HUB_SIGNAL_DURATION_MS)
+    signalTimers.current.set(signal.playerId, timer)
+  }, [])
+
   useEffect(() => {
+    clearSignalTimers()
     setPresenceError(presenceConfigurationError)
     setRemoteVisitors([])
+    setActiveSignals({})
+    setSendingSignalId(null)
+    setSignalCooldownUntil(null)
     if (!presenceService) {
       return
     }
@@ -155,6 +225,18 @@ export function AdventureHubScene({
         if (mounted) {
           setRemoteVisitors(activeVisitors)
           setPresenceError(null)
+        }
+      },
+      (error) => {
+        if (mounted) {
+          setPresenceError(error.message)
+        }
+      },
+    )
+    const unsubscribeFromSignals = presenceService.subscribeToSignals(
+      (signal) => {
+        if (mounted) {
+          showSignal(signal)
         }
       },
       (error) => {
@@ -173,9 +255,36 @@ export function AdventureHubScene({
       })
     return () => {
       mounted = false
+      unsubscribeFromSignals()
       unsubscribe()
+      clearSignalTimers()
     }
-  }, [accountId, presenceConfigurationError, presenceService])
+  }, [accountId, clearSignalTimers, presenceConfigurationError, presenceService, showSignal])
+
+  const sendSignal = async (signalId: HubSignalId): Promise<void> => {
+    if (!presenceService) {
+      showToast('Campfire signals are currently unavailable.', 'error')
+      return
+    }
+    if (sendingSignalId !== null || signalCooldownUntil !== null) {
+      return
+    }
+    setSendingSignalId(signalId)
+    try {
+      const signal = { playerId: accountId, signalId }
+      await presenceService.sendSignal(signal)
+      showSignal(signal)
+      setSignalCooldownUntil(Date.now() + HUB_SIGNAL_COOLDOWN_MS)
+      cooldownTimer.current = setTimeout(() => {
+        setSignalCooldownUntil(null)
+        cooldownTimer.current = null
+      }, HUB_SIGNAL_COOLDOWN_MS)
+    } catch {
+      showToast('Unable to share your campfire signal. Please try again.', 'error')
+    } finally {
+      setSendingSignalId(null)
+    }
+  }
 
   return (
     <section className="dashboard game-dashboard adventure-hub" aria-labelledby="game-dashboard-title">
@@ -207,6 +316,7 @@ export function AdventureHubScene({
               index={index + 1}
               total={visitors.length}
               currentPlayerId={accountId}
+              signalId={activeSignals[visitor.playerId]}
             />
           ))}
         </ul>
@@ -218,15 +328,10 @@ export function AdventureHubScene({
         </header>
 
         <aside className="hub-status-panel">
-          <p className="screen-kicker">Camp stores</p>
           <dl>
             <div>
               <dt>Essence</dt>
               <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Gathered</dt>
-              <dd>{visitors.length} {visitors.length === 1 ? 'adventurer' : 'adventurers'}</dd>
             </div>
           </dl>
           <button
@@ -244,6 +349,34 @@ export function AdventureHubScene({
             <span aria-hidden="true">✦</span>
             <span><strong>Essence store</strong><small>Permanent power</small></span>
           </button>
+        </aside>
+
+        <aside className="hub-social-panel" aria-labelledby="hub-social-title">
+          <div className="hub-social-gathered">
+            <p className="screen-kicker" id="hub-social-title">Gathered</p>
+            <strong>{visitors.length} {visitors.length === 1 ? 'adventurer' : 'adventurers'}</strong>
+          </div>
+          <fieldset className="hub-signal-picker">
+            <legend>Campfire signals</legend>
+            <div className="hub-signal-options">
+              {HUB_SIGNAL_OPTIONS.map((signal) => (
+                <button
+                  key={signal.id}
+                  className="hub-signal-option"
+                  type="button"
+                  onClick={() => void sendSignal(signal.id)}
+                  disabled={presenceService === null || sendingSignalId !== null || signalCooldownUntil !== null}
+                >
+                  {sendingSignalId === signal.id ? 'Sharing...' : signal.label}
+                </button>
+              ))}
+            </div>
+            <p className="hub-signal-help" aria-live="polite">
+              {signalCooldownUntil !== null
+                ? 'The campfire is listening. Signals return shortly.'
+                : 'Share a friendly signal with everyone at the fire.'}
+            </p>
+          </fieldset>
         </aside>
 
         <div className="hub-left-dock">
