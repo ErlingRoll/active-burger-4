@@ -2056,6 +2056,7 @@
 
 .hub-visitor-current {
   color: #fef3c7;
+  transition: none;
 }
 
 .hub-visitor-current .hub-visitor-body {

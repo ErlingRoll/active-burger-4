@@ -13,8 +13,11 @@ describe('HubPresenceService', () => {
   it('tracks visitors and resolves realtime names through the canonical RPC', async () => {
     let presenceSyncHandler: (() => void) | undefined
     const presenceState = {
-      sessionOne: [{ playerId: 'player-one' }],
-      sessionTwo: [{ playerId: 'player-two' }, { playerId: 'player-one' }],
+      sessionOne: [{ playerId: 'player-one', position: { x: 50, y: 72 } }],
+      sessionTwo: [
+        { playerId: 'player-two', position: { x: 62, y: 64 } },
+        { playerId: 'player-one', position: { x: 50, y: 72 } },
+      ],
     }
     const channel = {
       on: vi.fn((_type: string, _filter: unknown, handler: () => void) => {
@@ -47,17 +50,20 @@ describe('HubPresenceService', () => {
       throw new Error('unexpected presence error')
     })
 
-    await service.trackVisitor({ playerId: 'player-one' })
+    await service.trackVisitor({ playerId: 'player-one', position: { x: 50, y: 72 } })
     presenceSyncHandler?.()
     await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
-    expect(channel.track).toHaveBeenCalledWith({ playerId: 'player-one' })
+    expect(channel.track).toHaveBeenCalledWith({
+      playerId: 'player-one',
+      position: { x: 50, y: 72 },
+    })
     expect(client.rpc).toHaveBeenCalledWith('get_player_display_names', {
       p_player_ids: ['player-one', 'player-two'],
     })
     expect(received).toEqual([[
-      { playerId: 'player-one', playerName: 'Mira' },
-      { playerId: 'player-two', playerName: 'Toren' },
+      { playerId: 'player-one', playerName: 'Mira', position: { x: 50, y: 72 } },
+      { playerId: 'player-two', playerName: 'Toren', position: { x: 62, y: 64 } },
     ]])
 
     unsubscribe()
@@ -67,7 +73,10 @@ describe('HubPresenceService', () => {
   it('rejects malformed visitor presence before sending it', async () => {
     const service = createService({} as SupabaseClient)
 
-    await expect(service.trackVisitor({ playerId: '  ' })).rejects.toThrow(
+    await expect(service.trackVisitor({ playerId: '  ', position: { x: 50, y: 72 } })).rejects.toThrow(
+      'Hub visitor presence is invalid.',
+    )
+    await expect(service.trackVisitor({ playerId: 'player-one', position: { x: 95, y: 72 } })).rejects.toThrow(
       'Hub visitor presence is invalid.',
     )
   })

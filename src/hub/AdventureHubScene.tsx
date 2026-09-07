@@ -7,7 +7,9 @@ import type { EssenceLeaderboardService } from '../leaderboard/EssenceLeaderboar
 import { useToaster } from '../ui/ToasterContext'
 import {
   HUB_SIGNAL_IDS,
+  HUB_VISITOR_BOUNDS,
   type HubPresenceService,
+  type HubPosition,
   type HubSignal,
   type HubSignalId,
   type HubVisitor,
@@ -16,6 +18,12 @@ import { tooltipClassName } from '../rendering/TooltipShell'
 
 const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
+const HUB_MOVEMENT_SPEED = 22
+const HUB_POSITION_UPDATE_INTERVAL_MS = 100
+const HUB_INITIAL_POSITION: HubPosition = { x: 50, y: 72 }
+const HUB_MOVEMENT_KEYS = new Set(['w', 'a', 's', 'd'])
+
+type HubMovementKey = 'w' | 'a' | 's' | 'd'
 
 const HUB_SIGNAL_LABELS: Record<HubSignalId, string> = {
   wave: 'Wave',
@@ -28,6 +36,15 @@ const HUB_SIGNAL_OPTIONS = HUB_SIGNAL_IDS.map((id) => ({
   id,
   label: HUB_SIGNAL_LABELS[id],
 }))
+
+function isHubMovementKey(value: string): value is HubMovementKey {
+  return HUB_MOVEMENT_KEYS.has(value)
+}
+
+function isInteractiveElement(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement &&
+    target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
+}
 
 interface AdventureHubSceneProps {
   accountId: string
@@ -56,46 +73,23 @@ interface AdventureHubSceneProps {
   onRequestForfeit: () => void
 }
 
-function getVisitorStyle(index: number, total: number, isCurrentPlayer: boolean): CSSProperties {
-  if (isCurrentPlayer) {
-    return {
-      left: '50%',
-      top: '72%',
-      transform: 'translate(-50%, -50%) scale(1.08)',
-    }
-  }
-
-  const remoteIndex = index - 1
-  let ring = 0
-  let positionInRing = remoteIndex
-  let ringCapacity = 6
-  while (positionInRing >= ringCapacity) {
-    positionInRing -= ringCapacity
-    ring += 1
-    ringCapacity += 4
-  }
-  const angle = ((positionInRing / ringCapacity) * Math.PI * 2) + (Math.PI / 9)
-  const radius = Math.min(40, 21 + ring * 7)
-  const horizontalRadius = radius
-  const verticalRadius = radius * 0.52
+function getVisitorStyle(visitor: HubVisitor, total: number, isCurrentPlayer: boolean): CSSProperties {
   const crowdScale = total > 24 ? 0.72 : total > 12 ? 0.84 : 1
 
   return {
-    left: `${50 + Math.cos(angle) * horizontalRadius}%`,
-    top: `${59 + Math.sin(angle) * verticalRadius}%`,
-    transform: `translate(-50%, -50%) scale(${crowdScale})`,
+    left: `${visitor.position.x}%`,
+    top: `${visitor.position.y}%`,
+    transform: `translate(-50%, -50%) scale(${isCurrentPlayer ? crowdScale * 1.08 : crowdScale})`,
   }
 }
 
 function HubVisitorFigure({
   visitor,
-  index,
   total,
   currentPlayerId,
   signalId,
 }: {
   visitor: HubVisitor
-  index: number
   total: number
   currentPlayerId: string
   signalId?: HubSignalId
@@ -104,7 +98,7 @@ function HubVisitorFigure({
   return (
     <li
       className={`hub-visitor${isCurrentPlayer ? ' hub-visitor-current' : ''}`}
-      style={getVisitorStyle(index, total, isCurrentPlayer)}
+      style={getVisitorStyle(visitor, total, isCurrentPlayer)}
       aria-label={isCurrentPlayer ? `${visitor.playerName}, you` : visitor.playerName}
     >
       {signalId ? (
@@ -157,8 +151,14 @@ export function AdventureHubScene({
   const [activeSignals, setActiveSignals] = useState<Partial<Record<string, HubSignalId>>>({})
   const [sendingSignalId, setSendingSignalId] = useState<HubSignalId | null>(null)
   const [signalCooldownUntil, setSignalCooldownUntil] = useState<number | null>(null)
+  const [playerPosition, setPlayerPosition] = useState<HubPosition>(HUB_INITIAL_POSITION)
   const signalTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const playerPositionRef = useRef<HubPosition>(HUB_INITIAL_POSITION)
+  const pendingPositionRef = useRef<HubPosition>(HUB_INITIAL_POSITION)
+  const movementUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastPositionUpdateAt = useRef(0)
+  const hubActiveRef = useRef(false)
   const storeBlocked = activeRun !== null || runLoadState !== 'ready'
   const isAbyssRun = activeRun?.modeId === 'infinite-abyss'
   const abyssEntryMessage = championAvailability === 'none'
@@ -169,14 +169,14 @@ export function AdventureHubScene({
         ? 'Champion availability is currently unavailable.'
         : undefined
   const visitors = useMemo(() => {
-    const self = { playerId: accountId, playerName }
+    const self = { playerId: accountId, playerName, position: playerPosition }
     return [
       self,
       ...remoteVisitors
         .filter((visitor) => visitor.playerId !== accountId)
         .sort((left, right) => left.playerName.localeCompare(right.playerName)),
     ]
-  }, [accountId, playerName, remoteVisitors])
+  }, [accountId, playerName, playerPosition, remoteVisitors])
 
   const clearSignalTimers = useCallback(() => {
     signalTimers.current.forEach((timer) => clearTimeout(timer))
@@ -209,8 +209,46 @@ export function AdventureHubScene({
     signalTimers.current.set(signal.playerId, timer)
   }, [])
 
+  const cancelMovementUpdate = useCallback(() => {
+    if (movementUpdateTimer.current !== null) {
+      clearTimeout(movementUpdateTimer.current)
+      movementUpdateTimer.current = null
+    }
+  }, [])
+
+  const queuePositionUpdate = useCallback((position: HubPosition) => {
+    if (!presenceService) {
+      return
+    }
+    pendingPositionRef.current = position
+    if (movementUpdateTimer.current !== null) {
+      return
+    }
+    const elapsed = Date.now() - lastPositionUpdateAt.current
+    const delay = Math.max(0, HUB_POSITION_UPDATE_INTERVAL_MS - elapsed)
+    movementUpdateTimer.current = setTimeout(() => {
+      movementUpdateTimer.current = null
+      lastPositionUpdateAt.current = Date.now()
+      void presenceService.trackVisitor({
+        playerId: accountId,
+        position: pendingPositionRef.current,
+      }).catch((error: unknown) => {
+        if (hubActiveRef.current) {
+          setPresenceError(error instanceof Error
+            ? error.message
+            : 'Adventure hub presence is unavailable.')
+        }
+      })
+    }, delay)
+  }, [accountId, presenceService])
+
   useEffect(() => {
     clearSignalTimers()
+    cancelMovementUpdate()
+    playerPositionRef.current = HUB_INITIAL_POSITION
+    pendingPositionRef.current = HUB_INITIAL_POSITION
+    lastPositionUpdateAt.current = 0
+    setPlayerPosition(HUB_INITIAL_POSITION)
     setPresenceError(presenceConfigurationError)
     setRemoteVisitors([])
     setActiveSignals({})
@@ -220,6 +258,7 @@ export function AdventureHubScene({
       return
     }
     let mounted = true
+    hubActiveRef.current = true
     const unsubscribe = presenceService.subscribeToVisitors(
       (activeVisitors) => {
         if (mounted) {
@@ -245,7 +284,7 @@ export function AdventureHubScene({
         }
       },
     )
-    void presenceService.trackVisitor({ playerId: accountId })
+    void presenceService.trackVisitor({ playerId: accountId, position: HUB_INITIAL_POSITION })
       .catch((error: unknown) => {
         if (mounted) {
           setPresenceError(error instanceof Error
@@ -255,11 +294,108 @@ export function AdventureHubScene({
       })
     return () => {
       mounted = false
+      hubActiveRef.current = false
       unsubscribeFromSignals()
       unsubscribe()
       clearSignalTimers()
+      cancelMovementUpdate()
     }
-  }, [accountId, clearSignalTimers, presenceConfigurationError, presenceService, showSignal])
+  }, [
+    accountId,
+    cancelMovementUpdate,
+    clearSignalTimers,
+    presenceConfigurationError,
+    presenceService,
+    showSignal,
+  ])
+
+  useEffect(() => {
+    if (!presenceService) {
+      return
+    }
+    const pressedKeys = new Set<HubMovementKey>()
+    let animationFrame: number | null = null
+    let previousFrameAt: number | null = null
+
+    const move = (frameAt: number): void => {
+      if (previousFrameAt === null) {
+        previousFrameAt = frameAt
+      }
+      const elapsedSeconds = Math.min((frameAt - previousFrameAt) / 1_000, 0.1)
+      previousFrameAt = frameAt
+      const horizontal = (pressedKeys.has('d') ? 1 : 0) - (pressedKeys.has('a') ? 1 : 0)
+      const vertical = (pressedKeys.has('s') ? 1 : 0) - (pressedKeys.has('w') ? 1 : 0)
+      if (horizontal === 0 && vertical === 0) {
+        animationFrame = null
+        previousFrameAt = null
+        return
+      }
+      const magnitude = Math.hypot(horizontal, vertical)
+      const distance = (HUB_MOVEMENT_SPEED * elapsedSeconds) / magnitude
+      const currentPosition = playerPositionRef.current
+      const nextPosition = {
+        x: Math.min(HUB_VISITOR_BOUNDS.maxX, Math.max(
+          HUB_VISITOR_BOUNDS.minX,
+          currentPosition.x + horizontal * distance,
+        )),
+        y: Math.min(HUB_VISITOR_BOUNDS.maxY, Math.max(
+          HUB_VISITOR_BOUNDS.minY,
+          currentPosition.y + vertical * distance,
+        )),
+      }
+      if (nextPosition.x !== currentPosition.x || nextPosition.y !== currentPosition.y) {
+        playerPositionRef.current = nextPosition
+        setPlayerPosition(nextPosition)
+        queuePositionUpdate(nextPosition)
+      }
+      animationFrame = requestAnimationFrame(move)
+    }
+
+    const startMoving = (): void => {
+      if (animationFrame === null) {
+        animationFrame = requestAnimationFrame(move)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const key = event.key.toLowerCase()
+      if (!isHubMovementKey(key) || isInteractiveElement(event.target)) {
+        return
+      }
+      event.preventDefault()
+      pressedKeys.add(key)
+      startMoving()
+    }
+
+    const onKeyUp = (event: KeyboardEvent): void => {
+      const key = event.key.toLowerCase()
+      if (!isHubMovementKey(key)) {
+        return
+      }
+      if (pressedKeys.delete(key)) {
+        event.preventDefault()
+      }
+    }
+
+    const stopMoving = (): void => {
+      pressedKeys.clear()
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame)
+        animationFrame = null
+      }
+      previousFrameAt = null
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', stopMoving)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', stopMoving)
+      stopMoving()
+    }
+  }, [presenceService, queuePositionUpdate])
 
   const sendSignal = async (signalId: HubSignalId): Promise<void> => {
     if (!presenceService) {
@@ -308,12 +444,11 @@ export function AdventureHubScene({
           <span className="hub-fire-log hub-fire-log-right" />
           <span className="hub-firepit" />
         </div>
-        <ul className="hub-visitors" aria-label={`${visitors.length} adventurers at the hub`}>
-          {visitors.map((visitor, index) => (
+        <ul className="hub-visitors" aria-label={`${visitors.length} adventurers at the hub. Use W, A, S, and D to move your adventurer.`}>
+          {visitors.map((visitor) => (
             <HubVisitorFigure
               key={visitor.playerId}
               visitor={visitor}
-              index={index + 1}
               total={visitors.length}
               currentPlayerId={accountId}
               signalId={activeSignals[visitor.playerId]}

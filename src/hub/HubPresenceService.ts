@@ -2,13 +2,27 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { getPlayerDisplayName } from '../auth'
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 
+export interface HubPosition {
+  x: number
+  y: number
+}
+
+export const HUB_VISITOR_BOUNDS = {
+  minX: 10,
+  maxX: 90,
+  minY: 28,
+  maxY: 78,
+} as const
+
 export interface HubVisitorPresence {
   playerId: string
+  position: HubPosition
 }
 
 export interface HubVisitor {
   playerId: string
   playerName: string
+  position: HubPosition
 }
 
 export const HUB_SIGNAL_IDS = [
@@ -54,8 +68,22 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function isHubPosition(value: unknown): value is HubPosition {
+  return isRecord(value) &&
+    typeof value.x === 'number' &&
+    Number.isFinite(value.x) &&
+    value.x >= HUB_VISITOR_BOUNDS.minX &&
+    value.x <= HUB_VISITOR_BOUNDS.maxX &&
+    typeof value.y === 'number' &&
+    Number.isFinite(value.y) &&
+    value.y >= HUB_VISITOR_BOUNDS.minY &&
+    value.y <= HUB_VISITOR_BOUNDS.maxY
+}
+
 function isHubVisitorPresence(value: unknown): value is HubVisitorPresence {
-  return isRecord(value) && isNonEmptyString(value.playerId)
+  return isRecord(value) &&
+    isNonEmptyString(value.playerId) &&
+    isHubPosition(value.position)
 }
 
 function isHubSignalId(value: unknown): value is HubSignalId {
@@ -204,16 +232,25 @@ export function createHubPresenceService(
         const presences = Object.values(realtimeChannel.presenceState<HubVisitorPresence>())
           .flat()
           .filter(isHubVisitorPresence)
-        const uniquePlayerIds = [...new Set(presences.map((presence) => presence.playerId))]
+        const visitorsByPlayerId = new Map<string, HubVisitorPresence>()
+        presences.forEach((presence) => visitorsByPlayerId.set(presence.playerId, presence))
+        const uniquePlayerIds = [...visitorsByPlayerId.keys()]
         void loadVisitorNames(uniquePlayerIds)
           .then((names) => {
             if (!active) {
               return
             }
-            onVisitors(uniquePlayerIds.map((playerId) => ({
-              playerId,
-              playerName: getPlayerDisplayName({ providerDisplayName: names.get(playerId) }),
-            })))
+            onVisitors(uniquePlayerIds.map((playerId) => {
+              const visitor = visitorsByPlayerId.get(playerId)
+              if (!visitor) {
+                throw new Error('Hub presence visitor is unavailable.')
+              }
+              return {
+                playerId,
+                playerName: getPlayerDisplayName({ providerDisplayName: names.get(playerId) }),
+                position: visitor.position,
+              }
+            }))
           })
           .catch((error: unknown) => {
             if (active) {
