@@ -2178,7 +2178,7 @@
 }
 
 .hub-status-panel {
-  width: min(100%, 15rem);
+  min-width: min(100%, 15rem);
   justify-self: end;
 }
 
