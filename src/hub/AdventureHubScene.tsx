@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, RefObject } from 'react'
 import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
 import { EssenceLeaderboard } from '../leaderboard/EssenceLeaderboard'
@@ -43,7 +43,7 @@ function isHubMovementKey(value: string): value is HubMovementKey {
 
 function isInteractiveElement(target: EventTarget | null): boolean {
   return target instanceof HTMLElement &&
-    target.closest('button, input, select, textarea, [contenteditable="true"]') !== null
+    target.closest('input, select, textarea, [contenteditable="true"]') !== null
 }
 
 function createHubSpawnPosition(): HubPosition {
@@ -95,15 +95,18 @@ function HubVisitorFigure({
   total,
   currentPlayerId,
   signalId,
+  elementRef,
 }: {
   visitor: HubVisitor
   total: number
   currentPlayerId: string
   signalId?: HubSignalId
+  elementRef?: RefObject<HTMLLIElement | null>
 }) {
   const isCurrentPlayer = visitor.playerId === currentPlayerId
   return (
     <li
+      ref={elementRef}
       className={`hub-visitor${isCurrentPlayer ? ' hub-visitor-current' : ''}`}
       style={getVisitorStyle(visitor, total, isCurrentPlayer)}
       aria-label={isCurrentPlayer ? `${visitor.playerName}, you` : visitor.playerName}
@@ -164,6 +167,7 @@ export function AdventureHubScene({
   const playerPositionRef = useRef<HubPosition>(playerPosition)
   const pendingPositionRef = useRef<HubPosition>(playerPosition)
   const remoteMovementPositions = useRef(new Map<string, HubPosition>())
+  const currentVisitorElementRef = useRef<HTMLLIElement | null>(null)
   const movementUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const movementUpdateInFlight = useRef(false)
   const movementUpdateGeneration = useRef(0)
@@ -288,6 +292,14 @@ export function AdventureHubScene({
 
     schedulePositionUpdate()
   }, [accountId, presenceService])
+
+  useLayoutEffect(() => {
+    const visitorElement = currentVisitorElementRef.current
+    if (visitorElement) {
+      visitorElement.style.left = `${playerPositionRef.current.x}%`
+      visitorElement.style.top = `${playerPositionRef.current.y}%`
+    }
+  })
 
   useEffect(() => {
     clearSignalTimers()
@@ -456,7 +468,11 @@ export function AdventureHubScene({
       }
       if (nextPosition.x !== currentPosition.x || nextPosition.y !== currentPosition.y) {
         playerPositionRef.current = nextPosition
-        setPlayerPosition(nextPosition)
+        const visitorElement = currentVisitorElementRef.current
+        if (visitorElement) {
+          visitorElement.style.left = `${nextPosition.x}%`
+          visitorElement.style.top = `${nextPosition.y}%`
+        }
         queuePositionUpdate(nextPosition)
       }
       animationFrame = requestAnimationFrame(move)
@@ -563,6 +579,7 @@ export function AdventureHubScene({
               total={visitors.length}
               currentPlayerId={accountId}
               signalId={activeSignals[visitor.playerId]}
+              elementRef={visitor.playerId === accountId ? currentVisitorElementRef : undefined}
             />
           ))}
         </ul>
