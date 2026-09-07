@@ -246,71 +246,73 @@ export function AdventureHubScene({
           </button>
         </aside>
 
-        <div className="hub-utility-stations" aria-label="Camp facilities">
-          <button className="hub-station hub-station-inventory" type="button" onClick={onOpenInventory} disabled={runLoadState !== 'ready'}>
-            <span aria-hidden="true">▣</span>
-            <span><strong>Inventory</strong><small>Fish, gear, and loot</small></span>
-          </button>
-          <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
-            <span aria-hidden="true">≈</span>
-            <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
-          </button>
-          <button className="hub-station hub-station-champions" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'}>
-            <span aria-hidden="true">◆</span>
-            <span><strong>Champions</strong><small>Saved builds</small></span>
-          </button>
-        </div>
+        <div className="hub-left-dock">
+          <div className="hub-utility-stations" aria-label="Camp facilities">
+            <button className="hub-station hub-station-inventory" type="button" onClick={onOpenInventory} disabled={runLoadState !== 'ready'}>
+              <span aria-hidden="true">▣</span>
+              <span><strong>Inventory</strong><small>Fish, gear, and loot</small></span>
+            </button>
+            <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
+              <span aria-hidden="true">≈</span>
+              <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
+            </button>
+            <button className="hub-station hub-station-champions" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'}>
+              <span aria-hidden="true">◆</span>
+              <span><strong>Champions</strong><small>Saved builds</small></span>
+            </button>
+          </div>
 
-        <section className="hub-expedition-panel" aria-labelledby="current-run-title">
-          <p className="screen-kicker">Dungeon gate</p>
-          <h3 id="current-run-title">{activeRun ? 'An expedition awaits' : 'Choose your descent'}</h3>
-          {runLoadState === 'error' || runLoadState === 'unavailable' ? (
-            <p className="persistence-error" role="alert">
-              {runLoadError ?? 'Unable to load the current dungeon run.'}
-            </p>
-          ) : null}
-          {activeRun ? (
-            <>
-              <dl className="hub-run-details">
-                <div><dt>Expedition</dt><dd>{isAbyssRun ? 'Infinite Abyss' : 'Dungeon run'}</dd></div>
-                <div><dt>Floor</dt><dd>{isAbyssRun ? activeRun.currentFloor : `${activeRun.currentFloor} / ${activeRun.maxFloor}`}</dd></div>
-                <div><dt>Class</dt><dd>{activeCharacterClassName ?? activeRun.characterClassId}</dd></div>
-              </dl>
-              <button className="hub-expedition-action" type="button" onClick={onContinueRun}>
-                Resume {isAbyssRun ? 'abyss' : 'dungeon'} <span aria-hidden="true">→</span>
-              </button>
-              <button className="hub-forfeit-action" type="button" onClick={onRequestForfeit} disabled={forfeiting}>
-                {forfeiting ? 'Forfeiting…' : 'Forfeit run'}
-              </button>
-              {forfeitError ? <p className="persistence-error" role="alert">{forfeitError}</p> : null}
-              <p className="hub-restriction" id="store-blocked-help">
-                Finish or forfeit this run before using the Essence store.
+          <section className="hub-expedition-panel" aria-labelledby="current-run-title">
+            <p className="screen-kicker">Dungeon gate</p>
+            <h3 id="current-run-title">{activeRun ? 'An expedition awaits' : 'Choose your descent'}</h3>
+            {runLoadState === 'error' || runLoadState === 'unavailable' ? (
+              <p className="persistence-error" role="alert">
+                {runLoadError ?? 'Unable to load the current dungeon run.'}
               </p>
-            </>
-          ) : (
-            <div className="hub-expedition-actions">
-              <button className="hub-expedition-action" type="button" onClick={onOpenRunSetup}>
-                Begin dungeon run <span aria-hidden="true">→</span>
-              </button>
-              <div className="hub-abyss-action-wrapper">
-                <button
-                  className="hub-abyss-action"
-                  type="button"
-                  onClick={onOpenAbyss}
-                  disabled={runLoadState !== 'ready' || championAvailability !== 'available'}
-                  aria-describedby={abyssEntryMessage ? 'abyss-entry-tooltip' : undefined}
-                >
-                  Infinite Abyss <span aria-hidden="true">∞</span>
+            ) : null}
+            {activeRun ? (
+              <>
+                <dl className="hub-run-details">
+                  <div><dt>Expedition</dt><dd>{isAbyssRun ? 'Infinite Abyss' : 'Dungeon run'}</dd></div>
+                  <div><dt>Floor</dt><dd>{isAbyssRun ? activeRun.currentFloor : `${activeRun.currentFloor} / ${activeRun.maxFloor}`}</dd></div>
+                  <div><dt>Class</dt><dd>{activeCharacterClassName ?? activeRun.characterClassId}</dd></div>
+                </dl>
+                <button className="hub-expedition-action" type="button" onClick={onContinueRun}>
+                  Resume {isAbyssRun ? 'abyss' : 'dungeon'} <span aria-hidden="true">→</span>
                 </button>
-                {abyssEntryMessage ? (
-                  <span id="abyss-entry-tooltip" className={tooltipClassName('abyss-entry-tooltip')} role="tooltip">
-                    {abyssEntryMessage}
-                  </span>
-                ) : null}
+                <button className="hub-forfeit-action" type="button" onClick={onRequestForfeit} disabled={forfeiting}>
+                  {forfeiting ? 'Forfeiting…' : 'Forfeit run'}
+                </button>
+                {forfeitError ? <p className="persistence-error" role="alert">{forfeitError}</p> : null}
+                <p className="hub-restriction" id="store-blocked-help">
+                  Finish or forfeit this run before using the Essence store.
+                </p>
+              </>
+            ) : (
+              <div className="hub-expedition-actions">
+                <button className="hub-expedition-action" type="button" onClick={onOpenRunSetup}>
+                  Begin dungeon run <span aria-hidden="true">→</span>
+                </button>
+                <div className="hub-abyss-action-wrapper">
+                  <button
+                    className="hub-abyss-action"
+                    type="button"
+                    onClick={onOpenAbyss}
+                    disabled={runLoadState !== 'ready' || championAvailability !== 'available'}
+                    aria-describedby={abyssEntryMessage ? 'abyss-entry-tooltip' : undefined}
+                  >
+                    Infinite Abyss <span aria-hidden="true">∞</span>
+                  </button>
+                  {abyssEntryMessage ? (
+                    <span id="abyss-entry-tooltip" className={tooltipClassName('abyss-entry-tooltip')} role="tooltip">
+                      {abyssEntryMessage}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        </div>
 
         <aside className="hub-leaderboard-panel">
           <EssenceLeaderboard

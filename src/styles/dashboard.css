@@ -2540,8 +2540,7 @@
     font-size: 1.65rem;
   }
 
-  .hub-utility-stations { width: clamp(18rem, 19vw, 22rem); }
-  .hub-expedition-panel { width: clamp(19rem, 20vw, 23rem); }
+  .hub-left-dock { width: clamp(19rem, 20vw, 23rem); }
   .hub-leaderboard-panel { width: clamp(19rem, 20vw, 23rem); }
 
   .hub-utility-stations {
@@ -2601,8 +2600,6 @@
 @media (min-width: 861px) {
   .hub-heading,
   .hub-status-panel,
-  .hub-utility-stations,
-  .hub-expedition-panel,
   .hub-leaderboard-panel {
     position: absolute;
   }
@@ -2617,13 +2614,8 @@
     right: clamp(1.25rem, 5vw, 5rem);
   }
 
-  .hub-utility-stations {
-    top: 50%;
-    left: clamp(1.25rem, 5vw, 5rem);
-    transform: translateY(-50%);
-  }
-
-  .hub-expedition-panel {
+  .hub-left-dock {
+    position: absolute;
     bottom: clamp(1.25rem, 3vw, 3rem);
     left: clamp(1.25rem, 5vw, 5rem);
   }
@@ -2632,4 +2624,43 @@
     right: clamp(1.25rem, 5vw, 5rem);
     bottom: clamp(1.25rem, 3vw, 3rem);
   }
+}
+
+.hub-left-dock {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  gap: 1rem;
+  align-self: end;
+  min-width: 0;
+  width: min(100%, 20rem);
+}
+
+.hub-left-dock > * {
+  flex: 0 0 auto;
+}
+
+.hub-left-dock .hub-utility-stations,
+.hub-left-dock .hub-expedition-panel {
+  position: relative;
+  grid-column: auto;
+  grid-row: auto;
+  align-self: auto;
+  width: 100%;
+}
+
+@media (min-width: 861px) {
+  .hub-left-dock {
+    position: absolute;
+    bottom: clamp(1.25rem, 3vw, 3rem);
+    left: clamp(1.25rem, 5vw, 5rem);
+    width: clamp(17rem, 19vw, 22rem);
+  }
+}
+
+@media (max-width: 620px) {
+  .hub-left-dock { width: 100%; }
 }
