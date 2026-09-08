@@ -140,6 +140,42 @@ function clearTimerMap(timerRef: { current: Map<string, number> }): void {
   timerRef.current.clear()
 }
 
+/*
+ * What is actually swimming in the pond.
+ *
+ * The scene drew nine identical cyan lozenges while the content module has
+ * carried a silhouette, an accent and a glow for every species all along.
+ * Depth runs 0 at the far shore to 1 at the near bank and drives size, opacity
+ * and haze, so the pond reads with the same perspective as the boats on it.
+ */
+const POND_FISH = [
+  { definitionId: 'river-minnow', left: 24, depth: 0.1, drift: -1 },
+  { definitionId: 'moon-carp', left: 63, depth: 0.28, drift: -5 },
+  { definitionId: 'glassfin-trout', left: 33, depth: 0.72, drift: -8 },
+  { definitionId: 'reed-darter', left: 72, depth: 0.2, drift: -3 },
+  { definitionId: 'silver-perch', left: 66, depth: 0.86, drift: -10 },
+  { definitionId: 'lantern-pike', left: 45, depth: 0.55, drift: -6 },
+  { definitionId: 'comet-eel', left: 48, depth: 0.05, drift: -2 },
+  { definitionId: 'tideback-catfish', left: 19, depth: 0.66, drift: -9 },
+  { definitionId: 'star-koi', left: 78, depth: 0.38, drift: -4 },
+] as const
+
+/*
+ * Paper lanterns set adrift.
+ *
+ * The moon is the pond's key light and it is cold, which left the scene with
+ * nothing warm in it at all — handsome, but not the cozy the place is meant to
+ * be. These are small and few on purpose: warmth for the eye to rest on and a
+ * foreground for the empty near water, without ever competing with the moon.
+ */
+const POND_LANTERNS = [
+  { left: 17, depth: 0.78, drift: -2.5 },
+  { left: 37, depth: 0.34, drift: -6 },
+  { left: 74, depth: 0.52, drift: -4 },
+  { left: 86, depth: 0.88, drift: -8.5 },
+  { left: 57, depth: 0.16, drift: -1 },
+] as const
+
 function getPondPlayerPosition(
   playerId: string,
 ): { left: number; top: number; scale: number; bobDelaySeconds: number } {
@@ -263,6 +299,7 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
     <>
       <span className="pond-angler-halo" />
       <span className="pond-angler-boat" />
+      <span className="pond-angler-lantern" />
       <span className="pond-angler-body" />
       <span className="pond-angler-head" />
       <span className="pond-angler-hat">✦</span>
@@ -901,10 +938,38 @@ export function FishingScreen({
                 and everything else in the water is lit from that direction.
               */}
               <span className="pond-moonpath" />
-              {Array.from({ length: 9 }, (_, index) => (
-                <span className={`pond-fish pond-fish-${index + 1}`} key={index}>
-                  <span className="pond-fish-body" />
-                  <span className="pond-fish-tail" />
+              {POND_FISH.map((fish) => {
+                const definition = getFishDefinition(fish.definitionId)
+                return definition ? (
+                  <span
+                    className="pond-fish"
+                    key={fish.definitionId}
+                    style={{
+                      left: `${fish.left}%`,
+                      top: `${14 + fish.depth * 74}%`,
+                      animationDelay: `${fish.drift}s`,
+                      '--fish-depth': fish.depth,
+                      '--fish-glow': definition.visual.glow,
+                    } as CSSProperties}
+                  >
+                    <FishIcon icon={definition.visual.icon} color={definition.visual.accent} />
+                  </span>
+                ) : null
+              })}
+              {POND_LANTERNS.map((lantern) => (
+                <span
+                  className="pond-lantern"
+                  key={lantern.left}
+                  style={{
+                    left: `${lantern.left}%`,
+                    top: `${16 + lantern.depth * 70}%`,
+                    animationDelay: `${lantern.drift}s`,
+                    '--lantern-depth': lantern.depth,
+                  } as CSSProperties}
+                >
+                  <span className="pond-lantern-glow" />
+                  <span className="pond-lantern-body" />
+                  <span className="pond-lantern-reflection" />
                 </span>
               ))}
               <span className="pond-ripple pond-ripple-one" />
