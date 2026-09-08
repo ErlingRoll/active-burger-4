@@ -2089,8 +2089,9 @@
     /* Moonlight falling in from somewhere above the broken roof. */
     radial-gradient(ellipse 70% 42% at 50% -16%, rgb(var(--scene-moonlight-rgb) / 13%), transparent 72%),
     /* The fire's pool on the floor, the only warm thing at ground level. */
-    radial-gradient(ellipse 30% 13% at 50% 80%, rgb(var(--accent-rgb) / 38%), transparent 72%),
-    radial-gradient(ellipse 52% 26% at 50% 84%, rgb(var(--accent-rgb) / 16%), transparent 76%),
+    radial-gradient(ellipse 17% 7% at 50% 72%, rgb(var(--accent-bright-rgb) / 30%), transparent 74%),
+    radial-gradient(ellipse 34% 15% at 50% 75%, rgb(var(--accent-rgb) / 32%), transparent 74%),
+    radial-gradient(ellipse 56% 28% at 50% 79%, rgb(var(--accent-rgb) / 14%), transparent 78%),
     /* The floor: a horizon line, then stone falling away into the dark. */
     linear-gradient(
       180deg,
@@ -2280,16 +2281,31 @@
   pointer-events: none;
 }
 
+/*
+ * Starfield.
+ *
+ * Each layer is one dot tiled at its own size, so the field never repeats
+ * visibly: the tiles share no common multiple. Brightness varies per layer
+ * rather than per star, which is enough for a sky at this distance.
+ */
 .hub-stars {
   position: absolute;
   inset: 0;
-  opacity: 0.55;
+  opacity: 0.62;
   background-image:
-    radial-gradient(circle at 14% 24%, rgb(var(--scene-moonlight-rgb) / 75%) 0 0.05rem, transparent 0.1rem),
-    radial-gradient(circle at 62% 12%, rgb(var(--scene-moonlight-rgb) / 55%) 0 0.04rem, transparent 0.09rem),
-    radial-gradient(circle at 84% 38%, rgb(var(--scene-moonlight-rgb) / 65%) 0 0.05rem, transparent 0.1rem),
-    radial-gradient(circle at 34% 62%, rgb(var(--scene-moonlight-rgb) / 45%) 0 0.04rem, transparent 0.08rem);
-  background-size: 23rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem;
+    radial-gradient(circle at 14% 24%, rgb(var(--scene-moonlight-rgb) / 80%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 62% 12%, rgb(var(--scene-moonlight-rgb) / 60%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 84% 38%, rgb(var(--scene-moonlight-rgb) / 70%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 34% 62%, rgb(var(--scene-moonlight-rgb) / 50%) 0 0.04rem, transparent 0.08rem),
+    radial-gradient(circle at 7% 71%, rgb(var(--scene-moonlight-rgb) / 62%) 0 0.045rem, transparent 0.09rem),
+    radial-gradient(circle at 47% 33%, rgb(var(--scene-moonlight-rgb) / 42%) 0 0.035rem, transparent 0.08rem),
+    radial-gradient(circle at 73% 57%, rgb(var(--scene-moonlight-rgb) / 72%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 26% 8%, rgb(var(--scene-moonlight-rgb) / 52%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 91% 17%, rgb(var(--scene-moonlight-rgb) / 66%) 0 0.045rem, transparent 0.09rem),
+    radial-gradient(circle at 55% 78%, rgb(var(--scene-moonlight-rgb) / 38%) 0 0.035rem, transparent 0.08rem);
+  background-size:
+    23rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem, 14rem 11rem,
+    37rem 25rem, 17rem 13rem, 29rem 21rem, 21rem 16rem, 13rem 9rem;
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
@@ -2523,7 +2539,13 @@
 .hub-fire-glow {
   width: 33rem;
   height: 19rem;
-  background: radial-gradient(ellipse, rgb(251 146 60 / 42%), rgb(234 88 12 / 16%) 35%, transparent 69%);
+  background: radial-gradient(
+    ellipse,
+    rgb(254 215 170 / 55%) 0 6%,
+    rgb(251 146 60 / 38%) 17%,
+    rgb(234 88 12 / 15%) 38%,
+    transparent 70%
+  );
 }
 
 .hub-firepit {
@@ -2644,8 +2666,14 @@
   pointer-events: none;
   mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse 30% 26% at 50% 71%, rgb(var(--accent-rgb) / 30%), transparent 70%),
-    radial-gradient(ellipse 52% 44% at 50% 71%, rgb(var(--accent-rgb) / 12%), transparent 76%);
+    /* The core, at the flames themselves. */
+    radial-gradient(circle 6vh at 50% 67%, rgb(var(--accent-bright-rgb) / 42%), rgb(var(--accent-rgb) / 20%) 45%, transparent 72%),
+    /* Smoke and mist catching the light on its way up. */
+    radial-gradient(ellipse 9% 22% at 50% 52%, rgb(var(--accent-rgb) / 13%), transparent 74%),
+    /* The pool it throws immediately around itself. */
+    radial-gradient(ellipse 22% 17% at 50% 72%, rgb(var(--accent-rgb) / 30%), transparent 72%),
+    /* And the last of it, reaching the stones. */
+    radial-gradient(ellipse 54% 40% at 50% 71%, rgb(var(--accent-rgb) / 11%), transparent 78%);
   animation: hub-firelight-breathe 4.5s ease-in-out infinite alternate;
 }
 
@@ -2657,7 +2685,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 72% 74% at 50% 68%, transparent 44%, rgb(4 7 14 / 42%) 80%, rgb(4 7 14 / 68%) 100%),
+    radial-gradient(ellipse 70% 72% at 50% 69%, transparent 38%, rgb(4 7 14 / 42%) 80%, rgb(4 7 14 / 68%) 100%),
     linear-gradient(180deg, rgb(4 7 14 / 40%) 0%, transparent 24%);
 }
 
