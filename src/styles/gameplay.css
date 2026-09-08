@@ -624,9 +624,9 @@
 .behavior-hud-profile:hover,
 .behavior-hud-profile:focus-visible,
 .behavior-hud-profile.selected {
-  color: var(--color-slate-50);
-  border-color: var(--color-blue-300);
-  outline: 3px solid rgb(147 197 253 / 25%);
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-rgb) / 62%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 26%);
   outline-offset: 1px;
 }
 
@@ -664,7 +664,7 @@
 }
 
 .keyword-term {
-  color: var(--color-blue-200);
+  color: var(--color-amber-200);
   text-decoration: underline dotted;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.16em;
@@ -673,7 +673,7 @@
 
 .keyword-term:focus-visible {
   border-radius: 0.15rem;
-  outline: 2px solid var(--color-blue-300);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 60%);
   outline-offset: 2px;
 }
 
@@ -708,13 +708,13 @@
 }
 
 .keyword-tooltip strong {
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 0.82rem;
 }
 
 .keyword-tooltip-link {
   align-self: flex-start;
-  color: var(--color-sky-300);
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 700;
   margin-top: 0.2rem;
@@ -1237,12 +1237,12 @@
 
 .behavior-hud-current-intent {
   margin: 0.5rem 0 0;
-  color: var(--color-slate-400);
+  color: var(--text-muted);
   font-size: 0.72rem;
 }
 
 .behavior-hud-current-intent strong {
-  color: var(--color-blue-200);
+  color: var(--accent);
 }
 
 .behavior-summary {
@@ -2328,28 +2328,35 @@
   pointer-events: none;
 }
 
+/* The same plate the refuge is furnished with, drawn over the arena. */
 .pause-panel {
   width: min(34rem, 100%);
   max-height: min(42rem, 100%);
   overflow: auto;
   padding: clamp(1.25rem, 4vw, 2rem);
-  color: var(--color-slate-200);
-  background: var(--color-gray-900);
-  border: 1px solid var(--color-blue-300);
-  border-radius: 0.85rem;
-  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 65%);
+  color: var(--text-muted);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 34%),
+    linear-gradient(180deg, rgb(20 27 39 / 96%), rgb(7 10 16 / 98%));
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 30%),
+    inset 0 -1px rgb(0 0 0 / 70%),
+    0 1.5rem 4rem rgb(0 0 0 / 70%);
   pointer-events: auto;
 }
 
 .pause-panel h2 {
   margin: 0.3rem 0 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: clamp(2rem, 6vw, 3rem);
+  letter-spacing: -0.03em;
 }
 
 .pause-instructions {
   margin: 0.6rem 0 1rem;
-  color: var(--color-slate-300);
+  color: var(--text-muted);
   line-height: 1.45;
 }
 
@@ -2361,20 +2368,24 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.55rem 0.7rem;
-  color: var(--color-slate-50);
+  color: var(--accent-contrast);
   font: inherit;
   font-weight: 800;
   text-align: left;
-  background: #1e3a5f;
-  border: 1px solid var(--color-blue-400);
-  border-radius: 0.45rem;
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 34%), rgb(var(--accent-rgb) / 12%)),
+    rgb(10 14 20 / 90%);
+  border: 1px solid rgb(var(--accent-rgb) / 62%);
+  border-radius: 0.4rem;
   cursor: pointer;
 }
 
 .pause-resume-button:hover,
 .pause-resume-button:focus-visible {
-  background: #244a78;
-  outline: 3px solid rgb(147 197 253 / 35%);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 48%), rgb(var(--accent-rgb) / 20%)),
+    rgb(14 19 27 / 92%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 32%);
   outline-offset: 2px;
 }
 
@@ -2384,21 +2395,22 @@
   min-height: 2.8rem;
   margin-top: 0.65rem;
   padding: 0.55rem 0.7rem;
-  color: var(--color-blue-100);
+  color: var(--color-stone-100);
   font: inherit;
   font-weight: 800;
   text-align: left;
-  background: var(--color-slate-800);
-  border: 1px solid var(--color-slate-500);
-  border-radius: 0.45rem;
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(var(--accent-rgb) / 28%);
+  border-radius: 0.4rem;
   cursor: pointer;
 }
 
 .pause-save-button:hover:not(:disabled),
 .pause-save-button:focus-visible {
-  background: var(--color-slate-700);
-  border-color: var(--color-blue-300);
-  outline: 3px solid rgb(147 197 253 / 35%);
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 16%);
+  border-color: rgb(var(--accent-rgb) / 55%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 30%);
   outline-offset: 2px;
 }
 
@@ -2412,7 +2424,7 @@
 .pause-panel > .audio-settings-panel {
   margin: 0.85rem 0 0;
   padding: 0.8rem;
-  border-color: var(--color-slate-600);
+  border-color: rgb(var(--accent-rgb) / 26%);
 }
 
 .pause-wiki-link {
@@ -3231,11 +3243,16 @@
   max-height: min(42rem, 100%);
   overflow: auto;
   padding: clamp(1.25rem, 4vw, 2.5rem);
-  color: var(--color-slate-200);
-  background: var(--color-gray-900);
-  border: 1px solid var(--color-blue-400);
-  border-radius: 1rem;
-  box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 55%);
+  color: var(--text-muted);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 34%),
+    linear-gradient(180deg, rgb(20 27 39 / 96%), rgb(7 10 16 / 98%));
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 30%),
+    inset 0 -1px rgb(0 0 0 / 70%),
+    0 1.5rem 4rem rgb(0 0 0 / 70%);
   pointer-events: auto;
 }
 
@@ -3248,18 +3265,18 @@
 
 .behavior-panel h2 {
   margin: 0.35rem 0 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: clamp(2rem, 6vw, 3.5rem);
 }
 
 .behavior-close {
   min-height: 2.5rem;
   padding: 0.55rem 0.9rem;
-  color: var(--color-blue-100);
+  color: var(--color-stone-100);
   font-weight: 700;
-  background: var(--color-slate-800);
-  border: 1px solid var(--color-slate-500);
-  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(var(--accent-rgb) / 28%);
+  border-radius: 0.4rem;
   cursor: pointer;
 }
 
@@ -3272,7 +3289,7 @@
 
 .behavior-instructions {
   margin: 0.5rem 0 1.5rem;
-  color: var(--color-slate-300);
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -3298,13 +3315,16 @@
 .behavior-profile:hover,
 .behavior-profile:focus-visible,
 .behavior-profile.selected {
-  border-color: var(--color-blue-300);
-  outline: 3px solid rgb(147 197 253 / 25%);
+  border-color: rgb(var(--accent-rgb) / 62%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 26%);
   outline-offset: 2px;
 }
 
 .behavior-profile.selected {
-  background: var(--panel-cool);
+  color: var(--accent-contrast);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 26%), rgb(var(--accent-rgb) / 8%)),
+    rgb(10 14 20 / 90%);
 }
 
 .behavior-profile-heading {
@@ -3333,7 +3353,7 @@
 
 .behavior-current-intent {
   margin: 1.25rem 0 0;
-  color: var(--color-blue-200);
+  color: var(--text-muted);
 }
 
 .behavior-current-intent strong {

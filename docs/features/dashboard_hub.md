@@ -265,3 +265,38 @@ the availability rules for any existing action.
 The selected direction is an atmospheric courtyard with subtle camp stations.
 The bonfire, visitor gathering, and layered environmental depth take priority
 over giving every action an equally prominent landmark.
+
+## Superseding implementation: the Emberwatch clearing
+
+The refinement direction above was implemented and then replaced. It is kept
+for its reasoning, but the courtyard it describes — a central archway, hanging
+banners, wall torches and edge ruins — is no longer what the hub renders, and
+its recommendations should not be followed as written.
+
+Two of its assumptions turned out to be wrong in practice:
+
+- **A background gate behind the fire.** The archway and the bonfire shared the
+  scene's centre line, so as the viewport narrowed the gap between them closed
+  and the fire ended up burning inside the doorway. Nothing may stand on the
+  fire's vertical axis.
+- **Torches and a lit gate as supporting atmosphere.** Three warm light sources
+  meant none of them read as a source. The bonfire is now the only warm light
+  in the scene.
+
+What the hub renders today is a clearing at night: standing stones opening
+toward the viewer, a moon and starfield above the horizon, drifting mist and
+wisps, a megalithic gateway at 36% of the width as the way down, and one
+bonfire whose light is a blend layer over every prop rather than a property
+painted into each of them. Panels are cold iron plates lit along their top
+edge rather than camp landmarks.
+
+The rules that govern it — the light discipline, the accent worlds, the Essence
+mark, the screen frame, and the two hub scene constraints — are documented in
+[Application shell visual direction](../GRAPHICS_GUIDELINES.md#application-shell-visual-direction).
+Read that before changing the scene.
+
+Items from the direction above that were adopted unchanged: scaling the fire
+and its ground pool, cast shadows and stronger figure silhouettes, ambient
+embers, CSS-only atmosphere with a static reduced-motion rendering, reducing
+the Essence card's footprint, and keeping violet reserved for the Infinite
+Abyss control.

@@ -29,6 +29,146 @@ The game favors a refined action-roguelike look:
 - Distinct silhouettes for distinct skills. Reusing a color is acceptable;
   reusing the same shape language is not.
 
+## Application shell visual direction
+
+The arena is one visual problem; the screens around it are another. Everything
+outside a run — the hub, the pond, the Codex, the stores and the rosters —
+follows the three rules in this section. They exist because the application
+previously carried two eras of styling stacked by specificity, and blue
+leftovers surfaced inside amber screens wherever the newer layer failed to
+reach.
+
+### One fire in a cold ruin
+
+The hub's light discipline, and the rule the rest of the shell inherits:
+
+> Warmth belongs to the fire and nothing else. Stone, night, and distance are
+> cold. A surface turns warm only where a light actually reaches it.
+
+Applied literally, this means:
+
+- **One warm light per scene.** The Emberwatch hub has exactly one: the
+  bonfire. Wall torches and a second glowing doorway were removed because two
+  sources make neither of them read as a source.
+- **Light falls off steeply.** A source is recognised by its gradient, not its
+  size. The hub's firelight is four stops — a hot core at the flames, a haze
+  column rising through the mist, a close pool on the ground, and a broad faint
+  spill — rather than one soft ellipse, which reads as ambient lighting from
+  nowhere.
+- **Light is a layer, not a property of each prop.** `.hub-firelight` sits
+  above every prop and figure with `mix-blend-mode: screen` and adds its warmth
+  to whatever it reaches; `.hub-nightfall` takes it back at the edges. This is
+  what makes separately-coloured shapes read as one lit room. Props are
+  authored cold and lit by the layer, never painted warm individually.
+- **Cold is the default.** `--scene-night`, `--scene-stone` and
+  `--scene-moonlight-rgb` are the ground the shell is built on. An all-warm
+  screen has nothing for its warmth to mean.
+
+### Screen accents
+
+Each screen is a place, and its accent belongs to the place rather than to the
+component drawn on it. A screen root declares four values and shared chrome
+composes everything else from them at the point of use:
+
+| Token | Role |
+| --- | --- |
+| `--accent` | The readable accent colour: kickers, values, marks. |
+| `--accent-contrast` | Text and icons drawn on an accent fill. |
+| `--accent-rgb` | Channels for lines and washes: `rgb(var(--accent-rgb) / 26%)`. |
+| `--accent-bright-rgb` | Channels for glows and focus rings. |
+
+| World | Root | Accent |
+| --- | --- | --- |
+| The Emberwatch refuge (default) | `:root` | Ember amber |
+| Moonwater Pond | `.app-shell-fishing`, `.fishing-inventory-drawer` | Cyan |
+| The Codex, the Abyss roster | `.wiki-screen`, `.champion-management-screen`, `.abyss-screen` | Violet |
+
+A shared component reads the accent tokens rather than naming a colour, so it
+takes on the room it is rendered in: the inventory slots, their unseen-item
+glow and their tooltip are ember on the Inventory screen and cyan inside the
+pond's drawer, from one set of rules.
+
+**Derived accent tokens do not work.** A custom property whose value reads
+another property is substituted where it is *declared*, so an `--accent-line`
+defined on `:root` keeps the root's ember on every screen that inherits it.
+Compose at the point of use instead.
+
+Two things never take the local accent, because they carry meaning rather than
+mood: **rarity colours** and **state colours** (danger red, success green, the
+crimson of the defeat combat log).
+
+### Essence
+
+Essence is a currency, so it belongs to a thing rather than to a place. It is a
+cold blue gem, deliberately outside every screen accent, and an amount reads
+identically in the refuge's ember, the pond's cyan and the Codex's violet.
+
+- Tokens: `--essence`, `--essence-contrast`, `--essence-rgb`,
+  `--essence-bright-rgb`.
+- Mark: [`src/ui/EssenceMark.tsx`](../src/ui/EssenceMark.tsx). `<EssenceMark />`
+  is the gem alone; `<EssenceAmount value={…} />` is the gem and the number, and
+  is how an amount is shown **without** a label. It is a drawn SVG rather than a
+  glyph because `✦` and `❖` render differently on every platform, and it is
+  sized in `em` and filled with `currentColor` so it inherits the type size and
+  colour of whatever shows it.
+- Its accessible name always says "Essence", so the mark is never the only
+  thing carrying the meaning.
+
+Every place an amount appears uses these: the hub balance, the leaderboard
+values, the store wallet, the results receipt total, the item tooltip's pill,
+and the loot toast's reward line.
+
+### The screen frame
+
+Screens outside the hub share one anatomy, defined in
+[src/styles/screen-frame.css](../src/styles/screen-frame.css):
+
+- `.app-screen` — the ground: cold stone, an accent wash where a light would
+  be, and the screen's own padding.
+- `.app-screen-frame` — a centred measure, set per screen with
+  `--screen-measure`. A frame whose only child is an empty state draws in to
+  44rem so the message is not marooned.
+- `.app-screen-topbar` — leaving the screen on one side (`.app-screen-back`),
+  what it holds on the other (`.app-screen-stats`).
+- `.app-screen-title` — kicker, title, lede.
+- `.app-panel` — the plate: a cold iron face with the light catching its top
+  edge, matching the hub's furniture. Not glass, and not a card floating in a
+  void.
+- `.app-empty-state` — a place waiting for something, with an emblem, rather
+  than an error.
+
+### Hub scene constraints
+
+Two rules the hub's world must keep, whatever the set dressing becomes. Both
+were learned by breaking them:
+
+- **Nothing stands on the fire's vertical axis.** A prop sharing the fire's
+  column ends up with the bonfire burning inside it as the viewport narrows —
+  which is what the centred archway did. The way down is at 36% of the width
+  for this reason.
+- **Scene geometry is anchored to the horizon, not to the viewport.** The floor
+  line is `HUB_SCENE_HORIZON_PERCENT` in
+  [src/hub/HubPresenceService.ts](../src/hub/HubPresenceService.ts), handed to
+  CSS as `--scene-horizon` by the scene element. The fire is positioned from it,
+  and `HUB_VISITOR_BOUNDS` is derived from it so the ground that is drawn is the
+  ground that can be walked on. When these were separate numbers the fire
+  floated into the sky on tall windows and visitors could walk into the stars.
+  `clampToHubFloor` is applied on render as well as on movement, because a
+  visitor's position arrives over presence from whatever client sent it.
+
+### Responsiveness
+
+The shell has no `@media` width breakpoints, and new work must not add any.
+Layouts adapt through `flex-wrap` with `min()` flex bases, `auto-fit` grid
+tracks, and `clamp()` sizing that uses `vh` for anything that has to survive a
+short viewport as well as a narrow one. Feature queries that are not width
+breakpoints — `prefers-reduced-motion` in particular — are expected.
+
+The hub is a screen rather than a document: it fits without scrolling, and an
+inner scroll container counts as a failure just as much as a scrolling page.
+When content does not fit, scale it down; do not cap a panel's height and let
+it scroll.
+
 ## Infinite Abyss visual direction
 
 The Infinite Abyss has a distinct **dark-purple void** identity. Its interface,
