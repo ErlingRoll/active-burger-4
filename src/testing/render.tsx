@@ -2,6 +2,7 @@ import { render, type RenderOptions, type RenderResult } from '@testing-library/
 import userEvent from '@testing-library/user-event'
 import type { ReactElement, ReactNode } from 'react'
 import { ToasterProvider } from '../ui/Toaster'
+import { ServicesProvider } from '../services'
 
 /**
  * Renders a component inside the providers `main.tsx` mounts in production.
@@ -20,7 +21,11 @@ export interface RenderComponentResult extends RenderResult {
 // component beside the exported helpers is harmless here.
 // oxlint-disable-next-line react/only-export-components
 function AppProviders({ children }: { children: ReactNode }) {
-  return <ToasterProvider>{children}</ToasterProvider>
+  return (
+    <ToasterProvider>
+      <ServicesProvider>{children}</ServicesProvider>
+    </ToasterProvider>
+  )
 }
 
 export function renderComponent(

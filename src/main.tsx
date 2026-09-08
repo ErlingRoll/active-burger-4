@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { ToasterProvider } from './ui/Toaster'
 import { ErrorBoundary } from './ui/ErrorBoundary'
+import { ServicesProvider } from './services'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {
@@ -14,7 +15,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <ToasterProvider>
       <ErrorBoundary label="Active Burger">
-        <App />
+        <ServicesProvider>
+          <App />
+        </ServicesProvider>
       </ErrorBoundary>
     </ToasterProvider>
   </StrictMode>,

@@ -15,46 +15,28 @@ import {
   type RunModeId,
 } from './game'
 import {
-  createDexiePersistenceStore,
-  createPersistenceRepository,
   type BasicProfileDto,
-  type PersistenceRepository,
   type SettingsDto,
   type SettingsPatch,
-  createDungeonRunPersistenceService,
   type ActiveDungeonRun,
 } from './persistence'
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   AuthPanel,
   AccountSettingsMenu,
-  createAuthenticationService,
-  createNicknameService,
   getPlayerDisplayName,
   type AuthenticationState,
-  type AuthenticationService,
   type NicknameChangeRequest,
-  type NicknameService,
   type NicknameState,
   type SignInOptions,
   type SignUpResult,
 } from './auth'
 import {
-  createMetaProgressionService,
   type MetaRunResultInput,
-  type MetaProgressionService,
   type MetaProgressionSnapshot,
 } from './meta'
 import { MetaProgressionScreen } from './meta/MetaProgressionScreen'
-import {
-  createEssenceLeaderboardService,
-  type EssenceLeaderboardService,
-} from './leaderboard/EssenceLeaderboardService'
 import { AdventureHubScene } from './hub/AdventureHubScene'
-import {
-  createHubPresenceService,
-  type HubPresenceService,
-} from './hub/HubPresenceService'
 import { GameCanvas } from './rendering/GameCanvas'
 import { KeywordText } from './rendering/KeywordTooltip'
 import { SkillIcon } from './rendering/SkillIcon'
@@ -70,48 +52,45 @@ import {
 } from './content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
+import { useServices } from './services'
+import type { AuthenticationService } from './auth'
+import type { MetaProgressionService } from './meta'
+import type { EssenceLeaderboardService } from './leaderboard/EssenceLeaderboardService'
+import type { HubPresenceService } from './hub/HubPresenceService'
+import type { CharacterService } from './characters'
+import type { InventoryService } from './inventory'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import { AdminReportsScreen } from './admin/AdminReportsScreen'
 import { NicknameModerationScreen } from './admin/NicknameModerationScreen'
 import {
-  createBugReportService,
   type BugReportDungeonContext,
   type BugReportImage,
-  type BugReportService,
   type BugReport,
   type BugReportFloorSnapshot,
 } from './bug-report'
 import {
-  createFishingService,
   formatFishSizeKg,
   getChampionRevivalReductionSeconds,
   getFishMealEffectSummary,
   resolveFishMeal,
   FishIcon,
   FishingScreen,
-  type FishingService,
 } from './fishing'
 import { getFishDefinition } from './fishing/FishingContent'
 import {
   ChampionManagementScreen,
   ChampionDetails,
-  createCharacterService,
   type CharacterBuildSnapshot,
   type ChampionSnapshot,
-  type CharacterService,
 } from './characters'
 import {
-  createInventoryService,
   DevelopmentInventoryMenu,
   getInventoryItemDefinition,
   type InventoryItemInstance,
-  type InventoryService,
 } from './inventory'
 import {
-  createLootBoxService,
   InventoryScreen,
-  type LootBoxService,
 } from './loot'
 import type { RunPreparationSnapshot } from './game'
 import { formatCompactDamage, formatExperience } from './ui/formatNumbers'
@@ -407,190 +386,24 @@ function isMaxFloorContractUnlocked(
 
 function App() {
   const { showToast } = useToaster()
-  const repository = useMemo<PersistenceRepository>(
-    () => createPersistenceRepository(createDexiePersistenceStore()),
-    [],
-  )
   const [screen, setScreen] = useState<AppScreen>(() =>
     typeof window === 'undefined' ? 'dashboard' : getScreenForPath(window.location.pathname),
   )
-  const authenticationService = useMemo(() => {
-    try {
-      return {
-        service: createAuthenticationService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          redirectUrl: import.meta.env.VITE_AUTH_REDIRECT_URL,
-        }),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [])
-  const metaProgressionService = useMemo(() => {
-    try {
-      return {
-        service: createMetaProgressionService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const characters = useMemo<{ service: CharacterService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createCharacterService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const essenceLeaderboard = useMemo(() => {
-    try {
-      return {
-        service: createEssenceLeaderboardService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const dungeonRunPersistence = useMemo(() => {
-    try {
-      return {
-        service: createDungeonRunPersistenceService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const inventory = useMemo<{ service: InventoryService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createInventoryService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const lootBoxes = useMemo<{ service: LootBoxService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createLootBoxService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const fishing = useMemo<{ service: FishingService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createFishingService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const hubPresence = useMemo<{ service: HubPresenceService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createHubPresenceService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const bugReport = useMemo<{ service: BugReportService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createBugReportService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
-  const nicknameService = useMemo<{ service: NicknameService | null; configurationError: string | null }>(() => {
-    try {
-      return {
-        service: createNicknameService({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        }, () => authenticationService.service?.getClient()),
-        configurationError: null,
-      }
-    } catch (error: unknown) {
-      return {
-        service: null,
-        configurationError: errorMessage(error),
-      }
-    }
-  }, [authenticationService])
+  const services = useServices()
+  const {
+    repository,
+    authentication: authenticationService,
+    nickname: nicknameService,
+    meta: metaProgressionService,
+    characters,
+    essenceLeaderboard,
+    dungeonRunPersistence,
+    inventory,
+    lootBoxes,
+    fishing,
+    hubPresence,
+    bugReport,
+  } = services
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
       authenticationService.service,
