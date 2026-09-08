@@ -1009,8 +1009,14 @@
   transform-origin: top center;
 }
 
+/*
+ * The line cancels the rod's rotation so it hangs vertically whichever way the
+ * angler faces. That means the negative of the rod's own angle: -20deg here
+ * pointed the line straight up, because a left-facing rod is at -160deg and the
+ * two summed to -180.
+ */
 .pond-angler-facing-left .pond-angler-restline {
-  transform: rotate(-20deg);
+  transform: rotate(160deg);
 }
 
 /* The float, where the line meets the water. */

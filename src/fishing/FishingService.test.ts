@@ -394,3 +394,80 @@ describe('FishingService', () => {
     expect(client.removeChannel).toHaveBeenCalledWith(channel)
   })
 })
+
+describe('angler presence resilience', () => {
+  /*
+   * The realtime socket reports 'timed out' while it is busy or reconnecting —
+   * after a backgrounded tab wakes, for instance. Presence used to give up
+   * after a second of retries, and the screen put the failure in front of
+   * someone who was mid-cast even though their attempt was a database call and
+   * entirely unaffected.
+   */
+  function createPresenceChannel(trackResults: readonly string[]) {
+    let index = 0
+    const channel = {
+      on: vi.fn(() => channel),
+      subscribe: vi.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED')
+        return channel
+      }),
+      send: vi.fn(async () => 'ok'),
+      track: vi.fn(async () => trackResults[Math.min(index++, trackResults.length - 1)]),
+      presenceState: vi.fn(() => ({})),
+    } as unknown as RealtimeChannel
+    return channel
+  }
+
+  const presence: FishingAnglerPresence = {
+    attemptId: 'pond:player-1',
+    playerId: 'player-1',
+    playerName: 'Mira',
+    phase: 'idle',
+  }
+
+  it('rides out a run of timeouts instead of failing the update', async () => {
+    vi.useFakeTimers()
+    try {
+      const channel = createPresenceChannel(['timed out', 'timed out', 'timed out', 'ok'])
+      const client = {
+        channel: vi.fn(() => channel),
+        removeChannel: vi.fn(async () => 'ok'),
+        rpc: vi.fn(async () => ({ data: [], error: null })),
+      } as unknown as SupabaseClient
+      const service = createService(client)
+      // Presence waits for the channel, so the screen's subscription comes first.
+      service.subscribeToActivity(() => {}, () => {}, () => {})
+
+      const tracked = service.trackAngler(presence)
+      await vi.advanceTimersByTimeAsync(6_000)
+
+      await expect(tracked).resolves.toBeUndefined()
+      expect(channel.track).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('still reports a presence update that never lands', async () => {
+    vi.useFakeTimers()
+    try {
+      const channel = createPresenceChannel(['timed out'])
+      const client = {
+        channel: vi.fn(() => channel),
+        removeChannel: vi.fn(async () => 'ok'),
+        rpc: vi.fn(async () => ({ data: [], error: null })),
+      } as unknown as SupabaseClient
+      const service = createService(client)
+      // Presence waits for the channel, so the screen's subscription comes first.
+      service.subscribeToActivity(() => {}, () => {}, () => {})
+
+      const tracked = service.trackAngler(presence)
+      const assertion = expect(tracked).rejects.toThrow('presence update failed: timed out')
+      await vi.advanceTimersByTimeAsync(12_000)
+
+      await assertion
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

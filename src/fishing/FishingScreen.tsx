@@ -471,6 +471,9 @@ export function FishingScreen({
   const phaseRef = useRef<FishingPhase>('idle')
   const pendingAttemptRef = useRef<FishingAttemptPreparation | null>(null)
   const pityTimerRef = useRef<number | null>(null)
+  /* The last presence sent, and whether it needs sending again. */
+  const lastPresenceRef = useRef<FishingAnglerPresence | null>(null)
+  const presenceNeedsRetryRef = useRef(false)
   const remoteAnimationTimersRef = useRef(new Map<string, number>())
   const activityNoticeTimerRef = useRef<number | null>(null)
   const presenceClearTimerRef = useRef<number | null>(null)
@@ -513,18 +516,28 @@ export function FishingScreen({
     if (!fishingService) {
       return
     }
+    lastPresenceRef.current = presence
     void fishingService.trackAngler(presence)
       .then(() => {
+        presenceNeedsRetryRef.current = false
         if (mountedRef.current) {
           setActivityError(null)
         }
       })
-      .catch((activityTrackError: unknown) => {
-        if (mountedRef.current) {
-          setActivityError(activityTrackError instanceof Error
-            ? activityTrackError.message
-            : 'Shared pond activity is unavailable.')
-        }
+      .catch(() => {
+        /*
+         * Presence is decoration: it tells the other anglers that you are at
+         * the pond and what your float is doing. The attempt itself is a
+         * database call and is untouched by this, so a timed-out presence
+         * update is not something to put in front of someone who is fishing —
+         * it used to surface as "Fishing angler presence update failed: timed
+         * out" over the scene. It is re-sent on the next reconciliation tick
+         * instead, a couple of seconds away, so the pond still catches up.
+         *
+         * A channel that is genuinely down is still reported: that arrives
+         * through the subscription's own error path, not through here.
+         */
+        presenceNeedsRetryRef.current = true
       })
   }, [fishingService])
 
@@ -666,16 +679,23 @@ export function FishingScreen({
           }
         })
     }
-    reconcileActiveAnglers()
+    const reconcileAnglersAndPresence = (): void => {
+      const missedPresence = presenceNeedsRetryRef.current ? lastPresenceRef.current : null
+      if (missedPresence) {
+        trackActivityPresence(missedPresence)
+      }
+      reconcileActiveAnglers()
+    }
+    reconcileAnglersAndPresence()
     const interval = window.setInterval(
-      reconcileActiveAnglers,
+      reconcileAnglersAndPresence,
       ACTIVE_ANGLER_RECONCILIATION_INTERVAL_MS,
     )
     return () => {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [activityPlayerId, fishingService])
+  }, [activityPlayerId, fishingService, trackActivityPresence])
 
   useEffect(() => {
     if (!inventoryService) {

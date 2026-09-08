@@ -198,7 +198,13 @@ function invalidResponse(message: string): Error {
   return new Error(`Fishing persistence returned an invalid response: ${message}`)
 }
 
-const PRESENCE_TRACK_RETRY_DELAYS_MS = [250, 750] as const
+/*
+ * Presence tracking rides the realtime socket, which reports 'timed out' when
+ * it is busy or reconnecting — after a tab wakes, for instance. A second of
+ * retries was not enough to ride that out, so the caller saw a failure for
+ * something that would have succeeded a moment later.
+ */
+const PRESENCE_TRACK_RETRY_DELAYS_MS = [250, 750, 1500, 3000] as const
 
 function assertAttemptId(attemptId: string): void {
   if (!isNonEmptyString(attemptId)) {
