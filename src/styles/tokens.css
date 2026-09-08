@@ -197,6 +197,25 @@
      deep-crimson palette so players can tell danger from UI error. */
   --accent-danger: var(--color-red-700);
 
+  /*
+   * Screen accents.
+   *
+   * Each screen is a place — the ember-lit refuge, the moonwater pond, the
+   * codex, the abyss — and the accent belongs to the place rather than to the
+   * component. A screen root declares these four; shared chrome composes its
+   * lines, washes and glows from the two channel triplets at the point of use,
+   * so one component takes the colour of wherever it is rendered.
+   *
+   * Derived tokens are deliberately absent. A custom property that reads
+   * another is substituted where it is declared, so an "--accent-line" defined
+   * here would keep the root's ember no matter which screen inherited it.
+   * The default below is the refuge.
+   */
+  --accent: var(--color-amber-400);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 251 146 60;
+  --accent-bright-rgb: 251 191 36;
+
   /* Pure white, used where the palette's lightest slate is not bright enough. */
   --color-white: #ffffff;
 

@@ -1,28 +1,40 @@
 /* Inventory grid and loot-box opening flow. */
-.loot-box-screen {
-  min-height: 0;
-  overflow: auto;
-  padding: clamp(1rem, 4vw, 3.5rem);
-  background:
-    radial-gradient(circle at 80% 10%, rgb(251 191 36 / 18%), transparent 28rem),
-    linear-gradient(145deg, #1c1308 0%, #292019 52%, var(--color-gray-900) 100%);
-}
-
 .loot-box-panel {
-  display: grid;
-  gap: 1.1rem;
-  width: min(58rem, 100%);
-  margin: 0 auto;
+  --screen-measure: 58rem;
 }
 
-.loot-box-panel > .secondary-action {
-  justify-self: start;
+/*
+ * The slots take the colour of the room they are in: ember on the inventory
+ * screen, moonwater in the pond's drawer. Only the shelf changes — the rarity
+ * rings below stay fixed, because those carry information rather than mood.
+ */
+/* The bag keeps its twelve columns and lets them narrow, rather than dropping
+   slots or running off a small screen. */
+.inventory-screen .inventory-item-grid {
+  grid-template-columns: repeat(12, minmax(0, 3rem));
+  justify-content: start;
 }
 
-.inventory-item-card {
-  background: rgb(30 41 59 / 72%);
-  border-color: rgb(148 163 184 / 24%);
+.inventory-screen .inventory-item-card {
+  background: rgb(36 28 24 / 78%);
+  border-color: rgb(var(--accent-rgb) / 22%);
   border-radius: 0.55rem;
+}
+
+.inventory-screen .inventory-item-card-empty {
+  background: rgb(0 0 0 / 26%);
+  border-color: rgb(var(--accent-rgb) / 9%);
+}
+
+.inventory-screen .inventory-item-card:not(.inventory-item-card-empty):hover,
+.inventory-screen .inventory-item-card:not(.inventory-item-card-empty):focus-visible {
+  border-color: var(--accent);
+  outline-color: rgb(var(--accent-bright-rgb) / 35%);
+}
+
+.inventory-screen .inventory-item-icon {
+  background: rgb(0 0 0 / 42%);
+  border-color: rgb(var(--accent-rgb) / 18%);
 }
 
 .inventory-item-card:hover {
@@ -30,12 +42,12 @@
 }
 
 .inventory-item-card-unseen:not(.inventory-item-card-empty) {
-  outline: 1px solid rgb(165 243 252 / 52%);
+  outline: 1px solid rgb(var(--accent-bright-rgb) / 42%);
   outline-offset: 1px;
   box-shadow:
-    0 0 0.55rem 0.12rem rgb(103 232 249 / 52%),
-    0 0 1.15rem 0.2rem rgb(34 211 238 / 28%),
-    inset 0 0 0.45rem rgb(165 243 252 / 18%);
+    0 0 0.4rem 0.08rem rgb(var(--accent-bright-rgb) / 34%),
+    0 0 0.9rem 0.14rem rgb(var(--accent-rgb) / 18%),
+    inset 0 0 0.4rem rgb(var(--accent-bright-rgb) / 14%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -47,15 +59,15 @@
 @keyframes inventory-item-unseen-pulse {
   from {
     box-shadow:
-      0 0 0.45rem 0.1rem rgb(103 232 249 / 42%),
-      0 0 0.95rem 0.14rem rgb(34 211 238 / 22%),
-      inset 0 0 0.4rem rgb(165 243 252 / 14%);
+      0 0 0.35rem 0.06rem rgb(var(--accent-bright-rgb) / 26%),
+      0 0 0.8rem 0.1rem rgb(var(--accent-rgb) / 14%),
+      inset 0 0 0.35rem rgb(var(--accent-bright-rgb) / 10%);
   }
   to {
     box-shadow:
-      0 0 0.7rem 0.16rem rgb(103 232 249 / 62%),
-      0 0 1.35rem 0.26rem rgb(34 211 238 / 34%),
-      inset 0 0 0.5rem rgb(165 243 252 / 22%);
+      0 0 0.55rem 0.12rem rgb(var(--accent-bright-rgb) / 44%),
+      0 0 1.1rem 0.18rem rgb(var(--accent-rgb) / 22%),
+      inset 0 0 0.45rem rgb(var(--accent-bright-rgb) / 16%);
   }
 }
 
@@ -105,8 +117,9 @@
   position: relative;
   z-index: 1;
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
+  /* Capped, not fixed: the slot narrows with the bag on a small screen. */
+  width: min(2.5rem, 100%);
+  height: min(2.5rem, 100%);
   place-items: center;
   font-size: 1.3rem;
   background: rgb(2 6 23 / 45%);
@@ -116,7 +129,7 @@
 
 .inventory-item-quantity {
   align-self: start;
-  color: var(--color-cyan-300);
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -126,10 +139,10 @@
   left: 0.25rem;
   bottom: 0.25rem;
   padding: 0.18rem 0.35rem;
-  color: var(--color-slate-900);
+  color: var(--color-stone-900);
   font-size: 0.58rem;
   font-weight: 800;
-  background: var(--color-cyan-300);
+  background: var(--accent);
   border: 0;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -137,8 +150,8 @@
 
 .inventory-item-salvage:hover,
 .inventory-item-salvage:focus-visible {
-  background: var(--color-cyan-200);
-  outline: 2px solid rgb(165 243 252 / 55%);
+  background: var(--accent-contrast);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 55%);
   outline-offset: 1px;
 }
 

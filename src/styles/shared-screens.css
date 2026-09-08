@@ -38,7 +38,7 @@
 
 .screen-kicker {
   margin: 0;
-  color: var(--color-blue-400);
+  color: var(--accent);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.12em;

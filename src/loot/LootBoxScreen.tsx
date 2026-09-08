@@ -118,6 +118,8 @@ export function InventoryScreen({
   const boxes = items.filter((item) =>
     getInventoryItemDefinition(item.definitionId)?.category === 'loot-box',
   )
+  const countHeld = (held: InventoryItemInstance[]): number =>
+    held.reduce((total, item) => total + item.quantity, 0)
 
   const openBox = async (box: InventoryItemInstance): Promise<void> => {
     if (!lootBoxService || !inventoryService || opening) {
@@ -176,22 +178,47 @@ export function InventoryScreen({
   }
 
   return (
-    <section className="dashboard inventory-screen loot-box-screen" aria-labelledby="loot-box-title">
-      <div className="dashboard-panel loot-box-panel">
-        <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
-        <p className="screen-kicker">Inventory</p>
-        <h2 id="loot-box-title">Inventory</h2>
-        <p>View fish, bait, rods, loot boxes, and other meta items.</p>
+    <section className="app-screen inventory-screen loot-box-screen" aria-labelledby="inventory-title">
+      <div className="app-screen-frame loot-box-panel">
+        <div className="app-screen-topbar">
+          <button className="app-screen-back" type="button" onClick={onBack}>
+            <span aria-hidden="true">←</span> Back to the refuge
+          </button>
+          <dl className="app-screen-stats">
+            <div>
+              <dt>Items held</dt>
+              <dd>{countHeld(items)}</dd>
+            </div>
+            <div>
+              <dt>Loot boxes</dt>
+              <dd>{countHeld(boxes)}</dd>
+            </div>
+          </dl>
+        </div>
+        <header className="app-screen-title">
+          <p className="screen-kicker">Refuge stores</p>
+          <h2 id="inventory-title">Inventory</h2>
+          <p className="app-screen-lede">View fish, bait, rods, loot boxes, and other meta items.</p>
+        </header>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
         {loadState === 'loading' ? (
           <p role="status">Loading loot boxes…</p>
         ) : (
           <>
-            <section className="inventory-section" aria-labelledby="inventory-items-title">
-              <p className="screen-kicker">Meta items</p>
-              <h3 id="inventory-items-title">Owned items</h3>
+            <section className="app-panel inventory-section" aria-labelledby="inventory-items-title">
+              <header className="app-panel-heading">
+                <div>
+                  <p className="screen-kicker">Meta items</p>
+                  <h3 id="inventory-items-title">Owned items</h3>
+                </div>
+                <span className="app-panel-meta">{items.length} kinds</span>
+              </header>
               {items.length === 0 ? (
-                <p className="champion-empty-state">No meta items yet.</p>
+                <div className="app-empty-state">
+                  <span className="app-empty-state-emblem" aria-hidden="true">▣</span>
+                  <h3>Nothing stored yet</h3>
+                  <p>Fish the Moonwater Pond or clear Abyss floors to fill these shelves.</p>
+                </div>
               ) : (
                 <PaginatedInventoryGrid
                   items={items}
@@ -204,11 +231,20 @@ export function InventoryScreen({
                 />
               )}
             </section>
-            <section className="inventory-section" aria-labelledby="loot-box-title">
-              <p className="screen-kicker">Rewards</p>
-              <h3 id="loot-box-title">Unopened loot boxes</h3>
+            <section className="app-panel inventory-section" aria-labelledby="loot-box-title">
+              <header className="app-panel-heading">
+                <div>
+                  <p className="screen-kicker">Rewards</p>
+                  <h3 id="loot-box-title">Unopened loot boxes</h3>
+                </div>
+                {boxes.length > 0 ? <span className="app-panel-meta">{countHeld(boxes)} waiting</span> : null}
+              </header>
               {boxes.length === 0 ? (
-                <p className="fishing-muted">Complete Abyss floors to earn loot boxes.</p>
+                <div className="app-empty-state">
+                  <span className="app-empty-state-emblem" aria-hidden="true">◇</span>
+                  <h3>No loot boxes</h3>
+                  <p>Complete Abyss floors to earn them.</p>
+                </div>
               ) : (
                 <ul className="loot-box-list">
                   {boxes.map((box) => (

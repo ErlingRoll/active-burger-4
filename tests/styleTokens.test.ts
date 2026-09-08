@@ -41,6 +41,32 @@ function declaredTokens(): string[] {
     .filter((name): name is string => name !== undefined)
 }
 
+const CHANNEL_TRIPLET = /^\d{1,3} \d{1,3} \d{1,3}$/
+
+/**
+ * The palette expressed as space-separated RGB channels.
+ *
+ * A screen accent is declared as channels rather than a colour so that lines,
+ * washes and glows can be composed from it at the point of use with an alpha —
+ * `rgb(var(--accent-rgb) / 26%)`. That is the one place a shade is written in a
+ * form other than its hex, so the channels are checked back against the palette
+ * here instead of being taken on trust.
+ */
+function paletteChannels(): Map<string, string> {
+  const channels = new Map<string, string>()
+  for (const match of tokensSource.matchAll(/^\s*(--color-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\s*;/gm)) {
+    const [, name, hex] = match
+    if (name === undefined || hex === undefined) {
+      continue
+    }
+    const triplet = [1, 3, 5]
+      .map((offset) => parseInt(hex.slice(offset, offset + 2), 16))
+      .join(' ')
+    channels.set(triplet, name)
+  }
+  return channels
+}
+
 describe('colour tokens', () => {
   it('declares every token exactly once', () => {
     const names = declaredTokens()
@@ -66,7 +92,21 @@ describe('colour tokens', () => {
       // that a shade is only ever written down once.
       const isLiteral = /^#[0-9a-fA-F]{3,8}$/.test(declaration)
       const isReference = declaration.startsWith('var(--')
-      expect(isLiteral || isReference, `${name ?? ''}: ${declaration}`).toBe(true)
+      const isChannels = CHANNEL_TRIPLET.test(declaration)
+      expect(isLiteral || isReference || isChannels, `${name ?? ''}: ${declaration}`).toBe(true)
+    }
+  })
+
+  it('writes channel tokens as channels of a colour that is in the palette', () => {
+    const channels = paletteChannels()
+    const declarations = [...tokensSource.matchAll(/^\s*(--[a-z0-9-]+):\s*([^;]+);/gm)]
+      .map(([, name, value]) => [name ?? '', value?.trim() ?? ''] as const)
+      .filter(([, value]) => CHANNEL_TRIPLET.test(value))
+
+    expect(declarations.length).toBeGreaterThan(0)
+    for (const [name, value] of declarations) {
+      expect(channels.has(value), `${name}: ${value} is not a palette colour`).toBe(true)
+      expect(name.endsWith('-rgb'), `${name} holds channels and must be named -rgb`).toBe(true)
     }
   })
 

@@ -452,17 +452,39 @@ export function ChampionManagementScreen({
   }
 
   return (
-    <section className="dashboard champion-management-screen" aria-labelledby="champion-management-title">
-      <div className="dashboard-panel champion-management-panel">
-        <button className="secondary-action" type="button" onClick={onBack}>Back to dashboard</button>
-        <p className="screen-kicker">Future Abyss roster</p>
-        <h2 id="champion-management-title">Champions</h2>
-        <p>View completed-run builds and preserve them for future Infinite Abyss attempts.</p>
+    <section className="app-screen champion-management-screen" aria-labelledby="champion-management-title">
+      <div className="app-screen-frame champion-management-panel">
+        <div className="app-screen-topbar">
+          <button className="app-screen-back" type="button" onClick={onBack}>
+            <span aria-hidden="true">←</span> Back to the refuge
+          </button>
+          {champions.length > 0 ? (
+            <dl className="app-screen-stats">
+              <div>
+                <dt>Saved</dt>
+                <dd>{champions.length}</dd>
+              </div>
+              <div>
+                <dt>Ready</dt>
+                <dd>{champions.filter((champion) => !champion.exhaustionUntil ||
+                  Date.parse(champion.exhaustionUntil) <= now).length}</dd>
+              </div>
+            </dl>
+          ) : null}
+        </div>
+        <header className="app-screen-title">
+          <p className="screen-kicker">Future Abyss roster</p>
+          <h2 id="champion-management-title">Champions</h2>
+          <p className="app-screen-lede">
+            View completed-run builds and preserve them for future Infinite Abyss attempts.
+          </p>
+        </header>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
         {loadState === 'loading' ? (
           <p role="status">Loading Champions…</p>
         ) : champions.length === 0 ? (
-          <section className="champion-empty-state">
+          <section className="app-empty-state champion-empty-state">
+            <span className="app-empty-state-emblem" aria-hidden="true">◆</span>
             <h3>No Champions yet</h3>
             <p>Complete a dungeon victory to create your first Champion.</p>
           </section>

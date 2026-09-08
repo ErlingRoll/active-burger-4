@@ -1,0 +1,245 @@
+/*
+ * The shared screen frame.
+ *
+ * Every screen that is not the hub was previously a single dark card centred in
+ * an empty page: the back button lived inside the card above its own kicker, the
+ * title block had no relationship to the content, and the panel hid whatever
+ * ground the screen had painted behind it. This frame gives those screens the
+ * same anatomy the hub has — chrome, a title block, and panels made of the same
+ * material — while reading its colour from the accent tokens, so a screen takes
+ * on the palette of the place it belongs to.
+ */
+
+/*
+ * The worlds.
+ *
+ * A screen root says where it is; the accent tokens in tokens.css carry the
+ * rest. Anything not listed here is the refuge, which is the default ember.
+ */
+.app-shell-fishing,
+.fishing-inventory-drawer {
+  /* Moonwater pond. */
+  --accent: var(--color-cyan-300);
+  --accent-contrast: var(--color-cyan-50);
+  --accent-rgb: 34 211 238;
+  --accent-bright-rgb: 103 232 249;
+}
+
+.wiki-screen,
+.champion-management-screen,
+.abyss-screen {
+  /* The codex and the abyss roster both read as violet. */
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+}
+
+.app-screen {
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  padding: clamp(1rem, 2.6vh, 2.25rem) clamp(1rem, 4vw, 3.5rem) clamp(2rem, 6vh, 4rem);
+  color: var(--color-stone-200);
+  background:
+    radial-gradient(ellipse at 78% -12%, rgb(var(--accent-rgb) / 12%), transparent 34rem),
+    radial-gradient(ellipse at 6% 108%, rgb(0 0 0 / 42%), transparent 38rem),
+    linear-gradient(152deg, var(--arena-gradient-start) 0%, var(--arena-gradient-mid) 54%, var(--arena-gradient-end) 100%);
+}
+
+/* The hub's lattice, carried across so the screens read as one building. */
+.app-screen::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(30deg, rgb(255 237 213 / 4%) 12%, transparent 12.5%, transparent 87%, rgb(255 237 213 / 4%) 87.5%),
+    linear-gradient(150deg, rgb(255 237 213 / 4%) 12%, transparent 12.5%, transparent 87%, rgb(255 237 213 / 4%) 87.5%);
+  background-size: 5.5rem 9.5rem;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.app-screen-frame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(0.85rem, 2.2vh, 1.6rem);
+  width: min(var(--screen-measure, 62rem), 100%);
+  margin-inline: auto;
+}
+
+/* A screen whose only content is an empty state does not need the full measure:
+   the frame draws in so the message is not marooned in a wide, empty panel. */
+.app-screen-frame:has(> .app-empty-state) {
+  --screen-measure: 44rem;
+}
+
+/* Chrome: leaving the screen on one side, what it holds on the other. */
+.app-screen-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-screen-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem 0.4rem 0.65rem;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: rgb(255 255 255 / 3%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.app-screen-back:hover,
+.app-screen-back:focus-visible {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 12%);
+  border-color: rgb(var(--accent-rgb) / 58%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 2px;
+}
+
+.app-screen-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.app-screen-stats > div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.35rem 0.8rem;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.55rem;
+}
+
+.app-screen-stats dt {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.app-screen-stats dd {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-screen-title {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 46rem;
+}
+
+.app-screen-title h2 {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: clamp(1.75rem, min(4.6vw, 5.6vh), 3.1rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.app-screen-lede {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.85rem, 1.8vh, 0.98rem);
+  line-height: 1.5;
+}
+
+/* The panel material, matching the hub's lit cards. */
+.app-panel {
+  padding: clamp(0.85rem, 2vh, 1.35rem);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 4%), transparent 72%),
+    rgb(12 14 19 / 76%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.85rem;
+  box-shadow: inset 0 1px rgb(255 255 255 / 4%), 0 0.75rem 2rem rgb(0 0 0 / 22%);
+}
+
+.app-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: clamp(0.6rem, 1.6vh, 1rem);
+}
+
+.app-panel-heading h3 {
+  margin: 0.15rem 0 0;
+  color: var(--color-stone-50);
+  font-size: clamp(1.02rem, 2.4vh, 1.28rem);
+  letter-spacing: -0.03em;
+}
+
+.app-panel-meta {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An empty state is a place that is waiting for something, not an error. */
+.app-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: clamp(1.4rem, 5vh, 2.75rem) 1.25rem;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(var(--accent-rgb) / 12%), transparent 64%),
+    rgb(12 14 19 / 58%);
+  border: 1px dashed rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.9rem;
+}
+
+.app-empty-state-emblem {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.35rem;
+  place-items: center;
+  color: var(--accent);
+  font-size: 1.35rem;
+  background: rgb(var(--accent-rgb) / 12%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 50%;
+}
+
+.app-empty-state h3 {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.app-empty-state p {
+  max-width: 42ch;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
