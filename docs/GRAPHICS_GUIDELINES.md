@@ -36,21 +36,34 @@ entry flow, Champion selection, floor decisions, reward feedback, and world
 effects should feel like the player is descending into an ancient, unstable
 dimension rather than entering another normal dungeon.
 
+### Colour tokens
+
+Every colour used more than twice lives in
+[src/styles/tokens.css](../src/styles/tokens.css) and is referenced with
+`var()`. Prefer a semantic token (`--text-primary`, `--accent-danger`) when a
+role fits, then a palette token (`--color-amber-400`). A one-off value used once
+may stay a literal at its point of use.
+[tests/styleTokens.test.ts](../tests/styleTokens.test.ts) enforces this, so a
+repeated hex literal fails the build. See
+[decision 0012](decisions/0012-colour-tokens.md).
+
 ### Palette
 
-Use these as the starting design tokens. Individual surfaces may adjust
-opacity, but should remain within this visual family:
+These are defined as CSS custom properties in
+[src/styles/tokens.css](../src/styles/tokens.css); use the token, not the hex
+value. Individual surfaces may adjust opacity, but should remain within this
+visual family:
 
-| Role | Token |
-| --- | --- |
-| Void background | `#0f0920` |
-| Deep violet surface | `#171126` |
-| Raised violet surface | `#24153f` |
-| Purple gradient accent | `#6d28d9` |
-| Primary violet | `#7c3aed` |
-| Focus/hover violet | `#a78bfa` |
-| Highlight lavender | `#c4b5fd` |
-| Bright text | `#f5f3ff` |
+| Role | Token | Value |
+| --- | --- | --- |
+| Void background | `--abyss-void` | `#0f0920` |
+| Deep violet surface | `--abyss-surface` | `#171126` |
+| Raised violet surface | `--abyss-surface-raised` | `#24153f` |
+| Purple gradient accent | `--color-violet-700` | `#6d28d9` |
+| Primary violet | `--color-violet-600` | `#7c3aed` |
+| Focus/hover violet | `--color-violet-400` | `#a78bfa` |
+| Highlight lavender | `--color-violet-300` | `#c4b5fd` |
+| Bright text | `--color-violet-50` | `#f5f3ff` |
 
 The Abyss entry action should use a restrained violet gradient and a subtle
 lift/glow on hover. The shared **Game modes** panel should use deep violet

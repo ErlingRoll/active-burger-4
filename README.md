@@ -2,7 +2,12 @@
 
 Active Burger 4 is a deterministic browser roguelike RPG. React owns the UI,
 PixiJS renders simulation state, and the TypeScript game simulation remains
-independent of browser and network APIs.
+independent of browser and network APIs. That independence is not a convention:
+[tests/architecture.test.ts](tests/architecture.test.ts) fails the build if
+`src/game/` reaches React, PixiJS, Dexie, Supabase, or a feature module.
+
+The application targets modern desktop browsers. Small viewports are not
+supported today; see the checklist below.
 
 ## License
 
@@ -23,6 +28,10 @@ Requires Node.js 22 LTS and npm.
 npm install
 npm run dev
 ```
+
+Copy `.env.example` to `.env` and fill in the Supabase values. Without them the
+application still runs: each service reports its own configuration error and the
+screens explain what is unavailable.
 
 ## Production authentication
 
@@ -55,17 +64,47 @@ All player-facing names use the shared resolver documented in
 ## Validation
 
 ```bash
-npm run lint
-npm run test:run
-npm run build
+npm run lint      # oxlint --deny-warnings; a warning fails the build
+npm run test:run  # unit, component, architecture, and documentation tests
+npm run build     # tsc -b across src, e2e, and tooling, then vite build
 ```
+
+`npm run test:e2e` runs the Playwright suite. It needs a Supabase project and
+`VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` in `.env`, so CI runs lint,
+tests, and build only.
+
+Some checks read the repository rather than import it, and live in
+[tests/](tests/):
+
+- `architecture.test.ts` enforces the dependency rules and forbids import
+  cycles.
+- `styleTokens.test.ts` keeps repeated colours in `src/styles/tokens.css`.
+- `documentation.test.ts` keeps the content counts in PLAN.md true.
 
 ## Architecture
 
-See [PLAN.md](PLAN.md), [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md),
-the [graphics guidelines](docs/GRAPHICS_GUIDELINES.md), and
-[docs/decisions/](docs/decisions/).
+`src/game/` is the simulation and depends on nothing but `content/`,
+`game-config/`, and `shared/`. `src/rendering/` projects its state through
+PixiJS. `src/App.tsx` orchestrates the screens in `src/app/screens/`, which are
+loaded per route by `src/app/lazyScreens.ts`. Services are constructed once in
+`src/services/` and read through context.
 
-For transient success, error, and loot feedback, follow the shared toast
-guidance in [docs/UI_FEEDBACK.md](docs/UI_FEEDBACK.md). Agent-specific
-conventions are in [AGENTS.md](AGENTS.md).
+See [PLAN.md](PLAN.md) section 8 for the full structure and section 9 for the
+dependency rules, [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md)
+for delivery status, the [graphics guidelines](docs/GRAPHICS_GUIDELINES.md) for
+the visual language, and [docs/decisions/](docs/decisions/) for the ADRs.
+
+Colours come from `src/styles/tokens.css`. Prefer a semantic token, then a
+palette token; a colour used more than twice must be in that file.
+
+## Deployment
+
+Production deploys to Netlify from `netlify.toml`, with SPA routing via
+`public/_redirects`. `vite.config.ts` stamps the build with the commit SHA,
+reading it from the host's environment or from `git` locally.
+
+## Conventions
+
+For transient success, error, and loot feedback, use the shared toast described
+in [docs/UI_FEEDBACK.md](docs/UI_FEEDBACK.md). Agent-specific conventions are in
+[AGENTS.md](AGENTS.md).

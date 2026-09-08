@@ -1,9 +1,9 @@
 # Active Burger 4 — Implementation Guide
 
 > **Status:** Current architecture guide and implementation history
-> **Last reviewed:** 2026-09-01
+> **Last reviewed:** 2026-09-08
 > **Primary language:** TypeScript
-> **Target:** Modern desktop and mobile browsers
+> **Target:** Modern desktop browsers (see "Viewport support" below)
 > **Rendering:** PixiJS
 > **UI:** React
 > **Build tooling:** Vite
@@ -25,19 +25,30 @@ snapshot.
 ### Implemented content
 
 ```text
-skills:             21
-skill evolutions:   42 branches (2 branches per skill)
-synergies:          57
-classes: 8
-enemy abilities:    2 current enemy ability types
-boss attack types:  5
+skills:             22
+skill evolutions:   48 branches (at least 2 per skill)
+synergies:          60
+classes:             8
+upgrades:          158
+enemies:             6
+elite modifiers:    15
+world modifiers:     7
+Abyss modifiers:     3
+gear items:         16
+dungeons:            1
+enemy abilities:     2
+boss attack types:   5
 ```
 
-The skill roster includes Basic Attack, Whirlwind, Chain Lightning, Vitality,
+These counts are asserted against the registries by
+[tests/documentation.test.ts](tests/documentation.test.ts), so this block cannot
+drift from the code again. It previously claimed 21 skills and 57 synergies.
+
+The skill roster is Basic Attack, Whirlwind, Chain Lightning, Vitality,
 Raise Skeleton, Fiery Touch, Glacial Orb, Lancer's Charge, Rallying Banner,
 Gravity Well, Aegis Pulse, Rift Javelin, Cinder Mine, Storm Relay, Soul Tether,
-Phantom Arsenal, Sigil of Ruin, Mirrorcast, Razorwire, Blood Rite, and Prism
-Halo. The canonical definitions live in
+Phantom Arsenal, Sigil of Ruin, Mirrorcast, Critical Spellstrike, Razorwire,
+Blood Rite, and Prism Halo. The canonical definitions live in
 [src/game-config/skills.ts](src/game-config/skills.ts).
 
 Every non-Basic skill has a predefined Basic Attack Synergy. Synergies are
@@ -67,8 +78,39 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
 - Implemented progression includes gear and rarity, passive upgrades, local
   Dexie persistence, Supabase authentication, Essence meta progression, world
   modifiers, character selection, player behavior profiles, and run results.
-- Durable active-run recovery and server-owned run locking are not complete.
-  They remain the next major implementation milestone.
+- Durable active-run recovery is implemented. A run is checkpointed per floor
+  to Supabase, recovered on sign-in, and can be forfeited from the dashboard.
+  See [decision 0008](docs/decisions/0008-durable-dungeon-run-checkpoints.md).
+- The Infinite Abyss run mode is implemented, with its own modifiers, champion
+  exhaustion and revival, floor loot boxes, and a distinct visual identity.
+- Surrounding the run loop: the Adventure Hub dashboard with live visitor
+  presence and campfire signals, fishing, champions, inventory and loot boxes,
+  the Essence leaderboard, the in-game wiki, music and audio settings, player
+  bug reports, and the administrator bug-report and nickname-moderation routes.
+
+### Viewport support
+
+The application targets modern desktop browsers. Responsive rules were
+deliberately removed from the stylesheets, which now carry nine media queries
+across roughly twelve thousand lines; a phone-sized viewport is not supported.
+Mobile support is tracked as unchecked work in
+[docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md) rather
+than claimed here.
+
+### Layering rules in force
+
+The dependency rules in section 9 are enforced by
+[tests/architecture.test.ts](tests/architecture.test.ts), not left to review:
+
+- `src/game/` may not import React, PixiJS, Dexie, or Supabase.
+- `src/game/` may not import a feature module; it may reach only `content/`,
+  `game-config/`, and `shared/`.
+- `src/content/` may not import `src/game/`.
+- The module graph must contain no import cycles.
+
+`src/shared/` holds the few leaves both the simulation and its content need —
+the `RandomSource` contract and run-mode identity — so neither side has to
+depend on the other to reach them.
 
 ### Current validation and documentation sources
 
@@ -445,7 +487,7 @@ Game
 └── PixiJS rendering
 
 UI state
-└── Zustand
+└── React state and context (no store library; see section 55)
 
 Local persistence
 └── Dexie / IndexedDB
@@ -546,127 +588,111 @@ Example:
 
 # 8. Repository Structure
 
-Use feature and responsibility boundaries rather than placing everything in generic `utils` folders.
+Use feature and responsibility boundaries rather than placing everything in
+generic `utils` folders.
 
-Recommended structure:
+This is the structure as it stands, not an aspiration. An earlier version of
+this section prescribed `src/app/routes/`, `src/stores/` holding Zustand
+stores, and `game/entities/` subfolders; none of those existed, Zustand was
+never used, and `src/stores/` sat empty for months. What follows is generated
+from the repository.
 
 ```text
 src/
-├── app/
-│   ├── App.tsx
-│   ├── routes/
-│   ├── screens/
-│   └── components/
+├── App.tsx                  # Orchestrator: state, effects, screen dispatch
+├── main.tsx
 │
-├── game/
-│   ├── engine/
-│   │   ├── Game.ts
-│   │   ├── GameLoop.ts
-│   │   ├── GameClock.ts
-│   │   └── GameState.ts
-│   │
-│   ├── entities/
-│   │   ├── player/
-│   │   ├── enemies/
-│   │   ├── projectiles/
-│   │   ├── pickups/
-│   │   └── summons/
-│   │
-│   ├── systems/
-│   │   ├── movement/
-│   │   ├── targeting/
-│   │   ├── combat/
-│   │   ├── damage/
-│   │   ├── collision/
-│   │   ├── spawning/
-│   │   ├── experience/
-│   │   ├── status-effects/
-│   │   └── cleanup/
-│   │
-│   ├── skills/
-│   ├── upgrades/
-│   ├── items/
-│   ├── modifiers/
-│   ├── stats/
-│   ├── ai/
-│   ├── random/
-│   └── spatial/
+├── app/                     # Application shell
+│   ├── routing.ts           # Screen union, path table, per-screen music
+│   ├── appState.ts          # State shapes App shares with its screens
+│   ├── runFormatting.ts     # Pure presentation helpers
+│   ├── lazyScreens.ts       # Route-level code splitting
+│   ├── LazyScreen.tsx       # Loading and failure states for a lazy route
+│   └── screens/             # AppHeader, AuthGateway, GameDashboard,
+│                            # ResultsScreen, RunSetupScreen
 │
-├── rendering/
-│   ├── PixiGame.ts
-│   ├── camera/
-│   ├── layers/
-│   ├── entities/
-│   ├── effects/
-│   ├── assets/
-│   └── debug/
+├── game/                    # The simulation. No React, Pixi, DOM, or network.
+│   ├── Game.ts              # Fixed-timestep loop and public API
+│   ├── state/               # GameState and the entity shapes
+│   ├── systems/             # behavior, boss, combat, encounter, experience,
+│   │                        # movement, skills, spawning, stairs, summons,
+│   │                        # upgrades
+│   ├── checkpoint/          # Run checkpoints and the champion build schema
+│   ├── choices/ combat/ engine/ equipment/ random/ spatial/ spawning/
+│   ├── stats/ ui/ upgrades/
+│   └── RunModes.ts
 │
-├── content/
-│   ├── characters/
-│   ├── enemies/
-│   ├── skills/
-│   ├── upgrades/
-│   ├── items/
-│   ├── bosses/
-│   ├── modifiers/
-│   └── encounters/
+├── content/                 # Schema, validation, and derived queries
+│   ├── behaviors/ bosses/ classes/ dungeons/ encounters/ enemies/ gear/
+│   ├── glossary/ modifiers/ progression/ projectiles/ rarity/ skills/
+│   ├── spawning/ stats/ upgrades/
+│   └── validation.ts        # Asserted at run start
 │
-├── progression/
-│   ├── meta/
-│   ├── unlocks/
-│   └── rewards/
+├── game-config/             # Balance and tuning values for the above
 │
-├── persistence/
-│   ├── local/
-│   ├── remote/
-│   └── sync/
+├── rendering/               # PixiJS projection of simulation state
+│   ├── PixiGame.ts          # The renderer; renderState dispatches per layer
+│   ├── GameCanvas.tsx       # React host, HUD, and the snapshot bridge
+│   └── pixi/                # geometry, worldTheme, renderState queries,
+│                            # entity/effect graphics, labels, views
 │
-├── stores/
-│   ├── appStore.ts
-│   ├── settingsStore.ts
-│   └── runUiStore.ts
+├── services/                # One construction site for every service
 │
-├── shared/
-│   ├── types/
-│   ├── math/
-│   ├── assertions/
-│   └── constants/
+├── shared/                  # Leaves both game/ and content/ may depend on
+├── testing/                 # Assertions and the component render harness
 │
-└── main.tsx
+├── abyss/ admin/ audio/ auth/ bug-report/ characters/ fishing/ hub/
+├── input/ inventory/ leaderboard/ loot/ meta/ wiki/   # Feature modules
+│
+├── persistence/             # Dexie locally, Supabase remotely
+├── styles/                  # tokens.css first, then per-feature sheets
+└── ui/                      # Toaster, ConfirmationDialog, ErrorBoundary
 ```
 
-Tests can live beside their implementation:
+Tests live beside their implementation:
 
 ```text
 GameClock.ts
 GameClock.test.ts
 ```
 
-or inside dedicated test directories when appropriate.
+Tests that read the repository rather than import it — the architecture and
+documentation rules — live in `tests/`. End-to-end tests live in `e2e/`.
 
-End-to-end tests should live under:
+## 8.1 Feature barrels
 
-```text
-e2e/
-```
+Each feature module has an `index.ts` barrel. Two rules apply:
+
+- A barrel must not re-export a screen component. Screens are loaded per route
+  by `app/lazyScreens.ts`, and a static re-export anywhere pulls the screen
+  back into the entry chunk, silently undoing the split. Vite reports this as
+  `INEFFECTIVE_DYNAMIC_IMPORT`.
+- Import from the owning module, not the barrel, when the barrel would form a
+  cycle. `bug-report/BugReportService.ts` imports `auth/AuthService` directly
+  for this reason.
 
 ---
 
 # 9. Dependency Direction
 
-Dependencies should generally flow downward like this:
+Dependencies flow downward like this:
 
 ```text
-React App
+React App  (App.tsx, app/screens/, feature modules)
      ↓
-UI Stores
+Services   (services/AppServices.ts, behind ServicesContext)
      ↓
-Game API
+Game API   (game/Game.ts)
      ↓
-Game Simulation
+Game Simulation  (game/systems/, game/state/)
      ↓
-Pure domain logic
+Content + config  (content/, game-config/)
+     ↓
+Shared leaves  (shared/)
 ```
+
+There is no store layer. An earlier draft placed Zustand between the app and
+the game API; it was never used and the dependency was removed.
 
 Rendering:
 
@@ -688,17 +714,26 @@ Persistence Interface
      └── Supabase
 ```
 
-The following dependencies should be prohibited:
+The following dependencies are prohibited, and
+[tests/architecture.test.ts](tests/architecture.test.ts) fails the build on
+each of them:
 
 ```text
-game/ → React
-game/ → Supabase
-game/ → Dexie
-game/ → DOM
-game/ → Zustand
+game/    → react, react-dom, pixi.js, dexie, @supabase/supabase-js
+game/    → any feature module (abyss/, meta/, characters/, …)
+content/ → game/
+any      → an import cycle
 ```
 
-`game/` should ideally run in Node during unit tests without needing a browser.
+`game/` runs in Node during unit tests without a browser, and the suite proves
+it: the simulation specs use no DOM environment at all. Component specs opt in
+per file with `// @vitest-environment jsdom`, which is what keeps that property
+from quietly eroding.
+
+`content/` holds schema and derived queries; `game-config/` holds the tuning
+values for that schema. The dependency runs one way, `game-config/ → content/`,
+which is why the schema types live in leaf modules (`EnemyTypes.ts`,
+`UpgradeTypes.ts`, `CharacterClassTypes.ts`) that import no tuning data.
 
 ---
 
@@ -2260,30 +2295,18 @@ Strict cleanup is important because React development behavior can expose accide
 
 ---
 
-# 55. Zustand UI Store
+# 55. UI State
 
-Zustand should contain low-frequency information React needs.
+> **Superseded.** This section originally specified a Zustand store. Zustand was
+> never used and has been removed from the dependencies. The principle it
+> described still holds and is implemented as follows.
 
-Example:
+React holds only low-frequency information, and it never mirrors simulation
+state. The bridge is a snapshot: `GameCanvas` polls `game.getUiSnapshot()` on an
+interval (not per frame) and puts the result in React state, so the HUD
+re-renders at a UI cadence while the simulation runs at its own fixed timestep.
 
-```ts
-interface RunUiState {
-  phase: RunPhase
-
-  playerLevel: number
-  playerHealthPercent: number
-
-  upgradeChoices: UpgradeChoice[]
-
-  openLevelUp: (
-    choices: UpgradeChoice[],
-  ) => void
-
-  closeLevelUp: () => void
-}
-```
-
-Do not store:
+Do not put per-entity collections into React state:
 
 ```text
 all enemies
@@ -2291,7 +2314,11 @@ all projectiles
 all pickups
 ```
 
-in Zustand.
+Those belong to `GameState` and are drawn by the renderer reading it directly.
+
+Cross-screen values that are not simulation state — the constructed services,
+the toaster — are supplied through React context (`services/ServicesContext.ts`,
+`ui/ToasterContext.ts`) rather than prop-drilled.
 
 ---
 
@@ -3207,6 +3234,13 @@ Possible solution:
 
 # 90. Mobile Support
 
+> **Not implemented.** The application currently targets desktop browsers only.
+> Responsive rules were removed from the stylesheets, which carry nine media
+> queries in roughly twelve thousand lines, so a phone-sized viewport is not
+> supported today. This section describes what supporting it would involve; the
+> work is tracked as unchecked in
+> [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md).
+
 Mobile can be supported because the game requires little direct input.
 
 Important considerations:
@@ -3523,7 +3557,6 @@ Create a reliable development environment.
 
 * initialize Vite React TypeScript;
 * install PixiJS;
-* install Zustand;
 * install Dexie;
 * install Supabase client;
 * install Vitest;

@@ -6,28 +6,45 @@ milestones in order unless an ADR documents an exception.
 ## Selected Foundation Decisions
 
 - [x] Node.js 22 LTS (`22.14.0`) and npm
-- [x] Vite, React, TypeScript, PixiJS, Zustand, Dexie, Supabase, Vitest, and
-  Playwright
-- [x] Oxlint; do not add ESLint redundantly
-- [x] GitHub Actions CI; Vercel previews and production deployment
+- [x] Vite, React, TypeScript, PixiJS, Dexie, Supabase, Vitest, and Playwright.
+      Zustand was selected here originally but never used; the dependency has
+      been removed and React context serves the same purpose.
+- [x] Oxlint; do not add ESLint redundantly. Lint runs with `--deny-warnings`,
+      so a warning fails CI.
+- [x] GitHub Actions CI; Netlify production deployment. Vercel was selected here
+      originally; the repository deploys through `netlify.toml` and
+      `public/_redirects`, and `vite.config.ts` reads either host's commit SHA.
 - [x] Proprietary, all-rights-reserved original materials; record third-party
       asset provenance before use
 - [x] No telemetry; opt-in authenticated progression sync only
 - [ ] Protect `main` with required PR review and passing CI checks
 - [ ] Create separate development and production Supabase projects and configure
   secrets in their hosts, never in the repository
-- [ ] Create Vercel preview/production projects and configure their environment
-  variables
+- [ ] Configure the Netlify site's environment variables for preview and
+  production contexts
+- [ ] Mobile and small-viewport support. Responsive rules were deliberately
+  removed; the application currently targets desktop browsers only.
 
 ## Cross-Cutting Completion Rules
 
-- [ ] Keep simulation deterministic and independent from React, PixiJS, DOM,
+These are standing rules, not one-time tasks. Where a rule is machine-checked,
+the check is named; the rest are review responsibilities.
+
+- [x] Keep simulation deterministic and independent from React, PixiJS, DOM,
   persistence, and network APIs.
+  *Enforced by [tests/architecture.test.ts](../tests/architecture.test.ts).*
+- [x] Keep the `content/` → `game-config/` dependency one-directional and the
+  module graph free of cycles.
+  *Enforced by [tests/architecture.test.ts](../tests/architecture.test.ts).*
+- [x] Keep repeated colours in `src/styles/tokens.css` rather than as literals.
+  *Enforced by [tests/styleTokens.test.ts](../tests/styleTokens.test.ts).*
+- [x] Keep the content counts in PLAN.md's snapshot true.
+  *Enforced by [tests/documentation.test.ts](../tests/documentation.test.ts).*
 - [ ] Keep rendering a projection of simulation state; content remains
   data-driven with stable IDs.
 - [ ] Follow the [graphics guidelines](GRAPHICS_GUIDELINES.md) for every new
   skill, projectile, effect, persistent object, and HUD icon.
-- [ ] Put balance values in content data, not engine systems.
+- [ ] Put balance values in `game-config/`, not in engine systems.
 - [ ] Apply the [high-frequency trigger safeguards](../PLAN.md#1241-high-frequency-trigger-safeguards)
   to every on-hit, per-projectile, and per-target mechanic.
 - [ ] Add focused tests for deterministic rules and run applicable validation.
@@ -109,16 +126,46 @@ milestones in order unless an ADR documents an exception.
 - [x] **19. Characters:** content-driven Knight, Ranger, Necromancer, Frost
       Warden, Ashen Alchemist, War Shepherd, Riftwalker, and Bloodweaver.
 - [x] **20. Polish:** onboarding, combat readability, reduced motion, responsive HUD, and results presentation.
-- [ ] **21. Durable Dungeon Runs:** Supabase-owned active-run locking,
+- [x] **21. Durable Dungeon Runs:** Supabase-owned active-run locking,
       exact deterministic floor checkpoints, Continue/Save & quit/Forfeit
       lifecycle, terminal snapshots, and active-run store restrictions.
+      See [decision 0008](decisions/0008-durable-dungeon-run-checkpoints.md).
+- [x] **22. Infinite Abyss:** endless run mode with its own modifiers, danger
+      score, champion roster, champion exhaustion and revival, per-floor loot
+      boxes, and a distinct violet visual identity.
+- [x] **23. Champions and Characters:** immutable build snapshots captured from
+      a finished run, champion renaming, archiving, and revival with fish.
+- [x] **24. Fishing:** the pond loop with baits, rods, enchantments, salvage,
+      fish meals consumed at run start, and live angler presence.
+- [x] **25. Inventory and Loot Boxes:** server-authoritative item grants,
+      idempotent inventory operations, sorting, and loot box opening.
+- [x] **26. Adventure Hub:** the dashboard scene with live visitor presence,
+      visitor movement, campfire signals, and the Essence leaderboard.
+- [x] **27. Player Reporting and Moderation:** in-game bug reports with floor
+      snapshots and images, the administrator report route with soft delete,
+      and the nickname approval workflow.
+- [x] **28. Wiki and Audio:** the in-game reference screen, and the music and
+      effects settings with per-screen playlists.
+- [x] **29. Engineering Baseline:** strict TypeScript, lint that fails on
+      warnings, a component test harness, error boundaries, route-level code
+      splitting, and the executable architecture and style rules.
+      See [decision 0010](decisions/0010-enforced-architecture-boundaries.md).
 
 ## Per-Feature Gate
 
+Run before opening a pull request:
+
+```bash
+npm run lint      # oxlint --deny-warnings
+npm run test:run  # unit, component, architecture, and documentation tests
+npm run build     # tsc -b across src, e2e, and tooling, then vite build
+```
+
 - [ ] Type-check, lint, focused tests, and build pass.
 - [ ] Browser tests pass when UI/browser behavior changes.
-- [ ] Save compatibility, stable IDs, architecture boundaries, and common
-  viewport behavior were reviewed.
+- [ ] Save compatibility, stable IDs, and architecture boundaries were reviewed.
+- [ ] A new screen is registered in `app/routing.ts` **and**
+  `app/lazyScreens.ts`, and is not re-exported from its feature barrel.
 - [ ] No unnecessary dependency or active-simulation network call was added.
 - [ ] Durable checkpoints restore the complete simulation boundary exactly and
   never write every simulation tick.
