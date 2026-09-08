@@ -10,7 +10,14 @@ function renderMenu(overrides: Partial<Parameters<typeof AccountSettingsMenu>[0]
       displayName="Mira"
       pendingNickname={null}
       onRequestNicknameChange={onRequestNicknameChange}
-      bugReportDungeon={{ dungeonId: null, floor: null, runMode: null }}
+      bugReportDungeon={{
+        dungeonId: 'sunken-keep',
+        dungeonName: 'Sunken Keep',
+        currentFloor: 1,
+        maxFloor: 10,
+        characterClassId: 'knight',
+        worldModifierIds: [],
+      }}
       onSubmitBugReport={() => Promise.resolve()}
       {...overrides}
     />,

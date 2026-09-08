@@ -16,6 +16,9 @@ export interface RenderComponentResult extends RenderResult {
   user: ReturnType<typeof userEvent.setup>
 }
 
+// Fast refresh never applies to a test-only helper module, so defining a
+// component beside the exported helpers is harmless here.
+// oxlint-disable-next-line react/only-export-components
 function AppProviders({ children }: { children: ReactNode }) {
   return <ToasterProvider>{children}</ToasterProvider>
 }

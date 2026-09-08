@@ -438,3 +438,26 @@
 .persistence-error {
   color: #fecaca;
 }
+
+/* Error boundary fallback ------------------------------------------------- */
+
+.error-boundary {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.error-boundary .dashboard-panel {
+  max-width: 40rem;
+}
+
+.error-boundary-detail {
+  padding: 0.6rem 0.75rem;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--surface-text-muted, #d6d3d1);
+  background: rgb(0 0 0 / 28%);
+  border-left: 0.2rem solid var(--accent-danger, #b91c1c);
+  border-radius: 0.35rem;
+}

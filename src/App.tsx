@@ -71,6 +71,7 @@ import {
 import { SPAWN_BALANCE } from './content/spawning/SpawnBalance'
 import { useToaster } from './ui/ToasterContext'
 import { ConfirmationDialog } from './ui/ConfirmationDialog'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 import { AdminReportsScreen } from './admin/AdminReportsScreen'
 import { NicknameModerationScreen } from './admin/NicknameModerationScreen'
 import {
@@ -2231,19 +2232,21 @@ function App() {
         />
       ) : null}
       {screen === 'gameplay' ? (
-        <GameCanvas
-          key={runId}
-          runConfig={runConfig}
-          initialCheckpoint={resumeCheckpoint}
-          onRunEnd={handleRunEnd}
-          onFloorCheckpoint={saveFloorCheckpoint}
-          onSaveAndQuit={saveAndQuitRun}
-          onBehaviorProfileChange={selectBehaviorProfile}
-          keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
-          onKeybindsChange={updateKeybinds}
-          reportBugRunId={activeRunSubmission?.runId}
-          onSubmitBugReport={submitBugReport}
-        />
+        <ErrorBoundary label="The dungeon run">
+          <GameCanvas
+            key={runId}
+            runConfig={runConfig}
+            initialCheckpoint={resumeCheckpoint}
+            onRunEnd={handleRunEnd}
+            onFloorCheckpoint={saveFloorCheckpoint}
+            onSaveAndQuit={saveAndQuitRun}
+            onBehaviorProfileChange={selectBehaviorProfile}
+            keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
+            onKeybindsChange={updateKeybinds}
+            reportBugRunId={activeRunSubmission?.runId}
+            onSubmitBugReport={submitBugReport}
+          />
+        </ErrorBoundary>
       ) : null}
       {screen === 'results' && result ? (
         <ResultsScreen

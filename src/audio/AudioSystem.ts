@@ -110,7 +110,13 @@ class BrowserAudioSystem {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.preloadPlaylist('dashboard')
+      // Music tracks are several megabytes each. Warm the cache only when the
+      // player will actually hear them: preloading unconditionally meant a
+      // muted visitor downloaded the whole dashboard playlist on every cold
+      // load before they had even signed in.
+      if (this.isMusicAudible()) {
+        this.preloadPlaylist('dashboard')
+      }
       const resumePlayback = (): void => {
         const audio = this.audio
         if (!audio) {
@@ -148,9 +154,22 @@ class BrowserAudioSystem {
     ) {
       return
     }
+    const wasAudible = this.isMusicAudible()
     this.settings = next
     persistAudioSettings(next)
     this.applyMusicVolume()
+    if (!wasAudible && this.isMusicAudible()) {
+      // Turning the music back on is the point at which downloading it becomes
+      // worthwhile, and the point at which a playlist selected while muted must
+      // finally start.
+      const playlistId = this.playlistId
+      if (playlistId !== null) {
+        this.preloadPlaylist(playlistId)
+        if (!this.audio && MUSIC_PLAYLISTS[playlistId].length > 0) {
+          this.startTrack(0)
+        }
+      }
+    }
     for (const listener of this.listeners) {
       listener()
     }
@@ -164,7 +183,9 @@ class BrowserAudioSystem {
     this.stopTrack()
     this.trackIndex = -1
     const playlist = playlistId === null ? [] : MUSIC_PLAYLISTS[playlistId]
-    if (playlist.length > 0) {
+    // A silent track still downloads its source, so the playlist is recorded
+    // now and started by updateSettings once the music becomes audible.
+    if (playlist.length > 0 && this.isMusicAudible()) {
       this.startTrack(0)
     }
   }
@@ -178,6 +199,11 @@ class BrowserAudioSystem {
       this.settings.masterVolume * this.settings.effectsVolume,
     )
     void effect.play().catch(() => undefined)
+  }
+
+  /** True when music would be heard, i.e. not muted and above zero volume. */
+  private isMusicAudible(): boolean {
+    return this.getMusicVolume() > 0
   }
 
   private getMusicVolume(): number {
