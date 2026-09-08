@@ -10,6 +10,14 @@ When using subagents:
 - Never invoke a custom agent that forces a different model.
 - Do not increase reasoning/thinking effort for subagents.
 
+## Test account
+
+The following test account may be used by any agent or human tester: test@mctest.face
+
+Credentials are stored in `.env`
+- VITE_TEST_USER_EMAIL
+- VITE_TEST_USER_PASSWORD
+
 ## Shared loot toast
 
 Use the shared global toast for transient loot feedback such as catches,
