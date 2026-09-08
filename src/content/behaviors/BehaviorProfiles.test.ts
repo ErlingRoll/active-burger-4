@@ -11,6 +11,7 @@ import {
   validateContent,
   type ContentCatalog,
 } from '../validation'
+import { definedAt } from '../../testing'
 
 describe('behavior profile content', () => {
   it('has stable unique IDs and a balanced default', () => {
@@ -62,8 +63,8 @@ describe('behavior profile content', () => {
     const catalog: ContentCatalog = {
       ...CURRENT_CONTENT,
       behaviorProfiles: [
-        { ...CURRENT_CONTENT.behaviorProfiles[0], id: 'Not Stable' as never },
-        { ...CURRENT_CONTENT.behaviorProfiles[1], name: '' },
+        { ...definedAt(CURRENT_CONTENT.behaviorProfiles, 0, 'behaviorProfiles'), id: 'Not Stable' as never },
+        { ...definedAt(CURRENT_CONTENT.behaviorProfiles, 1, 'behaviorProfiles'), name: '' },
       ],
     }
     expect(validateContent(catalog)).toEqual(expect.arrayContaining([

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNow } from '../ui/useNow'
 import type { ReactNode } from 'react'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
 import {
@@ -33,11 +34,11 @@ interface ChampionManagementScreenProps {
   onBack: () => void
 }
 
-function formatExhaustion(exhaustionUntil: string | null): string {
+function formatExhaustion(exhaustionUntil: string | null, now: number): string {
   if (!exhaustionUntil) {
     return 'Available'
   }
-  const remainingMilliseconds = Date.parse(exhaustionUntil) - Date.now()
+  const remainingMilliseconds = Date.parse(exhaustionUntil) - now
   if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
     return 'Available'
   }
@@ -237,6 +238,7 @@ export function ChampionDetails({
   headerAction?: ReactNode
 }) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
+  const now = useNow()
   return (
     <section className="champion-details" aria-labelledby="champion-details-title">
       <header className="champion-details-heading">
@@ -250,7 +252,7 @@ export function ChampionDetails({
         </div>
         <span className="champion-details-status">
           <span className={`champion-availability${champion.exhaustionUntil ? ' exhausted' : ''}`}>
-            {formatExhaustion(champion.exhaustionUntil)}
+            {formatExhaustion(champion.exhaustionUntil, now)}
           </span>
           {headerAction}
         </span>
@@ -327,6 +329,7 @@ export function ChampionManagementScreen({
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null)
   const [revivalFish, setRevivalFish] = useState<InventoryItemInstance[]>([])
   const [recovering, setRecovering] = useState(false)
+  const now = useNow()
 
   useEffect(() => {
     if (!service) {
@@ -479,7 +482,7 @@ export function ChampionManagementScreen({
                 >
                   <strong>{champion.name}</strong>
                   <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                  <small>{formatExhaustion(champion.exhaustionUntil)}</small>
+                  <small>{formatExhaustion(champion.exhaustionUntil, now)}</small>
                 </button>
               ))}
             </div>
@@ -512,10 +515,10 @@ export function ChampionManagementScreen({
                     Delete Champion
                   </button>
                   {selectedChampion.exhaustionUntil &&
-                  Date.parse(selectedChampion.exhaustionUntil) > Date.now() ? (
+                  Date.parse(selectedChampion.exhaustionUntil) > now ? (
                     <div className="champion-revival-panel">
                       <strong>Champion exhausted</strong>
-                      <span>{formatExhaustion(selectedChampion.exhaustionUntil)}</span>
+                      <span>{formatExhaustion(selectedChampion.exhaustionUntil, now)}</span>
                       {revivalFish.length > 0 ? (
                         <>
                           <small>

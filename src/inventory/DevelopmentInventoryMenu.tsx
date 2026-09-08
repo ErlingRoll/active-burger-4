@@ -10,6 +10,7 @@ import type {
   InventoryService,
 } from './InventoryTypes'
 import { getFishDefinition, FishIcon } from '../fishing'
+import { lastElement } from '../shared'
 import { RARITIES, RARITY_WEIGHTS, type Rarity } from '../content/rarity/Rarity'
 import { useToaster } from '../ui/ToasterContext'
 
@@ -41,7 +42,7 @@ function randomFishRarity(): Rarity {
       return rarity
     }
   }
-  return RARITIES[RARITIES.length - 1]
+  return lastElement(RARITIES)
 }
 
 function createDevelopmentGrant(

@@ -1,22 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
-import { loadEnv } from 'vite'
-
-const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
-const testUserEmail = testEnvironment.VITE_TEST_USER_EMAIL
-const testUserPassword = testEnvironment.VITE_TEST_USER_PASSWORD
+import { requireTestCredentials } from './support/credentials'
 
 test.describe.configure({ mode: 'serial' })
 
 async function signInForFishing(
   page: Page,
 ): Promise<void> {
-  test.skip(
-    !testUserEmail || !testUserPassword,
-    'VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD are required for authenticated fishing flows.',
-  )
+  const { email, password } = requireTestCredentials('authenticated fishing flows')
 
-  await page.getByLabel('Email').fill(testUserEmail)
-  await page.getByLabel('Password').fill(testUserPassword)
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
   await page.getByLabel('Keep me signed in on this browser').check()
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()

@@ -353,7 +353,10 @@ function parseGameCheckpoint(value: unknown): GameCheckpoint {
 }
 
 function createRunSeed(): number {
-  return crypto.getRandomValues(new Uint32Array(1))[0]
+  const [seed] = crypto.getRandomValues(new Uint32Array(1))
+  // getRandomValues always fills the buffer; the fallback only satisfies the
+  // compiler under noUncheckedIndexedAccess.
+  return seed ?? Date.now() >>> 0
 }
 
 function createInitialMetaProgressionState(
@@ -701,6 +704,10 @@ function App() {
       activeRun !== null &&
       (screen === 'run-setup' || screen === 'meta-progression')
     ) {
+      // Route guard: an active run must not leave the player stranded on a setup
+      // screen. navigateToScreen also pushes browser history, so this is a sync
+      // with an external system (the History API) and not derivable in render.
+      // oxlint-disable-next-line react/set-state-in-effect
       navigateToScreen('dashboard', true)
     }
   }, [activeRun, navigateToScreen, screen])
@@ -740,6 +747,9 @@ function App() {
     const accountId = authentication.account?.id
     const service = nicknameService.service
     if (!accountId) {
+      // Signing out clears the cached nickname before any request is made, so the
+      // stale name is never shown against the new (signed-out) account.
+      // oxlint-disable-next-line react/set-state-in-effect
       setNickname({ displayName: null, pendingNickname: null })
       return
     }
@@ -778,6 +788,9 @@ function App() {
   useEffect(() => {
     const accountId = authentication.account?.id
     if (!accountId) {
+      // Resets champion availability for the new account before the async load
+      // below resolves, so the previous account's answer is never displayed.
+      // oxlint-disable-next-line react/set-state-in-effect
       setChampionAvailability('none')
       return
     }
@@ -848,6 +861,9 @@ function App() {
     const accountId = authentication.account?.id
     const service = dungeonRunPersistence.service
     if (!accountId) {
+      // Clears the previous account's run before loading the new one; leaving it
+      // in place would briefly attribute one account's run to another.
+      // oxlint-disable-next-line react/set-state-in-effect
       setActiveRun(null)
       setChampionAvailability('none')
       setRunLoadState('ready')
@@ -1766,6 +1782,9 @@ function App() {
 
   useEffect(() => {
     if (screen === 'admin' && authentication.account?.isAdmin) {
+      // Admin data is fetched on navigation to the admin screen. The fetch is
+      // imperative and cannot be derived during render.
+      // oxlint-disable-next-line react/set-state-in-effect
       refreshAdminReports()
     }
   }, [authentication.account, refreshAdminReports, screen])
@@ -1802,6 +1821,9 @@ function App() {
 
   useEffect(() => {
     if (screen === 'nickname-moderation' && authentication.account?.isAdmin) {
+      // Moderation data is fetched on navigation to the moderation screen. The
+      // fetch is imperative and cannot be derived during render.
+      // oxlint-disable-next-line react/set-state-in-effect
       refreshNicknameModeration()
     }
   }, [authentication.account, refreshNicknameModeration, screen])
@@ -2541,6 +2563,8 @@ function RunSetupScreen({
       return
     }
     let cancelled = false
+    // Establishes the loading state for the champion fetch started below.
+    // oxlint-disable-next-line react/set-state-in-effect
     setChampionLoadState('loading')
     void characterService.loadCharacters()
       .then((collection) => {

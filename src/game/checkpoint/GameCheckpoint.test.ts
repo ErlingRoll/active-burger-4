@@ -10,6 +10,7 @@ import {
 import { CHECKPOINT_VERSION, isValidCheckpoint } from '../checkpoint/GameCheckpoint'
 import type { GameCheckpoint } from '../checkpoint/GameCheckpoint'
 import { xpRequiredForLevel } from '../../content/progression/XpBalance'
+import { definedAt } from '../../testing'
 
 /** Advance the game by N fixed ticks. */
 function advanceTicks(game: Game, ticks: number): void {
@@ -235,7 +236,7 @@ describe('GameCheckpoint', () => {
       if (game.phase === 'level-up') {
         const checkpoint = game.createCheckpoint()
         expect(checkpoint.choiceFlows.length).toBeGreaterThan(0)
-        expect(checkpoint.choiceFlows[0].type).toBe('level-up')
+        expect(definedAt(checkpoint.choiceFlows, 0, 'choiceFlows').type).toBe('level-up')
 
         const restored = Game.restoreFromCheckpoint(
           JSON.parse(JSON.stringify(checkpoint)),

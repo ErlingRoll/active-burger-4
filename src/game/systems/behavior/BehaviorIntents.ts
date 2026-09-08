@@ -615,11 +615,13 @@ function createKiteCandidate(
     return undefined
   }
 
+  const [onlyNearbyThreat] = nearby
   const isSingleManageableThreat = nearby.length === 1 &&
-    !nearby[0].eliteModifiers?.length &&
-    !nearby[0].eliteModifier &&
-    !('bossDefinitionId' in nearby[0]) &&
-    (threatScores.get(nearby[0]) ?? 0) <=
+    onlyNearbyThreat !== undefined &&
+    !onlyNearbyThreat.eliteModifiers?.length &&
+    !onlyNearbyThreat.eliteModifier &&
+    !('bossDefinitionId' in onlyNearbyThreat) &&
+    (threatScores.get(onlyNearbyThreat) ?? 0) <=
       policy.thresholds.kiteThreatScore
   if (
     isSingleManageableThreat &&

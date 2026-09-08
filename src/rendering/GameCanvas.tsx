@@ -154,8 +154,12 @@ function useHudTooltipPosition<TAnchor extends HTMLElement, TTooltip extends HTM
     visibility: 'hidden',
   }))
 
+  // Tooltip placement is measured from the live DOM (anchor and tooltip rects),
+  // which is exactly the external-system synchronisation a layout effect exists
+  // for. It cannot be derived during render: it depends on the rendered size.
   useLayoutEffect(() => {
     if (!isOpen) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStyle((current) =>
         current.visibility === 'hidden' ? current : { visibility: 'hidden' },
       )

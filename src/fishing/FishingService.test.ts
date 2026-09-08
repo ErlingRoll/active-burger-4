@@ -18,6 +18,7 @@ import {
   resolveFishingCatch,
 } from './FishingContent'
 import { createFishingService, type FishingAnglerPresence } from './FishingService'
+import { definedAt } from '../testing'
 
 function fakeClient(rpcResult: unknown): SupabaseClient {
   return {
@@ -373,7 +374,7 @@ describe('FishingService', () => {
       { ...presenceState['presence-1'][0], playerName: 'Approved Mira' },
     ]])
 
-    await service.trackAngler(presenceState['presence-1'][0])
+    await service.trackAngler(definedAt(presenceState['presence-1'] ?? [], 0, 'presence-1'))
     expect(channel.track).toHaveBeenCalledWith(presenceState['presence-1'][0])
     await service.trackAngler({
       attemptId: 'pond:player-1',

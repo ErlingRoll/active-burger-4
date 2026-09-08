@@ -292,7 +292,11 @@ function FishingDropdown({
   disabled,
   onChange,
 }: FishingDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isExpanded, setIsOpen] = useState(false)
+  // Derived rather than reset by an effect: a disabled dropdown is closed by
+  // definition, so deriving it avoids rendering an open-but-disabled list for
+  // one frame before an effect could close it.
+  const isOpen = isExpanded && !disabled
   const dropdownRef = useRef<HTMLDivElement>(null)
   const selectedOption = options.find((option) => option.value === value) ?? options[0]
 
@@ -317,12 +321,6 @@ function FishingDropdown({
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [isOpen])
-
-  useEffect(() => {
-    if (disabled) {
-      setIsOpen(false)
-    }
-  }, [disabled])
 
   return (
     <div className="pond-loadout-control fishing-dropdown" ref={dropdownRef}>

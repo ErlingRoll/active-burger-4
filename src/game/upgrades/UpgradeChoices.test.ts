@@ -25,6 +25,7 @@ import {
   getUpgradeDescription,
   isSkillSynergyActive,
 } from '../../content/upgrades/Upgrades'
+import { definedAt } from '../../testing'
 
 function getUpgrade(id: string): UpgradeDefinition {
   const upgrade = INITIAL_UPGRADES.find((candidate) => candidate.id === id)
@@ -273,7 +274,7 @@ describe('upgrade choice generation', () => {
     const level = getUpgrade('whirlwind-level')
     const enhancement = getUpgrade('whirlwind-leech')
     const evolution = getUpgrade('whirlwind-frost')
-    const synergy = SYNERGY_UPGRADES[0]
+    const synergy = definedAt(SYNERGY_UPGRADES, 0, 'SYNERGY_UPGRADES')
 
     expect(getSkillChoiceType(level)).toBe('upgrade')
     expect(getSkillUpgradeType(level)).toBe('level')

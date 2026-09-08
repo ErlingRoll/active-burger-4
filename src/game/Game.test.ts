@@ -30,6 +30,7 @@ import { collectSkillDamage } from './systems/skills/SkillSystem'
 import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/DerivedStats'
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
+import { definedAt } from '../testing'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -626,11 +627,12 @@ describe('Game', () => {
 
     // Deliberately irregular deltas (simulating frame hitches, super-fast
     // frames, etc.) that still sum to the same total elapsed time.
+    const IRREGULAR_DELTA_CYCLE = [0.0005, 0.05, 0.1, 0.0166, 0.2] as const
     const irregular: number[] = []
     let remaining = totalSeconds
     let tick = 0
     while (remaining > 0.0001) {
-      const delta = Math.min(remaining, [0.0005, 0.05, 0.1, 0.0166, 0.2][tick % 5])
+      const delta = Math.min(remaining, definedAt(IRREGULAR_DELTA_CYCLE, tick % IRREGULAR_DELTA_CYCLE.length, 'delta'))
       irregular.push(delta)
       remaining -= delta
       tick += 1
@@ -834,7 +836,7 @@ describe('Game', () => {
     const game = createGame({ seed: 8 })
 
     const slimeId = game.spawnSlime({ x: 100, y: 25 })
-    const slime = game.state.enemies[0]
+    const slime = definedAt(game.state.enemies, 0, 'enemies')
 
     expect(slime).toMatchObject({
       id: slimeId,
@@ -1240,11 +1242,12 @@ describe('Game', () => {
 
     const initialDistance = Math.hypot(100, 50)
     const movementDistance = 84.6 * FIXED_STEP_SECONDS
-    expect(gameA.state.enemies[0]).toEqual(gameB.state.enemies[0])
-    expect(gameA.state.enemies[0].x).toBeCloseTo(
+    const enemyA = definedAt(gameA.state.enemies, 0, 'enemies')
+    expect(enemyA).toEqual(definedAt(gameB.state.enemies, 0, 'enemies'))
+    expect(enemyA.x).toBeCloseTo(
       100 - (movementDistance * 100) / initialDistance,
     )
-    expect(gameA.state.enemies[0].y).toBeCloseTo(
+    expect(enemyA.y).toBeCloseTo(
       50 - (movementDistance * 50) / initialDistance,
     )
   })
@@ -1256,10 +1259,11 @@ describe('Game', () => {
 
     game.update(FIXED_STEP_SECONDS)
 
-    expect(game.state.enemies[0].x).toBeCloseTo(
-      game.state.player.radius + game.state.enemies[0].radius,
+    const contactEnemy = definedAt(game.state.enemies, 0, 'enemies')
+    expect(contactEnemy.x).toBeCloseTo(
+      game.state.player.radius + contactEnemy.radius,
     )
-    expect(game.state.enemies[0].x).toBeGreaterThanOrEqual(0)
+    expect(contactEnemy.x).toBeGreaterThanOrEqual(0)
   })
 
   it('uses the equipped Knight sword Basic Attack', () => {
@@ -1273,7 +1277,7 @@ describe('Game', () => {
 
     expect(game.state.player.equipment?.weapon).toMatchObject({ itemId: 'knight-training-sword' })
     expect(game.state.projectiles).toHaveLength(0)
-    expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
+    expect(game.state.player.targetId).toBe(definedAt(game.state.enemies, 0, 'enemies').id)
     expect(game.state.enemies[0]?.hp).toBeLessThan(50)
     expect(game.state.effects[0]).toMatchObject({
       shape: 'arc',
@@ -1319,7 +1323,7 @@ describe('Game', () => {
 
     game.update(FIXED_STEP_SECONDS)
 
-    expect(game.state.player.targetId).toBe(game.state.enemies[0].id)
+    expect(game.state.player.targetId).toBe(definedAt(game.state.enemies, 0, 'enemies').id)
     expect(game.state.projectiles).toHaveLength(1)
   })
 

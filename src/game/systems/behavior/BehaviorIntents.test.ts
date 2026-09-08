@@ -16,6 +16,7 @@ import type {
 } from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 import { RALLYING_BANNER_EFFECT_RADIUS } from '../../../game-config/skills'
+import { definedAt } from '../../../testing'
 
 function createState(
   enemies: EnemyState[] = [],
@@ -227,8 +228,9 @@ describe('data-driven player behavior intents', () => {
 
   it('does not kite a lone manageable threat', () => {
     const state = createState([enemy(4, 'slime', 36)])
-    state.enemies[0].hp = 10
-    state.enemies[0].maxHp = 20
+    const loneEnemy = definedAt(state.enemies, 0, 'enemies')
+    loneEnemy.hp = 10
+    loneEnemy.maxHp = 20
 
     const candidates = getPlayerBehaviorCandidates(state)
     expect(candidates.some((candidate) => candidate.source === 'kite')).toBe(false)
@@ -328,7 +330,7 @@ describe('data-driven player behavior intents', () => {
       attackCooldownRemaining: 0,
     }]
     state.projectiles = [
-      hostileProjectile(9, state.summons[0].id, -120, 0, 480, 0),
+      hostileProjectile(9, definedAt(state.summons, 0, 'summons').id, -120, 0, 480, 0),
     ]
 
     expect(getPlayerBehaviorCandidates(state).map((candidate) => candidate.source))

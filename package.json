@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings",
     "supabase:check": "npx supabase migration list",
     "supabase:migrate": "npx supabase db push",
     "preview": "vite preview",

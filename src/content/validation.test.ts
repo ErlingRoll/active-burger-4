@@ -13,6 +13,7 @@ import {
   SKILL_DEFINITIONS,
 } from './skills/Skills'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
+import { definedAt } from '../testing'
 
 function catalogWith(
   overrides: Partial<ContentCatalog>,
@@ -182,9 +183,9 @@ describe('content validation', () => {
     const errors = validateContent(
       catalogWith({
         enemies: [
-          { ...CURRENT_CONTENT.enemies[0], id: '' },
-          { ...CURRENT_CONTENT.enemies[0], id: 'slime' },
-          { ...CURRENT_CONTENT.enemies[0], id: 'slime' },
+          { ...definedAt(CURRENT_CONTENT.enemies, 0, 'enemies'), id: '' },
+          { ...definedAt(CURRENT_CONTENT.enemies, 0, 'enemies'), id: 'slime' },
+          { ...definedAt(CURRENT_CONTENT.enemies, 0, 'enemies'), id: 'slime' },
         ],
       }),
     )
@@ -231,8 +232,8 @@ describe('content validation', () => {
   it('reports invalid numeric balance values and XP thresholds', () => {
     const errors = validateContent(
       catalogWith({
-        enemies: [{ ...CURRENT_CONTENT.enemies[0], maxHp: Number.NaN }],
-        projectiles: [{ ...CURRENT_CONTENT.projectiles[0], lifetime: 0 }],
+        enemies: [{ ...definedAt(CURRENT_CONTENT.enemies, 0, 'enemies'), maxHp: Number.NaN }],
+        projectiles: [{ ...definedAt(CURRENT_CONTENT.projectiles, 0, 'projectiles'), lifetime: 0 }],
         xpBalance: {
           ...CURRENT_CONTENT.xpBalance,
           levelThresholds: [1, 1, -5],
@@ -266,7 +267,7 @@ describe('content validation', () => {
           spawnRingOuterRadius: 20,
           spawnEntries: [
             {
-              ...CURRENT_CONTENT.spawnBalance.spawnEntries[0],
+              ...definedAt(CURRENT_CONTENT.spawnBalance.spawnEntries, 0, 'spawnEntries'),
               definitionId: 'missing-enemy',
             },
           ],
@@ -316,7 +317,7 @@ describe('content validation', () => {
         upgradeChoicesPerLevel: 2,
         upgrades: [
           {
-            ...CURRENT_CONTENT.upgrades[0],
+            ...definedAt(CURRENT_CONTENT.upgrades, 0, 'upgrades'),
             isEligible: () => false,
           },
         ],
@@ -346,7 +347,7 @@ describe('content validation', () => {
         upgradeChoicesPerLevel: 1,
         skills: [
           {
-            ...CURRENT_CONTENT.skills[0],
+            ...definedAt(CURRENT_CONTENT.skills, 0, 'skills'),
             kind: 'area',
             radius: 0,
           },
@@ -429,7 +430,7 @@ describe('content validation', () => {
           ...CURRENT_CONTENT.spawnBalance,
           spawnEntries: [
             {
-              ...CURRENT_CONTENT.spawnBalance.spawnEntries[0],
+              ...definedAt(CURRENT_CONTENT.spawnBalance.spawnEntries, 0, 'spawnEntries'),
               startTimeSeconds: -1,
             },
           ],
@@ -455,7 +456,7 @@ describe('content validation', () => {
       catalogWith({
         eliteModifiers: [
           {
-            ...CURRENT_CONTENT.eliteModifiers[0],
+            ...definedAt(CURRENT_CONTENT.eliteModifiers, 0, 'eliteModifiers'),
             maxHpMultiplier: 0,
             markerColor: '',
           },
@@ -550,23 +551,28 @@ describe('content validation', () => {
       catalogWith({
         items: [
           {
-            ...CURRENT_CONTENT.items[0],
+            ...definedAt(CURRENT_CONTENT.items, 0, 'items'),
             id: 'Iron Cleaver' as never,
             modifiers: [],
           },
           {
-            ...CURRENT_CONTENT.items[1],
-            id: CURRENT_CONTENT.items[0].id,
+            ...definedAt(CURRENT_CONTENT.items, 1, 'items'),
+            id: definedAt(CURRENT_CONTENT.items, 0, 'items').id,
+            // Base item definitions ship with no modifiers (they are rolled at
+            // runtime), so this fixture builds an otherwise-valid modifier whose
+            // sourceId does not belong to the item it is attached to.
             modifiers: [
               {
-                ...CURRENT_CONTENT.items[1].modifiers[0],
+                id: 'max-hp',
+                tier: 1,
+                value: 10,
                 sourceId: 'upgrade:wrong-source',
               },
             ],
           },
           {
-            ...CURRENT_CONTENT.items[2],
-            id: CURRENT_CONTENT.items[0].id,
+            ...definedAt(CURRENT_CONTENT.items, 2, 'items'),
+            id: definedAt(CURRENT_CONTENT.items, 0, 'items').id,
           },
         ],
       }),
@@ -587,7 +593,7 @@ describe('content validation', () => {
       catalogWith({
         items: [
           {
-            ...CURRENT_CONTENT.items[0],
+            ...definedAt(CURRENT_CONTENT.items, 0, 'items'),
             modifiers: [null as never],
           },
         ],

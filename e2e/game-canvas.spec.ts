@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { loadEnv } from 'vite'
-
-const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
-const testUserEmail = testEnvironment.VITE_TEST_USER_EMAIL
-const testUserPassword = testEnvironment.VITE_TEST_USER_PASSWORD
+import { requireTestCredentials } from './support/credentials'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -40,39 +36,39 @@ async function clearExistingRun(page: Page): Promise<void> {
   await expect(startRunLink).toBeVisible()
 }
 
+function classifyRunPersistence(
+  persistenceState: string | null,
+): 'loading' | 'available' | 'unavailable' {
+  if (persistenceState === 'error' || persistenceState === 'unavailable') {
+    return 'unavailable'
+  }
+  return persistenceState === 'ready' ? 'available' : 'loading'
+}
+
 async function requireRunPersistence(page: Page): Promise<void> {
-  let status: 'loading' | 'available' | 'unavailable' = 'loading'
+  const dashboard = page.locator('.game-dashboard')
   await expect.poll(
-    async () => {
-      const persistenceState = await page
-        .locator('.game-dashboard')
-        .getAttribute('data-run-persistence-state')
-      if (persistenceState === 'error' || persistenceState === 'unavailable') {
-        status = 'unavailable'
-        return status
-      }
-      if (persistenceState === 'ready') {
-        status = 'available'
-        return status
-      }
-      status = 'loading'
-      return status
-    },
+    async () => classifyRunPersistence(
+      await dashboard.getAttribute('data-run-persistence-state'),
+    ),
     { timeout: 10_000 },
   ).toMatch(/available|unavailable/)
-  if (status === 'unavailable') {
+
+  // Re-read after the poll settles rather than mutating a variable from inside
+  // the polling callback, which hides the outcome from control-flow analysis.
+  const settledStatus = classifyRunPersistence(
+    await dashboard.getAttribute('data-run-persistence-state'),
+  )
+  if (settledStatus === 'unavailable') {
     test.skip(true, 'The configured Supabase project has not applied the durable dungeon run migration.')
   }
 }
 
 async function signIn(page: Page): Promise<void> {
-  test.skip(
-    !testUserEmail || !testUserPassword,
-    'VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD are required for authenticated desktop flows.',
-  )
+  const { email, password } = requireTestCredentials('authenticated desktop flows')
 
-  await page.getByLabel('Email').fill(testUserEmail)
-  await page.getByLabel('Password').fill(testUserPassword)
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
   await page.getByLabel('Keep me signed in on this browser').check()
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()

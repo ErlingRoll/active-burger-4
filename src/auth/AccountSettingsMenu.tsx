@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { validateNickname } from './NicknameService'
 import { AudioSettingsPanel } from '../audio'
 import { ReportBugModal } from '../rendering/ReportBugModal'
@@ -28,14 +28,13 @@ export function AccountSettingsMenu({
   const titleId = useId()
   const descriptionId = useId()
 
-  useEffect(() => {
-    if (!dialogOpen) {
-      setNickname(pendingNickname ?? displayName ?? '')
-      setError(null)
-    }
-  }, [dialogOpen, displayName, pendingNickname])
-
+  // The draft is seeded when the dialog opens rather than reset by an effect
+  // while it is closed: the closed dialog renders nothing, so resetting it on
+  // every displayName/pendingNickname change was invisible work that also made
+  // the component re-render for state no one could see.
   const openNicknameDialog = (): void => {
+    setNickname(pendingNickname ?? displayName ?? '')
+    setError(null)
     setMenuOpen(false)
     setDialogOpen(true)
   }

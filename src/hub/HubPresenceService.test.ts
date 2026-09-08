@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { createHubPresenceService, type HubVisitor } from './HubPresenceService'
+import { definedAt } from '../testing'
 
 function createService(client: SupabaseClient) {
   return createHubPresenceService({
@@ -119,11 +120,12 @@ describe('HubPresenceService', () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
     expect(received).toHaveLength(1)
-    expect(received[0][0]).toMatchObject({
+    const legacyVisitor = definedAt(definedAt(received, 0, 'received'), 0, 'visitors')
+    expect(legacyVisitor).toMatchObject({
       playerId: 'legacy-player',
       playerName: 'Mira',
     })
-    expect(received[0][0].position).toEqual(expect.objectContaining({
+    expect(legacyVisitor.position).toEqual(expect.objectContaining({
       x: expect.any(Number),
       y: expect.any(Number),
     }))

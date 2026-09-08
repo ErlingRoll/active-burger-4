@@ -63,7 +63,7 @@ export function validateRarityWeights(
   let total = 0
   for (const rarity of RARITIES) {
     const weight = weights[rarity]
-    if (!Number.isFinite(weight) || weight < 0) {
+    if (weight === undefined || !Number.isFinite(weight) || weight < 0) {
       errors.push(`rarityWeights.${rarity} must be a finite non-negative number.`)
     } else {
       total += weight

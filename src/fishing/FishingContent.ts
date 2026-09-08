@@ -1,6 +1,7 @@
 import { Rarity, type Rarity as RarityValue } from '../content/rarity/Rarity'
 import type { InventoryItemDefinitionId } from '../inventory/InventoryTypes'
 import type { FishIconId } from './FishIcon'
+import { lastElement } from '../shared'
 
 export type FishingMode = 'auto' | 'manual'
 
@@ -546,7 +547,7 @@ export function resolveFishingCatch(
       (baitBonus?.rarityBonusPercent ?? 0),
   )
   let cumulativeChance = 0
-  let selectedFishId = FISH_DROP_TABLE[FISH_DROP_TABLE.length - 1].definitionId
+  let selectedFishId = lastElement(FISH_DROP_TABLE).definitionId
   for (const entry of FISH_DROP_TABLE) {
     cumulativeChance += entry.baseDropChance
     if (roll < cumulativeChance) {

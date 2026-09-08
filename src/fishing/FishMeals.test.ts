@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { resolveFishMeal } from './FishMeals'
 import type { InventoryItemInstance } from '../inventory/InventoryTypes'
+import { definedAt } from '../testing'
 
 function fish(
   id: string,
@@ -36,7 +37,7 @@ describe('FishMeals', () => {
 
     expect(result.movementSpeedPercent).toBeLessThanOrEqual(6)
     expect(result.preparation.items).toHaveLength(5)
-    expect(result.preparation.items[0].resolvedEffect).toMatchObject({
+    expect(definedAt(result.preparation.items, 0, 'items').resolvedEffect).toMatchObject({
       type: 'fish-meal',
       family: 'movement-speed',
     })
@@ -132,7 +133,7 @@ describe('FishMeals', () => {
     }])
 
     expect(enchanted.movementSpeedPercent).toBeGreaterThan(plain.movementSpeedPercent)
-    expect(enchanted.preparation.items[0].resolvedEffect).toMatchObject({
+    expect(definedAt(enchanted.preparation.items, 0, 'items').resolvedEffect).toMatchObject({
       type: 'fish-meal',
       family: 'movement-speed',
       enchantmentId: 'bright-scales',

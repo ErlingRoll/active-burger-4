@@ -144,24 +144,31 @@ export function generateUpgradeChoices(
     (activeSynergyIds.length > 0 || removableSkillIds.length > 0) &&
     rng.chance(SKILL_REMOVAL_CHANCE)
   ) {
+    // The branches stay guarded by list length so that a seeded run draws from
+    // `rng` exactly as often as it did before; the undefined checks only satisfy
+    // noUncheckedIndexedAccess and are unreachable for a non-empty list.
     if (activeSynergyIds.length > 0) {
       const synergyId = activeSynergyIds[
         rng.int(0, activeSynergyIds.length - 1)
       ]
-      const removalChoice: SynergyRemovalChoice = {
-        upgradeId: REMOVE_SYNERGY_UPGRADE_ID,
-        synergyId,
-        rarity: Rarity.Rare,
+      if (synergyId !== undefined) {
+        const removalChoice: SynergyRemovalChoice = {
+          upgradeId: REMOVE_SYNERGY_UPGRADE_ID,
+          synergyId,
+          rarity: Rarity.Rare,
+        }
+        choices[choices.length - 1] = removalChoice
       }
-      choices[choices.length - 1] = removalChoice
     } else if (removableSkillIds.length > 0) {
       const skillId = removableSkillIds[rng.int(0, removableSkillIds.length - 1)]
-      const removalChoice: SkillRemovalChoice = {
-        upgradeId: 'remove-skill',
-        skillId,
-        rarity: Rarity.Rare,
+      if (skillId !== undefined) {
+        const removalChoice: SkillRemovalChoice = {
+          upgradeId: 'remove-skill',
+          skillId,
+          rarity: Rarity.Rare,
+        }
+        choices[choices.length - 1] = removalChoice
       }
-      choices[choices.length - 1] = removalChoice
     }
   }
   return choices

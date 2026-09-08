@@ -500,7 +500,7 @@ export class PixiGame {
       [ARENA_BOUNDS.maxX, ARENA_BOUNDS.minY],
       [ARENA_BOUNDS.maxX, ARENA_BOUNDS.maxY],
       [ARENA_BOUNDS.minX, ARENA_BOUNDS.maxY],
-    ]) {
+    ] as const) {
       boundary
         .circle(x, y, 24)
         .fill({ color: theme.boundaryCorner, alpha: 0.95 })

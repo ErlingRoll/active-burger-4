@@ -524,7 +524,9 @@ export function AdventureHubScene({
     }
   }, [presenceService, queuePositionUpdate])
 
-  const sendSignal = async (signalId: HubSignalId): Promise<void> => {
+  // Declared with useCallback so the impure `Date.now()` below is understood as
+  // event-handler work rather than render work.
+  const sendSignal = useCallback(async (signalId: HubSignalId): Promise<void> => {
     if (!presenceService) {
       showToast('Campfire signals are currently unavailable.', 'error')
       return
@@ -547,7 +549,14 @@ export function AdventureHubScene({
     } finally {
       setSendingSignalId(null)
     }
-  }
+  }, [
+    accountId,
+    presenceService,
+    sendingSignalId,
+    showSignal,
+    showToast,
+    signalCooldownUntil,
+  ])
 
   return (
     <section className="dashboard game-dashboard adventure-hub" aria-labelledby="game-dashboard-title">
