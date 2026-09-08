@@ -97,14 +97,15 @@
 
 .meta-wallet div:first-child {
   background:
-    linear-gradient(135deg, rgb(245 158 11 / 24%), transparent 65%),
-    #3a2d1e;
-  border-color: rgb(251 191 36 / 55%);
+    linear-gradient(135deg, rgb(var(--essence-bright-rgb) / 22%), transparent 65%),
+    #131a2b;
+  border-color: rgb(var(--essence-bright-rgb) / 52%);
 }
 
 .meta-wallet div:first-child dd {
-  color: var(--color-amber-400);
+  color: var(--essence);
   font-size: clamp(1.7rem, 4vw, 2.4rem);
+  text-shadow: 0 0 0.9rem rgb(var(--essence-rgb) / 45%);
 }
 
 .meta-shop-unlocks {

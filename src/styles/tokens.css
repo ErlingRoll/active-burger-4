@@ -216,6 +216,20 @@
   --accent-bright-rgb: 251 191 36;
 
   /*
+   * Essence.
+   *
+   * The currency is the one colour in the application that belongs to a thing
+   * rather than to a place. It is a cold blue gem, deliberately outside every
+   * screen accent, so an amount reads the same in the refuge's ember, the pond's
+   * cyan and the codex's violet and never dissolves into any of them. Anywhere
+   * an Essence amount is shown, it is shown in these.
+   */
+  --essence: var(--color-blue-400);
+  --essence-contrast: var(--color-blue-50);
+  --essence-rgb: 37 99 235;
+  --essence-bright-rgb: 96 165 250;
+
+  /*
    * The Emberwatch scene: one fire in a cold ruin.
    *
    * The rule the hub is built on is that warmth belongs to the fire and nothing

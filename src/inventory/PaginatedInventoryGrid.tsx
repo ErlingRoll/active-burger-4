@@ -6,6 +6,7 @@ import {
   registerTooltipCloser,
   tooltipClassName,
 } from '../rendering/TooltipShell'
+import { EssenceAmount } from '../ui/EssenceMark'
 import { isRarity } from '../content/rarity/Rarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
@@ -209,8 +210,7 @@ export function PaginatedInventoryGrid({
               const essence = getItemEssence(activeItem)
               return essence === null ? null : (
                 <span className="inventory-item-tooltip-essence">
-                  <span>Essence</span>
-                  <strong>{essence}</strong>
+                  <EssenceAmount value={essence} />
                 </span>
               )
             })()

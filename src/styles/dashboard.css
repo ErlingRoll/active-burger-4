@@ -155,15 +155,15 @@
   background:
     linear-gradient(135deg, rgb(30 64 175 / 35%), transparent 70%),
     rgb(30 41 59 / 68%);
-  border-color: rgb(96 165 250 / 38%);
+  border-color: rgb(var(--essence-bright-rgb) / 38%);
 }
 
 .game-dashboard-stat-essence dt {
-  color: var(--color-blue-300);
+  color: var(--essence);
 }
 
 .game-dashboard-stat-essence dd {
-  color: var(--color-blue-200);
+  color: var(--essence-contrast);
 }
 
 .game-dashboard-section-heading {
@@ -491,7 +491,7 @@
 }
 
 .essence-leaderboard-row > strong {
-  color: var(--color-amber-400);
+  color: var(--essence);
   font-size: 1rem;
 }
 
@@ -1601,8 +1601,9 @@
 }
 
 .hub-status-panel dl div:first-child dd {
-  color: var(--color-amber-400);
+  color: var(--essence);
   font-size: clamp(1.05rem, 2.4vh, 1.35rem);
+  text-shadow: 0 0 0.7rem rgb(var(--essence-rgb) / 45%);
 }
 
 .hub-station {
@@ -1675,7 +1676,65 @@
 }
 
 .hub-store-station {
-  grid-template-columns: auto minmax(0, 1fr);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  padding: clamp(0.42rem, 1vh, 0.7rem) clamp(0.6rem, 1.4vh, 1rem);
+  color: #f4e5d6;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.hub-store-station strong {
+  display: block;
+  color: var(--color-orange-50);
+  font-size: clamp(0.7rem, 1.5vh, 0.86rem);
+  line-height: 1.2;
+}
+
+.hub-store-station small {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.69rem);
+  line-height: 1.25;
+}
+
+.hub-store-station-arrow {
+  color: var(--accent);
+  font-size: 0.95rem;
+  transition: transform 140ms ease;
+}
+
+.hub-store-station:hover:not(:disabled),
+.hub-store-station:focus-visible {
+  background: linear-gradient(180deg, rgb(var(--accent-rgb) / 20%), rgb(var(--accent-rgb) / 6%));
+  outline: none;
+}
+
+.hub-store-station:hover:not(:disabled) .hub-store-station-arrow,
+.hub-store-station:focus-visible .hub-store-station-arrow {
+  transform: translateX(0.2rem);
+}
+
+.hub-store-station:focus-visible {
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 45%);
+  outline-offset: -2px;
+}
+
+.hub-store-station:disabled {
+  color: var(--color-stone-500);
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .hub-utility-stations {
@@ -2194,6 +2253,58 @@
 
 .hub-status-panel {
   width: min(100%, 16rem);
+  padding: 0;
+  overflow: hidden;
+}
+
+.hub-essence-readout {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: clamp(0.55rem, 1.3vh, 0.95rem) clamp(0.6rem, 1.4vh, 1rem);
+}
+
+/* The currency's mark, lit like everything else the fire reaches. */
+/* The mark is drawn at 1em, so the plate sizes the ring and the ring sizes
+   the gem. */
+.essence-mark {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.essence-amount {
+  display: inline-flex;
+  gap: 0.35em;
+  align-items: center;
+  color: var(--essence);
+}
+
+.essence-amount strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-essence-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.7rem, 3.6vh, 2.4rem);
+  height: clamp(1.7rem, 3.6vh, 2.4rem);
+  place-items: center;
+  color: var(--essence);
+  font-size: clamp(0.85rem, 1.9vh, 1.15rem);
+  background:
+    linear-gradient(180deg, rgb(var(--essence-bright-rgb) / 26%), transparent 72%),
+    rgb(0 0 0 / 42%);
+  border: 1px solid rgb(var(--essence-bright-rgb) / 42%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px rgb(var(--essence-bright-rgb) / 44%),
+    0 0 0.9rem rgb(var(--essence-rgb) / 28%);
+}
+
+.hub-essence-readout dl {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.05rem;
+  margin: 0;
 }
 
 .hub-utility-stations {

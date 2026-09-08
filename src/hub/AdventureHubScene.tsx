@@ -15,6 +15,7 @@ import {
   type HubVisitor,
 } from './HubPresenceService'
 import { tooltipClassName } from '../rendering/TooltipShell'
+import { EssenceMark } from '../ui/EssenceMark'
 
 const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
@@ -717,15 +718,24 @@ export function AdventureHubScene({
           </div>
 
           <div className="hub-hud-column hub-hud-column-end">
+            {/*
+              One plate, not a card inside a card: the balance is the face of it
+              and the store is a way out of its foot. The mark next to the
+              amount is the currency's own, which is why the button no longer
+              needs to repeat the word.
+            */}
             <aside className="hub-status-panel">
-              <dl>
-                <div>
-                  <dt>Essence</dt>
-                  <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
-                </div>
-              </dl>
+              <div className="hub-essence-readout">
+                <span className="hub-essence-mark" aria-hidden="true"><EssenceMark /></span>
+                <dl>
+                  <div>
+                    <dt>Essence</dt>
+                    <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
+                  </div>
+                </dl>
+              </div>
               <button
-                className="hub-station hub-store-station"
+                className="hub-store-station"
                 type="button"
                 onClick={onOpenMetaProgression}
                 disabled={storeBlocked}
@@ -736,8 +746,8 @@ export function AdventureHubScene({
                   : undefined}
                 aria-describedby={activeRun ? 'store-blocked-help' : undefined}
               >
-                <span aria-hidden="true">✦</span>
-                <span><strong>Essence store</strong><small>Permanent power</small></span>
+                <span><strong>Spend at the store</strong><small>Permanent power</small></span>
+                <span className="hub-store-station-arrow" aria-hidden="true">→</span>
               </button>
             </aside>
 

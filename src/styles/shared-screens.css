@@ -421,13 +421,14 @@
 
 .essence-receipt-calculation .essence-receipt-total {
   padding-top: 0.6rem;
-  color: var(--color-amber-100);
-  border-top: 1px solid var(--color-amber-500);
+  color: var(--essence-contrast);
+  border-top: 1px solid rgb(var(--essence-bright-rgb) / 55%);
 }
 
 .essence-receipt-calculation .essence-receipt-total dd {
-  color: var(--color-amber-400);
+  color: var(--essence);
   font-size: 1.2rem;
+  text-shadow: 0 0 0.7rem rgb(var(--essence-rgb) / 45%);
 }
 
 .persistence-status strong {

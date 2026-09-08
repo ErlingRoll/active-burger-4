@@ -99,7 +99,7 @@
 }
 
 .global-loot-toast-reward {
-  color: var(--color-amber-300);
+  color: var(--essence);
   font-size: 0.9rem;
   font-weight: 850;
   line-height: 1.3;
