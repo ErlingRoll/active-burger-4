@@ -60,9 +60,9 @@ import {
   LazyMetaProgressionScreen,
   LazyNicknameModerationScreen,
   LazyRunSetupScreen,
-  LazyScreen,
   LazyWikiScreen,
 } from './app/lazyScreens'
+import { LazyScreen } from './app/LazyScreen'
 import { AuthGateway } from './app/screens/AuthGateway'
 import { GameDashboard } from './app/screens/GameDashboard'
 import { ResultsScreen } from './app/screens/ResultsScreen'

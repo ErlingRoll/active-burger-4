@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { lazy } from 'react'
 import { renderComponent, screen } from '../testing/render'
-import { LazyScreen } from './lazyScreens'
+import { LazyScreen } from './LazyScreen'
 
 describe('LazyScreen', () => {
   it('shows a loading state while the chunk is in flight, then the screen', async () => {

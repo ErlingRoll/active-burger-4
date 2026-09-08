@@ -1,5 +1,4 @@
-import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { ErrorBoundary } from '../ui/ErrorBoundary'
+import { lazy, type ComponentType } from 'react'
 
 /**
  * Route-level code splitting.
@@ -10,9 +9,8 @@ import { ErrorBoundary } from '../ui/ErrorBoundary'
  * shown instead.
  *
  * `lazy` needs a module with a default export, and these screens are named
- * exports, hence the small `.then` in each import. Each screen is also wrapped
- * in its own error boundary, so a chunk that fails to load reports itself
- * rather than blanking the page.
+ * exports, hence the small adapter below. Render each of these inside
+ * `LazyScreen`, which supplies the loading state and the error boundary.
  */
 
 function named<TProps>(
@@ -23,31 +21,6 @@ function named<TProps>(
     const module = await load()
     return { default: module[exportName] as ComponentType<TProps> }
   })
-}
-
-/** Shown while a screen's chunk is in flight. */
-function ScreenFallback({ label }: { label: string }) {
-  return (
-    <section className="screen-loading" aria-busy="true" aria-live="polite">
-      <div className="dashboard-panel">
-        <p className="screen-kicker">Loading</p>
-        <p>{label}</p>
-      </div>
-    </section>
-  )
-}
-
-/** Wraps a lazily loaded screen with its loading and failure states. */
-export function LazyScreen(
-  { label, children }: { label: string; children: ReactNode },
-) {
-  return (
-    <ErrorBoundary label={label}>
-      <Suspense fallback={<ScreenFallback label={`${label} is loading…`} />}>
-        {children}
-      </Suspense>
-    </ErrorBoundary>
-  )
 }
 
 type PropsOf<TComponent> = TComponent extends ComponentType<infer TProps>
