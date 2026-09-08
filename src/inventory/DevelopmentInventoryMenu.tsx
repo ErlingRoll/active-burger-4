@@ -9,7 +9,11 @@ import type {
   InventoryItemGrant,
   InventoryService,
 } from './InventoryTypes'
-import { getFishDefinition, FishIcon } from '../fishing'
+// Imported from the owning modules rather than the `../fishing` barrel: the
+// barrel also re-exports FishingScreen, which imports this package's barrel
+// back, and that pair formed the only true runtime import cycle in the repo.
+import { getFishDefinition } from '../fishing/FishingContent'
+import { FishIcon } from '../fishing/FishIcon'
 import { lastElement } from '../shared'
 import { RARITIES, RARITY_WEIGHTS, type Rarity } from '../content/rarity/Rarity'
 import { useToaster } from '../ui/ToasterContext'

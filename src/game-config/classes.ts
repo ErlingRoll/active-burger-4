@@ -10,7 +10,7 @@ import {
   BLOOD_RITE_SKILL_ID,
 } from './skills'
 import type { ItemId } from '../content/gear/Items'
-import type { CharacterClassDefinition } from '../content/classes/CharacterClasses'
+import type { CharacterClassDefinition } from '../content/classes/CharacterClassTypes'
 import type { CharacterStatValues } from '../content/stats/Stats'
 
 export type CharacterClassId =
@@ -36,7 +36,9 @@ export const CHARACTER_CLASS_IDS = [
 export const KNIGHT_EARLY_FLOOR_COUNT = 2
 export const KNIGHT_EARLY_FLOOR_DAMAGE_REDUCTION_PERCENT = 20
 
-export const CHARACTER_CLASS_DEFINITIONS: Readonly<Record<CharacterClassId, CharacterClassDefinition>> = {
+export const CHARACTER_CLASS_DEFINITIONS: Readonly<
+  Record<CharacterClassId, CharacterClassDefinition<CharacterClassId>>
+> = {
   knight: {
     id: 'knight',
     name: 'Knight',

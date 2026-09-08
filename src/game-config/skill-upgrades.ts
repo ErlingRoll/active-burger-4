@@ -90,7 +90,7 @@ import {
   RAISE_SKELETON_ROTTING_BONES_POISON_DURATION_SECONDS,
   RAISE_SKELETON_ROTTING_BONES_POISON_PHYSICAL_CHAOS_RATIO,
 } from './skills'
-import type { UpgradeDefinition } from '../content/upgrades/Upgrades'
+import type { UpgradeDefinition } from '../content/upgrades/UpgradeTypes'
 import { Rarity } from '../content/rarity/Rarity'
 import { SYNERGY_UPGRADES } from './synergies'
 

@@ -21,7 +21,7 @@ import {
   type GameCheckpoint,
   getEligibleSynergyDefinitions,
 } from '../game'
-import type { AbyssModifierChoice } from '../abyss/AbyssModifiers'
+import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
   BEHAVIOR_PROFILE_ORDER,

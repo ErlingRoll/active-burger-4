@@ -1,4 +1,6 @@
-import type { EnemyDefinition, EnemyDefinitionId } from '../content/enemies/Enemies'
+// Typed by the schema leaf, never by `content/enemies/Enemies`, which
+// re-exports this module's data and would form an import cycle.
+import type { EnemyDefinition, EnemyDefinitionId } from '../content/enemies/EnemyTypes'
 import { GEAR_DROP_CHANCES } from './gear'
 
 export const SLIME_DEFINITION_ID: EnemyDefinitionId = 'slime'

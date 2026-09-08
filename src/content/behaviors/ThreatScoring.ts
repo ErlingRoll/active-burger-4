@@ -1,6 +1,4 @@
 import type { EnemyDefinitionId } from '../enemies/Enemies'
-import { getEliteModifierIds } from '../enemies/EliteModifiers'
-import type { EnemyState, BossState } from '../../game/state/GameState'
 
 /**
  * Threat values are content data rather than a property of the movement
@@ -36,42 +34,4 @@ export function getThreatScoreDefinition(
 ): ThreatScoreDefinition {
   return THREAT_SCORE_DEFINITIONS[definitionId] ??
     DEFAULT_THREAT_SCORE_DEFINITION
-}
-
-export function getEntityThreatScore(
-  entity: EnemyState | BossState,
-  nearbyPackSize = 0,
-): number {
-  const definition = 'bossDefinitionId' in entity
-    ? undefined
-    : getThreatScoreDefinition(entity.definitionId)
-  const base = definition?.base ?? BOSS_THREAT_SCORE
-  const packBonus = definition?.packBonus ?? 0
-  const eliteMultiplier = Math.pow(
-    definition?.eliteMultiplier ?? 1.5,
-    getEliteModifierIds(entity).length,
-  )
-  const healthRatio = entity.maxHp > 0
-    ? Math.max(0, Math.min(1, entity.hp / entity.maxHp))
-    : 0
-
-  return (base + packBonus * Math.max(0, nearbyPackSize)) *
-    eliteMultiplier * (0.5 + healthRatio * 0.5)
-}
-
-export function getEntityPackThreatScore(
-  entity: EnemyState | BossState,
-  entities: readonly (EnemyState | BossState)[],
-  packRadius: number,
-): number {
-  const radiusSquared = Math.max(0, packRadius) ** 2
-  const nearbyPackSize = entities.filter((candidate) => {
-    if (candidate.id === entity.id || candidate.hp <= 0) {
-      return false
-    }
-    const dx = candidate.x - entity.x
-    const dy = candidate.y - entity.y
-    return dx * dx + dy * dy <= radiusSquared
-  }).length
-  return getEntityThreatScore(entity, nearbyPackSize)
 }

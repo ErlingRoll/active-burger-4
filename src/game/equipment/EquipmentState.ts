@@ -22,6 +22,7 @@ import {
   type Rarity as RarityValue,
 } from '../../content/rarity/Rarity'
 import type { GearSetId } from '../../game-config/gear-sets'
+import type { EquippedItem } from './EquipmentTypes'
 import type { RandomSource } from '../random/Random'
 import type { PlayerState } from '../state/GameState'
 import {
@@ -31,20 +32,7 @@ import {
 
 export { refreshMeleeLeech }
 
-/** Runtime reference to an item; behavior remains owned by content. */
-export interface EquippedItem {
-  itemId: ItemId
-  /** Runtime rarity can differ from the catalog rarity after a rolled drop. */
-  rarity?: Rarity
-  /** Rolled modifiers are persisted here so snapshots never reroll them. */
-  modifiers?: GearModifier[]
-  /** Set assignment is rolled per generated item and persisted with it. */
-  setId?: GearSetId
-}
-
-export type EquipmentLoadout = Partial<
-  Record<EquipmentSlot, EquippedItem>
->
+export type { EquipmentLoadout, EquippedItem } from './EquipmentTypes'
 
 export function createEquippedItem(
   definition: ItemDefinition,

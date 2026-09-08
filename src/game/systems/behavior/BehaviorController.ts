@@ -27,11 +27,13 @@ export {
   BOSS_THREAT_SCORE,
   DEFAULT_THREAT_SCORE_DEFINITION,
   THREAT_SCORE_DEFINITIONS,
-  getEntityPackThreatScore,
-  getEntityThreatScore,
   getThreatScoreDefinition,
 } from '../../../content/behaviors/ThreatScoring'
 export type { ThreatScoreDefinition } from '../../../content/behaviors/ThreatScoring'
+export {
+  getEntityPackThreatScore,
+  getEntityThreatScore,
+} from './ThreatEvaluation'
 
 function getControllerState(state: GameState): BehaviorControllerState {
   return state.player.behaviorController ??= {

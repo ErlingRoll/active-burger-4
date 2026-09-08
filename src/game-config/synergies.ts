@@ -4,7 +4,7 @@ import type {
   SynergyUpgradeDefinition,
   UpgradeEligibilityState,
   UpgradeId,
-} from '../content/upgrades/Upgrades'
+} from '../content/upgrades/UpgradeTypes'
 import type { SkillId } from '../content/skills/Skills'
 import {
   AEGIS_PULSE_SKILL_ID,

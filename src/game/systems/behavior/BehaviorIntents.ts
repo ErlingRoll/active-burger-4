@@ -1,7 +1,8 @@
+import type { ThreatScoreDefinition } from '../../../content/behaviors/ThreatScoring'
 import {
   getEntityPackThreatScore,
-  type ThreatScoreDefinition,
-} from '../../../content/behaviors/ThreatScoring'
+  getEntityThreatScore,
+} from './ThreatEvaluation'
 import { getEnemyAbilityForDefinition } from '../../../content/enemies/EnemyAbilities'
 import { getBossSkillDefinition } from '../../../content/bosses/Bosses'
 import { RALLYING_BANNER_SKILL_ID } from '../../../content/skills/Skills'
@@ -22,7 +23,6 @@ import {
   type BehaviorProfilePolicy,
   type BehaviorProfileThresholds,
 } from '../../../content/behaviors/BehaviorProfiles'
-import { getEntityThreatScore } from '../../../content/behaviors/ThreatScoring'
 import { SpatialHash } from '../../spatial/SpatialHash'
 import {
   constrainPlayerMovementDirection,

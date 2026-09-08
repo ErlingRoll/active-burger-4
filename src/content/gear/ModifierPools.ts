@@ -12,7 +12,7 @@ import {
   type SkillId,
   type SkillTag,
 } from '../skills/Skills'
-import type { RandomSource } from '../../game/random/Random'
+import type { RandomSource } from '../../shared/RandomSource'
 import { EquipmentSlot } from './EquipmentSlots'
 import type { WeaponArchetype } from './Items'
 

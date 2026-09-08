@@ -1,5 +1,5 @@
 import { ENEMY_DEFINITIONS } from './EnemyConfig'
-import type { DamageResistanceValues } from '../stats/Damage'
+import type { EnemyDefinition, EnemyDefinitionId } from './EnemyTypes'
 
 export {
   ARCHER_SHOT_ABILITY_ID,
@@ -19,50 +19,16 @@ export type {
   EliteModifierId,
 } from './EliteModifiers'
 
-export type EnemyDefinitionId = string
-export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split' | 'intercept'
-export type EnemyRenderShape = 'circle' | 'diamond' | 'triangle' | 'hexagon'
+export type {
+  EnemyBehaviorDefinition,
+  EnemyBehaviorKind,
+  EnemyDefinition,
+  EnemyDefinitionId,
+  EnemyRenderDefinition,
+  EnemyRenderShape,
+  EnemySplitDefinition,
+} from './EnemyTypes'
 
-export interface EnemyRenderDefinition {
-  color: string
-  outlineColor: string
-  scale: number
-  shape: EnemyRenderShape
-}
-
-export interface EnemySplitDefinition {
-  childDefinitionId: EnemyDefinitionId
-  childCount: number
-  childrenAwardXp: boolean
-  spreadRadius: number
-}
-
-export type EnemyBehaviorDefinition =
-  | { kind: 'chase' }
-  | { kind: 'standoff'; desiredDistance: number; retreatDistance: number }
-  | { kind: 'split'; split: EnemySplitDefinition }
-  | {
-      kind: 'intercept'
-      predictionSeconds: number
-      lateralOffset: number
-      engagementDistance: number
-    }
-
-export interface EnemyDefinition {
-  id: EnemyDefinitionId
-  name: string
-  radius: number
-  maxHp: number
-  speed: number
-  contactDamage: number
-  xpReward: number
-  gearDropChance: number
-  /** Percentage resistance to Chill/Freeze duration and stack application. */
-  controlResistance?: number
-  resistances?: Partial<DamageResistanceValues>
-  behavior: EnemyBehaviorDefinition
-  render: EnemyRenderDefinition
-}
 export {
   ARCHER_DEFINITION_ID,
   BRUTE_DEFINITION_ID,

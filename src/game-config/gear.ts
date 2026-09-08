@@ -1,4 +1,4 @@
-import type { EnemyDefinitionId } from '../content/enemies/Enemies'
+import type { EnemyDefinitionId } from '../content/enemies/EnemyTypes'
 
 /** Per-enemy probability of generating a gear orb on death before normalization. */
 export const GEAR_DROP_CHANCES = {

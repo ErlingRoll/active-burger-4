@@ -1,3 +1,10 @@
+/**
+ * Essence reward maths.
+ *
+ * This is balance content, not a property of the meta-progression service, so
+ * it sits under `content/` where `game/ui/Snapshots.ts` may depend on it. The
+ * `meta` feature re-exports it for its own consumers.
+ */
 export interface EssenceRewardCalculation {
   levelReward: number
   killReward: number

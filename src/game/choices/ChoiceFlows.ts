@@ -4,7 +4,7 @@ import {
   type GearChoice,
 } from '../equipment/GearChoices'
 import type { LevelUpUpgradeChoice } from '../../content/upgrades/Upgrades'
-import type { AbyssModifierChoice } from '../../abyss/AbyssModifiers'
+import type { AbyssModifierChoice } from '../../content/modifiers/AbyssModifiers'
 
 export interface LevelUpChoiceFlow {
   type: 'level-up'

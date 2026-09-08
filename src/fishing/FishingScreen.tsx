@@ -21,8 +21,10 @@ import {
   isFishingMode,
   type FishingMode,
 } from './FishingContent'
-import type { InventoryItemInstance, InventoryService } from '../inventory'
-import { getInventoryItemDefinition } from '../inventory'
+// Imported from the owning modules rather than the `../inventory` barrel,
+// which re-exports DevelopmentInventoryMenu and would import this file back.
+import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
+import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { markInventoryItemAsUnseen } from '../inventory/InventoryItemSeen'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'

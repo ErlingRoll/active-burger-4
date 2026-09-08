@@ -1,6 +1,5 @@
-export const DEFAULT_RUN_MODE_ID = 'dungeon' as const
-
-export type RunModeId = 'dungeon' | 'infinite-abyss'
+export { DEFAULT_RUN_MODE_ID, isRunModeId } from '../shared/RunModes'
+export type { RunModeId } from '../shared/RunModes'
 
 export const RUN_PREPARATION_SCHEMA_VERSION = 1 as const
 
@@ -31,10 +30,6 @@ export interface RunPreparationEffects {
 export const EMPTY_RUN_PREPARATION_SNAPSHOT: RunPreparationSnapshot = {
   version: RUN_PREPARATION_SCHEMA_VERSION,
   items: [],
-}
-
-export function isRunModeId(value: unknown): value is RunModeId {
-  return value === 'dungeon' || value === 'infinite-abyss'
 }
 
 export function isRunPreparationSnapshot(

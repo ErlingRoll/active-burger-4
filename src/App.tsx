@@ -133,7 +133,7 @@ import {
 import {
   calculateEssenceReward,
   type EssenceRewardCalculation,
-} from './meta/EssenceRewards'
+} from './content/progression/EssenceRewards'
 import {
   useMusicPlaylist,
   type MusicPlaylistId,

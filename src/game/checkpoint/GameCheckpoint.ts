@@ -12,7 +12,15 @@ import {
   isRunModeId,
   isRunPreparationSnapshot,
 } from '../RunModes'
-import { isCharacterBuildSnapshot } from '../../characters/CharacterSnapshots'
+import {
+  CHARACTER_SCHEMA_VERSION,
+  isCharacterBuildSnapshot,
+  isPositiveInteger,
+  type CharacterBuildSnapshot,
+} from './CharacterBuild'
+import { isCharacterClassId } from '../../content/classes/CharacterClasses'
+import { isBehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
+import { isSkillId } from '../../content/skills/Skills'
 
 /** Current checkpoint format version. Bump on breaking schema changes. */
 export const CHECKPOINT_VERSION = 1
@@ -158,4 +166,43 @@ function isFiniteInteger(
     Number.isInteger(value) &&
     value >= minimum &&
     value <= maximum
+}
+
+/**
+ * Captures the immutable build a finished run ended with.
+ *
+ * Lives here rather than beside the schema in `CharacterBuild.ts` so that the
+ * schema stays a leaf: `GameState` needs the build shape, and a converter that
+ * reads a whole checkpoint would drag the checkpoint module into that path.
+ */
+export function createCharacterBuildSnapshot(
+  checkpoint: GameCheckpoint,
+): CharacterBuildSnapshot {
+  const player = checkpoint.gameState.player
+  const characterClassId = player.characterClassId
+  if (!isCharacterClassId(characterClassId)) {
+    throw new Error('The checkpoint has no valid character class.')
+  }
+  const behaviorProfileId = player.behaviorController?.profileId
+  if (!isBehaviorProfileId(behaviorProfileId)) {
+    throw new Error('The checkpoint has no valid behavior profile.')
+  }
+  const skills = player.skills.map((skill) => {
+    if (!isSkillId(skill.skillId) || !isPositiveInteger(skill.level)) {
+      throw new Error('The checkpoint contains an invalid skill.')
+    }
+    return {
+      skillId: skill.skillId,
+      level: skill.level,
+    }
+  })
+  return {
+    schemaVersion: CHARACTER_SCHEMA_VERSION,
+    level: player.level,
+    classId: characterClassId,
+    skills,
+    selectedUpgradeIds: [...checkpoint.gameState.run.selectedUpgradeIds],
+    equipment: JSON.parse(JSON.stringify(player.equipment ?? {})),
+    behaviorProfileId,
+  }
 }

@@ -1,4 +1,7 @@
-import { getSupabaseClient, type AuthEnvironment } from '../auth'
+// Imported from the owning module rather than the `../auth` barrel, which also
+// re-exports AccountSettingsMenu and reaches this file back through
+// ReportBugModal.
+import { getSupabaseClient, type AuthEnvironment } from '../auth/AuthService'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface BugReportImage {

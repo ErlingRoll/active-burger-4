@@ -1,20 +1,12 @@
 /**
- * Deterministic seeded random number source for simulation systems.
+ * Deterministic seeded implementation of the shared `RandomSource` contract.
  *
- * Simulation code must never call `Math.random()` (PLAN.md section 96);
- * every run receives a seed and all randomness flows through a
- * `RandomSource` owned by the game instance so runs are reproducible.
+ * Simulation code must never call `Math.random()`; every run receives a seed
+ * and all randomness flows through a `RandomSource` owned by the game instance
+ * so runs are reproducible.
  */
-export interface RandomSource {
-  /** Returns a float in the range [0, 1). */
-  next(): number
-  /** Returns an integer in the inclusive range [min, max]. */
-  int(min: number, max: number): number
-  /** Returns true with the given probability (0-1). */
-  chance(probability: number): boolean
-  /** Returns a uniformly random element from a non-empty array. */
-  pick<T>(items: readonly T[]): T
-}
+import type { RandomSource } from '../../shared/RandomSource'
+export type { RandomSource } from '../../shared/RandomSource'
 
 /**
  * mulberry32: a small, fast, deterministic 32-bit PRNG. It is not

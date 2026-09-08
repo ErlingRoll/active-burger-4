@@ -17,7 +17,7 @@ import type {
   DamageResistanceValues,
   DamageValues,
 } from '../../content/stats/Damage'
-import type { EquipmentLoadout } from '../equipment/EquipmentState'
+import type { EquipmentLoadout } from '../equipment/EquipmentTypes'
 import type { WeaponArchetype } from '../../content/gear/Items'
 import type { UpgradeId } from '../../content/upgrades/Upgrades'
 import type { RunPhase } from './RunPhase'
@@ -36,8 +36,8 @@ import type {
   RunModeId,
   RunPreparationSnapshot,
 } from '../RunModes'
-import type { CharacterBuildSnapshot } from '../../characters/CharacterTypes'
-import type { AbyssModifierId } from '../../abyss/AbyssModifiers'
+import type { CharacterBuildSnapshot } from '../checkpoint/CharacterBuild'
+import type { AbyssModifierId } from '../../content/modifiers/AbyssModifiers'
 
 export type EncounterStatus = 'inactive' | 'active' | 'complete'
 export type EncounterOutcome = 'victory' | 'defeat' | undefined

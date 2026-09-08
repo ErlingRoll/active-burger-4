@@ -141,15 +141,15 @@ import type {
 } from './ui/Snapshots'
 import type { WorldPosition } from './systems/spawning/SpawningSystem'
 import type { GearPickupState } from './state/GameState'
-import type { CharacterBuildSnapshot } from '../characters/CharacterTypes'
-import { isCharacterBuildSnapshot } from '../characters/CharacterSnapshots'
+import type { CharacterBuildSnapshot } from './checkpoint/CharacterBuild'
+import { isCharacterBuildSnapshot } from './checkpoint/CharacterBuild'
 import {
   getAbyssEnemyEffects,
   getAbyssModifierChoices,
   getAbyssModifierDefinition,
   type AbyssModifierChoice,
   type AbyssModifierId,
-} from '../abyss/AbyssModifiers'
+} from '../content/modifiers/AbyssModifiers'
 import {
   BASIC_ATTACK_SKILL_ID,
   BLOOD_RITE_SKILL_ID,

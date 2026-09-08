@@ -1,3 +1,7 @@
+// Essence reward maths are balance content and live under `content/`; they are
+// re-exported here so meta-progression consumers keep one import site.
+export * from '../content/progression/EssenceRewards'
+
 export {
   createMetaProgressionService,
   BANISH_UNLOCK_CATEGORY,

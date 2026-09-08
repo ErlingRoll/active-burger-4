@@ -172,7 +172,7 @@ import {
   type PendingChoiceFlow,
 } from '../choices/ChoiceFlows'
 import { getEquippedWeaponArchetype } from '../equipment/EquipmentState'
-import { calculateEssenceReward } from '../../meta/EssenceRewards'
+import { calculateEssenceReward } from '../../content/progression/EssenceRewards'
 
 /** Narrow, immutable run data intended for screen-space UI consumers. */
 export interface RunHudSnapshot {

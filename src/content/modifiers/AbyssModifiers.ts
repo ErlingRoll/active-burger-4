@@ -1,4 +1,17 @@
-import type { RunState } from '../game/state/GameState'
+import type { RunModeId } from '../../shared/RunModes'
+
+/**
+ * The run facts an Abyss modifier reads.
+ *
+ * Declared here rather than imported as `Pick<RunState, ...>` so this module
+ * stays a content leaf: `game/state/GameState.ts` needs `AbyssModifierId`, and
+ * importing `RunState` back would make the simulation's core state module part
+ * of an import cycle with its own content.
+ */
+export interface AbyssRunContext {
+  modeId?: RunModeId
+  abyssModifierIds?: readonly AbyssModifierId[]
+}
 
 export type AbyssModifierId = 'enemy-health' | 'enemy-speed' | 'enemy-damage'
 
@@ -68,7 +81,7 @@ export function getAbyssModifierChoices(
 }
 
 export function getAbyssEnemyEffects(
-  state: Pick<RunState, 'modeId' | 'abyssModifierIds'>,
+  state: AbyssRunContext,
 ): AbyssEnemyEffects {
   const effects: AbyssEnemyEffects = {
     maxHpMultiplier: state.modeId === 'infinite-abyss' ? 10 : 1,

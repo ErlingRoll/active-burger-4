@@ -1,4 +1,4 @@
-import type { AbyssModifierDefinition } from './AbyssModifiers'
+import type { AbyssModifierDefinition } from '../content/modifiers/AbyssModifiers'
 import type { AbyssModifierChoiceFlow } from '../game/choices/ChoiceFlows'
 
 interface AbyssModifierOverlayProps {

@@ -6,7 +6,7 @@ import {
 import type { EntityIdAllocator } from '../../ids'
 import type { GameState } from '../../state/GameState'
 import { spawnBoss } from '../spawning/SpawningSystem'
-import { getAbyssEnemyEffects } from '../../../abyss/AbyssModifiers'
+import { getAbyssEnemyEffects } from '../../../content/modifiers/AbyssModifiers'
 
 function nextEncounter(
   state: GameState,

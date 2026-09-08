@@ -43,7 +43,7 @@ import {
   FREE_MOVEMENT_TOGGLE_KEY,
   KEYBIND_DEFINITIONS,
 } from '../input/Keybinds'
-import { calculateEssenceReward } from '../meta/EssenceRewards'
+import { calculateEssenceReward } from '../content/progression/EssenceRewards'
 import { ALL_GEAR_SET_DEFINITIONS } from '../game-config/gear-sets'
 import { GEAR_DROP_CHANCE_BALANCE, GEAR_XP_BLESSING_CHANCE, GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import { GEAR_RARITY_FLOOR_CHANCE } from '../game/equipment/GearChoices'
@@ -51,7 +51,7 @@ import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { INITIAL_UPGRADES } from '../game-config/skill-upgrades'
 import { getUpgradeDescription } from '../content/upgrades/Upgrades'
 import { SYNERGY_OFFER_CHANCE, SYNERGY_UPGRADES } from '../game-config/synergies'
-import { ABYSS_MODIFIER_DEFINITIONS } from '../abyss/AbyssModifiers'
+import { ABYSS_MODIFIER_DEFINITIONS } from '../content/modifiers/AbyssModifiers'
 import { SkillIcon } from '../rendering/SkillIcon'
 import { KeywordTerm, KeywordText } from '../rendering/KeywordTooltip'
 import {

@@ -1,26 +1,15 @@
-import type { CharacterClassId } from '../content/classes/CharacterClasses'
-import type { SkillId } from '../content/skills/Skills'
-import type { EquipmentLoadout } from '../game/equipment/EquipmentState'
-import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
-import type { UpgradeId } from '../content/upgrades/Upgrades'
+// The build snapshot is simulation input and is owned by `game/checkpoint`;
+// it is re-exported here so the character service keeps a single import site.
+import type { CharacterBuildSnapshot } from '../game/checkpoint/CharacterBuild'
 
-export const CHARACTER_SCHEMA_VERSION = 1 as const
-
-export interface CharacterBuildSkill {
-  skillId: SkillId
-  level: number
-}
-
-export interface CharacterBuildSnapshot {
-  schemaVersion: typeof CHARACTER_SCHEMA_VERSION
-  /** Character level at the time this build was captured. Older snapshots may omit it. */
-  level?: number
-  classId: CharacterClassId
-  skills: readonly CharacterBuildSkill[]
-  selectedUpgradeIds: readonly UpgradeId[]
-  equipment: EquipmentLoadout
-  behaviorProfileId: BehaviorProfileId
-}
+export {
+  CHARACTER_SCHEMA_VERSION,
+  isCharacterBuildSnapshot,
+} from '../game/checkpoint/CharacterBuild'
+export type {
+  CharacterBuildSkill,
+  CharacterBuildSnapshot,
+} from '../game/checkpoint/CharacterBuild'
 
 export interface CharacterRecipe {
   characterId: string
