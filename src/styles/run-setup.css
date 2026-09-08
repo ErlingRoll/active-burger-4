@@ -26,7 +26,7 @@
   display: grid;
   gap: 0.35rem;
   padding: 0.8rem;
-  color: #ddd6fe;
+  color: var(--color-violet-200);
   text-align: left;
   background: rgb(30 27 75 / 78%);
   border: 1px solid rgb(196 181 253 / 20%);
@@ -36,19 +36,19 @@
 
 .game-mode-choice:hover,
 .game-mode-choice:focus-visible {
-  border-color: #a78bfa;
+  border-color: var(--color-violet-400);
   outline: 3px solid rgb(196 181 253 / 20%);
   outline-offset: 2px;
 }
 
 .game-mode-choice.selected {
-  color: #f5f3ff;
+  color: var(--color-violet-50);
   background: rgb(91 33 182 / 38%);
-  border-color: #c4b5fd;
+  border-color: var(--color-violet-300);
 }
 
 .game-mode-choice span {
-  color: #a5b4fc;
+  color: var(--color-indigo-300);
   font-size: 0.78rem;
   line-height: 1.4;
 }
@@ -56,11 +56,11 @@
 .run-abyss-champion {
   display: grid;
   gap: 0.5rem;
-  color: #ddd6fe;
+  color: var(--color-violet-200);
 }
 
 .run-abyss-champion > span {
-  color: #c4b5fd;
+  color: var(--color-violet-300);
   font-size: 0.82rem;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .run-abyss-champion-card.selected {
-  border-color: #c4b5fd;
+  border-color: var(--color-violet-300);
   box-shadow: 0 0 0 2px rgb(196 181 253 / 18%), 0 0.6rem 1.25rem rgb(76 29 149 / 20%);
 }
 
@@ -98,7 +98,7 @@
 }
 
 .run-abyss-champion-trigger-copy small {
-  color: #c4b5fd;
+  color: var(--color-violet-300);
   font-size: 0.72rem;
 }
 
@@ -107,14 +107,14 @@
 }
 
 .run-abyss-champion-list .game-mode-choice.exhausted small {
-  color: #fcd34d;
+  color: var(--color-amber-300);
 }
 
 .run-abyss-champion-trigger-state {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: #a5b4fc;
+  color: var(--color-indigo-300);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -123,11 +123,11 @@
 }
 
 .run-abyss-champion-card.selected .run-abyss-champion-trigger-state {
-  color: #e9d5ff;
+  color: var(--color-purple-200);
 }
 
 .run-abyss-champion-chevron {
-  color: #c4b5fd;
+  color: var(--color-violet-300);
   font-size: 1.15rem;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .run-abyss-revival-action small {
-  color: #78350f;
+  color: var(--color-amber-900);
   font-size: 0.7rem;
   text-transform: capitalize;
 }
@@ -182,7 +182,7 @@
   gap: 0.35rem;
   min-height: 6.5rem;
   padding: 0.7rem;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   text-align: left;
   background:
     repeating-linear-gradient(135deg, rgb(148 163 184 / 5%) 0 2px, transparent 2px 8px),
@@ -194,29 +194,29 @@
 
 .fish-meal-slot:hover,
 .fish-meal-slot:focus-visible {
-  color: #e2e8f0;
-  border-color: #67e8f9;
+  color: var(--color-slate-200);
+  border-color: var(--color-cyan-300);
   outline: 3px solid rgb(103 232 249 / 18%);
   outline-offset: 2px;
 }
 
 .fish-meal-slot.filled {
-  color: #ecfeff;
+  color: var(--color-cyan-50);
   background:
     linear-gradient(135deg, rgb(14 116 144 / 38%), transparent 75%),
     #0f2940;
   border-style: solid;
-  border-color: #22d3ee;
+  border-color: var(--color-cyan-400);
 }
 
 .fish-meal-slot-number {
-  color: #67e8f9;
+  color: var(--color-cyan-300);
   font-size: 0.7rem;
   font-weight: 800;
 }
 
 .fish-meal-slot strong {
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font-size: 0.82rem;
 }
 
@@ -226,7 +226,7 @@
 }
 
 .fish-meal-slot small {
-  color: #a5f3fc;
+  color: var(--color-cyan-200);
   font-size: 0.7rem;
   text-transform: capitalize;
 }
@@ -248,7 +248,7 @@
 }
 
 .fish-meal-picker > strong {
-  color: #cffafe;
+  color: var(--color-cyan-100);
 }
 
 .fish-meal-picker-list {
@@ -263,9 +263,9 @@
   gap: 0.2rem;
   min-width: 9rem;
   padding: 0.55rem 0.7rem;
-  color: #e2e8f0;
+  color: var(--color-slate-200);
   text-align: left;
-  background: #172033;
+  background: var(--panel-cool-deep);
   border: 1px solid rgb(148 163 184 / 25%);
   border-radius: 0.35rem;
   cursor: pointer;
@@ -275,13 +275,13 @@
 .fish-meal-picker-item:focus-visible,
 .fish-meal-picker-clear:hover,
 .fish-meal-picker-clear:focus-visible {
-  border-color: #67e8f9;
+  border-color: var(--color-cyan-300);
   outline: 2px solid rgb(103 232 249 / 18%);
   outline-offset: 1px;
 }
 
 .fish-meal-picker-item small {
-  color: #94a3b8;
+  color: var(--color-slate-400);
   font-size: 0.7rem;
   text-transform: capitalize;
 }
@@ -290,7 +290,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font-weight: 750;
 }
 
@@ -300,14 +300,14 @@
 }
 
 .fish-meal-picker-item em {
-  color: #bae6fd;
+  color: var(--color-sky-200);
   font-size: 0.72rem;
   font-style: normal;
   line-height: 1.35;
 }
 
 .fish-meal-picker-clear {
-  color: #fecaca;
+  color: var(--color-red-200);
   border-color: rgb(248 113 113 / 35%);
 }
 
@@ -328,12 +328,12 @@
   display: block;
   width: min(24rem, 90vw);
   padding: 0.65rem 0.75rem;
-  color: #ddd6fe;
+  color: var(--color-violet-200);
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.4;
-  background: #171126;
-  border-color: #a78bfa;
+  background: var(--abyss-surface);
+  border-color: var(--color-violet-400);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-0.25rem);

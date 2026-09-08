@@ -57,14 +57,14 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem clamp(1rem, 4vw, 3rem);
-  color: #f8fafc;
-  background: #111827;
-  border-bottom: 1px solid #334155;
+  color: var(--color-slate-50);
+  background: var(--color-gray-900);
+  border-bottom: 1px solid var(--color-slate-700);
 }
 
 .app-kicker {
   margin: 0;
-  color: #60a5fa;
+  color: var(--color-blue-400);
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -89,7 +89,7 @@
 
 .app-version {
   margin: 0.25rem 0 0;
-  color: #64748b;
+  color: var(--color-slate-500);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -103,7 +103,7 @@
 }
 
 .app-account-label {
-  color: #93c5fd;
+  color: var(--color-blue-300);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -111,31 +111,31 @@
 }
 
 .app-account-email {
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .app-account-error {
-  color: #fca5a5;
+  color: var(--color-red-300);
   font-size: 0.72rem;
 }
 
 .app-sign-out {
   min-height: 2.25rem;
   padding: 0.4rem 0.8rem;
-  color: #eff6ff;
+  color: var(--color-blue-50);
   font-size: 0.8rem;
   font-weight: 700;
-  background: #2563eb;
-  border: 1px solid #93c5fd;
+  background: var(--color-blue-600);
+  border: 1px solid var(--color-blue-300);
   border-radius: 0.45rem;
   cursor: pointer;
 }
 
 .app-sign-out:hover,
 .app-sign-out:focus-visible {
-  background: #1d4ed8;
+  background: var(--color-blue-700);
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
 }
@@ -151,9 +151,9 @@
   height: 2.25rem;
   place-items: center;
   padding: 0.4rem;
-  color: #eff6ff;
-  background: #1e293b;
-  border: 1px solid #64748b;
+  color: var(--color-blue-50);
+  background: var(--color-slate-800);
+  border: 1px solid var(--color-slate-500);
   border-radius: 0.45rem;
   cursor: pointer;
 }
@@ -166,8 +166,8 @@
 
 .account-settings-toggle:hover,
 .account-settings-toggle:focus-visible {
-  color: #ffffff;
-  background: #334155;
+  color: var(--color-white);
+  background: var(--color-slate-700);
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
 }
@@ -179,8 +179,8 @@
   right: 0;
   min-width: min(19rem, calc(100vw - 2rem));
   padding: 0.35rem;
-  background: #0f172a;
-  border: 1px solid #475569;
+  background: var(--color-slate-900);
+  border: 1px solid var(--color-slate-600);
   border-radius: 0.45rem;
   box-shadow: 0 0.75rem 1.5rem rgb(2 6 23 / 45%);
 }
@@ -189,7 +189,7 @@
   width: 100%;
   min-height: 2.25rem;
   padding: 0.4rem 0.6rem;
-  color: #e2e8f0;
+  color: var(--color-slate-200);
   font: inherit;
   font-size: 0.8rem;
   font-weight: 700;
@@ -202,8 +202,8 @@
 
 .account-settings-menu button:hover,
 .account-settings-menu button:focus-visible {
-  color: #ffffff;
-  background: #1e293b;
+  color: var(--color-white);
+  background: var(--color-slate-800);
   outline: 2px solid rgb(147 197 253 / 35%);
   outline-offset: -2px;
 }
@@ -214,14 +214,14 @@
   min-width: 0;
   margin: 0.2rem 0 0.45rem;
   padding: 0.7rem;
-  color: #cbd5e1;
-  border: 1px solid #334155;
+  color: var(--color-slate-300);
+  border: 1px solid var(--color-slate-700);
   border-radius: 0.4rem;
 }
 
 .audio-settings-panel legend {
   padding: 0 0.3rem;
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font-size: 0.8rem;
   font-weight: 800;
 }
@@ -240,38 +240,38 @@
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  color: #e2e8f0;
+  color: var(--color-slate-200);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .audio-channel-row output {
-  color: #93c5fd;
+  color: var(--color-blue-300);
   font-variant-numeric: tabular-nums;
 }
 
 .audio-channel-row input {
   width: 100%;
-  accent-color: #60a5fa;
+  accent-color: var(--color-blue-400);
 }
 
 .audio-mute-button {
   min-height: 2.1rem;
   padding: 0.35rem 0.6rem;
-  color: #eff6ff;
+  color: var(--color-blue-50);
   font: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  background: #1e293b;
-  border: 1px solid #64748b;
+  background: var(--color-slate-800);
+  border: 1px solid var(--color-slate-500);
   border-radius: 0.35rem;
   cursor: pointer;
 }
 
 .audio-mute-button:hover,
 .audio-mute-button:focus-visible {
-  background: #334155;
-  border-color: #93c5fd;
+  background: var(--color-slate-700);
+  border-color: var(--color-blue-300);
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
 }
@@ -289,16 +289,16 @@
 .nickname-dialog {
   width: min(28rem, 100%);
   padding: 1.5rem;
-  color: #cbd5e1;
-  background: #111827;
-  border: 1px solid #475569;
+  color: var(--color-slate-300);
+  background: var(--color-gray-900);
+  border: 1px solid var(--color-slate-600);
   border-radius: 0.75rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 58%);
 }
 
 .nickname-dialog h2 {
   margin: 0;
-  color: #f8fafc;
+  color: var(--color-slate-50);
 }
 
 .nickname-dialog > p {
@@ -312,7 +312,7 @@
 }
 
 .nickname-dialog label {
-  color: #e2e8f0;
+  color: var(--color-slate-200);
   font-size: 0.85rem;
   font-weight: 800;
 }
@@ -320,30 +320,30 @@
 .nickname-dialog input {
   min-height: 2.5rem;
   padding: 0.35rem 0.5rem;
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font: inherit;
-  background: #1e293b;
-  border: 1px solid #475569;
+  background: var(--color-slate-800);
+  border: 1px solid var(--color-slate-600);
   border-radius: 0.4rem;
 }
 
 .nickname-dialog input:focus-visible {
-  border-color: #93c5fd;
+  border-color: var(--color-blue-300);
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
 }
 
 .nickname-pending {
   padding: 0.65rem;
-  color: #fde68a;
+  color: var(--color-amber-200);
   background: rgb(120 53 15 / 38%);
-  border: 1px solid #b45309;
+  border: 1px solid var(--color-amber-700);
   border-radius: 0.4rem;
 }
 
 .nickname-error {
   margin: 0;
-  color: #fca5a5;
+  color: var(--color-red-300);
   font-size: 0.82rem;
 }
 
@@ -358,28 +358,28 @@
 .nickname-review-actions button {
   min-height: 2.25rem;
   padding: 0.4rem 0.75rem;
-  color: #eff6ff;
+  color: var(--color-blue-50);
   font: inherit;
   font-size: 0.8rem;
   font-weight: 800;
-  background: #1e293b;
-  border: 1px solid #64748b;
+  background: var(--color-slate-800);
+  border: 1px solid var(--color-slate-500);
   border-radius: 0.4rem;
   cursor: pointer;
 }
 
 .nickname-dialog-actions button[type='submit'],
 .nickname-review-actions button:last-child {
-  color: #eff6ff;
-  background: #2563eb;
-  border-color: #93c5fd;
+  color: var(--color-blue-50);
+  background: var(--color-blue-600);
+  border-color: var(--color-blue-300);
 }
 
 .nickname-dialog-actions button:hover:not(:disabled),
 .nickname-dialog-actions button:focus-visible,
 .nickname-review-actions button:hover,
 .nickname-review-actions button:focus-visible {
-  background: #1d4ed8;
+  background: var(--color-blue-700);
   outline: 3px solid rgb(147 197 253 / 35%);
   outline-offset: 2px;
 }

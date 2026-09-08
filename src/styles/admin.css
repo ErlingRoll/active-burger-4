@@ -5,16 +5,16 @@
   padding: clamp(1rem, 4vw, 3.5rem);
   background:
     radial-gradient(circle at 12% 10%, rgb(251 191 36 / 10%), transparent 24rem),
-    linear-gradient(145deg, #090d17 0%, #111827 52%, #0b1120 100%);
+    linear-gradient(145deg, #090d17 0%, var(--color-gray-900) 52%, #0b1120 100%);
 }
 
 .admin-reports-panel {
   width: min(70rem, 100%);
   margin: 0 auto;
   padding: clamp(1.25rem, 4vw, 2.5rem);
-  color: #dbeafe;
-  background: #111827;
-  border: 1px solid #475569;
+  color: var(--color-blue-100);
+  background: var(--color-gray-900);
+  border: 1px solid var(--color-slate-600);
   border-radius: 0.75rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 40%);
 }
@@ -25,18 +25,18 @@
   justify-content: space-between;
   gap: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--color-slate-700);
 }
 
 .admin-reports-header h2 {
   margin: 0.35rem 0 0.5rem;
-  color: #f8fafc;
+  color: var(--color-slate-50);
   font-size: clamp(1.8rem, 5vw, 2.8rem);
 }
 
 .admin-reports-header p:not(.screen-kicker) {
   margin: 0;
-  color: #cbd5e1;
+  color: var(--color-slate-300);
 }
 
 .admin-reports-actions {
@@ -53,7 +53,7 @@
 
 .admin-reports-status {
   margin: 1.5rem 0 0;
-  color: #cbd5e1;
+  color: var(--color-slate-300);
 }
 
 .admin-reports-list {
@@ -74,9 +74,9 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.8rem 1rem;
-  color: #e2e8f0;
-  background: #0f172a;
-  border: 1px solid #334155;
+  color: var(--color-slate-200);
+  background: var(--color-slate-900);
+  border: 1px solid var(--color-slate-700);
   border-radius: 0.5rem;
 }
 
@@ -87,13 +87,13 @@
 }
 
 .nickname-review-card strong {
-  color: #fef3c7;
+  color: var(--color-amber-100);
 }
 
 .nickname-review-card span,
 .nickname-review-card code {
   overflow-wrap: anywhere;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   font-size: 0.75rem;
 }
 
@@ -104,22 +104,22 @@
 }
 
 .nickname-review-actions button:first-child {
-  color: #fecaca;
-  background: #7f1d1d;
-  border-color: #f87171;
+  color: var(--color-red-200);
+  background: var(--color-red-900);
+  border-color: var(--color-red-400);
 }
 
 .nickname-review-actions button:first-child:hover,
 .nickname-review-actions button:first-child:focus-visible {
-  background: #991b1b;
+  background: var(--color-red-800);
   outline-color: rgb(248 113 113 / 35%);
 }
 
 .admin-report-card {
   padding: 1rem;
-  color: #e2e8f0;
-  background: #0f172a;
-  border: 1px solid #334155;
+  color: var(--color-slate-200);
+  background: var(--color-slate-900);
+  border: 1px solid var(--color-slate-700);
   border-radius: 0.55rem;
 }
 
@@ -129,7 +129,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--color-slate-800);
 }
 
 .admin-report-card-header > div {
@@ -138,12 +138,12 @@
 }
 
 .admin-report-card-header strong {
-  color: #fef3c7;
+  color: var(--color-amber-100);
 }
 
 .admin-report-card-header span,
 .admin-report-card-header code {
-  color: #94a3b8;
+  color: var(--color-slate-400);
   font-size: 0.75rem;
 }
 
@@ -162,18 +162,18 @@
 .admin-report-hide {
   min-height: 2rem;
   padding: 0.3rem 0.65rem;
-  color: #fef3c7;
+  color: var(--color-amber-100);
   font-size: 0.75rem;
   font-weight: 800;
-  background: #713f12;
-  border: 1px solid #fbbf24;
+  background: var(--color-yellow-900);
+  border: 1px solid var(--color-amber-400);
   border-radius: 0.35rem;
   cursor: pointer;
 }
 
 .admin-report-hide:hover,
 .admin-report-hide:focus-visible {
-  background: #854d0e;
+  background: var(--color-yellow-800);
   outline: 3px solid rgb(251 191 36 / 25%);
   outline-offset: 2px;
 }
@@ -181,25 +181,25 @@
 .admin-report-delete {
   min-height: 2rem;
   padding: 0.3rem 0.65rem;
-  color: #fecaca;
+  color: var(--color-red-200);
   font-size: 0.75rem;
   font-weight: 800;
-  background: #7f1d1d;
-  border: 1px solid #f87171;
+  background: var(--color-red-900);
+  border: 1px solid var(--color-red-400);
   border-radius: 0.35rem;
   cursor: pointer;
 }
 
 .admin-report-delete:hover,
 .admin-report-delete:focus-visible {
-  background: #991b1b;
+  background: var(--color-red-800);
   outline: 3px solid rgb(248 113 113 / 35%);
   outline-offset: 2px;
 }
 
 .admin-report-bug {
   margin: 1rem 0;
-  color: #f8fafc;
+  color: var(--color-slate-50);
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -229,12 +229,12 @@
 .admin-report-context div {
   min-width: 0;
   padding: 0.65rem;
-  background: #1e293b;
+  background: var(--color-slate-800);
   border-radius: 0.35rem;
 }
 
 .admin-report-context dt {
-  color: #93c5fd;
+  color: var(--color-blue-300);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -244,18 +244,18 @@
 .admin-report-context dd {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
-  color: #e2e8f0;
+  color: var(--color-slate-200);
   font-size: 0.82rem;
 }
 
 .admin-report-username {
-  color: #fef3c7;
+  color: var(--color-amber-100);
   font-size: 0.8rem;
 }
 
 .admin-report-floor-link {
   padding: 0;
-  color: #fbbf24;
+  color: var(--color-amber-400);
   font: inherit;
   font-weight: 800;
   background: transparent;
@@ -267,7 +267,7 @@
 
 .admin-report-floor-link:hover,
 .admin-report-floor-link:focus-visible {
-  color: #fde68a;
+  color: var(--color-amber-200);
   outline: 3px solid rgb(251 191 36 / 25%);
   outline-offset: 2px;
 }
@@ -277,8 +277,8 @@
   overflow: auto;
   margin-top: 0.75rem;
   padding: 0.7rem;
-  background: #020617;
-  border: 1px solid #334155;
+  background: var(--color-slate-950);
+  border: 1px solid var(--color-slate-700);
   border-radius: 0.35rem;
 }
 
@@ -288,7 +288,7 @@
 
 .admin-report-floor-json pre {
   margin: 0;
-  color: #cbd5e1;
+  color: var(--color-slate-300);
   font: 0.7rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -305,22 +305,22 @@
   max-height: 24rem;
   margin: 0 auto;
   object-fit: contain;
-  border: 1px solid #475569;
+  border: 1px solid var(--color-slate-600);
   border-radius: 0.35rem;
 }
 
 .admin-report-no-image {
   display: block;
   padding: 2rem 1rem;
-  color: #64748b;
+  color: var(--color-slate-500);
   font-size: 0.8rem;
   text-align: center;
-  border: 1px dashed #334155;
+  border: 1px dashed var(--color-slate-700);
   border-radius: 0.35rem;
 }
 
 .admin-report-attachment {
   margin: 0;
-  color: #94a3b8;
+  color: var(--color-slate-400);
   font-size: 0.8rem;
 }

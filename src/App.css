@@ -1,7 +1,10 @@
 /*
- * Styles are loaded in legacy cascade order. Keep additions with their owning
- * feature.
+ * Tokens first: every sheet below resolves its colours from them.
+ *
+ * The rest load in legacy cascade order, which theme-overrides.css depends on.
+ * Keep additions with their owning feature.
  */
+@import './styles/tokens.css';
 @import './styles/app-shell.css';
 @import './styles/shared-screens.css';
 @import './styles/gameplay.css';
