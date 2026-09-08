@@ -1,0 +1,97 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
+import {
+  createGame,
+  createGameFromCheckpoint,
+  DEFAULT_TIME_SCALE,
+  type Game,
+  type GameUiSnapshot,
+  type GearChoice,
+  type BehaviorProfileId,
+  type RunConfig,
+  type PendingChoiceFlow,
+  type RunResultSnapshot,
+  type GameCheckpoint,
+} from '../game'
+import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
+import {
+  BEHAVIOR_PROFILE_DEFINITIONS,
+  BEHAVIOR_PROFILE_ORDER,
+} from '../content/behaviors/BehaviorProfiles'
+import {
+  FREE_MOVEMENT_KEYS,
+  FREE_MOVEMENT_TOGGLE_KEY,
+  formatKeybind,
+  normalizeKey,
+  type GameKeybinds,
+} from '../input/Keybinds'
+import {
+  EQUIPMENT_SLOTS,
+  EquipmentSlot,
+  type EquipmentSlot as EquipmentSlotType,
+} from '../content/gear/Items'
+import {
+  formatGearModifier,
+  serializeGearModifiers,
+} from '../content/gear/ModifierPools'
+import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
+import { xpRequiredForNextLevel } from '../content/progression/XpBalance'
+import {
+  BASIC_ATTACK_SKILL_ID,
+  BLOOD_RITE_SKILL_ID,
+  RALLYING_BANNER_SKILL_ID,
+  MIRRORCAST_SKILL_ID,
+  CRITICAL_SPELLSTRIKE_SKILL_ID,
+  type SkillId,
+} from '../content/skills/Skills'
+import {
+  type LevelUpUpgradeChoice,
+} from '../content/upgrades/Upgrades'
+import { LevelUpOverlay } from './LevelUpOverlay'
+import { AbyssModifierOverlay } from '../abyss/AbyssModifierOverlay'
+import { PauseMenu } from './PauseMenu'
+import { PixiGame } from './PixiGame'
+import { SkillIcon } from './SkillIcon'
+import { GearSetFormation } from './GearSetFormation'
+import { ImplicitModifierList } from './ImplicitModifierList'
+import { KeywordText } from './KeywordTooltip'
+import {
+  closeAllTooltips,
+  registerTooltipCloser,
+  tooltipClassName,
+} from './TooltipShell'
+import { formatExperience } from '../ui/formatNumbers'
+import { formatCompactDamage } from '../ui/formatNumbers'
+import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
+
+interface GameCanvasProps {
+  onRunEnd: (result: RunResultSnapshot, checkpoint: GameCheckpoint) => void
+  runConfig?: RunConfig
+  initialCheckpoint?: GameCheckpoint | null
+  onFloorCheckpoint?: (checkpoint: GameCheckpoint) => Promise<void>
+  onSaveAndQuit?: () => Promise<void>
+  onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
+  keybinds: GameKeybinds
+  onKeybindsChange?: (keybinds: GameKeybinds) => Promise<void>
+  reportBugRunId?: string
+  onSubmitBugReport?: (
+    description: string,
+    image: BugReportImage | undefined,
+    dungeon: BugReportDungeonContext,
+  ) => Promise<void>
+}
+
+const UI_UPDATE_INTERVAL_MS = 100
+const MIN_CAST_PULSE_INTERVAL_MS = 240
+const PROFILE_KEYBIND_IDS = {
+  aggressive: 'behaviorAggressive',
+  balanced: 'behaviorBalanced',
+  cautious: 'behaviorCautious',
+} as const
+
+
+import { DevelopmentMenu } from './DevelopmentMenu'
+import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
+
