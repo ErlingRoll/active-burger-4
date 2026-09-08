@@ -238,6 +238,18 @@
    * half — the warm half is the accent channels above.
    */
   --scene-night: var(--color-slate-950);
+  /* What a silhouette falls to once the light stops reaching it. */
+  --scene-silhouette: #070b12;
+
+  /* Moonwater Pond: the night it is seen under, and the moon seen in it. */
+  --pond-sky-high: #04060f;
+  --pond-sky-mid: #071120;
+  --pond-sky-low: #0b1e30;
+  --pond-shore-near: #060d18;
+  --pond-moon-face: #fdfefe;
+  --pond-moon-mid: #e6eefa;
+  --pond-moon-edge: #b9cbe2;
+  --pond-moon-rim: #93a9c6;
   --scene-stone: var(--color-slate-900);
   --scene-moonlight-rgb: 148 163 184;
 

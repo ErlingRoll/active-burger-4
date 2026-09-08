@@ -2376,13 +2376,13 @@
 /* Nearer the eye than the ring, to give the clearing a foreground. */
 .hub-stone-g {
   --stone-width: 2rem; --stone-height: 4.4rem; --stone-tilt: 5deg;
-  --stone-lit: #101724; --stone-dark: #070b12;
+  --stone-lit: #101724; --stone-dark: var(--scene-silhouette);
   left: 30%; bottom: 9%;
 }
 
 .hub-stone-h {
   --stone-width: 2.3rem; --stone-height: 5rem; --stone-tilt: -6deg;
-  --stone-lit: #101724; --stone-dark: #070b12;
+  --stone-lit: #101724; --stone-dark: var(--scene-silhouette);
   left: 68%; bottom: 13%;
 }
 .hub-stone-e { --stone-width: 2.1rem; --stone-height: 6rem;   --stone-depth: 0.78; --stone-tilt: -2deg;  left: 66%; bottom: 35%; }

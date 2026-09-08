@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type {
   FishingAttemptPreparation,
   FishingAttemptResult,
@@ -140,20 +140,36 @@ function clearTimerMap(timerRef: { current: Map<string, number> }): void {
   timerRef.current.clear()
 }
 
-function getPondPlayerPosition(playerId: string): { left: number; top: number } {
+function getPondPlayerPosition(
+  playerId: string,
+): { left: number; top: number; scale: number; bobDelaySeconds: number } {
   let hash = 2166136261
   for (const character of playerId) {
     hash ^= character.charCodeAt(0)
     hash = Math.imul(hash, 16777619)
   }
-  const angleRandom = (hash >>> 0) / 0x100000000
-  const radiusRandom = (Math.imul(hash, 1597334677) >>> 0) / 0x100000000
-  const angle = angleRandom * Math.PI * 2
-  const radius = Math.sqrt(radiusRandom)
+  const acrossRandom = (hash >>> 0) / 0x100000000
+  const depthRandom = (Math.imul(hash, 1597334677) >>> 0) / 0x100000000
+  /*
+   * The pond is seen from the bank at eye level rather than from above, so a
+   * position is a distance out across the water and a depth into it, not a
+   * point on a disc. Depth runs 0 at the far bank to 1 at the near shore and
+   * drives three things at once: how far down the frame the boat sits, how far
+   * it may stray from the centre — the water is a wedge, narrow at the far end
+   * — and how large it is drawn.
+   */
+  const depth = depthRandom
+  const spread = 0.3 + depth * 0.62
   return {
-    // Keep the sprite and its label within the pond's visible inner area.
-    left: 50 + Math.cos(angle) * 26 * radius,
-    top: 45 + Math.sin(angle) * 21 * radius,
+    left: 50 + (acrossRandom * 2 - 1) * 46 * spread,
+    top: 43 + depth * 33,
+    scale: 0.6 + depth * 0.7,
+    /*
+     * Every boat rides the same swell, so they would rise and fall in unison
+     * without a phase of their own. Derived from the same hash as the position
+     * so a given angler always bobs the same way.
+     */
+    bobDelaySeconds: -(acrossRandom * 5.5),
   }
 }
 
@@ -246,7 +262,7 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
   return (
     <>
       <span className="pond-angler-halo" />
-      <span className="pond-angler-chair" />
+      <span className="pond-angler-boat" />
       <span className="pond-angler-body" />
       <span className="pond-angler-head" />
       <span className="pond-angler-hat">✦</span>
@@ -868,7 +884,23 @@ export function FishingScreen({
           <div className="pond-world" aria-hidden="true">
             <div className="pond-glow pond-glow-one" />
             <div className="pond-glow pond-glow-two" />
+            {/*
+              The bank the water sits in. Without it the pond was a shape on a
+              starfield rather than water in a place.
+            */}
+            <div className="pond-sky">
+              <span className="pond-moon" />
+            </div>
+            <div className="pond-far-bank" />
             <div className="pond-water">
+              <span className="pond-surface pond-surface-far" />
+              <span className="pond-surface pond-surface-near" />
+              {/*
+                The moon's reflection. This world's key light is not drawn in
+                the sky — a pond seen from above shows the moon on its surface,
+                and everything else in the water is lit from that direction.
+              */}
+              <span className="pond-moonpath" />
               {Array.from({ length: 9 }, (_, index) => (
                 <span className={`pond-fish pond-fish-${index + 1}`} key={index}>
                   <span className="pond-fish-body" />
@@ -879,6 +911,9 @@ export function FishingScreen({
               <span className="pond-ripple pond-ripple-two" />
               <span className="pond-ripple pond-ripple-three" />
             </div>
+            <div className="pond-mist" />
+            <div className="pond-near-reeds" />
+            <div className="pond-nightfall" />
             <div
               className={`pond-angler pond-angler-you ${
                 activityPlayerPosition.left > 50
@@ -888,7 +923,9 @@ export function FishingScreen({
               style={{
                 left: `${activityPlayerPosition.left}%`,
                 top: `${activityPlayerPosition.top}%`,
-              }}
+                '--pond-bob-delay': `${activityPlayerPosition.bobDelaySeconds}s`,
+                '--pond-depth-scale': activityPlayerPosition.scale,
+              } as CSSProperties}
             >
               <PondAnglerSprite showCastLine />
               <strong>{activityPlayerName}</strong>
@@ -904,7 +941,12 @@ export function FishingScreen({
                     position.left > 50 ? 'pond-angler-facing-left' : 'pond-angler-facing-right'
                   }`}
                   key={angler.playerId}
-                  style={{ left: `${position.left}%`, top: `${position.top}%` }}
+                  style={{
+                    left: `${position.left}%`,
+                    top: `${position.top}%`,
+                    '--pond-bob-delay': `${position.bobDelaySeconds}s`,
+                    '--pond-depth-scale': position.scale,
+                  } as CSSProperties}
                   aria-label={`${playerName} is ${
                     angler.phase === 'catching'
                       ? 'landing a fish'

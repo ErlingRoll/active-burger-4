@@ -81,6 +81,7 @@
 }
 
 .pond-world {
+  --pond-horizon: 38%;
   position: absolute;
   inset: 0;
   min-height: 0;
@@ -127,6 +128,7 @@
   right: clamp(0.75rem, 2vw, 1.5rem);
   left: clamp(0.75rem, 2vw, 1.5rem);
   display: flex;
+  flex-wrap: wrap;
   align-items: start;
   justify-content: space-between;
   gap: 1rem;
@@ -195,10 +197,10 @@
   min-height: 3.15rem;
   justify-content: center;
   gap: 0.55rem;
-  color: var(--color-amber-100);
-  background: linear-gradient(135deg, var(--color-amber-700), var(--color-amber-900));
-  border-color: var(--color-amber-400);
-  box-shadow: 0 0.2rem 0 var(--color-amber-900), 0 0.7rem 1.5rem rgb(245 158 11 / 20%);
+  color: var(--accent-contrast);
+  background: linear-gradient(135deg, rgb(var(--accent-rgb) / 46%), rgb(8 47 73 / 92%));
+  border-color: rgb(var(--accent-bright-rgb) / 62%);
+  box-shadow: 0 0.2rem 0 rgb(8 47 73 / 90%), 0 0.7rem 1.5rem rgb(var(--accent-rgb) / 22%);
 }
 
 .fishing-inventory-toggle:hover:not(:disabled),
@@ -339,38 +341,264 @@
   background: linear-gradient(to top, rgb(2 6 23 / 55%), transparent);
 }
 
-.pond-water {
+/* ---------------------------------------------------------------------------
+   Moonwater Pond, seen from the bank.
+
+   The pond was drawn from directly above: a large flat ellipse with the moon's
+   reflection pushed into one corner, which is a map rather than a place. A
+   moonpath runs toward whoever is looking at it, so a plan view can never show
+   one — it read as a searchlight instead. The camera now sits on the shore at
+   the same eye level as the refuge, which gives the scene a horizon, a sky to
+   put the moon in, and a water plane with a near and a far end.
+
+   --pond-horizon is the waterline. Everything below is water, everything above
+   is night, and the anglers' depth is measured from it.
+   --------------------------------------------------------------------------- */
+
+.pond-sky {
   position: absolute;
-  top: 14%;
-  left: 16%;
-  width: 68%;
-  height: 62%;
+  z-index: 0;
+  inset: 0 0 calc(100% - var(--pond-horizon)) 0;
   overflow: hidden;
+  pointer-events: none;
   background:
-    radial-gradient(ellipse at 30% 25%, rgb(103 232 249 / 22%), transparent 22%),
-    radial-gradient(ellipse at 70% 75%, rgb(14 116 144 / 38%), transparent 34%),
-    var(--color-cyan-950);
-  border: 0.45rem solid var(--color-cyan-800);
-  border-radius: 48% 52% 46% 54% / 55% 48% 52% 45%;
-  box-shadow:
-    0 0 0 0.35rem rgb(103 232 249 / 10%),
-    inset 0 0 2rem rgb(2 6 23 / 40%),
-    0 1rem 2rem rgb(2 6 23 / 45%);
+    /* Stars of its own: the screen's starfield sits behind this layer. */
+    radial-gradient(circle at 16% 26%, rgb(226 240 255 / 70%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 63% 14%, rgb(199 226 246 / 55%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 86% 40%, rgb(226 240 255 / 62%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 34% 58%, rgb(199 226 246 / 42%) 0 0.04rem, transparent 0.08rem),
+    radial-gradient(circle at 8% 68%, rgb(226 240 255 / 50%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 74% 62%, rgb(214 234 255 / 58%) 0 0.05rem, transparent 0.1rem),
+    /* The moon's glow spilling into the sky above the far shore. */
+    radial-gradient(ellipse 34% 90% at 50% 96%, rgb(var(--accent-bright-rgb) / 12%), transparent 76%),
+    linear-gradient(180deg, var(--pond-sky-high) 0%, var(--pond-sky-mid) 58%, var(--pond-sky-low) 100%);
+  background-size:
+    24rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem, 15rem 12rem, 21rem 16rem,
+    100% 100%, 100% 100%;
 }
 
-.pond-water::before {
+/* The light itself, finally in the sky it was always implying. */
+.pond-moon {
   position: absolute;
-  inset: 0;
-  content: '';
-  opacity: 0.25;
-  background: repeating-linear-gradient(
-    165deg,
-    transparent 0 1.3rem,
-    rgb(165 243 252 / 18%) 1.35rem 1.45rem,
-    transparent 1.5rem 2.5rem
+  top: 26%;
+  left: 50%;
+  width: clamp(2.1rem, 3.4vw, 3.4rem);
+  aspect-ratio: 1;
+  background: radial-gradient(
+    circle at 42% 36%,
+    var(--pond-moon-face),
+    var(--pond-moon-mid) 44%,
+    var(--pond-moon-edge) 78%,
+    var(--pond-moon-rim) 100%
   );
-  animation: pond-water-shimmer 8s linear infinite;
+  border-radius: 50%;
+  box-shadow:
+    0 0 1.4rem 0.2rem rgb(240 248 255 / 60%),
+    0 0 4.5rem 1.2rem rgb(214 234 255 / 26%),
+    0 0 11rem 3.5rem rgb(var(--accent-bright-rgb) / 12%),
+    0 0 22rem 8rem rgb(var(--accent-rgb) / 7%);
+  transform: translateX(-50%);
 }
+
+/*
+ * The far shore.
+ *
+ * The skyline is cut as a polygon rather than drawn with repeating gradients.
+ * A repeating gradient can only make an even comb, which is exactly what the
+ * first two attempts looked like — a barcode laid across the horizon. Two
+ * ridges, the far one lower, lighter and hazier than the near one.
+ */
+.pond-far-bank {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: calc(100% - var(--pond-horizon));
+  left: 0;
+  height: 7%;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--pond-shore-near) 0%, var(--scene-silhouette) 62%);
+  clip-path: polygon(
+    0% 100%, 0% 74%, 3% 52%, 5% 78%, 8% 40%, 11% 82%, 14% 62%, 17% 30%, 20% 76%,
+    23% 56%, 26% 84%, 29% 46%, 32% 70%, 35% 36%, 38% 80%, 41% 58%, 44% 26%,
+    47% 74%, 50% 50%, 53% 82%, 56% 42%, 59% 68%, 62% 34%, 65% 78%, 68% 56%,
+    71% 86%, 74% 44%, 77% 72%, 80% 38%, 83% 80%, 86% 54%, 89% 28%, 92% 76%,
+    95% 60%, 98% 84%, 100% 48%, 100% 100%
+  );
+}
+
+/* The ridge behind it, further off and half lost in the haze. */
+.pond-far-bank::before {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 62%;
+  content: '';
+  opacity: 0.66;
+  background: linear-gradient(180deg, #0b1826, #071019);
+  clip-path: polygon(
+    0% 100%, 0% 62%, 4% 78%, 7% 44%, 10% 70%, 13% 54%, 16% 82%, 19% 38%,
+    22% 66%, 25% 50%, 28% 76%, 31% 60%, 34% 42%, 37% 72%, 40% 56%, 43% 80%,
+    46% 46%, 49% 68%, 52% 52%, 55% 78%, 58% 40%, 61% 64%, 64% 58%, 67% 74%,
+    70% 48%, 73% 70%, 76% 54%, 79% 80%, 82% 44%, 85% 66%, 88% 50%, 91% 76%,
+    94% 58%, 97% 42%, 100% 68%, 100% 100%
+  );
+  filter: blur(0.05rem);
+}
+
+.pond-water {
+  position: absolute;
+  top: var(--pond-horizon);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  background:
+    /* The shore's own darkness lying on the water beneath it. */
+    linear-gradient(180deg, rgb(4 10 17 / 62%) 0%, rgb(6 16 26 / 22%) 3%, transparent 9%),
+    /* The far water takes the sky's colour; the near water is deep and black. */
+    linear-gradient(180deg, #12324a 0%, #0a2136 22%, #05121f 62%, #020810 100%);
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0.6rem 1.2rem rgb(2 6 23 / 55%);
+}
+
+.pond-moonpath {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 68%;
+  height: 100%;
+  pointer-events: none;
+  background:
+    /* Where the moon touches the water. */
+    radial-gradient(ellipse 13% 1.1% at 50% 1.5%, rgb(247 251 255 / 90%), transparent 70%),
+    radial-gradient(ellipse 26% 6% at 50% 2.5%, rgb(214 234 255 / 30%), transparent 76%),
+    /*
+     * Glints, not a pattern. Each is a separate catch of light on a ripple,
+     * wider and further apart as the water comes forward and dimmer as it
+     * leaves the moon behind. A repeating gradient was tried first and read as
+     * a lit ramp; intersecting two of them read as a net.
+     */
+    radial-gradient(ellipse 9% 0.7% at 47% 6%, rgb(238 247 255 / 78%), transparent 72%),
+    radial-gradient(ellipse 7% 0.6% at 55% 10%, rgb(238 247 255 / 66%), transparent 72%),
+    radial-gradient(ellipse 11% 0.8% at 44% 16%, rgb(226 240 255 / 58%), transparent 74%),
+    radial-gradient(ellipse 9% 0.9% at 57% 23%, rgb(214 234 255 / 40%), transparent 74%),
+    radial-gradient(ellipse 13% 1% at 42% 31%, rgb(199 226 246 / 34%), transparent 76%),
+    radial-gradient(ellipse 11% 1.1% at 59% 40%, rgb(199 226 246 / 30%), transparent 76%),
+    radial-gradient(ellipse 15% 1.3% at 41% 51%, rgb(186 216 240 / 24%), transparent 78%),
+    radial-gradient(ellipse 12% 1.4% at 58% 63%, rgb(186 216 240 / 20%), transparent 78%),
+    radial-gradient(ellipse 17% 1.6% at 46% 76%, rgb(176 206 232 / 15%), transparent 80%),
+    /* The haze the glints sit in. */
+    radial-gradient(ellipse 40% 62% at 50% 6%, rgb(var(--accent-bright-rgb) / 13%), transparent 82%);
+  transform: translateX(-50%);
+  animation: pond-moonpath-breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes pond-moonpath-breathe {
+  from { opacity: 0.78; }
+  to { opacity: 1; }
+}
+
+/*
+ * Surface texture in two bands. Ripples crowd together toward the horizon and
+ * open out as the water comes forward, which is the whole of the perspective
+ * trick — the plane is flat, the spacing is not.
+ */
+.pond-surface {
+  position: absolute;
+  right: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.pond-surface-far {
+  top: 0;
+  height: 34%;
+  opacity: 0.24;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 0.2rem,
+    rgb(var(--accent-bright-rgb) / 13%) 0.2rem 0.26rem,
+    transparent 0.26rem 0.42rem
+  );
+  mask-image:
+    linear-gradient(180deg, rgb(0 0 0 / 30%), black 70%),
+    radial-gradient(ellipse 70% 130% at 50% 40%, black, transparent 88%);
+  mask-composite: intersect;
+}
+
+.pond-surface-near {
+  top: 34%;
+  bottom: 0;
+  opacity: 0.2;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 0.55rem,
+    rgb(var(--accent-bright-rgb) / 11%) 0.55rem 0.68rem,
+    transparent 0.68rem 1.35rem
+  );
+  mask-image:
+    linear-gradient(180deg, black, transparent 88%),
+    radial-gradient(ellipse 80% 120% at 50% 20%, black, transparent 92%);
+  mask-composite: intersect;
+}
+
+/* Mist lying on the water at the far end, which is also what softens the
+   waterline into something other than a drawn edge. */
+.pond-mist {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  left: 0;
+  top: calc(var(--pond-horizon) - 4%);
+  height: 18%;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    radial-gradient(ellipse 30% 56% at 18% 60%, rgb(var(--accent-bright-rgb) / 18%), transparent 74%),
+    radial-gradient(ellipse 26% 50% at 72% 54%, rgb(var(--accent-bright-rgb) / 15%), transparent 74%),
+    linear-gradient(180deg, transparent, rgb(var(--scene-moonlight-rgb) / 12%) 54%, transparent);
+  filter: blur(0.45rem);
+  animation: pond-mist-drift 24s ease-in-out infinite alternate;
+}
+
+@keyframes pond-mist-drift {
+  from { transform: translateX(-2.5%); }
+  to { transform: translateX(2.5%); }
+}
+
+/* The near bank, in front of everything: rushes at the bottom corners, out of
+   the way of the loadout panel between them. */
+.pond-near-reeds {
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 26%;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(88deg, transparent 0 0.75rem, var(--scene-silhouette) 0.75rem 0.95rem, transparent 0.95rem 2.3rem),
+    repeating-linear-gradient(93deg, transparent 0 1.3rem, #060c15 1.3rem 1.55rem, transparent 1.55rem 3.4rem);
+  mask-image:
+    linear-gradient(180deg, transparent 0 14%, rgb(0 0 0 / 55%) 52%, black 96%),
+    radial-gradient(ellipse 26% 130% at 6% 100%, black, transparent 72%),
+    radial-gradient(ellipse 22% 120% at 94% 100%, black, transparent 72%);
+  mask-composite: intersect, add;
+  filter: blur(0.03rem);
+}
+
+.pond-nightfall {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 58% 66% at 50% 52%, transparent 40%, rgb(3 6 14 / 46%) 82%, rgb(2 4 10 / 76%) 100%);
+}
+
+
 
 .pond-fish {
   position: absolute;
@@ -404,15 +632,21 @@
   border-right: 0.55rem solid var(--color-cyan-400);
 }
 
-.pond-fish:nth-child(1) { top: 22%; left: 12%; animation-delay: -1s; }
-.pond-fish:nth-child(2) { top: 42%; left: 60%; animation-delay: -5s; transform: scale(0.72); }
-.pond-fish:nth-child(3) { top: 68%; left: 28%; animation-delay: -8s; transform: scale(0.9); }
-.pond-fish:nth-child(4) { top: 30%; left: 76%; animation-delay: -3s; transform: scale(0.62); }
-.pond-fish:nth-child(5) { top: 76%; left: 68%; animation-delay: -10s; transform: scale(0.8); }
-.pond-fish:nth-child(6) { top: 56%; left: 42%; animation-delay: -6s; transform: scale(1.12); }
-.pond-fish:nth-child(7) { top: 14%; left: 45%; animation-delay: -2s; transform: scale(0.55); }
-.pond-fish:nth-child(8) { top: 64%; left: 8%; animation-delay: -9s; transform: scale(0.68); }
-.pond-fish:nth-child(9) { top: 48%; left: 82%; animation-delay: -4s; transform: scale(0.9); }
+/*
+ * Fish sit at depths like the boats do: the further up the water they are, the
+ * further away, so the smaller and fainter. Their old placement reached the
+ * frame's edges, which put them half off-screen once the water stopped being
+ * an ellipse in the middle of the view.
+ */
+.pond-fish:nth-child(1) { top: 18%; left: 22%; animation-delay: -1s; transform: scale(0.5); opacity: 0.55; }
+.pond-fish:nth-child(2) { top: 41%; left: 62%; animation-delay: -5s; transform: scale(0.72); opacity: 0.72; }
+.pond-fish:nth-child(3) { top: 68%; left: 31%; animation-delay: -8s; transform: scale(1); }
+.pond-fish:nth-child(4) { top: 26%; left: 72%; animation-delay: -3s; transform: scale(0.58); opacity: 0.6; }
+.pond-fish:nth-child(5) { top: 78%; left: 66%; animation-delay: -10s; transform: scale(1.08); }
+.pond-fish:nth-child(6) { top: 54%; left: 44%; animation-delay: -6s; transform: scale(0.86); opacity: 0.85; }
+.pond-fish:nth-child(7) { top: 12%; left: 47%; animation-delay: -2s; transform: scale(0.42); opacity: 0.45; }
+.pond-fish:nth-child(8) { top: 62%; left: 18%; animation-delay: -9s; transform: scale(0.94); }
+.pond-fish:nth-child(9) { top: 36%; left: 78%; animation-delay: -4s; transform: scale(0.66); opacity: 0.68; }
 
 .pond-ripple {
   position: absolute;
@@ -437,6 +671,13 @@
   font-size: 0.65rem;
   font-weight: 800;
   text-shadow: 0 1px 0 var(--color-slate-950);
+  transform: scale(var(--pond-depth-scale, 1));
+  transform-origin: 50% 92%;
+}
+
+/* The label is chrome rather than scenery, so it keeps its own size. */
+.pond-angler strong {
+  scale: calc(1 / var(--pond-depth-scale, 1));
 }
 
 .pond-angler strong {
@@ -449,24 +690,75 @@
   transform: translateX(-50%);
 }
 
-.pond-angler-chair {
+/*
+ * Every angler gets a boat.
+ *
+ * The figures sat on a small wooden chair on the surface of the water, which
+ * read as standing on it. A hull explains the pose: a shallow lens with the
+ * moon along its near gunwale, a dark interior, and a shadow it rides on.
+ */
+.pond-angler-boat {
   position: absolute;
   z-index: 1;
-  bottom: 0;
+  bottom: -0.2rem;
   left: 50%;
-  width: 2.35rem;
-  height: 1.1rem;
-  background: linear-gradient(145deg, var(--color-yellow-900), #3f1d0b);
-  border: 1px solid var(--color-amber-600);
-  border-radius: 0.35rem 0.35rem 0.2rem 0.2rem;
-  box-shadow: inset 0 0.15rem rgb(254 243 199 / 20%);
+  width: 4.7rem;
+  height: 1.45rem;
+  background:
+    linear-gradient(180deg, rgb(226 240 255 / 46%) 0 12%, transparent 38%),
+    linear-gradient(180deg, #55647a 0%, #2c3a4c 44%, #131d2a 100%);
+  border-radius: 48% 48% 50% 50% / 30% 30% 92% 92%;
+  box-shadow:
+    inset 0 0.1rem rgb(233 244 255 / 62%),
+    inset 0 -0.32rem 0.45rem rgb(2 6 23 / 72%),
+    0 0.32rem 0.8rem rgb(2 6 23 / 68%);
   transform: translateX(-50%);
+  animation: pond-boat-bob 5.5s ease-in-out infinite alternate;
+  animation-delay: var(--pond-bob-delay, 0s);
+}
+
+/* The hollow of the hull, so it is a boat rather than a bead. */
+.pond-angler-boat::before {
+  position: absolute;
+  top: 14%;
+  left: 12%;
+  width: 76%;
+  height: 52%;
+  content: '';
+  background: linear-gradient(180deg, #060c15, #0d1622);
+  border-radius: 46% 46% 50% 50% / 40% 40% 88% 88%;
+  box-shadow: inset 0 0.08rem rgb(148 178 214 / 22%);
+}
+
+/* What it sits in: a dark reflection with the water breaking around it. */
+.pond-angler-boat::after {
+  position: absolute;
+  bottom: -0.42rem;
+  left: 50%;
+  width: 132%;
+  height: 0.85rem;
+  content: '';
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 42%, rgb(2 6 23 / 62%), transparent 72%),
+    radial-gradient(ellipse 62% 26% at 50% 30%, rgb(var(--accent-bright-rgb) / 20%), transparent 76%);
+  transform: translateX(-50%);
+}
+
+@keyframes pond-boat-bob {
+  from { transform: translate(-50%, 0.08rem) rotate(-1.1deg); }
+  to { transform: translate(-50%, -0.1rem) rotate(1.1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pond-angler-boat {
+    animation: none;
+  }
 }
 
 .pond-angler-body {
   position: absolute;
   z-index: 3;
-  bottom: 0.38rem;
+  bottom: 0.62rem;
   left: 50%;
   width: 1.6rem;
   height: 1.7rem;
@@ -482,7 +774,7 @@
 .pond-angler-head {
   position: absolute;
   z-index: 4;
-  bottom: 1.68rem;
+  bottom: 1.92rem;
   left: 50%;
   width: 1.15rem;
   height: 1.15rem;
@@ -513,7 +805,7 @@
 .pond-angler-halo {
   position: absolute;
   z-index: 2;
-  bottom: 1.28rem;
+  bottom: 1.52rem;
   left: 50%;
   width: 2.35rem;
   height: 2.35rem;
@@ -702,6 +994,7 @@
 .pond-scene-actions {
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
@@ -748,11 +1041,11 @@
 .pond-loadout-state {
   flex: 0 0 auto;
   padding: 0.35rem 0.6rem;
-  color: var(--color-amber-100);
+  color: var(--accent-contrast);
   font-size: 0.7rem;
   font-weight: 800;
-  background: rgb(180 83 9 / 32%);
-  border: 1px solid rgb(251 191 36 / 42%);
+  background: rgb(var(--accent-rgb) / 26%);
+  border: 1px solid rgb(var(--accent-bright-rgb) / 46%);
   border-radius: 999px;
 }
 
@@ -777,8 +1070,12 @@
 }
 
 .pond-loadout-controls {
+  /* Grows to take the row it shares with the cast button, so auto-fit has a
+     width to lay tracks in. Without the basis it collapsed to its narrowest
+     track and stacked the three controls even on a wide screen. */
+  flex: 1 1 24rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(7rem, 12rem));
+  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 12rem));
   gap: 0.65rem;
   min-width: 0;
 }
@@ -868,9 +1165,12 @@
 .pond-cast-button {
   min-width: 9.5rem;
   min-height: 2.75rem;
+  color: var(--color-cyan-950);
   font-size: 0.86rem;
   letter-spacing: 0.03em;
-  box-shadow: 0 0.25rem 0 var(--color-amber-800), 0 0.5rem 1.2rem rgb(245 158 11 / 18%);
+  background: linear-gradient(180deg, var(--color-cyan-200), var(--color-cyan-400));
+  border-color: var(--color-cyan-100);
+  box-shadow: 0 0.25rem 0 var(--color-cyan-800), 0 0.5rem 1.4rem rgb(var(--accent-rgb) / 30%);
 }
 
 .pond-cast-button:hover:not(:disabled),
