@@ -559,7 +559,14 @@ export function AdventureHubScene({
   ])
 
   return (
-    <section className="dashboard game-dashboard adventure-hub" aria-labelledby="game-dashboard-title">
+    <section
+      className="dashboard game-dashboard adventure-hub"
+      aria-labelledby="game-dashboard-title"
+      // Read by the end-to-end suite to wait for durable run recovery to settle
+      // before driving the dashboard. Without it every authenticated spec times
+      // out waiting for a state the page never published.
+      data-run-persistence-state={runLoadState}
+    >
       <div className="adventure-hub-scene">
         <div className="hub-dungeon-gate" aria-hidden="true">
           <span className="hub-dungeon-gate-glow" />

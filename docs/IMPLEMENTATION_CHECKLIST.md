@@ -24,6 +24,12 @@ milestones in order unless an ADR documents an exception.
   production contexts
 - [ ] Mobile and small-viewport support. Responsive rules were deliberately
   removed; the application currently targets desktop browsers only.
+- [ ] Repair the authenticated Playwright suite. It was written against the
+  pre-redesign dashboard and cannot run: `clearExistingRun` waits for a
+  "Current dungeon" heading or a "Start a dungeon run" button, and the
+  Adventure Hub renders neither, so 19 of the 20 specs in
+  `e2e/game-canvas.spec.ts` never execute. The suite needs rewriting against
+  the current hub before it can be trusted or added to CI.
 
 ## Cross-Cutting Completion Rules
 
