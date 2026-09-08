@@ -28,9 +28,6 @@ import {
 import {
   type MetaRunResultInput,
 } from './meta'
-import { MetaProgressionScreen } from './meta/MetaProgressionScreen'
-import { GameCanvas } from './rendering/GameCanvas'
-import { WikiScreen } from './wiki/WikiScreen'
 import {
   normalizeWorldModifierIds,
   type WorldModifierId,
@@ -54,15 +51,23 @@ import {
   parseGameCheckpoint,
 } from './app/runFormatting'
 import { AppHeader } from './app/screens/AppHeader'
+import {
+  LazyAdminReportsScreen,
+  LazyChampionManagementScreen,
+  LazyFishingScreen,
+  LazyGameCanvas,
+  LazyInventoryScreen,
+  LazyMetaProgressionScreen,
+  LazyNicknameModerationScreen,
+  LazyRunSetupScreen,
+  LazyScreen,
+  LazyWikiScreen,
+} from './app/lazyScreens'
 import { AuthGateway } from './app/screens/AuthGateway'
 import { GameDashboard } from './app/screens/GameDashboard'
 import { ResultsScreen } from './app/screens/ResultsScreen'
-import { RunSetupScreen } from './app/screens/RunSetupScreen'
 import type { AuthenticationService } from './auth'
 import type { MetaProgressionService } from './meta'
-import { ErrorBoundary } from './ui/ErrorBoundary'
-import { AdminReportsScreen } from './admin/AdminReportsScreen'
-import { NicknameModerationScreen } from './admin/NicknameModerationScreen'
 import {
   type BugReportDungeonContext,
   type BugReportImage,
@@ -70,14 +75,11 @@ import {
   type BugReportFloorSnapshot,
 } from './bug-report'
 import {
-  FishingScreen,
 } from './fishing'
 import {
-  ChampionManagementScreen,
   type CharacterBuildSnapshot,
 } from './characters'
 import {
-  InventoryScreen,
 } from './loot'
 import type { GameKeybinds } from './input/Keybinds'
 import { DEFAULT_GAME_KEYBINDS } from './input/Keybinds'
@@ -1556,10 +1558,12 @@ function App() {
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
-        <WikiScreen
-          appVersion={APP_VERSION}
-          onReturnToApp={() => navigateToScreen('dashboard')}
-        />
+        <LazyScreen label="The wiki">
+          <LazyWikiScreen
+            appVersion={APP_VERSION}
+            onReturnToApp={() => navigateToScreen('dashboard')}
+          />
+        </LazyScreen>
       </main>
     )
   }
@@ -1687,31 +1691,35 @@ function App() {
         />
       ) : null}
       {screen === 'admin' && authentication.account?.isAdmin ? (
-        <AdminReportsScreen
-          reports={adminReports.reports}
-          hiddenReportIds={new Set(adminReports.hiddenReportIds)}
-          showHidden={showHiddenAdminReports}
-          loadState={adminReports.loadState === 'idle' ? 'loading' : adminReports.loadState}
-          error={adminReports.error}
-          onBack={closeAdmin}
-          onRefresh={refreshAdminReports}
-          onToggleShowHidden={() => { setShowHiddenAdminReports((current) => !current) }}
-          onToggleHide={(reportId, hidden) => { void toggleBugReportHidden(reportId, hidden) }}
-          onDelete={(reportId) => { void softDeleteBugReport(reportId) }}
-          onLoadFloorSnapshot={loadBugReportFloorSnapshot}
-        />
+        <LazyScreen label="Bug reports">
+          <LazyAdminReportsScreen
+            reports={adminReports.reports}
+            hiddenReportIds={new Set(adminReports.hiddenReportIds)}
+            showHidden={showHiddenAdminReports}
+            loadState={adminReports.loadState === 'idle' ? 'loading' : adminReports.loadState}
+            error={adminReports.error}
+            onBack={closeAdmin}
+            onRefresh={refreshAdminReports}
+            onToggleShowHidden={() => { setShowHiddenAdminReports((current) => !current) }}
+            onToggleHide={(reportId, hidden) => { void toggleBugReportHidden(reportId, hidden) }}
+            onDelete={(reportId) => { void softDeleteBugReport(reportId) }}
+            onLoadFloorSnapshot={loadBugReportFloorSnapshot}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'nickname-moderation' && authentication.account?.isAdmin ? (
-        <NicknameModerationScreen
-          requests={nicknameModeration.requests}
-          loadState={nicknameModeration.loadState === 'idle' ? 'loading' : nicknameModeration.loadState}
-          error={nicknameModeration.error}
-          onBack={closeAdmin}
-          onRefresh={refreshNicknameModeration}
-          onReview={(requestId, approve) => {
-            void reviewNicknameChange(requestId, approve)
-          }}
-        />
+        <LazyScreen label="Nickname moderation">
+          <LazyNicknameModerationScreen
+            requests={nicknameModeration.requests}
+            loadState={nicknameModeration.loadState === 'idle' ? 'loading' : nicknameModeration.loadState}
+            error={nicknameModeration.error}
+            onBack={closeAdmin}
+            onRefresh={refreshNicknameModeration}
+            onReview={(requestId, approve) => {
+              void reviewNicknameChange(requestId, approve)
+            }}
+          />
+        </LazyScreen>
       ) : null}
       {(screen === 'admin' || screen === 'nickname-moderation') &&
       (!authentication.account || !authentication.account.isAdmin) ? (
@@ -1737,66 +1745,76 @@ function App() {
         />
       ) : null}
       {screen === 'run-setup' && authentication.account ? (
-        <RunSetupScreen
-          settings={settings}
-          writeError={writeError ?? runStartError}
-          startState={runStartState}
-          inventoryService={inventory.service}
-          inventoryError={inventory.configurationError}
-          characterService={characters.service}
-          characterError={characters.configurationError}
-          maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
-          initialMode={runMode}
-          onStart={startRun}
-          onSelectCharacterClass={selectCharacterClass}
-          onToggleWorldModifier={toggleWorldModifier}
-          onBack={closeRunSetup}
-        />
+        <LazyScreen label="Run preparation">
+          <LazyRunSetupScreen
+            settings={settings}
+            writeError={writeError ?? runStartError}
+            startState={runStartState}
+            inventoryService={inventory.service}
+            inventoryError={inventory.configurationError}
+            characterService={characters.service}
+            characterError={characters.configurationError}
+            maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
+            initialMode={runMode}
+            onStart={startRun}
+            onSelectCharacterClass={selectCharacterClass}
+            onToggleWorldModifier={toggleWorldModifier}
+            onBack={closeRunSetup}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'meta-progression' && authentication.account ? (
-        <MetaProgressionScreen
-          snapshot={metaProgression.snapshot}
-          loadState={metaProgression.loadState}
-          loadError={metaProgression.error}
-          purchaseState={metaProgression.purchaseState}
-          activePurchaseUnlockId={metaProgression.activePurchaseUnlockId}
-          onBack={closeMetaProgression}
-          onRefresh={refreshMetaProgression}
-          onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
-          onPurchaseReroll={() => { void purchaseReroll() }}
-        />
+        <LazyScreen label="The essence store">
+          <LazyMetaProgressionScreen
+            snapshot={metaProgression.snapshot}
+            loadState={metaProgression.loadState}
+            loadError={metaProgression.error}
+            purchaseState={metaProgression.purchaseState}
+            activePurchaseUnlockId={metaProgression.activePurchaseUnlockId}
+            onBack={closeMetaProgression}
+            onRefresh={refreshMetaProgression}
+            onPurchaseUnlock={(unlockId) => { void purchaseUnlock(unlockId) }}
+            onPurchaseReroll={() => { void purchaseReroll() }}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'fishing' && authentication.account ? (
-        <FishingScreen
-          fishingService={fishing.service}
-          inventoryService={inventory.service}
-          configurationError={fishing.configurationError ?? inventory.configurationError}
-          activityPlayerId={authentication.account.id}
-          activityPlayerApprovedNickname={nickname.displayName}
-          activityPlayerProviderName={authentication.account.displayName}
-          activityPlayerEmail={authentication.account.email}
-        />
+        <LazyScreen label="The fishing pond">
+          <LazyFishingScreen
+            fishingService={fishing.service}
+            inventoryService={inventory.service}
+            configurationError={fishing.configurationError ?? inventory.configurationError}
+            activityPlayerId={authentication.account.id}
+            activityPlayerApprovedNickname={nickname.displayName}
+            activityPlayerProviderName={authentication.account.displayName}
+            activityPlayerEmail={authentication.account.email}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'champions' && authentication.account ? (
-        <ChampionManagementScreen
-          service={characters.service}
-          inventoryService={inventory.service}
-          inventoryError={inventory.configurationError}
-          configurationError={characters.configurationError}
-          onBack={returnToDashboard}
-        />
+        <LazyScreen label="Champions">
+          <LazyChampionManagementScreen
+            service={characters.service}
+            inventoryService={inventory.service}
+            inventoryError={inventory.configurationError}
+            configurationError={characters.configurationError}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'inventory' && authentication.account ? (
-        <InventoryScreen
-          inventoryService={inventory.service}
-          lootBoxService={lootBoxes.service}
-          configurationError={lootBoxes.configurationError ?? inventory.configurationError}
-          onBack={returnToDashboard}
-        />
+        <LazyScreen label="The inventory">
+          <LazyInventoryScreen
+            inventoryService={inventory.service}
+            lootBoxService={lootBoxes.service}
+            configurationError={lootBoxes.configurationError ?? inventory.configurationError}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
       ) : null}
       {screen === 'gameplay' ? (
-        <ErrorBoundary label="The dungeon run">
-          <GameCanvas
+        <LazyScreen label="The dungeon run">
+          <LazyGameCanvas
             key={runId}
             runConfig={runConfig}
             initialCheckpoint={resumeCheckpoint}
@@ -1809,7 +1827,7 @@ function App() {
             reportBugRunId={activeRunSubmission?.runId}
             onSubmitBugReport={submitBugReport}
           />
-        </ErrorBoundary>
+        </LazyScreen>
       ) : null}
       {screen === 'results' && result ? (
         <ResultsScreen

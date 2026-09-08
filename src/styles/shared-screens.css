@@ -461,3 +461,16 @@
   border-left: 0.2rem solid var(--accent-danger, #b91c1c);
   border-radius: 0.35rem;
 }
+
+/* Lazy route loading state --------------------------------------------- */
+
+.screen-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.screen-loading .dashboard-panel {
+  min-width: 18rem;
+  text-align: center;
+}

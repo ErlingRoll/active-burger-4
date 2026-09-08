@@ -38,10 +38,10 @@ import {
   FishIcon,
 } from '../../fishing'
 import { getFishDefinition } from '../../fishing/FishingContent'
-import {
-  ChampionDetails,
-  type ChampionSnapshot,
-} from '../../characters'
+import type { ChampionSnapshot } from '../../characters'
+// Imported from the owning module, not the barrel: the barrel no longer
+// re-exports screens so route chunks stay split.
+import { ChampionDetails } from '../../characters/ChampionManagementScreen'
 import {
   getInventoryItemDefinition,
   type InventoryItemInstance,
