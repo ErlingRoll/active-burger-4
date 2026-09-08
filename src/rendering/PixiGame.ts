@@ -3,15 +3,9 @@ import type { EntityId } from '../game/ids'
 import type { Game } from '../game/Game'
 import {
   getEnemyDefinition,
-  type EnemyRenderDefinition,
 } from '../content/enemies/Enemies'
 import {
-  getEliteModifierDefinition,
-  getEliteModifierIds,
   isElitePhaseboundActive,
-  normalizeEliteModifierIds,
-  type EliteModifierInput,
-  type EliteModifierId,
 } from '../content/enemies/EliteModifiers'
 import {
   BASIC_ATTACK_SKILL_ID,
@@ -48,21 +42,11 @@ import type {
   SummonState,
   TelegraphState,
   TrapState,
-  StairsState,
   WireState,
   RuinSigilState,
   PrismHaloState,
-  HitVisualElement,
   PickupState,
 } from '../game/state/GameState'
-import {
-  getBossDefinition,
-  getBossSkillDefinition,
-} from '../content/bosses/Bosses'
-import {
-  getEnemyAbilityDefinition,
-  type EnemyAbilityId,
-} from '../content/enemies/EnemyAbilities'
 import {
   DEFAULT_CHARACTER_CLASS_ID,
   getCharacterClassDefinition,
@@ -70,172 +54,67 @@ import {
 import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { ARENA_BOUNDS } from '../game-config/arena'
 
-const ENEMY_MELEE_ATTACK_ANIMATION_SECONDS = 0.28
-const STATUS_EFFECT_ICON_SIZE = 10
-const STATUS_EFFECT_ICON_GAP = 2
 const ENEMY_VIEWPORT_PADDING = 128
 const ENEMY_LABEL_RANGE = 260
 const GROUND_COVERAGE_PADDING = 960
-const ALLY_HP_BAR_COLORS = {
-  background: '#14532d',
-  fill: '#22c55e',
-  outline: '#dcfce7',
-} as const
-const ENEMY_HP_BAR_COLORS = {
-  background: '#450a0a',
-  fill: '#ef4444',
-  outline: '#fee2e2',
-} as const
-type HealthBarColors =
-  | typeof ALLY_HP_BAR_COLORS
-  | typeof ENEMY_HP_BAR_COLORS
-
-interface WorldTheme {
-  canvas: string
-  ground: string
-  grid: string
-  boundaryOuter: string
-  boundaryMiddle: string
-  boundaryInner: string
-  boundaryDash: string
-  boundaryCorner: string
-  boundaryCore: string
-}
-
-interface GroundCoverage {
-  minX: number
-  maxX: number
-  minY: number
-  maxY: number
-}
-
-const DUNGEON_WORLD_THEME: WorldTheme = {
-  canvas: '#11151d',
-  ground: '#1d252d',
-  grid: '#35404a',
-  boundaryOuter: '#26313a',
-  boundaryMiddle: '#52616a',
-  boundaryInner: '#b8c7c7',
-  boundaryDash: '#dce8e5',
-  boundaryCorner: '#1a2027',
-  boundaryCore: '#94a3b8',
-}
-
-const ABYSS_WORLD_THEME: WorldTheme = {
-  canvas: '#100718',
-  ground: '#211135',
-  grid: '#3c2056',
-  boundaryOuter: '#3b1264',
-  boundaryMiddle: '#6b21a8',
-  boundaryInner: '#d8b4fe',
-  boundaryDash: '#f0abfc',
-  boundaryCorner: '#2e1065',
-  boundaryCore: '#e879f9',
-}
-
-function hasWorldSpaceEffectGeometry(
-  effect: Pick<SkillEffectState, 'points' | 'impactPoint' | 'impactPoints'>,
-): boolean {
-  return effect.points.length > 1 ||
-    effect.impactPoint !== undefined ||
-    (effect.impactPoints?.length ?? 0) > 0
-}
-
-interface StatusEffectBadge {
-  id: string
-}
-
-function getEnemyStatusEffects(
-  poisonStackCount: number,
-  chillStacks = 0,
-  frozenRemainingDuration = 0,
-  shockStacks = 0,
-  burningStackCount = 0,
-): StatusEffectBadge[] {
-  const statuses: StatusEffectBadge[] = []
-  if (poisonStackCount > 0) {
-    statuses.push({ id: 'poison' })
-  }
-  if (chillStacks > 0) {
-    statuses.push({ id: 'chill' })
-  }
-  if (frozenRemainingDuration > 0) {
-    statuses.push({ id: 'freeze' })
-  }
-  if (shockStacks > 0) {
-    statuses.push({ id: 'shock' })
-  }
-  if (burningStackCount > 0) {
-    statuses.push({ id: 'burning' })
-  }
-  return statuses
-}
-
-function getStatusEffectSignature(
-  statuses: readonly StatusEffectBadge[],
-): string {
-  return statuses.map((status) => status.id).join('|')
-}
-
-function isEnemyAbilityId(
-  skillId: TelegraphState['skillId'],
-): skillId is EnemyAbilityId {
-  return skillId === 'archer-shot' || skillId === 'brute-shockwave'
-}
-
-function getTelegraphName(telegraph: TelegraphState): string {
-  if (telegraph.skillId === 'elite-volatile') {
-    return 'Volatile Explosion'
-  }
-  if (isEnemyAbilityId(telegraph.skillId)) {
-    return getEnemyAbilityDefinition(telegraph.skillId).name
-  }
-  if (
-    telegraph.skillId === 'ground-slam' ||
-    telegraph.skillId === 'charge' ||
-    telegraph.skillId === 'fire-nova' ||
-    telegraph.skillId === 'flame-line' ||
-    telegraph.skillId === 'meteor-zone'
-  ) {
-    return getBossSkillDefinition(telegraph.skillId).name
-  }
-  return 'Enemy attack'
-}
-
-function isLineTelegraphKind(telegraph: TelegraphState): boolean {
-  return telegraph.kind === 'charge' ||
-    telegraph.kind === 'flame-line' ||
-    telegraph.kind === 'enemy-projectile'
-}
-
-function getTelegraphRenderState(
-  state: Game['state'],
-  telegraph: TelegraphState,
-): TelegraphState {
-  if (telegraph.kind !== 'enemy-projectile' || telegraph.sourceKind !== 'enemy') {
-    return telegraph
-  }
-  const source = state.enemies.find(
-    (enemy) => enemy.id === telegraph.sourceId && enemy.hp > 0,
-  )
-  const target = telegraph.targetId === state.player.id
-    ? state.player
-    : state.summons.find(
-        (summon) => summon.id === telegraph.targetId && summon.hp > 0,
-      )
-  if (!source || !target) {
-    return telegraph
-  }
-  return {
-    ...telegraph,
-    x: source.x,
-    y: source.y,
-    points: [
-      { x: source.x, y: source.y },
-      { x: target.x, y: target.y },
-    ],
-  }
-}
+import {
+  ABYSS_WORLD_THEME,
+  ALLY_HP_BAR_COLORS,
+  DUNGEON_WORLD_THEME,
+  ENEMY_HP_BAR_COLORS,
+  type GroundCoverage,
+  type WorldTheme,
+} from './pixi/worldTheme'
+import {
+  getEnemyStatusEffects,
+  getStatusEffectSignature,
+  getTelegraphName,
+  getTelegraphRenderState,
+  hasWorldSpaceEffectGeometry,
+  isLineTelegraphKind,
+} from './pixi/renderState'
+import {
+  createBossPlaceholder,
+  createEnemyPlaceholder,
+  createStairsPlaceholder,
+  drawHealthBar,
+  drawHitFlash,
+  drawShieldBar,
+  drawStatusEffects,
+} from './pixi/entityGraphics'
+import {
+  createBloodPulsePlaceholder,
+  createBoneBoltPlaceholder,
+  createEnemyArrowProjectile,
+  createImpactParticlePlaceholder,
+  createMirrorcastCastPlaceholder,
+  createPhantomSummonPlaceholder,
+  createPrismBeamPlaceholder,
+  createSigilCastPlaceholder,
+  createSkeletonRitualPlaceholder,
+  createVitalityPlaceholder,
+  drawProjectileTrail,
+  drawTelegraphLine,
+} from './pixi/effectGraphics'
+import { createPolygonPoints, createStarPoints } from './pixi/geometry'
+import {
+  STATUS_EFFECT_ICON_GAP,
+  STATUS_EFFECT_ICON_SIZE,
+} from './pixi/constants'
+import {
+  getBossDisplayLabel,
+  getEnemyMeleeAttackAnimationProgress,
+} from './pixi/labels'
+import type {
+  BossView,
+  EnemyView,
+  PickupFeedbackView,
+  PlayerView,
+  RenderPoint,
+  StairsView,
+  SummonView,
+  TelegraphView,
+} from './pixi/views'
 
 export class PixiGame {
   private static readonly MAX_IMPACT_PARTICLE_VIEWS = 48
@@ -686,84 +565,9 @@ export class PixiGame {
     return { root, body, hpBar, guardAura }
   }
 
-  private createEnemyPlaceholder(enemy: {
-    radius: number
-    definitionId: string
-    eliteModifier?: EliteModifierId
-    eliteModifiers?: readonly EliteModifierId[]
-  }): EnemyView {
-    const definition = getEnemyDefinition(enemy.definitionId)
-    const body = new Graphics()
-    const radius = enemy.radius
-    if (definition.render.shape === 'diamond') {
-      body.poly([0, -radius, radius, 0, 0, radius, -radius, 0])
-    } else if (definition.render.shape === 'triangle') {
-      body.poly([0, -radius, radius, radius, -radius, radius])
-    } else if (definition.render.shape === 'hexagon') {
-      const points = Array.from({ length: 6 }, (_, index) => {
-        const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2
-        return [Math.cos(angle) * radius, Math.sin(angle) * radius]
-      }).flat()
-      body.poly(points)
-    } else {
-      body.circle(0, 0, radius)
-    }
-    body
-      .fill(definition.render.color)
-      .stroke({ color: definition.render.outlineColor, width: 2 })
-    applyEnemyRenderScale(body, definition.render)
-
-    const root = new Container()
-    const poisonAura = new Graphics()
-    poisonAura.visible = false
-    applyEnemyRenderScale(poisonAura, definition.render)
-    root.addChild(poisonAura)
-    for (const modifierId of getEliteModifierIds(enemy)) {
-      const modifier = getEliteModifierDefinition(modifierId)
-      const aura = createEliteAura(modifier, radius)
-      applyEnemyRenderScale(aura, definition.render)
-      root.addChild(aura)
-    }
-    root.addChild(body)
-
-    const label = new Text({
-      text: getEnemyDisplayLabel(
-        enemy.definitionId,
-        getEliteModifierIds(enemy),
-      ),
-      style: {
-        fill: '#f8fafc',
-        fontSize: 14,
-        fontFamily: 'Arial, sans-serif',
-        fontWeight: 'bold',
-        stroke: { color: '#0f172a', width: 4 },
-      },
-    })
-    label.anchor.set(0.5, 1)
-    const hpBar = new Graphics()
-    const shieldBar = new Graphics()
-    const statusEffects = new Container()
-    const hitFlash = new Graphics()
-      .circle(0, 0, radius + 4)
-      .fill({ color: '#ffffff', alpha: 0.72 })
-    hitFlash.visible = false
-    root.addChild(hitFlash, shieldBar, hpBar, statusEffects, label)
-    return {
-      root,
-      body,
-      label,
-      hpBar,
-      shieldBar,
-      statusEffects,
-      poisonAura,
-      hitFlash,
-      hasEliteModifier: getEliteModifierIds(enemy).length > 0,
-    }
-  }
-
   private createProjectilePlaceholder(projectile: ProjectileState): Graphics {
     if (projectile.sourceAbilityId === 'archer-shot') {
-      return this.createEnemyArrowProjectile(projectile)
+      return createEnemyArrowProjectile(projectile)
     }
     if (
       !projectile.sourceAbilityId &&
@@ -875,40 +679,6 @@ export class PixiGame {
     return view
   }
 
-  private createEnemyArrowProjectile(projectile: ProjectileState): Graphics {
-    const radius = projectile.radius
-    const shaftLength = radius * 4.8
-    return new Graphics()
-      .moveTo(-shaftLength * 0.9, 0)
-      .lineTo(shaftLength * 0.5, 0)
-      .stroke({ color: '#450a0a', width: 7, alpha: 0.82 })
-      .moveTo(-shaftLength * 0.9, 0)
-      .lineTo(shaftLength * 0.5, 0)
-      .stroke({ color: '#fecdd3', width: 2, alpha: 0.92 })
-      .poly([
-        shaftLength * 0.9,
-        0,
-        shaftLength * 0.4,
-        -radius * 1.4,
-        shaftLength * 0.4,
-        radius * 1.4,
-      ])
-      .fill({ color: '#dc2626', alpha: 0.94 })
-      .stroke({ color: '#fee2e2', width: 1.5 })
-      .poly([
-        -shaftLength * 0.9,
-        0,
-        -shaftLength * 1.25,
-        -radius * 1.1,
-        -shaftLength * 0.98,
-        0,
-        -shaftLength * 1.25,
-        radius * 1.1,
-      ])
-      .fill({ color: '#fb7185', alpha: 0.78 })
-      .stroke({ color: '#fecdd3', width: 1 })
-  }
-
   private createBowBasicProjectile(
     projectile: ProjectileState,
     visual: ReturnType<typeof getBasicAttackVariant>['visual'],
@@ -1015,58 +785,6 @@ export class PixiGame {
     return view
   }
 
-  private createBossPlaceholder(boss: BossState): BossView {
-    const body = new Graphics()
-      .circle(0, 0, boss.radius)
-      .fill('#7c3aed')
-      .stroke({ color: '#fef08a', width: 4 })
-      .circle(0, 0, boss.radius * 0.72)
-      .stroke({ color: '#c4b5fd', width: 2 })
-    const marker = new Graphics()
-      .poly([
-        0,
-        -boss.radius * 1.35,
-        boss.radius * 0.35,
-        -boss.radius * 1.05,
-        boss.radius * 0.7,
-        -boss.radius * 1.35,
-        boss.radius * 0.45,
-        -boss.radius * 0.72,
-        -boss.radius * 0.45,
-        -boss.radius * 0.72,
-        -boss.radius * 0.7,
-        -boss.radius * 1.35,
-        -boss.radius * 0.35,
-        -boss.radius * 1.05,
-      ])
-      .fill('#fef08a')
-      .stroke({ color: '#451a03', width: 1 })
-    const label = new Text({
-      text: getBossDisplayLabel(boss.bossDefinitionId),
-      style: {
-        fill: '#fef08a',
-        fontSize: 16,
-        fontFamily: 'Arial, sans-serif',
-        fontWeight: 'bold',
-        stroke: { color: '#0f172a', width: 5 },
-      },
-    })
-    label.anchor.set(0.5, 1)
-    const hpBar = new Graphics()
-    const poisonAura = new Graphics()
-      .circle(0, 0, boss.radius + 8)
-      .stroke({ color: '#c084fc', width: 4, alpha: 0.65 })
-    poisonAura.visible = false
-    const statusEffects = new Container()
-    const root = new Container()
-    const hitFlash = new Graphics()
-      .circle(0, 0, boss.radius + 6)
-      .fill({ color: '#ffffff', alpha: 0.78 })
-    hitFlash.visible = false
-    root.addChild(poisonAura, body, hitFlash, marker, hpBar, statusEffects, label)
-    return { root, body, label, hpBar, statusEffects, poisonAura, hitFlash }
-  }
-
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
     const color = telegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
     const lightColor = '#fecaca'
@@ -1147,101 +865,13 @@ export class PixiGame {
     }
     if (isLineTelegraphKind(telegraph)) {
       const view = new Graphics()
-      this.drawTelegraphLine(view, telegraph, color, lightColor)
+      drawTelegraphLine(view, telegraph, color, lightColor)
       return view
     }
     return new Graphics()
       .poly(createStarPoints(telegraph.radius, 12, 0.78))
       .fill({ color, alpha: 0.22 })
       .stroke({ color: lightColor, width: 3, alpha: 0.9 })
-  }
-
-  private drawTelegraphLine(
-    view: Graphics,
-    telegraph: TelegraphState,
-    color: string,
-    lightColor: string,
-  ): void {
-    view.clear()
-    const start = telegraph.points[0]
-    if (!start) {
-      return
-    }
-    const drawPath = (): void => {
-      view.moveTo(start.x - telegraph.x, start.y - telegraph.y)
-      for (const point of telegraph.points.slice(1)) {
-        view.lineTo(point.x - telegraph.x, point.y - telegraph.y)
-      }
-    }
-    drawPath()
-    view.stroke({
-      color: '#450a0a',
-      width: telegraph.radius * 2 + 10,
-      alpha: 0.82,
-    })
-    drawPath()
-    view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
-    drawPath()
-    view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
-
-    const end = telegraph.points[telegraph.points.length - 1]
-    if (!end) {
-      return
-    }
-    const endX = end.x - telegraph.x
-    const endY = end.y - telegraph.y
-    const previous = telegraph.points[telegraph.points.length - 2] ?? start
-    const directionX = end.x - previous.x
-    const directionY = end.y - previous.y
-    const length = Math.hypot(directionX, directionY) || 1
-    const normalX = -directionY / length
-    const normalY = directionX / length
-    const arrowSize = Math.max(10, telegraph.radius * 0.8)
-    view
-      .poly([
-        endX,
-        endY,
-        endX - directionX / length * arrowSize + normalX * arrowSize * 0.6,
-        endY - directionY / length * arrowSize + normalY * arrowSize * 0.6,
-        endX - directionX / length * arrowSize - normalX * arrowSize * 0.6,
-        endY - directionY / length * arrowSize - normalY * arrowSize * 0.6,
-      ])
-      .fill(lightColor)
-      .stroke({ color, width: 1 })
-  }
-
-  private createStairsPlaceholder(stairs: StairsState): StairsView {
-    const radius = stairs.radius
-    const view = new Graphics()
-      .circle(0, 0, radius)
-      .fill({ color: stairs.isFinal ? '#991b1b' : '#0e7490', alpha: 0.92 })
-      .stroke({ color: stairs.isFinal ? '#fef08a' : '#67e8f9', width: 4 })
-      .circle(0, 0, radius * 0.72)
-      .stroke({ color: '#e0f2fe', width: 2, alpha: 0.9 })
-      .moveTo(-radius * 0.38, -radius * 0.22)
-      .lineTo(radius * 0.38, -radius * 0.22)
-      .moveTo(-radius * 0.38, 0)
-      .lineTo(radius * 0.38, 0)
-      .moveTo(-radius * 0.38, radius * 0.22)
-      .lineTo(radius * 0.38, radius * 0.22)
-      .stroke({ color: '#f8fafc', width: 3 })
-    const label = new Text({
-      text: stairs.isFinal ? 'STAIRS · FINAL' : 'STAIRS · NEXT FLOOR',
-      style: {
-        fill: stairs.isFinal ? '#fef08a' : '#cffafe',
-        fontSize: 13,
-        fontFamily: 'Arial, sans-serif',
-        fontWeight: 'bold',
-        stroke: { color: '#0f172a', width: 4 },
-      },
-    })
-    // Keep the world label below the ring so it cannot overlap a boss health
-    // bar or the player's health marker at the same world position.
-    label.anchor.set(0.5, 0)
-    label.position.set(0, radius + 10)
-    const root = new Container()
-    root.addChild(view, label)
-    return { root, label }
   }
 
   private createPickupPlaceholder(pickup: PickupState): Graphics {
@@ -1336,7 +966,7 @@ export class PixiGame {
       effect.skillId === PRISM_HALO_SKILL_ID &&
       effect.prismBeamElement !== undefined
     ) {
-      return this.decorateEvolutionEffect(effect, this.createPrismBeamPlaceholder(effect))
+      return this.decorateEvolutionEffect(effect, createPrismBeamPlaceholder(effect))
     }
     if (effect.skillId === SOUL_TETHER_SKILL_ID && effect.shape === 'line') {
       return this.decorateEvolutionEffect(effect, this.createSoulTetherPlaceholder(effect))
@@ -1349,22 +979,22 @@ export class PixiGame {
     }
     if (effect.shape === undefined) {
       if (effect.skillId === VITALITY_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createVitalityPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createVitalityPlaceholder(effect))
       }
       if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createSkeletonRitualPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createSkeletonRitualPlaceholder(effect))
       }
       if (effect.skillId === BLOOD_RITE_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createBloodPulsePlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createBloodPulsePlaceholder(effect))
       }
       if (effect.skillId === SIGIL_OF_RUIN_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createSigilCastPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createSigilCastPlaceholder(effect))
       }
       if (effect.skillId === MIRRORCAST_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createMirrorcastCastPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createMirrorcastCastPlaceholder(effect))
       }
       if (effect.skillId === PHANTOM_ARSENAL_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createPhantomSummonPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createPhantomSummonPlaceholder(effect))
       }
     }
     if (effect.shape === 'line') {
@@ -1375,7 +1005,7 @@ export class PixiGame {
         return this.decorateEvolutionEffect(effect, this.createMirrorcastLinkPlaceholder(effect))
       }
       if (effect.skillId === RAISE_SKELETON_SKILL_ID) {
-        return this.decorateEvolutionEffect(effect, this.createBoneBoltPlaceholder(effect))
+        return this.decorateEvolutionEffect(effect, createBoneBoltPlaceholder(effect))
       }
     }
     if (effect.skillId === BASIC_ATTACK_SKILL_ID) {
@@ -2283,378 +1913,6 @@ export class PixiGame {
     return view
   }
 
-  private createBoneBoltPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(RAISE_SKELETON_SKILL_ID).visual
-    const points = effect.points.length > 0
-      ? effect.points
-      : [{ x: effect.x, y: effect.y }]
-    const start = points[0]
-    const end = points[points.length - 1]
-    const view = new Graphics()
-    if (!start || !end) {
-      return view
-    }
-    const startX = start.x - effect.x
-    const startY = start.y - effect.y
-    const endX = end.x - effect.x
-    const endY = end.y - effect.y
-    const directionX = endX - startX
-    const directionY = endY - startY
-    const length = Math.hypot(directionX, directionY) || 1
-    const normalX = -directionY / length
-    const normalY = directionX / length
-    view
-      .moveTo(startX, startY)
-      .lineTo(endX, endY)
-      .stroke({ color: visual.primaryColor, width: 7, alpha: 0.16 })
-      .moveTo(startX, startY)
-      .lineTo(endX, endY)
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.9 })
-    const boneCount = Math.max(2, Math.min(6, Math.floor(length / 30)))
-    for (let index = 1; index <= boneCount; index += 1) {
-      const progress = index / (boneCount + 1)
-      const centerX = startX + directionX * progress
-      const centerY = startY + directionY * progress
-      view
-        .moveTo(centerX - normalX * 5, centerY - normalY * 5)
-        .lineTo(centerX + normalX * 5, centerY + normalY * 5)
-        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.85 })
-    }
-    return view
-  }
-
-  private createVitalityPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(VITALITY_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    const view = new Graphics()
-      .poly(createPolygonPoints(radius, 8, Math.PI / 8))
-      .fill({ color: visual.primaryColor, alpha: 0.12 })
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.7 })
-      .poly([
-        0, -radius * 0.52,
-        radius * 0.4, -radius * 0.18,
-        0, radius * 0.66,
-        -radius * 0.4, -radius * 0.18,
-      ])
-      .fill({ color: visual.primaryColor, alpha: 0.62 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
-      .moveTo(0, -radius * 0.36)
-      .lineTo(0, radius * 0.42)
-      .moveTo(-radius * 0.25, 0)
-      .lineTo(radius * 0.25, 0)
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
-    for (let index = 0; index < 4; index += 1) {
-      const angle = (Math.PI / 2) * index
-      const x = Math.cos(angle) * radius * 0.82
-      const y = Math.sin(angle) * radius * 0.82
-      view
-        .poly([
-          x,
-          y - 5,
-          x + Math.cos(angle) * 8,
-          y + Math.sin(angle) * 8,
-          x + Math.sin(angle) * 5,
-          y - Math.cos(angle) * 5,
-        ])
-        .fill({ color: visual.secondaryColor, alpha: 0.68 })
-    }
-    return view
-  }
-
-  private createSkeletonRitualPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(RAISE_SKELETON_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    return new Graphics()
-      .poly(createPolygonPoints(radius, 8, Math.PI / 8))
-      .fill({ color: visual.primaryColor, alpha: 0.1 })
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.76 })
-      .poly([
-        -radius * 0.3, -radius * 0.18,
-        -radius * 0.3, radius * 0.24,
-        -radius * 0.12, radius * 0.4,
-        radius * 0.12, radius * 0.4,
-        radius * 0.3, radius * 0.24,
-        radius * 0.3, -radius * 0.18,
-        radius * 0.12, -radius * 0.4,
-        -radius * 0.12, -radius * 0.4,
-      ])
-      .fill({ color: visual.primaryColor, alpha: 0.65 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.92 })
-      .circle(-radius * 0.12, -radius * 0.1, 2.5)
-      .fill(visual.outlineColor)
-      .circle(radius * 0.12, -radius * 0.1, 2.5)
-      .fill(visual.outlineColor)
-      .moveTo(-radius * 0.2, radius * 0.18)
-      .lineTo(radius * 0.2, radius * 0.18)
-      .stroke({ color: visual.outlineColor, width: 2 })
-  }
-
-  private createBloodPulsePlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(BLOOD_RITE_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    const view = new Graphics()
-      .poly(createStarPoints(radius, 16, 0.5))
-      .fill({ color: visual.primaryColor, alpha: 0.26 })
-      .stroke({ color: visual.outlineColor, width: 3, alpha: 0.88 })
-      .poly(createPolygonPoints(radius * 0.58, 8, Math.PI / 8))
-      .fill({ color: visual.secondaryColor, alpha: 0.38 })
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.8 })
-    for (let index = 0; index < 8; index += 1) {
-      const angle = (Math.PI * 2 * index) / 8
-      view
-        .moveTo(Math.cos(angle) * radius * 0.26, Math.sin(angle) * radius * 0.26)
-        .lineTo(Math.cos(angle) * radius * 0.82, Math.sin(angle) * radius * 0.82)
-        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.58 })
-    }
-    return view
-  }
-
-  private createSigilCastPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(SIGIL_OF_RUIN_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    const view = new Graphics()
-      .poly(createPolygonPoints(radius, 6, -Math.PI / 2))
-      .fill({ color: visual.primaryColor, alpha: 0.2 })
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.82 })
-      .poly(createPolygonPoints(radius * 0.62, 3, -Math.PI / 2))
-      .fill({ color: visual.secondaryColor, alpha: 0.18 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.86 })
-    for (let index = 0; index < 3; index += 1) {
-      const angle = (Math.PI * 2 * index) / 3 - Math.PI / 2
-      view
-        .moveTo(Math.cos(angle) * radius * 0.18, Math.sin(angle) * radius * 0.18)
-        .lineTo(Math.cos(angle) * radius * 0.82, Math.sin(angle) * radius * 0.82)
-        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.72 })
-    }
-    return view
-  }
-
-  private createMirrorcastCastPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(MIRRORCAST_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    const view = new Graphics()
-      .poly(createPolygonPoints(radius, 4, Math.PI / 4))
-      .fill({ color: visual.primaryColor, alpha: 0.18 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
-      .poly(createPolygonPoints(radius * 0.54, 4, 0))
-      .fill({ color: visual.secondaryColor, alpha: 0.34 })
-      .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.82 })
-    for (let index = 0; index < 4; index += 1) {
-      const angle = (Math.PI / 2) * index + Math.PI / 4
-      view
-        .moveTo(Math.cos(angle) * radius * 0.65, Math.sin(angle) * radius * 0.65)
-        .lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
-        .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.72 })
-    }
-    return view
-  }
-
-  private createImpactParticlePlaceholder(effect: SkillEffectState): Graphics {
-    const visual = effect.skillId === BASIC_ATTACK_SKILL_ID
-      ? getBasicAttackVariant(effect.basicAttackWeaponArchetype).visual
-      : getSkillDefinition(effect.skillId).visual
-    const points = effect.points.length > 0
-      ? effect.points
-      : [{ x: effect.x, y: effect.y }]
-    const arcPoints = effect.shape === 'arc' ? points.slice(1) : points
-    const fallbackImpact = effect.impactPoint ?? arcPoints[Math.floor(arcPoints.length / 2)] ??
-      arcPoints[arcPoints.length - 1] ??
-      points[0]
-    const impactPoints = effect.impactPoints?.length
-      ? effect.impactPoints
-      : fallbackImpact
-        ? [fallbackImpact]
-        : []
-    const radius = Math.max(8, Math.min(46, effect.radius * 0.28))
-    const view = new Graphics()
-    for (const [pointIndex, impact] of impactPoints.entries()) {
-      const impactX = impact.x - effect.x
-      const impactY = impact.y - effect.y
-      const particleCount = impactPoints.length > 1 ? 6 : 9
-      for (let index = 0; index < particleCount; index += 1) {
-        const angle = (Math.PI * 2 * index) / particleCount +
-          (effect.id % 7) * 0.11 + pointIndex * 0.19
-        const distance = radius * (0.72 + (index % 3) * 0.18)
-        const size = 2 + (index % 2)
-        const x = impactX + Math.cos(angle) * distance
-        const y = impactY + Math.sin(angle) * distance
-        view
-          .poly([
-            x + Math.cos(angle) * size * 2.6,
-            y + Math.sin(angle) * size * 2.6,
-            x + Math.cos(angle + 2.1) * size,
-            y + Math.sin(angle + 2.1) * size,
-            x + Math.cos(angle - 2.1) * size,
-            y + Math.sin(angle - 2.1) * size,
-          ])
-          .fill({ color: index % 2 === 0 ? visual.secondaryColor : visual.primaryColor, alpha: 0.85 })
-          .stroke({ color: visual.outlineColor, width: 1, alpha: 0.72 })
-      }
-    }
-    return view
-  }
-
-  private createPhantomSummonPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID).visual
-    const radius = Math.max(1, effect.radius)
-    const view = new Graphics()
-      .poly(createPolygonPoints(radius, 6, -Math.PI / 2))
-      .fill({ color: visual.primaryColor, alpha: 0.12 })
-      .stroke({ color: visual.secondaryColor, width: 2, alpha: 0.72 })
-      .poly([
-        -radius * 0.42, radius * 0.26,
-        -radius * 0.22, -radius * 0.38,
-        0, -radius * 0.62,
-        radius * 0.22, -radius * 0.38,
-        radius * 0.42, radius * 0.26,
-        radius * 0.18, radius * 0.52,
-        -radius * 0.18, radius * 0.52,
-      ])
-      .fill({ color: visual.primaryColor, alpha: 0.5 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.88 })
-      .moveTo(-radius * 0.2, -radius * 0.06)
-      .lineTo(radius * 0.2, -radius * 0.06)
-      .moveTo(0, -radius * 0.24)
-      .lineTo(0, radius * 0.3)
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.82 })
-    return view
-  }
-
-  private createPrismBeamPlaceholder(effect: SkillEffectState): Graphics {
-    const visual = getSkillDefinition(PRISM_HALO_SKILL_ID).visual
-    const points = effect.points.length > 0
-      ? effect.points
-      : [{ x: effect.x, y: effect.y }]
-    const start = points[0]
-    const end = points[points.length - 1]
-    const view = new Graphics()
-    if (!start || !end) {
-      return view
-    }
-
-    const startX = start.x - effect.x
-    const startY = start.y - effect.y
-    const endX = end.x - effect.x
-    const endY = end.y - effect.y
-    const length = Math.hypot(endX - startX, endY - startY)
-    if (length <= 0) {
-      return view
-    }
-
-    const directionX = (endX - startX) / length
-    const directionY = (endY - startY) / length
-    const perpendicularX = -directionY
-    const perpendicularY = directionX
-    const beamColors = effect.prismBeamElement === 'all'
-      ? (['#f97316', '#38bdf8', '#fef08a'] as const)
-      : effect.prismBeamElement === 'fire'
-        ? (['#f97316'] as const)
-        : effect.prismBeamElement === 'cold'
-          ? (['#38bdf8'] as const)
-          : (['#fef08a'] as const)
-
-    const facetCount = Math.max(3, Math.min(8, Math.floor(length / 46)))
-    const facetHalfWidth = effect.prismBeamElement === 'all' ? 9 : 7
-
-    // Prism Halo is built from angular facets and a refracting core, not a
-    // tether-like line with circular nodes.
-    view
-      .moveTo(startX, startY)
-      .lineTo(endX, endY)
-      .stroke({ color: visual.outlineColor, width: 24, alpha: 0.12 })
-      .moveTo(startX, startY)
-      .lineTo(endX, endY)
-      .stroke({ color: visual.primaryColor, width: 13, alpha: 0.16 })
-
-    for (let index = 0; index < facetCount; index += 1) {
-      const startProgress = index / facetCount
-      const endProgress = (index + 1) / facetCount
-      const centerProgress = (startProgress + endProgress) / 2
-      const facetStartX = startX + (endX - startX) * startProgress
-      const facetStartY = startY + (endY - startY) * startProgress
-      const facetEndX = startX + (endX - startX) * endProgress
-      const facetEndY = startY + (endY - startY) * endProgress
-      const centerX = startX + (endX - startX) * centerProgress
-      const centerY = startY + (endY - startY) * centerProgress
-      const width = facetHalfWidth * (index % 2 === 0 ? 1 : 0.72)
-      const color = beamColors[index % beamColors.length]!
-      const leftStartX = facetStartX + perpendicularX * width
-      const leftStartY = facetStartY + perpendicularY * width
-      const rightStartX = facetStartX - perpendicularX * width
-      const rightStartY = facetStartY - perpendicularY * width
-      const leftEndX = facetEndX + perpendicularX * width
-      const leftEndY = facetEndY + perpendicularY * width
-      const rightEndX = facetEndX - perpendicularX * width
-      const rightEndY = facetEndY - perpendicularY * width
-
-      view
-        .poly([
-          leftStartX, leftStartY,
-          centerX, centerY - perpendicularY * width * 0.68,
-          leftEndX, leftEndY,
-          rightEndX, rightEndY,
-          centerX, centerY + perpendicularY * width * 0.68,
-          rightStartX, rightStartY,
-        ])
-        .fill({ color, alpha: effect.prismBeamElement === 'all' ? 0.52 : 0.62 })
-        .stroke({ color: visual.outlineColor, width: 1.5, alpha: 0.82 })
-        .moveTo(leftStartX, leftStartY)
-        .lineTo(rightEndX, rightEndY)
-        .stroke({ color: visual.outlineColor, width: 1, alpha: 0.55 })
-    }
-
-    const corePoints: number[] = [startX, startY]
-    for (let index = 1; index < facetCount; index += 1) {
-      const progress = index / facetCount
-      const offset = index % 2 === 0 ? -2.5 : 2.5
-      corePoints.push(
-        startX + (endX - startX) * progress + perpendicularX * offset,
-        startY + (endY - startY) * progress + perpendicularY * offset,
-      )
-    }
-    corePoints.push(endX, endY)
-    view
-      .poly(corePoints)
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.95 })
-
-    const crestLength = Math.min(24, Math.max(12, length * 0.1))
-    const crestX = endX - directionX * crestLength
-    const crestY = endY - directionY * crestLength
-    view
-      .moveTo(crestX + perpendicularX * 10, crestY + perpendicularY * 10)
-      .lineTo(endX, endY)
-      .lineTo(crestX - perpendicularX * 10, crestY - perpendicularY * 10)
-      .lineTo(
-        crestX - directionX * crestLength * 0.34,
-        crestY - directionY * crestLength * 0.34,
-      )
-      .closePath()
-      .fill({ color: beamColors[beamColors.length - 1]!, alpha: 0.7 })
-      .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
-
-    const apertureSize = effect.prismBeamElement === 'all' ? 15 : 12
-    for (let endpointIndex = 0; endpointIndex < 2; endpointIndex += 1) {
-      const point = endpointIndex === 0 ? start : end
-      const pointX = point.x - effect.x
-      const pointY = point.y - effect.y
-      const aperturePoints: number[] = []
-      for (let index = 0; index < 6; index += 1) {
-        const angle = Math.atan2(directionY, directionX) +
-          (Math.PI / 3) * index
-        aperturePoints.push(
-          pointX + Math.cos(angle) * apertureSize,
-          pointY + Math.sin(angle) * apertureSize,
-        )
-      }
-      view
-        .poly(aperturePoints)
-        .fill({ color: beamColors[endpointIndex % beamColors.length]!, alpha: 0.16 })
-        .stroke({ color: visual.outlineColor, width: 2, alpha: 0.9 })
-    }
-
-    return view
-  }
-
   private createSoulTetherPlaceholder(effect: SkillEffectState): Graphics {
     const visual = getSkillDefinition(SOUL_TETHER_SKILL_ID).visual
     const points = effect.points.length > 0
@@ -3353,101 +2611,6 @@ export class PixiGame {
     }
   }
 
-  private drawProjectileTrail(
-    view: Graphics,
-    projectile: ProjectileState,
-    history: readonly RenderPoint[],
-  ): void {
-    view.clear()
-    if (history.length < 2) {
-      return
-    }
-    const visual = projectile.sourceAbilityId
-      ? {
-          primaryColor: '#ef4444',
-          secondaryColor: '#fb7185',
-          outlineColor: '#fee2e2',
-        }
-      : projectile.skillId === BASIC_ATTACK_SKILL_ID
-        ? getBasicAttackVariant(projectile.basicAttackWeaponArchetype).visual
-        : projectile.skillId && isSkillId(projectile.skillId)
-          ? getSkillDefinition(projectile.skillId).visual
-          : getSkillDefinition(BASIC_ATTACK_SKILL_ID).visual
-    if (projectile.skillId === CHAIN_LIGHTNING_SKILL_ID) {
-      const drawElectricalSegment = (
-        previous: RenderPoint,
-        point: RenderPoint,
-        index: number,
-        color: string,
-        maximumWidth: number,
-        alpha: number,
-        zigZagAmplitude: number,
-      ): void => {
-        const segmentX = point.x - previous.x
-        const segmentY = point.y - previous.y
-        const segmentLength = Math.hypot(segmentX, segmentY) || 1
-        const amplitude = Math.min(zigZagAmplitude, segmentLength * 0.38)
-        const direction = (index + projectile.id) % 2 === 0 ? 1 : -1
-        const progress = index / (history.length - 1)
-        view
-          .moveTo(previous.x, previous.y)
-          .lineTo(
-            (previous.x + point.x) / 2 - (segmentY / segmentLength) * amplitude * direction,
-            (previous.y + point.y) / 2 + (segmentX / segmentLength) * amplitude * direction,
-          )
-          .lineTo(point.x, point.y)
-          .stroke({
-            color,
-            width: Math.max(1, maximumWidth * (0.35 + progress * 0.65)),
-            alpha: alpha * (0.08 + progress * 0.92),
-          })
-      }
-      for (let index = 1; index < history.length; index += 1) {
-        const previous = history[index - 1]!
-        const point = history[index]!
-        drawElectricalSegment(
-          previous,
-          point,
-          index,
-          '#0891b2',
-          projectile.radius * 4.4,
-          0.12,
-          5,
-        )
-        drawElectricalSegment(
-          previous,
-          point,
-          index,
-          visual.primaryColor,
-          projectile.radius * 2,
-          0.38,
-          4,
-        )
-        drawElectricalSegment(previous, point, index, '#fefce8', 2.2, 0.92, 3)
-      }
-      return
-    }
-    for (let index = 1; index < history.length; index += 1) {
-      const previous = history[index - 1]!
-      const point = history[index]!
-      const progress = index / history.length
-      view
-        .moveTo(previous.x, previous.y)
-        .lineTo(point.x, point.y)
-        .stroke({
-          color: projectile.mendingReturn
-            ? '#fef08a'
-            : projectile.echoWell
-              ? '#c084fc'
-            : index % 2 === 0
-              ? visual.primaryColor
-              : visual.secondaryColor,
-          width: Math.max(1, projectile.radius * (0.45 + progress * 0.7)),
-          alpha: progress * 0.46,
-        })
-    }
-  }
-
   private updateEffectAnimation(
     view: Graphics,
     effect: SkillEffectState,
@@ -3509,50 +2672,33 @@ export class PixiGame {
     view.alpha = Math.max(0, Math.min(1, 1 - progress * 1.25))
   }
 
-  private drawHitFlash(
-    view: Graphics,
-    radius: number,
-    hitVisual: { element: HitVisualElement; critical: boolean } | undefined,
-    intensity: number,
-  ): void {
-    if (!hitVisual || intensity <= 0) {
-      view.visible = false
-      return
-    }
-    const color = hitVisual.element === 'fire'
-      ? '#fb923c'
-      : hitVisual.element === 'cold'
-        ? '#7dd3fc'
-        : hitVisual.element === 'lightning'
-          ? '#fef08a'
-          : hitVisual.element === 'chaos'
-            ? '#c084fc'
-            : hitVisual.element === 'poison'
-              ? '#a3e635'
-              : '#f8fafc'
-    const flashRadius = radius * (1 + intensity * (hitVisual.critical ? 0.28 : 0.14))
-    view.visible = true
-    view.clear()
-    view
-      .poly(createStarPoints(flashRadius, hitVisual.critical ? 10 : 8, hitVisual.critical ? 0.35 : 0.62))
-      .fill({ color, alpha: intensity * (hitVisual.critical ? 0.34 : 0.2) })
-      .stroke({
-        color: hitVisual.critical ? '#ffffff' : color,
-        width: hitVisual.critical ? 3 : 2,
-        alpha: intensity * 0.9,
-      })
-    if (hitVisual.critical) {
-      view
-        .poly(createPolygonPoints(flashRadius * 0.62, 6, Math.PI / 6))
-        .stroke({ color: '#ffffff', width: 1.5, alpha: intensity * 0.82 })
-    }
-  }
-
+  /**
+   * Projects the current simulation state into the scene graph.
+   *
+   * Each pass below syncs one kind of entity and then destroys the views
+   * whose entity is gone. They are independent of one another and run in
+   * this order so later layers draw over earlier ones.
+   */
   private renderState(): void {
     const state = this.game.state
+    this.renderPlayer(state)
+    this.renderSummons(state)
+    this.renderEnemies(state)
+    this.renderBosses(state)
+    this.renderTraps(state)
+    this.renderRelays(state)
+    this.renderTelegraphs(state)
+    this.renderProjectiles(state)
+    this.renderPickups(state)
+    this.renderEffects(state)
+    this.renderStairs(state)
+  }
+
+  /** Position and health of the player, plus the damage flash. */
+  private renderPlayer(state: Game['state']): void {
     this.playerView?.root.position.set(state.player.x, state.player.y)
     if (this.playerView) {
-      this.drawHealthBar(
+      drawHealthBar(
         this.playerView.hpBar,
         40,
         4,
@@ -3561,7 +2707,7 @@ export class PixiGame {
         state.player.maxHp,
         ALLY_HP_BAR_COLORS,
       )
-      this.drawShieldBar(
+      drawShieldBar(
         this.playerView.shieldBar,
         40,
         4,
@@ -3580,13 +2726,17 @@ export class PixiGame {
         0,
         Math.min(1, ((this.playerView.hitFlashUntil ?? 0) - state.time) / 0.14),
       )
-      this.drawHitFlash(
+      drawHitFlash(
         this.playerView.hitFlash,
         26,
         state.player.lastHitVisual,
         playerHitPulse,
       )
     }
+  }
+
+  /** Summoned allies, their health bars, and guard auras. */
+  private renderSummons(state: Game['state']): void {
     const activeSummonIds = new Set<EntityId>()
     for (const summon of state.summons) {
       activeSummonIds.add(summon.id)
@@ -3627,7 +2777,7 @@ export class PixiGame {
           .fill({ color: auraColor, alpha: 0.18 })
           .stroke({ color: '#f8fafc', width: 1, alpha: 0.72 })
       }
-      this.drawHealthBar(
+      drawHealthBar(
         summonView.hpBar,
         26,
         3,
@@ -3644,7 +2794,10 @@ export class PixiGame {
         this.summonViews.delete(summonId)
       }
     }
+  }
 
+  /** Enemies, their labels, bars, status badges, and elite auras. */
+  private renderEnemies(state: Game['state']): void {
     const activeEnemyIds = new Set<EntityId>()
     const summonById = new Map(state.summons.map((summon) => [summon.id, summon]))
     const phaseboundEnemyIds = new Set<EntityId>()
@@ -3667,7 +2820,7 @@ export class PixiGame {
       let enemyView = this.enemyViews.get(enemy.id)
 
       if (!enemyView) {
-        enemyView = this.createEnemyPlaceholder(enemy)
+        enemyView = createEnemyPlaceholder(enemy)
         this.enemyViews.set(enemy.id, enemyView)
         this.enemyLayer?.addChild(enemyView.root)
       }
@@ -3691,7 +2844,7 @@ export class PixiGame {
         0,
         Math.min(1, ((enemyView.hitFlashUntil ?? 0) - state.time) / 0.12),
       )
-      this.drawHitFlash(
+      drawHitFlash(
         enemyView.hitFlash,
         enemy.radius,
         enemy.lastHitVisual,
@@ -3712,7 +2865,7 @@ export class PixiGame {
       const enemyStatusSignature = getStatusEffectSignature(enemyStatuses)
       if (enemyView.statusEffectSignature !== enemyStatusSignature) {
         enemyView.statusEffectSignature = enemyStatusSignature
-        this.drawStatusEffects(
+        drawStatusEffects(
           enemyView.statusEffects,
           enemyBarWidth,
           enemyStatuses,
@@ -3766,7 +2919,7 @@ export class PixiGame {
       const hpRatio = enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) : 0
       if (enemyView.hpRatio !== hpRatio) {
         enemyView.hpRatio = hpRatio
-        this.drawHealthBar(
+        drawHealthBar(
           enemyView.hpBar,
           enemyBarWidth,
           4,
@@ -3783,7 +2936,7 @@ export class PixiGame {
         : 0
       if (enemyView.shieldRatio !== shieldRatio) {
         enemyView.shieldRatio = shieldRatio
-        this.drawShieldBar(
+        drawShieldBar(
           enemyView.shieldBar,
           enemyBarWidth,
           3,
@@ -3803,7 +2956,10 @@ export class PixiGame {
       enemyView.root.destroy({ children: true })
       this.enemyViews.delete(enemyId)
     }
+  }
 
+  /** Bosses, which carry their own label and status presentation. */
+  private renderBosses(state: Game['state']): void {
     const activeBossIds = new Set<EntityId>()
     for (const boss of state.bosses ?? []) {
       if (boss.hp <= 0) {
@@ -3812,7 +2968,7 @@ export class PixiGame {
       activeBossIds.add(boss.id)
       let bossView = this.bossViews.get(boss.id)
       if (!bossView) {
-        bossView = this.createBossPlaceholder(boss)
+        bossView = createBossPlaceholder(boss)
         this.bossViews.set(boss.id, bossView)
         this.bossLayer?.addChild(bossView.root)
       }
@@ -3829,7 +2985,7 @@ export class PixiGame {
         0,
         Math.min(1, ((bossView.hitFlashUntil ?? 0) - state.time) / 0.16),
       )
-      this.drawHitFlash(
+      drawHitFlash(
         bossView.hitFlash,
         boss.radius,
         boss.lastHitVisual,
@@ -3849,7 +3005,7 @@ export class PixiGame {
       const bossStatusSignature = getStatusEffectSignature(bossStatuses)
       if (bossView.statusEffectSignature !== bossStatusSignature) {
         bossView.statusEffectSignature = bossStatusSignature
-        this.drawStatusEffects(
+        drawStatusEffects(
           bossView.statusEffects,
           bossBarWidth,
           bossStatuses,
@@ -3872,7 +3028,7 @@ export class PixiGame {
         0,
         barY - STATUS_EFFECT_ICON_SIZE - STATUS_EFFECT_ICON_GAP,
       )
-      this.drawHealthBar(
+      drawHealthBar(
         bossView.hpBar,
         bossBarWidth,
         6,
@@ -3891,7 +3047,10 @@ export class PixiGame {
       bossView.root.destroy({ children: true })
       this.bossViews.delete(bossId)
     }
+  }
 
+  /** Persistent hazards placed by enemies. */
+  private renderTraps(state: Game['state']): void {
     const activeTrapIds = new Set<EntityId>()
     for (const trap of state.traps ?? []) {
       activeTrapIds.add(trap.id)
@@ -3912,7 +3071,10 @@ export class PixiGame {
       view.destroy()
       this.trapViews.delete(trapId)
     }
+  }
 
+  /** Storm Relay nodes and the arcs between them. */
+  private renderRelays(state: Game['state']): void {
     const activeRelayIds = new Set<EntityId>()
     for (const relay of state.relays ?? []) {
       activeRelayIds.add(relay.id)
@@ -3939,7 +3101,10 @@ export class PixiGame {
     this.renderMirrorcast(state)
     this.renderBloodRite(state)
     this.renderPrismHalo(state)
+  }
 
+  /** Incoming-attack warnings, re-anchored to their live source. */
+  private renderTelegraphs(state: Game['state']): void {
     const activeTelegraphIds = new Set<EntityId>()
     for (const telegraph of state.telegraphs ?? []) {
       activeTelegraphIds.add(telegraph.id)
@@ -3952,7 +3117,7 @@ export class PixiGame {
       }
       if (isLineTelegraphKind(renderTelegraph)) {
         const color = renderTelegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
-        this.drawTelegraphLine(
+        drawTelegraphLine(
           telegraphView.graphic,
           renderTelegraph,
           color,
@@ -3977,7 +3142,10 @@ export class PixiGame {
       telegraphView.root.destroy({ children: true })
       this.telegraphViews.delete(telegraphId)
     }
+  }
 
+  /** Projectiles and their trails. */
+  private renderProjectiles(state: Game['state']): void {
     const activeProjectileIds = new Set<EntityId>()
     for (const projectile of state.projectiles) {
       activeProjectileIds.add(projectile.id)
@@ -4014,7 +3182,7 @@ export class PixiGame {
         this.projectileLayer?.addChildAt(trailView, 0)
       }
       if (trailView) {
-        this.drawProjectileTrail(trailView, projectile, history)
+        drawProjectileTrail(trailView, projectile, history)
       }
     }
 
@@ -4032,7 +3200,10 @@ export class PixiGame {
       this.projectileTrailViews.delete(projectileId)
       this.projectilePositionHistory.delete(projectileId)
     }
+  }
 
+  /** Ground pickups and the floating text shown when one is taken. */
+  private renderPickups(state: Game['state']): void {
     const activePickupIds = new Set<EntityId>()
     for (const pickup of state.pickups) {
       activePickupIds.add(pickup.id)
@@ -4073,7 +3244,10 @@ export class PixiGame {
         this.pickupFeedbackViews.delete(pickupId)
       }
     }
+  }
 
+  /** Skill effects, which own the largest share of the visual language. */
+  private renderEffects(state: Game['state']): void {
     const activeEffectIds = new Set<EntityId>()
     for (const effect of state.effects) {
       activeEffectIds.add(effect.id)
@@ -4089,7 +3263,7 @@ export class PixiGame {
         !particleView &&
         this.effectParticleViews.size < PixiGame.MAX_IMPACT_PARTICLE_VIEWS
       ) {
-        particleView = this.createImpactParticlePlaceholder(effect)
+        particleView = createImpactParticlePlaceholder(effect)
         this.effectParticleViews.set(effect.id, particleView)
         this.effectLayer?.addChild(particleView)
       }
@@ -4113,14 +3287,17 @@ export class PixiGame {
       particleView?.destroy()
       this.effectParticleViews.delete(effectId)
     }
+  }
 
+  /** The floor exit, dimmed once its rewards have been collected. */
+  private renderStairs(state: Game['state']): void {
     const activeStairsIds = new Set<EntityId>()
     const stairs = state.stairs
     if (stairs) {
       activeStairsIds.add(stairs.id)
       let stairsView = this.stairsViews.get(stairs.id)
       if (!stairsView) {
-        stairsView = this.createStairsPlaceholder(stairs)
+        stairsView = createStairsPlaceholder(stairs)
         this.stairsViews.set(stairs.id, stairsView)
         this.stairsLayer?.addChild(stairsView.root)
       }
@@ -4186,55 +3363,6 @@ export class PixiGame {
       this.app.renderer.height / 2 - this.cameraFocusY * this.cameraScale,
     )
     this.updateGroundCoverage()
-  }
-
-  private drawHealthBar(
-    view: Graphics,
-    width: number,
-    height: number,
-    y: number,
-    hp: number,
-    maxHp: number,
-    colors: HealthBarColors,
-  ): void {
-    const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0
-    view.visible = ratio < 1
-    if (!view.visible) {
-      return
-    }
-
-    view
-      .clear()
-      .rect(-width / 2, y, width, height)
-      .fill({ color: colors.background, alpha: 0.9 })
-      .rect(-width / 2, y, width * ratio, height)
-      .fill(colors.fill)
-      .stroke({ color: colors.outline, width: 1 })
-  }
-
-  private drawShieldBar(
-    view: Graphics,
-    width: number,
-    height: number,
-    y: number,
-    amount: number,
-    maxAmount: number,
-  ): void {
-    const ratio = maxAmount > 0
-      ? Math.max(0, Math.min(1, amount / maxAmount))
-      : 0
-    view.visible = ratio > 0
-    if (!view.visible) {
-      return
-    }
-
-    view
-      .clear()
-      .rect(-width / 2, y, width, height)
-      .fill({ color: '#164e63', alpha: 0.95 })
-      .rect(-width / 2, y, width * ratio, height)
-      .fill('#22d3ee')
-      .stroke({ color: '#cffafe', width: 1 })
   }
 
   private drawStatusAura(
@@ -4336,79 +3464,6 @@ export class PixiGame {
           )
           .fill({ color: '#a3e635', alpha: 0.62 })
       }
-    }
-  }
-
-  private drawStatusEffects(
-    view: Container,
-    barWidth: number,
-    statuses: readonly StatusEffectBadge[],
-  ): void {
-    for (const child of view.removeChildren()) {
-      child.destroy()
-    }
-
-    let offsetX = -barWidth / 2
-    for (const status of statuses) {
-      const icon = new Graphics()
-      if (status.id === 'poison') {
-        icon
-          .circle(STATUS_EFFECT_ICON_SIZE / 2, STATUS_EFFECT_ICON_SIZE * 0.68, 3.2)
-          .fill('#22c55e')
-          .poly([
-            STATUS_EFFECT_ICON_SIZE / 2,
-            0,
-            1.8,
-            STATUS_EFFECT_ICON_SIZE * 0.62,
-            STATUS_EFFECT_ICON_SIZE - 1.8,
-            STATUS_EFFECT_ICON_SIZE * 0.62,
-          ])
-          .fill('#22c55e')
-          .circle(4, 5.2, 0.8)
-          .fill({ color: '#dcfce7', alpha: 0.8 })
-      } else if (status.id === 'chill') {
-        icon
-          .circle(STATUS_EFFECT_ICON_SIZE / 2, STATUS_EFFECT_ICON_SIZE / 2, 4)
-          .fill('#38bdf8')
-          .stroke({ color: '#e0f2fe', width: 1 })
-      } else if (status.id === 'freeze') {
-        icon
-          .rect(1, 1, STATUS_EFFECT_ICON_SIZE - 2, STATUS_EFFECT_ICON_SIZE - 2)
-          .fill('#bfdbfe')
-          .stroke({ color: '#eff6ff', width: 1 })
-      } else if (status.id === 'shock') {
-        icon
-          .poly([
-           5,
-           0,
-           1,
-           6,
-           5,
-           6,
-           3,
-           STATUS_EFFECT_ICON_SIZE,
-           9,
-           4,
-           5,
-           4,
-          ])
-          .fill('#facc15')
-      } else if (status.id === 'burning') {
-        icon
-          .poly([
-            STATUS_EFFECT_ICON_SIZE / 2,
-            0,
-            STATUS_EFFECT_ICON_SIZE - 1,
-            STATUS_EFFECT_ICON_SIZE,
-            1,
-            STATUS_EFFECT_ICON_SIZE,
-          ])
-          .fill('#f97316')
-          .stroke({ color: '#fed7aa', width: 1 })
-      }
-      icon.position.set(offsetX, 0)
-      view.addChild(icon)
-      offsetX += STATUS_EFFECT_ICON_SIZE + STATUS_EFFECT_ICON_GAP
     }
   }
 
@@ -4534,117 +3589,6 @@ export class PixiGame {
   }
 }
 
-function createPolygonPoints(
-  radius: number,
-  sides: number,
-  rotation = 0,
-): number[] {
-  return Array.from({ length: sides }, (_, index) => {
-    const angle = rotation + (Math.PI * 2 * index) / sides
-    return [Math.cos(angle) * radius, Math.sin(angle) * radius]
-  }).flat()
-}
-
-function createStarPoints(
-  radius: number,
-  points: number,
-  innerRatio: number,
-  rotation = 0,
-): number[] {
-  return Array.from({ length: points * 2 }, (_, index) => {
-    const angle = rotation + (Math.PI * index) / points
-    const pointRadius = index % 2 === 0 ? radius : radius * innerRatio
-    return [Math.cos(angle) * pointRadius, Math.sin(angle) * pointRadius]
-  }).flat()
-}
-
-function applyEnemyRenderScale(
-  view: Graphics,
-  render: EnemyRenderDefinition,
-): void {
-  view.scale.set(render.scale)
-}
-
-function createEliteAura(
-  modifier: ReturnType<typeof getEliteModifierDefinition>,
-  radius: number,
-): Graphics {
-  const auraRadius = radius * 1.35
-  const aura = new Graphics()
-  aura.circle(0, 0, auraRadius).stroke({
-    color: modifier.markerColor,
-    width: 3,
-    alpha: 0.9,
-  })
-
-  if (modifier.auraStyle === 'flames') {
-    for (let index = 0; index < 8; index += 1) {
-      const angle = (Math.PI * 2 * index) / 8
-      const innerRadius = auraRadius * 0.85
-      const tipRadius = auraRadius * (index % 2 === 0 ? 1.45 : 1.25)
-      const sideAngle = 0.18
-      aura.poly([
-        Math.cos(angle - sideAngle) * innerRadius,
-        Math.sin(angle - sideAngle) * innerRadius,
-        Math.cos(angle) * tipRadius,
-        Math.sin(angle) * tipRadius,
-        Math.cos(angle + sideAngle) * innerRadius,
-        Math.sin(angle + sideAngle) * innerRadius,
-      ]).fill(modifier.markerColor)
-    }
-  } else if (modifier.auraStyle === 'electric') {
-    for (let index = 0; index < 8; index += 1) {
-      const angle = (Math.PI * 2 * index) / 8
-      const directionX = Math.cos(angle)
-      const directionY = Math.sin(angle)
-      const perpendicularX = -directionY
-      const perpendicularY = directionX
-      const innerRadius = auraRadius * 0.8
-      const outerRadius = auraRadius * 1.4
-      const midpointRadius = (innerRadius + outerRadius) / 2
-      aura
-        .moveTo(directionX * innerRadius, directionY * innerRadius)
-        .lineTo(
-          directionX * midpointRadius + perpendicularX * radius * 0.22,
-          directionY * midpointRadius + perpendicularY * radius * 0.22,
-        )
-        .lineTo(directionX * outerRadius, directionY * outerRadius)
-        .stroke({ color: modifier.markerColor, width: 3 })
-    }
-  } else if (modifier.auraStyle === 'frost') {
-    for (let index = 0; index < 6; index += 1) {
-      const angle = (Math.PI * 2 * index) / 6
-      const crystalRadius = auraRadius * 1.35
-      const crystalWidth = radius * 0.28
-      const directionX = Math.cos(angle)
-      const directionY = Math.sin(angle)
-      const perpendicularX = -directionY
-      const perpendicularY = directionX
-      aura.poly([
-        directionX * auraRadius + perpendicularX * crystalWidth,
-        directionY * auraRadius + perpendicularY * crystalWidth,
-        directionX * crystalRadius,
-        directionY * crystalRadius,
-        directionX * auraRadius - perpendicularX * crystalWidth,
-        directionY * auraRadius - perpendicularY * crystalWidth,
-      ]).fill(modifier.markerColor)
-    }
-  } else if (modifier.auraStyle === 'poison') {
-    for (let index = 0; index < 6; index += 1) {
-      const angle = (Math.PI * 2 * index) / 6
-      const bubbleRadius = radius * (0.16 + (index % 2) * 0.05)
-      const distance = auraRadius * (0.95 + (index % 3) * 0.08)
-      aura.circle(
-        Math.cos(angle) * distance,
-        Math.sin(angle) * distance,
-        bubbleRadius,
-      ).fill({ color: modifier.markerColor, alpha: 0.8 })
-    }
-  }
-
-  return aura
-}
-
 function drawDashedBoundaryEdge(
   graphics: Graphics,
   startX: number,
@@ -4671,103 +3615,8 @@ function drawDashedBoundaryEdge(
   }
 }
 
-interface EnemyView {
-  root: Container
-  body: Graphics
-  hitFlash: Graphics
-  label: Text
-  hpBar: Graphics
-  shieldBar: Graphics
-  statusEffects: Container
-  statusEffectSignature?: string
-  poisonAura: Graphics
-  hasEliteModifier: boolean
-  hpRatio?: number
-  shieldRatio?: number
-  lastHp?: number
-  hitFlashUntil?: number
-}
-
-interface PlayerView {
-  root: Container
-  body: Graphics
-  hitFlash: Graphics
-  hpBar: Graphics
-  shieldBar: Graphics
-  lastHp?: number
-  hitFlashUntil?: number
-}
-
-interface SummonView {
-  root: Container
-  body: Graphics
-  hpBar: Graphics
-  guardAura: Graphics
-}
-
-interface BossView {
-  root: Container
-  body: Graphics
-  hitFlash: Graphics
-  label: Text
-  hpBar: Graphics
-  statusEffects: Container
-  statusEffectSignature?: string
-  poisonAura: Graphics
-  lastHp?: number
-  hitFlashUntil?: number
-}
-
-interface TelegraphView {
-  root: Container
-  graphic: Graphics
-  label: Text
-}
-
-interface StairsView {
-  root: Container
-  label: Text
-}
-
-interface PickupFeedbackView {
-  text: Text
-  createdAt: number
-  startY: number
-}
-
-interface RenderPoint {
-  x: number
-  y: number
-}
-
-export function getEnemyDisplayLabel(
-  definitionId: string,
-  eliteModifiers?: EliteModifierInput,
-): string {
-  const definition = getEnemyDefinition(definitionId)
-  const modifierIds = normalizeEliteModifierIds(eliteModifiers)
-  if (modifierIds.length === 0) {
-    return definition.name
-  }
-  return `${definition.name} · ${modifierIds.map(
-    (modifierId) => getEliteModifierDefinition(modifierId).name,
-  ).join(' / ')}`
-}
-
-export function getEnemyMeleeAttackAnimationProgress(
-  currentTime: number,
-  lastMeleeAttackTime?: number,
-): number {
-  if (lastMeleeAttackTime === undefined) {
-    return 0
-  }
-  const elapsed = currentTime - lastMeleeAttackTime
-  if (elapsed < 0 || elapsed >= ENEMY_MELEE_ATTACK_ANIMATION_SECONDS) {
-    return 0
-  }
-  return elapsed / ENEMY_MELEE_ATTACK_ANIMATION_SECONDS
-}
-
-export function getBossDisplayLabel(definitionId: BossState['bossDefinitionId']): string {
-  return `BOSS · ${getBossDefinition(definitionId).name}`
-}
+export {
+  getBossDisplayLabel,
+  getEnemyDisplayLabel,
+  getEnemyMeleeAttackAnimationProgress,
+} from './pixi/labels'
