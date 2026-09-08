@@ -28,7 +28,9 @@ export const DEFAULT_AUDIO_SETTINGS: Readonly<AudioSettings> = Object.freeze({
  * become available.
  */
 export const MUSIC_PLAYLISTS: Readonly<Record<MusicPlaylistId, readonly string[]>> = {
-  dashboard: [],
+  dashboard: [
+    '/audio/music/hub/stinky_fireplace.mp3'
+  ],
   fishing: [
     '/audio/music/fishing/space_waves.mp3'
   ],
@@ -95,6 +97,7 @@ function persistAudioSettings(settings: AudioSettings): void {
 class BrowserAudioSystem {
   private settings = readStoredAudioSettings()
   private readonly listeners = new Set<() => void>()
+  private readonly preloadedAudio = new Map<string, HTMLAudioElement>()
   private playlistId: MusicPlaylistId | null = null
   private trackIndex = -1
   private audio: HTMLAudioElement | null = null
@@ -107,6 +110,7 @@ class BrowserAudioSystem {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.preloadPlaylist('dashboard')
       const resumePlayback = (): void => {
         const audio = this.audio
         if (!audio) {
@@ -195,6 +199,35 @@ class BrowserAudioSystem {
     }
   }
 
+  private createAudio(source: string): HTMLAudioElement {
+    const preloadedAudio = this.preloadedAudio.get(source)
+    if (preloadedAudio) {
+      this.preloadedAudio.delete(source)
+      return preloadedAudio
+    }
+    const audio = new Audio()
+    audio.preload = 'auto'
+    audio.src = source
+    audio.load()
+    return audio
+  }
+
+  private preloadPlaylist(playlistId: MusicPlaylistId): void {
+    if (typeof Audio === 'undefined') {
+      return
+    }
+    for (const source of MUSIC_PLAYLISTS[playlistId]) {
+      if (this.preloadedAudio.has(source)) {
+        continue
+      }
+      const audio = new Audio()
+      audio.preload = 'auto'
+      audio.src = source
+      audio.load()
+      this.preloadedAudio.set(source, audio)
+    }
+  }
+
   private stopTrack(): void {
     this.playlistGeneration += 1
     this.transitioning = false
@@ -221,8 +254,7 @@ class BrowserAudioSystem {
       return
     }
     this.trackIndex = index
-    const audio = new Audio(source)
-    audio.preload = 'auto'
+    const audio = this.createAudio(source)
     audio.volume = 0
     audio.addEventListener('ended', this.handleTrackEnded)
     audio.addEventListener('timeupdate', this.handleTrackTimeUpdate)
@@ -272,8 +304,7 @@ class BrowserAudioSystem {
       return
     }
 
-    const nextAudio = new Audio(source)
-    nextAudio.preload = 'auto'
+    const nextAudio = this.createAudio(source)
     nextAudio.volume = 0
     this.incomingAudio = nextAudio
     this.incomingFadeGain = 0
