@@ -625,6 +625,20 @@
 .pond-fish .fish-icon {
   width: 100%;
   height: 100%;
+  animation: pond-fish-turn 12s linear infinite;
+  animation-delay: inherit;
+}
+
+/*
+ * The turn itself: the fish squashes to nearly edge-on at the moment it comes
+ * about, which reads as turning rather than as a sprite being mirrored.
+ */
+@keyframes pond-fish-turn {
+  0%, 21% { transform: scaleX(1); }
+  25% { transform: scaleX(0.15); }
+  29%, 71% { transform: scaleX(-1); }
+  75% { transform: scaleX(-0.15); }
+  79%, 100% { transform: scaleX(1); }
 }
 
 /* Paper lanterns adrift: the one warm thing on a cold pond. */
@@ -644,6 +658,8 @@
   position: absolute;
   top: 0;
   left: 50%;
+  animation: pond-lantern-flicker 12.4s ease-in-out infinite;
+  animation-delay: inherit;
   width: 1.05rem;
   height: 1.35rem;
   background:
@@ -658,13 +674,34 @@
 }
 
 /* Its halo on the night air. */
+/*
+ * The halo. A light source is read from its falloff, so this is three stops —
+ * a hot centre, the body of the glow, and a wide faint reach — rather than one
+ * even circle, which is what made the lanterns look like lit buttons.
+ */
 .pond-lantern-glow {
   position: absolute;
-  top: -0.7rem;
+  top: -6.35rem;
   left: 50%;
-  width: 3.4rem;
-  height: 3.4rem;
-  background: radial-gradient(circle, rgb(251 191 36 / 34%), rgb(217 119 6 / 12%) 42%, transparent 70%);
+  animation: pond-lantern-flare 10.8s ease-in-out infinite;
+  animation-delay: inherit;
+  width: 15rem;
+  height: 15rem;
+  background:
+    radial-gradient(circle, rgb(255 237 213 / 62%) 0 6%, transparent 22%),
+    radial-gradient(circle, rgb(251 191 36 / 42%) 0 14%, rgb(245 158 11 / 20%) 30%, transparent 54%),
+    radial-gradient(circle, rgb(217 119 6 / 13%) 0 40%, transparent 72%);
+  transform: translateX(-50%);
+}
+
+/* And the light it puts on the water it floats on. */
+.pond-lantern-pool {
+  position: absolute;
+  top: -0.05rem;
+  left: 50%;
+  width: 11.2rem;
+  height: 3.8rem;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(251 191 36 / 26%), rgb(217 119 6 / 9%) 46%, transparent 74%);
   transform: translateX(-50%);
 }
 
@@ -695,8 +732,44 @@
   to { transform: translate(0.4rem, -0.12rem); }
 }
 
+/*
+ * Flame, not a pulse.
+ *
+ * The steps are deliberately uneven and the two animations run at different
+ * periods from each other and from the drift, so no lantern settles into a
+ * rhythm and no two lanterns agree on one.
+ */
+@keyframes pond-lantern-flicker {
+  0% { opacity: 0.9; filter: brightness(0.94); }
+  9% { opacity: 1; filter: brightness(1.1); }
+  17% { opacity: 0.85; filter: brightness(0.9); }
+  28% { opacity: 0.98; filter: brightness(1.04); }
+  39% { opacity: 0.88; filter: brightness(0.95); }
+  51% { opacity: 1; filter: brightness(1.12); }
+  62% { opacity: 0.83; filter: brightness(0.88); }
+  73% { opacity: 0.96; filter: brightness(1.02); }
+  86% { opacity: 0.9; filter: brightness(0.96); }
+  100% { opacity: 0.9; filter: brightness(0.94); }
+}
+
+@keyframes pond-lantern-flare {
+  0% { opacity: 0.82; transform: translateX(-50%) scale(0.97); }
+  13% { opacity: 1; transform: translateX(-50%) scale(1.06); }
+  24% { opacity: 0.78; transform: translateX(-50%) scale(0.94); }
+  37% { opacity: 0.94; transform: translateX(-50%) scale(1.02); }
+  49% { opacity: 0.72; transform: translateX(-50%) scale(0.92); }
+  61% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  74% { opacity: 0.85; transform: translateX(-50%) scale(0.98); }
+  88% { opacity: 0.95; transform: translateX(-50%) scale(1.03); }
+  100% { opacity: 0.82; transform: translateX(-50%) scale(0.97); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pond-lantern {
+  .pond-lantern,
+  .pond-lantern-body,
+  .pond-lantern-glow,
+  .pond-angler-lantern,
+  .pond-fish .fish-icon {
     animation: none;
   }
 }
@@ -787,6 +860,8 @@
 .pond-angler-lantern {
   position: absolute;
   z-index: 4;
+  animation: pond-lantern-flicker 11.6s ease-in-out infinite;
+  animation-delay: var(--pond-bob-delay, 0s);
   bottom: 0.5rem;
   left: 68%;
   width: 0.42rem;
@@ -794,8 +869,10 @@
   background: linear-gradient(180deg, rgb(255 237 213 / 95%), rgb(251 191 36 / 90%) 60%, rgb(217 119 6 / 92%));
   border-radius: 40% 40% 46% 46% / 32% 32% 54% 54%;
   box-shadow:
-    0 0 0.4rem 0.08rem rgb(251 191 36 / 75%),
-    0 0 1.4rem 0.35rem rgb(217 119 6 / 32%);
+    0 0 0.3rem 0.06rem rgb(255 237 213 / 85%),
+    0 0 0.9rem 0.2rem rgb(251 191 36 / 60%),
+    0 0 2.4rem 0.7rem rgb(245 158 11 / 30%),
+    0 0 5rem 1.6rem rgb(217 119 6 / 14%);
 }
 
 .pond-angler-boat::after {
@@ -884,6 +961,38 @@
 
 .pond-angler-you .pond-fishing-rod::after {
   opacity: 0;
+}
+
+/*
+ * The line at rest, hanging from the rod tip to the water with a float on it.
+ * The rod is a stick angled upward at -20deg and its tip lands 3.4rem out from
+ * the angler, which is where this starts.
+ */
+.pond-angler-restline {
+  position: absolute;
+  z-index: 3;
+  top: 0.05rem;
+  left: calc(50% + 3.4rem);
+  width: 1px;
+  height: 2.45rem;
+  background: linear-gradient(180deg, rgb(254 243 199 / 70%), rgb(254 243 199 / 18%));
+}
+
+.pond-angler-facing-left .pond-angler-restline {
+  left: calc(50% - 3.4rem);
+}
+
+.pond-angler-restline::after {
+  position: absolute;
+  bottom: -0.1rem;
+  left: 50%;
+  width: 0.32rem;
+  height: 0.32rem;
+  content: '';
+  background: radial-gradient(circle at 40% 35%, var(--color-amber-200), var(--color-amber-700));
+  border-radius: 50%;
+  box-shadow: 0 0 0.4rem rgb(251 191 36 / 65%);
+  transform: translateX(-50%);
 }
 
 .pond-angler-hat {
@@ -985,7 +1094,9 @@
 }
 
 .pond-angler-you {
-  transform: translate(-50%, -50%);
+  /* A little larger than the rest at the same distance, so you can find
+     yourself, but still ruled by depth. */
+  transform: translate(-50%, -50%) scale(calc(var(--pond-depth-scale, 1) * 1.1));
   bottom: auto;
   z-index: 7;
   width: 7.5rem;
@@ -997,7 +1108,7 @@
   color: var(--color-violet-200);
   opacity: 0.9;
   filter: drop-shadow(0 0 0.55rem rgb(167 139 250 / 38%));
-  transform: translate(-50%, -50%) scale(0.72);
+  transform: translate(-50%, -50%) scale(var(--pond-depth-scale, 1));
 }
 
 .pond-angler-remote strong {

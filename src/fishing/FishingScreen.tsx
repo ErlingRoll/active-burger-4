@@ -178,6 +178,7 @@ const POND_LANTERNS = [
 
 function getPondPlayerPosition(
   playerId: string,
+  { nearBank = false }: { nearBank?: boolean } = {},
 ): { left: number; top: number; scale: number; bobDelaySeconds: number } {
   let hash = 2166136261
   for (const character of playerId) {
@@ -194,7 +195,13 @@ function getPondPlayerPosition(
    * it may stray from the centre — the water is a wedge, narrow at the far end
    * — and how large it is drawn.
    */
-  const depth = depthRandom
+  /*
+   * Your own boat is framed nearer the camera than everyone else's — the front
+   * half of the water rather than the whole of it. This is a framing choice
+   * rather than a shared fact: another player sees your boat wherever your id
+   * puts it, the same as they always did.
+   */
+  const depth = nearBank ? 0.5 + depthRandom * 0.45 : depthRandom
   const spread = 0.3 + depth * 0.62
   return {
     left: 50 + (acrossRandom * 2 - 1) * 46 * spread,
@@ -300,6 +307,7 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
       <span className="pond-angler-halo" />
       <span className="pond-angler-boat" />
       <span className="pond-angler-lantern" />
+      {showCastLine ? null : <span className="pond-angler-restline" />}
       <span className="pond-angler-body" />
       <span className="pond-angler-head" />
       <span className="pond-angler-hat">✦</span>
@@ -497,7 +505,7 @@ export function FishingScreen({
   const selectedRod = effectiveSelectedRodId
     ? rods.find((rod) => rod.itemInstanceId === effectiveSelectedRodId)
     : undefined
-  const activityPlayerPosition = getPondPlayerPosition(activityPlayerId)
+  const activityPlayerPosition = getPondPlayerPosition(activityPlayerId, { nearBank: true })
   const trackActivityPresence = useCallback((presence: FishingAnglerPresence): void => {
     if (!fishingService) {
       return
@@ -968,6 +976,7 @@ export function FishingScreen({
                   } as CSSProperties}
                 >
                   <span className="pond-lantern-glow" />
+                  <span className="pond-lantern-pool" />
                   <span className="pond-lantern-body" />
                   <span className="pond-lantern-reflection" />
                 </span>
