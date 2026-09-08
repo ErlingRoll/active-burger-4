@@ -31,6 +31,7 @@ import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
 import { getPlayerDisplayName } from '../auth'
+import { useNow } from '../ui/useNow'
 import { FishIcon } from './FishIcon'
 
 interface FishingScreenProps {
@@ -307,11 +308,11 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
       <span className="pond-angler-halo" />
       <span className="pond-angler-boat" />
       <span className="pond-angler-lantern" />
-      {showCastLine ? null : <span className="pond-angler-restline" />}
       <span className="pond-angler-body" />
       <span className="pond-angler-head" />
       <span className="pond-angler-hat">✦</span>
       <i className="pond-fishing-rod">
+        {showCastLine ? null : <span className="pond-angler-restline" />}
         {showCastLine ? (
           <svg
             className="pond-cast-line"
@@ -455,6 +456,8 @@ export function FishingScreen({
     () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
   )
   const [fishingPhase, setFishingPhase] = useState<FishingPhase>('idle')
+  /* When the current wait began; the preparation only carries when it ends. */
+  const [waitStartedAt, setWaitStartedAt] = useState(0)
   const [selectedMode, setSelectedMode] = useState<FishingMode>('auto')
   const [selectedBaitId, setSelectedBaitId] = useState(DEFAULT_FISHING_BAIT_ID)
   const [selectedRodId, setSelectedRodId] = useState<string | null>(null)
@@ -850,6 +853,37 @@ export function FishingScreen({
     }
   }
 
+  /*
+   * A line is in the water from the moment the rod is thrown until the catch
+   * resolves, and any of that can be abandoned.
+   */
+  const waitClock = useNow(200)
+  const canCancelCast = fishingPhase === 'casting' ||
+    fishingPhase === 'waiting' ||
+    fishingPhase === 'manual'
+  /* How far the wait has run, for the bar that fills toward the bite. */
+  const waitProgress = pendingAttempt && fishingPhase === 'waiting' && waitStartedAt > 0
+    ? Math.min(1, Math.max(0, (waitClock - waitStartedAt) /
+      Math.max(1, pendingAttempt.resolveAtClientTime - waitStartedAt)))
+    : 0
+
+  const cancelFishing = (): void => {
+    if (fishingPhase === 'idle' || fishingPhase === 'catching') {
+      return
+    }
+    clearTimer(pityTimerRef)
+    pendingAttemptRef.current = null
+    setPendingAttempt(null)
+    setPhase('idle')
+    setError(null)
+    trackActivityPresence({
+      attemptId: createAttemptId(),
+      playerId: activityPlayerId,
+      playerName: activityPlayerName,
+      phase: 'idle',
+    })
+  }
+
   const startFishing = async (): Promise<void> => {
     if (!fishingService || !inventoryService || fishingPhase !== 'idle') {
       return
@@ -873,6 +907,7 @@ export function FishingScreen({
       }
       pendingAttemptRef.current = preparation
       setPendingAttempt(preparation)
+      setWaitStartedAt(Date.now())
       setPhase('waiting')
       trackActivityPresence({
         attemptId: preparation.attemptId,
@@ -1125,15 +1160,6 @@ export function FishingScreen({
               </section>
             ) : null}
             <div className="fishing-hud-bottom">
-              <div className="pond-loadout-heading">
-                <div>
-                  <p className="screen-kicker">Fishing loadout</p>
-                  <strong>Prepare your next cast</strong>
-                </div>
-                <span className="pond-loadout-state">
-                  {fishingPhase === 'idle' ? 'Ready' : FISHING_PHASE_LABELS[fishingPhase]}
-                </span>
-              </div>
               <div className="pond-scene-actions">
                 <div className="pond-loadout-controls">
                   <FishingDropdown
@@ -1183,28 +1209,55 @@ export function FishingScreen({
                     onChange={setSelectedBaitId}
                   />
                 </div>
-                <button
-                  className="primary-action pond-cast-button"
-                  type="button"
-                  onClick={() => {
-                    if (fishingPhase === 'manual' && pendingAttempt) {
-                      void resolveFishingAttempt(pendingAttempt.attemptId, true)
-                    } else {
-                      void startFishing()
+                <div className="pond-action-group">
+                  <button
+                    className={`primary-action pond-cast-button pond-cast-button-${fishingPhase}`}
+                    type="button"
+                    onClick={() => {
+                      if (fishingPhase === 'manual' && pendingAttempt) {
+                        void resolveFishingAttempt(pendingAttempt.attemptId, true)
+                      } else if (canCancelCast) {
+                        cancelFishing()
+                      } else {
+                        void startFishing()
+                      }
+                    }}
+                    disabled={
+                      fishingPhase === 'catching' ||
+                      loadState !== 'ready' ||
+                      fishingService === null
                     }
-                  }}
-                  disabled={
-                    (fishingPhase !== 'idle' && fishingPhase !== 'manual') ||
-                    loadState !== 'ready' ||
-                    fishingService === null
-                  }
-                >
-                  {fishingPhase === 'manual'
-                    ? 'Reel in'
-                    : fishingPhase === 'idle'
-                      ? 'Cast'
-                      : FISHING_PHASE_LABELS[fishingPhase]}
-                </button>
+                    title={canCancelCast && fishingPhase !== 'manual'
+                      ? 'Reeling in before a bite loses the cast.'
+                      : undefined}
+                  >
+                    {/*
+                      The action carries the state rather than a separate chip
+                      stranded at the far end of the bar: one place to look, and
+                      the reel-in moment lands on the control you must press.
+                    */}
+                    <span className="pond-cast-button-label">
+                      {fishingPhase === 'idle'
+                        ? 'Cast'
+                        : fishingPhase === 'catching'
+                          ? FISHING_PHASE_LABELS.catching
+                          : fishingPhase === 'manual'
+                            ? 'Reel in!'
+                            : 'Reel in'}
+                    </span>
+                    {/*
+                      Auto mode never asks the player to judge the moment, so a
+                      filling bar there is feedback. In manual mode it would
+                      hand over the answer, so the wait stays unknowable.
+                    */}
+                    {fishingPhase === 'waiting' && pendingAttempt?.mode === 'auto' ? (
+                      <span
+                        className="pond-cast-progress"
+                        style={{ '--pond-wait-progress': waitProgress } as CSSProperties}
+                      />
+                    ) : null}
+                  </button>
+                </div>
               </div>
             </div>
             {error ? <p className="persistence-error" role="alert">{error}</p> : null}

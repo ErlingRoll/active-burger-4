@@ -53,7 +53,13 @@ test('resolves an authenticated manual fishing attempt', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Manual reel' })).toBeVisible()
 
   await castButton.click()
-  const reelButton = page.getByRole('button', { name: 'Reel in' })
+  /*
+   * Casting and reeling share one control, and pressing it before the bite
+   * abandons the cast on purpose. So the wait is for the bite itself — the
+   * button entering its manual state — rather than for the label, which reads
+   * "Reel in" from the moment the line lands in the water.
+   */
+  const reelButton = page.locator('.pond-cast-button-manual')
   await expect(reelButton).toBeVisible({ timeout: 25_000 })
   await reelButton.click()
 
