@@ -21,5 +21,11 @@ export default defineConfig({
     // Playwright specs under e2e/ are not Vitest unit tests; keep the two
     // runners from colliding by excluding the e2e/ directory here.
     exclude: [...configDefaults.exclude, 'e2e/**'],
+    setupFiles: ['./src/testing/setup.ts'],
+    // The simulation suite is environment-free and must stay that way, so jsdom
+    // is opted into per file with `// @vitest-environment jsdom` rather than
+    // made the default. Component specs use `renderComponent` from
+    // `src/testing/render.tsx`, which sets that pragma's expectations up.
+    environment: 'node',
   },
 })
