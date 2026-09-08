@@ -36,7 +36,6 @@
   --color-gray-900: #111827;
 
   /* zinc */
-  --color-zinc-700: #3f3f46;
   --color-zinc-800: #27272a;
   --color-zinc-900: #18181b;
   --color-zinc-950: #09090b;
@@ -215,6 +214,18 @@
   --accent-contrast: var(--color-amber-50);
   --accent-rgb: 251 146 60;
   --accent-bright-rgb: 251 191 36;
+
+  /*
+   * The Emberwatch scene: one fire in a cold ruin.
+   *
+   * The rule the hub is built on is that warmth belongs to the fire and nothing
+   * else. Stone, night and anything far from the flame are cold; a surface only
+   * turns amber where the firelight actually reaches it. These name the cold
+   * half — the warm half is the accent channels above.
+   */
+  --scene-night: var(--color-slate-950);
+  --scene-stone: var(--color-slate-900);
+  --scene-moonlight-rgb: 148 163 184;
 
   /* Pure white, used where the palette's lightest slate is not bright enough. */
   --color-white: #ffffff;

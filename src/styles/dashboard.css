@@ -1528,7 +1528,7 @@
 .hub-leaderboard-panel,
 .hub-presence-error {
   position: relative;
-  z-index: 4;
+  z-index: 6;
 }
 
 .adventure-hub .screen-kicker {
@@ -1826,13 +1826,17 @@
   height: min(34vw, 25rem);
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 62%, rgb(251 146 60 / 26%), transparent 38%),
-    linear-gradient(90deg, rgb(0 0 0 / 78%), transparent 18% 82%, rgb(0 0 0 / 78%)),
-    linear-gradient(180deg, #0a0b0f, #25150e);
-  border: 0.65rem solid #30261f;
+    /* Something burning a long way down. */
+    radial-gradient(ellipse 42% 26% at 50% 104%, rgb(154 52 18 / 55%), transparent 72%),
+    linear-gradient(180deg, #04060b 0%, #06080e 62%, #0a0810 100%);
+  border: 0.65rem solid #1d2431;
   border-bottom: 0;
   border-radius: 12rem 12rem 0 0;
-  box-shadow: inset 0 0 0 1px rgb(253 230 138 / 16%), 0 0 2.5rem rgb(0 0 0 / 52%);
+  box-shadow:
+    /* Firelight climbing the inside of the arch, moonlight along its lip. */
+    inset 0 -2.5rem 3.5rem rgb(var(--accent-rgb) / 20%),
+    inset 0 0 0 1px rgb(var(--scene-moonlight-rgb) / 14%),
+    0 0 3rem rgb(0 0 0 / 62%);
   transform: translateX(-50%);
 }
 
@@ -1843,22 +1847,25 @@
   width: 22%;
   height: 100%;
   content: '';
-  background: linear-gradient(90deg, rgb(68 52 40 / 92%), rgb(27 23 21 / 96%));
-  border: 1px solid rgb(253 230 138 / 14%);
+  background:
+    linear-gradient(180deg, transparent 40%, rgb(var(--accent-rgb) / 16%) 100%),
+    linear-gradient(90deg, rgb(37 46 62 / 94%), rgb(13 17 24 / 96%));
+  border: 1px solid rgb(var(--scene-moonlight-rgb) / 12%);
 }
 
 .hub-dungeon-gate::before { left: 0; }
 .hub-dungeon-gate::after { right: 0; }
 
+/* Not a lamp in the doorway — an ember far below it, breathing. */
 .hub-dungeon-gate-glow {
   position: absolute;
-  top: 28%;
+  top: 72%;
   left: 50%;
-  width: 0.7rem;
-  height: 0.7rem;
-  background: var(--color-amber-100);
+  width: 0.5rem;
+  height: 0.5rem;
+  background: rgb(254 215 170 / 55%);
   border-radius: 50%;
-  box-shadow: 0 0 1.3rem 0.6rem rgb(251 146 60 / 88%);
+  box-shadow: 0 0 1.6rem 0.8rem rgb(194 65 12 / 60%);
   animation: hub-gate-glow 3s ease-in-out infinite;
   transform: translateX(-50%);
 }
@@ -1869,7 +1876,7 @@
   top: 41%;
   width: 0.28rem;
   height: 3.6rem;
-  background: #57351d;
+  background: #2b2622;
   border-radius: 999px;
 }
 
@@ -1953,7 +1960,7 @@
 
 .hub-visitors {
   position: absolute;
-  z-index: 4;
+  z-index: 3;
   inset: 0;
   margin: 0;
   padding: 0;
@@ -1985,13 +1992,17 @@
   transform: translateX(-50%);
 }
 
+/* Contact with the floor: a shadow first, with the fire's bounce around it.
+   A figure that only glows is a figure standing on nothing. */
 .hub-visitor-glow {
   position: absolute;
   bottom: 0.15rem;
   left: 50%;
   width: 2.5rem;
   height: 0.75rem;
-  background: radial-gradient(ellipse, rgb(251 146 60 / 50%), transparent 68%);
+  background:
+    radial-gradient(ellipse 46% 62% at 50% 55%, rgb(0 0 0 / 78%), transparent 72%),
+    radial-gradient(ellipse, rgb(var(--accent-rgb) / 30%), transparent 70%);
   transform: translateX(-50%);
 }
 
@@ -2002,11 +2013,13 @@
   width: 1.4rem;
   height: 1.9rem;
   background:
-    linear-gradient(90deg, transparent 42%, rgb(254 215 170 / 36%) 44% 56%, transparent 58%),
-    linear-gradient(145deg, var(--color-zinc-700), var(--color-zinc-900));
-  border: 1px solid var(--color-stone-400);
+    linear-gradient(180deg, rgb(254 215 170 / 26%), transparent 62%),
+    linear-gradient(145deg, #2c3444, #0e131b);
+  border: 1px solid rgb(var(--accent-rgb) / 42%);
   border-radius: 0.75rem 0.75rem 0.25rem 0.25rem;
-  box-shadow: inset 0.25rem 0 rgb(255 255 255 / 10%);
+  box-shadow:
+    inset 0 0.3rem 0.45rem rgb(var(--accent-rgb) / 26%),
+    inset 0 -0.4rem 0.5rem rgb(4 7 14 / 70%);
   transform: translateX(-50%);
 }
 
@@ -2075,9 +2088,7 @@
   min-height: 0;
   padding: 0;
   place-items: stretch;
-  background:
-    radial-gradient(ellipse at 50% 56%, rgb(249 115 22 / 18%), transparent 29rem),
-    linear-gradient(160deg, #090b10 0%, #17120f 56%, #08090d 100%);
+  background: linear-gradient(180deg, var(--scene-stone) 0%, var(--scene-night) 70%);
 }
 
 .adventure-hub::after {
@@ -2087,6 +2098,7 @@
 }
 
 .adventure-hub-scene {
+  --scene-horizon: 63%;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -2096,9 +2108,23 @@
   border-radius: 0;
   box-shadow: none;
   background:
-    linear-gradient(90deg, rgb(0 0 0 / 46%), transparent 22% 78%, rgb(0 0 0 / 46%)),
-    radial-gradient(ellipse at 50% 72%, rgb(180 83 9 / 18%), transparent 32rem),
-    linear-gradient(180deg, rgb(33 26 20 / 78%), rgb(9 10 13 / 96%));
+    /* Moonlight falling in from somewhere above the broken roof. */
+    radial-gradient(ellipse 70% 42% at 50% -16%, rgb(var(--scene-moonlight-rgb) / 13%), transparent 72%),
+    /* The fire's pool on the floor, the only warm thing at ground level. */
+    radial-gradient(ellipse 30% 13% at 50% 80%, rgb(var(--accent-rgb) / 38%), transparent 72%),
+    radial-gradient(ellipse 52% 26% at 50% 84%, rgb(var(--accent-rgb) / 16%), transparent 76%),
+    /* The floor: a horizon line, then stone falling away into the dark. */
+    linear-gradient(
+      180deg,
+      transparent 0 calc(var(--scene-horizon) - 3%),
+      rgb(var(--scene-moonlight-rgb) / 9%) calc(var(--scene-horizon) - 1%),
+      rgb(var(--scene-moonlight-rgb) / 16%) var(--scene-horizon),
+      rgb(var(--scene-moonlight-rgb) / 6%) calc(var(--scene-horizon) + 9%),
+      rgb(0 0 0 / 42%) 100%
+    ),
+    /* Cold stone walls, black in the corners. */
+    radial-gradient(ellipse 78% 66% at 50% 42%, rgb(23 31 45 / 90%), transparent 76%),
+    linear-gradient(180deg, var(--scene-stone) 0%, var(--scene-night) 76%);
 }
 
 .adventure-hub-scene::before,
@@ -2119,14 +2145,26 @@
     linear-gradient(rgb(0 0 0 / 12%) 1px, transparent 1px);
   background-position: 0 0, 0 0, center center, center center;
   background-size: 5.5rem 9.5rem, 5.5rem 9.5rem, 7rem 7rem, 7rem 7rem;
-  mask-image: linear-gradient(to bottom, transparent, black 25%, black 84%, transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 22%,
+    black calc(var(--scene-horizon) - 8%),
+    transparent var(--scene-horizon)
+  );
 }
 
+/* Floorboards of light: the fire throwing long streaks across the stone. */
 .adventure-hub-scene::after {
-  inset: auto 0 0;
-  height: 35%;
-  background: linear-gradient(to top, rgb(0 0 0 / 24%), transparent);
-  opacity: 0.45;
+  inset: var(--scene-horizon) 0 0;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 3.5rem,
+      rgb(var(--scene-moonlight-rgb) / 4%) 3.5rem 3.55rem
+    );
+  mask-image: radial-gradient(ellipse 55% 90% at 50% 10%, black, transparent 78%);
 }
 
 .hub-heading {
@@ -2140,12 +2178,18 @@
 
 .hub-status-panel,
 .hub-expedition-panel,
-.hub-leaderboard-panel {
+.hub-leaderboard-panel,
+.hub-social-panel {
   background:
-    linear-gradient(135deg, rgb(254 243 199 / 5%), transparent 72%),
-    rgb(12 14 19 / 70%);
-  border-color: rgb(251 146 60 / 20%);
-  box-shadow: inset 0 1px rgb(255 255 255 / 3%), 0 0.75rem 2rem rgb(0 0 0 / 13%);
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 42%),
+    linear-gradient(180deg, rgb(20 27 39 / 90%), rgb(7 10 16 / 95%));
+  border-color: rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 32%),
+    inset 0 -1px rgb(0 0 0 / 70%),
+    0 0.9rem 2rem rgb(0 0 0 / 42%);
+  backdrop-filter: none;
 }
 
 .hub-status-panel {
@@ -2162,9 +2206,13 @@
   min-height: clamp(2.2rem, 5.8vh, 4.85rem);
   overflow: hidden;
   background:
-    linear-gradient(100deg, rgb(120 53 15 / 20%), transparent 85%),
-    rgb(24 20 18 / 70%);
-  border-color: rgb(251 146 60 / 24%);
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 11%), transparent 48%),
+    linear-gradient(180deg, rgb(22 29 41 / 90%), rgb(8 11 17 / 95%));
+  border-color: rgb(var(--accent-rgb) / 24%);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 30%),
+    inset 0 -1px rgb(0 0 0 / 65%);
 }
 
 .hub-station::after {
@@ -2186,8 +2234,13 @@
 .hub-station:hover:not(:disabled),
 .hub-station:focus-visible {
   background:
-    linear-gradient(100deg, rgb(180 83 9 / 34%), transparent 85%),
-    rgb(41 28 21 / 92%);
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 26%), transparent 62%),
+    linear-gradient(180deg, rgb(32 40 54 / 92%), rgb(12 16 23 / 96%));
+  border-color: rgb(var(--accent-rgb) / 55%);
+  box-shadow:
+    inset 0 1px rgb(var(--accent-bright-rgb) / 46%),
+    inset 0 -1px rgb(0 0 0 / 65%),
+    0 0 1.6rem rgb(var(--accent-rgb) / 18%);
 }
 
 .hub-expedition-panel {
@@ -2217,16 +2270,17 @@
   bottom: 14%;
   width: clamp(8rem, 13vw, 15rem);
   height: clamp(9rem, 17vw, 18rem);
-  opacity: 0.7;
+  opacity: 0.92;
   background:
-    linear-gradient(90deg, transparent 0 13%, #211c19 13% 39%, transparent 39% 46%, #2c2520 46% 72%, transparent 72% 79%, var(--color-stone-900) 79%),
-    linear-gradient(#3d332b, #191716 78%);
+    linear-gradient(180deg, rgb(var(--scene-moonlight-rgb) / 14%), transparent 42%),
+    linear-gradient(90deg, transparent 0 13%, #1d2634 13% 39%, transparent 39% 46%, #253044 46% 72%, transparent 72% 79%, #141b26 79%),
+    linear-gradient(#2e3a4e, #10151f 78%);
   clip-path: polygon(0 23%, 14% 23%, 14% 8%, 36% 8%, 36% 29%, 46% 29%, 46% 0, 70% 0, 70% 18%, 100% 18%, 100% 100%, 0 100%);
   filter: drop-shadow(0 0.8rem 0.6rem rgb(0 0 0 / 42%));
 }
 
-.hub-ruin-left { left: 6%; }
-.hub-ruin-right { right: 6%; transform: scaleX(-1); }
+.hub-ruin-left { left: 17%; }
+.hub-ruin-right { right: 17%; transform: scaleX(-1); }
 
 .hub-banner {
   position: absolute;
@@ -2379,13 +2433,47 @@
   }
 }
 
+/*
+ * The firelight. It sits above every prop and every figure and adds its warmth
+ * to whatever it reaches, which is what makes one light source out of a set of
+ * separately coloured shapes.
+ */
+.hub-firelight {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse 30% 26% at 50% 66%, rgb(var(--accent-rgb) / 30%), transparent 70%),
+    radial-gradient(ellipse 52% 44% at 50% 66%, rgb(var(--accent-rgb) / 12%), transparent 76%);
+  animation: hub-firelight-breathe 4.5s ease-in-out infinite alternate;
+}
+
+/* And the night taking it back at the edges, so the fire has somewhere to fall
+   off to. Without this the whole room is lit and the fire means nothing. */
+.hub-nightfall {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 72% 74% at 50% 62%, transparent 42%, rgb(4 7 14 / 42%) 80%, rgb(4 7 14 / 68%) 100%),
+    linear-gradient(180deg, rgb(4 7 14 / 40%) 0%, transparent 24%);
+}
+
+@keyframes hub-firelight-breathe {
+  from { opacity: 0.82; }
+  to { opacity: 1; }
+}
+
 /* The HUD sits over the scene as three columns. Each one keeps its own
    corner while the row has space for all three, and drops onto a row of its
    own when it does not, so the hub reflows on any viewport without a single
    breakpoint. */
 .hub-hud {
   position: relative;
-  z-index: 4;
+  z-index: 6;
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
@@ -2428,7 +2516,7 @@
 
 .hub-left-dock {
   position: relative;
-  z-index: 4;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   gap: clamp(0.25rem, 0.85vh, 1rem);

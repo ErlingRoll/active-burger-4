@@ -600,6 +600,14 @@ export function AdventureHubScene({
           ))}
         </ul>
 
+        {/*
+          The light. Everything above is a prop with its own colour; these two
+          layers are what makes the scene one place — the fire adds its warmth
+          over whatever it reaches, and the night takes it back at the edges.
+        */}
+        <div className="hub-firelight" aria-hidden="true" />
+        <div className="hub-nightfall" aria-hidden="true" />
+
         <div className="hub-hud">
           <div className="hub-hud-column hub-hud-column-start">
             <header className="hub-heading">
