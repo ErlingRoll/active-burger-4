@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
-import { createHubPresenceService, type HubVisitor } from './HubPresenceService'
+import {
+  clampToHubFloor,
+  createHubPresenceService,
+  HUB_SCENE_HORIZON_PERCENT,
+  HUB_VISITOR_BOUNDS,
+  type HubVisitor,
+} from './HubPresenceService'
 import { definedAt } from '../testing'
 
 function createService(client: SupabaseClient) {
@@ -286,5 +292,31 @@ describe('HubPresenceService', () => {
 
     unsubscribeFromVisitors()
     expect(client.removeChannel).toHaveBeenCalledWith(channel)
+  })
+})
+
+describe('the hub floor', () => {
+  it('starts below the horizon the scene draws', () => {
+    // The walkable area and the drawn ground were separate numbers once, and
+    // drifted: visitors could walk up into the night sky.
+    expect(HUB_VISITOR_BOUNDS.minY).toBeGreaterThan(HUB_SCENE_HORIZON_PERCENT)
+    expect(HUB_VISITOR_BOUNDS.maxY).toBeGreaterThan(HUB_VISITOR_BOUNDS.minY)
+  })
+
+  it('pulls a position in the sky down onto the ground', () => {
+    expect(clampToHubFloor({ x: 50, y: 20 })).toEqual({
+      x: 50,
+      y: HUB_VISITOR_BOUNDS.minY,
+    })
+    expect(clampToHubFloor({ x: 120, y: 200 })).toEqual({
+      x: HUB_VISITOR_BOUNDS.maxX,
+      y: HUB_VISITOR_BOUNDS.maxY,
+    })
+  })
+
+  it('leaves a position that is already on the floor alone', () => {
+    const onTheFloor = { x: 50, y: 74 }
+
+    expect(clampToHubFloor(onTheFloor)).toEqual(onTheFloor)
   })
 })

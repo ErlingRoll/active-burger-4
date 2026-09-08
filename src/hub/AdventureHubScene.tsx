@@ -7,6 +7,8 @@ import type { EssenceLeaderboardService } from '../leaderboard/EssenceLeaderboar
 import { useToaster } from '../ui/ToasterContext'
 import {
   HUB_SIGNAL_IDS,
+  clampToHubFloor,
+  HUB_SCENE_HORIZON_PERCENT,
   HUB_VISITOR_BOUNDS,
   type HubPresenceService,
   type HubPosition,
@@ -47,10 +49,17 @@ function isInteractiveElement(target: EventTarget | null): boolean {
     target.closest('input, select, textarea, [contenteditable="true"]') !== null
 }
 
+/**
+ * A spot by the fire to arrive at.
+ *
+ * Derived from the walkable bounds rather than written out again, so a visitor
+ * can never spawn somewhere they would not be allowed to walk.
+ */
 function createHubSpawnPosition(): HubPosition {
+  const floorDepth = HUB_VISITOR_BOUNDS.maxY - HUB_VISITOR_BOUNDS.minY
   return {
     x: 44 + Math.random() * 13,
-    y: 68 + Math.random() * 7,
+    y: HUB_VISITOR_BOUNDS.minY + floorDepth * (0.3 + Math.random() * 0.35),
   }
 }
 
@@ -83,10 +92,11 @@ interface AdventureHubSceneProps {
 
 function getVisitorStyle(visitor: HubVisitor, total: number, isCurrentPlayer: boolean): CSSProperties {
   const crowdScale = total > 24 ? 0.72 : total > 12 ? 0.84 : 1
+  const position = clampToHubFloor(visitor.position)
 
   return {
-    left: `${visitor.position.x}%`,
-    top: `${visitor.position.y}%`,
+    left: `${position.x}%`,
+    top: `${position.y}%`,
     transform: `translate(-50%, -50%) scale(${isCurrentPlayer ? crowdScale * 1.08 : crowdScale})`,
   }
 }
@@ -457,16 +467,10 @@ export function AdventureHubScene({
       const magnitude = Math.hypot(horizontal, vertical)
       const distance = (HUB_MOVEMENT_SPEED * elapsedSeconds) / magnitude
       const currentPosition = playerPositionRef.current
-      const nextPosition = {
-        x: Math.min(HUB_VISITOR_BOUNDS.maxX, Math.max(
-          HUB_VISITOR_BOUNDS.minX,
-          currentPosition.x + horizontal * distance,
-        )),
-        y: Math.min(HUB_VISITOR_BOUNDS.maxY, Math.max(
-          HUB_VISITOR_BOUNDS.minY,
-          currentPosition.y + vertical * distance,
-        )),
-      }
+      const nextPosition = clampToHubFloor({
+        x: currentPosition.x + horizontal * distance,
+        y: currentPosition.y + vertical * distance,
+      })
       if (nextPosition.x !== currentPosition.x || nextPosition.y !== currentPosition.y) {
         playerPositionRef.current = nextPosition
         const visitorElement = currentVisitorElementRef.current
@@ -568,16 +572,39 @@ export function AdventureHubScene({
       // out waiting for a state the page never published.
       data-run-persistence-state={runLoadState}
     >
-      <div className="adventure-hub-scene">
-        <div className="hub-dungeon-gate" aria-hidden="true">
-          <span className="hub-dungeon-gate-glow" />
+      <div
+        className="adventure-hub-scene"
+        // The floor line is owned by the presence module, because the ground the
+        // stylesheet draws and the ground a visitor may walk on have to be the
+        // same line. Handing it to CSS here keeps one number in one place.
+        style={{ '--scene-horizon': `${HUB_SCENE_HORIZON_PERCENT}%` } as CSSProperties}
+      >
+        {/*
+          The clearing. Nothing stands on the fire's axis: the archway that used
+          to frame it shared the same centre line, so at narrower widths the
+          bonfire ended up burning inside the doorway. The stones open toward
+          the viewer instead, and the way down is cut into the floor beside the
+          fire rather than raised behind it.
+        */}
+        <div className="hub-sky" aria-hidden="true">
+          <span className="hub-stars" />
+          <span className="hub-moon" />
         </div>
-        <div className="hub-ruin hub-ruin-left" aria-hidden="true" />
-        <div className="hub-ruin hub-ruin-right" aria-hidden="true" />
-        <div className="hub-banner hub-banner-left" aria-hidden="true" />
-        <div className="hub-banner hub-banner-right" aria-hidden="true" />
-        <div className="hub-torch hub-torch-left" aria-hidden="true"><i /></div>
-        <div className="hub-torch hub-torch-right" aria-hidden="true"><i /></div>
+        <div className="hub-stones" aria-hidden="true">
+          <span className="hub-stone hub-stone-a" />
+          <span className="hub-stone hub-stone-b" />
+          <span className="hub-stone hub-stone-c" />
+          <span className="hub-stone hub-stone-d" />
+          <span className="hub-stone hub-stone-e" />
+          <span className="hub-stone hub-stone-f" />
+          <span className="hub-stone hub-stone-g" />
+          <span className="hub-stone hub-stone-h" />
+        </div>
+        <div className="hub-descent" aria-hidden="true">
+          <span className="hub-descent-mouth" />
+          <span className="hub-descent-mist" />
+        </div>
+        <div className="hub-mist" aria-hidden="true" />
         <div className="hub-bonfire" aria-hidden="true">
           <span className="hub-fire-glow" />
           <span className="hub-fire-embers" />
@@ -587,6 +614,11 @@ export function AdventureHubScene({
           <span className="hub-fire-log hub-fire-log-left" />
           <span className="hub-fire-log hub-fire-log-right" />
           <span className="hub-firepit" />
+        </div>
+        <div className="hub-wisps" aria-hidden="true">
+          <span />
+          <span />
+          <span />
         </div>
         <ul className="hub-visitors" aria-label={`${visitors.length} adventurers at the hub. Use W, A, S, and D to move your adventurer.`}>
           {visitors.map((visitor) => (

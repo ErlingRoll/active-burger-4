@@ -7,12 +7,40 @@ export interface HubPosition {
   y: number
 }
 
+/**
+ * Where the clearing's floor begins, as a percentage down the scene.
+ *
+ * The stylesheet reads this through the `--scene-horizon` custom property the
+ * scene sets from it, so the ground that is drawn and the ground that can be
+ * walked on cannot drift apart.
+ */
+export const HUB_SCENE_HORIZON_PERCENT = 63
+
+/**
+ * The walkable floor. Visitors used to be allowed up to `minY: 28`, which is
+ * well above the horizon: a player holding W walked into the night sky.
+ */
 export const HUB_VISITOR_BOUNDS = {
   minX: 10,
   maxX: 90,
-  minY: 28,
-  maxY: 78,
+  minY: HUB_SCENE_HORIZON_PERCENT + 4,
+  maxY: 88,
 } as const
+
+/**
+ * Pulls a position onto the walkable floor.
+ *
+ * Used on the way in as well as the way out: a visitor's position arrives over
+ * presence from whatever client sent it, and a stale or older client can claim
+ * a spot in the night sky. Clamping on render means the drawn scene obeys the
+ * floor even when the wire does not.
+ */
+export function clampToHubFloor(position: HubPosition): HubPosition {
+  return {
+    x: Math.min(HUB_VISITOR_BOUNDS.maxX, Math.max(HUB_VISITOR_BOUNDS.minX, position.x)),
+    y: Math.min(HUB_VISITOR_BOUNDS.maxY, Math.max(HUB_VISITOR_BOUNDS.minY, position.y)),
+  }
+}
 
 export interface HubVisitorPresence {
   playerId: string

@@ -1876,92 +1876,14 @@
   border-radius: 0.4rem;
 }
 
-.hub-dungeon-gate {
-  position: absolute;
-  z-index: 1;
-  top: 18%;
-  left: 50%;
-  width: min(31vw, 24rem);
-  height: min(34vw, 25rem);
-  overflow: hidden;
-  background:
-    /* Something burning a long way down. */
-    radial-gradient(ellipse 42% 26% at 50% 104%, rgb(154 52 18 / 55%), transparent 72%),
-    linear-gradient(180deg, #04060b 0%, #06080e 62%, #0a0810 100%);
-  border: 0.65rem solid #1d2431;
-  border-bottom: 0;
-  border-radius: 12rem 12rem 0 0;
-  box-shadow:
-    /* Firelight climbing the inside of the arch, moonlight along its lip. */
-    inset 0 -2.5rem 3.5rem rgb(var(--accent-rgb) / 20%),
-    inset 0 0 0 1px rgb(var(--scene-moonlight-rgb) / 14%),
-    0 0 3rem rgb(0 0 0 / 62%);
-  transform: translateX(-50%);
-}
-
-.hub-dungeon-gate::before,
-.hub-dungeon-gate::after {
-  position: absolute;
-  bottom: 0;
-  width: 22%;
-  height: 100%;
-  content: '';
-  background:
-    linear-gradient(180deg, transparent 40%, rgb(var(--accent-rgb) / 16%) 100%),
-    linear-gradient(90deg, rgb(37 46 62 / 94%), rgb(13 17 24 / 96%));
-  border: 1px solid rgb(var(--scene-moonlight-rgb) / 12%);
-}
-
-.hub-dungeon-gate::before { left: 0; }
-.hub-dungeon-gate::after { right: 0; }
-
-/* Not a lamp in the doorway — an ember far below it, breathing. */
-.hub-dungeon-gate-glow {
-  position: absolute;
-  top: 72%;
-  left: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  background: rgb(254 215 170 / 55%);
-  border-radius: 50%;
-  box-shadow: 0 0 1.6rem 0.8rem rgb(194 65 12 / 60%);
-  animation: hub-gate-glow 3s ease-in-out infinite;
-  transform: translateX(-50%);
-}
-
-.hub-torch {
-  position: absolute;
-  z-index: 2;
-  top: 41%;
-  width: 0.28rem;
-  height: 3.6rem;
-  background: #2b2622;
-  border-radius: 999px;
-}
-
-.hub-torch-left { left: 32%; transform: rotate(-8deg); }
-.hub-torch-right { right: 32%; transform: rotate(8deg); }
-
-.hub-torch i {
-  position: absolute;
-  top: -1.05rem;
-  left: 50%;
-  width: 1.15rem;
-  height: 1.6rem;
-  background: radial-gradient(ellipse at 50% 78%, var(--color-amber-100) 0 13%, var(--color-orange-400) 30%, var(--color-red-600) 64%, transparent 68%);
-  filter: drop-shadow(0 0 0.55rem rgb(251 146 60 / 82%));
-  animation: hub-flame-flicker 1.25s ease-in-out infinite alternate;
-  transform: translateX(-50%);
-}
-
 .hub-bonfire {
   position: absolute;
   z-index: 3;
-  top: 50%;
+  bottom: calc(100% - var(--scene-horizon) - 9%);
   left: 50%;
   width: 8rem;
   height: 8rem;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .hub-fire-glow {
@@ -2128,8 +2050,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hub-dungeon-gate-glow,
-  .hub-torch i,
   .hub-fire-glow,
   .hub-flame {
     animation: none;
@@ -2157,7 +2077,6 @@
 }
 
 .adventure-hub-scene {
-  --scene-horizon: 63%;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -2193,24 +2112,6 @@
   inset: 0;
   content: '';
   pointer-events: none;
-}
-
-.adventure-hub-scene::before {
-  opacity: 0.58;
-  background-image:
-    linear-gradient(30deg, rgb(255 237 213 / 4%) 12%, transparent 12.5%, transparent 87%, rgb(255 237 213 / 4%) 87.5%),
-    linear-gradient(150deg, rgb(255 237 213 / 4%) 12%, transparent 12.5%, transparent 87%, rgb(255 237 213 / 4%) 87.5%),
-    linear-gradient(90deg, rgb(0 0 0 / 12%) 1px, transparent 1px),
-    linear-gradient(rgb(0 0 0 / 12%) 1px, transparent 1px);
-  background-position: 0 0, 0 0, center center, center center;
-  background-size: 5.5rem 9.5rem, 5.5rem 9.5rem, 7rem 7rem, 7rem 7rem;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black 22%,
-    black calc(var(--scene-horizon) - 8%),
-    transparent var(--scene-horizon)
-  );
 }
 
 /* Floorboards of light: the fire throwing long streaks across the stone. */
@@ -2362,72 +2263,259 @@
   width: min(100%, 20rem);
 }
 
-.hub-dungeon-gate {
-  z-index: 1;
+/* ---------------------------------------------------------------------------
+   The Emberwatch clearing.
+
+   Standing stones opening toward the viewer, a moon, and a stair cut into the
+   floor. The rule from the scene above still holds — the fire is the only warm
+   light — so the stones are moonlit, the stair breathes cold, and nothing but
+   the fire is allowed to be amber.
+   --------------------------------------------------------------------------- */
+
+.hub-sky {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 calc(100% - var(--scene-horizon)) 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hub-stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(circle at 14% 24%, rgb(var(--scene-moonlight-rgb) / 75%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 62% 12%, rgb(var(--scene-moonlight-rgb) / 55%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 84% 38%, rgb(var(--scene-moonlight-rgb) / 65%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 34% 62%, rgb(var(--scene-moonlight-rgb) / 45%) 0 0.04rem, transparent 0.08rem);
+  background-size: 23rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+/* The cold light has a source, so its direction is not arbitrary. */
+.hub-moon {
+  position: absolute;
   top: 12%;
-  width: min(26vw, 29rem);
-  height: min(31vw, 30rem);
-  opacity: 0.8;
+  left: 63%;
+  width: clamp(1.3rem, 2.1vw, 2.1rem);
+  aspect-ratio: 1;
+  background: radial-gradient(circle at 40% 36%, #f4f8ff, #c8d6ea 54%, #93a8c4 100%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 1.6rem 0.3rem rgb(var(--scene-moonlight-rgb) / 34%),
+    0 0 5rem 1.6rem rgb(var(--scene-moonlight-rgb) / 14%),
+    0 0 11rem 4rem rgb(var(--scene-moonlight-rgb) / 7%);
 }
 
-.hub-dungeon-gate-glow {
-  top: 35%;
-  opacity: 0.72;
-}
-
-.hub-ruin {
+.hub-stones {
   position: absolute;
   z-index: 1;
-  bottom: 14%;
-  width: clamp(8rem, 13vw, 15rem);
-  height: clamp(9rem, 17vw, 18rem);
-  opacity: 0.92;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Each stone is lit along its top by the moon and left dark below, and the
+   further back it stands the more of the night is between it and the eye. */
+.hub-stone {
+  position: absolute;
+  width: var(--stone-width);
+  height: var(--stone-height);
+  opacity: var(--stone-depth, 1);
   background:
-    linear-gradient(180deg, rgb(var(--scene-moonlight-rgb) / 14%), transparent 42%),
-    linear-gradient(90deg, transparent 0 13%, #1d2634 13% 39%, transparent 39% 46%, #253044 46% 72%, transparent 72% 79%, #141b26 79%),
-    linear-gradient(#2e3a4e, #10151f 78%);
-  clip-path: polygon(0 23%, 14% 23%, 14% 8%, 36% 8%, 36% 29%, 46% 29%, 46% 0, 70% 0, 70% 18%, 100% 18%, 100% 100%, 0 100%);
-  filter: drop-shadow(0 0.8rem 0.6rem rgb(0 0 0 / 42%));
+    linear-gradient(180deg, rgb(var(--scene-moonlight-rgb) / 34%), transparent 18%),
+    linear-gradient(98deg, var(--stone-lit, #182130) 0 38%, var(--stone-dark, #0b101a) 38%);
+  border-radius: 50% 42% 14% 10% / 18% 22% 4% 4%;
+  box-shadow: inset 0 1px rgb(var(--scene-moonlight-rgb) / 30%);
+  transform: rotate(var(--stone-tilt, 0deg));
+  transform-origin: bottom center;
 }
 
-.hub-ruin-left { left: 17%; }
-.hub-ruin-right { right: 17%; transform: scaleX(-1); }
-
-.hub-banner {
+/* Each stone sits in its own pool of shadow, or it hovers. */
+.hub-stone::after {
   position: absolute;
-  z-index: 2;
-  top: 29%;
-  width: 1.1rem;
-  height: 7rem;
-  background: linear-gradient(90deg, #4a2b19, var(--color-stone-900));
-  box-shadow: 0 0.25rem 0.3rem rgb(0 0 0 / 45%);
+  bottom: -0.35rem;
+  left: 50%;
+  width: 190%;
+  height: 0.9rem;
+  content: '';
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(2 4 9 / 78%), transparent 70%);
+  transform: translateX(-50%);
 }
 
-.hub-banner::after {
+.hub-stone-a { --stone-width: 3rem;   --stone-height: 9.5rem; --stone-depth: 0.98; --stone-tilt: -3deg;  left: 24%; bottom: 33%; }
+.hub-stone-b { --stone-width: 1.9rem; --stone-height: 5.4rem; --stone-depth: 0.78; --stone-tilt: 2.5deg; left: 31%; bottom: 35.5%; }
+.hub-stone-c {
+  --stone-width: 1.3rem; --stone-height: 3.2rem; --stone-tilt: -1.5deg;
+  --stone-lit: #222c3d; --stone-dark: #172030; --stone-depth: 0.5;
+  left: 37%; bottom: 37%;
+}
+
+.hub-stone-d {
+  --stone-width: 1.4rem; --stone-height: 3.5rem; --stone-tilt: 2deg;
+  --stone-lit: #222c3d; --stone-dark: #172030; --stone-depth: 0.5;
+  left: 61%; bottom: 37%;
+}
+
+/* Nearer the eye than the ring, to give the clearing a foreground. */
+.hub-stone-g {
+  --stone-width: 2rem; --stone-height: 4.4rem; --stone-tilt: 5deg;
+  --stone-lit: #101724; --stone-dark: #070b12;
+  left: 30%; bottom: 9%;
+}
+
+.hub-stone-h {
+  --stone-width: 2.3rem; --stone-height: 5rem; --stone-tilt: -6deg;
+  --stone-lit: #101724; --stone-dark: #070b12;
+  left: 68%; bottom: 13%;
+}
+.hub-stone-e { --stone-width: 2.1rem; --stone-height: 6rem;   --stone-depth: 0.78; --stone-tilt: -2deg;  left: 66%; bottom: 35%; }
+.hub-stone-f { --stone-width: 3.3rem; --stone-height: 10.2rem; --stone-depth: 0.98; --stone-tilt: 3deg;  left: 73%; bottom: 32.5%; }
+
+/*
+ * The way down.
+ *
+ * Two uprights and a lintel, standing off the fire's axis. It was a stair cut
+ * into the floor first, which is the truer idea, but read as a rug at this
+ * viewing angle: a hole in the ground has no silhouette. A raised gateway does,
+ * and being at a third of the width it can never share a column with the
+ * flames however narrow the window gets.
+ */
+.hub-descent {
   position: absolute;
-  top: 0.45rem;
-  left: 0.3rem;
-  width: 2.45rem;
-  height: 4.25rem;
+  z-index: 1;
+  bottom: 33.5%;
+  /* Far enough in that the dock never swallows it on a narrow window, far
+     enough out that it never shares a column with the fire. */
+  left: 36%;
+  width: clamp(4.6rem, 8vw, 7.2rem);
+  height: clamp(6.5rem, 11.5vw, 10rem);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.hub-descent::before,
+.hub-descent::after {
+  position: absolute;
+  bottom: 0;
+  width: 23%;
+  height: 100%;
   content: '';
   background:
-    linear-gradient(135deg, rgb(251 191 36 / 26%), transparent 45%),
-    #5b2118;
-  clip-path: polygon(0 0, 100% 8%, 88% 100%, 50% 81%, 9% 100%);
+    linear-gradient(180deg, rgb(var(--scene-moonlight-rgb) / 32%), transparent 14%),
+    linear-gradient(98deg, #182130 0 40%, #0b101a 40%);
+  border-radius: 32% 26% 8% 8% / 9% 10% 3% 3%;
+  box-shadow: inset 0 1px rgb(var(--scene-moonlight-rgb) / 30%);
 }
 
-.hub-banner-left { left: 28%; }
-.hub-banner-right { right: 28%; transform: scaleX(-1); }
+.hub-descent::before { left: 0; transform: rotate(-1.5deg); }
+.hub-descent::after { right: 0; transform: rotate(1.8deg); }
 
-.hub-torch {
-  top: 44%;
+/* The dark between them. Nothing is lit in there, which is the point. */
+.hub-descent-mouth {
+  position: absolute;
+  bottom: 0;
+  left: 19%;
+  width: 62%;
+  height: 90%;
+  background: linear-gradient(180deg, #010206 0%, #000104 62%, #04070e 100%);
+  box-shadow: inset 0 0 1.4rem rgb(0 0 0 / 92%);
 }
 
-.hub-torch-left { left: 35%; }
-.hub-torch-right { right: 35%; }
+/* The lintel laid across the top. */
+.hub-descent-mouth::before {
+  position: absolute;
+  top: -7%;
+  left: -32%;
+  width: 164%;
+  height: 15%;
+  content: '';
+  background:
+    linear-gradient(180deg, rgb(var(--scene-moonlight-rgb) / 36%), transparent 32%),
+    linear-gradient(98deg, #1b2533 0 44%, #0c121c 44%);
+  border-radius: 0.2rem;
+  box-shadow:
+    inset 0 1px rgb(var(--scene-moonlight-rgb) / 30%),
+    0 0.35rem 0.9rem rgb(0 0 0 / 65%);
+}
+
+/* Something cold breathing at its foot. */
+.hub-descent-mist {
+  position: absolute;
+  bottom: -8%;
+  left: 50%;
+  width: 215%;
+  height: 3.6rem;
+  background: radial-gradient(ellipse 40% 52% at 50% 72%, rgb(var(--scene-moonlight-rgb) / 28%), transparent 74%);
+  filter: blur(0.42rem);
+  animation: hub-gate-glow 6s ease-in-out infinite;
+  transform: translateX(-50%);
+}
+
+/* The band of mist the clearing sits in, which is also what stops the horizon
+   reading as a drawn line. */
+.hub-mist {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(100% - var(--scene-horizon) - 4%);
+  left: 0;
+  width: 100%;
+  height: 7rem;
+  pointer-events: none;
+  opacity: 0.34;
+  background:
+    radial-gradient(ellipse 34% 40% at 20% 62%, rgb(var(--scene-moonlight-rgb) / 20%), transparent 72%),
+    radial-gradient(ellipse 30% 44% at 76% 55%, rgb(var(--scene-moonlight-rgb) / 16%), transparent 72%),
+    radial-gradient(ellipse 26% 36% at 47% 70%, rgb(var(--scene-moonlight-rgb) / 12%), transparent 74%);
+  filter: blur(0.5rem);
+  animation: hub-mist-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes hub-mist-drift {
+  from { transform: translateX(-2%); }
+  to { transform: translateX(2%); }
+}
+
+/* Wisps: the mystical half of the room. Cold, so they never read as sparks
+   from the fire. */
+.hub-wisps {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hub-wisps span {
+  position: absolute;
+  width: 0.22rem;
+  height: 0.22rem;
+  background: rgb(var(--scene-moonlight-rgb) / 90%);
+  border-radius: 50%;
+  box-shadow: 0 0 0.6rem 0.12rem rgb(var(--scene-moonlight-rgb) / 55%);
+  animation: hub-wisp-drift 14s ease-in-out infinite;
+}
+
+.hub-wisps span:nth-child(1) { left: 30%; bottom: 40%; animation-delay: -2s; }
+.hub-wisps span:nth-child(2) { left: 68%; bottom: 46%; animation-delay: -7s; animation-duration: 18s; }
+.hub-wisps span:nth-child(3) { left: 58%; bottom: 38%; animation-delay: -11s; animation-duration: 21s; }
+
+@keyframes hub-wisp-drift {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.85; }
+  50% { transform: translate(1.6rem, -2.6rem); }
+  85% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(-0.8rem, -5.4rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-mist,
+  .hub-wisps span,
+  .hub-descent-mist {
+    animation: none;
+  }
+}
 
 .hub-bonfire {
-  top: 56%;
   width: 12rem;
   height: 12rem;
 }
@@ -2556,8 +2644,8 @@
   pointer-events: none;
   mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse 30% 26% at 50% 66%, rgb(var(--accent-rgb) / 30%), transparent 70%),
-    radial-gradient(ellipse 52% 44% at 50% 66%, rgb(var(--accent-rgb) / 12%), transparent 76%);
+    radial-gradient(ellipse 30% 26% at 50% 71%, rgb(var(--accent-rgb) / 30%), transparent 70%),
+    radial-gradient(ellipse 52% 44% at 50% 71%, rgb(var(--accent-rgb) / 12%), transparent 76%);
   animation: hub-firelight-breathe 4.5s ease-in-out infinite alternate;
 }
 
@@ -2569,7 +2657,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 72% 74% at 50% 62%, transparent 42%, rgb(4 7 14 / 42%) 80%, rgb(4 7 14 / 68%) 100%),
+    radial-gradient(ellipse 72% 74% at 50% 68%, transparent 44%, rgb(4 7 14 / 42%) 80%, rgb(4 7 14 / 68%) 100%),
     linear-gradient(180deg, rgb(4 7 14 / 40%) 0%, transparent 24%);
 }
 
