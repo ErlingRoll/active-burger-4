@@ -1515,13 +1515,10 @@
 }
 
 .adventure-hub-scene {
-  --hub-hud-bottom-inset: 1.25rem;
-  --hub-hud-inline-inset: clamp(1.25rem, 5vw, 5rem);
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(13rem, 18rem) minmax(19rem, 1fr) minmax(15rem, 20rem);
-  grid-template-rows: auto minmax(25rem, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   gap: clamp(0.75rem, 2vw, 1.5rem);
   width: min(100%, 92rem);
   min-height: min(50rem, calc(100vh - 5rem));
@@ -1548,20 +1545,16 @@
   z-index: 4;
 }
 
-.hub-heading {
-  position: absolute;
-  top: clamp(1.25rem, 3vw, 3rem);
-  left: var(--hub-hud-inline-inset);
-}
-
 .adventure-hub .screen-kicker {
   margin: 0;
   color: var(--color-amber-400);
+  font-size: clamp(0.55rem, 1.35vh, 0.8rem);
+  line-height: 1.3;
 }
 
 .hub-heading h2 {
   max-width: 10ch;
-  margin: 0.35rem 0 0.55rem;
+  margin: clamp(0.15rem, 0.6vh, 0.35rem) 0 clamp(0.25rem, 0.9vh, 0.55rem);
   color: var(--color-orange-50);
   font-size: clamp(2rem, 5vw, 4.6rem);
   line-height: 0.9;
@@ -1572,13 +1565,14 @@
   max-width: 34rem;
   margin: 0;
   color: #d6c1ad;
-  line-height: 1.5;
+  font-size: clamp(0.65rem, 1.7vh, 1rem);
+  line-height: 1.35;
 }
 
 .hub-status-panel,
 .hub-expedition-panel,
 .hub-leaderboard-panel {
-  padding: 1rem;
+  padding: clamp(0.42rem, 1.2vh, 1rem);
   background:
     linear-gradient(135deg, rgb(254 243 199 / 6%), transparent 72%),
     rgb(12 14 19 / 86%);
@@ -1588,18 +1582,12 @@
   backdrop-filter: blur(0.5rem);
 }
 
-.hub-status-panel {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  align-self: start;
-}
-
 .hub-status-panel dl,
 .hub-run-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin: 0.8rem 0;
+  gap: clamp(0.3rem, 0.8vh, 0.55rem);
+  margin: clamp(0.32rem, 1.2vh, 0.8rem) 0;
 }
 
 .hub-status-panel dl div,
@@ -1611,7 +1599,7 @@
 .hub-status-panel dt,
 .hub-run-details dt {
   color: #a89a89;
-  font-size: 0.64rem;
+  font-size: clamp(0.52rem, 1.2vh, 0.64rem);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1621,24 +1609,24 @@
 .hub-run-details dd {
   margin: 0;
   color: var(--color-orange-50);
-  font-size: 0.95rem;
+  font-size: clamp(0.76rem, 1.7vh, 0.95rem);
   font-weight: 800;
   overflow-wrap: anywhere;
 }
 
 .hub-status-panel dl div:first-child dd {
   color: var(--color-amber-400);
-  font-size: 1.35rem;
+  font-size: clamp(1.05rem, 2.4vh, 1.35rem);
 }
 
 .hub-station {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.7rem;
+  gap: clamp(0.5rem, 1.2vh, 0.7rem);
   align-items: center;
   width: 100%;
   min-height: 4.5rem;
-  padding: 0.7rem 0.8rem;
+  padding: clamp(0.3rem, 0.9vh, 0.7rem) 0.8rem;
   color: #f4e5d6;
   font: inherit;
   text-align: left;
@@ -1653,11 +1641,11 @@
 
 .hub-station > span:first-child {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: clamp(1.45rem, 3.4vh, 2.25rem);
+  height: clamp(1.45rem, 3.4vh, 2.25rem);
   place-items: center;
   color: var(--color-amber-200);
-  font-size: 1.15rem;
+  font-size: clamp(0.85rem, 1.9vh, 1.15rem);
   background: rgb(245 158 11 / 15%);
   border: 1px solid rgb(251 191 36 / 36%);
   border-radius: 50%;
@@ -1670,13 +1658,15 @@
 
 .hub-station strong {
   color: var(--color-orange-50);
-  font-size: 0.86rem;
+  font-size: clamp(0.66rem, 1.5vh, 0.86rem);
+  line-height: 1.2;
 }
 
 .hub-station small {
   margin-top: 0.12rem;
   color: #c4aa92;
-  font-size: 0.69rem;
+  font-size: clamp(0.55rem, 1.25vh, 0.69rem);
+  line-height: 1.25;
 }
 
 .hub-station:hover:not(:disabled),
@@ -1704,36 +1694,27 @@
 
 .hub-utility-stations {
   display: grid;
-  grid-column: 1;
-  grid-row: 2;
-  align-self: end;
-  gap: 0.55rem;
-}
-
-.hub-expedition-panel {
-  grid-column: 1;
-  grid-row: 3;
-  align-self: end;
+  gap: clamp(0.25rem, 0.8vh, 0.55rem);
 }
 
 .hub-expedition-panel h3 {
-  margin: 0.3rem 0 0.75rem;
+  margin: clamp(0.1rem, 0.5vh, 0.3rem) 0 clamp(0.3rem, 1.1vh, 0.75rem);
   color: var(--color-orange-50);
-  font-size: 1.25rem;
+  font-size: clamp(0.9rem, 2.1vh, 1.25rem);
   letter-spacing: -0.035em;
 }
 
 .hub-expedition-actions {
   display: grid;
-  gap: 0.55rem;
+  gap: clamp(0.3rem, 0.8vh, 0.55rem);
 }
 
 .hub-expedition-action,
 .hub-abyss-action,
 .hub-forfeit-action {
   width: 100%;
-  min-height: 3.2rem;
-  padding: 0.7rem 0.85rem;
+  min-height: clamp(1.8rem, 4.4vh, 3.2rem);
+  padding: clamp(0.4rem, 1.1vh, 0.7rem) 0.85rem;
   font: inherit;
   font-weight: 850;
   text-align: left;
@@ -1787,7 +1768,7 @@
 }
 
 .hub-forfeit-action {
-  margin-top: 0.55rem;
+  margin-top: clamp(0.3rem, 0.8vh, 0.55rem);
   color: var(--color-red-200);
   background: rgb(69 10 10 / 82%);
   border: 1px solid rgb(248 113 113 / 72%);
@@ -1802,18 +1783,10 @@
 
 .hub-restriction,
 .hub-presence-error {
-  margin: 0.65rem 0 0;
+  margin: clamp(0.25rem, 0.9vh, 0.65rem) 0 0;
   color: var(--color-red-300);
-  font-size: 0.75rem;
-  line-height: 1.4;
-}
-
-.hub-leaderboard-panel {
-  grid-column: 3;
-  grid-row: 3;
-  align-self: end;
-  max-height: 25rem;
-  overflow: auto;
+  font-size: clamp(0.6rem, 1.4vh, 0.75rem);
+  line-height: 1.3;
 }
 
 .hub-leaderboard-panel .essence-leaderboard {
@@ -1822,25 +1795,35 @@
   border: 0;
 }
 
+.hub-leaderboard-panel .essence-leaderboard-heading {
+  margin-bottom: clamp(0.35rem, 1.1vh, 1rem);
+}
+
 .hub-leaderboard-panel .essence-leaderboard-heading h3 {
-  font-size: 1.15rem;
+  font-size: clamp(0.92rem, 2vh, 1.15rem);
+}
+
+.hub-leaderboard-panel .essence-leaderboard-heading > span {
+  font-size: clamp(0.58rem, 1.2vh, 0.78rem);
 }
 
 .hub-leaderboard-panel .essence-leaderboard-row {
-  min-height: 2.55rem;
-  padding: 0.4rem 0.55rem;
+  min-height: clamp(1.45rem, 3.5vh, 2.55rem);
+  padding: clamp(0.1rem, 0.5vh, 0.4rem) 0.55rem;
+  font-size: clamp(0.76rem, 1.6vh, 0.95rem);
+}
+
+.hub-leaderboard-panel .essence-leaderboard-row > strong {
+  font-size: clamp(0.78rem, 1.7vh, 1rem);
 }
 
 .hub-leaderboard-panel .essence-leaderboard-list {
-  gap: 0.3rem;
+  gap: clamp(0.12rem, 0.45vh, 0.3rem);
 }
 
 .hub-presence-error {
-  position: absolute;
-  right: 1.25rem;
-  bottom: 1.15rem;
   z-index: 6;
-  max-width: 24rem;
+  width: min(100%, 24rem);
   padding: 0.45rem 0.65rem;
   color: var(--color-red-200);
   background: rgb(69 10 10 / 88%);
@@ -2122,7 +2105,7 @@
   height: 100%;
   min-height: 0;
   margin: 0;
-  padding: clamp(1.25rem, 3vw, 3rem) clamp(1.25rem, 5vw, 5rem);
+  padding: clamp(0.6rem, 1.7vh, 2rem) clamp(1.25rem, 5vw, 5rem);
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -2166,7 +2149,7 @@
 
 .hub-heading h2 {
   max-width: 9ch;
-  font-size: clamp(2.4rem, 5.2vw, 5.4rem);
+  font-size: clamp(1.35rem, min(4.4vw, 4.8vh), 5.4rem);
 }
 
 .hub-status-panel,
@@ -2180,8 +2163,7 @@
 }
 
 .hub-status-panel {
-  min-width: min(100%, 15rem);
-  justify-self: end;
+  width: min(100%, 16rem);
 }
 
 .hub-utility-stations {
@@ -2191,7 +2173,7 @@
 
 .hub-station {
   position: relative;
-  min-height: 4.85rem;
+  min-height: clamp(2.2rem, 5.8vh, 4.85rem);
   overflow: hidden;
   background:
     linear-gradient(100deg, rgb(120 53 15 / 20%), transparent 85%),
@@ -2224,14 +2206,10 @@
 
 .hub-expedition-panel {
   width: min(100%, 18rem);
-  align-self: end;
 }
 
 .hub-leaderboard-panel {
-  min-width: min(100%, 17rem);
-  max-height: none;
-  overflow: visible;
-  justify-self: end;
+  width: min(100%, 20rem);
 }
 
 .hub-dungeon-gate {
@@ -2415,14 +2393,59 @@
   }
 }
 
+/* The HUD sits over the scene as three columns. Each one keeps its own
+   corner while the row has space for all three, and drops onto a row of its
+   own when it does not, so the hub reflows on any viewport without a single
+   breakpoint. */
+.hub-hud {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  justify-content: space-between;
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(251 146 60 / 45%) transparent;
+}
+
+.hub-hud-column {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.85vh, 1rem);
+  justify-content: space-between;
+  min-width: 0;
+}
+
+/* Matching bases on the outer columns keep the campfire column centred. */
+.hub-hud-column-start,
+.hub-hud-column-end {
+  flex: 1 1 min(16rem, 100%);
+}
+
+.hub-hud-column-start {
+  align-items: flex-start;
+}
+
+.hub-hud-column-center {
+  flex: 1 1 min(17rem, 100%);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.hub-hud-column-end {
+  align-items: flex-end;
+}
+
 .hub-left-dock {
-  position: absolute;
+  position: relative;
   z-index: 4;
   display: flex;
   flex-direction: column;
-  bottom: var(--hub-hud-bottom-inset);
-  left: var(--hub-hud-inline-inset);
-  gap: 1rem;
+  gap: clamp(0.25rem, 0.85vh, 1rem);
   min-width: 0;
   width: min(100%, 20rem);
 }
@@ -2434,29 +2457,25 @@
 .hub-left-dock .hub-utility-stations,
 .hub-left-dock .hub-expedition-panel {
   position: relative;
-  grid-column: auto;
-  grid-row: auto;
-  align-self: auto;
   width: 100%;
 }
 
-.hub-leaderboard-panel {
-  position: absolute;
-  right: var(--hub-hud-inline-inset);
-  bottom: var(--hub-hud-bottom-inset);
+/* The expedition panel sits at the foot of the HUD, so its tooltip opens
+   upwards instead of pushing the scroll area open beneath it. */
+.hub-expedition-panel .app-tooltip.abyss-entry-tooltip {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
 }
 
 .hub-social-panel {
-  position: absolute;
+  position: relative;
   z-index: 6;
-  bottom: var(--hub-hud-bottom-inset);
-  left: 50%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.85rem;
   align-items: center;
-  width: min(38rem, calc(100% - (var(--hub-hud-inline-inset) * 2)));
-  padding: 0.65rem 0.8rem;
+  width: min(100%, 38rem);
+  padding: clamp(0.35rem, 1vh, 0.65rem) 0.8rem;
   background:
     linear-gradient(135deg, rgb(254 243 199 / 6%), transparent 72%),
     rgb(12 14 19 / 86%);
@@ -2464,7 +2483,6 @@
   border-radius: 0.75rem;
   box-shadow: inset 0 1px rgb(255 255 255 / 4%), 0 0.75rem 2rem rgb(0 0 0 / 18%);
   backdrop-filter: blur(0.5rem);
-  transform: translateX(-50%);
 }
 
 .hub-social-gathered {
@@ -2490,10 +2508,10 @@
   bottom: calc(100% + 0.2rem);
   left: 50%;
   width: max-content;
-  max-width: 9rem;
+  max-width: min(9rem, 30vw);
   padding: 0.3rem 0.45rem;
   color: var(--color-amber-50);
-  font-size: 0.67rem;
+  font-size: clamp(0.58rem, 1.7vw, 0.67rem);
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
@@ -2531,20 +2549,19 @@
 
 .hub-signal-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(6.25rem, 100%), 1fr));
   gap: 0.35rem;
   margin-top: 0.45rem;
 }
 
 .hub-social-panel .hub-signal-options {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 0.3rem;
 }
 
 .hub-signal-option {
   min-width: 0;
-  min-height: 2rem;
-  padding: 0.35rem 0.4rem;
+  min-height: clamp(1.6rem, 3.2vh, 2rem);
+  padding: clamp(0.2rem, 0.6vh, 0.35rem) 0.4rem;
   color: var(--color-amber-100);
   font: inherit;
   font-size: 0.66rem;
@@ -2571,7 +2588,11 @@
 }
 
 .hub-signal-help {
+  /* Anchored so the visually hidden helper cannot push the HUD scroll area
+     open below the campfire panel. */
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -2582,29 +2603,4 @@
   color: #c4aa92;
   font-size: 0.65rem;
   line-height: 1.4;
-}
-
-@media (max-width: 640px) {
-  .hub-social-panel {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    width: min(20rem, calc(100% - (var(--hub-hud-inline-inset) * 2)));
-  }
-
-  .hub-social-gathered {
-    grid-template-columns: auto 1fr;
-    align-items: baseline;
-    padding: 0 0 0.45rem;
-    border-right: 0;
-    border-bottom: 1px solid rgb(251 146 60 / 20%);
-  }
-
-  .hub-social-panel .hub-signal-options {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .hub-visitor-signal {
-    max-width: 7rem;
-    font-size: 0.58rem;
-  }
 }

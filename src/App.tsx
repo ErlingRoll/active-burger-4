@@ -1646,7 +1646,9 @@ function App() {
         ? ' app-shell-gameplay'
         : screen === 'fishing'
           ? ' app-shell-fishing'
-          : ''
+          : screen === 'dashboard'
+            ? ' app-shell-hub'
+            : ''
     }`}>
       {screen !== 'gameplay' ? (
         <AppHeader
