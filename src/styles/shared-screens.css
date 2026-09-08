@@ -48,7 +48,7 @@
 .dashboard-panel h2,
 .results-panel h2 {
   margin: 0.45rem 0 1rem;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: clamp(1.75rem, 5vw, 3rem);
 }
 
@@ -74,13 +74,13 @@
 
 .account-summary h3 {
   margin: 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 1.05rem;
 }
 
 .account-panel h3 {
   margin: 0.35rem 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 1.1rem;
 }
 
@@ -121,7 +121,7 @@
   align-items: center;
   gap: 0.75rem;
   margin: 1rem 0;
-  color: var(--color-slate-400);
+  color: var(--text-muted);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -132,7 +132,7 @@
   flex: 1;
   height: 1px;
   content: '';
-  background: var(--color-slate-700);
+  background: rgb(var(--accent-rgb) / 24%);
 }
 
 .sign-in-form {
@@ -145,19 +145,18 @@
 .sign-in-form label {
   display: grid;
   gap: 0.35rem;
-  color: var(--color-slate-200);
+  color: var(--color-stone-200);
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .sign-in-form input:not([type='checkbox']) {
   min-height: 2.5rem;
-  min-height: 2rem;
-  padding: 0.35rem 0.5rem;
-  color: var(--color-slate-50);
+  padding: 0.45rem 0.6rem;
+  color: var(--color-stone-50);
   font: inherit;
-  background: var(--color-slate-800);
-  border: 1px solid var(--color-slate-600);
+  background: rgb(0 0 0 / 38%);
+  border: 1px solid rgb(var(--accent-rgb) / 28%);
   border-radius: 0.4rem;
 }
 
@@ -174,12 +173,12 @@
   height: 1rem;
   min-height: 0;
   margin: 0;
-  accent-color: var(--color-blue-400);
+  accent-color: var(--accent);
 }
 
 .sign-in-form input:focus-visible {
-  border-color: var(--color-blue-300);
-  outline: 3px solid rgb(147 197 253 / 35%);
+  border-color: var(--accent);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 32%);
   outline-offset: 1px;
 }
 
@@ -193,7 +192,7 @@
 .text-action {
   width: fit-content;
   padding: 0;
-  color: var(--color-blue-300);
+  color: var(--accent);
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
@@ -204,11 +203,11 @@
 
 .text-action:hover,
 .text-action:focus-visible {
-  color: var(--color-blue-100);
+  color: var(--accent-contrast);
 }
 
 .text-action:focus-visible {
-  outline: 3px solid rgb(147 197 253 / 35%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 32%);
   outline-offset: 3px;
 }
 
@@ -219,7 +218,7 @@
 
 .dashboard-panel p:not(.screen-kicker),
 .results-summary {
-  color: var(--color-slate-300);
+  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -228,11 +227,11 @@
   gap: 0.65rem;
   margin: 1.5rem 0 2rem;
   padding-left: 1.25rem;
-  color: var(--color-slate-300);
+  color: var(--text-muted);
 }
 
 .control-list strong {
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
 }
 
 .dashboard-choice-group {
@@ -243,7 +242,7 @@
 
 .dashboard-choice-group legend {
   margin-bottom: 0.65rem;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-weight: 700;
 }
 
@@ -256,10 +255,10 @@
   display: grid;
   gap: 0.25rem;
   padding: 0.75rem 0.85rem;
-  color: var(--color-slate-300);
+  color: var(--text-muted);
   text-align: left;
-  background: var(--color-slate-800);
-  border: 1px solid var(--color-slate-600);
+  background: rgb(0 0 0 / 34%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
   border-radius: 0.5rem;
   cursor: pointer;
 }
@@ -267,16 +266,18 @@
 .dashboard-choice:hover:not(:disabled),
 .dashboard-choice:focus-visible,
 .dashboard-choice.selected {
-  color: var(--color-blue-50);
-  background: var(--color-blue-700);
-  border-color: var(--color-blue-300);
+  color: var(--accent-contrast);
+  background:
+    linear-gradient(110deg, rgb(var(--accent-rgb) / 32%), transparent 82%),
+    rgb(0 0 0 / 42%);
+  border-color: rgb(var(--accent-rgb) / 62%);
   outline: none;
 }
 
 .dashboard-choice:disabled {
-  color: var(--color-slate-500);
-  background: var(--color-slate-900);
-  border-color: var(--color-slate-700);
+  color: var(--color-stone-500);
+  background: rgb(0 0 0 / 22%);
+  border-color: rgb(var(--accent-rgb) / 10%);
   cursor: not-allowed;
 }
 
@@ -285,7 +286,7 @@
 }
 
 .character-class-affinity {
-  color: var(--color-blue-200);
+  color: var(--accent);
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -293,7 +294,7 @@
 .persistence-status,
 .persistence-error {
   margin: 1rem 0;
-  color: var(--color-blue-200);
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -301,25 +302,27 @@
   display: grid;
   gap: 0.2rem;
   padding: 0.75rem 0.9rem;
-  color: var(--color-blue-100);
-  background: rgb(15 23 42 / 88%);
-  border: 1px solid var(--color-slate-600);
-  border-left: 4px solid var(--color-blue-400);
+  color: var(--color-stone-100);
+  background: rgb(0 0 0 / 46%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
+  border-left: 4px solid var(--accent);
   border-radius: 0.6rem;
 }
 
 .essence-receipt {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: var(--color-slate-900);
-  border: 1px solid var(--color-slate-600);
+  background: rgb(0 0 0 / 38%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
   border-radius: 0.75rem;
 }
 
+/* The combat log keeps its crimson edge: that is the defeat talking, not the
+   screen's accent. */
 .death-combat-log {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: var(--color-slate-900);
+  background: rgb(0 0 0 / 38%);
   border: 1px solid var(--color-red-900);
   border-radius: 0.75rem;
 }
@@ -330,7 +333,7 @@
 
 .death-combat-log-heading h3 {
   margin: 0.25rem 0 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 1.15rem;
 }
 
@@ -362,19 +365,19 @@
 }
 
 .death-combat-log-time {
-  color: var(--color-slate-400);
+  color: var(--text-muted);
   font-size: 0.75rem;
   white-space: nowrap;
 }
 
 .death-combat-log-entry strong {
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   white-space: nowrap;
 }
 
 .death-combat-log-empty {
   margin: 0;
-  color: var(--color-slate-400);
+  color: var(--text-muted);
 }
 
 .essence-receipt-heading {
@@ -383,7 +386,7 @@
 
 .essence-receipt-heading h3 {
   margin: 0.25rem 0 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 1.15rem;
 }
 
@@ -398,7 +401,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  color: var(--color-slate-300);
+  color: var(--text-muted);
 }
 
 .essence-receipt-calculation dt {
@@ -407,13 +410,13 @@
 
 .essence-receipt-calculation dd {
   margin: 0;
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-weight: 700;
 }
 
 .essence-receipt-calculation .essence-receipt-subtotal {
   padding-top: 0.45rem;
-  border-top: 1px solid var(--color-slate-700);
+  border-top: 1px solid rgb(var(--accent-rgb) / 22%);
 }
 
 .essence-receipt-calculation .essence-receipt-total {
@@ -428,7 +431,7 @@
 }
 
 .persistence-status strong {
-  color: var(--color-slate-50);
+  color: var(--color-stone-50);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
