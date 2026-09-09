@@ -10,8 +10,8 @@ async function clearExistingRun(page: Page): Promise<void> {
     /ready|error|unavailable/,
     { timeout: 15_000 },
   )
-  const currentDungeon = page.getByRole('heading', { name: 'Current dungeon' })
-  const startRunLink = page.getByRole('button', { name: /Start a dungeon run/i })
+  const currentDungeon = page.getByRole('heading', { name: 'An expedition awaits' })
+  const startRunLink = page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i })
   await expect.poll(
     async () => {
       if (await currentDungeon.count() > 0 || await startRunLink.count() > 0) {
@@ -75,7 +75,7 @@ async function signIn(page: Page): Promise<void> {
   await requireRunPersistence(page)
   await clearExistingRun(page)
   await expect(
-    page.getByRole('button', { name: /Start a dungeon run/i }),
+    page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i }),
   ).toBeVisible()
 }
 
@@ -90,7 +90,7 @@ async function openRunSetup(page: Page): Promise<void> {
     'ready',
     { timeout: 15_000 },
   )
-  await page.getByRole('button', { name: /Start a dungeon run/i }).click()
+  await page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i }).click()
   await expect(startRunButton(page)).toBeVisible()
 }
 
@@ -256,7 +256,7 @@ test('starts a run without showing the in-run character guide', async ({ page })
 test('loads the permanent upgrade store outside the active run', async ({ page }) => {
   await page.goto('/')
   await signIn(page)
-  await page.getByRole('button', { name: /Essence store/i }).click()
+  await page.getByRole('button', { name: /Spend at the store/i }).click()
 
   await expect(
     page.getByRole('heading', { name: 'Spend your Essence.' }),
@@ -291,12 +291,12 @@ test('signs in and out with the configured Supabase test account', async ({ page
   await page.goto('/')
   await signIn(page)
   await expect(
-    page.getByRole('button', { name: /Start a dungeon run/i }),
+    page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i }),
   ).toBeVisible()
 
   await page.reload()
   await expect(
-    page.getByRole('button', { name: /Start a dungeon run/i }),
+    page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i }),
   ).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
@@ -316,25 +316,25 @@ test('persists an active run, blocks the store, and continues after Save & quit'
   const pauseMenu = page.getByRole('dialog', { name: 'Pause menu' })
   await expect(pauseMenu).toBeVisible()
   await pauseMenu.getByRole('button', { name: 'Save & quit' }).click()
-  await expect(page.getByRole('heading', { name: 'Current dungeon' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'An expedition awaits' })).toBeVisible()
 
-  const store = page.getByRole('button', { name: /Essence store/i })
+  const store = page.getByRole('button', { name: /Spend at the store/i })
   await expect(store).toBeDisabled()
   await expect(store).toHaveAttribute(
     'title',
     'Finish or forfeit your current dungeon run before opening the Essence store.',
   )
-  await expect(page.getByText('Finish or forfeit your current dungeon run before accessing the Essence store.'))
+  await expect(page.getByText('Finish or forfeit this run before using the Essence store.'))
     .toBeVisible()
   await expect(page.locator('dt').filter({ hasText: 'Floor' })).toBeVisible()
   await expect(page.locator('dd').filter({ hasText: /^1 \// })).toBeVisible()
   await expect(page.getByText('Class')).toBeVisible()
 
   await page.goto('/store')
-  await expect(page.getByRole('heading', { name: 'Current dungeon' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'An expedition awaits' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Spend your Essence.' })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Continue dungeon' }).click()
+  await page.getByRole('button', { name: 'Resume dungeon' }).click()
   await expect(page.locator('.game-canvas')).toBeVisible()
   await waitForPlaying(page)
 })
@@ -458,10 +458,10 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
 
   await page.getByRole('button', { name: 'Return to Dashboard' }).click()
   await expect(
-    page.getByRole('heading', { name: 'The dungeon is waiting.' }),
+    page.getByRole('heading', { name: 'Choose your descent' }),
   ).toBeVisible()
   await expect(page.locator('.game-canvas')).toHaveCount(0)
-  await page.getByRole('button', { name: /Essence store/i }).click()
+  await page.getByRole('button', { name: /Spend at the store/i }).click()
   await expect(
     page.getByRole('heading', { name: 'Spend your Essence.' }),
   ).toBeVisible()
