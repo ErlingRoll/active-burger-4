@@ -352,8 +352,16 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
     page.getByRole('img', { name: 'Active Burger 4 game arena' }),
   ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Run status' })).toBeAttached()
-  await expect(page.locator('.hud-stats .hud-stat')).toHaveCount(3)
-  const dungeonStats = page.locator('.dungeon-stats-top')
+  // What stays on the arena is what has to be read while playing: the vitals.
+  const vitals = page.locator('.hud-vitals')
+  await expect(vitals).toBeVisible()
+  await expect(vitals).toContainText('HP')
+  await expect(vitals).toContainText(/Lv \d+/)
+
+  // The run totals moved behind the toolbar, so the test opens the door the
+  // player opens rather than asserting they are always on screen.
+  await page.getByRole('button', { name: 'Run details', exact: true }).click()
+  const dungeonStats = page.locator('.dungeon-stats')
   await expect(dungeonStats).toContainText('Dungeon stats')
   await expect(dungeonStats).toContainText('Floor')
   await expect(dungeonStats).toContainText('Essence')
@@ -369,33 +377,43 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   if (dungeonStatBoxes.some((box) => !box)) {
     throw new Error('Expected all dungeon stats to be visible')
   }
-  expect(dungeonStatBoxes[1]!.y).toBeGreaterThan(dungeonStatBoxes[0]!.y)
-  expect(dungeonStatBoxes[2]!.y).toBeGreaterThan(dungeonStatBoxes[1]!.y)
-  expect(dungeonStatBoxes[3]!.y).toBeGreaterThan(dungeonStatBoxes[2]!.y)
+  // Reading order, not one column. The old panel was pinned over the arena and
+  // had to be a single stack to stay out of the way; inside the sheet the list
+  // is free to use the width, so this only asks that the stats run downward.
+  expect(dungeonStatBoxes[1]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[0]!.y)
+  expect(dungeonStatBoxes[2]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[1]!.y)
+  expect(dungeonStatBoxes[3]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[2]!.y)
+  await page.getByRole('button', { name: 'Close run details' }).click()
+  await expect(dungeonStats).toHaveCount(0)
   await expect(page.getByText('Dodge Lv.')).toHaveCount(0)
   await expect(page.getByText('Encounter timeline')).toHaveCount(0)
   await expect(page.getByText('Pickups')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'End Run' })).toHaveCount(0)
-  const dungeonStatsBox = await dungeonStats.boundingBox()
-  if (!dungeonStatsBox) {
-    throw new Error('Expected dungeon stats HUD to be visible')
-  }
-  expect(dungeonStatsBox.width).toBeGreaterThan(140)
-  expect(dungeonStatsBox.width).toBeLessThan(250)
-  expect(dungeonStatsBox.y).toBeLessThan(240)
   const viewport = page.viewportSize()
   if (!viewport) {
     throw new Error('Expected a browser viewport')
   }
-  expect(dungeonStatsBox.x + dungeonStatsBox.width).toBeGreaterThan(viewport.width - 40)
-  const floorBox = await page.locator('.floor-hud-top').boundingBox()
-  if (!floorBox) {
-    throw new Error('Expected central floor HUD to be visible')
+  /*
+   * What is left on the arena, and all of it inside the viewport.
+   *
+   * This used to pin the stats to the right edge and the floor panel to the
+   * centre within forty pixels, which described where the old fixed panels sat
+   * rather than anything a player needs. The panels are laid out by the HUD's
+   * own flow now, so the requirement is the one that still means something:
+   * nothing the player has to read while playing is off the screen.
+   */
+  for (const selector of ['.hud-vitals', '.floor-hud', '.hud-toolbar']) {
+    const box = await page.locator(selector).first().boundingBox()
+    if (!box) {
+      throw new Error(`Expected ${selector} to be visible`)
+    }
+    expect(box.width).toBeGreaterThan(0)
+    expect(box.height).toBeGreaterThan(0)
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1)
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1)
   }
-  expect(floorBox.width).toBeGreaterThan(200)
-  expect(floorBox.width).toBeLessThan(500)
-  expect(floorBox.y).toBeLessThan(240)
-  expect(Math.abs(floorBox.x + floorBox.width / 2 - viewport.width / 2)).toBeLessThan(40)
 
   await page.getByRole('button', { name: 'Development Menu' }).click()
   const developmentMenu = page.getByRole('heading', {
@@ -476,26 +494,20 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
     'data-game-phase',
     'playing',
   )
-  const behaviorHud = page.locator('.behavior-hud')
-
-  const behaviorBox = await behaviorHud.boundingBox()
-  if (!behaviorBox) {
-    throw new Error('Expected behavior HUD to be visible')
-  }
+  // Movement behaviour stays on the arena, because it is changed mid-fight.
   const viewport = page.viewportSize()
-  expect(behaviorBox.x).toBeGreaterThan((viewport?.width ?? 1280) / 2)
-  expect(behaviorBox.y).toBeGreaterThan((viewport?.height ?? 720) / 2)
-
-  const characterStats = page.locator('.character-stats')
-  const characterStatsBox = await characterStats.boundingBox()
-  if (!characterStatsBox) {
-    throw new Error('Expected character stats HUD to be visible')
+  const behaviorBox = await page.locator('.hud-behavior').boundingBox()
+  if (!behaviorBox) {
+    throw new Error('Expected the behaviour control to be visible')
   }
-  expect(characterStatsBox.x).toBeLessThan(120)
-  expect(characterStatsBox.y + characterStatsBox.height).toBeGreaterThan(
-    (viewport?.height ?? 720) - 40,
-  )
+  expect(behaviorBox.x).toBeGreaterThanOrEqual(0)
+  expect(behaviorBox.x + behaviorBox.width)
+    .toBeLessThanOrEqual((viewport?.width ?? 1280) + 1)
 
+  // The stat sheet is reference rather than status, so it lives behind the
+  // toolbar and the test opens it the way a player would.
+  await page.getByRole('button', { name: 'Stats details', exact: true }).click()
+  await expect(page.locator('.character-stats')).toBeVisible()
   const statGroups = page.locator('.character-stat-group')
   await expect(statGroups).toHaveCount(2)
   const offenceBox = await statGroups.nth(0).boundingBox()
@@ -503,7 +515,8 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   if (!offenceBox || !defenceBox) {
     throw new Error('Expected offence and defence stat columns to be visible')
   }
-  expect(defenceBox.x).toBeGreaterThan(offenceBox.x)
+  expect(defenceBox.x).toBeGreaterThanOrEqual(offenceBox.x)
+  await page.getByRole('button', { name: 'Close stats details' }).click()
 
   // The director's first budgeted spawn occurs after roughly one second.
   await page.waitForTimeout(1_200)
@@ -732,11 +745,20 @@ test('switches in-run movement behavior profiles', async ({ page }) => {
     'playing',
   )
 
-  const cautious = page.getByRole('button', { name: /Cautious:/i })
+  // The profiles sit behind a toggle now rather than as a permanent row of
+  // buttons, so the test opens the menu the way a player does.
+  const behaviorToggle = page.getByRole('button', { name: /Movement behavior:/i })
+  await expect(behaviorToggle).toBeVisible()
+  await behaviorToggle.click()
+  const cautious = page.getByRole('menuitemradio', { name: /Cautious:/i })
   await expect(cautious).toBeVisible()
   await cautious.click()
-  await expect(cautious).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('Intent:')).toBeVisible()
+  // Choosing closes the menu, so the profile is read back off the toggle,
+  // which is where a player sees it too.
+  await expect(behaviorToggle).toHaveAttribute(
+    'aria-label',
+    /Movement behavior: Cautious\. Intent: /i,
+  )
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: 'Pause menu' })).toBeVisible()
 })
@@ -871,12 +893,16 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
     await expect(upgradeCard).not.toContainText('Select to equip immediately')
   }
 
+  // The loadout is reference rather than status, so it opens from the toolbar.
+  await page.getByRole('button', { name: 'Loadout details', exact: true }).click()
   const loadout = page.getByRole('region', { name: 'Loadout' })
   await expect(loadout.locator('.loadout-item')).toHaveCount(6)
   const equippedItems = loadout.locator('.loadout-item:not(:has(.loadout-empty))')
   await expect(equippedItems).not.toHaveCount(0)
   await equippedItems.last().focus()
   await expect(loadout.locator('.loadout-tooltip')).toBeVisible()
+  // Left open, the sheet swallows the Escape the cleanup helper uses to pause.
+  await page.getByRole('button', { name: 'Close loadout details' }).click()
 })
 
 test('uses a custom skip key immediately', async ({ page }) => {

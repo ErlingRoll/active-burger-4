@@ -75,7 +75,7 @@ export function HudInspector({
           className="hud-inspector-close"
           type="button"
           ref={closeRef}
-          aria-label="Close run details"
+          aria-label={`Close ${HUD_INSPECTOR_TAB_LABELS[tab].toLowerCase()} details`}
           onClick={onClose}
         >
           <CloseIcon />
