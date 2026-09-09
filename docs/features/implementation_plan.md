@@ -28,9 +28,19 @@ Durable run lifecycle
   -> loot boxes
   -> exhaustion and Revival Koi
   -> artifacts and equipment slots
-  -> trading and marketplace
+  -> contracts and collections
+  -> consignment shop
+  -> the Camp and Champion labour
+  -> player listings
   -> borrowing, leaderboards, and social fishing
 ```
+
+The last four steps are the meta-economy expansion. The contract every one of
+them satisfies is in [economy.md](economy.md), and it should be read before any
+of them is designed. Contracts come first because they are the cheapest, the
+consignment shop precedes the Camp so that material prices exist before
+material production does, and player listings come last because they are the
+hardest to reverse.
 
 ## Phase 0: Design contracts and balance harness
 
@@ -229,25 +239,84 @@ the owner's account inventory.
 **Exit criteria:** artifact values cannot be client-authored, equipped artifacts
 cannot be traded, and the game remains playable with zero artifacts.
 
-## Phase 10: Trading and marketplace
+## Phase 10: Contracts and collections
 
-Only after inventory, binding, and server grants are reliable:
+The cheapest expansion, and the one that makes the existing content feel
+largest. See [contracts.md](contracts.md).
 
-- Listings for eligible fish, rods, bait, and unbound artifacts.
+- Contract definition registry, rotation pools, and a fixed schedule.
+- Three daily and one weekly contract per account.
+- Progress credited from server-recorded run, fishing, and inventory events.
+- Idempotent reward claims paying materials, box keys, and cosmetics.
+- Bestiary, fish, artifact, and Champion collections derived from recorded
+  events.
+- Completion rewards limited to unlocks, capacity, and cosmetics.
+
+Roll contracts only from the pool the account has unlocked, so a contract is
+never unachievable with the content the player owns.
+
+**Exit criteria:** no contract can be completed or claimed twice, no contract
+requires content the account cannot reach, and collection state can be rebuilt
+from recorded events.
+
+## Phase 11: Consignment shop
+
+Stage one of the market, and the prerequisite for the Camp's material prices.
+See [marketplace.md](marketplace.md).
+
+- Content-defined price bands per item definition, adjusted by rarity and roll.
+- Sell-to-shop with atomic item destruction and Essence payment.
+- Daily rotating stock from weighted pools in limited quantities.
+- Listing and sale fees as an Essence sink.
+- Recorded volume and price data for every tradeable category.
+
+No player-to-player transfer exists in this phase.
+
+**Exit criteria:** a sale cannot pay twice or destroy an item without paying,
+stock rotation is deterministic per day, and the recorded volume data is
+sufficient to tune the Camp's production rates.
+
+## Phase 12: The Camp
+
+The idle layer and the hub of the economy. See [camp.md](camp.md).
+
+- Material registry: scrap, timber and stone, roe, and rift shards, each with
+  a producer and a named sink.
+- Gear salvage and duplicate loot-box resolution into scrap.
+- Building registry with tiers, recipes, and construction costs.
+- Champion job assignment, with exhausted Champions eligible to work.
+- Champion aptitude derived from the existing snapshot, never a new stat.
+- Offline accrual computed from server timestamps with a Storehouse-set cap.
+- Idempotent claim operation.
+- Camp stations rendered into the existing hub scene, fitting the viewport
+  without scrolling and without width breakpoints.
+
+**Exit criteria:** accrual cannot be claimed twice, no building output changes
+a combat statistic, the simulation reads no Camp state, and a player who never
+opens the Camp can still complete the dungeon and the Abyss.
+
+## Phase 13: Player listings
+
+Stage two of the market. Only after inventory, binding, and server grants are
+reliable, consignment volume data exists, and concurrent population is high
+enough for a listing board to look populated. See [marketplace.md](marketplace.md).
+
+- Listings for fish, roe, materials, bait, rods, and unbound artifacts.
 - Atomic purchase and cancellation.
 - Currency reservation and refund behavior.
 - Ownership transfer history.
-- Expiration and stale-listing handling.
-- Rate limits and basic abuse controls.
+- Expiration returning the item to the seller.
+- Rate limits, account-age gates, daily value caps, and price-band guards.
 - Search, filters, price history, and listing presentation.
 
-Keep Essence and direct account unlocks non-tradeable. Use low-value salvage
-instead of large Essence payouts for unwanted permanent-power items.
+Keep Essence direct transfers, account unlocks, Champions, contract progress,
+and collection progress non-tradeable. Use low-value salvage instead of large
+Essence payouts for unwanted permanent-power items.
 
 **Exit criteria:** concurrent purchase attempts produce one winner, ownership
 cannot be duplicated, and a failed transaction leaves both parties consistent.
 
-## Phase 11: Borrowing and social expansion
+## Phase 14: Borrowing and social expansion
 
 After Champion snapshots and validation are stable:
 
@@ -262,7 +331,7 @@ After Champion snapshots and validation are stable:
 Real-time fishing ponds, presence, emotes, and social moderation are separate
 projects and should not block the economy release.
 
-## Phase 12: Competitive validation and balancing
+## Phase 15: Competitive validation and balancing
 
 Add this only if leaderboards become a priority:
 
