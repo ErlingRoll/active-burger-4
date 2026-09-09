@@ -169,6 +169,15 @@ export function ResultsScreen({
               <dt>Essence</dt>
               <dd>{essenceReceipt.projectedReward}</dd>
             </div>
+            {/* What the loadout was worth, beside what the run was worth. It
+                is a second line on the same receipt rather than a panel of its
+                own: both are what this run paid out. */}
+            {runReward.scrapAwarded === null ? null : (
+              <div className="essence-receipt-total">
+                <dt>Scrap</dt>
+                <dd>{runReward.scrapAwarded}</dd>
+              </div>
+            )}
           </dl>
         </section>
         {victory ? (

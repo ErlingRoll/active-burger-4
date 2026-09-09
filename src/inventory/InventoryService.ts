@@ -13,6 +13,7 @@ import type {
   InventoryReservationId,
   InventoryReservationLine,
   InventoryReservationResult,
+  InventoryCraftResult,
   InventorySalvageResult,
   InventoryService,
   InventorySourceType,
@@ -148,6 +149,25 @@ function isRpcSalvageRow(value: unknown): value is RpcSalvageRow {
     typeof value.essence_awarded === 'number' &&
     Number.isSafeInteger(value.essence_awarded) &&
     value.essence_awarded >= 0 &&
+    typeof value.was_processed === 'boolean'
+}
+
+interface RpcCraftRow {
+  recipe_id: string
+  input_definition_id: string
+  input_spent: number
+  output_definition_id: string
+  output_quantity: number
+  was_processed: boolean
+}
+
+function isRpcCraftRow(value: unknown): value is RpcCraftRow {
+  return isRecord(value) &&
+    isNonEmptyString(value.recipe_id) &&
+    isNonEmptyString(value.input_definition_id) &&
+    isPositiveInteger(value.input_spent) &&
+    isNonEmptyString(value.output_definition_id) &&
+    isPositiveInteger(value.output_quantity) &&
     typeof value.was_processed === 'boolean'
 }
 
@@ -380,6 +400,41 @@ export function createInventoryService(
       return {
         itemInstanceId: row.item_instance_id,
         essenceAwarded: row.essence_awarded,
+        wasProcessed: row.was_processed,
+      }
+    },
+
+    async craftItem(
+      operationId: InventoryOperationId,
+      recipeId: string,
+      quantity?: number,
+    ): Promise<InventoryCraftResult> {
+      assertOperationId(operationId)
+      if (!isNonEmptyString(recipeId)) {
+        throw new Error('Crafting recipe ID must be non-empty.')
+      }
+      if (quantity !== undefined && !isPositiveInteger(quantity)) {
+        throw new Error('Craft quantity must be a positive integer.')
+      }
+      const response = await getClient().rpc('craft_inventory_item', {
+        p_operation_id: operationId,
+        p_recipe_id: recipeId,
+        p_quantity: quantity ?? 1,
+      })
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isRpcCraftRow(response.data[0])) {
+        throw invalidResponse('expected one crafted item row')
+      }
+      const row = response.data[0]
+      return {
+        recipeId: row.recipe_id,
+        inputDefinitionId: row.input_definition_id,
+        inputSpent: row.input_spent,
+        outputDefinitionId: row.output_definition_id,
+        outputQuantity: row.output_quantity,
         wasProcessed: row.was_processed,
       }
     },

@@ -219,7 +219,7 @@
   border-color: rgb(var(--accent-rgb) / 18%);
 }
 
-.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon) {
+.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }
@@ -408,7 +408,7 @@
   border-radius: 0.5rem;
 }
 
-.inventory-inspector-icon :is(.fish-icon, .bait-icon) {
+.inventory-inspector-icon :is(.fish-icon, .bait-icon, .material-icon) {
   width: 74%;
   height: 74%;
 }
@@ -892,7 +892,7 @@
   font-size: clamp(1.1rem, 3vh, 1.7rem);
 }
 
-.loot-box-reward-icon :is(.fish-icon, .bait-icon) {
+.loot-box-reward-icon :is(.fish-icon, .bait-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }
@@ -1073,3 +1073,122 @@
   font-size: clamp(1.1rem, 2.4vw, 1.7rem);
 }
 
+
+/*
+ * The workbench, on both screens that hold a bag.
+ *
+ * Styled once and unscoped, because the same component mounts in the stores
+ * rail and in the pond's drawer: scoping it to `.inventory-screen` would have
+ * left the pond's copy unstyled, which is exactly the drift that having one
+ * component is meant to prevent.
+ *
+ * The row wraps intrinsically rather than at a breakpoint. The copy carries a
+ * `min(18rem, 100%)` base, so on a wide rail the button sits beside the recipe
+ * and on a narrow drawer it drops beneath it, at the width the base stops
+ * fitting rather than at a width somebody named.
+ */
+.crafting-bench {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vh, 0.5rem);
+  padding-top: clamp(0.3rem, 1.1vh, 0.75rem);
+  border-top: 1px solid rgb(var(--accent-rgb) / 22%);
+  margin-top: clamp(0.3rem, 1.1vh, 0.75rem);
+}
+
+.crafting-bench-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.crafting-bench-heading h4 {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: clamp(0.72rem, 1.8vh, 0.96rem);
+  letter-spacing: -0.02em;
+}
+
+.crafting-recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.9vh, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crafting-recipe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.35rem, 1.2vw, 0.7rem);
+  align-items: center;
+  padding: clamp(0.35rem, 1.1vh, 0.6rem) clamp(0.45rem, 1.4vw, 0.75rem);
+  background: rgb(30 41 59 / 42%);
+  border: 1px solid rgb(148 163 184 / 14%);
+  border-radius: 0.5rem;
+}
+
+/* Affordable reads as lit, the same way a reachable action does elsewhere. */
+.crafting-recipe[data-affordable='true'] {
+  border-color: rgb(var(--accent-rgb) / 34%);
+}
+
+.crafting-recipe-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: clamp(1.6rem, 3.4vh, 2.2rem);
+  height: clamp(1.6rem, 3.4vh, 2.2rem);
+  color: var(--color-stone-300);
+  font-size: clamp(0.9rem, 2vh, 1.2rem);
+}
+
+.crafting-recipe-icon :is(.fish-icon, .bait-icon, .material-icon) {
+  width: 100%;
+  height: 100%;
+}
+
+.crafting-recipe-copy {
+  display: flex;
+  flex: 1 1 min(18rem, 100%);
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.crafting-recipe-copy strong {
+  color: var(--color-stone-100);
+  font-size: clamp(0.72rem, 1.7vh, 0.9rem);
+}
+
+.crafting-recipe-copy small {
+  color: var(--color-slate-400);
+  font-size: clamp(0.62rem, 1.4vh, 0.76rem);
+  line-height: 1.35;
+}
+
+.crafting-recipe-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+  color: var(--color-stone-300);
+  font-size: clamp(0.62rem, 1.4vh, 0.76rem);
+  font-weight: 700;
+}
+
+.crafting-recipe-held {
+  color: var(--color-slate-400);
+  font-weight: 500;
+}
+
+.crafting-recipe-action {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: clamp(0.3rem, 1vh, 0.5rem) clamp(0.5rem, 1.6vw, 0.9rem);
+  font-size: clamp(0.65rem, 1.5vh, 0.8rem);
+}

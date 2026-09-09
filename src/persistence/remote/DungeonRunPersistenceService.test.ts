@@ -183,9 +183,12 @@ describe('DungeonRunPersistenceService', () => {
       worldModifierIds: ['fast-start'],
     })
 
+    // A row without `scrap_awarded` still parses: `forfeit_dungeon_run` returns
+    // the same shape without paying any, and reads as none rather than failing.
     expect(result.reward).toEqual({
       essenceAwarded: 12,
       essenceBalance: 34,
+      scrapAwarded: 0,
       wasProcessed: true,
     })
     expect(result.snapshot.kind).toBe('death')
@@ -197,6 +200,34 @@ describe('DungeonRunPersistenceService', () => {
         killCount: 100,
       }),
     }))
+  })
+
+  it('reports the scrap a completed run paid for its loadout', async () => {
+    const terminalRow = { ...activeRow, status: 'victory', current_floor: 30 }
+    const terminalSnapshot = { ...checkpointRow, snapshot_kind: 'victory' }
+    const rpc = vi.fn((name: string) => name === 'complete_dungeon_run'
+      ? [{
+          run_id: 'run-1',
+          essence_awarded: 40,
+          essence_balance: 400,
+          scrap_awarded: 26,
+          was_processed: true,
+        }]
+      : [])
+    const client = fakeClient({ run: terminalRow, snapshot: terminalSnapshot, rpc })
+    const service = createService(client)
+
+    const result = await service.completeRun({
+      runId: 'run-1',
+      outcome: 'victory',
+      completedAt: '2026-09-01T00:02:00.000Z',
+      checkpoint: { version: 1 },
+      level: 30,
+      killCount: 900,
+      worldModifierIds: [],
+    })
+
+    expect(result.reward.scrapAwarded).toBe(26)
   })
 
   it('pauses without attempting to write a replacement checkpoint', async () => {

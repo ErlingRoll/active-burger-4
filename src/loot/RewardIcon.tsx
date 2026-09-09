@@ -3,6 +3,7 @@ import { BaitIcon } from '../fishing/BaitIcon'
 import { FishIcon } from '../fishing/FishIcon'
 import { getFishDefinition, getFishingBaitDefinition } from '../fishing/FishingContent'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
+import { MaterialIcon } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from './LootBoxIcon'
 import { isLootBoxRarity } from './LootBoxes'
 
@@ -26,6 +27,9 @@ export function getRewardIcon(definitionId: string): ReactNode {
   }
 
   const definition = getInventoryItemDefinition(definitionId)
+  if (definitionId === 'scrap') {
+    return <MaterialIcon icon="scrap" color="var(--color-stone-300)" />
+  }
   if (definition?.category === 'loot-box') {
     const rarity = definitionId.replace('loot-box-', '')
     if (isLootBoxRarity(rarity)) {

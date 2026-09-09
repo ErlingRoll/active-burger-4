@@ -37,6 +37,14 @@ export interface MetaProgressionState {
 export interface RunRewardState {
   status: 'idle' | 'submitting' | 'saved' | 'error' | 'unavailable'
   essenceAwarded: number | null
+  /**
+   * Scrap the run's final loadout was worth.
+   *
+   * Written by the run's completion rather than by the Essence submission, and
+   * carried through the later updates so the receipt can show both. `null`
+   * until the completion answers, and zero for a run that ended in nothing.
+   */
+  scrapAwarded: number | null
   error: string | null
 }
 

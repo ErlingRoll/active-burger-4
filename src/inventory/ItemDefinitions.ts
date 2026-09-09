@@ -250,6 +250,19 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     unlimited: false,
     salvageEssence: 0,
   },
+  scrap: {
+    id: 'scrap',
+    name: 'Scrap',
+    flavorText: 'Buckles, bowstring and bent plate, carried back out of the dark.',
+    category: 'material',
+    rarity: 'common',
+    stackable: true,
+    maxStackSize: 9999,
+    tradeable: false,
+    bindOnEquip: false,
+    unlimited: false,
+    salvageEssence: 0,
+  },
 } as const satisfies Record<string, InventoryItemDefinition>
 
 export type KnownInventoryItemDefinitionId = keyof typeof INVENTORY_ITEM_DEFINITIONS

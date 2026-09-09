@@ -128,6 +128,50 @@ describe('InventoryService', () => {
     })
   })
 
+  it('sends only the recipe and batch count when crafting', async () => {
+    const rpc = vi.fn((name: string) => {
+      expect(name).toBe('craft_inventory_item')
+      return [{
+        recipe_id: 'river-worm-from-scrap',
+        input_definition_id: 'scrap',
+        input_spent: 8,
+        output_definition_id: 'river-worm',
+        output_quantity: 1,
+        was_processed: true,
+      }]
+    })
+    const service = createService(fakeClient({ rpc }))
+
+    await expect(service.craftItem('craft-1', 'river-worm-from-scrap')).resolves.toEqual({
+      recipeId: 'river-worm-from-scrap',
+      inputDefinitionId: 'scrap',
+      inputSpent: 8,
+      outputDefinitionId: 'river-worm',
+      outputQuantity: 1,
+      wasProcessed: true,
+    })
+    // The cost is the server's to decide: nothing about price or which stacks
+    // pay it leaves the browser.
+    expect(rpc).toHaveBeenCalledWith('craft_inventory_item', {
+      p_operation_id: 'craft-1',
+      p_recipe_id: 'river-worm-from-scrap',
+      p_quantity: 1,
+    })
+  })
+
+  it('rejects a craft response that is missing its costs', async () => {
+    const rpc = vi.fn(() => [{
+      recipe_id: 'river-worm-from-scrap',
+      output_definition_id: 'river-worm',
+      was_processed: true,
+    }])
+    const service = createService(fakeClient({ rpc }))
+
+    await expect(service.craftItem('craft-1', 'river-worm-from-scrap')).rejects.toThrow(
+      /crafted item row/,
+    )
+  })
+
   it('maps development inventory grants through the grant RPC', async () => {
     const rpc = vi.fn((name: string) => {
       expect(name).toBe('grant_development_inventory_items')

@@ -185,6 +185,7 @@ function App() {
   const [runReward, setRunReward] = useState<RunRewardState>({
     status: 'idle',
     essenceAwarded: null,
+    scrapAwarded: null,
     error: null,
   })
   const [persistence, setPersistence] = useState<PersistenceState>({
@@ -917,7 +918,7 @@ function App() {
         outcome: 'defeat',
         worldModifierIds: createdCheckpoint.gameState.run.worldModifierIds ?? [],
       })
-      setRunReward({ status: 'idle', essenceAwarded: null, error: null })
+      setRunReward({ status: 'idle', essenceAwarded: null, scrapAwarded: null, error: null })
       setRunStartState('saved')
       setRunId((currentRunId) => currentRunId + 1)
       navigateToScreen('gameplay', true)
@@ -958,7 +959,7 @@ function App() {
         outcome: 'defeat',
         worldModifierIds: checkpoint.gameState.run.worldModifierIds ?? [],
       })
-      setRunReward({ status: 'idle', essenceAwarded: null, error: null })
+      setRunReward({ status: 'idle', essenceAwarded: null, scrapAwarded: null, error: null })
       setRunId((currentRunId) => currentRunId + 1)
       navigateToScreen('gameplay', true)
     } catch (error: unknown) {
@@ -1006,11 +1007,17 @@ function App() {
       setRunReward({
         status: 'unavailable',
         essenceAwarded: null,
+        scrapAwarded: null,
         error: 'Sign in with progression available to earn Essence.',
       })
       return
     }
-    setRunReward({ status: 'submitting', essenceAwarded: null, error: null })
+    setRunReward((current) => ({
+      ...current,
+      status: 'submitting',
+      essenceAwarded: null,
+      error: null,
+    }))
     try {
       const reward = await service.submitRunResult(submission)
       const snapshot = await service.load()
@@ -1020,17 +1027,19 @@ function App() {
         snapshot,
         error: null,
       }))
-      setRunReward({
+      setRunReward((current) => ({
+        ...current,
         status: 'saved',
         essenceAwarded: reward.essenceAwarded,
         error: null,
-      })
+      }))
     } catch (error: unknown) {
-      setRunReward({
+      setRunReward((current) => ({
+        ...current,
         status: 'error',
         essenceAwarded: null,
         error: errorMessage(error),
-      })
+      }))
     }
   }, [authentication.account, metaProgressionService.service])
 
@@ -1090,7 +1099,7 @@ function App() {
     setTerminalSaveState('saving')
     setTerminalSaveError(null)
     try {
-      await service.completeRun({
+      const completed = await service.completeRun({
         runId: submission.runId,
         outcome: submission.outcome,
         completedAt: submission.completedAt,
@@ -1099,6 +1108,12 @@ function App() {
         killCount: submission.killCount,
         worldModifierIds: submission.worldModifierIds,
       })
+      // Recorded before the Essence submission runs, which is why every later
+      // update to this state carries the value forward instead of resetting it.
+      setRunReward((current) => ({
+        ...current,
+        scrapAwarded: completed.reward.scrapAwarded,
+      }))
       setActiveRun(null)
       setTerminalSaveState('saved')
       if (submission.outcome === 'victory') {
@@ -1121,6 +1136,7 @@ function App() {
       setRunReward({
         status: 'error',
         essenceAwarded: null,
+        scrapAwarded: null,
         error: 'Unable to identify this run for Essence rewards.',
       })
       return

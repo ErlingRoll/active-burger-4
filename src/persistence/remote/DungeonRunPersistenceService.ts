@@ -84,6 +84,8 @@ export interface CompleteDungeonRunInput {
 export interface DungeonRunReward {
   essenceAwarded: number
   essenceBalance: number
+  /** Scrap from the loadout the run ended with. A forfeit pays none. */
+  scrapAwarded: number
   wasProcessed: boolean
 }
 
@@ -154,6 +156,8 @@ interface RpcRunRewardRow {
   run_id: string
   essence_awarded: number
   essence_balance: number
+  /** Only `complete_dungeon_run` pays it; a forfeit returns the row without it. */
+  scrap_awarded: number
   was_processed: boolean
 }
 
@@ -300,6 +304,9 @@ function parseRewardResponse(data: unknown): RpcRunRewardRow {
     run_id: row.run_id,
     essence_awarded: row.essence_awarded,
     essence_balance: row.essence_balance,
+    scrap_awarded: typeof row.scrap_awarded === 'number' && row.scrap_awarded >= 0
+      ? row.scrap_awarded
+      : 0,
     was_processed: row.was_processed,
   }
 }
@@ -498,6 +505,7 @@ export function createDungeonRunPersistenceService(
         reward: {
           essenceAwarded: reward.essence_awarded,
           essenceBalance: reward.essence_balance,
+          scrapAwarded: reward.scrap_awarded,
           wasProcessed: reward.was_processed,
         },
       }
@@ -533,6 +541,7 @@ export function createDungeonRunPersistenceService(
         reward: {
           essenceAwarded: reward.essence_awarded,
           essenceBalance: reward.essence_balance,
+          scrapAwarded: reward.scrap_awarded,
           wasProcessed: reward.was_processed,
         },
       }

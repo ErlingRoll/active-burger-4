@@ -11,6 +11,7 @@ import {
   selectCommonFish,
 } from '../inventory'
 import type { InventoryCategoryFilter } from '../inventory'
+import { CraftingBench } from '../inventory/CraftingBench'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { EssenceAmount } from '../ui/EssenceMark'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
@@ -442,6 +443,13 @@ export function InventoryScreen({
                   />
                 )}
               </section>
+              <CraftingBench
+                items={items}
+                service={inventoryService}
+                busy={busy}
+                onCrafted={refresh}
+                onError={setError}
+              />
             </section>
           </div>
         )}

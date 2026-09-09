@@ -27,6 +27,7 @@ import type { InventoryItemInstance, InventoryService } from '../inventory/Inven
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { getInventoryItemCategory } from '../inventory/InventoryFilters'
 import { getInventoryEssenceTotal } from '../inventory/InventoryValue'
+import { CraftingBench } from '../inventory/CraftingBench'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { markInventoryItemAsUnseen } from '../inventory/InventoryItemSeen'
 import { EssenceAmount } from '../ui/EssenceMark'
@@ -1242,6 +1243,13 @@ export function FishingScreen({
                     salvagingItemInstanceId={salvagingItemInstanceId}
                   />
                 )}
+                <CraftingBench
+                  items={items}
+                  service={inventoryService}
+                  busy={salvagingItemInstanceId !== null}
+                  onCrafted={reloadInventoryAfterOpening}
+                  onError={setError}
+                />
               </section>
             ) : null}
             <div className="fishing-hud-bottom">

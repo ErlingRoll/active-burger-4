@@ -105,6 +105,15 @@ export interface InventorySalvageResult {
   wasProcessed: boolean
 }
 
+export interface InventoryCraftResult {
+  recipeId: string
+  inputDefinitionId: InventoryItemDefinitionId
+  inputSpent: number
+  outputDefinitionId: InventoryItemDefinitionId
+  outputQuantity: number
+  wasProcessed: boolean
+}
+
 export interface InventoryService {
   loadInventory(category?: InventoryItemCategory): Promise<InventoryItemInstance[]>
   grantDevelopmentItems(
@@ -129,4 +138,16 @@ export interface InventoryService {
     itemInstanceId: InventoryItemInstanceId,
     quantity?: number,
   ): Promise<InventorySalvageResult>
+  /**
+   * Spend a material on the thing its recipe makes.
+   *
+   * Only the recipe ID and a batch count cross the wire. The server owns the
+   * cost, picks which stacks pay it, and grants the output, so a modified
+   * browser cannot name its own price.
+   */
+  craftItem(
+    operationId: InventoryOperationId,
+    recipeId: string,
+    quantity?: number,
+  ): Promise<InventoryCraftResult>
 }
