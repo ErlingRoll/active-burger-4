@@ -23,8 +23,11 @@
   display: grid;
   height: 100%;
   overflow-y: auto;
-  align-content: start;
-  justify-items: center;
+  /* The panel is sized by the report, not by the viewport. Stretching it to the
+     grid row clamped it to one screen, and because a flex item that scrolls may
+     shrink to nothing, the combat log inside it collapsed to a bare heading
+     while the rest of the report spilled out past the panel's own border. */
+  place-items: start center;
   padding: clamp(0.6rem, 2.4vh, 4rem) clamp(0.9rem, 5vw, 4rem);
   background:
     radial-gradient(circle at top, rgb(30 64 175 / 22%), transparent 60%),
