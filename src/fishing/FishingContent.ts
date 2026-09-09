@@ -2,6 +2,7 @@ import { Rarity, type Rarity as RarityValue } from '../content/rarity/Rarity'
 import type { BaitIconId } from './BaitIcon'
 import type { InventoryItemDefinitionId } from '../inventory/InventoryTypes'
 import type { FishIconId } from './FishIcon'
+import type { RodIconId } from './RodIcon'
 import { lastElement } from '../shared'
 import type { RandomSource } from '../shared/RandomSource'
 
@@ -219,6 +220,21 @@ export const FISHING_ROD_MODIFIER_COUNT_BY_RARITY = {
   epic: 4,
   legendary: 5,
 } as const satisfies Record<RarityValue, number>
+
+/** How a rod is drawn, keyed by its inventory definition ID. */
+export const FISHING_ROD_VISUALS = {
+  'starter-fishing-rod': { icon: 'wooden', accent: '#b08968' },
+  'silverline-fishing-rod': { icon: 'silverline', accent: '#cbd5e1' },
+  'tideback-fishing-rod': { icon: 'tideback', accent: '#2dd4bf' },
+  'moonwater-fishing-rod': { icon: 'moonwater', accent: '#c4b5fd' },
+  'starlit-fishing-rod': { icon: 'starlit', accent: '#fbbf24' },
+} as const satisfies Record<string, { icon: RodIconId, accent: string }>
+
+export function getFishingRodVisual(
+  definitionId: string,
+): { icon: RodIconId, accent: string } | undefined {
+  return FISHING_ROD_VISUALS[definitionId as keyof typeof FISHING_ROD_VISUALS]
+}
 
 function isFishingRodModifierId(value: unknown): value is FishingRodModifierId {
   return typeof value === 'string' &&

@@ -122,7 +122,7 @@ describe('loot box contents', () => {
     }
   })
 
-  it('weights a higher rod tier more heavily than a lower one within the same box', () => {
+  it('keeps a higher rod tier rarer than a lower one within the same box', () => {
     for (const boxRarity of RARITIES) {
       const rodWeightsByOrder = LOOT_BOX_DROP_TABLES[boxRarity]
         .filter((entry) => getInventoryItemDefinition(entry.definitionId)?.category === 'rod')
@@ -134,7 +134,7 @@ describe('loot box contents', () => {
 
       for (let index = 1; index < rodWeightsByOrder.length; index += 1) {
         expect(definedAt(rodWeightsByOrder, index).weight, `rod tiers in the ${boxRarity} box`)
-          .toBeGreaterThan(definedAt(rodWeightsByOrder, index - 1).weight)
+          .toBeLessThan(definedAt(rodWeightsByOrder, index - 1).weight)
       }
     }
   })

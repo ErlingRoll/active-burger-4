@@ -15,9 +15,10 @@
     linear-gradient(145deg, #04050d 0%, #0a0d1f 48%, #11132b 100%);
 }
 
-/* Item art, drawn rather than typeset: fish, bait and materials alike. */
+/* Item art, drawn rather than typeset: fish, bait, rods and materials alike. */
 .fish-icon,
 .bait-icon,
+.rod-icon,
 .material-icon {
   display: block;
   width: 1em;
@@ -1789,7 +1790,7 @@
   border-radius: 0.45rem;
 }
 
-.inventory-item-tooltip-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.inventory-item-tooltip-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 78%;
   height: 78%;
 }
