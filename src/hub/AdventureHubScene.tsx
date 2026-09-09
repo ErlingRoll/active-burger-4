@@ -85,6 +85,7 @@ interface AdventureHubSceneProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
+  onOpenShop: () => void
   onOpenAbyss: () => void
   onContinueRun: () => void
   onRequestForfeit: () => void
@@ -157,6 +158,7 @@ export function AdventureHubScene({
   onOpenFishing,
   onOpenChampions,
   onOpenInventory,
+  onOpenShop,
   onOpenAbyss,
   onContinueRun,
   onRequestForfeit,
@@ -662,6 +664,10 @@ export function AdventureHubScene({
                 <button className="hub-station hub-station-champions" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">◆</span>
                   <span><strong>Champions</strong><small>Saved builds</small></span>
+                </button>
+                <button className="hub-station hub-station-shop" type="button" onClick={onOpenShop} disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">⇄</span>
+                  <span><strong>Quartermaster</strong><small>Buy and sell supplies</small></span>
                 </button>
               </div>
 

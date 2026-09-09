@@ -51,6 +51,10 @@ export const LazyInventoryScreen = named<
   PropsOf<typeof import('../loot/LootBoxScreen')['InventoryScreen']>
 >(() => import('../loot/LootBoxScreen'), 'InventoryScreen')
 
+export const LazyShopScreen = named<
+  PropsOf<typeof import('../shop/ShopScreen')['ShopScreen']>
+>(() => import('../shop/ShopScreen'), 'ShopScreen')
+
 export const LazyAdminReportsScreen = named<
   PropsOf<typeof import('../admin/AdminReportsScreen')['AdminReportsScreen']>
 >(() => import('../admin/AdminReportsScreen'), 'AdminReportsScreen')

@@ -31,13 +31,23 @@ listing category quietly removes a reason to play the system that produces it.
 
 ## Stage 1: the consignment shop
 
-Players sell to the game and buy from the game. No player-to-player transfer
-exists yet.
+**Shipped.** The quartermaster is a screen on the refuge, reached from the hub
+dock and the header. It sells from a short daily shelf and buys anything it has
+a price band for. There is no player-to-player transfer.
 
-- Selling pays a price inside a content-defined band for that item definition,
-  adjusted by rarity and roll quality.
+- Selling pays a content-defined price per unit for that item definition. Per
+  instance adjustment by rarity and roll quality is not implemented: the shop
+  deals in supplies, which are the same whoever caught them, and fish keep the
+  existing salvage route rather than gaining a second, differently-priced way
+  to become Essence.
 - The shop offers a daily rotating stock drawn from weighted pools, in limited
-  quantities, so visiting has a reason and stock has scarcity.
+  quantities, so visiting has a reason and stock has scarcity. The shelf is
+  rolled per player, seeded from the account and the date, so nobody loses a
+  purchase to someone else's timing and nobody can reroll the day by
+  refreshing.
+- A band's `stock_weight` of zero means the shop buys the item but never sells
+  it. Scrap is that case: a shop that sold scrap back would let a player
+  launder Essence into materials and undo the reason to run a dungeon.
 - Prices are bands rather than fixed numbers so that later stages can move them
   without a schema change.
 - Everything the shop buys is destroyed. Everything it sells is created. The
@@ -83,8 +93,10 @@ sooner. They do not become stronger in a run. If that rule is ever broken, and
 Essence starts buying a combat statistic, this decision has to be revisited
 before it is exploited.
 
-Both stages charge a listing fee and a sale tax, paid in Essence and destroyed.
-This is the market's only economic function besides transfer: it is a sink.
+The shop's sink is the spread. It buys below what it sells for, so a round trip
+always loses, and the difference is destroyed rather than held. Stage two adds a
+listing fee and a sale tax in the same spirit, because a listing board has no
+spread of its own to take.
 
 ## Abuse controls
 

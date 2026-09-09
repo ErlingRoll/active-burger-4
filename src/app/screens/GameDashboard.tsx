@@ -34,6 +34,7 @@ export interface GameDashboardProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
+  onOpenShop: () => void
   onOpenAbyss: () => void
   championAvailability: 'loading' | 'available' | 'none' | 'error'
   onContinueRun: () => void
@@ -58,6 +59,7 @@ export function GameDashboard({
   onOpenFishing,
   onOpenChampions,
   onOpenInventory,
+  onOpenShop,
   onOpenAbyss,
   championAvailability,
   onContinueRun,
@@ -111,6 +113,7 @@ export function GameDashboard({
         onOpenFishing={onOpenFishing}
         onOpenChampions={onOpenChampions}
         onOpenInventory={onOpenInventory}
+        onOpenShop={onOpenShop}
         onOpenAbyss={onOpenAbyss}
         onContinueRun={onContinueRun}
         onRequestForfeit={() => setForfeitConfirmationOpen(true)}

@@ -25,6 +25,8 @@ import { createCharacterService } from '../characters/CharacterService'
 import type { CharacterService } from '../characters/CharacterTypes'
 import { createInventoryService } from '../inventory/InventoryService'
 import type { InventoryService } from '../inventory/InventoryTypes'
+import { createShopService } from '../shop/ShopService'
+import type { ShopService } from '../shop/ShopTypes'
 import { createLootBoxService, type LootBoxService } from '../loot'
 import { createFishingService, type FishingService } from '../fishing/FishingService'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -67,6 +69,7 @@ export interface AppServices {
   essenceLeaderboard: ServiceHandle<EssenceLeaderboardService>
   dungeonRunPersistence: ServiceHandle<DungeonRunPersistenceService>
   inventory: ServiceHandle<InventoryService>
+  shop: ServiceHandle<ShopService>
   lootBoxes: ServiceHandle<LootBoxService>
   fishing: ServiceHandle<FishingService>
   hubPresence: ServiceHandle<HubPresenceService>
@@ -124,6 +127,7 @@ export function createAppServices(
       createDungeonRunPersistenceService(connection, getClient),
     ),
     inventory: handle(() => createInventoryService(connection, getClient)),
+    shop: handle(() => createShopService(connection, getClient)),
     lootBoxes: handle(() => createLootBoxService(connection, getClient)),
     fishing: handle(() => createFishingService(connection, getClient)),
     hubPresence: handle(() => createHubPresenceService(connection, getClient)),

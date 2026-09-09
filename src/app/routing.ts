@@ -17,6 +17,7 @@ export type AppScreen =
   | 'fishing'
   | 'champions'
   | 'inventory'
+  | 'shop'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -30,6 +31,7 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   fishing: '/fishing',
   champions: '/champions',
   inventory: '/inventory',
+  shop: '/shop',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -45,8 +47,8 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  * every victory, the store's upgrade list grows with every upgrade added, the
  * run's preparation screen sets a character, a length, five meals and seven
  * world modifiers before it is done, the bag holds whatever the player has
- * caught and won, and the moderation dashboards list whatever players have
- * sent in — and shrinking that to fit made them
+ * caught and won, the shop lists what it will buy beside what it is selling
+ * today, and the moderation dashboards list whatever players have sent in — and shrinking that to fit made them
  * unreadable, so they scroll instead. `app-shell-document` is what grants it.
  *
  * The refuge is the awkward one, and it is here for a different reason. It is
@@ -65,6 +67,7 @@ export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'meta-progression',
   'run-setup',
   'inventory',
+  'shop',
   'dashboard',
   'admin',
   'nickname-moderation',

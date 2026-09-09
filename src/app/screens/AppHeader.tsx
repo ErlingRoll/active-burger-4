@@ -27,6 +27,7 @@ export interface AppHeaderProps {
   onOpenFishing: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
+  onOpenShop: () => void
   inventoryService: InventoryService | null
   bugReportDungeon: BugReportDungeonContext
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
@@ -43,6 +44,7 @@ export function AppHeader({
   onOpenFishing,
   onOpenChampions,
   onOpenInventory,
+  onOpenShop,
   inventoryService,
   bugReportDungeon,
   onSubmitBugReport,
@@ -68,6 +70,7 @@ export function AppHeader({
         <button className="app-admin-link" type="button" onClick={onOpenFishing}>Fishing</button>
         <button className="app-admin-link" type="button" onClick={onOpenChampions}>Champions</button>
         <button className="app-admin-link" type="button" onClick={onOpenInventory}>Inventory</button>
+        <button className="app-admin-link" type="button" onClick={onOpenShop}>Shop</button>
         {import.meta.env.DEV && authentication.account?.isAdmin ? (
           <DevelopmentInventoryMenu inventoryService={inventoryService} />
         ) : null}

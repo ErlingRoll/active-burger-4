@@ -1,0 +1,91 @@
+/*
+ * The quartermaster.
+ *
+ * No accent block: the shop is part of the refuge stores, so it takes the
+ * default ember the refuge already carries, the same as the bag it trades
+ * with. A separate colour here would say it is somewhere else.
+ *
+ * Both panels are the same list of the same rows, because buying and selling
+ * are the same transaction seen from either side, and giving each its own
+ * shape would make the screen read as two features rather than one counter.
+ */
+
+.shop-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.3rem, 1vh, 0.55rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Wraps intrinsically: the copy carries a `min(14rem, 100%)` base, so the price
+   and the button sit beside it on a wide panel and drop beneath it on a narrow
+   one, at the width the base stops fitting rather than at a named breakpoint. */
+.shop-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.35rem, 1.2vw, 0.8rem);
+  align-items: center;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.5rem, 1.5vw, 0.85rem);
+  background: rgb(36 28 24 / 62%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.55rem;
+}
+
+.shop-line-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: clamp(1.7rem, 3.6vh, 2.4rem);
+  height: clamp(1.7rem, 3.6vh, 2.4rem);
+  color: var(--color-stone-300);
+  font-size: clamp(0.95rem, 2.1vh, 1.3rem);
+}
+
+.shop-line-icon :is(.fish-icon, .bait-icon, .material-icon) {
+  width: 100%;
+  height: 100%;
+}
+
+.shop-line-copy {
+  display: flex;
+  flex: 1 1 min(14rem, 100%);
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.shop-line-copy strong {
+  color: var(--color-stone-100);
+  font-size: clamp(0.76rem, 1.8vh, 0.95rem);
+}
+
+.shop-line-copy small {
+  color: var(--color-slate-400);
+  font-size: clamp(0.64rem, 1.45vh, 0.78rem);
+}
+
+.shop-line-price {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+  align-items: baseline;
+  color: var(--color-stone-200);
+  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
+  font-weight: 700;
+}
+
+.shop-line-action {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: clamp(0.32rem, 1vh, 0.5rem) clamp(0.55rem, 1.7vw, 0.95rem);
+  font-size: clamp(0.66rem, 1.5vh, 0.82rem);
+}
+
+.shop-empty {
+  margin: 0;
+  color: var(--color-slate-400);
+  font-size: clamp(0.7rem, 1.6vh, 0.85rem);
+  line-height: 1.45;
+}

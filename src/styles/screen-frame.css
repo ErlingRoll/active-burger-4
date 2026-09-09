@@ -139,6 +139,14 @@
   flex: 0 0 auto;
 }
 
+/* And the panels stop matching each other's height for the same reason. Equal
+   rows divide a screenful between panels; on a document there is no screenful
+   to divide, so the taller panel was simply stretching the shorter one and
+   leaving dead space under its content. */
+.app-shell-document .app-screen-panels {
+  grid-auto-rows: auto;
+}
+
 /* Several panels on one screen sit side by side while both bases fit and stack
    when they do not. A short landscape viewport has width to spare and almost no
    height, so spending the width is what keeps the panels off each other.

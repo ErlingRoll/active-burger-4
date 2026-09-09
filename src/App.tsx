@@ -61,6 +61,7 @@ import {
   LazyMetaProgressionScreen,
   LazyNicknameModerationScreen,
   LazyRunSetupScreen,
+  LazyShopScreen,
   LazyWikiScreen,
 } from './app/lazyScreens'
 import { LazyScreen } from './app/LazyScreen'
@@ -153,6 +154,7 @@ function App() {
     dungeonRunPersistence,
     inventory,
     lootBoxes,
+    shop,
     fishing,
     hubPresence,
     bugReport,
@@ -1304,6 +1306,10 @@ function App() {
     navigateToScreen('inventory')
   }, [navigateToScreen])
 
+  const openShop = useCallback((): void => {
+    navigateToScreen('shop')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1571,6 +1577,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          onOpenShop={openShop}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1599,6 +1606,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          onOpenShop={openShop}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1628,6 +1636,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          onOpenShop={openShop}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1679,6 +1688,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          onOpenShop={openShop}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1702,6 +1712,7 @@ function App() {
           onOpenFishing={openFishing}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
+          onOpenShop={openShop}
           onOpenAbyss={openAbyssSetup}
           championAvailability={championAvailability}
           onOpenRunSetup={openRunSetup}
@@ -1829,6 +1840,17 @@ function App() {
             lootBoxService={lootBoxes.service}
             configurationError={lootBoxes.configurationError ?? inventory.configurationError}
             onBack={returnToDashboard}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'shop' && authentication.account ? (
+        <LazyScreen label="The shop">
+          <LazyShopScreen
+            shopService={shop.service}
+            inventoryService={inventory.service}
+            configurationError={shop.configurationError ?? inventory.configurationError}
+            onBack={returnToDashboard}
+            onEssenceChanged={refreshMetaProgression}
           />
         </LazyScreen>
       ) : null}

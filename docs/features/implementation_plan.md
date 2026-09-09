@@ -259,7 +259,7 @@ never unachievable with the content the player owns.
 requires content the account cannot reach, and collection state can be rebuilt
 from recorded events.
 
-## Phase 11: Consignment shop
+## Phase 11: Consignment shop — done
 
 Stage one of the market, and the prerequisite for the Camp's material prices.
 See [marketplace.md](marketplace.md).

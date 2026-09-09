@@ -56,8 +56,11 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Contracts | Materials, box keys, cosmetic unlocks | Nothing; it pays for play that is already happening |
 | Market | Nothing | Listing fees and time |
 
-The market row is deliberately empty on the left. A market moves value between
-players and must never mint it. See [marketplace.md](marketplace.md).
+The market row is deliberately empty on the left, for player listings. The
+consignment shop that shipped first is the exception that proves it: it creates
+what it sells and destroys what it buys, which is why the day's quantity is
+capped and the spread between the two prices is always a loss. See
+[marketplace.md](marketplace.md).
 
 ## Materials
 

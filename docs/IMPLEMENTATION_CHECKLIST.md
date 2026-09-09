@@ -24,12 +24,17 @@ milestones in order unless an ADR documents an exception.
   production contexts
 - [ ] Mobile and small-viewport support. Responsive rules were deliberately
   removed; the application currently targets desktop browsers only.
-- [ ] Repair the authenticated Playwright suite. It was written against the
-  pre-redesign dashboard and cannot run: `clearExistingRun` waits for a
-  "Current dungeon" heading or a "Start a dungeon run" button, and the
-  Adventure Hub renders neither, so 19 of the 20 specs in
-  `e2e/game-canvas.spec.ts` never execute. The suite needs rewriting against
-  the current hub before it can be trusted or added to CI.
+- [x] Repair the authenticated Playwright suite. It was written against the
+  pre-redesign dashboard and could not run; `clearExistingRun` now waits for
+  the Adventure Hub's own wording, and all 20 specs in
+  `e2e/game-canvas.spec.ts` execute and pass in about eighty seconds on one
+  worker. It still needs credentials, so CI runs lint, tests, and build only.
+- [ ] Run the browser suites with one worker, or give them separate accounts.
+  Every viewport and every spec signs in as the same test account, and that
+  account's run state lives on the server: in parallel one worker forfeits the
+  run another is relying on, so `npm run test:layout` forces a single worker
+  and `e2e/game-canvas.spec.ts` needs `--workers=1`. Running either in
+  parallel fails on the arena with "the run never started".
 
 ## Cross-Cutting Completion Rules
 
