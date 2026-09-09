@@ -67,6 +67,12 @@ import {
 } from './pixi/worldTheme'
 import { drawGround, drawGroundDressing } from './pixi/groundDressing'
 import {
+  cameraScaleFor,
+  fittedCameraScale,
+  MAX_CAMERA_SCALE,
+  MIN_CAMERA_SCALE,
+} from './pixi/camera'
+import {
   getEnemyStatusEffects,
   getStatusEffectSignature,
   getTelegraphName,
@@ -121,8 +127,6 @@ export class PixiGame {
   private static readonly MAX_IMPACT_PARTICLE_VIEWS = 48
   private static readonly MAX_PROJECTILE_TRAIL_VIEWS = 96
   private static readonly CHAIN_LIGHTNING_TRAIL_HISTORY_LENGTH = 60
-  private static readonly MIN_CAMERA_SCALE = 1 / 3
-  private static readonly MAX_CAMERA_SCALE = 1
   private static readonly WHEEL_ZOOM_SENSITIVITY = 0.001
   private static readonly CAMERA_DEAD_ZONE_PIXELS = 28
   private static readonly CAMERA_FOLLOW_RESPONSIVENESS = 12
@@ -171,7 +175,11 @@ export class PixiGame {
   private stairsLayer: Container | undefined
   private playerView: PlayerView | undefined
   private host: HTMLElement | undefined
-  private cameraScale = PixiGame.MAX_CAMERA_SCALE
+  /**
+   * The player's own zoom, as a multiplier on the fitted scale rather than an
+   * absolute one, so resizing the window keeps whatever zoom they chose.
+   */
+  private cameraZoom = 1
   private cameraFocusX = 0
   private cameraFocusY = 0
   private cameraFocusInitialized = false
@@ -3454,17 +3462,27 @@ export class PixiGame {
     }
   }
 
+  /** What the camera is actually drawn at: the fit, times the player's zoom. */
+  private get cameraScale(): number {
+    return cameraScaleFor(
+      this.app.renderer.width,
+      this.app.renderer.height,
+      this.cameraZoom,
+    )
+  }
+
   private readonly handleWheel = (event: WheelEvent): void => {
     event.preventDefault()
     const scaleChange = Math.exp(
       -event.deltaY * PixiGame.WHEEL_ZOOM_SENSITIVITY,
     )
-    this.cameraScale = Math.min(
-      PixiGame.MAX_CAMERA_SCALE,
-      Math.max(
-        PixiGame.MIN_CAMERA_SCALE,
-        this.cameraScale * scaleChange,
-      ),
+    const fitted = fittedCameraScale(
+      this.app.renderer.width,
+      this.app.renderer.height,
+    )
+    this.cameraZoom = Math.min(
+      MAX_CAMERA_SCALE / fitted,
+      Math.max(MIN_CAMERA_SCALE / fitted, this.cameraZoom * scaleChange),
     )
     this.centerCamera(0)
   }

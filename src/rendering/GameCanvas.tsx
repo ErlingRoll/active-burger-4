@@ -65,6 +65,7 @@ import { HudInspector } from './hud/HudInspector'
 import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import { HudToolbar } from './hud/HudToolbar'
 import { TouchControls } from './hud/TouchControls'
+import { useTouchOnlyDevice } from '../input/useTouchOnlyDevice'
 import { createSteeringHandover } from './hud/steering'
 import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
 
@@ -151,6 +152,7 @@ export function GameCanvas({
   }, [inspectorTab])
   // Holds the profile a steering drag interrupted, and restores it on release.
   const steeringRef = useRef(createSteeringHandover())
+  const touchOnly = useTouchOnlyDevice()
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
     () => import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
@@ -170,6 +172,21 @@ export function GameCanvas({
   useEffect(() => {
     onBehaviorProfileChangeRef.current = onBehaviorProfileChange
   }, [onBehaviorProfileChange])
+
+  /*
+   * Free movement is a keyboard mode, and a run can arrive in it: saved on a
+   * desktop and resumed on a phone, or left in it before the mode was hidden
+   * from touch devices. Standing still with no way to steer but a held finger
+   * reads as the game having stopped, so a touch device is handed back to its
+   * profile on arrival. A steering drag turns free movement on again for its
+   * own length, which is after this has run.
+   */
+  useEffect(() => {
+    if (!touchOnly || game === null || !game.freeMovementEnabled) {
+      return
+    }
+    game.setFreeMovementEnabled(false)
+  }, [game, touchOnly])
 
   useEffect(() => {
     const hp = snapshot?.hp

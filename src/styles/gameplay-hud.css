@@ -178,14 +178,21 @@
  * The three bases are what make the bar wrap instead of overlap. Each panel
  * asks for a width it reads well at and gives it up at `100%`, so a narrow
  * viewport drops one onto its own line rather than sliding it under another.
+ *
+ * Both panels grow to fill the line they end up on, which is what keeps their
+ * edges together once the bar has wrapped: a panel capped narrower than its
+ * line centres inside it instead, and reads as an indent against the rows above
+ * and below. The floor clock takes the larger share of the growth so that a
+ * wide viewport spends its spare width on the bar rather than on stretching the
+ * vitals, without either of them naming a size a breakpoint would have to
+ * change.
  */
 .hud-region-top-start {
-  flex: 1 1 min(11rem, 100%);
+  flex: 1 1 min(14rem, 100%);
 }
 
 .hud-region-top-center {
-  flex: 1 1 min(12rem, 100%);
-  justify-content: center;
+  flex: 4 1 min(15rem, 100%);
 }
 
 .hud-region-top-end {
@@ -311,7 +318,7 @@
 /* The floor clock: one line and one bar, no more. */
 .floor-hud {
   display: grid;
-  width: min(22rem, 100%);
+  width: 100%;
   gap: 0.2rem;
   padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.4rem, 1vw, 0.6rem);
 }
@@ -705,11 +712,6 @@
   color: var(--color-stone-500);
   border-color: rgb(var(--accent-rgb) / 16%);
   cursor: not-allowed;
-}
-
-/* Vitals read at a glance; they do not need to grow to fill the bar. */
-.hud-region-top-start {
-  max-width: min(18rem, 100%);
 }
 
 /* An empty slot is a gap in the bar, not a card with a caption. */

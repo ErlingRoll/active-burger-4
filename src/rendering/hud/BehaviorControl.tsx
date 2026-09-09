@@ -5,6 +5,7 @@ import {
   BEHAVIOR_PROFILE_ORDER,
 } from '../../content/behaviors/BehaviorProfiles'
 import { formatKeybind, type GameKeybinds } from '../../input/Keybinds'
+import { useTouchOnlyDevice } from '../../input/useTouchOnlyDevice'
 import { BehaviorIcon } from './HudIcons'
 
 const PROFILE_KEYBIND_IDS = {
@@ -37,6 +38,13 @@ export function BehaviorControl({
 }: BehaviorControlProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  /*
+   * Free movement is steered with WASD, so on a device with no keyboard
+   * choosing it strands the character. Touch players steer by dragging the
+   * arena, which borrows the character for the length of the drag and hands it
+   * back, so nothing is lost by leaving the mode out.
+   */
+  const touchOnly = useTouchOnlyDevice()
 
   // A pointer down anywhere else dismisses the menu. Registered only while it
   // is open so the HUD is not listening to every tap during a run.
@@ -112,24 +120,35 @@ export function BehaviorControl({
               </button>
             )
           })}
-          <button
-            className={`hud-behavior-option${freeMode ? ' selected' : ''}`}
-            type="button"
-            role="menuitemradio"
-            aria-checked={freeMode}
-            aria-label={`Free movement: steer the character yourself. Shortcut F. ${freeMode ? 'Active' : 'Select'}`}
-            onClick={() => {
-              onToggleFreeMovement()
-              setOpen(false)
-            }}
-          >
-            <span className="hud-behavior-option-name">Free</span>
-            <span className="keybind-hint">F</span>
-          </button>
+          {/*
+            * Still offered while it is active, whatever the device: a run that
+            * arrives in free movement needs a way out of it, and a profile is
+            * the way out either way.
+            */}
+          {touchOnly && !freeMode ? null : (
+            <button
+              className={`hud-behavior-option${freeMode ? ' selected' : ''}`}
+              type="button"
+              role="menuitemradio"
+              aria-checked={freeMode}
+              aria-label={`Free movement: steer the character yourself. Shortcut F. ${freeMode ? 'Active' : 'Select'}`}
+              onClick={() => {
+                onToggleFreeMovement()
+                setOpen(false)
+              }}
+            >
+              <span className="hud-behavior-option-name">Free</span>
+              {touchOnly ? null : <span className="keybind-hint">F</span>}
+            </button>
+          )}
           <p className="hud-behavior-hint">
             {freeMode
-              ? 'Drag the arena or use WASD. Automatic Dodge is off.'
-              : 'The character plays itself with this profile.'}
+              ? touchOnly
+                ? 'Drag the arena to steer. Automatic Dodge is off.'
+                : 'Drag the arena or use WASD. Automatic Dodge is off.'
+              : touchOnly
+                ? 'The character plays itself. Drag the arena to take over.'
+                : 'The character plays itself with this profile.'}
           </p>
         </div>
       ) : null}
