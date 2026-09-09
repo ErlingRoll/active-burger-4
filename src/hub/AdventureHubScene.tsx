@@ -784,7 +784,7 @@ export function AdventureHubScene({
                   : undefined}
                 aria-describedby={activeRun ? 'store-blocked-help' : undefined}
               >
-                <span><strong>Spend at the store</strong><small>Permanent power</small></span>
+                <span><strong>Essence upgrades</strong><small>Permanent power</small></span>
                 <span className="hub-store-station-arrow" aria-hidden="true">→</span>
               </button>
             </aside>
