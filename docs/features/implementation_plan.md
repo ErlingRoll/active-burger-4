@@ -280,9 +280,15 @@ sufficient to tune the Camp's production rates.
 
 The idle layer and the hub of the economy. See [camp.md](camp.md).
 
-- Material registry: scrap, timber and stone, roe, and rift shards, each with
-  a producer and a named sink.
-- Gear salvage and duplicate loot-box resolution into scrap.
+Scrap and the first recipe shipped ahead of this phase, as the Camp's own
+foundation: without a material that has an observed source and sink, every
+production rate here would be a guess. What remains is the rest of the registry
+and the idle layer itself.
+
+- Material registry: timber and stone, roe, and rift shards, each with a
+  producer and a named sink. *Scrap is done.*
+- Duplicate loot-box resolution into scrap. *Gear salvage is done: a completed
+  dungeon grants scrap from its terminal loadout.*
 - Building registry with tiers, recipes, and construction costs.
 - Champion job assignment, with exhausted Champions eligible to work.
 - Champion aptitude derived from the existing snapshot, never a new stat.

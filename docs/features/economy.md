@@ -72,6 +72,13 @@ content registry, not in engine code.
 | Roe | Gutting fish | Bait crafting, smokehouse meals |
 | Rift shard | Abyss floor boxes and deep-floor contracts | Artifact rerolls, top-tier buildings |
 
+Scrap is live. Completing a dungeon grants it from the equipment on the
+terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
+the workbench on the bag spends eight of it on a River Worm. Only dungeon runs
+pay: an Abyss attempt wears a Champion's saved gear, which does not change
+between attempts, so paying for it would be a faucet one loadout could run
+forever. The other three families are still proposals.
+
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,
 salvageable, and grantable through the same server-authoritative operations as
