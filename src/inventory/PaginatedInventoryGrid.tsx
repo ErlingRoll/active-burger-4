@@ -7,6 +7,7 @@ import {
   tooltipClassName,
 } from '../rendering/TooltipShell'
 import { EssenceAmount } from '../ui/EssenceMark'
+import { useFittedItemCount } from '../ui/useFittedItemCount'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
@@ -15,10 +16,11 @@ import { sortInventoryItems, type InventoryItemComparator } from './InventorySor
 import type { InventoryItemInstance } from './InventoryTypes'
 
 /**
- * The page a bounded drawer draws, where the screen around it may not scroll.
+ * The drawer's shelf is a fixed twelve-wide bag drawn over the pond.
  *
- * Only the pond's drawer pages now. The stores screen is a document and shows
- * the whole bag; see the `flow` prop below.
+ * It floats above a scene rather than sitting in a panel, so nothing outside it
+ * decides how big it is and there is no box to measure; the stores screen is
+ * the opposite case and pages to the room it was given. See `fitted`.
  */
 const DRAWER_GRID_COLUMNS = 12
 const DRAWER_PAGE_SIZE = DRAWER_GRID_COLUMNS * 10
@@ -46,16 +48,22 @@ interface PaginatedInventoryGridProps {
    */
   showTooltip?: boolean
   /**
-   * Show the whole bag at a readable size and let the screen scroll.
+   * Draw as many slots as the panel holds, at a readable size, and page the
+   * rest.
    *
-   * For the document screens, which are allowed to be longer than a viewport.
-   * Paging one of those is the worst of both: the bag was measured down to a
-   * single row of forty-two pixel slots and split across nine pages, on a
-   * desktop with four hundred pixels of empty screen underneath it. Columns
-   * come from the stylesheet here rather than from a measurement, so there is
-   * no pager, no filler slots, and nothing that can latch to its own minimum.
+   * For the stores screen, which is a screen: the bag has to end where the
+   * viewport does. Columns come from the stylesheet's `auto-fill` track list
+   * and the row count is read back from the box the panel actually granted, so
+   * one shelf serves a phone and a desktop without a breakpoint choosing
+   * between them. A shelf with room to spare shows its slots and stops rather
+   * than padding the panel out with empties.
+   *
+   * An earlier attempt at this measured a bag on a screen that was still a
+   * document, so the box it read had no height of its own and the shelf latched
+   * to a single row of forty-two pixel slots across nine pages. The screen has
+   * a definite height now, which is what makes the measurement mean something.
    */
-  flow?: boolean
+  fitted?: boolean
 }
 
 export function PaginatedInventoryGrid({
@@ -69,12 +77,14 @@ export function PaginatedInventoryGrid({
   salvagingItemInstanceId = null,
   onSelect,
   showTooltip = true,
-  flow = false,
+  fitted = false,
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [activeItemInstanceId, setActiveItemInstanceId] = useState<string | null>(null)
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<string | null>(null)
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({})
+  const gridRef = useRef<HTMLUListElement>(null)
+  const fittedSlotCount = useFittedItemCount(gridRef)
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
   const seenItemInstanceIds = useSeenInventoryItemIds()
@@ -82,7 +92,7 @@ export function PaginatedInventoryGrid({
     getEssence: getItemEssence,
     precedingComparators: precedingSortComparators,
   })
-  const pageSize = flow ? Math.max(1, sortedItems.length) : DRAWER_PAGE_SIZE
+  const pageSize = fitted ? fittedSlotCount : DRAWER_PAGE_SIZE
   const pageCount = Math.max(1, Math.ceil(sortedItems.length / pageSize))
   const currentPageIndex = Math.min(pageIndex, pageCount - 1)
   const firstItemIndex = currentPageIndex * pageSize
@@ -165,11 +175,12 @@ export function PaginatedInventoryGrid({
   return (
     <div className="inventory-paged-grid">
       <ul
-        className={flow ? 'inventory-item-grid inventory-item-grid-flow' : 'inventory-item-grid'}
+        className={fitted ? 'inventory-item-grid inventory-item-grid-fitted' : 'inventory-item-grid'}
         aria-label={label}
-        style={flow ? undefined : { '--inventory-columns': DRAWER_GRID_COLUMNS } as CSSProperties}
+        ref={gridRef}
+        style={fitted ? undefined : { '--inventory-columns': DRAWER_GRID_COLUMNS } as CSSProperties}
       >
-        {Array.from({ length: flow ? pageItems.length : pageSize }, (_, index) => {
+        {Array.from({ length: fitted ? pageItems.length : pageSize }, (_, index) => {
           const item = pageItems[index]
           if (!item) {
             return <li className="inventory-item-card inventory-item-card-empty" key={index} aria-hidden="true" />

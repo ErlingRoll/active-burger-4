@@ -28,6 +28,8 @@ import { useToaster } from '../ui/ToasterContext'
 import type { LootBoxService } from './LootBoxService'
 import { LootBoxOpening } from './LootBoxOpening'
 import { LootBoxShelf } from './LootBoxShelf'
+import { stackInventoryItems } from '../inventory/InventoryStacks'
+import { useStackedPanels } from '../ui/useStackedPanels'
 import { stackLootBoxes } from './LootBoxStacks'
 import { getRewardIcon } from './RewardIcon'
 import { useLootBoxOpening } from './useLootBoxOpening'
@@ -89,6 +91,16 @@ export function InventoryScreen({
   const [selectedItem, setSelectedItem] = useState<InventoryItemInstance | null>(null)
   const [pendingSweep, setPendingSweep] = useState<InventoryItemInstance[] | null>(null)
   const [sweptCount, setSweptCount] = useState<number | null>(null)
+  /*
+   * A phone shows one of the two panels at a time.
+   *
+   * Side by side they divide the width; stacked they divide a screenful of
+   * height, and a shelf, an inspector, a reward list and a workbench do not fit
+   * in half a phone each — they were drawn over one another. Picking an item
+   * turns to the rail, because the answer to a tap on a slot is what is in it.
+   */
+  const stackedPanels = useStackedPanels()
+  const [openPanel, setOpenPanel] = useState<'bag' | 'rail' | 'bench'>('bag')
 
   /** Re-reads the shelves, and drops a selection whose item is no longer on them. */
   const refresh = useCallback(async (): Promise<void> => {
@@ -146,7 +158,9 @@ export function InventoryScreen({
   const activeFilter = filters.some((filter) => filter.id === categoryFilter)
     ? categoryFilter
     : 'all'
-  const visibleItems = filterInventoryItems(items, activeFilter)
+  // Counted, not repeated: a hundred identical scraps are one slot with a
+  // hundred on it, which is what leaves the shelf short enough to fit.
+  const visibleItems = stackInventoryItems(filterInventoryItems(items, activeFilter))
   // Worth what is on the shelf being looked at, not what is in the bag: the
   // number has to answer the question the filter just asked.
   const visibleEssence = getInventoryEssenceTotal(visibleItems, getItemEssence)
@@ -278,7 +292,43 @@ export function InventoryScreen({
           <p role="status">Loading inventory…</p>
         ) : (
           <div className="app-screen-panels">
-            <section className="app-panel inventory-bag-panel" aria-labelledby="inventory-items-title">
+            {stackedPanels ? (
+              <div className="inventory-panel-switch" role="tablist" aria-label="Stores panels">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={openPanel === 'bag'}
+                  aria-controls="inventory-bag-panel"
+                  onClick={() => { setOpenPanel('bag') }}
+                >
+                  Bag
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={openPanel === 'rail'}
+                  aria-controls="inventory-rail-panel"
+                  onClick={() => { setOpenPanel('rail') }}
+                >
+                  {selectedItem === null ? 'Rewards' : getInventoryItemName(selectedItem)}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={openPanel === 'bench'}
+                  aria-controls="inventory-bench-panel"
+                  onClick={() => { setOpenPanel('bench') }}
+                >
+                  Workbench
+                </button>
+              </div>
+            ) : null}
+            <section
+              className="app-panel inventory-bag-panel"
+              id="inventory-bag-panel"
+              hidden={stackedPanels && openPanel !== 'bag'}
+              aria-labelledby="inventory-items-title"
+            >
               <header className="app-panel-heading">
                 <div>
                   <p className="screen-kicker">Meta items</p>
@@ -335,13 +385,21 @@ export function InventoryScreen({
                     ) : null}
                   </div>
                   <PaginatedInventoryGrid
-                    flow
+                    fitted
                     items={visibleItems}
                     label="Owned items"
                     getItemIcon={(item) => getRewardIcon(item.definitionId)}
                     getItemDetail={getInventoryItemDetail}
                     getItemEssence={getItemEssence}
-                    onSelect={setSelectedItem}
+                    /* The inspector beside the shelf already says all of this,
+                       and the floating copy landed on the filter chips. */
+                    showTooltip={false}
+                    onSelect={(item) => {
+                      setSelectedItem(item)
+                      if (item !== null) {
+                        setOpenPanel('rail')
+                      }
+                    }}
                     salvagingItemInstanceId={salvagingItemInstanceId}
                   />
                 </>
@@ -349,6 +407,8 @@ export function InventoryScreen({
             </section>
             <section
               className="app-panel inventory-rail"
+              id="inventory-rail-panel"
+              hidden={stackedPanels && openPanel !== 'rail'}
               aria-labelledby={selectedItem === null ? 'loot-box-title' : 'inventory-inspector-title'}
             >
               {/* The inspector is absent rather than empty when nothing is
@@ -443,14 +503,37 @@ export function InventoryScreen({
                   />
                 )}
               </section>
-              <CraftingBench
-                items={items}
-                service={inventoryService}
-                busy={busy}
-                onCrafted={refresh}
-                onError={setError}
-              />
+              {/* The bench rides under the rewards where there is room for it,
+                  and is a panel of its own where the panels have stacked: on a
+                  phone the rail is holding an inspector and a reward list in
+                  about three hundred pixels, and a fourth thing in the same
+                  column was drawn over the third. */}
+              {stackedPanels ? null : (
+                <CraftingBench
+                  items={items}
+                  service={inventoryService}
+                  busy={busy}
+                  onCrafted={refresh}
+                  onError={setError}
+                />
+              )}
             </section>
+            {stackedPanels ? (
+              <section
+                className="app-panel inventory-bench-panel"
+                id="inventory-bench-panel"
+                hidden={openPanel !== 'bench'}
+                aria-label="Workbench"
+              >
+                <CraftingBench
+                  items={items}
+                  service={inventoryService}
+                  busy={busy}
+                  onCrafted={refresh}
+                  onError={setError}
+                />
+              </section>
+            ) : null}
           </div>
         )}
       </div>

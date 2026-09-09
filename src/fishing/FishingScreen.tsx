@@ -34,6 +34,7 @@ import { EssenceAmount } from '../ui/EssenceMark'
 import type { LootBoxService } from '../loot/LootBoxService'
 import { LootBoxOpening } from '../loot/LootBoxOpening'
 import { LootBoxShelf } from '../loot/LootBoxShelf'
+import { stackInventoryItems } from '../inventory/InventoryStacks'
 import { stackLootBoxes } from '../loot/LootBoxStacks'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useLootBoxOpening } from '../loot/useLootBoxOpening'
@@ -1234,7 +1235,7 @@ export function FishingScreen({
                   <p className="fishing-muted">No items yet. Cast a line to get started.</p>
                 ) : (
                   <PaginatedInventoryGrid
-                    items={items}
+                    items={stackInventoryItems(items)}
                     label="Fishing inventory"
                     getItemIcon={getInventoryItemIcon}
                     getItemDetail={getInventoryItemDetail}

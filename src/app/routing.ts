@@ -46,10 +46,16 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  * viewport by nature — the codex is a reference manual, the roster grows with
  * every victory, the store's upgrade list grows with every upgrade added, the
  * run's preparation screen sets a character, a length, five meals and seven
- * world modifiers before it is done, the bag holds whatever the player has
- * caught and won, the shop lists what it will buy beside what it is selling
- * today, and the moderation dashboards list whatever players have sent in — and shrinking that to fit made them
+ * world modifiers before it is done, the shop lists what it will buy beside
+ * what it is selling today, and the moderation dashboards list whatever players
+ * have sent in — and shrinking that to fit made them
  * unreadable, so they scroll instead. `app-shell-document` is what grants it.
+ *
+ * The bag was on this list and has come off it. Reading a manual is nothing
+ * like looking through a bag: a shelf of slots has no sentences to shrink, and
+ * what it was actually spending those seven screens on was the same scrap drawn
+ * ninety-six times. Counting interchangeable items instead of repeating them,
+ * and paging what is left to the shelf, leaves the stores a screen again.
  *
  * The refuge is the awkward one, and it is here for a different reason. It is
  * composed as a lit room rather than a page, and on anything with room it fits
@@ -66,7 +72,6 @@ export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'champions',
   'meta-progression',
   'run-setup',
-  'inventory',
   'shop',
   'dashboard',
   'admin',

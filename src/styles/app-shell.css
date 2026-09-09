@@ -30,7 +30,6 @@
 .app-shell-document > .meta-progression-screen,
 .app-shell-document > .run-setup,
 .app-shell-document > .game-dashboard,
-.app-shell-document > .inventory-screen,
 .app-shell-document > .admin-reports-screen {
   min-height: 0;
   overflow-y: auto;

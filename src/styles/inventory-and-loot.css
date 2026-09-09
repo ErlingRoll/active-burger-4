@@ -22,6 +22,74 @@
   grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
 }
 
+/*
+ * A phone shows one panel at a time, and a switch above them says which.
+ *
+ * The width is the one in `useStackedPanels`: below it the panels stop sitting
+ * side by side, and a screen that may not scroll cannot give half a phone each
+ * to a shelf, an inspector, a reward list and a workbench. The switch takes its
+ * own row so the open panel still gets everything left over.
+ */
+.inventory-panel-switch {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 0.4rem;
+}
+
+.inventory-panel-switch button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  overflow: hidden;
+  color: var(--color-stone-200);
+  font-weight: 800;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: rgb(36 28 24 / 78%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 0.6rem;
+}
+
+.inventory-panel-switch button[aria-selected='true'] {
+  color: var(--color-stone-900, #1c1917);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 47rem) {
+  .inventory-panel-switch {
+    display: flex;
+  }
+
+  .inventory-screen .app-screen-panels {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .inventory-screen .inventory-bag-panel {
+    grid-column: 1 / -1;
+  }
+
+  /* A panel the switch has closed is closed. `.app-panel` sets a display of its
+     own, which the attribute alone does not beat. */
+  .inventory-screen .app-screen-panels > [hidden] {
+    display: none;
+  }
+
+  /* Standing on its own, the bench keeps its own rule to nothing above it. */
+  .inventory-bench-panel .crafting-bench {
+    padding-top: 0;
+    border-top: 0;
+    margin-top: 0;
+  }
+
+  /* The rewards keep the height of what they hold. Free to shrink past it, they
+     were squeezed to a heading and drew their own text over what came next. */
+  .inventory-screen .inventory-rewards {
+    min-height: min-content;
+  }
+}
+
 /* Every track but the last. Three tracks make a two-thirds bag beside a rail,
    two make an even split, and one collapses this to the full width with the
    rail below — none of which needs a width to be named. */
@@ -1036,30 +1104,32 @@
 }
 
 /*
- * The bag on the stores screen is a document, so it shows all of itself.
+ * The bag on the stores screen ends where the viewport does.
  *
- * Measuring a page to fit assumes a box with a height, and this screen does not
- * have one: it is a `.app-shell-document`, so its panels take the height they
- * need and the screen scrolls. Measured against a box sized by its own content,
- * the page latched to the one row that box had, which is how a hundred and one
- * items became nine pages of twelve forty-two-pixel slots on a desktop with
- * most of a screen still empty below them.
+ * The width sets the columns and the panel sets the rows. `auto-fill` rather
+ * than `auto-fit`: a filter narrowed to four baits should leave four slots and
+ * empty track beside them, not four slots stretched across the whole shelf. The
+ * component reads the resolved track count back and pages the bag to whatever
+ * that grid holds, so a slot stays the size of a thing a finger can hit however
+ * much is in the bag.
  *
- * So the columns come from the width instead. `auto-fill` rather than
- * `auto-fit`: a filter narrowed to four baits should leave four slots and empty
- * track beside them, not four slots stretched across the whole shelf.
+ * The rows are `auto` and the card is square, so a slot's height follows the
+ * column it was given rather than the forty-two pixel floor the drawer's fixed
+ * twelve-wide shelf needs. Filling the shelf out with empty slots is the
+ * drawer's look and not this one's: on a wide panel it drew a hundred empty
+ * boxes around a dozen real ones.
  */
-.inventory-screen .inventory-item-grid-flow {
-  flex: 0 0 auto;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(3.5rem, 6vw, 5.25rem), 1fr));
+.inventory-screen .inventory-item-grid-fitted {
+  flex: 1 1 auto;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(3.5rem, min(6vw, 9vh), 6.5rem), 1fr));
   grid-auto-rows: auto;
   gap: clamp(0.35rem, 0.9vw, 0.7rem);
-  min-height: 0;
+  min-height: var(--inventory-cell-min, 42px);
 }
 
 /* The slot takes the column it was given. Height comes from the square, not
    from a row that no longer has a fixed size. */
-.inventory-screen .inventory-item-grid-flow .inventory-item-card {
+.inventory-screen .inventory-item-grid-fitted .inventory-item-card {
   width: auto;
   height: auto;
   justify-self: stretch;
@@ -1067,7 +1137,7 @@
 
 /* The drawing grows with the slot it is in, rather than sitting at two and a
    half rem in the middle of a slot twice that size. */
-.inventory-screen .inventory-item-grid-flow .inventory-item-icon {
+.inventory-screen .inventory-item-grid-fitted .inventory-item-icon {
   width: min(3.25rem, 68%);
   height: min(3.25rem, 68%);
   font-size: clamp(1.1rem, 2.4vw, 1.7rem);
