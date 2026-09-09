@@ -132,14 +132,21 @@ export function PaginatedInventoryGrid({
       const anchorBox = anchor.getBoundingClientRect()
       const tooltipBox = tooltip.getBoundingClientRect()
       const maxLeft = Math.max(margin, window.innerWidth - margin - tooltipBox.width)
-      const maxTop = Math.max(margin, window.innerHeight - margin - tooltipBox.height)
       const left = Math.min(
         maxLeft,
         Math.max(margin, anchorBox.left + anchorBox.width / 2 - tooltipBox.width / 2),
       )
-      const top = anchorBox.top - tooltipBox.height - gap >= margin
-        ? anchorBox.top - tooltipBox.height - gap
-        : Math.min(maxTop, anchorBox.bottom + gap)
+      /*
+       * Below the slot by preference, above it when there is no room below.
+       *
+       * Above was the preference, and the shelf's first row is directly under
+       * the filters and the sweep button — so reading a slot in the top row
+       * meant covering the controls that chose it. There is nearly always room
+       * beneath a slot, because the shelf fills from the top.
+       */
+      const top = anchorBox.bottom + gap + tooltipBox.height + margin <= window.innerHeight
+        ? anchorBox.bottom + gap
+        : Math.max(margin, anchorBox.top - tooltipBox.height - gap)
       setTooltipStyle({ left: `${left}px`, top: `${top}px` })
     }
 

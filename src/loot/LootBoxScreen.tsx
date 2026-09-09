@@ -391,9 +391,6 @@ export function InventoryScreen({
                     getItemIcon={(item) => getRewardIcon(item.definitionId)}
                     getItemDetail={getInventoryItemDetail}
                     getItemEssence={getItemEssence}
-                    /* The inspector beside the shelf already says all of this,
-                       and the floating copy landed on the filter chips. */
-                    showTooltip={false}
                     onSelect={(item) => {
                       setSelectedItem(item)
                       if (item !== null) {
