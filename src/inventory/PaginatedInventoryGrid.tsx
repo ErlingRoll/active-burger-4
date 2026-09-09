@@ -7,7 +7,7 @@ import {
   tooltipClassName,
 } from '../rendering/TooltipShell'
 import { EssenceAmount } from '../ui/EssenceMark'
-import { isRarity } from '../content/rarity/Rarity'
+import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
 import { sortInventoryItems, type InventoryItemComparator } from './InventorySorting'
@@ -31,6 +31,15 @@ const FIXED_GRID_SHAPE: GridShape = {
 const FALLBACK_MINIMUM_CELL = 34
 
 /**
+ * The fewest rows a fitted bag draws, however little is in it.
+ *
+ * A bag with three fish in it should still look like a bag rather than a
+ * single shelf, and a bag with nothing in it still has to say that it is a
+ * place things go.
+ */
+const MINIMUM_FITTED_ROWS = 3
+
+/**
  * The page that fits, rather than a fixed hundred and twenty slots.
  *
  * The bag rendered a 12x10 page whatever the screen was, so a short viewport
@@ -46,6 +55,7 @@ const FALLBACK_MINIMUM_CELL = 34
 function useFittedGridShape(
   gridRef: RefObject<HTMLUListElement | null>,
   enabled: boolean,
+  itemCount: number,
 ): GridShape {
   const [shape, setShape] = useState<GridShape>(FIXED_GRID_SHAPE)
 
@@ -82,7 +92,17 @@ function useFittedGridShape(
       // Rows are measured against the cell the columns actually produced, not
       // against the minimum, so the last row is not half a slot short.
       const cell = (width - horizontalGap * (columns - 1)) / columns
-      const rows = Math.max(1, Math.floor((height + verticalGap) / (cell + verticalGap)))
+      const rowsThatFit = Math.max(
+        1,
+        Math.floor((height + verticalGap) / (cell + verticalGap)),
+      )
+      // The rows that fit are a ceiling, not a quota. Filling a tall panel with
+      // empty slots whatever is in the bag turned seventeen fish into a
+      // hundred-slot cabinet that read as broken rather than as roomy.
+      const rows = Math.min(
+        rowsThatFit,
+        Math.max(MINIMUM_FITTED_ROWS, Math.ceil(itemCount / columns)),
+      )
 
       setShape((current) => (
         current.columns === columns && current.rows === rows
@@ -95,7 +115,7 @@ function useFittedGridShape(
     const observer = new ResizeObserver(measure)
     observer.observe(grid)
     return () => { observer.disconnect() }
-  }, [gridRef, enabled])
+  }, [gridRef, enabled, itemCount])
 
   return enabled ? shape : FIXED_GRID_SHAPE
 }
@@ -109,6 +129,19 @@ interface PaginatedInventoryGridProps {
   precedingSortComparators?: readonly InventoryItemComparator[]
   onSalvage?: (item: InventoryItemInstance) => void
   salvagingItemInstanceId?: string | null
+  /**
+   * Told which slot the player has picked, so a screen with room for a detail
+   * panel can show the item there instead of inside a tooltip that disappears
+   * the moment the pointer leaves it. `null` when the pick is cleared.
+   */
+  onSelect?: (item: InventoryItemInstance | null) => void
+  /**
+   * Whether hovering a slot floats its details over the grid. A caller that
+   * shows the picked slot somewhere permanent turns this off: two copies of
+   * the same facts is one too many, and the floating one lands on top of the
+   * controls above the grid.
+   */
+  showTooltip?: boolean
   /**
    * Opt in to sizing the page from the grid's own box. Only safe where the
    * caller has given the grid a bounded height; a grid that is free to grow
@@ -126,6 +159,8 @@ export function PaginatedInventoryGrid({
   precedingSortComparators,
   onSalvage,
   salvagingItemInstanceId = null,
+  onSelect,
+  showTooltip = true,
   fitToContainer = false,
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
@@ -135,7 +170,7 @@ export function PaginatedInventoryGrid({
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLUListElement>(null)
-  const gridShape = useFittedGridShape(gridRef, fitToContainer)
+  const gridShape = useFittedGridShape(gridRef, fitToContainer, items.length)
   const pageSize = gridShape.columns * gridShape.rows
   const seenItemInstanceIds = useSeenInventoryItemIds()
   const sortedItems = sortInventoryItems(items, {
@@ -147,6 +182,7 @@ export function PaginatedInventoryGrid({
   const firstItemIndex = currentPageIndex * pageSize
   const pageItems = sortedItems.slice(firstItemIndex, firstItemIndex + pageSize)
   const activeItem = pageItems.find((item) => item.itemInstanceId === activeItemInstanceId) ?? null
+  const tooltipItem = showTooltip ? activeItem : null
 
   useEffect(() => registerTooltipCloser(() => {
     if (!activeItem) {
@@ -154,13 +190,14 @@ export function PaginatedInventoryGrid({
     }
     setActiveItemInstanceId(null)
     setSelectedItemInstanceId(null)
+    onSelect?.(null)
     return true
-  }), [activeItem])
+  }), [activeItem, onSelect])
 
   useLayoutEffect(() => {
     const anchor = itemTooltipAnchorRef.current
     const tooltip = itemTooltipRef.current
-    if (!activeItem || !anchor || !tooltip) {
+    if (!tooltipItem || !anchor || !tooltip) {
       return
     }
 
@@ -188,7 +225,7 @@ export function PaginatedInventoryGrid({
       window.removeEventListener('resize', updatePosition)
       window.removeEventListener('scroll', updatePosition, true)
     }
-  }, [activeItem])
+  }, [tooltipItem])
 
   const showItemTooltip = (itemInstanceId: string): void => {
     markInventoryItemAsSeen(itemInstanceId)
@@ -205,10 +242,12 @@ export function PaginatedInventoryGrid({
     if (selectedItemInstanceId === itemInstanceId) {
       setSelectedItemInstanceId(null)
       setActiveItemInstanceId(null)
+      onSelect?.(null)
       return
     }
     setSelectedItemInstanceId(itemInstanceId)
     setActiveItemInstanceId(itemInstanceId)
+    onSelect?.(pageItems.find((item) => item.itemInstanceId === itemInstanceId) ?? null)
   }
 
   return (
@@ -225,15 +264,16 @@ export function PaginatedInventoryGrid({
             return <li className="inventory-item-card inventory-item-card-empty" key={index} aria-hidden="true" />
           }
           const definition = getInventoryItemDefinition(item.definitionId)
-          const rarity = isRarity(item.metadata.rarity) ? item.metadata.rarity : null
+          const rarity = getInventoryItemRarity(item)
           const itemName = definition?.name ?? item.definitionId
-          const isActive = activeItem?.itemInstanceId === item.itemInstanceId
+          const isActive = tooltipItem?.itemInstanceId === item.itemInstanceId
           const isUnseen = !seenItemInstanceIds.has(item.itemInstanceId)
           const tooltipId = `inventory-item-tooltip-${item.itemInstanceId}`
           return (
             <li
               className={`inventory-item-card category-${definition?.category ?? 'utility'}${isUnseen ? ' inventory-item-card-unseen' : ''}`}
               data-rarity={rarity ?? undefined}
+              data-selected={selectedItemInstanceId === item.itemInstanceId ? 'true' : undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
               tabIndex={0}
@@ -263,7 +303,9 @@ export function PaginatedInventoryGrid({
               <span className="inventory-item-icon" aria-hidden="true">{getItemIcon(item)}</span>
               <strong>{itemName}</strong>
               <small>{getItemDetail(item)}</small>
-              <span className="inventory-item-quantity">×{item.quantity}</span>
+              {item.quantity > 1 ? (
+                <span className="inventory-item-quantity">×{item.quantity}</span>
+              ) : null}
             </li>
           )
         })}
@@ -295,17 +337,17 @@ export function PaginatedInventoryGrid({
           </button>
         </nav>
       ) : null}
-      {activeItem ? createPortal(
+      {tooltipItem ? createPortal(
         <div
           className={tooltipClassName('inventory-item-tooltip')}
-          id={`inventory-item-tooltip-${activeItem.itemInstanceId}`}
+          id={`inventory-item-tooltip-${tooltipItem.itemInstanceId}`}
           role="tooltip"
           ref={itemTooltipRef}
           style={tooltipStyle}
         >
           {getItemEssence ? (
             (() => {
-              const essence = getItemEssence(activeItem)
+              const essence = getItemEssence(tooltipItem)
               return essence === null ? null : (
                 <span className="inventory-item-tooltip-essence">
                   <EssenceAmount value={essence} />
@@ -313,21 +355,21 @@ export function PaginatedInventoryGrid({
               )
             })()
           ) : null}
-          <strong>{getInventoryItemDefinition(activeItem.definitionId)?.name ?? activeItem.definitionId}</strong>
-          <p>{getItemDetail(activeItem)}</p>
+          <strong>{getInventoryItemDefinition(tooltipItem.definitionId)?.name ?? tooltipItem.definitionId}</strong>
+          <p>{getItemDetail(tooltipItem)}</p>
           <dl>
             <div>
               <dt>Quantity</dt>
-              <dd>×{activeItem.quantity}</dd>
+              <dd>×{tooltipItem.quantity}</dd>
             </div>
             <div>
               <dt>Source</dt>
-              <dd>{activeItem.source.type.replace('-', ' ')}</dd>
+              <dd>{tooltipItem.source.type.replace('-', ' ')}</dd>
             </div>
           </dl>
-          {selectedItemInstanceId === activeItem.itemInstanceId &&
+          {selectedItemInstanceId === tooltipItem.itemInstanceId &&
           onSalvage &&
-          getInventoryItemDefinition(activeItem.definitionId)?.category === 'fish' ? (
+          getInventoryItemDefinition(tooltipItem.definitionId)?.category === 'fish' ? (
             <div className="inventory-item-tooltip-actions">
               <button
                 className="inventory-item-salvage"
@@ -335,11 +377,11 @@ export function PaginatedInventoryGrid({
                 onClick={(event) => {
                   event.stopPropagation()
                   closeAllTooltips()
-                  onSalvage(activeItem)
+                  onSalvage(tooltipItem)
                 }}
                 disabled={salvagingItemInstanceId !== null}
               >
-                {salvagingItemInstanceId === activeItem.itemInstanceId ? 'Salvaging…' : 'Salvage'}
+                {salvagingItemInstanceId === tooltipItem.itemInstanceId ? 'Salvaging…' : 'Salvage'}
               </button>
             </div>
           ) : null}

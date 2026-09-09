@@ -1,26 +1,194 @@
-/* Inventory grid and loot-box opening flow. */
+/* The refuge stores: a bag on one side, what is in the picked slot on the other. */
+
+/*
+ * The bag is the one screen where more width is directly more room, so it takes
+ * a wider measure than the reading screens do.
+ *
+ * The track minimum has to stay small enough that a short landscape phone still
+ * gets two columns: stacked, the two panels take half the height each and the
+ * reward rows are pushed out of the frame. That minimum then opens a third
+ * track once the measure is wide enough for one, which is what the bag's span
+ * below is for — the bag takes every track but the last, so the extra width
+ * goes to the shelves rather than to an empty column beside the rail.
+ */
 .loot-box-panel {
-  --screen-measure: 58rem;
+  --screen-measure: 84rem;
   /* The floor at which a slot stops being a legible target. Declared here so
      both the grid and the wrapper that reserves room for it can read it. */
-  --inventory-cell-min: 34px;
+  --inventory-cell-min: 42px;
+}
+
+.inventory-screen .app-screen-panels {
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+/* Every track but the last. Three tracks make a two-thirds bag beside a rail,
+   two make an even split, and one collapses this to the full width with the
+   rail below — none of which needs a width to be named. */
+.inventory-bag-panel {
+  grid-column: 1 / -2;
 }
 
 /*
- * The slots take the colour of the room they are in: ember on the inventory
- * screen, moonwater in the pond's drawer. Only the shelf changes — the rarity
- * rings below stay fixed, because those carry information rather than mood.
+ * The rail carries what is picked and what is waiting to be opened, and it is
+ * one panel rather than two.
+ *
+ * Two panels was the obvious shape and the wrong one: each brought its own
+ * padding, border and heading, and on a short screen those three chrome bands
+ * cost more height than the loot box row they were framing, which pushed the
+ * "Open one" button past the bottom of the frame. One panel, one heading, and
+ * a rule where the second heading was.
+ *
+ * The rewards section takes what the inspector leaves, and takes it as a
+ * bounded box, which is what lets the list inside it page rather than grow.
  */
-/* The bag fills the shelf it is given and pages what does not fit, rather than
-   rendering a fixed hundred and twenty slots and pushing the screen into a
-   scroll. `--inventory-columns` is set from the measured box; the minimum cell
-   below is the floor at which a slot stops being a legible target. */
+.inventory-rewards {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: clamp(0.2rem, 0.8vh, 0.5rem);
+  min-height: 0;
+  padding-top: clamp(0.3rem, 1.1vh, 0.75rem);
+  border-top: 1px solid rgb(var(--accent-rgb) / 22%);
+  margin-top: clamp(0.3rem, 1.1vh, 0.75rem);
+}
+
+.inventory-rewards-heading {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.inventory-rewards-heading h4 {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: clamp(0.72rem, 1.8vh, 0.96rem);
+  letter-spacing: -0.02em;
+}
+
+/* The reward row carries a button, and the shared action button has a 2.75rem
+   floor that no viewport can talk it out of. Inside the stores the action
+   scales with the screen like everything else on it does. */
+.inventory-screen .loot-box-list .primary-action,
+.inventory-screen .inventory-inspector-salvage {
+  min-height: clamp(1.45rem, 3.4vh, 2.4rem);
+  padding: clamp(0.12rem, 0.6vh, 0.6rem) clamp(0.4rem, 1.4vw, 1rem);
+  font-size: clamp(0.6rem, 1.5vh, 0.85rem);
+  box-shadow: none;
+}
+
+/* The toolbar: which shelf is being looked at, and the one action that applies
+   to the whole shelf rather than to a slot. One row, because every row it takes
+   is a row of slots the bag does not get. */
+.inventory-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.25rem, 1vh, 0.5rem) clamp(0.4rem, 1.5vw, 0.8rem);
+  margin-bottom: clamp(0.3rem, 1.1vh, 0.75rem);
+}
+
+.inventory-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.18rem, 0.7vh, 0.38rem);
+}
+
+.inventory-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  padding: clamp(0.14rem, 0.62vh, 0.32rem) clamp(0.36rem, 1.1vw, 0.72rem);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: clamp(0.58rem, 1.35vh, 0.7rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.inventory-filter-chip:hover,
+.inventory-filter-chip:focus-visible {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 12%);
+  border-color: rgb(var(--accent-rgb) / 55%);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 1px;
+}
+
+.inventory-filter-chip[aria-pressed='true'] {
+  color: var(--color-stone-900);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.inventory-filter-chip-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+/* The sweep reads as an action rather than a filter: it spends the shelf it is
+   pointed at, so it carries the accent as a line rather than as a fill, and it
+   never sits so close to the chips that it can be taken for one of them. */
+.inventory-sweep-action {
+  margin-left: auto;
+  padding: clamp(0.14rem, 0.62vh, 0.32rem) clamp(0.4rem, 1.2vw, 0.8rem);
+  color: var(--accent);
+  font: inherit;
+  font-size: clamp(0.58rem, 1.35vh, 0.7rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgb(var(--accent-rgb) / 10%);
+  border: 1px dashed rgb(var(--accent-rgb) / 48%);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.inventory-sweep-action:hover:not(:disabled),
+.inventory-sweep-action:focus-visible:not(:disabled) {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 24%);
+  border-style: solid;
+  border-color: var(--accent);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 1px;
+}
+
+.inventory-sweep-action:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/*
+ * The bag fills the shelf it is given and pages what does not fit, rather than
+ * rendering a fixed hundred and twenty slots and pushing the screen into a
+ * scroll. `--inventory-columns` is set from the measured box; the minimum cell
+ * above is the floor at which a slot stops being a legible target.
+ *
+ * The tracks are fractions rather than a fixed 3rem: a bag left-aligned at a
+ * fixed slot size left a band of dead panel down its right-hand side, and the
+ * measured column count already guarantees the fraction cannot fall below the
+ * legible minimum.
+ */
 .inventory-screen .inventory-item-grid {
   flex: 1 1 auto;
   min-height: 0;
-  grid-template-columns: repeat(var(--inventory-columns, 12), minmax(0, 3rem));
+  grid-template-columns: repeat(var(--inventory-columns, 12), minmax(0, 1fr));
   align-content: start;
-  justify-content: start;
+  justify-content: stretch;
+  gap: clamp(0.2rem, 0.75vh, 0.42rem);
 }
 
 .inventory-screen .inventory-item-card {
@@ -40,85 +208,153 @@
   outline-color: rgb(var(--accent-bright-rgb) / 35%);
 }
 
+/* The icon takes its size from the slot rather than from the type scale, so a
+   bag that has been given more columns draws smaller fish rather than the same
+   fish with more air around them. */
 .inventory-screen .inventory-item-icon {
+  width: 82%;
+  height: 82%;
+  font-size: clamp(0.8rem, 1.7vh, 1.25rem);
   background: rgb(0 0 0 / 42%);
   border-color: rgb(var(--accent-rgb) / 18%);
+}
+
+.inventory-screen .inventory-item-icon .fish-icon {
+  width: 100%;
+  height: 100%;
 }
 
 .inventory-item-card:hover {
   cursor: pointer;
 }
 
-.inventory-item-card-unseen:not(.inventory-item-card-empty) {
-  outline: 1px solid rgb(var(--accent-bright-rgb) / 42%);
-  outline-offset: 1px;
-  box-shadow:
-    0 0 0.4rem 0.08rem rgb(var(--accent-bright-rgb) / 34%),
-    0 0 0.9rem 0.14rem rgb(var(--accent-rgb) / 18%),
-    inset 0 0 0.4rem rgb(var(--accent-bright-rgb) / 14%);
+/*
+ * New, said with a pip rather than with the whole slot.
+ *
+ * The unseen marker used to light the entire tile and pulse it. On a bag where
+ * everything is new — which is every bag, the first time it is opened — that
+ * painted a hundred slots the same bright amber, drowned the rarity ring
+ * underneath it, and left the slot the player had actually picked looking no
+ * different from its neighbours. A corner pip says the same thing and says it
+ * about one slot at a time.
+ */
+.inventory-item-card-unseen:not(.inventory-item-card-empty)::before {
+  position: absolute;
+  z-index: 2;
+  top: 0.18rem;
+  left: 0.18rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  content: '';
+  pointer-events: none;
+  background: var(--accent-contrast);
+  border-radius: 50%;
+  box-shadow: 0 0 0.35rem 0.05rem rgb(var(--accent-bright-rgb) / 85%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .inventory-item-card-unseen:not(.inventory-item-card-empty) {
+  .inventory-item-card-unseen:not(.inventory-item-card-empty)::before {
     animation: inventory-item-unseen-pulse 2.4s ease-in-out infinite alternate;
   }
 }
 
 @keyframes inventory-item-unseen-pulse {
   from {
-    box-shadow:
-      0 0 0.35rem 0.06rem rgb(var(--accent-bright-rgb) / 26%),
-      0 0 0.8rem 0.1rem rgb(var(--accent-rgb) / 14%),
-      inset 0 0 0.35rem rgb(var(--accent-bright-rgb) / 10%);
+    opacity: 0.55;
+    box-shadow: 0 0 0.25rem 0.02rem rgb(var(--accent-bright-rgb) / 55%);
   }
   to {
-    box-shadow:
-      0 0 0.55rem 0.12rem rgb(var(--accent-bright-rgb) / 44%),
-      0 0 1.1rem 0.18rem rgb(var(--accent-rgb) / 22%),
-      inset 0 0 0.45rem rgb(var(--accent-bright-rgb) / 16%);
+    opacity: 1;
+    box-shadow: 0 0 0.45rem 0.08rem rgb(var(--accent-bright-rgb) / 95%);
   }
 }
 
-.inventory-item-card.category-fish {
-  border-color: rgb(103 232 249 / 30%);
+/*
+ * Rarity owns the slot's colour, and nothing else does.
+ *
+ * A slot used to be painted three times over — once by the screen's accent,
+ * once by a per-category tint, and once by a rarity ring a single pixel wide —
+ * and the category tint, declared last, won. So the one line on the tile that
+ * carried information was the one that could not be seen. The category is
+ * legible from the icon; the rarity is not legible from anything else, so it
+ * gets the ring, the wash and the corner mark.
+ */
+.inventory-item-card[data-rarity='common'] {
+  --rarity: var(--color-gray-300);
 }
 
-.inventory-item-card.category-rod {
-  border-color: rgb(251 191 36 / 30%);
+.inventory-item-card[data-rarity='uncommon'] {
+  --rarity: var(--color-green-400);
 }
 
-.inventory-item-card.category-loot-box {
-  border-color: rgb(196 181 253 / 30%);
+.inventory-item-card[data-rarity='rare'] {
+  --rarity: var(--color-blue-400);
 }
 
-.inventory-item-card:not(.inventory-item-card-empty)::after {
+.inventory-item-card[data-rarity='epic'] {
+  --rarity: var(--color-purple-400);
+}
+
+.inventory-item-card[data-rarity='legendary'] {
+  --rarity: var(--color-amber-400);
+}
+
+.inventory-item-card[data-rarity]:not(.inventory-item-card-empty) {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 118%, color-mix(in srgb, var(--rarity) 26%, transparent), transparent 70%),
+    rgb(36 28 24 / 78%);
+  border-color: color-mix(in srgb, var(--rarity) 52%, transparent);
+}
+
+/* The picked slot stays picked once the pointer has left it, because what it
+   holds is being read in the rail rather than in a tooltip. Declared after the
+   rarity wash above, which matches it for specificity and would otherwise win
+   on order and leave the pick indistinguishable. */
+.inventory-screen .inventory-item-card[data-selected='true'] {
+  background: rgb(var(--accent-rgb) / 18%);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-bright-rgb) / 55%),
+    0 0 0.8rem rgb(var(--accent-rgb) / 32%);
+}
+
+.inventory-item-card[data-rarity]:not(.inventory-item-card-empty)::after {
   position: absolute;
   z-index: 0;
   inset: 0.08rem;
   content: '';
   pointer-events: none;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--rarity) 30%, transparent);
   border-radius: 0.32rem;
 }
 
-.inventory-item-card[data-rarity='common']::after {
-  border-color: var(--color-gray-300);
+/* The rarity said in words, where a colour alone would be a guess. */
+.inventory-rarity-mark {
+  color: var(--rarity, var(--text-muted));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.inventory-item-card[data-rarity='uncommon']::after {
-  border-color: var(--color-green-400);
+.inventory-rarity-mark[data-rarity='common'] {
+  --rarity: var(--color-gray-300);
 }
 
-.inventory-item-card[data-rarity='rare']::after {
-  border-color: var(--color-blue-400);
+.inventory-rarity-mark[data-rarity='uncommon'] {
+  --rarity: var(--color-green-400);
 }
 
-.inventory-item-card[data-rarity='epic']::after {
-  border-color: var(--color-purple-400);
+.inventory-rarity-mark[data-rarity='rare'] {
+  --rarity: var(--color-blue-400);
 }
 
-.inventory-item-card[data-rarity='legendary']::after {
-  border-color: var(--color-amber-400);
+.inventory-rarity-mark[data-rarity='epic'] {
+  --rarity: var(--color-purple-400);
+}
+
+.inventory-rarity-mark[data-rarity='legendary'] {
+  --rarity: var(--color-amber-400);
 }
 
 .inventory-item-icon {
@@ -140,6 +376,87 @@
   color: var(--accent);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+/*
+ * The inspector.
+ *
+ * What a slot holds used to be readable only from a tooltip, which meant the
+ * name, the weight and the Essence it is worth all vanished the moment the
+ * pointer moved — and the one action a fish has lived inside that tooltip. The
+ * rail keeps all of it on screen, so picking a slot is a decision the player
+ * can take their time over.
+ */
+.inventory-inspector-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.72rem, 1.6vh, 0.88rem);
+  line-height: 1.5;
+}
+
+/* A band rather than a column: the icon, what the item is, and the one action
+   it has, read left to right in the height of a single row. A column here cost
+   the rewards below it the room to draw even one box. */
+.inventory-inspector-body {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(0.3rem, 1.1vh, 0.7rem) clamp(0.45rem, 1.5vw, 0.9rem);
+}
+
+.inventory-inspector-copy {
+  display: grid;
+  flex: 1 1 11rem;
+  gap: clamp(0.12rem, 0.5vh, 0.3rem);
+  min-width: 0;
+}
+
+.inventory-inspector-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.9rem, 5.2vh, 3rem);
+  height: clamp(1.9rem, 5.2vh, 3rem);
+  place-items: center;
+  font-size: clamp(0.95rem, 2.6vh, 1.6rem);
+  background: rgb(0 0 0 / 42%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.5rem;
+}
+
+.inventory-inspector-icon .fish-icon {
+  width: 74%;
+  height: 74%;
+}
+
+.inventory-inspector-detail {
+  margin: 0;
+  color: var(--color-stone-200);
+  font-size: clamp(0.72rem, 1.6vh, 0.9rem);
+  line-height: 1.4;
+}
+
+.inventory-inspector-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.15rem, 0.7vh, 0.4rem) clamp(0.5rem, 1.8vw, 1.1rem);
+  margin: 0;
+}
+
+.inventory-inspector-facts dt {
+  color: var(--text-muted);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.inventory-inspector-facts dd {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: clamp(0.7rem, 1.6vh, 0.88rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .inventory-item-salvage {
@@ -214,34 +531,9 @@
   font-size: 0.8rem;
 }
 
-.loot-box-result {
-  display: grid;
-  gap: 0.35rem;
-  padding: 1rem;
-  color: var(--color-amber-100);
-  background: linear-gradient(135deg, rgb(180 83 9 / 34%), transparent 75%), var(--color-stone-800);
-  border: 1px solid var(--color-amber-500);
-  border-radius: 0.55rem;
-}
-
-.loot-box-result .screen-kicker {
-  color: var(--color-amber-400);
-}
-
-.loot-box-result span {
-  color: var(--color-amber-300);
-}
-
-/* The bag stretches and the reward shelf does not: a slot grid can drop to a
-   single row and page the rest, while a list of loot boxes has no such give.
-   Letting both flex equally squeezed the "Open one" buttons past the frame. */
-.inventory-screen .app-panel[aria-labelledby="loot-box-title"] {
-  flex: 0 1 auto;
-}
-
 /* The bag keeps room for at least one row of slots. Letting it flex all the way
    to nothing made the shelf disappear entirely on a short screen, which is a
    worse answer than showing one row and paging the rest. */
 .inventory-screen .inventory-paged-grid {
-  min-height: var(--inventory-cell-min, 34px);
+  min-height: var(--inventory-cell-min, 42px);
 }

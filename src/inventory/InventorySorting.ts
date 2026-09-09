@@ -1,4 +1,4 @@
-import { RARITY_ORDER, isRarity } from '../content/rarity/Rarity'
+import { getInventoryItemRarityOrder } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import type { InventoryItemInstance } from './InventoryTypes'
 
@@ -10,14 +10,6 @@ export type InventoryItemComparator = (
 export interface InventorySortOptions {
   getEssence?: (item: InventoryItemInstance) => number | null
   precedingComparators?: readonly InventoryItemComparator[]
-}
-
-function getItemRarity(item: InventoryItemInstance): number {
-  if (isRarity(item.metadata.rarity)) {
-    return RARITY_ORDER[item.metadata.rarity]
-  }
-  const definitionRarity = item.definitionId.split('-').pop()
-  return isRarity(definitionRarity) ? RARITY_ORDER[definitionRarity] : -1
 }
 
 function getItemEssence(
@@ -45,7 +37,7 @@ export function compareInventoryDefaults(
     return typeComparison
   }
 
-  const rarityComparison = getItemRarity(right) - getItemRarity(left)
+  const rarityComparison = getInventoryItemRarityOrder(right) - getInventoryItemRarityOrder(left)
   if (rarityComparison !== 0) {
     return rarityComparison
   }
