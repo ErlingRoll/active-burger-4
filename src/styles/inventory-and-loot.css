@@ -279,23 +279,27 @@
  * legible from the icon; the rarity is not legible from anything else, so it
  * gets the ring, the wash and the corner mark.
  */
-.inventory-item-card[data-rarity='common'] {
+/* Rarity as a colour, once, for anything that carries the attribute: a slot,
+   a written label, a box, a card, the ring around a revealed reward. Declaring
+   it per component meant five near-identical blocks and a sixth waiting to be
+   forgotten. */
+[data-rarity='common'] {
   --rarity: var(--color-gray-300);
 }
 
-.inventory-item-card[data-rarity='uncommon'] {
+[data-rarity='uncommon'] {
   --rarity: var(--color-green-400);
 }
 
-.inventory-item-card[data-rarity='rare'] {
+[data-rarity='rare'] {
   --rarity: var(--color-blue-400);
 }
 
-.inventory-item-card[data-rarity='epic'] {
+[data-rarity='epic'] {
   --rarity: var(--color-purple-400);
 }
 
-.inventory-item-card[data-rarity='legendary'] {
+[data-rarity='legendary'] {
   --rarity: var(--color-amber-400);
 }
 
@@ -335,26 +339,6 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.inventory-rarity-mark[data-rarity='common'] {
-  --rarity: var(--color-gray-300);
-}
-
-.inventory-rarity-mark[data-rarity='uncommon'] {
-  --rarity: var(--color-green-400);
-}
-
-.inventory-rarity-mark[data-rarity='rare'] {
-  --rarity: var(--color-blue-400);
-}
-
-.inventory-rarity-mark[data-rarity='epic'] {
-  --rarity: var(--color-purple-400);
-}
-
-.inventory-rarity-mark[data-rarity='legendary'] {
-  --rarity: var(--color-amber-400);
 }
 
 .inventory-item-icon {
@@ -499,6 +483,128 @@
   font-size: 0.7rem;
 }
 
+
+/* The bag keeps room for at least one row of slots. Letting it flex all the way
+   to nothing made the shelf disappear entirely on a short screen, which is a
+   worse answer than showing one row and paging the rest. */
+.inventory-screen .inventory-paged-grid {
+  min-height: var(--inventory-cell-min, 42px);
+}
+
+/* What the shelf is worth, beside how much is on it. Reads against whatever
+   the bag is filtered to, which is the number the filter just asked for. */
+.inventory-bag-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem clamp(0.5rem, 1.6vw, 0.9rem);
+  align-items: baseline;
+  justify-content: flex-end;
+}
+
+.inventory-bag-value {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  color: var(--essence);
+  font-size: clamp(0.72rem, 1.7vh, 0.88rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-bag-value-label {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* With nothing picked the rewards are the panel rather than a footnote to it,
+   so they lose the rule that separated them from the inspector above. */
+.inventory-rewards[data-lead='true'] {
+  padding-top: 0;
+  border-top: 0;
+  margin-top: 0;
+}
+
+.inventory-rewards[data-lead='true'] .inventory-rewards-heading {
+  display: grid;
+  gap: 0.1rem;
+  justify-items: start;
+  margin-bottom: clamp(0.3rem, 1.1vh, 0.8rem);
+}
+
+.inventory-rewards[data-lead='true'] .inventory-rewards-heading h4 {
+  font-size: clamp(0.85rem, 2.2vh, 1.28rem);
+}
+
+/*
+ * The boxes.
+ *
+ * Every part of the drawing takes its colour from the rarity, so one chest
+ * serves five, and the escalation a player reads — more studs, a gem, rays, a
+ * crown — is drawn rather than tinted. A common box is iron with a keyhole; a
+ * legendary is crowned and haloed, and looks it at sixteen pixels.
+ */
+.loot-box-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.loot-box-icon-shell {
+  fill: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 22%, var(--color-zinc-900));
+  stroke: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 62%, transparent);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.loot-box-icon-band,
+.loot-box-icon-lock {
+  fill: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 52%, var(--color-zinc-950));
+  stroke: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 70%, transparent);
+  stroke-width: 0.8;
+}
+
+.loot-box-icon-stud,
+.loot-box-icon-gem {
+  fill: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 88%, var(--color-white));
+}
+
+.loot-box-icon-keyhole {
+  fill: var(--color-zinc-950);
+}
+
+.loot-box-icon-crown {
+  fill: var(--rarity, var(--color-stone-400));
+}
+
+.loot-box-icon-rays {
+  fill: var(--rarity, var(--color-stone-400));
+  opacity: 0.45;
+  transform-origin: 32px 34px;
+}
+
+/* Shut until the lid lifts: the light inside is the whole point of opening. */
+.loot-box-icon-glow {
+  fill: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 80%, var(--color-white));
+  opacity: 0;
+}
+
+.loot-box-icon-lid {
+  transform-origin: 32px 31px;
+}
+
+.loot-box-icon[data-opening='true'] .loot-box-icon-glow {
+  opacity: 0.85;
+}
+
+.loot-box-icon[data-opening='true'] .loot-box-icon-lid {
+  transform: translateY(-7px) rotate(-8deg);
+}
+
+/* The shelf rows. */
 .loot-box-list {
   display: grid;
   gap: clamp(0.25rem, 0.9vh, 0.7rem);
@@ -507,33 +613,385 @@
   list-style: none;
 }
 
-.loot-box-list li {
+.loot-box-row {
   display: flex;
+  gap: clamp(0.4rem, 1.4vw, 0.9rem);
   align-items: center;
-  justify-content: space-between;
-  gap: clamp(0.4rem, 1.6vw, 1rem);
-  padding: clamp(0.3rem, 1.1vh, 0.9rem) clamp(0.5rem, 1.6vw, 1rem);
-  color: var(--color-amber-100);
-  background: rgb(68 64 60 / 72%);
-  border: 1px solid rgb(251 191 36 / 28%);
+  padding: clamp(0.25rem, 1vh, 0.7rem) clamp(0.4rem, 1.4vw, 0.9rem);
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--rarity, var(--color-stone-400)) 20%, transparent), transparent 62%),
+    rgb(12 14 19 / 72%);
+  border: 1px solid color-mix(in srgb, var(--rarity, var(--color-stone-400)) 42%, transparent);
   border-radius: 0.55rem;
+  transition: border-color 140ms ease, background 140ms ease;
 }
 
-.loot-box-list li > div {
+.loot-box-row:hover,
+.loot-box-row:focus-within {
+  border-color: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 80%, transparent);
+}
+
+.loot-box-row-emblem {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.6rem, 4.4vh, 2.6rem);
+  height: clamp(1.6rem, 4.4vh, 2.6rem);
+  place-items: center;
+}
+
+.loot-box-row-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.loot-box-row-copy strong {
+  overflow: hidden;
+  color: var(--color-stone-50);
+  font-size: clamp(0.72rem, 1.7vh, 0.9rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loot-box-row-detail {
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.68rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.loot-box-row-count {
+  flex: 0 0 auto;
+  color: var(--rarity, var(--color-stone-400));
+  font-size: clamp(0.68rem, 1.6vh, 0.85rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The odds, before the box is spent.
+ *
+ * A player could learn what was in a box only by opening one, which is how a
+ * slot machine works rather than how a game does. The card is wide enough for
+ * a name, a bar and a percentage on one line, and no wider.
+ */
+.loot-box-tooltip {
+  position: fixed;
+  z-index: 30;
+  width: min(21rem, calc(100vw - 1.5rem));
+  padding: 0.85rem;
+  border-color: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 58%, transparent);
+}
+
+.loot-box-card-heading {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.loot-box-card-heading > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.loot-box-card-heading strong {
+  color: var(--color-stone-50);
+  font-size: 0.95rem;
+}
+
+.loot-box-card-emblem {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.loot-box-card-rarity {
+  color: var(--rarity, var(--color-stone-400));
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.loot-box-card-lede {
+  margin: 0.6rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.loot-box-card-drops {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.6rem 0 0;
+  margin: 0.6rem 0 0;
+  border-top: 1px solid rgb(148 163 184 / 22%);
+  list-style: none;
+}
+
+.loot-box-card-drops li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) minmax(2.5rem, 4rem) 2.8rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.loot-box-card-drop-icon {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+.loot-box-card-drop-name {
+  overflow: hidden;
+  color: var(--color-stone-200);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The bar is the comparison; the number is the fact. Both, because five per
+   cent and ten per cent are hard to tell apart by eye and easy to read as
+   digits. */
+.loot-box-card-drop-bar {
+  position: relative;
+  height: 0.3rem;
+  overflow: hidden;
+  background: rgb(255 255 255 / 8%);
+  border-radius: 999px;
+}
+
+.loot-box-card-drop-bar::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--drop-share, 0%);
+  content: '';
+  background: var(--rarity, var(--color-stone-400));
+  border-radius: inherit;
+}
+
+.loot-box-card-drop-percent {
+  color: var(--color-stone-50);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/*
+ * The opening.
+ *
+ * The screen goes out and the box is the only lit thing on it. The charge runs
+ * while the request is in flight, so the wait and the ceremony are one moment
+ * rather than a spinner followed by a flourish.
+ */
+.loot-box-opening {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  padding: clamp(1rem, 4vh, 2.5rem);
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--rarity, var(--color-stone-400)) 26%, transparent), transparent 46%),
+    rgb(2 4 8 / 88%);
+  backdrop-filter: blur(0.4rem);
+  animation: loot-box-opening-in 220ms ease-out both;
+}
+
+.loot-box-opening-stage {
+  display: grid;
+  gap: clamp(0.5rem, 2vh, 1.2rem);
+  justify-items: center;
+  width: min(46rem, 100%);
+  text-align: center;
+}
+
+.loot-box-opening-box {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: clamp(5rem, 18vh, 9rem);
+  height: clamp(5rem, 18vh, 9rem);
+  place-items: center;
+  filter: drop-shadow(0 0 1.6rem color-mix(in srgb, var(--rarity, var(--color-stone-400)) 60%, transparent));
+}
+
+/* The flash. Sized from the box rather than the viewport so it reads as coming
+   out of the chest instead of out of the page. */
+.loot-box-opening-burst {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: clamp(5rem, 18vh, 9rem);
+  height: clamp(5rem, 18vh, 9rem);
+  margin: calc(clamp(5rem, 18vh, 9rem) / -2) 0 0 calc(clamp(5rem, 18vh, 9rem) / -2);
+  border: 2px solid var(--rarity, var(--color-stone-400));
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loot-box-opening-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.78rem, 1.9vh, 0.95rem);
+  letter-spacing: 0.04em;
+}
+
+.loot-box-opening-kicker {
+  margin: 0;
+  color: var(--rarity, var(--color-stone-400));
+  font-size: clamp(0.66rem, 1.6vh, 0.82rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.loot-box-opening-rewards {
   display: flex;
   flex-wrap: wrap;
+  gap: clamp(0.4rem, 1.6vh, 0.9rem);
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loot-box-reward {
+  display: grid;
+  gap: 0.25rem;
+  width: clamp(6rem, 15vh, 9rem);
+  padding: clamp(0.5rem, 1.6vh, 1rem) clamp(0.4rem, 1.2vw, 0.75rem);
+  justify-items: center;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--rarity, var(--color-stone-400)) 22%, transparent), transparent 68%),
+    rgb(12 14 19 / 88%);
+  border: 1px solid color-mix(in srgb, var(--rarity, var(--color-stone-400)) 62%, transparent);
+  border-radius: 0.6rem;
+  box-shadow: 0 0 1.2rem color-mix(in srgb, var(--rarity, var(--color-stone-400)) 26%, transparent);
+}
+
+.loot-box-reward strong {
+  color: var(--color-stone-50);
+  font-size: clamp(0.7rem, 1.6vh, 0.85rem);
+  line-height: 1.2;
+}
+
+.loot-box-reward-icon {
+  display: grid;
+  width: clamp(2rem, 6vh, 3.2rem);
+  height: clamp(2rem, 6vh, 3.2rem);
+  place-items: center;
+  font-size: clamp(1.1rem, 3vh, 1.7rem);
+}
+
+.loot-box-reward-icon .fish-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.loot-box-reward-meta {
+  display: inline-flex;
+  gap: 0.4rem;
   align-items: baseline;
-  gap: clamp(0.2rem, 1.2vw, 0.6rem);
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.5vh, 0.76rem);
+  font-weight: 700;
 }
 
-.loot-box-list li span {
-  color: var(--color-amber-400);
-  font-size: 0.8rem;
+@keyframes loot-box-opening-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* The bag keeps room for at least one row of slots. Letting it flex all the way
-   to nothing made the shelf disappear entirely on a short screen, which is a
-   worse answer than showing one row and paging the rest. */
-.inventory-screen .inventory-paged-grid {
-  min-height: var(--inventory-cell-min, 42px);
+/*
+ * Motion.
+ *
+ * All of it is confined to this block. Everything above renders the opening as
+ * a still picture that is already correct, so a player who asked their system
+ * for less movement gets the reward without the theatre rather than a broken
+ * version of it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .loot-box-opening[data-phase='charging'] .loot-box-opening-box {
+    animation:
+      loot-box-charge-shake 260ms ease-in-out infinite alternate,
+      loot-box-charge-swell 1.5s cubic-bezier(0.4, 0, 0.6, 1) both;
+  }
+
+  .loot-box-opening[data-phase='charging'] .loot-box-opening-burst {
+    animation: loot-box-charge-ring 1.1s ease-out infinite;
+  }
+
+  .loot-box-opening[data-phase='revealing'] .loot-box-opening-burst {
+    animation: loot-box-burst 620ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+
+  .loot-box-opening[data-phase='revealing'] .loot-box-opening-box {
+    animation: loot-box-open-kick 520ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+
+  .loot-box-icon[data-opening='true'] .loot-box-icon-lid {
+    animation: loot-box-lid-lift 520ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  }
+
+  .loot-box-icon-rays {
+    animation: loot-box-rays-turn 14s linear infinite;
+  }
+
+  /* Staggered by index, so four rewards land one after another rather than
+     arriving as a block that is over before it is noticed. */
+  .loot-box-reward {
+    animation: loot-box-reward-in 420ms cubic-bezier(0.2, 1.2, 0.35, 1) both;
+    animation-delay: calc(260ms + var(--reveal-index, 0) * 130ms);
+  }
+}
+
+@keyframes loot-box-charge-shake {
+  from { transform: rotate(-1.6deg); }
+  to { transform: rotate(1.6deg); }
+}
+
+@keyframes loot-box-charge-swell {
+  from { filter: drop-shadow(0 0 0.4rem color-mix(in srgb, var(--rarity, var(--color-stone-400)) 30%, transparent)); }
+  to { filter: drop-shadow(0 0 2.6rem color-mix(in srgb, var(--rarity, var(--color-stone-400)) 95%, transparent)); }
+}
+
+@keyframes loot-box-charge-ring {
+  from { opacity: 0.55; transform: scale(0.7); }
+  to { opacity: 0; transform: scale(1.9); }
+}
+
+@keyframes loot-box-burst {
+  from { opacity: 1; border-width: 12px; transform: scale(0.5); }
+  to { opacity: 0; border-width: 1px; transform: scale(4.5); }
+}
+
+@keyframes loot-box-open-kick {
+  0% { transform: scale(0.86); }
+  55% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+@keyframes loot-box-lid-lift {
+  0% { transform: translateY(0) rotate(0deg); }
+  60% { transform: translateY(-11px) rotate(-13deg); }
+  100% { transform: translateY(-7px) rotate(-8deg); }
+}
+
+@keyframes loot-box-rays-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loot-box-reward-in {
+  from { opacity: 0; transform: translateY(1.1rem) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

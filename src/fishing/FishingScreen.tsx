@@ -25,8 +25,17 @@ import {
 // which re-exports DevelopmentInventoryMenu and would import this file back.
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
+import { getInventoryItemCategory } from '../inventory/InventoryFilters'
+import { getInventoryEssenceTotal } from '../inventory/InventoryValue'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { markInventoryItemAsUnseen } from '../inventory/InventoryItemSeen'
+import { EssenceAmount } from '../ui/EssenceMark'
+import type { LootBoxService } from '../loot/LootBoxService'
+import { LootBoxOpening } from '../loot/LootBoxOpening'
+import { LootBoxShelf } from '../loot/LootBoxShelf'
+import { stackLootBoxes } from '../loot/LootBoxStacks'
+import { getRewardIcon } from '../loot/RewardIcon'
+import { useLootBoxOpening } from '../loot/useLootBoxOpening'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
@@ -37,6 +46,7 @@ import { FishIcon } from './FishIcon'
 interface FishingScreenProps {
   fishingService: FishingService | null
   inventoryService: InventoryService | null
+  lootBoxService: LootBoxService | null
   configurationError: string | null
   activityPlayerId: string
   activityPlayerApprovedNickname: string | null
@@ -68,18 +78,7 @@ interface FishingActivityNotice {
 }
 
 function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
-  const category = getInventoryItemDefinition(item.definitionId)?.category
-  const fish = getFishDefinition(item.definitionId)
-  return fish ? <FishIcon icon={fish.visual.icon} color={fish.visual.accent} /> :
-    ({
-      fish: '🐟',
-      bait: '◉',
-      rod: '🎣',
-      'loot-box': '▣',
-      artifact: '◇',
-      material: '◆',
-      utility: '✦',
-    }[category ?? 'utility'] ?? '✦')
+  return getRewardIcon(item.definitionId)
 }
 
 function getInventoryItemDetail(item: InventoryItemInstance): string {
@@ -436,6 +435,7 @@ function FishingDropdown({
 export function FishingScreen({
   fishingService,
   inventoryService,
+  lootBoxService,
   configurationError,
   activityPlayerId,
   activityPlayerApprovedNickname,
@@ -487,6 +487,45 @@ export function FishingScreen({
       setFishingPhase(phase)
     }
   }
+
+  /*
+   * Boxes open at the pond too.
+   *
+   * The drawer already showed loot boxes as slots but gave no way to open one,
+   * so a player who fished up a box had to leave for the stores to spend it.
+   * The shelf, the odds card and the opening ceremony are the same components
+   * the stores use, because an opening that behaved differently in the two
+   * places would be a bug nobody would think to look for.
+   */
+  const reloadInventoryAfterOpening = useCallback((): void => {
+    if (!inventoryService) {
+      return
+    }
+    void inventoryService.loadInventory()
+      .then((loadedItems) => {
+        if (mountedRef.current) {
+          setItems(loadedItems)
+        }
+      })
+      .catch((reloadError: unknown) => {
+        if (mountedRef.current) {
+          setError(reloadError instanceof Error ? reloadError.message : 'Unable to reload the inventory.')
+        }
+      })
+  }, [inventoryService])
+
+  const lootBoxOpening = useLootBoxOpening(lootBoxService, reloadInventoryAfterOpening)
+  const lootBoxStacks = useMemo(
+    () => stackLootBoxes(items.filter((item) => getInventoryItemCategory(item) === 'loot-box')),
+    [items],
+  )
+  const inventoryEssence = useMemo(
+    () => getInventoryEssenceTotal(
+      items,
+      (item) => getFishingEssenceValue(item.definitionId, item.metadata),
+    ),
+    [items],
+  )
 
   const rods = useMemo(
     () => items.filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'rod'),
@@ -1153,6 +1192,10 @@ export function FishingScreen({
                     <span className="fishing-inventory-count">
                       {items.length} {items.length === 1 ? 'item' : 'items'}
                     </span>
+                    <span className="inventory-bag-value">
+                      <span className="inventory-bag-value-label">Worth</span>
+                      <EssenceAmount value={inventoryEssence} />
+                    </span>
                     <button
                       className="secondary-action fishing-inventory-close"
                       type="button"
@@ -1162,6 +1205,28 @@ export function FishingScreen({
                     </button>
                   </div>
                 </div>
+                {lootBoxStacks.length > 0 ? (
+                  <section className="inventory-rewards" aria-labelledby="fishing-loot-box-title">
+                    <header className="inventory-rewards-heading">
+                      <h4 id="fishing-loot-box-title">Unopened loot boxes</h4>
+                    </header>
+                    <LootBoxShelf
+                      stacks={lootBoxStacks}
+                      label="Unopened loot boxes"
+                      opening={lootBoxOpening.isOpening}
+                      onOpen={(stack) => {
+                        if (stack.rarity === null) {
+                          return
+                        }
+                        void lootBoxOpening.openBox({
+                          boxInstanceId: stack.first.itemInstanceId,
+                          boxName: stack.name,
+                          rarity: stack.rarity,
+                        })
+                      }}
+                    />
+                  </section>
+                ) : null}
                 {loadState === 'loading' ? (
                   <p role="status">Loading inventory…</p>
                 ) : items.length === 0 ? (
@@ -1284,6 +1349,7 @@ export function FishingScreen({
           </div>
         </section>
       </div>
+      <LootBoxOpening session={lootBoxOpening.session} onDismiss={lootBoxOpening.dismiss} />
       {pendingSalvage ? (
         <ConfirmationDialog
           title="Salvage fish?"

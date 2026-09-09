@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import {
   buildInventoryCategoryFilters,
   filterInventoryItems,
+  getInventoryEssenceTotal,
   getInventoryItemCategory,
   getInventoryItemDefinition,
+  getInventoryItemEssence,
   getInventoryItemRarity,
   selectCommonFish,
 } from '../inventory'
 import type { InventoryCategoryFilter } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
-import { FittedList } from '../ui/FittedList'
 import { EssenceAmount } from '../ui/EssenceMark'
-import { RARITY_ORDER, RARITY_VISUALS } from '../content/rarity/Rarity'
+import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import {
   formatFishingBaitEffect,
   formatFishingFishDetail,
@@ -25,48 +25,17 @@ import {
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
 import type { LootBoxService } from './LootBoxService'
-import { getAbyssLootBoxRarityLabel } from './LootBoxes'
+import { LootBoxOpening } from './LootBoxOpening'
+import { LootBoxShelf } from './LootBoxShelf'
+import { stackLootBoxes } from './LootBoxStacks'
+import { getRewardIcon } from './RewardIcon'
+import { useLootBoxOpening } from './useLootBoxOpening'
 
 interface LootBoxScreenProps {
   inventoryService: InventoryService | null
   lootBoxService: LootBoxService | null
   configurationError: string | null
   onBack: () => void
-}
-
-/**
- * A shelf of identical boxes, counted rather than repeated.
- *
- * The rewards list rendered one row per item instance, so four identical
- * legendary boxes were four rows carrying four identical buttons, and the list
- * paged at eight boxes while the heading above it said eight were waiting.
- * Boxes of one kind are interchangeable, so they are one row and a count.
- */
-interface LootBoxStack {
-  readonly definitionId: string
-  readonly name: string
-  readonly quantity: number
-  readonly rarityOrder: number
-  readonly first: InventoryItemInstance
-}
-
-function getInventoryItemIcon(item: InventoryItemInstance): ReactNode {
-  return getRewardIcon(item.definitionId)
-}
-
-function getRewardIcon(definitionId: string): ReactNode {
-  const definition = getInventoryItemDefinition(definitionId)
-  const fish = getFishDefinition(definitionId)
-  return fish ? <FishIcon icon={fish.visual.icon} color={fish.visual.accent} /> :
-    ({
-      fish: '🐟',
-      bait: '◉',
-      rod: '🎣',
-      'loot-box': '▣',
-      artifact: '◇',
-      material: '◆',
-      utility: '✦',
-    }[definition?.category ?? 'utility'] ?? '✦')
 }
 
 function getInventoryItemName(item: InventoryItemInstance): string {
@@ -96,33 +65,8 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
   return definition?.category.replace('-', ' ') ?? 'item'
 }
 
-function getSalvageEssence(item: InventoryItemInstance): number {
-  return getFishingEssenceValue(item.definitionId, item.metadata) ??
-    getInventoryItemDefinition(item.definitionId)?.salvageEssence ??
-    0
-}
-
-function stackLootBoxes(boxes: readonly InventoryItemInstance[]): LootBoxStack[] {
-  const stacks = new Map<string, LootBoxStack>()
-  for (const box of boxes) {
-    const existing = stacks.get(box.definitionId)
-    if (existing) {
-      stacks.set(box.definitionId, { ...existing, quantity: existing.quantity + box.quantity })
-      continue
-    }
-    const rarity = getInventoryItemRarity(box)
-    stacks.set(box.definitionId, {
-      definitionId: box.definitionId,
-      name: getInventoryItemName(box),
-      quantity: box.quantity,
-      rarityOrder: rarity === null ? -1 : RARITY_ORDER[rarity],
-      first: box,
-    })
-  }
-  return [...stacks.values()].sort((left, right) =>
-    right.rarityOrder - left.rarityOrder || left.name.localeCompare(right.name),
-  )
-}
+const getItemEssence = (item: InventoryItemInstance): number | null =>
+  getFishingEssenceValue(item.definitionId, item.metadata)
 
 export function InventoryScreen({
   inventoryService,
@@ -138,7 +82,6 @@ export function InventoryScreen({
   const [error, setError] = useState<string | null>(
     () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
   )
-  const [opening, setOpening] = useState(false)
   const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
   const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<InventoryCategoryFilter>('all')
@@ -147,7 +90,7 @@ export function InventoryScreen({
   const [sweptCount, setSweptCount] = useState<number | null>(null)
 
   /** Re-reads the shelves, and drops a selection whose item is no longer on them. */
-  const refresh = async (): Promise<void> => {
+  const refresh = useCallback(async (): Promise<void> => {
     if (!inventoryService) {
       return
     }
@@ -157,7 +100,15 @@ export function InventoryScreen({
       ? null
       : loaded.find((item) => item.itemInstanceId === current.itemInstanceId) ?? null)
     setLoadState('ready')
-  }
+  }, [inventoryService])
+
+  const reloadAfterOpening = useCallback((): void => {
+    void refresh().catch((refreshError: unknown) => {
+      setError(refreshError instanceof Error ? refreshError.message : 'Unable to reload the inventory.')
+    })
+  }, [refresh])
+
+  const opening = useLootBoxOpening(lootBoxService, reloadAfterOpening)
 
   useEffect(() => {
     if (!inventoryService) {
@@ -195,37 +146,13 @@ export function InventoryScreen({
     ? categoryFilter
     : 'all'
   const visibleItems = filterInventoryItems(items, activeFilter)
+  // Worth what is on the shelf being looked at, not what is in the bag: the
+  // number has to answer the question the filter just asked.
+  const visibleEssence = getInventoryEssenceTotal(visibleItems, getItemEssence)
 
   const commonFish = selectCommonFish(items)
-  const commonFishEssence = commonFish.reduce(
-    (total, fish) => total + getSalvageEssence(fish) * fish.quantity,
-    0,
-  )
+  const commonFishEssence = getInventoryEssenceTotal(commonFish, getItemEssence)
   const busy = salvagingItemInstanceId !== null || sweptCount !== null
-
-  const openBox = async (box: InventoryItemInstance): Promise<void> => {
-    if (!lootBoxService || !inventoryService || opening) {
-      return
-    }
-    setOpening(true)
-    setError(null)
-    try {
-      const result = await lootBoxService.openBox(crypto.randomUUID(), box.itemInstanceId)
-      showLootToast({
-        title: `${getAbyssLootBoxRarityLabel(result.boxRarity)} box opened`,
-        itemName: getInventoryItemDefinition(result.definitionId)?.name ?? result.definitionId,
-        icon: getRewardIcon(result.definitionId),
-        accentColor: '#c084fc',
-        glowColor: '#7c3aed',
-        reward: `×${result.quantity}`,
-      })
-      await refresh()
-    } catch (openError: unknown) {
-      setError(openError instanceof Error ? openError.message : 'Unable to open loot box.')
-    } finally {
-      setOpening(false)
-    }
-  }
 
   const salvageFish = async (fish: InventoryItemInstance): Promise<void> => {
     if (!inventoryService || busy) {
@@ -320,9 +247,7 @@ export function InventoryScreen({
 
   const selectedRarity = selectedItem === null ? null : getInventoryItemRarity(selectedItem)
   const selectedIsFish = selectedItem !== null && getInventoryItemCategory(selectedItem) === 'fish'
-  const selectedEssence = selectedItem === null
-    ? null
-    : getFishingEssenceValue(selectedItem.definitionId, selectedItem.metadata)
+  const selectedEssence = selectedItem === null ? null : getItemEssence(selectedItem)
 
   return (
     <section className="app-screen inventory-screen loot-box-screen" aria-labelledby="inventory-title">
@@ -358,8 +283,14 @@ export function InventoryScreen({
                   <p className="screen-kicker">Meta items</p>
                   <h3 id="inventory-items-title">Owned items</h3>
                 </div>
-                <span className="app-panel-meta">
-                  {visibleItems.length} {visibleItems.length === 1 ? 'kind' : 'kinds'}
+                <span className="inventory-bag-meta">
+                  <span className="app-panel-meta">
+                    {visibleItems.length} {visibleItems.length === 1 ? 'kind' : 'kinds'}
+                  </span>
+                  <span className="inventory-bag-value">
+                    <span className="inventory-bag-value-label">Worth</span>
+                    <EssenceAmount value={visibleEssence} />
+                  </span>
                 </span>
               </header>
               {items.length === 0 ? (
@@ -406,9 +337,9 @@ export function InventoryScreen({
                     fitToContainer
                     items={visibleItems}
                     label="Owned items"
-                    getItemIcon={getInventoryItemIcon}
+                    getItemIcon={(item) => getRewardIcon(item.definitionId)}
                     getItemDetail={getInventoryItemDetail}
-                    getItemEssence={(item) => getFishingEssenceValue(item.definitionId, item.metadata)}
+                    getItemEssence={getItemEssence}
                     onSelect={setSelectedItem}
                     showTooltip={false}
                     salvagingItemInstanceId={salvagingItemInstanceId}
@@ -416,64 +347,75 @@ export function InventoryScreen({
                 </>
               )}
             </section>
-            <section className="app-panel inventory-rail" aria-labelledby="inventory-inspector-title">
-              <header className="app-panel-heading">
-                <div>
-                  <p className="screen-kicker">Selected</p>
-                  <h3 id="inventory-inspector-title">
-                    {selectedItem === null ? 'Nothing picked' : getInventoryItemName(selectedItem)}
-                  </h3>
-                </div>
-                {selectedRarity === null ? null : (
-                  <span className="inventory-rarity-mark" data-rarity={selectedRarity}>
-                    {RARITY_VISUALS[selectedRarity].label}
-                  </span>
-                )}
-              </header>
-              {selectedItem === null ? (
-                <p className="inventory-inspector-hint">
-                  Pick a slot to read it here.
-                </p>
-              ) : (
-                <div className="inventory-inspector-body">
-                  <span className="inventory-inspector-icon" aria-hidden="true">
-                    {getInventoryItemIcon(selectedItem)}
-                  </span>
-                  <div className="inventory-inspector-copy">
-                    <p className="inventory-inspector-detail">
-                      {getInventoryItemDetail(selectedItem)}
-                    </p>
-                    <dl className="inventory-inspector-facts">
-                      <div>
-                        <dt>Quantity</dt>
-                        <dd>×{selectedItem.quantity}</dd>
-                      </div>
-                      <div>
-                        <dt>Source</dt>
-                        <dd>{selectedItem.source.type.replace('-', ' ')}</dd>
-                      </div>
-                      <div>
-                        <dt>Salvage</dt>
-                        <dd><EssenceAmount value={selectedEssence} /></dd>
-                      </div>
-                    </dl>
+            <section
+              className="app-panel inventory-rail"
+              aria-labelledby={selectedItem === null ? 'loot-box-title' : 'inventory-inspector-title'}
+            >
+              {/* The inspector is absent rather than empty when nothing is
+                  picked: a panel whose whole content is the words "Nothing
+                  picked" is a heading with no information under it. */}
+              {selectedItem === null ? null : (
+                <>
+                  <header className="app-panel-heading">
+                    <div>
+                      <p className="screen-kicker">Selected</p>
+                      <h3 id="inventory-inspector-title">{getInventoryItemName(selectedItem)}</h3>
+                    </div>
+                    {selectedRarity === null ? null : (
+                      <span className="inventory-rarity-mark" data-rarity={selectedRarity}>
+                        {RARITY_VISUALS[selectedRarity].label}
+                      </span>
+                    )}
+                  </header>
+                  <div className="inventory-inspector-body">
+                    <span className="inventory-inspector-icon" aria-hidden="true">
+                      {getRewardIcon(selectedItem.definitionId)}
+                    </span>
+                    <div className="inventory-inspector-copy">
+                      <p className="inventory-inspector-detail">
+                        {getInventoryItemDetail(selectedItem)}
+                      </p>
+                      <dl className="inventory-inspector-facts">
+                        <div>
+                          <dt>Quantity</dt>
+                          <dd>×{selectedItem.quantity}</dd>
+                        </div>
+                        <div>
+                          <dt>Source</dt>
+                          <dd>{selectedItem.source.type.replace('-', ' ')}</dd>
+                        </div>
+                        <div>
+                          <dt>Salvage</dt>
+                          <dd>
+                            <EssenceAmount
+                              value={selectedEssence ?? getInventoryItemEssence(selectedItem)}
+                            />
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                    {selectedIsFish ? (
+                      <button
+                        className="primary-action inventory-inspector-salvage"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => { setPendingSalvage(selectedItem) }}
+                      >
+                        {salvagingItemInstanceId === selectedItem.itemInstanceId
+                          ? 'Salvaging…'
+                          : 'Salvage'}
+                      </button>
+                    ) : null}
                   </div>
-                  {selectedIsFish ? (
-                    <button
-                      className="primary-action inventory-inspector-salvage"
-                      type="button"
-                      disabled={busy}
-                      onClick={() => { setPendingSalvage(selectedItem) }}
-                    >
-                      {salvagingItemInstanceId === selectedItem.itemInstanceId
-                        ? 'Salvaging…'
-                        : 'Salvage'}
-                    </button>
-                  ) : null}
-                </div>
+                </>
               )}
-              <section className="inventory-rewards" aria-labelledby="loot-box-title">
+              <section
+                className="inventory-rewards"
+                data-lead={selectedItem === null ? 'true' : undefined}
+                aria-labelledby="loot-box-title"
+              >
                 <header className="inventory-rewards-heading">
+                  {selectedItem === null ? <p className="screen-kicker">Rewards</p> : null}
                   <h4 id="loot-box-title">Unopened loot boxes</h4>
                   {boxes.length > 0 ? (
                     <span className="app-panel-meta">{countHeld(boxes)} waiting</span>
@@ -484,27 +426,20 @@ export function InventoryScreen({
                     No loot boxes. Complete Abyss floors to earn them.
                   </p>
                 ) : (
-                  <FittedList
-                    className="loot-box-list"
-                    items={boxStacks}
+                  <LootBoxShelf
+                    stacks={boxStacks}
                     label="Unopened loot boxes"
-                    getKey={(stack) => stack.definitionId}
-                    renderItem={(stack) => (
-                      <>
-                        <div>
-                          <strong>{stack.name}</strong>
-                          <span>×{stack.quantity}</span>
-                        </div>
-                        <button
-                          className="primary-action"
-                          type="button"
-                          onClick={() => { void openBox(stack.first) }}
-                          disabled={opening}
-                        >
-                          {opening ? 'Opening…' : 'Open one'}
-                        </button>
-                      </>
-                    )}
+                    opening={opening.isOpening}
+                    onOpen={(stack) => {
+                      if (stack.rarity === null) {
+                        return
+                      }
+                      void opening.openBox({
+                        boxInstanceId: stack.first.itemInstanceId,
+                        boxName: stack.name,
+                        rarity: stack.rarity,
+                      })
+                    }}
                   />
                 )}
               </section>
@@ -512,6 +447,7 @@ export function InventoryScreen({
           </div>
         )}
       </div>
+      <LootBoxOpening session={opening.session} onDismiss={opening.dismiss} />
       {pendingSalvage ? (
         <ConfirmationDialog
           title="Salvage fish?"

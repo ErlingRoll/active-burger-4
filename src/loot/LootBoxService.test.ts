@@ -31,13 +31,42 @@ describe('LootBoxService', () => {
     await expect(service.openBox('operation-1', 'box-1')).resolves.toMatchObject({
       boxInstanceId: 'box-1',
       boxRarity: 'rare',
-      definitionId: 'revival-koi',
+      items: [{ itemInstanceId: 'fish-1', definitionId: 'revival-koi', quantity: 1 }],
       wasProcessed: true,
     })
     expect(client.rpc).toHaveBeenCalledWith('open_loot_box', {
       p_operation_id: 'operation-1',
       p_box_instance_id: 'box-1',
     })
+  })
+
+  it('reads every row of a box that gave up more than one item', async () => {
+    const row = (itemInstanceId: string, definitionId: string) => ({
+      box_instance_id: 'box-1',
+      box_rarity: 'legendary',
+      item_instance_id: itemInstanceId,
+      definition_id: definitionId,
+      quantity: 1,
+      metadata: {},
+      was_processed: true,
+    })
+    const service = createLootBoxService({
+      supabaseUrl: 'https://example.supabase.co',
+      supabasePublishableKey: 'test-key',
+    }, () => fakeClient([
+      row('item-1', 'glow-grub'),
+      row('item-2', 'moonwater-lure'),
+      row('item-3', 'river-worm'),
+    ]))
+
+    const result = await service.openBox('operation-1', 'box-1')
+
+    expect(result.items.map((item) => item.definitionId)).toEqual([
+      'glow-grub',
+      'moonwater-lure',
+      'river-worm',
+    ])
+    expect(result.boxRarity).toBe('legendary')
   })
 
   it('rejects malformed opening results', async () => {

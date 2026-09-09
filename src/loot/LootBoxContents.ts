@@ -1,0 +1,106 @@
+import { RARITIES, Rarity } from '../content/rarity/Rarity'
+import type { LootBoxRarity } from './LootBoxes'
+
+/**
+ * What is inside a box, and how often.
+ *
+ * The roll itself happens on the server, in `open_loot_box`, because a client
+ * that decides its own loot decides its own economy. This table is the same
+ * one written out for the interface to read: it is what the hover card shows
+ * before a box is opened, and it is what a player checks a disappointing pull
+ * against. `LootBoxContents.test.ts` parses the migration and fails if the two
+ * ever stop agreeing, so this is a mirror rather than a second source.
+ *
+ * Weights are out of a thousand, matching the server's roll, and each entry's
+ * weight is the width of its own band rather than the running cutoff the SQL
+ * is written with.
+ */
+export interface LootBoxDropEntry {
+  readonly definitionId: string
+  /** Parts per thousand. The entries of one table sum to exactly 1000. */
+  readonly weight: number
+}
+
+export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootBoxDropEntry[]>> = {
+  [Rarity.Common]: [
+    { definitionId: 'river-minnow', weight: 550 },
+    { definitionId: 'revival-koi', weight: 200 },
+    { definitionId: 'river-worm', weight: 150 },
+    { definitionId: 'glow-grub', weight: 50 },
+    { definitionId: 'starter-fishing-rod', weight: 50 },
+  ],
+  [Rarity.Uncommon]: [
+    { definitionId: 'river-minnow', weight: 400 },
+    { definitionId: 'revival-koi', weight: 250 },
+    { definitionId: 'river-worm', weight: 200 },
+    { definitionId: 'glow-grub', weight: 100 },
+    { definitionId: 'starter-fishing-rod', weight: 50 },
+  ],
+  [Rarity.Rare]: [
+    { definitionId: 'river-minnow', weight: 250 },
+    { definitionId: 'revival-koi', weight: 250 },
+    { definitionId: 'river-worm', weight: 250 },
+    { definitionId: 'glow-grub', weight: 150 },
+    { definitionId: 'moonwater-lure', weight: 50 },
+    { definitionId: 'starter-fishing-rod', weight: 50 },
+  ],
+  [Rarity.Epic]: [
+    { definitionId: 'river-minnow', weight: 200 },
+    { definitionId: 'revival-koi', weight: 200 },
+    { definitionId: 'river-worm', weight: 250 },
+    { definitionId: 'glow-grub', weight: 200 },
+    { definitionId: 'moonwater-lure', weight: 100 },
+    { definitionId: 'starter-fishing-rod', weight: 50 },
+  ],
+  [Rarity.Legendary]: [
+    { definitionId: 'river-minnow', weight: 100 },
+    { definitionId: 'revival-koi', weight: 150 },
+    { definitionId: 'river-worm', weight: 200 },
+    { definitionId: 'glow-grub', weight: 250 },
+    { definitionId: 'moonwater-lure', weight: 200 },
+    { definitionId: 'starter-fishing-rod', weight: 100 },
+  ],
+}
+
+/**
+ * How many things a box of each rarity gives up.
+ *
+ * A box that always yielded exactly one item had nothing to build an opening
+ * around: there was no reason to watch it. The count rises with the rarity so
+ * that a legendary is worth the ceremony it gets.
+ */
+export const LOOT_BOX_ITEM_COUNTS: Readonly<Record<LootBoxRarity, number>> = {
+  [Rarity.Common]: 1,
+  [Rarity.Uncommon]: 1,
+  [Rarity.Rare]: 2,
+  [Rarity.Epic]: 3,
+  [Rarity.Legendary]: 4,
+}
+
+export const LOOT_BOX_ROLL_RANGE = 1000
+
+export function getLootBoxDropTable(rarity: LootBoxRarity): readonly LootBoxDropEntry[] {
+  return LOOT_BOX_DROP_TABLES[rarity]
+}
+
+export function getLootBoxItemCount(rarity: LootBoxRarity): number {
+  return LOOT_BOX_ITEM_COUNTS[rarity]
+}
+
+/** A drop's chance as a percentage, for display. */
+export function getLootBoxDropPercent(entry: LootBoxDropEntry): number {
+  return (entry.weight / LOOT_BOX_ROLL_RANGE) * 100
+}
+
+/**
+ * The table sorted for reading: the best odds first, so the hover card opens
+ * with what a player is most likely to actually get.
+ */
+export function getLootBoxDropTableForDisplay(
+  rarity: LootBoxRarity,
+): readonly LootBoxDropEntry[] {
+  return [...getLootBoxDropTable(rarity)].sort((left, right) => right.weight - left.weight)
+}
+
+/** Every rarity, weakest first. Used to lay the boxes out in a fixed order. */
+export const LOOT_BOX_RARITY_ORDER: readonly LootBoxRarity[] = RARITIES

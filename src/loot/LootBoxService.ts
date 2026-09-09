@@ -2,13 +2,27 @@ import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isLootBoxRarity, type LootBoxRarity } from './LootBoxes'
 
-export interface LootBoxOpeningResult {
-  boxInstanceId: string
-  boxRarity: LootBoxRarity
+/** One thing a box gave up. A box gives up as many of these as its rarity says. */
+export interface LootBoxOpeningItem {
   itemInstanceId: string
   definitionId: string
   quantity: number
   metadata: Record<string, unknown>
+}
+
+export interface LootBoxOpeningResult {
+  boxInstanceId: string
+  boxRarity: LootBoxRarity
+  /**
+   * Every item the box produced, in the order the server rolled them.
+   *
+   * The RPC returns one row per item, and returned exactly one row until boxes
+   * were allowed to hold more than one. Reading the rows as a list rather than
+   * asserting there is exactly one is what lets the interface work against
+   * both versions of the function, which matters because the migration that
+   * widens it ships separately from this code.
+   */
+  items: LootBoxOpeningItem[]
   wasProcessed: boolean
 }
 
@@ -69,19 +83,27 @@ export function createLootBoxService(
       if (response.error) {
         throw response.error
       }
-      if (!Array.isArray(response.data) || response.data.length !== 1 ||
-        !isOpeningRow(response.data[0])) {
+      if (!Array.isArray(response.data) || response.data.length === 0 ||
+        !response.data.every(isOpeningRow)) {
         throw new Error('Loot-box opening returned an invalid response.')
       }
-      const row = response.data[0]
+      const rows: LootBoxOpeningRow[] = response.data
+      const [first] = rows
+      if (first === undefined) {
+        throw new Error('Loot-box opening returned an invalid response.')
+      }
       return {
-        boxInstanceId: row.box_instance_id,
-        boxRarity: row.box_rarity,
-        itemInstanceId: row.item_instance_id,
-        definitionId: row.definition_id,
-        quantity: row.quantity,
-        metadata: row.metadata,
-        wasProcessed: row.was_processed,
+        boxInstanceId: first.box_instance_id,
+        boxRarity: first.box_rarity,
+        items: rows.map((row) => ({
+          itemInstanceId: row.item_instance_id,
+          definitionId: row.definition_id,
+          quantity: row.quantity,
+          metadata: row.metadata,
+        })),
+        // A replay reports itself as unprocessed, and every row of one opening
+        // carries the same answer, so the first row speaks for all of them.
+        wasProcessed: first.was_processed,
       }
     },
   }

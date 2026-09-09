@@ -1786,6 +1786,7 @@ function App() {
           <LazyFishingScreen
             fishingService={fishing.service}
             inventoryService={inventory.service}
+            lootBoxService={lootBoxes.service}
             configurationError={fishing.configurationError ?? inventory.configurationError}
             activityPlayerId={authentication.account.id}
             activityPlayerApprovedNickname={nickname.displayName}

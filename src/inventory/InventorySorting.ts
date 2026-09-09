@@ -1,4 +1,5 @@
 import { getInventoryItemRarityOrder } from './InventoryRarity'
+import { getInventoryItemEssence } from './InventoryValue'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import type { InventoryItemInstance } from './InventoryTypes'
 
@@ -10,17 +11,6 @@ export type InventoryItemComparator = (
 export interface InventorySortOptions {
   getEssence?: (item: InventoryItemInstance) => number | null
   precedingComparators?: readonly InventoryItemComparator[]
-}
-
-function getItemEssence(
-  item: InventoryItemInstance,
-  getEssence?: (item: InventoryItemInstance) => number | null,
-): number {
-  const calculatedEssence = getEssence?.(item)
-  if (calculatedEssence !== null && calculatedEssence !== undefined) {
-    return calculatedEssence
-  }
-  return getInventoryItemDefinition(item.definitionId)?.salvageEssence ?? 0
 }
 
 export function compareInventoryDefaults(
@@ -42,7 +32,7 @@ export function compareInventoryDefaults(
     return rarityComparison
   }
 
-  return getItemEssence(right, getEssence) - getItemEssence(left, getEssence)
+  return getInventoryItemEssence(right, getEssence) - getInventoryItemEssence(left, getEssence)
 }
 
 export function sortInventoryItems(
