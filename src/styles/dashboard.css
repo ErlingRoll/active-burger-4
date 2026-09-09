@@ -1528,6 +1528,9 @@
   box-shadow: 0 2rem 5rem rgb(0 0 0 / 52%), inset 0 1px rgb(254 243 199 / 7%);
 }
 
+/* The HUD's panels. They sit over the camp, and they are also the only part of
+   the HUD that takes a pointer: the columns between them are layout, and a
+   click that lands on one of those belongs to the floor underneath. */
 .hub-heading,
 .hub-status-panel,
 .hub-social-panel,
@@ -1537,6 +1540,7 @@
 .hub-presence-error {
   position: relative;
   z-index: 6;
+  pointer-events: auto;
 }
 
 .adventure-hub .screen-kicker {
@@ -2109,7 +2113,13 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  background:
+  /*
+   * The room itself, named because two boxes have to be able to paint it. On a
+   * desktop the scene is the camp and wears it directly; on a phone the camp is
+   * a band at the top of a scrolling screen and takes it there, or the horizon
+   * would be drawn across the middle of the dock.
+   */
+  --hub-room:
     /* Moonlight falling in from somewhere above the broken roof. */
     radial-gradient(ellipse 70% 42% at 50% -16%, rgb(var(--scene-moonlight-rgb) / 13%), transparent 72%),
     /* The fire's pool on the floor, the only warm thing at ground level. */
@@ -2128,10 +2138,25 @@
     /* Cold stone walls, black in the corners. */
     radial-gradient(ellipse 78% 66% at 50% 42%, rgb(23 31 45 / 90%), transparent 76%),
     linear-gradient(180deg, var(--scene-stone) 0%, var(--scene-night) 76%);
+  background: var(--hub-room);
+}
+
+/*
+ * The camp: the fire, the stones, the way down, and everyone standing around
+ * them, in one box that can be placed.
+ *
+ * Filling the scene is what it has always done and what a desktop still wants —
+ * the HUD keeps the corners of the same picture. It carries no `z-index` on
+ * purpose: a stacking context here would cut `.hub-firelight` off from the room
+ * behind it, and the fire would stop warming the floor it stands on.
+ */
+.hub-camp {
+  position: absolute;
+  inset: 0;
 }
 
 .adventure-hub-scene::before,
-.adventure-hub-scene::after {
+.hub-camp::after {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -2139,8 +2164,9 @@
   pointer-events: none;
 }
 
-/* Floorboards of light: the fire throwing long streaks across the stone. */
-.adventure-hub-scene::after {
+/* Floorboards of light: the fire throwing long streaks across the stone. Drawn
+   by the camp rather than by the scene, so they end where its floor does. */
+.hub-camp::after {
   inset: var(--scene-horizon) 0 0;
   opacity: 0.5;
   background:
@@ -2726,6 +2752,7 @@
   gap: clamp(0.4rem, 1.2vh, 1.5rem);
   justify-content: space-between;
   min-height: 0;
+  pointer-events: none;
 }
 
 .hub-hud-column {
@@ -2734,6 +2761,7 @@
   gap: clamp(0.18rem, 0.7vh, 1rem);
   justify-content: space-between;
   min-width: 0;
+  pointer-events: none;
 }
 
 /*
@@ -2770,6 +2798,7 @@
   gap: clamp(0.18rem, 0.7vh, 1rem);
   min-width: 0;
   width: min(100%, 20rem);
+  pointer-events: none;
 }
 
 .hub-left-dock > * {
@@ -2925,6 +2954,301 @@
   color: #c4aa92;
   font-size: 0.65rem;
   line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------------
+   The refuge on a phone.
+
+   A desktop reads the hub as one picture: the camp fills the screen and the HUD
+   keeps its corners. At 390 points wide there are no corners. The columns stack,
+   and stacked over the camp they bury it — before this block the phone's hub was
+   a column of buttons on a black field, with the fire, the stones and everyone
+   else at the camp stretched invisibly behind them.
+
+   So the phone splits the screen where the desktop layers it. The camp keeps the
+   top of the viewport and stays there while the dock below it scrolls, and the
+   dock is ordered by what a thumb reaches for: what you have, what you came to
+   do, where else you can go, who is here, and the rankings last.
+
+   Short counts as well as narrow, because the same phone on its side is 844 by
+   390: wide enough for the desktop rule and nowhere near tall enough for what it
+   draws, which ran the dock's panels through the fire and pushed the fire itself
+   off the bottom of the screen.
+   --------------------------------------------------------------------------- */
+@media (max-width: 47rem), (max-height: 34rem) {
+  .adventure-hub-scene {
+    gap: 0;
+    padding: 0;
+    /* The camp sticks to the screen's own scroll container, so the scene must
+       not quietly become one of its own. */
+    overflow: visible;
+    background: linear-gradient(180deg, var(--scene-night) 0%, #05070c 40%);
+  }
+
+  /*
+   * The window onto the camp: the same clearing through a letterbox.
+   *
+   * Above the dock rather than behind it, because the dock scrolls underneath.
+   * That does make a stacking context of it, which is exactly why the room's
+   * light moves in here too — `.hub-firelight` has to have something to warm.
+   */
+  .hub-camp {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    flex: 0 0 auto;
+    height: clamp(12.5rem, 35svh, 20rem);
+    inset-inline: 0;
+    overflow: hidden;
+    background: var(--hub-room);
+    border-bottom: 1px solid rgb(var(--accent-rgb) / 22%);
+    box-shadow: 0 0.9rem 1.8rem rgb(0 0 0 / 62%);
+  }
+
+  /*
+   * The props, brought down to the letterbox.
+   *
+   * Everything placed as a per-cent of the camp needs nothing at all — the
+   * horizon, the fire's pool and the floor a visitor may walk on are the same
+   * fractions of a smaller box. Only the props measured in rem have to be told,
+   * because a ten-rem standing stone in a twelve-rem clearing is a wall.
+   */
+  .hub-stone {
+    /* Composes with the tilt each stone already carries, about the same
+       bottom-centre origin, so a stone shrinks onto its own base. */
+    scale: 0.44;
+  }
+
+  .hub-descent {
+    width: 3.3rem;
+    height: 4.6rem;
+  }
+
+  .hub-descent-mist { height: 1.5rem; }
+
+  .hub-mist { height: 3rem; }
+
+  .hub-moon { width: 1.05rem; }
+
+  .hub-bonfire {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .hub-fire-glow {
+    width: 13rem;
+    height: 7.5rem;
+  }
+
+  .hub-firepit {
+    bottom: 0.45rem;
+    width: 3.3rem;
+    height: 1.15rem;
+    border-width: 0.24rem;
+  }
+
+  .hub-fire-log {
+    bottom: 0.95rem;
+    width: 2.8rem;
+    height: 0.3rem;
+  }
+
+  .hub-flame {
+    bottom: 0.95rem;
+    width: 1.3rem;
+    height: 2.7rem;
+  }
+
+  .hub-flame-left { margin-left: -1.3rem; height: 1.9rem; }
+  .hub-flame-center { margin-left: -0.65rem; }
+  .hub-flame-right { margin-left: 0.3rem; height: 2.1rem; }
+
+  /* The ember's travel is drawn in box shadows, so it comes down whole. */
+  .hub-fire-embers {
+    bottom: 1.9rem;
+    scale: 0.46;
+  }
+
+  /*
+   * The floor stops short of the camp's bottom edge.
+   *
+   * The clearing's near edge is a fraction of the scene, and a fraction of a
+   * letterbox is not many pixels: the front row stood close enough to the cut
+   * that its names were shaved off by it. An apron below the walkable floor is
+   * the room those names need, and because the walk reads this box rather than
+   * the camp, the floor a tap lands on is still the floor that is drawn.
+   */
+  .hub-visitors {
+    inset: 0 0 1rem;
+  }
+
+  .hub-visitor {
+    width: 2.8rem;
+    height: 3.2rem;
+    font-size: 0.53rem;
+  }
+
+  .hub-visitor strong { max-width: 4.5rem; }
+  .hub-visitor-glow { width: 2.3rem; height: 0.58rem; }
+
+  .hub-visitor-body {
+    bottom: 0.4rem;
+    width: 1.15rem;
+    height: 1.45rem;
+    border-radius: 0.58rem 0.58rem 0.2rem 0.2rem;
+  }
+
+  .hub-visitor-head {
+    bottom: 1.62rem;
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
+  .hub-visitor-signal {
+    max-width: 7rem;
+    font-size: 0.55rem;
+  }
+
+  /*
+   * The dock.
+   *
+   * The three columns are structure a phone has no room for, so they stop being
+   * boxes and hand their panels straight to the dock. That is what lets the
+   * order below be about reach rather than about which corner a panel came from.
+   */
+  .hub-hud {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.55rem;
+    padding: 0.8rem 0.9rem 1.6rem;
+  }
+
+  .hub-hud-column,
+  .hub-left-dock {
+    display: contents;
+  }
+
+  .hub-heading { order: 1; }
+  .hub-presence-error { order: 2; }
+  .hub-status-panel { order: 3; }
+  .hub-expedition-panel { order: 4; }
+  .hub-utility-stations { order: 5; }
+  .hub-social-panel { order: 6; }
+  .hub-leaderboard-panel { order: 7; }
+
+  .hub-heading {
+    max-width: none;
+  }
+
+  .hub-heading h2 {
+    max-width: none;
+    margin: 0.15rem 0 0;
+    font-size: 1.5rem;
+    line-height: 1.05;
+  }
+
+  /* The briefing is three lines saying what the camp above it now shows. */
+  .hub-heading > p:last-child {
+    display: none;
+  }
+
+  .hub-presence-error {
+    margin: 0;
+  }
+
+  /* Balance and store on one line: two rows for a number and a way to spend it
+     is a row more than a phone can spare. */
+  .hub-status-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    width: 100%;
+  }
+
+  .hub-essence-readout {
+    padding: 0.5rem 0.65rem;
+    border-right: 1px solid rgb(var(--accent-rgb) / 22%);
+  }
+
+  .hub-store-station {
+    align-content: center;
+    height: 100%;
+    border-top: 0;
+  }
+
+  .hub-expedition-panel,
+  .hub-leaderboard-panel,
+  .hub-social-panel {
+    width: 100%;
+  }
+
+  .hub-expedition-panel {
+    padding: 0.7rem 0.75rem 0.8rem;
+  }
+
+  /* Thumbs, not cursors. */
+  .hub-expedition-action,
+  .hub-abyss-action,
+  .hub-forfeit-action {
+    min-height: 2.9rem;
+  }
+
+  /*
+   * The rooms of the refuge, two by two. As four full-width bars they were a
+   * screenful on their own, and a bar tells a reader nothing a tile does not.
+   */
+  .hub-utility-stations {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .hub-station {
+    min-height: 3.5rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .hub-station::after {
+    right: 0.4rem;
+    font-size: 2.1rem;
+  }
+
+  .hub-station > span:first-child {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.85rem;
+  }
+
+  /* Who is at the fire, then what to say to them. */
+  .hub-social-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.55rem 0.7rem 0.7rem;
+  }
+
+  .hub-social-gathered {
+    display: flex;
+    gap: 0.45rem;
+    align-items: baseline;
+    padding: 0 0 0.45rem;
+    border-right: 0;
+    border-bottom: 1px solid rgb(var(--accent-rgb) / 20%);
+  }
+
+  .hub-social-panel .hub-signal-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hub-signal-option {
+    min-height: 2.5rem;
+  }
+}
+
+/* Turned on its side, a phone has half the height and none of it to spare, so
+   the camp takes a smaller share of it and lets the dock have the rest. */
+@media (max-height: 34rem) {
+  .hub-camp {
+    height: clamp(8rem, 42svh, 12.5rem);
+  }
 }
 
 /*

@@ -23,7 +23,11 @@ milestones in order unless an ADR documents an exception.
 - [ ] Configure the Netlify site's environment variables for preview and
   production contexts
 - [ ] Mobile and small-viewport support. Responsive rules were deliberately
-  removed; the application currently targets desktop browsers only.
+  removed; the application still targets desktop browsers everywhere except the
+  Adventure Hub, which has a phone layout of its own: the camp holds a band at
+  the top of the viewport while an ordered dock scrolls beneath it, and walking
+  is a tap as well as W, A, S and D. The run setup, the pond, the inventory, the
+  stores, the Codex and the in-run HUD are still to do.
 - [x] Repair the authenticated Playwright suite. It was written against the
   pre-redesign dashboard and could not run; `clearExistingRun` now waits for
   the Adventure Hub's own wording, and all 20 specs in

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, RefObject } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
 import { EssenceLeaderboard } from '../leaderboard/EssenceLeaderboard'
@@ -8,6 +8,7 @@ import { useToaster } from '../ui/ToasterContext'
 import {
   HUB_SIGNAL_IDS,
   clampToHubFloor,
+  hubPositionFromPoint,
   HUB_SCENE_HORIZON_PERCENT,
   HUB_VISITOR_BOUNDS,
   type HubPresenceService,
@@ -25,6 +26,23 @@ const HUB_MOVEMENT_SPEED = 22
 const HUB_POSITION_UPDATE_INTERVAL_MS = 100
 const HUB_POSITION_RETRY_DELAY_MS = 500
 const HUB_MOVEMENT_KEYS = new Set(['w', 'a', 's', 'd'])
+
+/**
+ * How close to a tapped spot counts as standing on it, in scene per-cent.
+ *
+ * Wider than a frame's travel at the walking speed, so arriving ends the walk
+ * instead of leaving the figure oscillating either side of the target.
+ */
+const HUB_ARRIVAL_DISTANCE = 0.75
+
+/**
+ * How far a finger may travel and still have meant a tap, in pixels.
+ *
+ * The camp is the top of a scrolling screen on a phone, so a swipe that begins
+ * on it is a swipe and not a destination. Walking on release, and only when the
+ * pointer stayed put, is what tells the two apart.
+ */
+const HUB_TAP_SLOP = 12
 
 type HubMovementKey = 'w' | 'a' | 's' | 'd'
 
@@ -181,6 +199,10 @@ export function AdventureHubScene({
   const pendingPositionRef = useRef<HubPosition>(playerPosition)
   const remoteMovementPositions = useRef(new Map<string, HubPosition>())
   const currentVisitorElementRef = useRef<HTMLLIElement | null>(null)
+  const floorElement = useRef<HTMLUListElement | null>(null)
+  const walkTarget = useRef<HubPosition | null>(null)
+  const pointerDownAt = useRef<{ x: number, y: number } | null>(null)
+  const startWalking = useRef<() => void>(() => {})
   const movementUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const movementUpdateInFlight = useRef(false)
   const movementUpdateGeneration = useRef(0)
@@ -323,6 +345,7 @@ export function AdventureHubScene({
     presenceAccountIdRef.current = accountId
     playerPositionRef.current = spawnPosition
     pendingPositionRef.current = spawnPosition
+    walkTarget.current = null
     remoteMovementPositions.current.clear()
     lastPositionUpdateAt.current = 0
     setPlayerPosition(spawnPosition)
@@ -453,25 +476,58 @@ export function AdventureHubScene({
     let animationFrame: number | null = null
     let previousFrameAt: number | null = null
 
+    /*
+     * Which way to walk this frame, as a unit vector and the travel left in it.
+     *
+     * Held keys and a tapped destination are the same walk from here down, which
+     * is what lets a phone reach the floor at all. A key wins while it is down:
+     * taking the walk off a tap is what a player pressing a key means by it.
+     */
+    const readHeading = (
+      position: HubPosition,
+    ): { x: number, y: number, remaining: number } | null => {
+      const horizontal = (pressedKeys.has('d') ? 1 : 0) - (pressedKeys.has('a') ? 1 : 0)
+      const vertical = (pressedKeys.has('s') ? 1 : 0) - (pressedKeys.has('w') ? 1 : 0)
+      if (horizontal !== 0 || vertical !== 0) {
+        walkTarget.current = null
+        const magnitude = Math.hypot(horizontal, vertical)
+        return {
+          x: horizontal / magnitude,
+          y: vertical / magnitude,
+          remaining: Number.POSITIVE_INFINITY,
+        }
+      }
+      const target = walkTarget.current
+      if (target === null) {
+        return null
+      }
+      const toX = target.x - position.x
+      const toY = target.y - position.y
+      const remaining = Math.hypot(toX, toY)
+      if (remaining < HUB_ARRIVAL_DISTANCE) {
+        walkTarget.current = null
+        return null
+      }
+      return { x: toX / remaining, y: toY / remaining, remaining }
+    }
+
     const move = (frameAt: number): void => {
       if (previousFrameAt === null) {
         previousFrameAt = frameAt
       }
       const elapsedSeconds = Math.min((frameAt - previousFrameAt) / 1_000, 0.1)
       previousFrameAt = frameAt
-      const horizontal = (pressedKeys.has('d') ? 1 : 0) - (pressedKeys.has('a') ? 1 : 0)
-      const vertical = (pressedKeys.has('s') ? 1 : 0) - (pressedKeys.has('w') ? 1 : 0)
-      if (horizontal === 0 && vertical === 0) {
+      const currentPosition = playerPositionRef.current
+      const heading = readHeading(currentPosition)
+      if (heading === null) {
         animationFrame = null
         previousFrameAt = null
         return
       }
-      const magnitude = Math.hypot(horizontal, vertical)
-      const distance = (HUB_MOVEMENT_SPEED * elapsedSeconds) / magnitude
-      const currentPosition = playerPositionRef.current
+      const distance = Math.min(HUB_MOVEMENT_SPEED * elapsedSeconds, heading.remaining)
       const nextPosition = clampToHubFloor({
-        x: currentPosition.x + horizontal * distance,
-        y: currentPosition.y + vertical * distance,
+        x: currentPosition.x + heading.x * distance,
+        y: currentPosition.y + heading.y * distance,
       })
       if (nextPosition.x !== currentPosition.x || nextPosition.y !== currentPosition.y) {
         playerPositionRef.current = nextPosition
@@ -490,6 +546,7 @@ export function AdventureHubScene({
         animationFrame = requestAnimationFrame(move)
       }
     }
+    startWalking.current = startMoving
 
     const onKeyDown = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase()
@@ -513,6 +570,7 @@ export function AdventureHubScene({
 
     const stopMoving = (): void => {
       pressedKeys.clear()
+      walkTarget.current = null
       if (animationFrame !== null) {
         cancelAnimationFrame(animationFrame)
         animationFrame = null
@@ -527,9 +585,40 @@ export function AdventureHubScene({
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', stopMoving)
+      startWalking.current = () => {}
       stopMoving()
     }
   }, [presenceService, queuePositionUpdate])
+
+  const rememberPointer = useCallback((event: ReactPointerEvent<HTMLDivElement>): void => {
+    pointerDownAt.current = event.button === 0
+      ? { x: event.clientX, y: event.clientY }
+      : null
+  }, [])
+
+  /*
+   * Walk to where the pointer was released.
+   *
+   * The spot is measured against the floor rather than against the camp around
+   * it. They are the same box on a desktop and they are not on a phone, where
+   * the floor stops short of the camp's bottom edge to leave the front row's
+   * names somewhere to be drawn; reading the floor's own box is what keeps the
+   * spot walked to under the finger that asked for it either way.
+   */
+  const walkToPointer = useCallback((event: ReactPointerEvent<HTMLDivElement>): void => {
+    const pressedAt = pointerDownAt.current
+    pointerDownAt.current = null
+    const floor = floorElement.current
+    if (!presenceService || floor === null || pressedAt === null) {
+      return
+    }
+    const travelled = Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y)
+    if (travelled > HUB_TAP_SLOP) {
+      return
+    }
+    walkTarget.current = hubPositionFromPoint(floor.getBoundingClientRect(), event)
+    startWalking.current()
+  }, [presenceService])
 
   // Declared with useCallback so the impure `Date.now()` below is understood as
   // event-handler work rather than render work.
@@ -587,61 +676,76 @@ export function AdventureHubScene({
           bonfire ended up burning inside the doorway. The stones open toward
           the viewer instead, and the way down is cut into the floor beside the
           fire rather than raised behind it.
-        */}
-        <div className="hub-sky" aria-hidden="true">
-          <span className="hub-stars" />
-          <span className="hub-moon" />
-        </div>
-        <div className="hub-stones" aria-hidden="true">
-          <span className="hub-stone hub-stone-a" />
-          <span className="hub-stone hub-stone-b" />
-          <span className="hub-stone hub-stone-c" />
-          <span className="hub-stone hub-stone-d" />
-          <span className="hub-stone hub-stone-e" />
-          <span className="hub-stone hub-stone-f" />
-          <span className="hub-stone hub-stone-g" />
-          <span className="hub-stone hub-stone-h" />
-        </div>
-        <div className="hub-descent" aria-hidden="true">
-          <span className="hub-descent-mouth" />
-          <span className="hub-descent-mist" />
-        </div>
-        <div className="hub-mist" aria-hidden="true" />
-        <div className="hub-bonfire" aria-hidden="true">
-          <span className="hub-fire-glow" />
-          <span className="hub-fire-embers" />
-          <span className="hub-flame hub-flame-left" />
-          <span className="hub-flame hub-flame-center" />
-          <span className="hub-flame hub-flame-right" />
-          <span className="hub-fire-log hub-fire-log-left" />
-          <span className="hub-fire-log hub-fire-log-right" />
-          <span className="hub-firepit" />
-        </div>
-        <div className="hub-wisps" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <ul className="hub-visitors" aria-label={`${visitors.length} adventurers at the hub. Use W, A, S, and D to move your adventurer.`}>
-          {visitors.map((visitor) => (
-            <HubVisitorFigure
-              key={visitor.playerId}
-              visitor={visitor}
-              total={visitors.length}
-              currentPlayerId={accountId}
-              signalId={activeSignals[visitor.playerId]}
-              elementRef={visitor.playerId === accountId ? currentVisitorElementRef : undefined}
-            />
-          ))}
-        </ul>
 
-        {/*
-          The light. Everything above is a prop with its own colour; these two
-          layers are what makes the scene one place — the fire adds its warmth
-          over whatever it reaches, and the night takes it back at the edges.
+          It is one box because a phone has to be able to put it somewhere. On a
+          desktop the camp is the whole scene with the HUD in its corners; on a
+          narrow screen the corners are gone, and the camp takes the top of the
+          screen with the dock scrolling below it instead of over it.
         */}
-        <div className="hub-firelight" aria-hidden="true" />
-        <div className="hub-nightfall" aria-hidden="true" />
+        <div
+          className="hub-camp"
+          onPointerDown={rememberPointer}
+          onPointerUp={walkToPointer}
+        >
+          <div className="hub-sky" aria-hidden="true">
+            <span className="hub-stars" />
+            <span className="hub-moon" />
+          </div>
+          <div className="hub-stones" aria-hidden="true">
+            <span className="hub-stone hub-stone-a" />
+            <span className="hub-stone hub-stone-b" />
+            <span className="hub-stone hub-stone-c" />
+            <span className="hub-stone hub-stone-d" />
+            <span className="hub-stone hub-stone-e" />
+            <span className="hub-stone hub-stone-f" />
+            <span className="hub-stone hub-stone-g" />
+            <span className="hub-stone hub-stone-h" />
+          </div>
+          <div className="hub-descent" aria-hidden="true">
+            <span className="hub-descent-mouth" />
+            <span className="hub-descent-mist" />
+          </div>
+          <div className="hub-mist" aria-hidden="true" />
+          <div className="hub-bonfire" aria-hidden="true">
+            <span className="hub-fire-glow" />
+            <span className="hub-fire-embers" />
+            <span className="hub-flame hub-flame-left" />
+            <span className="hub-flame hub-flame-center" />
+            <span className="hub-flame hub-flame-right" />
+            <span className="hub-fire-log hub-fire-log-left" />
+            <span className="hub-fire-log hub-fire-log-right" />
+            <span className="hub-firepit" />
+          </div>
+          <div className="hub-wisps" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <ul
+            className="hub-visitors"
+            ref={floorElement}
+            aria-label={`${visitors.length} adventurers at the hub. Tap the camp to walk there, or use W, A, S, and D.`}
+          >
+            {visitors.map((visitor) => (
+              <HubVisitorFigure
+                key={visitor.playerId}
+                visitor={visitor}
+                total={visitors.length}
+                currentPlayerId={accountId}
+                signalId={activeSignals[visitor.playerId]}
+                elementRef={visitor.playerId === accountId ? currentVisitorElementRef : undefined}
+              />
+            ))}
+          </ul>
+
+          {/*
+            The light. Everything above is a prop with its own colour; these two
+            layers are what makes the scene one place — the fire adds its warmth
+            over whatever it reaches, and the night takes it back at the edges.
+          */}
+          <div className="hub-firelight" aria-hidden="true" />
+          <div className="hub-nightfall" aria-hidden="true" />
+        </div>
 
         <div className="hub-hud">
           <div className="hub-hud-column hub-hud-column-start">

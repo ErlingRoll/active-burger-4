@@ -42,6 +42,28 @@ export function clampToHubFloor(position: HubPosition): HubPosition {
   }
 }
 
+/**
+ * Where a pointer landed on the camp, as a place on the floor.
+ *
+ * A phone has no W, A, S and D, so walking is a tap; the camp's props and
+ * figures are all placed as a percentage of the camp box, and a tap is read the
+ * same way so that the spot under the finger is the spot walked to. Clamped
+ * like everything else that reaches the floor, which is what turns a tap on the
+ * moon into a walk to the back of the clearing rather than into the sky.
+ */
+export function hubPositionFromPoint(
+  bounds: { left: number; top: number; width: number; height: number },
+  point: { clientX: number; clientY: number },
+): HubPosition {
+  if (bounds.width <= 0 || bounds.height <= 0) {
+    return clampToHubFloor({ x: 50, y: HUB_VISITOR_BOUNDS.maxY })
+  }
+  return clampToHubFloor({
+    x: ((point.clientX - bounds.left) / bounds.width) * 100,
+    y: ((point.clientY - bounds.top) / bounds.height) * 100,
+  })
+}
+
 export interface HubVisitorPresence {
   playerId: string
   position?: HubPosition

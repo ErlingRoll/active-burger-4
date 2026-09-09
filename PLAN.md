@@ -91,9 +91,19 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
 ### Viewport support
 
 The application targets modern desktop browsers. Responsive rules were
-deliberately removed from the stylesheets, which now carry nine media queries
-across roughly twelve thousand lines; a phone-sized viewport is not supported.
-Mobile support is tracked as unchecked work in
+deliberately removed from the stylesheets, and a phone-sized viewport is not
+generally supported.
+
+The Adventure Hub is the exception, and the pattern for the rest. At 47rem and
+under it stops layering the HUD over the camp and splits the screen instead: the
+camp keeps a band at the top of the viewport and stays there while a single
+ordered dock scrolls beneath it. Walking is a tap on the camp as well as W, A, S
+and D, so the shared clearing is reachable without a keyboard. See
+[src/hub/AdventureHubScene.tsx](src/hub/AdventureHubScene.tsx) and the phone
+block at the end of the hub section in
+[src/styles/dashboard.css](src/styles/dashboard.css).
+
+Mobile support for every other screen is tracked as unchecked work in
 [docs/IMPLEMENTATION_CHECKLIST.md](docs/IMPLEMENTATION_CHECKLIST.md) rather
 than claimed here.
 

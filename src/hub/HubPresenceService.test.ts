@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import {
   clampToHubFloor,
+  hubPositionFromPoint,
   createHubPresenceService,
   HUB_SCENE_HORIZON_PERCENT,
   HUB_VISITOR_BOUNDS,
@@ -318,5 +319,43 @@ describe('the hub floor', () => {
     const onTheFloor = { x: 50, y: 74 }
 
     expect(clampToHubFloor(onTheFloor)).toEqual(onTheFloor)
+  })
+})
+
+describe('walking to a tapped spot', () => {
+  // The floor as a phone draws it: a short band, offset down the page by the
+  // header and the camp above it.
+  const floor = { left: 20, top: 120, width: 360, height: 200 }
+
+  it('walks to the spot under the finger', () => {
+    expect(hubPositionFromPoint(floor, { clientX: 200, clientY: 270 })).toEqual({
+      x: 50,
+      y: 75,
+    })
+  })
+
+  it('walks to the near edge of the floor rather than into the sky', () => {
+    // A tap on the moon. The camp takes the pointer for the whole band, so a
+    // spot above the horizon has to become a spot on the ground.
+    expect(hubPositionFromPoint(floor, { clientX: 200, clientY: 130 })).toEqual({
+      x: 50,
+      y: HUB_VISITOR_BOUNDS.minY,
+    })
+  })
+
+  it('keeps a tap outside the floor inside the clearing', () => {
+    expect(hubPositionFromPoint(floor, { clientX: -400, clientY: 900 })).toEqual({
+      x: HUB_VISITOR_BOUNDS.minX,
+      y: HUB_VISITOR_BOUNDS.maxY,
+    })
+  })
+
+  it('stands still when the floor has not been laid out yet', () => {
+    const unmeasured = { left: 0, top: 0, width: 0, height: 0 }
+
+    expect(hubPositionFromPoint(unmeasured, { clientX: 10, clientY: 10 })).toEqual({
+      x: 50,
+      y: HUB_VISITOR_BOUNDS.maxY,
+    })
   })
 })
