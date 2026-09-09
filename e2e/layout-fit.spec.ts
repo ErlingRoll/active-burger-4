@@ -106,9 +106,25 @@ async function clearActiveRun(page: Page): Promise<void> {
   await forfeit.click()
   const confirmation = page.getByRole('dialog', { name: 'Forfeit dungeon run?' })
   await confirmation.getByRole('button', { name: 'Forfeit run' }).click()
-  await expect(
-    page.getByRole('button', { name: /Begin dungeon run|Start a dungeon run/i }),
-  ).toBeVisible({ timeout: 20_000 })
+
+  // Forfeiting a run that had already begun ends it through the results
+  // screen rather than dropping straight back to the refuge. Waiting only for
+  // the dungeon gate leaves the whole viewport failing on a screen it never
+  // reached, and reports it as a layout defect.
+  const returnToDashboard = page.getByRole('button', { name: /Return to Dashboard/i })
+  const dungeonGate = page.getByRole('button', {
+    name: /Begin dungeon run|Start a dungeon run/i,
+  })
+  await expect
+    .poll(
+      async () => (await returnToDashboard.count()) + (await dungeonGate.count()) > 0,
+      { timeout: 20_000 },
+    )
+    .toBe(true)
+  if (await returnToDashboard.count() > 0) {
+    await returnToDashboard.click()
+  }
+  await expect(dungeonGate).toBeVisible({ timeout: 20_000 })
 }
 
 /**
