@@ -358,10 +358,11 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   await expect(vitals).toContainText('HP')
   await expect(vitals).toContainText(/Lv \d+/)
 
-  // The run totals moved behind the toolbar, so the test opens the door the
-  // player opens rather than asserting they are always on screen.
-  await page.getByRole('button', { name: 'Run details', exact: true }).click()
+  // At this viewport the run totals are on the right-hand rail rather than
+  // behind the toolbar, so there is nothing to open. A phone-sized viewport
+  // gets the other HUD, and the layout-fit harness is what covers that one.
   const dungeonStats = page.locator('.dungeon-stats')
+  await expect(dungeonStats).toBeVisible()
   await expect(dungeonStats).toContainText('Dungeon stats')
   await expect(dungeonStats).toContainText('Floor')
   await expect(dungeonStats).toContainText('Essence')
@@ -377,14 +378,14 @@ test('runs the complete dashboard, gameplay, defeat, and return flow', async ({
   if (dungeonStatBoxes.some((box) => !box)) {
     throw new Error('Expected all dungeon stats to be visible')
   }
-  // Reading order, not one column. The old panel was pinned over the arena and
-  // had to be a single stack to stay out of the way; inside the sheet the list
-  // is free to use the width, so this only asks that the stats run downward.
+  // Reading order. On the rail the list is a single column and in the sheet it
+  // may use the width, so the requirement common to both is that stats run
+  // downward rather than that they sit in any particular arrangement.
   expect(dungeonStatBoxes[1]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[0]!.y)
   expect(dungeonStatBoxes[2]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[1]!.y)
   expect(dungeonStatBoxes[3]!.y).toBeGreaterThanOrEqual(dungeonStatBoxes[2]!.y)
-  await page.getByRole('button', { name: 'Close run details' }).click()
-  await expect(dungeonStats).toHaveCount(0)
+  // The rail is permanent at this size, so there is no door to close. What
+  // must still be absent is the pre-rework furniture the HUD no longer has.
   await expect(page.getByText('Dodge Lv.')).toHaveCount(0)
   await expect(page.getByText('Encounter timeline')).toHaveCount(0)
   await expect(page.getByText('Pickups')).toHaveCount(0)
@@ -504,9 +505,8 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
   expect(behaviorBox.x + behaviorBox.width)
     .toBeLessThanOrEqual((viewport?.width ?? 1280) + 1)
 
-  // The stat sheet is reference rather than status, so it lives behind the
-  // toolbar and the test opens it the way a player would.
-  await page.getByRole('button', { name: 'Stats details', exact: true }).click()
+  // At this viewport the stat sheet is on the left rail. A phone-sized one
+  // keeps it behind the toolbar; the layout-fit harness covers that HUD.
   await expect(page.locator('.character-stats')).toBeVisible()
   const statGroups = page.locator('.character-stat-group')
   await expect(statGroups).toHaveCount(2)
@@ -516,7 +516,6 @@ test('keeps the arena running after endless combat begins', async ({ page }) => 
     throw new Error('Expected offence and defence stat columns to be visible')
   }
   expect(defenceBox.x).toBeGreaterThanOrEqual(offenceBox.x)
-  await page.getByRole('button', { name: 'Close stats details' }).click()
 
   // The director's first budgeted spawn occurs after roughly one second.
   await page.waitForTimeout(1_200)
@@ -893,16 +892,15 @@ test('shows rarity-driven gear cards, deltas, and full comparisons', async ({
     await expect(upgradeCard).not.toContainText('Select to equip immediately')
   }
 
-  // The loadout is reference rather than status, so it opens from the toolbar.
-  await page.getByRole('button', { name: 'Loadout details', exact: true }).click()
+  // The loadout is on the left rail at this viewport, so it needs no opening.
   const loadout = page.getByRole('region', { name: 'Loadout' })
   await expect(loadout.locator('.loadout-item')).toHaveCount(6)
   const equippedItems = loadout.locator('.loadout-item:not(:has(.loadout-empty))')
   await expect(equippedItems).not.toHaveCount(0)
   await equippedItems.last().focus()
   await expect(loadout.locator('.loadout-tooltip')).toBeVisible()
-  // Left open, the sheet swallows the Escape the cleanup helper uses to pause.
-  await page.getByRole('button', { name: 'Close loadout details' }).click()
+  // Left focused, the tooltip swallows the Escape the cleanup helper uses.
+  await equippedItems.last().blur()
 })
 
 test('uses a custom skip key immediately', async ({ page }) => {

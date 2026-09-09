@@ -61,7 +61,8 @@ import { FloorHud, VitalsPanel } from './hud/StatusPanels'
 import { useHudTooltips } from './hud/useHudTooltips'
 import { SkillHud } from './hud/SkillHud'
 import { BehaviorControl } from './hud/BehaviorControl'
-import { HudInspector } from './hud/HudInspector'
+import { CharacterStatsPanel, LoadoutPanel } from './hud/EquippedLoadout'
+import { HudInspector, RunStatsPanel } from './hud/HudInspector'
 import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import { HudToolbar } from './hud/HudToolbar'
 import { TouchControls } from './hud/TouchControls'
@@ -857,6 +858,20 @@ export function GameplayHud({
         </div>
       </div>
       <div className="hud-middle">
+        {/*
+          The reference panels, where there is room for them.
+          
+          These are the same components the inspector renders, mounted a second
+          time rather than moved, so a wide screen reads its gear and stats
+          without opening anything and a phone still gets one arena and a
+          toolbar. The rails are `display: none` until the HUD is wide enough,
+          and the stylesheet hides the inspector and its three tab buttons at
+          the same width so the two copies can never both be on screen.
+        */}
+        <div className="hud-rail hud-rail-start">
+          <LoadoutPanel snapshot={snapshot} tooltips={tooltips} />
+          <CharacterStatsPanel snapshot={snapshot} tooltips={tooltips} />
+        </div>
         <div className="hud-region hud-region-center">
         {snapshot.boss ? (
           <section className="boss-hud hud-panel" aria-label="Boss status">
@@ -932,6 +947,9 @@ export function GameplayHud({
             </span>
           </section>
         ) : null}
+        </div>
+        <div className="hud-rail hud-rail-end">
+          <RunStatsPanel snapshot={snapshot} />
         </div>
         {inspectorTab === null ? null : (
           <HudInspector

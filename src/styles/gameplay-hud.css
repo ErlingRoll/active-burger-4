@@ -214,6 +214,17 @@
 }
 
 /*
+ * The rails are the wide-screen half of the HUD and are off by default.
+ *
+ * Mobile first, so the arena keeps the whole screen and the gear, the stat
+ * sheet and the run totals stay behind the inspector's door until the media
+ * query at the end of this file finds room for them.
+ */
+.hud-rail {
+  display: none;
+}
+
+/*
  * Banners hang from the top of the arena, where a boss bar belongs, and the
  * floor-change notice takes the space left over so it lands in the middle.
  */
@@ -809,4 +820,148 @@
 .upgrade-choice .choice-keybind-hint {
   right: 0.5rem;
   bottom: 0.4rem;
+}
+
+/*
+ * The desktop HUD.
+ *
+ * Everything above is the layout a phone gets: one arena, a toolbar, and the
+ * gear, stats and run totals behind the inspector's door. A screen with room
+ * does not need the door — the panels the door hides are exactly the ones a
+ * player wants to read without looking away — so above this width they come out
+ * and sit against the edges, and the door and its three buttons go away.
+ *
+ * A width query rather than an intrinsic rule, because this is genuinely two
+ * layouts rather than one layout adapting: no amount of wrapping or clamping
+ * turns a permanent quarter of the arena into a toolbar button.
+ *
+ * The height condition matters as much as the width. The left rail carries the
+ * loadout above the stat sheet, which together need more vertical room than a
+ * short window has, so 1024x640 and the short landscape sizes keep the phone
+ * HUD rather than stacking panels they cannot finish drawing.
+ */
+@media (min-width: 64rem) and (min-height: 44rem) {
+  .hud-rail {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: var(--hud-gap);
+    width: min(21rem, 26vw);
+    min-height: 0;
+  }
+
+  /* The run totals need a fraction of the room the left rail does. */
+  .hud-rail-end {
+    width: min(13rem, 17vw);
+  }
+
+  /*
+   * The stat sheet is the tall one, so on the rail it takes both columns and
+   * loses the padding it can afford in a sheet the player opened on purpose.
+   * The rows scale with `vh` rather than sitting at a fixed height: the panel
+   * has to finish inside a 720-tall window as well as a 1080-tall one, and a
+   * stat cut off at the bottom edge is the defect this replaced.
+   */
+  .hud-rail .character-stat-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-rail .character-stat-group {
+    padding: clamp(0.25rem, 0.8vh, 0.5rem);
+  }
+
+  .hud-rail .character-stat-list {
+    gap: clamp(0.1rem, 0.45vh, 0.3rem);
+  }
+
+  .hud-rail .character-stat-button {
+    min-height: 0;
+    gap: 0.4rem;
+    padding: clamp(0.12rem, 0.5vh, 0.32rem) 0.4rem;
+  }
+
+  .hud-rail .loadout-list {
+    gap: clamp(0.18rem, 0.7vh, 0.45rem);
+  }
+
+  .hud-rail .loadout-item {
+    min-width: 0;
+    padding: clamp(0.2rem, 0.75vh, 0.45rem) 0.5rem;
+  }
+
+  .hud-rail .dungeon-stats-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hud-rail > * {
+    pointer-events: auto;
+  }
+
+  /* Gear at the top, the stat sheet at the bottom, and the arena between. */
+  .hud-rail-start {
+    justify-content: space-between;
+  }
+
+  .hud-rail-end {
+    align-items: flex-end;
+  }
+
+  /* The floor clock takes the middle half of the bar, with the vitals and the
+     controls sharing what is left evenly on either side of it. */
+  .hud-region-top-center {
+    flex: 0 1 50%;
+  }
+
+  .hud-region-top-start,
+  .hud-region-top-end {
+    flex: 1 1 0;
+  }
+
+  .hud-region-top-end {
+    align-items: flex-start;
+  }
+
+  /* One copy only. The rails already show what these open. */
+  .hud-inspector,
+  .hud-toolbar-tab {
+    display: none;
+  }
+
+  /*
+   * The hotbar goes back to being cards rather than tiles.
+   *
+   * A square big enough for a thumb is the right target on a phone and a waste
+   * of a mouse: with room for the name and the damage estimate, the bar answers
+   * "what am I running and what is it worth" without a hover.
+   */
+  .hud-region-bottom-center .skill-card {
+    display: flex;
+    width: clamp(6.5rem, 9vw, 8.5rem);
+    height: auto;
+    min-height: clamp(4.2rem, 11vh, 5.4rem);
+    padding: 0.4rem 0.55rem;
+    place-items: stretch;
+  }
+
+  .hud-region-bottom-center .skill-card-name {
+    display: block;
+    font-size: clamp(0.7rem, 1.5vh, 0.84rem);
+  }
+
+  .hud-region-bottom-center .skill-card-dps {
+    display: flex;
+    font-size: clamp(0.62rem, 1.3vh, 0.72rem);
+  }
+
+  .hud-region-bottom-center .skill-card > .skill-icon {
+    font-size: clamp(0.95rem, 2vh, 1.2rem);
+  }
+
+  /* The level moves back into the flow beside the estimate, so it stops
+     sitting on top of the text the card now has room for. */
+  .hud-region-bottom-center .skill-card-level {
+    position: static;
+    margin-top: auto;
+    font-size: clamp(0.64rem, 1.4vh, 0.75rem);
+  }
 }

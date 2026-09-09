@@ -280,9 +280,24 @@ for (const viewport of VIEWPORTS) {
         await resolveChoices(page)
         await settle(page)
 
-        // The HUD in each of its states: the bars alone, and then each tab of
-        // the inspector, which is the panel most likely to outgrow a phone.
-        for (const state of ['playing', 'Loadout', 'Stats', 'Run'] as const) {
+        /*
+         * The HUD in each of its states.
+         *
+         * There are two HUDs. A viewport with room keeps the gear, the stat
+         * sheet and the run totals on rails beside the arena, and has no
+         * inspector to open; a smaller one puts them behind the toolbar, whose
+         * three tabs are then the panels most likely to outgrow a phone. Which
+         * one is on screen is decided by the stylesheet, so this asks the
+         * toolbar rather than re-deriving the breakpoint here.
+         */
+        const hasInspector = await page
+          .getByRole('button', { name: 'Loadout details' })
+          .isVisible()
+          .catch(() => false)
+        const states = hasInspector
+          ? (['playing', 'Loadout', 'Stats', 'Run'] as const)
+          : (['playing'] as const)
+        for (const state of states) {
           if (state !== 'playing') {
             await page.getByRole('button', { name: `${state} details` }).click()
               .catch(async () => {

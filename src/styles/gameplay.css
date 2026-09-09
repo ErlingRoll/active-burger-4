@@ -86,9 +86,19 @@
   z-index: 6;
 }
 
+/*
+ * The banner hangs from the top of the arena, sized by its width and never by
+ * its height.
+ *
+ * `flex-basis` was set to 22rem while these banners lived in a row. The HUD
+ * rework made their region a column, where the basis is the main axis and the
+ * main axis is now the height: the boss bar became a 22rem-tall box with a
+ * health bar at the top of it and nothing underneath. The width belongs in
+ * `width`, where the axis cannot change underneath it.
+ */
 .boss-hud {
-  flex: 0 1 22rem;
-  min-width: min(18rem, 100%);
+  flex: 0 0 auto;
+  width: min(22rem, 100%);
   padding: 0.65rem 0.8rem;
   color: var(--color-red-100);
   background: rgb(69 10 10 / 90%);
@@ -192,9 +202,10 @@
   color: var(--color-slate-50);
 }
 
+/* Same column, same correction. */
 .stairs-hud {
-  flex: 0 1 18rem;
-  min-width: min(16rem, 100%);
+  flex: 0 0 auto;
+  width: min(18rem, 100%);
   padding: 0.65rem 0.8rem;
   color: var(--color-cyan-100);
   background: rgb(8 47 73 / 92%);

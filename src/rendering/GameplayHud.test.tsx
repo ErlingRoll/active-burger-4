@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { renderComponent, screen } from '../testing/render'
+import { renderComponent, screen, within } from '../testing/render'
 import { GameplayHud } from './GameCanvas'
 import { createGame } from '../game/Game'
 import { DEFAULT_GAME_KEYBINDS } from '../input/Keybinds'
@@ -63,24 +63,42 @@ describe('GameplayHud', () => {
     expect(screen.getByRole('heading', { name: /skills/i })).toBeInTheDocument()
   })
 
-  it('keeps the loadout and the stat sheet out of the arena until they are asked for', () => {
+  /*
+   * The rails and the inspector are two mountings of the same panels, and the
+   * stylesheet decides which one a viewport gets: the rails above the desktop
+   * width, the inspector below it. jsdom applies no stylesheet, so these assert
+   * what is in the tree and which mounting each copy is in, and the layout-fit
+   * harness is what proves only one of them is ever on screen.
+   */
+  it('keeps the gear and the stat sheet on the arena rails', () => {
     renderHud(snapshotFromGame())
 
-    expect(screen.queryByRole('heading', { name: /loadout/i })).toBeNull()
-    expect(screen.queryByRole('heading', { name: /character stats/i })).toBeNull()
+    const rail = screen.getByRole('heading', { name: /loadout/i }).closest('.hud-rail')
+    expect(rail).not.toBeNull()
+    expect(screen.getByRole('heading', { name: /character stats/i })).toBeInTheDocument()
+    // The door is still there for the viewport that needs it.
     expect(screen.getByRole('button', { name: /loadout details/i })).toBeInTheDocument()
+  })
+
+  it('keeps the run totals on the arena rails too', () => {
+    renderHud(snapshotFromGame())
+
+    const rail = screen.getByRole('heading', { name: /dungeon stats/i }).closest('.hud-rail')
+    expect(rail).not.toBeNull()
   })
 
   it('shows the loadout in the inspector when its tab is open', () => {
     renderHud(snapshotFromGame(), 'gear')
 
-    expect(screen.getByRole('heading', { name: /loadout/i })).toBeInTheDocument()
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    expect(inspector.getByRole('heading', { name: /loadout/i })).toBeInTheDocument()
   })
 
   it('shows the character stats in the inspector when its tab is open', () => {
     renderHud(snapshotFromGame(), 'stats')
 
-    expect(screen.getByRole('heading', { name: /character stats/i })).toBeInTheDocument()
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    expect(inspector.getByRole('heading', { name: /character stats/i })).toBeInTheDocument()
   })
 
   it('asks to open a tab when its toolbar button is pressed', async () => {

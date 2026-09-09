@@ -35,7 +35,7 @@ export function HudToolbar({ activeTab, onToggleTab, onPause }: HudToolbarProps)
         const selected = activeTab === tab
         return (
           <button
-            className={`hud-toolbar-button${selected ? ' selected' : ''}`}
+            className={`hud-toolbar-button hud-toolbar-tab${selected ? ' selected' : ''}`}
             type="button"
             aria-pressed={selected}
             aria-label={`${HUD_INSPECTOR_TAB_LABELS[tab]} details`}
