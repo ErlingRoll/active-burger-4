@@ -43,7 +43,7 @@
   font-size: clamp(0.95rem, 2.1vh, 1.3rem);
 }
 
-.shop-line-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.shop-line-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }

@@ -9,6 +9,7 @@ import {
 import { EssenceAmount } from '../ui/EssenceMark'
 import { useFittedItemCount } from '../ui/useFittedItemCount'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { isEnchantedItemMetadata } from '../fishing/FishingContent'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
@@ -202,6 +203,7 @@ export function PaginatedInventoryGrid({
             <li
               className={`inventory-item-card category-${definition?.category ?? 'utility'}${isUnseen ? ' inventory-item-card-unseen' : ''}`}
               data-rarity={rarity ?? undefined}
+              data-enchanted={isEnchantedItemMetadata(item.metadata) ? 'true' : undefined}
               data-selected={selectedItemInstanceId === item.itemInstanceId ? 'true' : undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
@@ -263,6 +265,7 @@ export function PaginatedInventoryGrid({
           className={tooltipClassName('inventory-item-tooltip')}
           id={`inventory-item-tooltip-${tooltipItem.itemInstanceId}`}
           data-rarity={tooltipRarity ?? undefined}
+          data-enchanted={isEnchantedItemMetadata(tooltipItem.metadata) ? 'true' : undefined}
           role="tooltip"
           ref={itemTooltipRef}
           style={tooltipStyle}

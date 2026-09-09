@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { isRarity, type Rarity } from '../content/rarity/Rarity'
-import { getFishingEssenceValue } from '../fishing/FishingContent'
+import { getFishingEssenceValue, isEnchantedItemMetadata } from '../fishing/FishingContent'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { EssenceAmount } from '../ui/EssenceMark'
 import { LootBoxIcon } from './LootBoxIcon'
@@ -109,6 +109,7 @@ export function LootBoxOpening({ session, onDismiss }: LootBoxOpeningProps) {
                   <li
                     className="loot-box-reward"
                     data-rarity={rarity}
+                    data-enchanted={isEnchantedItemMetadata(item.metadata) ? 'true' : undefined}
                     key={item.itemInstanceId}
                     style={{ '--reveal-index': index } as CSSProperties}
                   >

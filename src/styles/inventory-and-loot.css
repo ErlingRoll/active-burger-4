@@ -287,7 +287,7 @@
   border-color: rgb(var(--accent-rgb) / 18%);
 }
 
-.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }
@@ -400,6 +400,55 @@
   border-radius: 0.32rem;
 }
 
+/*
+ * An enchantment is a property of the catch, not of its rarity, so it gets its
+ * own tell rather than a brighter ring: a slow diagonal glint that passes over
+ * the icon every few seconds, independent of whatever rarity colour is
+ * already doing the ring and the wash. Every slot this can appear on is a
+ * small fixed box, so the glint is clipped to it rather than to the card.
+ */
+.inventory-item-card[data-enchanted='true'] .inventory-item-icon,
+.inventory-item-tooltip[data-enchanted='true'] .inventory-item-tooltip-icon,
+.inventory-inspector-icon[data-enchanted='true'],
+.loot-box-reward[data-enchanted='true'] .loot-box-reward-icon {
+  position: relative;
+  overflow: hidden;
+}
+
+.inventory-item-card[data-enchanted='true'] .inventory-item-icon::before,
+.inventory-item-tooltip[data-enchanted='true'] .inventory-item-tooltip-icon::before,
+.inventory-inspector-icon[data-enchanted='true']::before,
+.loot-box-reward[data-enchanted='true'] .loot-box-reward-icon::before {
+  position: absolute;
+  z-index: 2;
+  inset: -15%;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 32%,
+    rgb(255 255 255 / 85%) 50%,
+    transparent 68%
+  );
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .inventory-item-card[data-enchanted='true'] .inventory-item-icon::before,
+  .inventory-item-tooltip[data-enchanted='true'] .inventory-item-tooltip-icon::before,
+  .inventory-inspector-icon[data-enchanted='true']::before,
+  .loot-box-reward[data-enchanted='true'] .loot-box-reward-icon::before {
+    animation: enchanted-item-shimmer 3.4s ease-in-out infinite;
+  }
+}
+
+@keyframes enchanted-item-shimmer {
+  0% { opacity: 0; transform: translateX(-130%); }
+  12% { opacity: 1; }
+  32% { opacity: 0; transform: translateX(130%); }
+  100% { opacity: 0; transform: translateX(130%); }
+}
+
 /* The rarity said in words, where a colour alone would be a guess. */
 .inventory-rarity-mark {
   color: var(--rarity, var(--text-muted));
@@ -476,7 +525,7 @@
   border-radius: 0.5rem;
 }
 
-.inventory-inspector-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.inventory-inspector-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 74%;
   height: 74%;
 }
@@ -960,7 +1009,7 @@
   font-size: clamp(1.1rem, 3vh, 1.7rem);
 }
 
-.loot-box-reward-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.loot-box-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }
@@ -1235,7 +1284,7 @@
   font-size: clamp(0.9rem, 2vh, 1.2rem);
 }
 
-.crafting-recipe-icon :is(.fish-icon, .bait-icon, .material-icon) {
+.crafting-recipe-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
   width: 100%;
   height: 100%;
 }

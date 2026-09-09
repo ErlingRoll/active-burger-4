@@ -586,6 +586,11 @@ export function formatFishingEnchantment(
     : null
 }
 
+/** Whether an item instance's metadata carries a real, known enchantment. */
+export function isEnchantedItemMetadata(metadata: Record<string, unknown>): boolean {
+  return getFishingEnchantmentDefinition(metadata.enchantmentId) !== undefined
+}
+
 export function formatFishingSalvageValue(
   definitionId: string,
   metadata: Record<string, unknown>,

@@ -22,6 +22,7 @@ import {
   FishIcon,
   getFishingEssenceValue,
   getFishDefinition,
+  isEnchantedItemMetadata,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
@@ -425,7 +426,11 @@ export function InventoryScreen({
                     )}
                   </header>
                   <div className="inventory-inspector-body">
-                    <span className="inventory-inspector-icon" aria-hidden="true">
+                    <span
+                      className="inventory-inspector-icon"
+                      data-enchanted={isEnchantedItemMetadata(selectedItem.metadata) ? 'true' : undefined}
+                      aria-hidden="true"
+                    >
                       {getRewardIcon(selectedItem.definitionId)}
                     </span>
                     <div className="inventory-inspector-copy">
