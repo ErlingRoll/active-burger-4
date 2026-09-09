@@ -11,7 +11,25 @@ import type { DamageResistanceValues } from '../stats/Damage'
 
 export type EnemyDefinitionId = string
 export type EnemyBehaviorKind = 'chase' | 'standoff' | 'split' | 'intercept'
-export type EnemyRenderShape = 'circle' | 'diamond' | 'triangle' | 'hexagon'
+/**
+ * The silhouette an enemy is drawn as.
+ *
+ * The first six are authored per enemy so the roster is told apart by shape
+ * rather than only by colour; the four primitives are kept for anything that
+ * has no identity of its own yet. Drawn by
+ * `src/rendering/pixi/enemySilhouettes.ts`.
+ */
+export type EnemyRenderShape =
+  | 'slime'
+  | 'dart'
+  | 'bulwark'
+  | 'bow'
+  | 'cluster'
+  | 'hook'
+  | 'circle'
+  | 'diamond'
+  | 'triangle'
+  | 'hexagon'
 
 export interface EnemyRenderDefinition {
   color: string

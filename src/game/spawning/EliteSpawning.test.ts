@@ -309,7 +309,8 @@ describe('elite enemy spawning and rewards', () => {
   })
 
   it('projects deterministic readable labels for normal and elite enemies', () => {
-    expect(getEnemyDisplayLabel('slime')).toBe('Slime')
+    // A plain enemy is told apart by its silhouette, so it carries no label.
+    expect(getEnemyDisplayLabel('slime')).toBe('')
     expect(getEnemyDisplayLabel('slime', 'hasted')).toBe('Slime · Hasted')
     expect(getEnemyDisplayLabel('brute', 'giant')).toBe('Brute · Giant')
     expect(getEnemyDisplayLabel('slime', 'flanking')).toBe('Slime · Flanking')

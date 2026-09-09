@@ -15,6 +15,7 @@ import { STATUS_EFFECT_ICON_GAP, STATUS_EFFECT_ICON_SIZE } from './constants'
 import type { StatusEffectBadge } from './renderState'
 import type { BossView, EnemyView, StairsView } from './views'
 import { applyEnemyRenderScale, createEliteAura } from './enemyRendering'
+import { drawEnemySilhouette } from './enemySilhouettes'
 import { getBossDisplayLabel, getEnemyDisplayLabel } from './labels'
 import { createPolygonPoints, createStarPoints } from './geometry'
 
@@ -36,22 +37,10 @@ export function createEnemyPlaceholder(enemy: {
   const definition = getEnemyDefinition(enemy.definitionId)
   const body = new Graphics()
   const radius = enemy.radius
-  if (definition.render.shape === 'diamond') {
-    body.poly([0, -radius, radius, 0, 0, radius, -radius, 0])
-  } else if (definition.render.shape === 'triangle') {
-    body.poly([0, -radius, radius, radius, -radius, radius])
-  } else if (definition.render.shape === 'hexagon') {
-    const points = Array.from({ length: 6 }, (_, index) => {
-      const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2
-      return [Math.cos(angle) * radius, Math.sin(angle) * radius]
-    }).flat()
-    body.poly(points)
-  } else {
-    body.circle(0, 0, radius)
-  }
-  body
-    .fill(definition.render.color)
-    .stroke({ color: definition.render.outlineColor, width: 2 })
+  drawEnemySilhouette(body, definition.render.shape, radius, {
+    fill: definition.render.color,
+    outline: definition.render.outlineColor,
+  })
   applyEnemyRenderScale(body, definition.render)
 
   const root = new Container()

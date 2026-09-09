@@ -33,7 +33,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#ef4444',
       outlineColor: '#fecaca',
       scale: 1,
-      shape: 'circle',
+      shape: 'slime',
     },
   },
   [RUNNER_DEFINITION_ID]: {
@@ -51,7 +51,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#f97316',
       outlineColor: '#fed7aa',
       scale: 1,
-      shape: 'triangle',
+      shape: 'dart',
     },
   },
   [BRUTE_DEFINITION_ID]: {
@@ -69,7 +69,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#7c3aed',
       outlineColor: '#ddd6fe',
       scale: 1.15,
-      shape: 'hexagon',
+      shape: 'bulwark',
     },
   },
   [ARCHER_DEFINITION_ID]: {
@@ -91,7 +91,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#06b6d4',
       outlineColor: '#a5f3fc',
       scale: 1,
-      shape: 'diamond',
+      shape: 'bow',
     },
   },
   [SPLITTER_DEFINITION_ID]: {
@@ -117,7 +117,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#84cc16',
       outlineColor: '#d9f99d',
       scale: 1.05,
-      shape: 'diamond',
+      shape: 'cluster',
     },
   },
   [FLANKER_DEFINITION_ID]: {
@@ -135,7 +135,7 @@ export const ENEMY_DEFINITIONS = {
       color: '#ec4899',
       outlineColor: '#fbcfe8',
       scale: 1,
-      shape: 'triangle',
+      shape: 'hook',
     },
   },
 } as const satisfies Record<EnemyDefinitionId, EnemyDefinition>

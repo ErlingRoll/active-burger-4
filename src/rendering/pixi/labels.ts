@@ -15,6 +15,16 @@ import { ENEMY_MELEE_ATTACK_ANIMATION_SECONDS } from './constants'
  * through the renderer.
  */
 
+/**
+ * The name drawn over an enemy, or nothing.
+ *
+ * A name over every enemy is a wall of text once a dozen of them are on
+ * screen: the labels collide with each other and with the player, and they
+ * say what the silhouette already says. Only an elite gets one, because an
+ * elite's modifiers change how it must be fought and no silhouette carries
+ * that. The name is still on the enemy's own definition for anything that
+ * needs to read it.
+ */
 export function getEnemyDisplayLabel(
   definitionId: string,
   eliteModifiers?: EliteModifierInput,
@@ -22,7 +32,7 @@ export function getEnemyDisplayLabel(
   const definition = getEnemyDefinition(definitionId)
   const modifierIds = normalizeEliteModifierIds(eliteModifiers)
   if (modifierIds.length === 0) {
-    return definition.name
+    return ''
   }
   return `${definition.name} · ${modifierIds.map(
     (modifierId) => getEliteModifierDefinition(modifierId).name,

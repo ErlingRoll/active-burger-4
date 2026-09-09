@@ -162,7 +162,18 @@ const VALID_UPGRADE_CATEGORIES = new Set(['passive', 'skill'])
 const VALID_SKILL_ACTIONS = new Set(['unlock', 'level'])
 const VALID_MODIFIER_OPERATIONS = new Set(['add', 'multiply'])
 const VALID_ENEMY_BEHAVIORS = new Set(['chase', 'standoff', 'split', 'intercept'])
+/*
+ * Kept in step with `EnemyRenderShape`: the six authored silhouettes first,
+ * then the primitives that anything without an identity of its own falls back
+ * to.
+ */
 const VALID_ENEMY_SHAPES = new Set([
+  'slime',
+  'dart',
+  'bulwark',
+  'bow',
+  'cluster',
+  'hook',
   'circle',
   'diamond',
   'triangle',

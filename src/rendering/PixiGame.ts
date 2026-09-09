@@ -65,6 +65,7 @@ import {
   type GroundCoverage,
   type WorldTheme,
 } from './pixi/worldTheme'
+import { drawGround, drawGroundDressing } from './pixi/groundDressing'
 import {
   getEnemyStatusEffects,
   getStatusEffectSignature,
@@ -156,6 +157,8 @@ export class PixiGame {
   private readonly stairsViews = new Map<EntityId, StairsView>()
   private groundView: Graphics | undefined
   private groundCoverage: GroundCoverage | undefined
+  /** The floor the ground was last drawn for; a new floor is a new room. */
+  private groundFloor: number | undefined
   private enemyLayer: Container | undefined
   private bossLayer: Container | undefined
   private skillObjectLayer: Container | undefined
@@ -310,6 +313,7 @@ export class PixiGame {
     const coverage = this.groundCoverage
     if (
       !force &&
+      this.groundFloor === (this.game.state.run.floor ?? 1) &&
       coverage &&
       visibleBounds.minX >= coverage.minX + GROUND_COVERAGE_PADDING / 2 &&
       visibleBounds.maxX <= coverage.maxX - GROUND_COVERAGE_PADDING / 2 &&
@@ -326,30 +330,13 @@ export class PixiGame {
       maxY: visibleBounds.maxY + GROUND_COVERAGE_PADDING,
     }
     const theme = this.worldTheme
-    const width = nextCoverage.maxX - nextCoverage.minX
-    const height = nextCoverage.maxY - nextCoverage.minY
+    const floor = this.game.state.run.floor ?? 1
     ground.clear()
-    ground
-      .rect(nextCoverage.minX, nextCoverage.minY, width, height)
-      .fill(theme.ground)
-
-    const gridSize = 100
-    const startX = Math.floor(nextCoverage.minX / gridSize) * gridSize
-    const startY = Math.floor(nextCoverage.minY / gridSize) * gridSize
-    for (let x = startX; x <= nextCoverage.maxX; x += gridSize) {
-      ground
-        .moveTo(x, nextCoverage.minY)
-        .lineTo(x, nextCoverage.maxY)
-        .stroke({ color: theme.grid, width: 1, alpha: 0.8 })
-    }
-    for (let y = startY; y <= nextCoverage.maxY; y += gridSize) {
-      ground
-        .moveTo(nextCoverage.minX, y)
-        .lineTo(nextCoverage.maxX, y)
-        .stroke({ color: theme.grid, width: 1, alpha: 0.8 })
-    }
+    drawGround(ground, theme, nextCoverage, floor)
+    drawGroundDressing(ground, theme, nextCoverage, floor)
 
     this.groundCoverage = nextCoverage
+    this.groundFloor = floor
   }
 
   private createArenaBoundary(): Graphics {
