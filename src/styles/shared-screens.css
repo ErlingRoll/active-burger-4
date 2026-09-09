@@ -352,6 +352,10 @@
 /* The combat log keeps its crimson edge: that is the defeat talking, not the
    screen's accent. */
 .death-combat-log {
+  /* A flex item that scrolls may shrink to nothing, and the entry list below
+     scrolls. Without this the whole panel collapses to its heading whenever
+     the report is tight for room. */
+  flex-shrink: 0;
   margin: 1.5rem 0;
   padding: 1rem;
   background: rgb(0 0 0 / 38%);
@@ -369,11 +373,19 @@
   font-size: 1.15rem;
 }
 
+/* The entries are the one part of the report with no length of their own: a
+   long fight writes hundreds of lines, and left to run they bury the Essence
+   receipt and the way back to the refuge under them. They get a window and
+   scroll inside it. The window is on the list rather than on the panel so the
+   heading stays put while they scroll. */
 .death-combat-log ol {
   display: grid;
   gap: 0.4rem;
+  max-height: clamp(12rem, 42vh, 30rem);
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 
