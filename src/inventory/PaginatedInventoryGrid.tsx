@@ -7,6 +7,7 @@ import {
   tooltipClassName,
 } from '../rendering/TooltipShell'
 import { EssenceAmount } from '../ui/EssenceMark'
+import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
@@ -183,16 +184,25 @@ export function PaginatedInventoryGrid({
   const pageItems = sortedItems.slice(firstItemIndex, firstItemIndex + pageSize)
   const activeItem = pageItems.find((item) => item.itemInstanceId === activeItemInstanceId) ?? null
   const tooltipItem = showTooltip ? activeItem : null
+  const tooltipRarity = tooltipItem === null ? null : getInventoryItemRarity(tooltipItem)
+  const tooltipEssence = tooltipItem === null ? null : getItemEssence?.(tooltipItem) ?? null
 
+  /*
+   * The closer closes the tooltip, and only the tooltip.
+   *
+   * It used to clear the pick as well, and `showItemTooltip` calls
+   * `closeAllTooltips` before opening its own — so moving the pointer from the
+   * picked slot to its neighbour ran the closer and emptied the inspector. A
+   * pick is made by clicking and is undone by clicking again; passing over a
+   * slot on the way to somewhere else is not a decision about it.
+   */
   useEffect(() => registerTooltipCloser(() => {
-    if (!activeItem) {
+    if (activeItemInstanceId === null) {
       return false
     }
     setActiveItemInstanceId(null)
-    setSelectedItemInstanceId(null)
-    onSelect?.(null)
     return true
-  }), [activeItem, onSelect])
+  }), [activeItemInstanceId])
 
   useLayoutEffect(() => {
     const anchor = itemTooltipAnchorRef.current
@@ -238,15 +248,12 @@ export function PaginatedInventoryGrid({
   }
 
   const selectItem = (itemInstanceId: string): void => {
-    closeAllTooltips()
     if (selectedItemInstanceId === itemInstanceId) {
       setSelectedItemInstanceId(null)
-      setActiveItemInstanceId(null)
       onSelect?.(null)
       return
     }
     setSelectedItemInstanceId(itemInstanceId)
-    setActiveItemInstanceId(itemInstanceId)
     onSelect?.(pageItems.find((item) => item.itemInstanceId === itemInstanceId) ?? null)
   }
 
@@ -280,17 +287,9 @@ export function PaginatedInventoryGrid({
               aria-label={`${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}`}
               aria-describedby={isActive ? tooltipId : undefined}
               onFocus={() => showItemTooltip(item.itemInstanceId)}
-              onBlur={() => {
-                if (selectedItemInstanceId !== item.itemInstanceId) {
-                  closeItemTooltip()
-                }
-              }}
+              onBlur={closeItemTooltip}
               onMouseEnter={() => showItemTooltip(item.itemInstanceId)}
-              onMouseLeave={() => {
-                if (selectedItemInstanceId !== item.itemInstanceId) {
-                  closeItemTooltip()
-                }
-              }}
+              onMouseLeave={closeItemTooltip}
               onClick={() => selectItem(item.itemInstanceId)}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') {
@@ -341,21 +340,26 @@ export function PaginatedInventoryGrid({
         <div
           className={tooltipClassName('inventory-item-tooltip')}
           id={`inventory-item-tooltip-${tooltipItem.itemInstanceId}`}
+          data-rarity={tooltipRarity ?? undefined}
           role="tooltip"
           ref={itemTooltipRef}
           style={tooltipStyle}
         >
-          {getItemEssence ? (
-            (() => {
-              const essence = getItemEssence(tooltipItem)
-              return essence === null ? null : (
-                <span className="inventory-item-tooltip-essence">
-                  <EssenceAmount value={essence} />
+          <header className="inventory-item-tooltip-heading">
+            <span className="inventory-item-tooltip-icon" aria-hidden="true">
+              {getItemIcon(tooltipItem)}
+            </span>
+            <div>
+              <strong>
+                {getInventoryItemDefinition(tooltipItem.definitionId)?.name ?? tooltipItem.definitionId}
+              </strong>
+              {tooltipRarity === null ? null : (
+                <span className="inventory-rarity-mark" data-rarity={tooltipRarity}>
+                  {RARITY_VISUALS[tooltipRarity].label}
                 </span>
-              )
-            })()
-          ) : null}
-          <strong>{getInventoryItemDefinition(tooltipItem.definitionId)?.name ?? tooltipItem.definitionId}</strong>
+              )}
+            </div>
+          </header>
           <p>{getItemDetail(tooltipItem)}</p>
           <dl>
             <div>
@@ -366,6 +370,12 @@ export function PaginatedInventoryGrid({
               <dt>Source</dt>
               <dd>{tooltipItem.source.type.replace('-', ' ')}</dd>
             </div>
+            {tooltipEssence === null ? null : (
+              <div>
+                <dt>Salvage</dt>
+                <dd><EssenceAmount value={tooltipEssence} /></dd>
+              </div>
+            )}
           </dl>
           {selectedItemInstanceId === tooltipItem.itemInstanceId &&
           onSalvage &&

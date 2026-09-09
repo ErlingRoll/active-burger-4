@@ -1,3 +1,5 @@
+import type { Rarity } from '../content/rarity/Rarity'
+
 export type InventoryItemCategory =
   | 'fish'
   | 'bait'
@@ -27,6 +29,15 @@ export interface InventoryItemDefinition {
   name: string
   flavorText: string | null
   category: InventoryItemCategory
+  /**
+   * The rarity every instance of this item has.
+   *
+   * Set where the worth of a thing is a property of the thing rather than of
+   * the roll that produced it: one River Worm is exactly as good as any other,
+   * where one Moon Carp is not. Items whose rarity varies per instance carry
+   * it in their metadata instead and leave this unset.
+   */
+  rarity?: Rarity
   stackable: boolean
   maxStackSize: number
   tradeable: boolean

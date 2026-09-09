@@ -15,7 +15,9 @@
     linear-gradient(145deg, #04050d 0%, #0a0d1f 48%, #11132b 100%);
 }
 
-.fish-icon {
+/* Item art, drawn rather than typeset: fish and bait both. */
+.fish-icon,
+.bait-icon {
   display: block;
   width: 1em;
   height: 1em;
@@ -1748,43 +1750,52 @@
 .inventory-item-tooltip {
   position: fixed;
   z-index: 30;
-  width: min(16rem, calc(100vw - 1.5rem));
+  width: min(17rem, calc(100vw - 1.5rem));
   padding: 0.8rem;
+  border-color: color-mix(in srgb, var(--rarity, var(--color-slate-400)) 52%, transparent);
+}
+
+/*
+ * The hover card says what the inspector says.
+ *
+ * It used to be a name, a line of detail and a corner badge, which meant the
+ * rail and the card disagreed about how much they knew. They carry the same
+ * facts now — mark, name, rarity, detail, count, source and worth — and differ
+ * only in that the card has no Salvage button: spending an item is a decision
+ * that should survive the pointer moving.
+ */
+.inventory-item-tooltip-heading {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.inventory-item-tooltip-heading > div {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.inventory-item-tooltip-icon {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  font-size: 1.1rem;
+  background: rgb(0 0 0 / 42%);
+  border: 1px solid color-mix(in srgb, var(--rarity, var(--color-slate-400)) 46%, transparent);
+  border-radius: 0.45rem;
+}
+
+.inventory-item-tooltip-icon :is(.fish-icon, .bait-icon) {
+  width: 78%;
+  height: 78%;
 }
 
 .inventory-item-tooltip strong {
   display: block;
-  padding-right: 4.5rem;
   color: var(--color-stone-50);
-}
-
-.inventory-item-tooltip-essence {
-  position: absolute;
-  top: 0.55rem;
-  right: 0.65rem;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  padding: 0.22rem 0.45rem 0.2rem;
-  /* Essence keeps its own colour wherever it is shown: a currency is not part
-     of the room it happens to be read in. */
-  color: var(--essence);
-  background: linear-gradient(135deg, rgb(var(--essence-bright-rgb) / 24%), rgb(var(--essence-rgb) / 34%));
-  border: 1px solid rgb(var(--essence-bright-rgb) / 52%);
-  border-radius: 999px;
-  box-shadow: 0 0 0.8rem rgb(var(--essence-rgb) / 22%), inset 0 1px rgb(255 255 255 / 12%);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.inventory-item-tooltip-essence strong {
-  padding-right: 0;
-  color: var(--essence-contrast);
-  font-size: 0.85rem;
-  letter-spacing: 0;
 }
 
 .inventory-item-tooltip p {
@@ -1796,7 +1807,7 @@
 
 .inventory-item-tooltip dl {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(4.5rem, 100%), 1fr));
   gap: 0.45rem;
   margin: 0.7rem 0 0;
 }

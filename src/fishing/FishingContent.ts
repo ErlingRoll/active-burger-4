@@ -1,4 +1,5 @@
 import { Rarity, type Rarity as RarityValue } from '../content/rarity/Rarity'
+import type { BaitIconId } from './BaitIcon'
 import type { InventoryItemDefinitionId } from '../inventory/InventoryTypes'
 import type { FishIconId } from './FishIcon'
 import { lastElement } from '../shared'
@@ -35,6 +36,8 @@ export interface FishingBaitDefinition {
   rarityBonusPercent: number
   sizeBonusPercent: number
   lootBoxChancePercent: number
+  /** How the bait is drawn. Its rarity lives on the inventory definition. */
+  visual: { icon: BaitIconId, accent: string }
 }
 
 export const FISHING_BAITS = {
@@ -47,6 +50,7 @@ export const FISHING_BAITS = {
     rarityBonusPercent: 0,
     sizeBonusPercent: 0,
     lootBoxChancePercent: 0,
+    visual: { icon: 'dough-ball', accent: '#a8a29e' },
   },
   'river-worm': {
     id: 'river-worm',
@@ -57,6 +61,7 @@ export const FISHING_BAITS = {
     rarityBonusPercent: 10,
     sizeBonusPercent: 0,
     lootBoxChancePercent: 0,
+    visual: { icon: 'worm', accent: '#fda4af' },
   },
   'glow-grub': {
     id: 'glow-grub',
@@ -67,6 +72,7 @@ export const FISHING_BAITS = {
     rarityBonusPercent: 18,
     sizeBonusPercent: 5,
     lootBoxChancePercent: 1,
+    visual: { icon: 'grub', accent: '#86efac' },
   },
   'moonwater-lure': {
     id: 'moonwater-lure',
@@ -77,6 +83,7 @@ export const FISHING_BAITS = {
     rarityBonusPercent: 26,
     sizeBonusPercent: 10,
     lootBoxChancePercent: 2,
+    visual: { icon: 'lure', accent: '#c4b5fd' },
   },
 } as const satisfies Record<string, FishingBaitDefinition>
 

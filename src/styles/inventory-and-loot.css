@@ -219,7 +219,7 @@
   border-color: rgb(var(--accent-rgb) / 18%);
 }
 
-.inventory-screen .inventory-item-icon .fish-icon {
+.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon) {
   width: 100%;
   height: 100%;
 }
@@ -408,7 +408,7 @@
   border-radius: 0.5rem;
 }
 
-.inventory-inspector-icon .fish-icon {
+.inventory-inspector-icon :is(.fish-icon, .bait-icon) {
   width: 74%;
   height: 74%;
 }
@@ -892,7 +892,7 @@
   font-size: clamp(1.1rem, 3vh, 1.7rem);
 }
 
-.loot-box-reward-icon .fish-icon {
+.loot-box-reward-icon :is(.fish-icon, .bait-icon) {
   width: 100%;
   height: 100%;
 }

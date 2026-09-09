@@ -1,5 +1,6 @@
 import { RARITY_ORDER, isRarity } from '../content/rarity/Rarity'
 import type { Rarity } from '../content/rarity/Rarity'
+import { getInventoryItemDefinition } from './ItemDefinitions'
 import type { InventoryItemInstance } from './InventoryTypes'
 
 /**
@@ -15,6 +16,13 @@ import type { InventoryItemInstance } from './InventoryTypes'
 export function getInventoryItemRarity(item: InventoryItemInstance): Rarity | null {
   if (isRarity(item.metadata.rarity)) {
     return item.metadata.rarity
+  }
+  // A declared rarity beats a guessed one. Bait is the case that needs it:
+  // every worm is the same worm, so the rarity belongs to the definition and
+  // there is nothing in the instance to read it from.
+  const declared = getInventoryItemDefinition(item.definitionId)?.rarity
+  if (declared !== undefined) {
+    return declared
   }
   const definitionSuffix = item.definitionId.split('-').pop()
   return isRarity(definitionSuffix) ? definitionSuffix : null

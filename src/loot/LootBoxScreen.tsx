@@ -341,7 +341,6 @@ export function InventoryScreen({
                     getItemDetail={getInventoryItemDetail}
                     getItemEssence={getItemEssence}
                     onSelect={setSelectedItem}
-                    showTooltip={false}
                     salvagingItemInstanceId={salvagingItemInstanceId}
                   />
                 </>

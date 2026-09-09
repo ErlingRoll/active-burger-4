@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
+import { BaitIcon } from '../fishing/BaitIcon'
 import { FishIcon } from '../fishing/FishIcon'
-import { getFishDefinition } from '../fishing/FishingContent'
+import { getFishDefinition, getFishingBaitDefinition } from '../fishing/FishingContent'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { LootBoxIcon } from './LootBoxIcon'
 import { isLootBoxRarity } from './LootBoxes'
@@ -17,6 +18,11 @@ export function getRewardIcon(definitionId: string): ReactNode {
   const fish = getFishDefinition(definitionId)
   if (fish) {
     return <FishIcon icon={fish.visual.icon} color={fish.visual.accent} />
+  }
+
+  const bait = getFishingBaitDefinition(definitionId)
+  if (bait) {
+    return <BaitIcon icon={bait.visual.icon} color={bait.visual.accent} />
   }
 
   const definition = getInventoryItemDefinition(definitionId)
