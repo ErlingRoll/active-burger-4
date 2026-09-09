@@ -517,8 +517,8 @@
   min-height: 0;
 }
 
-/* Cards spread across the panel before they page, so a wide screen shows more
-   of the store rather than a single tall column with a pager under it. */
+/* Cards spread across the panel rather than stacking into one tall column, so
+   a wide screen shows more of the store per screenful of scrolling. */
 .meta-shop-unlocks .dashboard-choice-list {
   grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
   grid-auto-rows: min-content;

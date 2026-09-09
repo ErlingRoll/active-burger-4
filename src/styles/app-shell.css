@@ -27,6 +27,7 @@
  */
 .app-shell-document > .wiki-screen,
 .app-shell-document > .app-screen,
+.app-shell-document > .meta-progression-screen,
 .app-shell-document > .admin-reports-screen {
   min-height: 0;
   overflow-y: auto;

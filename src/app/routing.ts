@@ -40,15 +40,17 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
 /**
  * The screens that are documents rather than screens.
  *
- * Everything else fits the viewport and never scrolls. These four hold more
- * than a viewport by nature — the codex is a reference manual, the roster
- * grows with every victory, and the moderation dashboards list whatever
- * players have sent in — and shrinking that to fit made them unreadable, so
- * they scroll instead. `app-shell-document` is what grants it.
+ * Everything else fits the viewport and never scrolls. These hold more than a
+ * viewport by nature — the codex is a reference manual, the roster grows with
+ * every victory, the store's upgrade list grows with every upgrade added, and
+ * the moderation dashboards list whatever players have sent in — and shrinking
+ * that to fit made them unreadable, so they scroll instead.
+ * `app-shell-document` is what grants it.
  */
 export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'wiki',
   'champions',
+  'meta-progression',
   'admin',
   'nickname-moderation',
 ])
