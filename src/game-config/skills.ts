@@ -89,7 +89,8 @@ export const RIFT_JAVELIN_BARBED_DURATION_SECONDS = 3
 export const RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO = 0.35
 export const RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT = 40
 
-export const CINDER_MINE_FUSE_SECONDS = 1.1
+export const CINDER_MINE_FUSE_SECONDS = 1.5
+export const CINDER_MINE_AUTO_DETONATE_SECONDS = 10
 export const CINDER_MINE_BURNING_DURATION_SECONDS = 3
 export const CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO = 0.4
 export const CINDER_MINE_INFERNO_RADIUS_BONUS = 30
@@ -732,7 +733,7 @@ export const SKILL_DEFINITIONS = {
   [CINDER_MINE_SKILL_ID]: {
     id: CINDER_MINE_SKILL_ID,
     name: 'Cinder Mine',
-    description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then deals Fire damage in its blast and leaves every enemy caught in it Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds. Burning deals Fire damage over time.`,
+    description: `Drops a fire trap that arms for ${CINDER_MINE_FUSE_SECONDS} seconds, then deals Fire damage in its blast and leaves every enemy caught in it Burning for ${CINDER_MINE_BURNING_DURATION_SECONDS} seconds. Burning deals Fire damage over time. Detonates on its own after ${CINDER_MINE_AUTO_DETONATE_SECONDS} seconds if nothing triggers it.`,
     kind: 'area',
     tags: ['fire', 'area', 'dot', 'triggerable'],
     canProduceDirectHit: true,

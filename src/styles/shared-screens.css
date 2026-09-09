@@ -1,9 +1,9 @@
 /* Shared dashboard, authentication, result, and persistence surfaces. */
-/* Like `.app-screen`, these claim the space the shell gives them and no more,
-   so the panel they centre shrinks to fit rather than being clipped by the
-   frame at both ends. */
+/* Like `.app-screen`, the dashboard and the gateway claim the space the shell
+   gives them and no more, so the panel they centre shrinks to fit rather than
+   being clipped by the frame at both ends. The run report is the exception
+   below. */
 .dashboard,
-.results-screen,
 .auth-gateway {
   display: grid;
   height: 100%;
@@ -14,6 +14,22 @@
   background:
     radial-gradient(circle at top, rgb(30 64 175 / 22%), transparent 60%),
     var(--color-slate-900);
+}
+
+/* The run report is reference material - a full skill breakdown and the last
+   ten seconds of the combat log - so it reads as a document and scrolls,
+   rather than being shrunk or clipped to one viewport. */
+.results-screen {
+  display: grid;
+  height: 100%;
+  overflow-y: auto;
+  align-content: start;
+  justify-items: center;
+  padding: clamp(0.6rem, 2.4vh, 4rem) clamp(0.9rem, 5vw, 4rem);
+  background:
+    radial-gradient(circle at top, rgb(30 64 175 / 22%), transparent 60%),
+    var(--color-slate-900);
+  background-attachment: fixed;
 }
 
 .victory-screen {
@@ -43,6 +59,10 @@
   border: 1px solid var(--color-slate-700);
   border-radius: 1rem;
   box-shadow: 0 1.5rem 4rem rgb(2 6 23 / 35%);
+}
+
+.results-panel {
+  max-height: none;
 }
 
 .screen-kicker {
@@ -349,10 +369,8 @@
 .death-combat-log ol {
   display: grid;
   gap: 0.4rem;
-  max-height: 18rem;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
 }
 

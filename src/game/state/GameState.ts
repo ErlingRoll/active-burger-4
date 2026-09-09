@@ -846,6 +846,7 @@ export interface TrapState {
   y: number
   radius: number
   fuseRemaining: number
+  autoDetonateRemaining: number
   damage: DamageValues
   criticalStrike?: CriticalStrikeStats
   burningApplication?: BurningApplication

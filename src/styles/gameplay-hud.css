@@ -1017,12 +1017,39 @@
     bottom: var(--hud-pad);
   }
 
+  /*
+   * The banners centre on the frame for the same reason, and it is the same
+   * fix.
+   *
+   * In the flow they are a flex child between a 21rem left rail and a 13rem
+   * right one, so centring them centred them in what was left over: the boss
+   * bar and the stairs notice hung a rail's difference to the right of the
+   * floor clock they read as being attached to. Out of the flow they share
+   * their midline with the clock above and the hotbar below.
+   *
+   * Both banners are capped at 22rem and the region itself takes no pointer
+   * events, so spanning the band costs the rails underneath it nothing.
+   */
+  .hud-region-center {
+    position: absolute;
+    inset: 0;
+  }
+
   /* Gear at the top, the stat sheet at the bottom, and the arena between. */
   .hud-rail-start {
     justify-content: space-between;
   }
 
+  /*
+   * The run totals hold the right-hand edge on their own.
+   *
+   * They used to be pushed there by the banner region growing between the two
+   * rails; with that region out of the flow the band packed both rails against
+   * the left margin and the totals ended up beside the gear. An auto margin is
+   * the same edge without the dependency.
+   */
   .hud-rail-end {
+    margin-inline-start: auto;
     align-items: flex-end;
   }
 

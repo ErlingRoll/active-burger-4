@@ -71,6 +71,7 @@ import {
   RIFT_JAVELIN_BARBED_PHYSICAL_CHAOS_RATIO,
   RIFT_JAVELIN_HOMEWARD_DAMAGE_INCREASE_PERCENT,
   CINDER_MINE_FUSE_SECONDS,
+  CINDER_MINE_AUTO_DETONATE_SECONDS,
   CINDER_MINE_BURNING_DURATION_SECONDS,
   CINDER_MINE_BURNING_FIRE_DAMAGE_RATIO,
   CINDER_MINE_INFERNO_RADIUS_BONUS,
@@ -1457,6 +1458,7 @@ function placeCinderMineIfReady(
     y: state.player.y,
     radius,
     fuseRemaining: CINDER_MINE_FUSE_SECONDS,
+    autoDetonateRemaining: CINDER_MINE_AUTO_DETONATE_SECONDS,
     damage: mineDamage,
     criticalStrike: outgoingDamage.criticalStrike,
     burningApplication,
@@ -1470,6 +1472,7 @@ function placeCinderMineIfReady(
       y: state.player.y,
       radius,
       fuseRemaining: CINDER_MINE_FUSE_SECONDS,
+      autoDetonateRemaining: CINDER_MINE_AUTO_DETONATE_SECONDS,
       damage: mineDamage,
       criticalStrike: outgoingDamage.criticalStrike,
       burningApplication,
@@ -1499,11 +1502,13 @@ export function updateCinderMineTraps(
   const remaining: TrapState[] = []
   for (const trap of [...(state.traps ?? [])].sort((left, right) => left.id - right.id)) {
     trap.fuseRemaining = Math.max(0, trap.fuseRemaining - fixedStepSeconds)
+    trap.autoDetonateRemaining = Math.max(0, trap.autoDetonateRemaining - fixedStepSeconds)
+    const timedOut = trap.autoDetonateRemaining <= 0
     const affected = [...state.enemies, ...(state.bosses ?? [])]
       .filter((enemy) => enemy.hp > 0)
       .filter((enemy) => Math.hypot(enemy.x - trap.x, enemy.y - trap.y) <= trap.radius + enemy.radius)
       .sort((left, right) => left.id - right.id)
-    if (trap.fuseRemaining > 0 || affected.length === 0) {
+    if (trap.fuseRemaining > 0 || (affected.length === 0 && !timedOut)) {
       remaining.push(trap)
       continue
     }
@@ -1518,7 +1523,7 @@ export function updateCinderMineTraps(
         ...(trap.burningApplication ? { burningApplication: trap.burningApplication } : {}),
       })
     }
-    if (affected.length > 0) {
+    if (affected.length > 0 || timedOut) {
       const definition = getSkillDefinition(trap.skillId)
       addEffect(
         state,
