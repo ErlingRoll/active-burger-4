@@ -334,7 +334,7 @@ export function InventoryScreen({
                     ) : null}
                   </div>
                   <PaginatedInventoryGrid
-                    fitToContainer
+                    flow
                     items={visibleItems}
                     label="Owned items"
                     getItemIcon={(item) => getRewardIcon(item.definitionId)}

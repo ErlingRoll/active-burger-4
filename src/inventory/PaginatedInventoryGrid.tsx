@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode, RefObject } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   closeAllTooltips,
@@ -14,112 +14,14 @@ import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryIte
 import { sortInventoryItems, type InventoryItemComparator } from './InventorySorting'
 import type { InventoryItemInstance } from './InventoryTypes'
 
-export const INVENTORY_GRID_COLUMNS = 12
-export const INVENTORY_GRID_ROWS = 10
-export const INVENTORY_PAGE_SIZE = INVENTORY_GRID_COLUMNS * INVENTORY_GRID_ROWS
-
-interface GridShape {
-  readonly columns: number
-  readonly rows: number
-}
-
-const FIXED_GRID_SHAPE: GridShape = {
-  columns: INVENTORY_GRID_COLUMNS,
-  rows: INVENTORY_GRID_ROWS,
-}
-
-/** The floor below which a slot stops being a legible target, in pixels. */
-const FALLBACK_MINIMUM_CELL = 34
-
 /**
- * The fewest rows a fitted bag draws, however little is in it.
+ * The page a bounded drawer draws, where the screen around it may not scroll.
  *
- * A bag with three fish in it should still look like a bag rather than a
- * single shelf, and a bag with nothing in it still has to say that it is a
- * place things go.
+ * Only the pond's drawer pages now. The stores screen is a document and shows
+ * the whole bag; see the `flow` prop below.
  */
-const MINIMUM_FITTED_ROWS = 3
-
-/**
- * The page that fits, rather than a fixed hundred and twenty slots.
- *
- * The bag rendered a 12x10 page whatever the screen was, so a short viewport
- * got rows of empty slots below the fold and the screen turned into a
- * document. When the caller has bounded the grid's height, this measures the
- * box the grid was actually given and reports the whole rows and columns that
- * fit inside it.
- *
- * Measuring the grid itself is only safe because that height comes from the
- * panel rather than from the slots: the page size cannot feed back into the
- * box being measured, so there is no resize loop.
- */
-function useFittedGridShape(
-  gridRef: RefObject<HTMLUListElement | null>,
-  enabled: boolean,
-  itemCount: number,
-): GridShape {
-  const [shape, setShape] = useState<GridShape>(FIXED_GRID_SHAPE)
-
-  useLayoutEffect(() => {
-    const grid = gridRef.current
-    if (!enabled || grid === null) {
-      return
-    }
-
-    const measure = (): void => {
-      const style = window.getComputedStyle(grid)
-      const columnGap = Number.parseFloat(style.columnGap)
-      const rowGap = Number.parseFloat(style.rowGap)
-      const minimumCell = Number.parseFloat(
-        style.getPropertyValue('--inventory-cell-min'),
-      )
-      const horizontalGap = Number.isFinite(columnGap) ? columnGap : 0
-      const verticalGap = Number.isFinite(rowGap) ? rowGap : horizontalGap
-      const smallestCell = Number.isFinite(minimumCell) && minimumCell > 0
-        ? minimumCell
-        : FALLBACK_MINIMUM_CELL
-      const { clientWidth: width, clientHeight: height } = grid
-      if (width <= 0 || height <= 0) {
-        return
-      }
-
-      const columns = Math.max(
-        1,
-        Math.min(
-          INVENTORY_GRID_COLUMNS,
-          Math.floor((width + horizontalGap) / (smallestCell + horizontalGap)),
-        ),
-      )
-      // Rows are measured against the cell the columns actually produced, not
-      // against the minimum, so the last row is not half a slot short.
-      const cell = (width - horizontalGap * (columns - 1)) / columns
-      const rowsThatFit = Math.max(
-        1,
-        Math.floor((height + verticalGap) / (cell + verticalGap)),
-      )
-      // The rows that fit are a ceiling, not a quota. Filling a tall panel with
-      // empty slots whatever is in the bag turned seventeen fish into a
-      // hundred-slot cabinet that read as broken rather than as roomy.
-      const rows = Math.min(
-        rowsThatFit,
-        Math.max(MINIMUM_FITTED_ROWS, Math.ceil(itemCount / columns)),
-      )
-
-      setShape((current) => (
-        current.columns === columns && current.rows === rows
-          ? current
-          : { columns, rows }
-      ))
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(grid)
-    return () => { observer.disconnect() }
-  }, [gridRef, enabled, itemCount])
-
-  return enabled ? shape : FIXED_GRID_SHAPE
-}
+const DRAWER_GRID_COLUMNS = 12
+const DRAWER_PAGE_SIZE = DRAWER_GRID_COLUMNS * 10
 
 interface PaginatedInventoryGridProps {
   items: readonly InventoryItemInstance[]
@@ -144,11 +46,16 @@ interface PaginatedInventoryGridProps {
    */
   showTooltip?: boolean
   /**
-   * Opt in to sizing the page from the grid's own box. Only safe where the
-   * caller has given the grid a bounded height; a grid that is free to grow
-   * would size its page from its own content.
+   * Show the whole bag at a readable size and let the screen scroll.
+   *
+   * For the document screens, which are allowed to be longer than a viewport.
+   * Paging one of those is the worst of both: the bag was measured down to a
+   * single row of forty-two pixel slots and split across nine pages, on a
+   * desktop with four hundred pixels of empty screen underneath it. Columns
+   * come from the stylesheet here rather than from a measurement, so there is
+   * no pager, no filler slots, and nothing that can latch to its own minimum.
    */
-  fitToContainer?: boolean
+  flow?: boolean
 }
 
 export function PaginatedInventoryGrid({
@@ -162,7 +69,7 @@ export function PaginatedInventoryGrid({
   salvagingItemInstanceId = null,
   onSelect,
   showTooltip = true,
-  fitToContainer = false,
+  flow = false,
 }: PaginatedInventoryGridProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [activeItemInstanceId, setActiveItemInstanceId] = useState<string | null>(null)
@@ -170,14 +77,12 @@ export function PaginatedInventoryGrid({
   const [tooltipStyle, setTooltipStyle] = useState<CSSProperties>({})
   const itemTooltipAnchorRef = useRef<HTMLLIElement>(null)
   const itemTooltipRef = useRef<HTMLDivElement>(null)
-  const gridRef = useRef<HTMLUListElement>(null)
-  const gridShape = useFittedGridShape(gridRef, fitToContainer, items.length)
-  const pageSize = gridShape.columns * gridShape.rows
   const seenItemInstanceIds = useSeenInventoryItemIds()
   const sortedItems = sortInventoryItems(items, {
     getEssence: getItemEssence,
     precedingComparators: precedingSortComparators,
   })
+  const pageSize = flow ? Math.max(1, sortedItems.length) : DRAWER_PAGE_SIZE
   const pageCount = Math.max(1, Math.ceil(sortedItems.length / pageSize))
   const currentPageIndex = Math.min(pageIndex, pageCount - 1)
   const firstItemIndex = currentPageIndex * pageSize
@@ -260,12 +165,11 @@ export function PaginatedInventoryGrid({
   return (
     <div className="inventory-paged-grid">
       <ul
-        className="inventory-item-grid"
+        className={flow ? 'inventory-item-grid inventory-item-grid-flow' : 'inventory-item-grid'}
         aria-label={label}
-        ref={gridRef}
-        style={{ '--inventory-columns': gridShape.columns } as CSSProperties}
+        style={flow ? undefined : { '--inventory-columns': DRAWER_GRID_COLUMNS } as CSSProperties}
       >
-        {Array.from({ length: pageSize }, (_, index) => {
+        {Array.from({ length: flow ? pageItems.length : pageSize }, (_, index) => {
           const item = pageItems[index]
           if (!item) {
             return <li className="inventory-item-card inventory-item-card-empty" key={index} aria-hidden="true" />
