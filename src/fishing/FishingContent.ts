@@ -3,6 +3,7 @@ import type { BaitIconId } from './BaitIcon'
 import type { InventoryItemDefinitionId } from '../inventory/InventoryTypes'
 import type { FishIconId } from './FishIcon'
 import { lastElement } from '../shared'
+import type { RandomSource } from '../shared/RandomSource'
 
 export type FishingMode = 'auto' | 'manual'
 
@@ -94,10 +95,55 @@ export type FishingRodModifierId =
   | 'loot-box'
   | 'enchantment'
 
+/** A rod modifier's magnitude tier. Tier 1 is the strongest roll, tier 5 the weakest. */
+export type FishingRodModifierTier = 1 | 2 | 3 | 4 | 5
+
+export const FISHING_ROD_MODIFIER_TIERS = [
+  1,
+  2,
+  3,
+  4,
+  5,
+] as const satisfies readonly FishingRodModifierTier[]
+
+interface FishingRodModifierTierRange {
+  min: number
+  max: number
+}
+
+function defineFishingRodModifierTiers(
+  tier1: FishingRodModifierTierRange,
+  tier2: FishingRodModifierTierRange,
+  tier3: FishingRodModifierTierRange,
+  tier4: FishingRodModifierTierRange,
+  tier5: FishingRodModifierTierRange,
+): Record<FishingRodModifierTier, FishingRodModifierTierRange> {
+  return {
+    1: tier1,
+    2: tier2,
+    3: tier3,
+    4: tier4,
+    5: tier5,
+  }
+}
+
+/** Speed, Treasure Sense and Enchanter roll in whole percentage points, one per tier. */
+const FISHING_ROD_SINGLE_POINT_TIERS = defineFishingRodModifierTiers(
+  { min: 5, max: 5 },
+  { min: 4, max: 4 },
+  { min: 3, max: 3 },
+  { min: 2, max: 2 },
+  { min: 1, max: 1 },
+)
+
 export interface FishingRodModifierDefinition {
   id: FishingRodModifierId
   label: string
   description: string
+  /** The percent value a roll of this modifier lands in, by tier. */
+  tiers: Record<FishingRodModifierTier, FishingRodModifierTierRange>
+  /** Where a rolled value for this modifier is read back from rod metadata. */
+  metadataField: string
 }
 
 export const FISHING_ROD_MODIFIERS = {
@@ -105,26 +151,48 @@ export const FISHING_ROD_MODIFIERS = {
     id: 'rarity',
     label: 'Fortune',
     description: 'Improves the chance of higher-rarity fish.',
+    tiers: defineFishingRodModifierTiers(
+      { min: 13, max: 15 },
+      { min: 10, max: 12 },
+      { min: 7, max: 9 },
+      { min: 4, max: 6 },
+      { min: 1, max: 3 },
+    ),
+    metadataField: 'rarityBonusPercent',
   },
   speed: {
     id: 'speed',
     label: 'Quick Line',
     description: 'Reduces the time before the float can be resolved.',
+    tiers: FISHING_ROD_SINGLE_POINT_TIERS,
+    metadataField: 'speedPercent',
   },
   'bait-retention': {
     id: 'bait-retention',
     label: 'Bait Keeper',
     description: 'Can preserve non-unlimited bait after a catch.',
+    tiers: defineFishingRodModifierTiers(
+      { min: 42, max: 50 },
+      { min: 33, max: 41 },
+      { min: 24, max: 32 },
+      { min: 15, max: 23 },
+      { min: 6, max: 14 },
+    ),
+    metadataField: 'baitRetentionPercent',
   },
   'loot-box': {
     id: 'loot-box',
     label: 'Treasure Sense',
     description: 'Improves the chance of finding a fishing loot box.',
+    tiers: FISHING_ROD_SINGLE_POINT_TIERS,
+    metadataField: 'lootBoxChancePercent',
   },
   enchantment: {
     id: 'enchantment',
     label: 'Enchanter',
     description: 'Improves the chance of an enchanted catch.',
+    tiers: FISHING_ROD_SINGLE_POINT_TIERS,
+    metadataField: 'enchantmentChancePercent',
   },
 } as const satisfies Record<FishingRodModifierId, FishingRodModifierDefinition>
 
@@ -157,13 +225,62 @@ function isFishingRodModifierId(value: unknown): value is FishingRodModifierId {
     Object.prototype.hasOwnProperty.call(FISHING_ROD_MODIFIERS, value)
 }
 
+/**
+ * One rolled modifier on a rod instance: which kind, which tier it landed in,
+ * and the value drawn from that tier's range. Mirrors how gear modifiers roll
+ * a random tier and a random value inside it, rather than a single value
+ * fixed by rarity.
+ */
+export interface FishingRodModifierRoll {
+  id: FishingRodModifierId
+  tier: FishingRodModifierTier
+  value: number
+}
+
+function rollFishingRodModifierTier(rng: RandomSource): FishingRodModifierTier {
+  return FISHING_ROD_MODIFIER_TIERS[
+    rng.int(0, FISHING_ROD_MODIFIER_TIERS.length - 1)
+  ] as FishingRodModifierTier
+}
+
+/**
+ * Rolls the modifiers for a freshly-created rod of the given rarity: as many
+ * unique modifiers as the rarity grants, each at an independent random tier
+ * and an independent random value inside that tier.
+ */
+export function rollFishingRodModifiers(
+  rarity: RarityValue,
+  rng: RandomSource,
+): FishingRodModifierRoll[] {
+  const count = FISHING_ROD_MODIFIER_COUNT_BY_RARITY[rarity]
+  const pool = Object.keys(FISHING_ROD_MODIFIERS) as FishingRodModifierId[]
+  const rolled: FishingRodModifierRoll[] = []
+  while (rolled.length < count && pool.length > 0) {
+    const id = pool.splice(rng.int(0, pool.length - 1), 1)[0] as FishingRodModifierId
+    const tier = rollFishingRodModifierTier(rng)
+    const range = FISHING_ROD_MODIFIERS[id].tiers[tier]
+    rolled.push({ id, tier, value: rng.int(range.min, range.max) })
+  }
+  return rolled
+}
+
 export function formatFishingRodModifiers(metadata: Record<string, unknown>): string {
   if (!Array.isArray(metadata.modifierIds)) {
     return 'No modifiers'
   }
+  const tiers = typeof metadata.modifierTiers === 'object' && metadata.modifierTiers !== null
+    ? metadata.modifierTiers as Record<string, unknown>
+    : {}
   const labels = metadata.modifierIds
     .filter(isFishingRodModifierId)
-    .map((modifierId) => FISHING_ROD_MODIFIERS[modifierId].label)
+    .map((modifierId) => {
+      const definition = FISHING_ROD_MODIFIERS[modifierId]
+      const tier = tiers[modifierId]
+      const value = metadata[definition.metadataField]
+      const tierLabel = typeof tier === 'number' ? `T${tier} ` : ''
+      const valueLabel = typeof value === 'number' ? `+${value}% ` : ''
+      return `${tierLabel}${valueLabel}${definition.label}`
+    })
   return labels.length > 0 ? labels.join(', ') : 'No modifiers'
 }
 

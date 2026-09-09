@@ -21,6 +21,13 @@ export interface LootBoxDropEntry {
   readonly weight: number
 }
 
+/**
+ * A rod never drops from a box below its own rarity, and its odds only get
+ * better in boxes above that: within a box, the weight set aside for rods is
+ * split across every rod tier that box can give, in proportion to that tier's
+ * own rank, so an epic box favours the Moonwater rod over the Wooden one and
+ * a legendary box favours the Starlit rod over all of them.
+ */
 export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootBoxDropEntry[]>> = {
   [Rarity.Common]: [
     { definitionId: 'river-minnow', weight: 550 },
@@ -34,7 +41,8 @@ export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootB
     { definitionId: 'revival-koi', weight: 250 },
     { definitionId: 'river-worm', weight: 200 },
     { definitionId: 'glow-grub', weight: 100 },
-    { definitionId: 'starter-fishing-rod', weight: 50 },
+    { definitionId: 'starter-fishing-rod', weight: 17 },
+    { definitionId: 'silverline-fishing-rod', weight: 33 },
   ],
   [Rarity.Rare]: [
     { definitionId: 'river-minnow', weight: 250 },
@@ -42,7 +50,9 @@ export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootB
     { definitionId: 'river-worm', weight: 250 },
     { definitionId: 'glow-grub', weight: 150 },
     { definitionId: 'moonwater-lure', weight: 50 },
-    { definitionId: 'starter-fishing-rod', weight: 50 },
+    { definitionId: 'starter-fishing-rod', weight: 8 },
+    { definitionId: 'silverline-fishing-rod', weight: 17 },
+    { definitionId: 'tideback-fishing-rod', weight: 25 },
   ],
   [Rarity.Epic]: [
     { definitionId: 'river-minnow', weight: 200 },
@@ -50,7 +60,10 @@ export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootB
     { definitionId: 'river-worm', weight: 250 },
     { definitionId: 'glow-grub', weight: 200 },
     { definitionId: 'moonwater-lure', weight: 100 },
-    { definitionId: 'starter-fishing-rod', weight: 50 },
+    { definitionId: 'starter-fishing-rod', weight: 5 },
+    { definitionId: 'silverline-fishing-rod', weight: 10 },
+    { definitionId: 'tideback-fishing-rod', weight: 15 },
+    { definitionId: 'moonwater-fishing-rod', weight: 20 },
   ],
   [Rarity.Legendary]: [
     { definitionId: 'river-minnow', weight: 100 },
@@ -58,7 +71,11 @@ export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootB
     { definitionId: 'river-worm', weight: 200 },
     { definitionId: 'glow-grub', weight: 250 },
     { definitionId: 'moonwater-lure', weight: 200 },
-    { definitionId: 'starter-fishing-rod', weight: 100 },
+    { definitionId: 'starter-fishing-rod', weight: 7 },
+    { definitionId: 'silverline-fishing-rod', weight: 13 },
+    { definitionId: 'tideback-fishing-rod', weight: 20 },
+    { definitionId: 'moonwater-fishing-rod', weight: 27 },
+    { definitionId: 'starlit-fishing-rod', weight: 33 },
   ],
 }
 

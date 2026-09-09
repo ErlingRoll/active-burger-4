@@ -1,12 +1,14 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { RARITIES, Rarity } from '../src/content/rarity/Rarity'
+import { RARITIES, RARITY_ORDER, Rarity } from '../src/content/rarity/Rarity'
 import {
   LOOT_BOX_DROP_TABLES,
   LOOT_BOX_ITEM_COUNTS,
   LOOT_BOX_ROLL_RANGE,
 } from '../src/loot/LootBoxContents'
+import { getInventoryItemDefinition } from '../src/inventory/ItemDefinitions'
+import { definedAt } from '../src/testing'
 
 /**
  * The odds shown to the player are the odds the server rolls.
@@ -104,5 +106,36 @@ describe('loot box contents', () => {
   it('opens more of a box the rarer it is', () => {
     expect(LOOT_BOX_ITEM_COUNTS[Rarity.Legendary])
       .toBeGreaterThan(LOOT_BOX_ITEM_COUNTS[Rarity.Common])
+  })
+
+  it('never drops a rod below its own rarity', () => {
+    for (const boxRarity of RARITIES) {
+      for (const entry of LOOT_BOX_DROP_TABLES[boxRarity]) {
+        const definition = getInventoryItemDefinition(entry.definitionId)
+        if (definition?.category !== 'rod') {
+          continue
+        }
+        expect(definition.rarity, `${entry.definitionId} declares a rarity`).toBeDefined()
+        expect(RARITY_ORDER[definition.rarity as Rarity], `${entry.definitionId} in a ${boxRarity} box`)
+          .toBeLessThanOrEqual(RARITY_ORDER[boxRarity])
+      }
+    }
+  })
+
+  it('weights a higher rod tier more heavily than a lower one within the same box', () => {
+    for (const boxRarity of RARITIES) {
+      const rodWeightsByOrder = LOOT_BOX_DROP_TABLES[boxRarity]
+        .filter((entry) => getInventoryItemDefinition(entry.definitionId)?.category === 'rod')
+        .map((entry) => ({
+          order: RARITY_ORDER[getInventoryItemDefinition(entry.definitionId)?.rarity as Rarity],
+          weight: entry.weight,
+        }))
+        .sort((left, right) => left.order - right.order)
+
+      for (let index = 1; index < rodWeightsByOrder.length; index += 1) {
+        expect(definedAt(rodWeightsByOrder, index).weight, `rod tiers in the ${boxRarity} box`)
+          .toBeGreaterThan(definedAt(rodWeightsByOrder, index - 1).weight)
+      }
+    }
   })
 })

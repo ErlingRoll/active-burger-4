@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
-import { Rarity } from '../content/rarity/Rarity'
+import { RARITIES, Rarity } from '../content/rarity/Rarity'
 import {
   FISHING_ROD_MODIFIER_COUNT_BY_RARITY,
   FISHING_ROD_MODIFIERS,
@@ -16,14 +16,26 @@ import {
   formatFishSizeKg,
   getChampionRevivalReductionSeconds,
   resolveFishingCatch,
+  rollFishingRodModifiers,
 } from './FishingContent'
 import { createFishingService, type FishingAnglerPresence } from './FishingService'
 import { definedAt } from '../testing'
+import type { RandomSource } from '../shared/RandomSource'
 
 function fakeClient(rpcResult: unknown): SupabaseClient {
   return {
     rpc: vi.fn(async () => ({ data: rpcResult, error: null })),
   } as unknown as SupabaseClient
+}
+
+/** Always takes the lowest option offered, so rolls are deterministic to check. */
+function minRandom(): RandomSource {
+  return {
+    next: () => 0,
+    int: (min) => min,
+    chance: () => false,
+    pick: (items) => items[0] as (typeof items)[number],
+  }
 }
 
 function createService(client: SupabaseClient) {
@@ -98,6 +110,27 @@ describe('FishingContent', () => {
       modifierIds: ['speed', 'bait-retention', 'unknown'],
     })).toBe('Quick Line, Bait Keeper')
     expect(formatFishingRodModifiers({ modifierIds: [] })).toBe('No modifiers')
+  })
+
+  it("shows a rolled modifier's tier and value alongside its label", () => {
+    expect(formatFishingRodModifiers({
+      modifierIds: ['rarity'],
+      modifierTiers: { rarity: 2 },
+      rarityBonusPercent: 11,
+    })).toBe('T2 +11% Fortune')
+  })
+
+  it('rolls as many unique rod modifiers as a rarity grants, each within its own tier range', () => {
+    for (const rarity of RARITIES) {
+      const rolled = rollFishingRodModifiers(rarity, minRandom())
+      expect(rolled).toHaveLength(FISHING_ROD_MODIFIER_COUNT_BY_RARITY[rarity])
+      expect(new Set(rolled.map((modifier) => modifier.id)).size).toBe(rolled.length)
+      for (const modifier of rolled) {
+        const range = FISHING_ROD_MODIFIERS[modifier.id].tiers[modifier.tier]
+        expect(modifier.value).toBeGreaterThanOrEqual(range.min)
+        expect(modifier.value).toBeLessThanOrEqual(range.max)
+      }
+    }
   })
 
   it('defines bait tiers with deterministic player-facing effects', () => {
