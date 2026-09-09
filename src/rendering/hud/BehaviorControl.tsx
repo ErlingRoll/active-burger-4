@@ -82,7 +82,17 @@ export function BehaviorControl({
   const freeMode = snapshot.behavior.freeMode
   const activeProfile = BEHAVIOR_PROFILE_DEFINITIONS[snapshot.behavior.profileId]
   const activeLabel = freeMode ? 'Free' : activeProfile.name
-  const intentLabel = snapshot.behavior.activeIntent?.label ?? 'No active intent'
+  /*
+   * The second line says what the character is doing, which in free movement is
+   * whatever the player is doing: the intent reads "Free movement" under a
+   * heading that already says "Free", so the button spent both its lines on one
+   * word. How to steer is the thing worth knowing there instead.
+   */
+  const intentLabel = freeMode
+    ? touchOnly
+      ? 'Drag to steer'
+      : 'WASD to steer'
+    : (snapshot.behavior.activeIntent?.label ?? 'No active intent')
 
   return (
     /*
@@ -157,7 +167,9 @@ export function BehaviorControl({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Movement behavior: ${activeLabel}. Intent: ${intentLabel}. Change`}
+        aria-label={`Movement behavior: ${activeLabel}. ${
+          freeMode ? 'Steering' : 'Intent'
+        }: ${intentLabel}. Change`}
         onClick={() => setOpen((current) => !current)}
       >
         <BehaviorIcon />

@@ -163,6 +163,19 @@
   justify-content: center;
 }
 
+/*
+ * The top bar is one line, so its panels share a top and a bottom edge.
+ *
+ * Left to their own heights the vitals, the floor clock and the pause button
+ * each ended somewhere different and the bar had no bottom to it. Stretching
+ * them to the tallest is what draws the line; each panel centres its own
+ * content in whatever height it is given.
+ */
+.hud-bar-top,
+.hud-bar-top .hud-region {
+  align-items: stretch;
+}
+
 .hud-region {
   display: flex;
   min-width: 0;
@@ -268,10 +281,48 @@
   flex: 0 0 auto;
 }
 
+/*
+ * Every bar in the HUD, drawn rather than left to the browser.
+ *
+ * A native `progress` paints its unfilled half in the platform's light grey,
+ * which on this dark frame made the empty part of a bar the brightest thing on
+ * the screen: a player at 10% health got a bar that was 90% white, so the bar
+ * shouted loudest exactly when it had least to say. The track is sunk into the
+ * panel instead and only the fill carries colour, so a bar reads by how much of
+ * it is lit.
+ *
+ * `appearance: none` takes `accent-color` out of the picture, so each bar names
+ * its own `--bar-fill`; the rules below still set `accent-color` beside it for
+ * the copies of these panels that render outside this frame.
+ */
+.gameplay-hud progress {
+  appearance: none;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 40%);
+  border-radius: 999px;
+  /* Firefox paints the track from the element's own background. */
+  background: rgb(0 0 0 / 42%);
+}
+
+.gameplay-hud progress::-webkit-progress-bar {
+  background: rgb(0 0 0 / 42%);
+}
+
+.gameplay-hud progress::-webkit-progress-value {
+  background: var(--bar-fill, rgb(var(--accent-bright-rgb)));
+  border-radius: 999px;
+}
+
+.gameplay-hud progress::-moz-progress-bar {
+  background: var(--bar-fill, rgb(var(--accent-bright-rgb)));
+  border-radius: 999px;
+}
+
 /* Vitals: three rows of label, bar and figure, on one grid so they line up. */
 .hud-vitals {
   display: grid;
   width: 100%;
+  align-content: center;
   gap: 0.2rem;
   padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.4rem, 1vw, 0.6rem);
 }
@@ -304,16 +355,34 @@
   white-space: nowrap;
 }
 
+/*
+ * Thickness is the ranking. Health is the one bar worth a glance mid-fight, so
+ * it is the heaviest; the shield sits with it because it is health by another
+ * name; experience is a background errand and is drawn as a hairline. Drawing
+ * all three at one weight said they were worth the same attention.
+ */
 .hud-vital progress {
   width: 100%;
-  height: clamp(0.34rem, 0.8vh, 0.55rem);
+  height: clamp(0.5rem, 1.25vh, 0.8rem);
 }
 
 .hud-vital-health progress {
+  --bar-fill: linear-gradient(
+    180deg,
+    var(--color-green-400),
+    var(--color-green-600)
+  );
+
   accent-color: var(--color-green-500);
 }
 
 .hud-vital-shield progress {
+  --bar-fill: linear-gradient(
+    180deg,
+    var(--color-cyan-300),
+    var(--color-cyan-600)
+  );
+
   accent-color: var(--color-cyan-400);
 }
 
@@ -323,13 +392,23 @@
 }
 
 .hud-vital-xp progress {
-  accent-color: rgb(var(--accent-bright-rgb));
+  --bar-fill: rgb(var(--accent-rgb) / 85%);
+
+  height: clamp(0.25rem, 0.6vh, 0.4rem);
+  accent-color: rgb(var(--accent-rgb));
+}
+
+/* The experience row is the quiet one, figures included. */
+.hud-vital-xp .hud-vital-value {
+  color: var(--color-stone-300);
+  font-weight: 700;
 }
 
 /* The floor clock: one line and one bar, no more. */
 .floor-hud {
   display: grid;
   width: 100%;
+  align-content: center;
   gap: 0.2rem;
   padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.4rem, 1vw, 0.6rem);
 }
@@ -345,11 +424,17 @@
   font-weight: 700;
 }
 
+/*
+ * The clock is lighter than health on purpose. It used to be the thickest and
+ * most saturated bar on the frame, which put the loudest mark on the one
+ * reading a player never has to act on.
+ */
 .floor-hud progress {
+  --bar-fill: rgb(var(--accent-rgb) / 78%);
+
   width: 100%;
-  /* Thick enough to read from the corner of the eye mid-fight. */
-  height: clamp(0.5rem, 1.4vh, 0.85rem);
-  accent-color: rgb(var(--accent-bright-rgb));
+  height: clamp(0.3rem, 0.7vh, 0.45rem);
+  accent-color: rgb(var(--accent-rgb));
 }
 
 /* Toolbar: square targets, glyph only, label carried in the accessible name. */
@@ -380,6 +465,14 @@
   font-size: clamp(1rem, 2.4vh, 1.25rem);
 }
 
+/* Stretched to the bar's height, the glyph buttons stay square by taking their
+   width from it rather than keeping a fixed one. */
+.hud-bar-top .hud-toolbar-button {
+  width: auto;
+  min-width: max(var(--hud-tile), 2.35rem);
+  aspect-ratio: 1;
+}
+
 .hud-toolbar-button:hover,
 .hud-toolbar-button:focus-visible,
 .hud-behavior-toggle:hover,
@@ -405,6 +498,7 @@
 
 .hud-behavior-toggle {
   width: 100%;
+  justify-content: flex-start;
   gap: 0.4rem;
   padding: 0.25rem 0.5rem;
   text-align: left;
@@ -941,6 +1035,32 @@
   .hud-region-top-start,
   .hud-region-top-end {
     flex: 1 1 0;
+  }
+
+  /*
+   * The vitals stop where they stop reading better.
+   *
+   * Filling a third of a 1920-wide screen spread 250 points of health over
+   * some 500 pixels, so a real hit moved the fill a couple of pixels and the
+   * figure sat a third of a screen from its own label. It also left the whole
+   * imbalance on one side: the left of the bar ran edge to edge while the
+   * right, whose controls are only as wide as they need to be, had a hand's
+   * width of nothing in it. Capping the panel gives both flanks a similar
+   * weight around the clock.
+   */
+  .hud-region-top-start .hud-vitals {
+    width: min(100%, 20rem);
+  }
+
+  /* The other half of that balance: the controls are given a width close to
+     the vitals' so the clock has a similar weight on either side of it, and
+     the longer intents ("Collect healing potion") stop being clipped. */
+  .hud-region-top-end .hud-behavior {
+    flex: 0 1 11rem;
+  }
+
+  .hud-region-top-end .hud-behavior-toggle-intent {
+    max-width: none;
   }
 
   .hud-region-top-end {
