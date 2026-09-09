@@ -14,6 +14,25 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* The documents.
+ *
+ * The codex, the champion roster and the two moderation dashboards each carry
+ * more than a viewport of content, and squeezing a reference manual into one
+ * screen made it unreadable. These scroll instead.
+ *
+ * The shell is still exactly the viewport; what changes is that the screen
+ * inside it becomes the scroll container. That keeps the header fixed above
+ * the reading area without any sticky positioning, and lets the codex's table
+ * of contents stick to the top of the text rather than to the top of the page.
+ */
+.app-shell-document > .wiki-screen,
+.app-shell-document > .app-screen,
+.app-shell-document > .admin-reports-screen {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .app-shell-fishing {
   position: relative;
   isolation: isolate;

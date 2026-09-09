@@ -7,6 +7,7 @@ import {
   findClippedControls,
   findOverflow,
   formatFindings,
+  type OverflowFinding,
 } from './support/viewportFit'
 
 /**
@@ -18,6 +19,12 @@ import {
  * the build: a screen that scrolls — as a page or through an inner container —
  * is a defect, and the message names the element and the axis rather than just
  * failing.
+ *
+ * The document screens are exempt from the vertical half of that. The codex,
+ * the roster and the moderation dashboards each hold more than a viewport by
+ * nature, and shrinking them to fit made them unreadable, so they are allowed
+ * to scroll down. Sideways is still a defect everywhere: a reader should never
+ * have to push a screen left to finish a sentence.
  *
  * One test per viewport rather than one test over the whole matrix, so the
  * viewports run across workers and a failure at one size does not hide the
@@ -43,6 +50,8 @@ interface ScreenUnderTest {
   readonly path: string
   /** Present once the screen has rendered its own content. */
   readonly ready: string
+  /** A document rather than a screen: it may scroll down, never sideways. */
+  readonly document?: true
 }
 
 const SCREENS: readonly ScreenUnderTest[] = [
@@ -50,9 +59,9 @@ const SCREENS: readonly ScreenUnderTest[] = [
   { name: 'run-setup', path: '/prepare/dungeon', ready: '.run-setup' },
   { name: 'store', path: '/store', ready: '.meta-progression-screen' },
   { name: 'fishing', path: '/fishing', ready: '.fishing-screen' },
-  { name: 'champions', path: '/champions', ready: '.champion-management-screen' },
   { name: 'inventory', path: '/inventory', ready: '.inventory-screen' },
-  { name: 'wiki', path: '/wiki', ready: '.wiki-screen' },
+  { name: 'champions', path: '/champions', ready: '.champion-management-screen', document: true },
+  { name: 'wiki', path: '/wiki', ready: '.wiki-screen', document: true },
 ]
 
 /**
@@ -162,12 +171,25 @@ for (const viewport of VIEWPORTS) {
             path: `${SCREENSHOT_DIRECTORY}/${viewport.name}--${screen.name}.png`,
           })
 
-          const findings = await findOverflow(page)
+          // On a document, everything below the fold is the scroll it is
+          // entitled to, and a seven-column enemy table is allowed to scroll
+          // inside its own container. The one overflow that is still a defect
+          // is the page itself running sideways, which a reader cannot
+          // recover from.
+          const isDefect = (finding: OverflowFinding): boolean =>
+            screen.document !== true ||
+            (finding.axis === 'x' && finding.target === 'document')
+
+          const findings = (await findOverflow(page)).filter(isDefect)
           if (findings.length > 0) {
             failures.push(`${screen.name}: ${formatFindings(findings)}`)
           }
 
-          const clipped = await findClippedControls(page)
+          // Nothing on a document is cut off: what falls outside the viewport
+          // is reached by scrolling to it.
+          const clipped = screen.document === true
+            ? []
+            : await findClippedControls(page)
           if (clipped.length > 0) {
             failures.push(`${screen.name}: cut off — ${formatFindings(clipped)}`)
           }

@@ -37,6 +37,22 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   wiki: '/wiki',
 }
 
+/**
+ * The screens that are documents rather than screens.
+ *
+ * Everything else fits the viewport and never scrolls. These four hold more
+ * than a viewport by nature — the codex is a reference manual, the roster
+ * grows with every victory, and the moderation dashboards list whatever
+ * players have sent in — and shrinking that to fit made them unreadable, so
+ * they scroll instead. `app-shell-document` is what grants it.
+ */
+export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
+  'wiki',
+  'champions',
+  'admin',
+  'nickname-moderation',
+])
+
 export const RUN_SETUP_ABYSS_PATH = '/prepare/abyss'
 export const LEGACY_RUN_SETUP_PATH = '/prepare'
 

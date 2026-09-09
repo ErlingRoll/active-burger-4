@@ -36,6 +36,7 @@ import { useToaster } from './ui/ToasterContext'
 import { useServices } from './services'
 import {
   APP_ROUTE_PATHS,
+  DOCUMENT_SCREENS,
   getCanonicalPath,
   getMusicPlaylistId,
   getRunModeForPath,
@@ -1542,7 +1543,7 @@ function App() {
 
   if (screen === 'wiki') {
     return (
-      <main className="app-shell">
+      <main className="app-shell app-shell-document">
         <AppHeader
           authentication={authentication}
           nickname={nickname}
@@ -1649,7 +1650,7 @@ function App() {
           : screen === 'dashboard'
             ? ' app-shell-hub'
             : ''
-    }`}>
+    }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}>
       {screen !== 'gameplay' ? (
         <AppHeader
           authentication={authentication}

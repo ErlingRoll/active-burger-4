@@ -8,6 +8,11 @@ import type { Page } from '@playwright/test'
  * that by eye does not work, so this measures it instead — every element whose
  * computed overflow makes it scrollable is compared against its own content,
  * at each viewport in the matrix.
+ *
+ * This reports what it finds and takes no view on which findings matter. The
+ * few screens that really are documents — the codex, the roster, the
+ * moderation dashboards — are allowed to scroll, and the spec is where that
+ * exemption is applied.
  */
 
 export interface Viewport {

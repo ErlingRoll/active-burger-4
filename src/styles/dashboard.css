@@ -2287,25 +2287,15 @@
  * Each layer is one dot tiled at its own size, so the field never repeats
  * visibly: the tiles share no common multiple. Brightness varies per layer
  * rather than per star, which is enough for a sky at this distance.
+ *
+ * The layers themselves live in screen-frame.css, next to the rule that gives
+ * the same sky to the other rooms of the refuge. Only the brightness and the
+ * fade are set here, because the hall sees more of its sky than they do.
  */
 .hub-stars {
   position: absolute;
   inset: 0;
   opacity: 0.62;
-  background-image:
-    radial-gradient(circle at 14% 24%, rgb(var(--scene-moonlight-rgb) / 80%) 0 0.05rem, transparent 0.1rem),
-    radial-gradient(circle at 62% 12%, rgb(var(--scene-moonlight-rgb) / 60%) 0 0.04rem, transparent 0.09rem),
-    radial-gradient(circle at 84% 38%, rgb(var(--scene-moonlight-rgb) / 70%) 0 0.05rem, transparent 0.1rem),
-    radial-gradient(circle at 34% 62%, rgb(var(--scene-moonlight-rgb) / 50%) 0 0.04rem, transparent 0.08rem),
-    radial-gradient(circle at 7% 71%, rgb(var(--scene-moonlight-rgb) / 62%) 0 0.045rem, transparent 0.09rem),
-    radial-gradient(circle at 47% 33%, rgb(var(--scene-moonlight-rgb) / 42%) 0 0.035rem, transparent 0.08rem),
-    radial-gradient(circle at 73% 57%, rgb(var(--scene-moonlight-rgb) / 72%) 0 0.05rem, transparent 0.1rem),
-    radial-gradient(circle at 26% 8%, rgb(var(--scene-moonlight-rgb) / 52%) 0 0.04rem, transparent 0.09rem),
-    radial-gradient(circle at 91% 17%, rgb(var(--scene-moonlight-rgb) / 66%) 0 0.045rem, transparent 0.09rem),
-    radial-gradient(circle at 55% 78%, rgb(var(--scene-moonlight-rgb) / 38%) 0 0.035rem, transparent 0.08rem);
-  background-size:
-    23rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem, 14rem 11rem,
-    37rem 25rem, 17rem 13rem, 29rem 21rem, 21rem 16rem, 13rem 9rem;
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 

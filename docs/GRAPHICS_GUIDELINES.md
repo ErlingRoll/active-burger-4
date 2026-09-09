@@ -169,6 +169,16 @@ inner scroll container counts as a failure just as much as a scrolling page.
 When content does not fit, scale it down; do not cap a panel's height and let
 it scroll.
 
+Four screens are documents and are exempt: the codex, the Champion roster, and
+the two moderation dashboards. Each holds more than a viewport by nature, and
+shrinking a reference manual to fit made it unreadable. They are listed in
+`DOCUMENT_SCREENS` in [src/app/routing.ts](../src/app/routing.ts), which puts
+`app-shell-document` on the shell and turns the screen into a scroll container.
+Give those screens readable type and ordinary spacing rather than `vh`-scaled
+shrinking. Sideways is still a defect on every screen: the page itself must
+never scroll horizontally, though a reference table wide enough to need it may
+scroll inside its own container.
+
 ## Infinite Abyss visual direction
 
 The Infinite Abyss has a distinct **dark-purple void** identity. Its interface,
