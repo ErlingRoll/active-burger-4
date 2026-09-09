@@ -209,12 +209,9 @@
       var(--arena-gradient-end);
   }
 
-  .hud-stat,
   .dungeon-stats,
   .floor-hud,
-  .choice-hud,
   .stairs-hud,
-  .behavior-summary,
   .character-stat-group,
   .loadout-item,
   .character-stat-button,
@@ -241,24 +238,18 @@
     color: var(--color-stone-500);
   }
 
-  .hud-stat dt,
   .dungeon-stats h3,
   .dungeon-stat dt,
   .projection-heading span,
   .floor-hud > span,
-  .choice-hud > span:last-child,
-  .behavior-summary-label,
-  .character-stat-group h5,
+  .character-stat-group h4,
   .loadout-slot,
   .development-kicker,
   .entity-counts dt {
     color: var(--color-amber-400);
   }
 
-  .hud-stat dd,
   .projection-heading strong,
-  .choice-hud strong,
-  .behavior-summary strong,
   .character-stat-button strong,
   .loadout-item strong,
   .skill-card,
@@ -297,8 +288,6 @@
     border-radius: 0.25rem;
   }
 
-  .behavior-summary:hover,
-  .behavior-summary:focus-visible,
   .character-stat-button:hover,
   .character-stat-button:focus-visible,
   .loadout-item:hover,

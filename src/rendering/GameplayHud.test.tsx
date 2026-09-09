@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderComponent, screen } from '../testing/render'
 import { GameplayHud } from './GameCanvas'
 import { createGame } from '../game/Game'
+import { DEFAULT_GAME_KEYBINDS } from '../input/Keybinds'
+import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import type { GameUiSnapshot } from '../game/ui/Snapshots'
 
 /**
@@ -16,13 +18,30 @@ function snapshotFromGame(configure?: (game: ReturnType<typeof createGame>) => v
   return game.getUiSnapshot()
 }
 
-function renderHud(snapshot: GameUiSnapshot) {
+function renderHud(
+  snapshot: GameUiSnapshot,
+  inspectorTab: HudInspectorTab | null = null,
+) {
   const handlers = {
+    onInspectorTabChange: vi.fn(),
+    onPause: vi.fn(),
+    onSelectBehaviorProfile: vi.fn(),
+    onToggleFreeMovement: vi.fn(),
     onSetMirrorcastTarget: vi.fn(),
     onSetCriticalSpellstrikeTarget: vi.fn(),
     onSetBloodRiteTarget: vi.fn(),
   }
-  return { ...renderComponent(<GameplayHud snapshot={snapshot} {...handlers} />), ...handlers }
+  return {
+    ...renderComponent(
+      <GameplayHud
+        snapshot={snapshot}
+        keybinds={DEFAULT_GAME_KEYBINDS}
+        inspectorTab={inspectorTab}
+        {...handlers}
+      />,
+    ),
+    ...handlers,
+  }
 }
 
 describe('GameplayHud', () => {
@@ -44,11 +63,32 @@ describe('GameplayHud', () => {
     expect(screen.getByRole('heading', { name: /skills/i })).toBeInTheDocument()
   })
 
-  it('shows the equipped loadout and the character stats panels', () => {
+  it('keeps the loadout and the stat sheet out of the arena until they are asked for', () => {
     renderHud(snapshotFromGame())
 
+    expect(screen.queryByRole('heading', { name: /loadout/i })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /character stats/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /loadout details/i })).toBeInTheDocument()
+  })
+
+  it('shows the loadout in the inspector when its tab is open', () => {
+    renderHud(snapshotFromGame(), 'gear')
+
     expect(screen.getByRole('heading', { name: /loadout/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /stats/i })).toBeInTheDocument()
+  })
+
+  it('shows the character stats in the inspector when its tab is open', () => {
+    renderHud(snapshotFromGame(), 'stats')
+
+    expect(screen.getByRole('heading', { name: /character stats/i })).toBeInTheDocument()
+  })
+
+  it('asks to open a tab when its toolbar button is pressed', async () => {
+    const { onInspectorTabChange, user } = renderHud(snapshotFromGame())
+
+    await user.click(screen.getByRole('button', { name: /stats details/i }))
+
+    expect(onInspectorTabChange).toHaveBeenCalledWith('stats')
   })
 
   it('clamps a health value that exceeds the maximum', () => {

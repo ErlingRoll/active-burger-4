@@ -157,9 +157,7 @@
   --color-violet-900: #4c1d95;
 
   /* purple */
-  --color-purple-100: #f3e8ff;
   --color-purple-200: #e9d5ff;
-  --color-purple-300: #d8b4fe;
   --color-purple-400: #c084fc;
   --color-purple-800: #6b21a8;
   --color-purple-900: #581c87;
@@ -267,6 +265,9 @@
   --arena-surface-warm: #3f3531;
 
   /* Cool slate-blue panel fills used by the hub and the gameplay HUD. */
+  /* The in-run HUD's plate, as channels so panels can set their own alpha. */
+  --hud-surface-rgb: 24 24 27;
+
   --panel-cool-deep: #172033;
   --panel-cool: #263a5a;
 

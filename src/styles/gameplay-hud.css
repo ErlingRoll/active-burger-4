@@ -1,0 +1,725 @@
+/*
+ * The in-run HUD: its layout, its surface, and the arena's lighting overlay.
+ *
+ * This sheet is loaded last so that it, and not one of the three layers that
+ * used to paint these panels, decides how the HUD looks. Everything here
+ * composes from the screen accent rather than naming a colour, so the dungeon
+ * and the Abyss are one set of rules with two accents rather than two sets of
+ * overrides fighting a blue base.
+ *
+ * There are no width breakpoints. The HUD adapts through wrapping bars with
+ * `min()` flex bases and `clamp()` sizing that reads `vh` as well as `vw`, so
+ * the same rules serve a 1920-wide desktop and a 360-wide phone.
+ */
+
+/*
+ * Stacking inside the arena, in one place, because it went wrong when it was
+ * spread out: the level-up scrim used to sit under the HUD it needed to dim.
+ *
+ *   0  the renderer's canvas
+ *   1  arena lighting (vignette)
+ *   2  the steering surface and the damage flash
+ *   3  the HUD bars
+ *   4  the HUD inspector
+ *   6  a choice overlay's scrim, above every HUD panel
+ *   7  a choice overlay's dialog
+ *   8  the pause menu and the behaviour screen
+ *   9  the blocking floor-save notice
+ *  20+ tooltips, which are portalled to the body
+ */
+
+.game-canvas {
+  /*
+   * The run's accent. Declared here rather than inherited so that a HUD panel
+   * can compose lines, washes and glows from it without knowing which world it
+   * is drawn in.
+   */
+  --accent: var(--color-amber-400);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 251 146 60;
+  --accent-bright-rgb: 251 191 36;
+
+  --hud-gap: clamp(0.3rem, 1.1vh, 0.7rem);
+  --hud-pad: clamp(0.35rem, 1.3vh, 0.9rem);
+  --hud-font: clamp(0.64rem, min(1vw, 1.5vh), 0.78rem);
+  --hud-tile: clamp(2.2rem, min(4.4vw, 5.6vh), 2.9rem);
+
+  /* A phone reports its own gestures over a canvas unless it is told not to. */
+  touch-action: none;
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.game-canvas[data-run-mode='infinite-abyss'] {
+  --accent: var(--color-violet-400);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 124 58 237;
+  --accent-bright-rgb: 167 139 250;
+}
+
+/*
+ * Arena lighting.
+ *
+ * The floor is drawn by the renderer as an even field, which reads as a sheet
+ * of graph paper rather than as a room. This is the falloff: the light is
+ * strongest where the character is, at the middle of the frame, and the frame's
+ * corners fall away to nothing. It is a layer over the canvas rather than a
+ * property of the ground so it costs the simulation nothing and stays put while
+ * the camera moves.
+ */
+.arena-vignette {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 62% 58% at 50% 50%,
+      transparent 0%,
+      rgb(0 0 0 / 26%) 62%,
+      rgb(0 0 0 / 62%) 100%
+    ),
+    radial-gradient(
+      ellipse 34% 30% at 50% 48%,
+      rgb(var(--accent-bright-rgb) / 7%),
+      transparent 70%
+    );
+  pointer-events: none;
+}
+
+/* Steering: the whole arena is the pad, and the stick is drawn where the
+   finger lands. Below the HUD, so a tap on a panel is a tap on the panel. */
+.arena-steering {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
+.arena-steering[data-steering='active'] {
+  cursor: grabbing;
+}
+
+.arena-stick {
+  position: fixed;
+  z-index: 2;
+  display: grid;
+  width: 7rem;
+  height: 7rem;
+  place-items: center;
+  background: radial-gradient(
+    circle at center,
+    rgb(var(--accent-rgb) / 12%),
+    transparent 68%
+  );
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.arena-stick-knob {
+  width: 2.6rem;
+  height: 2.6rem;
+  background: rgb(var(--accent-bright-rgb) / 24%);
+  border: 2px solid rgb(var(--accent-bright-rgb) / 72%);
+  border-radius: 50%;
+  box-shadow: 0 0 1rem rgb(var(--accent-bright-rgb) / 35%);
+}
+
+/* The frame the arena is seen through. */
+.gameplay-hud {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hud-gap);
+  padding: var(--hud-pad);
+  color: var(--color-stone-200);
+  font-size: var(--hud-font);
+  pointer-events: none;
+}
+
+/*
+ * A tooltip anchored in the HUD has to clear a choice overlay, so the whole
+ * frame is lifted while one is open rather than each panel arguing about it.
+ */
+.gameplay-hud-tooltip-active {
+  z-index: 10;
+}
+
+.hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hud-gap);
+}
+
+.hud-bar-bottom {
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.hud-region {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--hud-gap);
+}
+
+.hud-region > * {
+  pointer-events: auto;
+}
+
+/*
+ * The three bases are what make the bar wrap instead of overlap. Each panel
+ * asks for a width it reads well at and gives it up at `100%`, so a narrow
+ * viewport drops one onto its own line rather than sliding it under another.
+ */
+.hud-region-top-start {
+  flex: 1 1 min(11rem, 100%);
+}
+
+.hud-region-top-center {
+  flex: 1 1 min(12rem, 100%);
+  justify-content: center;
+}
+
+.hud-region-top-end {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
+/*
+ * Banners hang from the top of the arena, where a boss bar belongs, and the
+ * floor-change notice takes the space left over so it lands in the middle.
+ */
+.hud-region-center {
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  gap: var(--hud-gap);
+}
+
+.hud-region-bottom-center {
+  justify-content: center;
+  align-items: flex-end;
+  max-width: 100%;
+}
+
+/* One surface for every in-run panel, composed from the run's accent. */
+.hud-panel {
+  color: var(--color-stone-200);
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb) / 11%), transparent 58%),
+    rgb(var(--hud-surface-rgb) / 88%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  box-shadow: 0 0.6rem 1.4rem rgb(0 0 0 / 32%);
+  box-sizing: border-box;
+}
+
+.hud-panel-heading {
+  margin: 0 0 0.4rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hud-icon {
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* Vitals: three rows of label, bar and figure, on one grid so they line up. */
+.hud-vitals {
+  display: grid;
+  width: 100%;
+  gap: 0.2rem;
+  padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.4rem, 1vw, 0.6rem);
+}
+
+.hud-vital {
+  display: grid;
+  grid-template-columns: minmax(2.4rem, auto) minmax(2.5rem, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hud-vital-label {
+  color: var(--accent);
+  font-size: 0.66em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hud-vital-label b {
+  color: var(--color-stone-50);
+  font-size: 1.15em;
+}
+
+.hud-vital-value {
+  color: var(--color-stone-50);
+  font-size: 0.86em;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hud-vital progress {
+  width: 100%;
+  height: clamp(0.34rem, 0.8vh, 0.55rem);
+}
+
+.hud-vital-health progress {
+  accent-color: var(--color-green-500);
+}
+
+.hud-vital-shield progress {
+  accent-color: var(--color-cyan-400);
+}
+
+.hud-vital-shield .hud-vital-label,
+.hud-vital-shield .hud-vital-value {
+  color: var(--color-cyan-200);
+}
+
+.hud-vital-xp progress {
+  accent-color: rgb(var(--accent-bright-rgb));
+}
+
+/* The floor clock: one line and one bar, no more. */
+.floor-hud {
+  display: grid;
+  width: min(22rem, 100%);
+  gap: 0.2rem;
+  padding: clamp(0.3rem, 0.9vh, 0.5rem) clamp(0.4rem, 1vw, 0.6rem);
+}
+
+.floor-hud .projection-heading strong {
+  color: var(--color-stone-50);
+  font-size: 0.95em;
+}
+
+.floor-hud .projection-heading span {
+  color: var(--accent);
+  font-size: 0.82em;
+  font-weight: 700;
+}
+
+.floor-hud progress {
+  width: 100%;
+  height: clamp(0.3rem, 0.7vh, 0.45rem);
+  accent-color: rgb(var(--accent-bright-rgb));
+}
+
+/* Toolbar: square targets, glyph only, label carried in the accessible name. */
+.hud-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.hud-toolbar-button,
+.hud-behavior-toggle {
+  display: flex;
+  min-height: max(var(--hud-tile), 2.35rem);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-stone-200);
+  font: inherit;
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb) / 11%), transparent 58%),
+    rgb(var(--hud-surface-rgb) / 88%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  cursor: pointer;
+}
+
+.hud-toolbar-button {
+  width: max(var(--hud-tile), 2.35rem);
+  font-size: clamp(1rem, 2.4vh, 1.25rem);
+}
+
+.hud-toolbar-button:hover,
+.hud-toolbar-button:focus-visible,
+.hud-behavior-toggle:hover,
+.hud-behavior-toggle:focus-visible {
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-bright-rgb) / 72%);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 1px;
+}
+
+.hud-toolbar-button.selected {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 34%);
+  border-color: rgb(var(--accent-bright-rgb) / 78%);
+}
+
+/* Behaviour: the active profile, with the rest a tap away. */
+.hud-behavior {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.hud-behavior-toggle {
+  width: 100%;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.hud-behavior-toggle .hud-icon {
+  font-size: 1.1em;
+  color: var(--accent);
+}
+
+.hud-behavior-toggle-text {
+  display: grid;
+  min-width: 0;
+}
+
+.hud-behavior-toggle-name {
+  color: var(--color-stone-50);
+  font-size: 0.92em;
+  font-weight: 800;
+}
+
+.hud-behavior-toggle-intent {
+  overflow: hidden;
+  max-width: 9rem;
+  color: var(--accent);
+  font-size: 0.76em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-behavior-menu {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: grid;
+  width: max(11rem, 100%);
+  gap: 0.25rem;
+  padding: 0.4rem;
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb) / 12%), transparent 58%),
+    rgb(var(--hud-surface-rgb) / 96%);
+  border: 1px solid rgb(var(--accent-rgb) / 42%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+  box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 52%);
+}
+
+.hud-behavior-option {
+  display: flex;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  color: var(--color-stone-300);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  background: rgb(var(--hud-surface-rgb) / 70%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.28rem;
+  cursor: pointer;
+}
+
+.hud-behavior-option:hover,
+.hud-behavior-option:focus-visible,
+.hud-behavior-option.selected {
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-bright-rgb) / 68%);
+  outline: none;
+}
+
+.hud-behavior-option.selected {
+  background: rgb(var(--accent-rgb) / 30%);
+}
+
+.hud-behavior-hint {
+  margin: 0.1rem 0 0;
+  color: var(--color-stone-400);
+  font-size: 0.78em;
+  line-height: 1.35;
+}
+
+/*
+ * The skill bar as tiles.
+ *
+ * A card that spelled out name, level and DPS was 25rem of the bottom of the
+ * screen; the same information is one hover or tap away in the tooltip, and
+ * the button's accessible name carries all of it either way. What is left is
+ * what has to be readable mid-fight: which skill, and whether it is ready.
+ */
+.hud-region-bottom-center .skill-hud {
+  width: auto;
+  max-width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.hud-region-bottom-center .skill-hud-heading {
+  display: none;
+}
+
+.hud-region-bottom-center .skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.hud-region-bottom-center .skill-card {
+  display: grid;
+  width: max(var(--hud-tile), 2.35rem);
+  height: max(var(--hud-tile), 2.35rem);
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.hud-region-bottom-center .skill-card-name,
+.hud-region-bottom-center .skill-card-dps {
+  display: none;
+}
+
+.hud-region-bottom-center .skill-card > .skill-icon {
+  position: static;
+  width: auto;
+  font-size: clamp(1.05rem, 2.6vh, 1.5rem);
+  text-align: center;
+}
+
+.hud-region-bottom-center .skill-card-level {
+  position: absolute;
+  right: 0.12rem;
+  bottom: 0.05rem;
+  z-index: 2;
+  color: var(--accent);
+  font-size: 0.62em;
+  font-weight: 800;
+}
+
+/*
+ * The inspector.
+ *
+ * One rule sizes it for both a desktop and a phone: a panel down the right of
+ * a wide screen, and the whole of a narrow one.
+ */
+.hud-inspector {
+  position: absolute;
+  z-index: 4;
+  inset-block: 0;
+  right: 0;
+  display: flex;
+  width: min(30rem, 100%);
+  flex-direction: column;
+  gap: var(--hud-gap);
+  padding: var(--hud-pad);
+  background:
+    linear-gradient(200deg, rgb(var(--accent-rgb) / 10%), transparent 46%),
+    rgb(var(--hud-surface-rgb) / 96%);
+  border-left: 1px solid rgb(var(--accent-rgb) / 38%);
+  box-shadow: -1rem 0 3rem rgb(0 0 0 / 45%);
+  pointer-events: auto;
+}
+
+.hud-inspector-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hud-gap);
+}
+
+.hud-inspector-tabs {
+  display: flex;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.hud-inspector-tab {
+  min-height: 2.35rem;
+  padding: 0.3rem 0.7rem;
+  color: var(--color-stone-300);
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgb(var(--hud-surface-rgb) / 70%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 0.28rem;
+  cursor: pointer;
+}
+
+.hud-inspector-tab:hover,
+.hud-inspector-tab:focus-visible {
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-bright-rgb) / 62%);
+}
+
+.hud-inspector-tab.selected {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 32%);
+  border-color: rgb(var(--accent-bright-rgb) / 72%);
+}
+
+.hud-inspector-close {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--color-stone-200);
+  font-size: 1.15rem;
+  background: rgb(var(--hud-surface-rgb) / 70%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.28rem;
+  cursor: pointer;
+}
+
+.hud-inspector-close:hover,
+.hud-inspector-close:focus-visible {
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-bright-rgb) / 68%);
+}
+
+/*
+ * The body is a screen rather than a document: it fits, or its type and its
+ * spacing shrink until it does. Nothing in here scrolls.
+ */
+.hud-inspector-body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.hud-inspector-body .equipped-loadout,
+.hud-inspector-body .character-stats,
+.hud-inspector-body .dungeon-stats {
+  position: static;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.hud-inspector-body .loadout-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: clamp(0.3rem, 1vh, 0.55rem);
+}
+
+.hud-inspector-body .loadout-item {
+  min-height: 0;
+  padding: clamp(0.3rem, 0.9vh, 0.5rem);
+}
+
+.hud-inspector-body .character-stat-button {
+  min-height: 0;
+  padding: clamp(0.18rem, 0.7vh, 0.4rem) 0.45rem;
+}
+
+.hud-inspector-body .dungeon-stats-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
+}
+
+/*
+ * Overlays sit above the HUD, which is the whole point of a scrim: the
+ * level-up choice used to be dimmed against the arena while nine bright panels
+ * carried on competing with it.
+ */
+.level-up-overlay {
+  z-index: 6;
+}
+
+.level-up-dialog {
+  z-index: 7;
+}
+
+.behavior-screen {
+  z-index: 8;
+}
+
+.floor-save-status {
+  z-index: 9;
+}
+
+.damage-flash-overlay {
+  z-index: 2;
+}
+
+/*
+ * The choice overlays borrow the run's accent too.
+ *
+ * Skip and Reroll were the last blue controls left inside an amber dungeon:
+ * slate plates with slate borders, sitting under an ember panel. They read as
+ * the same family as the rest of the run now, and the choice cards behind them
+ * keep their rarity colours, which carry meaning rather than mood.
+ */
+.skip-choice-button {
+  color: var(--color-stone-200);
+  background:
+    linear-gradient(135deg, rgb(var(--accent-rgb) / 12%), transparent 58%),
+    rgb(var(--hud-surface-rgb) / 92%);
+  border: 1px solid rgb(var(--accent-rgb) / 36%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
+}
+
+.skip-choice-button:hover,
+.skip-choice-button:focus-visible {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 26%);
+  border-color: rgb(var(--accent-bright-rgb) / 72%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 26%);
+}
+
+.skip-choice-button:disabled {
+  color: var(--color-stone-500);
+  border-color: rgb(var(--accent-rgb) / 16%);
+  cursor: not-allowed;
+}
+
+/* Vitals read at a glance; they do not need to grow to fill the bar. */
+.hud-region-top-start {
+  max-width: min(18rem, 100%);
+}
+
+/* An empty slot is a gap in the bar, not a card with a caption. */
+.hud-region-bottom-center .skill-card-empty .skill-card-level {
+  display: none;
+}
+
+/*
+ * The developer controls used to open on top of the toolbar. They are a
+ * development-only surface, so they move out of the way of the shipping one
+ * rather than the other way round.
+ */
+.development-controls {
+  top: auto;
+  right: var(--hud-pad);
+  bottom: var(--hud-pad);
+  z-index: 5;
+  display: flex;
+  /* Reversed so the panel opens upwards from a toggle pinned to the bottom. */
+  flex-direction: column-reverse;
+  align-items: flex-end;
+}
+
+.development-menu {
+  margin-top: 0;
+  margin-bottom: 0.6rem;
+}

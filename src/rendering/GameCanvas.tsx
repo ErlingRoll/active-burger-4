@@ -33,7 +33,6 @@ import { LevelUpOverlay } from './LevelUpOverlay'
 import { AbyssModifierOverlay } from '../abyss/AbyssModifierOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
-import { formatExperience } from '../ui/formatNumbers'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
 interface GameCanvasProps {
@@ -58,10 +57,14 @@ const MIN_CAST_PULSE_INTERVAL_MS = 240
 
 
 import { DevelopmentMenu } from './DevelopmentMenu'
-import { BehaviorHud, DungeonStats, FloorHud } from './hud/StatusPanels'
+import { FloorHud, VitalsPanel } from './hud/StatusPanels'
 import { useHudTooltips } from './hud/useHudTooltips'
 import { SkillHud } from './hud/SkillHud'
-import { EquippedLoadout } from './hud/EquippedLoadout'
+import { BehaviorControl } from './hud/BehaviorControl'
+import { HudInspector } from './hud/HudInspector'
+import type { HudInspectorTab } from './hud/HudInspectorTabs'
+import { HudToolbar } from './hud/HudToolbar'
+import { TouchControls } from './hud/TouchControls'
 import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
 
 
@@ -137,6 +140,16 @@ export function GameCanvas({
   const choiceFlowRef = useRef<Readonly<PendingChoiceFlow> | null>(null)
   const [activeKeybinds, setActiveKeybinds] = useState(keybinds)
   const activeKeybindsRef = useRef(keybinds)
+  // The inspector lives here rather than inside the HUD because Escape has to
+  // choose between closing it and pausing the run, and the key handler that
+  // makes that choice is in this component.
+  const [inspectorTab, setInspectorTab] = useState<HudInspectorTab | null>(null)
+  const inspectorTabRef = useRef<HudInspectorTab | null>(null)
+  useEffect(() => {
+    inspectorTabRef.current = inspectorTab
+  }, [inspectorTab])
+  // The profile a steering drag interrupted, restored when the finger lifts.
+  const steeringProfileRef = useRef<BehaviorProfileId | null>(null)
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
     () => import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
@@ -413,6 +426,14 @@ export function GameCanvas({
         return
       }
 
+      // Escape unwinds one layer at a time: the inspector first, the run only
+      // once nothing is open over it.
+      if (inspectorTabRef.current !== null) {
+        event.preventDefault()
+        setInspectorTab(null)
+        return
+      }
+
       if (game.phase === 'playing' || game.phase === 'level-up') {
         event.preventDefault()
         game.pause()
@@ -512,6 +533,51 @@ export function GameCanvas({
     gameRef.current?.toggleFreeMovement()
   }
 
+  /*
+   * Steering the arena by pointer.
+   *
+   * A drag is a loan rather than a mode change: the profile that was running is
+   * remembered, free movement is switched on for the length of the drag, and
+   * the profile is handed back on release. A player who has already chosen free
+   * movement is left in it, because there is nothing to hand back to.
+   */
+  const startSteering = (): void => {
+    const currentGame = gameRef.current
+    if (!currentGame || currentGame.phase !== 'playing') {
+      return
+    }
+    if (currentGame.freeMovementEnabled) {
+      steeringProfileRef.current = null
+      return
+    }
+    steeringProfileRef.current = currentGame.behaviorProfileId
+    currentGame.setFreeMovementEnabled(true)
+  }
+
+  const steer = (directionX: number, directionY: number): void => {
+    gameRef.current?.setFreeMovementDirection(directionX, directionY)
+  }
+
+  const endSteering = (): void => {
+    const currentGame = gameRef.current
+    const borrowedProfile = steeringProfileRef.current
+    steeringProfileRef.current = null
+    if (!currentGame) {
+      return
+    }
+    currentGame.setFreeMovementDirection(0, 0)
+    if (borrowedProfile === null) {
+      return
+    }
+    currentGame.setFreeMovementEnabled(false)
+    currentGame.setBehaviorProfile(borrowedProfile)
+  }
+
+  const pauseRun = (): void => {
+    setInspectorTab(null)
+    gameRef.current?.pause()
+  }
+
   const updateKeybinds = async (nextKeybinds: GameKeybinds): Promise<void> => {
     const previousKeybinds = activeKeybindsRef.current
     activeKeybindsRef.current = nextKeybinds
@@ -560,15 +626,29 @@ export function GameCanvas({
         aria-label="Active Burger 4 game arena"
         role="img"
       />
+      <div className="arena-vignette" aria-hidden="true" />
       <div
         className={`damage-flash-overlay${
           damageFlashId > 0 ? ' damage-flash-overlay-active' : ''
         }`}
         aria-hidden="true"
       />
+      {phase === 'playing' ? (
+        <TouchControls
+          onSteerStart={startSteering}
+          onSteer={steer}
+          onSteerEnd={endSteering}
+        />
+      ) : null}
       {snapshot ? (
         <GameplayHud
           snapshot={snapshot}
+          keybinds={activeKeybinds}
+          inspectorTab={inspectorTab}
+          onInspectorTabChange={setInspectorTab}
+          onPause={pauseRun}
+          onSelectBehaviorProfile={selectBehaviorProfile}
+          onToggleFreeMovement={toggleFreeMovement}
           onSetMirrorcastTarget={(skillId) => {
             gameRef.current?.setMirrorcastTargetSkill(skillId)
           }}
@@ -578,16 +658,6 @@ export function GameCanvas({
           onSetBloodRiteTarget={(skillId) => {
             gameRef.current?.setBloodRiteTargetSkill(skillId)
           }}
-        />
-      ) : null}
-      {snapshot ? <FloorHud snapshot={snapshot} /> : null}
-      {snapshot ? <DungeonStats snapshot={snapshot} /> : null}
-      {snapshot ? (
-        <BehaviorHud
-          snapshot={snapshot}
-          keybinds={activeKeybinds}
-          onSelectProfile={selectBehaviorProfile}
-          onToggleFreeMovement={toggleFreeMovement}
         />
       ) : null}
       {import.meta.env.DEV && snapshot && game ? (
@@ -668,21 +738,43 @@ export function GameCanvas({
   )
 }
 
+
 export interface GameplayHudProps {
   snapshot: GameUiSnapshot
+  keybinds: GameKeybinds
+  inspectorTab: HudInspectorTab | null
+  onInspectorTabChange: (tab: HudInspectorTab | null) => void
+  onPause: () => void
+  onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
+  onToggleFreeMovement: () => void
   onSetMirrorcastTarget: (skillId: SkillId | null) => void
   onSetCriticalSpellstrikeTarget: (skillId: SkillId | null) => void
   onSetBloodRiteTarget: (skillId: SkillId | null) => void
 }
 
+/**
+ * The in-run HUD, laid out as a frame around the arena rather than as panels
+ * dropped onto it.
+ *
+ * Every region is a cell of one grid whose tracks size to their contents, so
+ * two panels can no longer end up on top of each other the way the old
+ * independently positioned corners did at 1280x720. What stays resident is what
+ * changes second to second: vitals, the floor clock, the skill bar, and the
+ * banners for a boss, the stairs and a floor change. Everything else is a tab
+ * of the inspector.
+ */
 export function GameplayHud({
   snapshot,
+  keybinds,
+  inspectorTab,
+  onInspectorTabChange,
+  onPause,
+  onSelectBehaviorProfile,
+  onToggleFreeMovement,
   onSetMirrorcastTarget,
   onSetCriticalSpellstrikeTarget,
   onSetBloodRiteTarget,
 }: GameplayHudProps) {
-  const hp = Math.max(0, Math.min(snapshot.hp, snapshot.maxHp))
-  const xpPercent = snapshot.xpProgress * 100
   // Held here rather than inside each panel: only one tooltip may be open
   // across the three, and they share one close timer.
   const tooltips = useHudTooltips()
@@ -742,130 +834,125 @@ export function GameplayHud({
       <h2 id="run-status-title" className="visually-hidden">
         Run status
       </h2>
-      <dl className="hud-stats">
-        <div className="hud-stat hud-health">
-          <dt className="visually-hidden">Player survivability</dt>
-          <dd className="hud-health-bars">
-            <div className="hud-health-row">
-              <span className="hud-health-label">HP</span>
-              <progress value={hp} max={snapshot.maxHp} aria-label="Player health" />
-              <span className="hud-health-value">
-                {Math.ceil(hp)} / {Math.ceil(snapshot.maxHp)}
+      <div className="hud-bar hud-bar-top">
+        <div className="hud-region hud-region-top-start">
+          <VitalsPanel snapshot={snapshot} />
+        </div>
+        <div className="hud-region hud-region-top-center">
+          <FloorHud snapshot={snapshot} />
+        </div>
+        <div className="hud-region hud-region-top-end">
+          <BehaviorControl
+            snapshot={snapshot}
+            keybinds={keybinds}
+            onSelectProfile={onSelectBehaviorProfile}
+            onToggleFreeMovement={onToggleFreeMovement}
+          />
+          <HudToolbar
+            activeTab={inspectorTab}
+            onToggleTab={(tab) =>
+              onInspectorTabChange(inspectorTab === tab ? null : tab)}
+            onPause={onPause}
+          />
+        </div>
+      </div>
+      <div className="hud-region hud-region-center">
+        {snapshot.boss ? (
+          <section className="boss-hud hud-panel" aria-label="Boss status">
+            <div className="boss-hud-heading">
+              <strong>{snapshot.boss.name}</strong>
+              <span>
+                {snapshot.boss.isFinal ? 'Final boss' : snapshot.boss.status}
               </span>
             </div>
-            {snapshot.shield ? (
-              <div className="hud-health-row hud-shield-row">
-                <span className="hud-health-label">Shield</span>
-                <progress
-                  value={snapshot.shield.amount}
-                  max={snapshot.shield.maxAmount}
-                  aria-label="Absorb shield"
-                />
-                <span className="hud-health-value">
-                  {Math.ceil(snapshot.shield.amount)} HP ·{' '}
-                  {snapshot.shield.remainingSeconds.toFixed(1)}s
+            <progress
+              value={snapshot.boss.hpProgress * 100}
+              max={100}
+              aria-label={`${snapshot.boss.name} health`}
+            />
+            <span>
+              {Math.ceil(snapshot.boss.hp)} / {Math.ceil(snapshot.boss.maxHp)} HP
+            </span>
+            {snapshot.boss.enrage ? (
+              <div className="boss-enrage" aria-label="Inferno Warden enrage">
+                <strong>Enrage</strong>
+                <span>
+                  {Math.floor(snapshot.boss.enrage.elapsedSeconds)}s · speed{' '}
+                  {snapshot.boss.enrage.movementSpeedMultiplier.toFixed(2)}x · damage{' '}
+                  {snapshot.boss.enrage.damageMultiplier.toFixed(2)}x · cooldown{' '}
+                  {snapshot.boss.enrage.cooldownMultiplier.toFixed(2)}x
                 </span>
               </div>
             ) : null}
-          </dd>
-        </div>
-        <div className="hud-stat">
-          <dt>Level</dt>
-          <dd>{snapshot.level}</dd>
-        </div>
-        <div className="hud-stat hud-xp">
-          <dt>XP</dt>
-          <dd>
-            <progress value={xpPercent} max={100} aria-label="Experience progress" />
-            <span>
-              {formatExperience(snapshot.xp)} / {formatExperience(snapshot.xpRequired)}
-            </span>
-          </dd>
-        </div>
-      </dl>
-      {snapshot.boss ? (
-        <section className="boss-hud" aria-label="Boss status">
-          <div className="boss-hud-heading">
-            <strong>{snapshot.boss.name}</strong>
-            <span>
-              {snapshot.boss.isFinal ? 'Final boss' : snapshot.boss.status}
-            </span>
-          </div>
-          <progress
-            value={snapshot.boss.hpProgress * 100}
-            max={100}
-            aria-label={`${snapshot.boss.name} health`}
-          />
-          <span>
-            {Math.ceil(snapshot.boss.hp)} / {Math.ceil(snapshot.boss.maxHp)} HP
-          </span>
-          {snapshot.boss.enrage ? (
-            <div className="boss-enrage" aria-label="Inferno Warden enrage">
-              <strong>Enrage</strong>
-              <span>
-                {Math.floor(snapshot.boss.enrage.elapsedSeconds)}s · speed{' '}
-                {snapshot.boss.enrage.movementSpeedMultiplier.toFixed(2)}x · damage{' '}
-                {snapshot.boss.enrage.damageMultiplier.toFixed(2)}x · cooldown{' '}
-                {snapshot.boss.enrage.cooldownMultiplier.toFixed(2)}x
-              </span>
+          </section>
+        ) : null}
+        {snapshot.stairs ? (
+          <section
+            className={`stairs-hud hud-panel${snapshot.stairs.isFinal ? ' stairs-final' : ''}`}
+            aria-label="Stairs status"
+            aria-live="polite"
+          >
+            <div className="stairs-heading">
+              <strong>
+                {snapshot.stairs.isFinal ? 'Final stairs' : 'Stairs'}
+              </strong>
+              <span>Floor {snapshot.stairs.floorNumber}</span>
             </div>
-          ) : null}
-        </section>
-      ) : null}
-      {snapshot.stairs ? (
-        <section
-          className={`stairs-hud${snapshot.stairs.isFinal ? ' stairs-final' : ''}`}
-          aria-label="Stairs status"
-          aria-live="polite"
-        >
-          <div className="stairs-heading">
+            <span>
+              {snapshot.stairs.rewardsCollected
+                ? 'Rewards collected · resolve choices'
+                : snapshot.stairs.playerTouching
+                  ? 'Touching stairs · collecting rewards'
+                  : 'Touch the stairs to descend'}
+            </span>
+          </section>
+        ) : null}
+        {snapshot.floorTransition ? (
+          <section className="floor-transition-hud hud-panel" role="status" aria-live="polite">
+            <p className="screen-kicker">
+              {snapshot.floorTransition.isFinal ? 'Run complete' : 'Floor transition'}
+            </p>
             <strong>
-              {snapshot.stairs.isFinal ? 'Final stairs' : 'Stairs'}
+              {snapshot.floorTransition.isFinal
+                ? 'Descending to results'
+                : snapshot.floorTransition.savePending
+                  ? 'Saving checkpoint'
+                : `Entering Floor ${snapshot.floorTransition.toFloor}`}
             </strong>
-            <span>Floor {snapshot.stairs.floorNumber}</span>
-          </div>
-          <span>
-            {snapshot.stairs.rewardsCollected
-              ? 'Rewards collected · resolve choices'
-              : snapshot.stairs.playerTouching
-                ? 'Touching stairs · collecting rewards'
-                : 'Touch the stairs to descend'}
-          </span>
-        </section>
-      ) : null}
-      {snapshot.floorTransition ? (
-        <section className="floor-transition-hud" role="status" aria-live="polite">
-          <p className="screen-kicker">
-            {snapshot.floorTransition.isFinal ? 'Run complete' : 'Floor transition'}
-          </p>
-          <strong>
-            {snapshot.floorTransition.isFinal
-              ? 'Descending to results'
-              : snapshot.floorTransition.savePending
-                ? 'Saving checkpoint'
-              : `Entering Floor ${snapshot.floorTransition.toFloor}`}
-          </strong>
-          <progress
-            value={snapshot.floorTransition.progress * 100}
-            max={100}
-            aria-label="Floor transition progress"
+            <progress
+              value={snapshot.floorTransition.progress * 100}
+              max={100}
+              aria-label="Floor transition progress"
+            />
+            <span>
+              {snapshot.floorTransition.savePending
+                ? 'Waiting for the floor checkpoint to finish'
+                : `${snapshot.floorTransition.remainingSeconds.toFixed(1)}s remaining`}
+            </span>
+          </section>
+        ) : null}
+      </div>
+      <div className="hud-bar hud-bar-bottom">
+        <div className="hud-region hud-region-bottom-center">
+          <SkillHud
+            snapshot={snapshot}
+            castPulseIds={castPulseIds}
+            tooltips={tooltips}
+            onSetMirrorcastTarget={onSetMirrorcastTarget}
+            onSetCriticalSpellstrikeTarget={onSetCriticalSpellstrikeTarget}
+            onSetBloodRiteTarget={onSetBloodRiteTarget}
           />
-          <span>
-            {snapshot.floorTransition.savePending
-              ? 'Waiting for the floor checkpoint to finish'
-              : `${snapshot.floorTransition.remainingSeconds.toFixed(1)}s remaining`}
-          </span>
-        </section>
-      ) : null}
-      <SkillHud
-        snapshot={snapshot}
-        castPulseIds={castPulseIds}
-        tooltips={tooltips}
-        onSetMirrorcastTarget={onSetMirrorcastTarget}
-        onSetCriticalSpellstrikeTarget={onSetCriticalSpellstrikeTarget}
-        onSetBloodRiteTarget={onSetBloodRiteTarget}
-      />
-      <EquippedLoadout snapshot={snapshot} tooltips={tooltips} />
+        </div>
+      </div>
+      {inspectorTab === null ? null : (
+        <HudInspector
+          snapshot={snapshot}
+          tooltips={tooltips}
+          tab={inspectorTab}
+          onTabChange={onInspectorTabChange}
+          onClose={() => onInspectorTabChange(null)}
+        />
+      )}
     </section>
   )
 }
