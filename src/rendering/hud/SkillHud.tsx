@@ -142,11 +142,13 @@ export function SkillHud({
                       aria-hidden="true"
                     />
                   ) : null}
-                  <span className="skill-icon">
-                    <SkillIcon skillId={skill.skillId} />
-                  </span>
-                  <span className={`skill-card-name${evolvedUpgrade ? ' skill-card-name-evolved' : ''}`}>
-                    {skill.name}
+                  <span className="skill-card-title">
+                    <span className="skill-icon">
+                      <SkillIcon skillId={skill.skillId} />
+                    </span>
+                    <span className={`skill-card-name${evolvedUpgrade ? ' skill-card-name-evolved' : ''}`}>
+                      {skill.name}
+                    </span>
                   </span>
                   <span className="skill-card-level">Lv. {skill.level}</span>
                   <span className="skill-card-dps">
@@ -513,11 +515,7 @@ export function SkillHud({
               <div
                 className="skill-card skill-card-empty"
                 aria-label="Empty skill slot"
-              >
-                <span className="skill-icon" aria-hidden="true">＋</span>
-                <span className="skill-card-name">Empty slot</span>
-                <span className="skill-card-level">Available</span>
-              </div>
+              />
             </li>
           ))}
         </ul>

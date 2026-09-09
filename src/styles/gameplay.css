@@ -154,12 +154,13 @@
   text-transform: uppercase;
 }
 
-.dungeon-stats,
 .dungeon-stats {
   display: grid;
   gap: 0.45rem;
   width: 11rem;
   max-width: calc(100% - 2rem);
+  /* The panel paints a background, so its figures need room inside it. */
+  padding: clamp(0.35rem, 1vh, 0.6rem) clamp(0.45rem, 1vw, 0.7rem);
   box-sizing: border-box;
 }
 
@@ -1432,10 +1433,24 @@
   z-index: 2;
 }
 
-.skill-card > .skill-icon {
-  position: absolute;
-  right: 0.45rem;
-  bottom: 0.4rem;
+/*
+ * The icon reads as part of the skill's name rather than as a stamp in the
+ * corner: one row, glyph first, so the eye lands on the picture and the word
+ * together.
+ */
+.skill-card-title {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.skill-card .skill-icon {
+  position: static;
+  width: auto;
+  flex: 0 0 auto;
+  text-align: left;
 }
 
 .skill-card > .skill-cast-pulse {
@@ -1501,11 +1516,6 @@
   background: rgb(15 23 42 / 45%);
   border-style: dashed;
   cursor: default;
-}
-
-.skill-card-empty .skill-icon {
-  color: var(--color-slate-500);
-  font-size: 1.1rem;
 }
 
 .skill-icon {

@@ -347,7 +347,8 @@
 
 .floor-hud progress {
   width: 100%;
-  height: clamp(0.3rem, 0.7vh, 0.45rem);
+  /* Thick enough to read from the corner of the eye mid-fight. */
+  height: clamp(0.5rem, 1.4vh, 0.85rem);
   accent-color: rgb(var(--accent-bright-rgb));
 }
 
@@ -529,9 +530,11 @@
   display: none;
 }
 
-.hud-region-bottom-center .skill-card > .skill-icon {
-  position: static;
-  width: auto;
+.hud-region-bottom-center .skill-card-title {
+  justify-content: center;
+}
+
+.hud-region-bottom-center .skill-card .skill-icon {
   font-size: clamp(1.05rem, 2.6vh, 1.5rem);
   text-align: center;
 }
@@ -725,9 +728,9 @@
   cursor: not-allowed;
 }
 
-/* An empty slot is a gap in the bar, not a card with a caption. */
-.hud-region-bottom-center .skill-card-empty .skill-card-level {
-  display: none;
+/* An empty slot is a gap in the bar: an outline, and nothing written in it. */
+.hud-region-bottom-center .skill-card-empty {
+  display: block;
 }
 
 /*
@@ -864,6 +867,13 @@
    */
   .hud-rail .character-stat-groups {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* The sheet hangs from the bottom-left corner, so the two groups end on
+       the same line rather than starting on one and trailing off unevenly. */
+    align-items: end;
+  }
+
+  .hud-rail-start .character-stats {
+    margin-top: auto;
   }
 
   .hud-rail .character-stat-group {
@@ -909,7 +919,7 @@
   /* The floor clock takes the middle half of the bar, with the vitals and the
      controls sharing what is left evenly on either side of it. */
   .hud-region-top-center {
-    flex: 0 1 50%;
+    flex: 0 1 34%;
   }
 
   .hud-region-top-start,
@@ -953,7 +963,11 @@
     font-size: clamp(0.62rem, 1.3vh, 0.72rem);
   }
 
-  .hud-region-bottom-center .skill-card > .skill-icon {
+  .hud-region-bottom-center .skill-card-title {
+    justify-content: flex-start;
+  }
+
+  .hud-region-bottom-center .skill-card .skill-icon {
     font-size: clamp(0.95rem, 2vh, 1.2rem);
   }
 

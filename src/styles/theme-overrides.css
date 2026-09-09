@@ -234,10 +234,6 @@
     border-color: rgb(168 162 158 / 45%);
   }
 
-  .skill-card-empty .skill-icon {
-    color: var(--color-stone-500);
-  }
-
   /*
    * In-run labels take the run's accent rather than naming ember, so the
    * Abyss gets its violet from the same rule instead of a second override.
