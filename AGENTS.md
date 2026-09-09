@@ -45,6 +45,32 @@ npm run test:run
 npm run build     # tsc -b covers src/, e2e/, tests/, and vite.config.ts
 ```
 
+## Verifying a change in the app
+
+Look at the running application. Do not reach for the end-to-end suites.
+
+```bash
+npm run screenshot -- --path wiki            # both viewports
+npm run screenshot -- --run --size desktop   # the in-run HUD
+```
+
+[scripts/screenshot.mjs](scripts/screenshot.mjs) reuses a dev server if one is
+already listening, signs in with the `.env` test account, and writes a PNG for
+each viewport. It reports console and page errors alongside the images, so a
+screenshot is a check on the code as well as on the layout. Pass the route
+without a leading slash: a POSIX shell on Windows rewrites `/wiki` into a
+filesystem path before Node sees it.
+
+Two viewports matter: a phone at the default iPhone size, 390x844, and a
+desktop at Full HD. Sizes between the two are the end-to-end matrix's business.
+
+**The Playwright suites under `e2e/` are opt-in.** Do not run `npx playwright
+test`, `npm run test:e2e` or `npm run test:layout` unless the person you are
+working for asks for them in that request. A complete end-to-end pass costs
+about two and a half minutes against about ten seconds for the whole unit
+suite, and re-running it after each edit is where a long turn goes. Driving the
+real screen catches more than the assertions do anyway.
+
 ## Architecture boundaries
 
 [tests/architecture.test.ts](tests/architecture.test.ts) enforces these; do not
