@@ -1145,7 +1145,12 @@
  * for it and there are far more of them on a screen.
  */
 .inventory-screen .inventory-item-grid-fitted .inventory-item-card {
-  padding: 0;
+  /* Two pixels, which is enough to read as a slot holding a thing rather than
+     as a thing with a line drawn round it, and no more than that. */
+  padding: 2px;
+  /* The rarity is the slot's colour, and at one pixel it was a hairline that
+     had to be looked for. At two it is the first thing seen. */
+  border-width: 2px;
 }
 
 .inventory-screen .inventory-item-grid-fitted .inventory-item-icon {
@@ -1153,7 +1158,7 @@
   height: 100%;
   font-size: clamp(0.85rem, 1.9vw, 1.4rem);
   border: 0;
-  border-radius: inherit;
+  border-radius: 0.42rem;
 }
 
 
