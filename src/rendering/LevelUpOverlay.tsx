@@ -59,6 +59,7 @@ import {
   type GameKeybinds,
 } from '../input/Keybinds'
 import { KeywordText } from './KeywordTooltip'
+import { useFitScale } from '../ui/useFitScale'
 import {
   getCharacterClassDefinition,
   type CharacterClassId,
@@ -777,10 +778,13 @@ export function LevelUpOverlay({
   onSkip,
 }: LevelUpOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
   const [activeComparison, setActiveComparison] = useState<string | null>(null)
   const [choiceTransition, setChoiceTransition] = useState<ChoiceTransition | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
+  /* Remeasuring is only worth it when the cards themselves change. */
+  const choiceFitKey = `${flow.type}:${flow.choices.length}:${rerollsRemaining}:${banishesRemaining}`
   const characterClass = getCharacterClassDefinition(characterClassId)
   const canReroll = rerollsRemaining > 0
 
@@ -864,6 +868,10 @@ export function LevelUpOverlay({
     }
   }, [flow, isGearFlow])
 
+  // A choice screen has to be wholly reachable without scrolling, and how tall
+  // it is depends on how much these particular three cards have to say.
+  useFitScale(panelRef, choiceFitKey)
+
   return (
     <>
       <div className="level-up-overlay" aria-hidden="true" />
@@ -881,6 +889,7 @@ export function LevelUpOverlay({
               ? ` choice-transition-${choiceTransition.kind}`
               : ''
           }`}
+          ref={panelRef}
           onAnimationEnd={handleChoiceTransitionEnd}
         >
           {choiceTransition &&

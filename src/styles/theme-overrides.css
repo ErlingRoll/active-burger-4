@@ -238,15 +238,17 @@
     color: var(--color-stone-500);
   }
 
-  .dungeon-stats h3,
+  /*
+   * In-run labels take the run's accent rather than naming ember, so the
+   * Abyss gets its violet from the same rule instead of a second override.
+   */
   .dungeon-stat dt,
   .projection-heading span,
-  .floor-hud > span,
   .character-stat-group h4,
   .loadout-slot,
   .development-kicker,
   .entity-counts dt {
-    color: var(--color-amber-400);
+    color: var(--accent);
   }
 
   .projection-heading strong,

@@ -124,6 +124,52 @@ async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(400)
 }
 
+/**
+ * Plays past whatever choice the run opens with.
+ *
+ * A run can start on a level-up, and a floor can hand out gear on the way, so
+ * a screenshot taken without clearing them measures a dialog rather than the
+ * arena. The leftmost choice is taken by keyboard because the cards move
+ * around and a click has to find them.
+ */
+async function resolveChoices(page: Page): Promise<void> {
+  const dialog = page.locator('.level-up-dialog')
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (await dialog.count() === 0) {
+      return
+    }
+    await page.keyboard.press('1')
+    await page.waitForTimeout(350)
+  }
+}
+
+/**
+ * Leaves the arena, so the next viewport starts from the refuge as this one
+ * did. A run left running is not a local failure: the next viewport finds
+ * `Resume dungeon` where it expects `Begin dungeon run` and fails on a screen
+ * it never reached.
+ *
+ * The toolbar's own Pause button rather than Escape, because Escape unwinds one
+ * layer at a time and the inspector is still open when this is called.
+ */
+async function forfeitFromArena(page: Page): Promise<void> {
+  const canvas = page.locator('.game-canvas')
+  if (await canvas.count() === 0) {
+    return
+  }
+  if (await canvas.getAttribute('data-game-phase') !== 'paused') {
+    await page.getByRole('button', { name: 'Pause the run' }).click()
+  }
+  const pauseMenu = page.getByRole('dialog', { name: 'Pause menu' })
+  await pauseMenu.waitFor({ state: 'visible', timeout: 15_000 })
+  await pauseMenu.getByRole('button', { name: 'Forfeit', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Forfeit run?' })
+    .getByRole('button', { name: 'Forfeit', exact: true })
+    .click()
+  await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: /Return to Dashboard/i }).click()
+}
+
 for (const viewport of VIEWPORTS) {
   test.describe(`${viewport.name} (${viewport.width}x${viewport.height})`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
@@ -195,6 +241,53 @@ for (const viewport of VIEWPORTS) {
           }
         })
       }
+
+      // The arena is a screen like the others, and the one the player spends
+      // the most time on. It is measured last because it needs a run in
+      // progress, which the rest of the matrix is careful not to leave behind.
+      await test.step('arena', async () => {
+        await page.goto('/')
+        await clearActiveRun(page)
+        await page.getByRole('button', { name: /Begin dungeon run/i }).click()
+        await page.getByRole('button', { name: /^Start Run$/i }).first().click()
+
+        const canvas = page.locator('.game-canvas')
+        const entered = await canvas
+          .waitFor({ state: 'visible', timeout: 30_000 })
+          .then(() => true)
+          .catch(() => false)
+        if (!entered) {
+          failures.push('arena: the run never started')
+          return
+        }
+        await resolveChoices(page)
+        await settle(page)
+
+        // The HUD in each of its states: the bars alone, and then each tab of
+        // the inspector, which is the panel most likely to outgrow a phone.
+        for (const state of ['playing', 'Loadout', 'Stats', 'Run'] as const) {
+          if (state !== 'playing') {
+            await page.getByRole('button', { name: `${state} details` }).click()
+              .catch(async () => {
+                await page.getByRole('tab', { name: state }).click()
+              })
+            await page.waitForTimeout(250)
+          }
+          await page.screenshot({
+            path: `${SCREENSHOT_DIRECTORY}/${viewport.name}--arena-${state.toLowerCase()}.png`,
+          })
+          const findings = await findOverflow(page)
+          if (findings.length > 0) {
+            failures.push(`arena (${state}): ${formatFindings(findings)}`)
+          }
+          const clipped = await findClippedControls(page)
+          if (clipped.length > 0) {
+            failures.push(`arena (${state}): cut off — ${formatFindings(clipped)}`)
+          }
+        }
+
+        await forfeitFromArena(page)
+      })
 
       // Written whether or not the viewport passed, so the run leaves behind a
       // complete picture of the matrix rather than only its failures.

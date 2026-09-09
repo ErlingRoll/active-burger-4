@@ -65,6 +65,7 @@ import { HudInspector } from './hud/HudInspector'
 import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import { HudToolbar } from './hud/HudToolbar'
 import { TouchControls } from './hud/TouchControls'
+import { createSteeringHandover } from './hud/steering'
 import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
 
 
@@ -148,8 +149,8 @@ export function GameCanvas({
   useEffect(() => {
     inspectorTabRef.current = inspectorTab
   }, [inspectorTab])
-  // The profile a steering drag interrupted, restored when the finger lifts.
-  const steeringProfileRef = useRef<BehaviorProfileId | null>(null)
+  // Holds the profile a steering drag interrupted, and restores it on release.
+  const steeringRef = useRef(createSteeringHandover())
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
     () => import.meta.env.DEV &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
@@ -426,8 +427,13 @@ export function GameCanvas({
         return
       }
 
-      // Escape unwinds one layer at a time: the inspector first, the run only
-      // once nothing is open over it.
+      // Escape unwinds one layer at a time: an open HUD popover closes itself,
+      // then the inspector, and the run pauses only once nothing is open over
+      // it. The popover is read from the DOM because this handler runs before
+      // the popover's own, and pausing underneath it is the bug that produced.
+      if (document.querySelector('[data-hud-popover="open"]') !== null) {
+        return
+      }
       if (inspectorTabRef.current !== null) {
         event.preventDefault()
         setInspectorTab(null)
@@ -534,43 +540,20 @@ export function GameCanvas({
   }
 
   /*
-   * Steering the arena by pointer.
-   *
-   * A drag is a loan rather than a mode change: the profile that was running is
-   * remembered, free movement is switched on for the length of the drag, and
-   * the profile is handed back on release. A player who has already chosen free
-   * movement is left in it, because there is nothing to hand back to.
+   * Steering the arena by pointer. The handover between the behaviour profile
+   * and the player's thumb lives in `createSteeringHandover`, which is where
+   * its rules are tested.
    */
   const startSteering = (): void => {
-    const currentGame = gameRef.current
-    if (!currentGame || currentGame.phase !== 'playing') {
-      return
-    }
-    if (currentGame.freeMovementEnabled) {
-      steeringProfileRef.current = null
-      return
-    }
-    steeringProfileRef.current = currentGame.behaviorProfileId
-    currentGame.setFreeMovementEnabled(true)
+    steeringRef.current.start(gameRef.current)
   }
 
   const steer = (directionX: number, directionY: number): void => {
-    gameRef.current?.setFreeMovementDirection(directionX, directionY)
+    steeringRef.current.steer(gameRef.current, directionX, directionY)
   }
 
   const endSteering = (): void => {
-    const currentGame = gameRef.current
-    const borrowedProfile = steeringProfileRef.current
-    steeringProfileRef.current = null
-    if (!currentGame) {
-      return
-    }
-    currentGame.setFreeMovementDirection(0, 0)
-    if (borrowedProfile === null) {
-      return
-    }
-    currentGame.setFreeMovementEnabled(false)
-    currentGame.setBehaviorProfile(borrowedProfile)
+    steeringRef.current.end(gameRef.current)
   }
 
   const pauseRun = (): void => {
@@ -856,7 +839,8 @@ export function GameplayHud({
           />
         </div>
       </div>
-      <div className="hud-region hud-region-center">
+      <div className="hud-middle">
+        <div className="hud-region hud-region-center">
         {snapshot.boss ? (
           <section className="boss-hud hud-panel" aria-label="Boss status">
             <div className="boss-hud-heading">
@@ -931,6 +915,16 @@ export function GameplayHud({
             </span>
           </section>
         ) : null}
+        </div>
+        {inspectorTab === null ? null : (
+          <HudInspector
+            snapshot={snapshot}
+            tooltips={tooltips}
+            tab={inspectorTab}
+            onTabChange={onInspectorTabChange}
+            onClose={() => onInspectorTabChange(null)}
+          />
+        )}
       </div>
       <div className="hud-bar hud-bar-bottom">
         <div className="hud-region hud-region-bottom-center">
@@ -944,15 +938,6 @@ export function GameplayHud({
           />
         </div>
       </div>
-      {inspectorTab === null ? null : (
-        <HudInspector
-          snapshot={snapshot}
-          tooltips={tooltips}
-          tab={inspectorTab}
-          onTabChange={onInspectorTabChange}
-          onClose={() => onInspectorTabChange(null)}
-        />
-      )}
     </section>
   )
 }

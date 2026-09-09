@@ -194,6 +194,19 @@
 }
 
 /*
+ * The band between the bars. The inspector opens into it rather than over the
+ * whole frame, so a phone keeps its health bar and its skills while the sheet
+ * is open — on a narrow screen the sheet is the full width of this band, and on
+ * a wide one it is a panel down its right-hand edge.
+ */
+.hud-middle {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/*
  * Banners hang from the top of the arena, where a boss bar belongs, and the
  * floor-change notice takes the space left over so it lands in the middle.
  */
@@ -534,7 +547,8 @@
   background:
     linear-gradient(200deg, rgb(var(--accent-rgb) / 10%), transparent 46%),
     rgb(var(--hud-surface-rgb) / 96%);
-  border-left: 1px solid rgb(var(--accent-rgb) / 38%);
+  border: 1px solid rgb(var(--accent-rgb) / 38%);
+  border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
   box-shadow: -1rem 0 3rem rgb(0 0 0 / 45%);
   pointer-events: auto;
 }
@@ -722,4 +736,75 @@
 .development-menu {
   margin-top: 0;
   margin-bottom: 0.6rem;
+}
+
+/*
+ * The choice cards shrink to the screen instead of running off the bottom of
+ * it.
+ *
+ * A level-up is a screen rather than a document: every option and both actions
+ * have to be reachable without scrolling. On a phone the three cards stack, and
+ * stacked cards at desktop spacing ran past the fold with the Skip button
+ * below it. Padding, gaps and type all read `vh` so the whole dialog gives way
+ * on a short viewport rather than only on a narrow one.
+ */
+.upgrade-choice {
+  gap: clamp(0.14rem, 0.7vh, 0.5rem);
+  padding:
+    clamp(0.35rem, 1.3vh, 1rem)
+    clamp(0.5rem, 1.3vh, 1rem)
+    clamp(1.05rem, 3.2vh, 2.35rem);
+  border-radius: 0.5rem;
+}
+
+.upgrade-choice-description {
+  font-size: clamp(0.74rem, 1.7vh, 0.9rem);
+  line-height: 1.35;
+}
+
+.banish-choice-button {
+  min-height: clamp(1.4rem, 3.4vh, 2.25rem);
+  margin-top: clamp(0.12rem, 0.7vh, 0.5rem);
+  padding: clamp(0.15rem, 0.6vh, 0.4rem) 0.75rem;
+  font-size: clamp(0.68rem, 1.5vh, 0.78rem);
+}
+
+.skill-affinity-note {
+  margin: 0 0 clamp(0.35rem, 1.2vh, 1.25rem);
+  font-size: clamp(0.7rem, 1.6vh, 0.82rem);
+}
+
+.skip-choice-button {
+  min-height: clamp(2.35rem, 4.6vh, 2.75rem);
+  padding: clamp(0.3rem, 1vh, 0.55rem) 1.25rem;
+}
+
+/* The rest of the level-up's vertical budget, on the same `vh` footing. */
+.level-up-kicker {
+  font-size: clamp(0.66rem, 1.5vh, 0.8rem);
+}
+
+.upgrade-choice-name {
+  font-size: clamp(0.92rem, 2.1vh, 1.1rem);
+  line-height: 1.2;
+}
+
+.upgrade-choice-value {
+  font-size: clamp(0.82rem, 1.9vh, 1rem);
+  line-height: 1.25;
+}
+
+.upgrade-skill-tags {
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  font-size: clamp(0.62rem, 1.4vh, 0.72rem);
+}
+
+.upgrade-choice .skill-tag {
+  padding: clamp(0.05rem, 0.3vh, 0.15rem) 0.4rem;
+  font-size: clamp(0.6rem, 1.35vh, 0.69rem);
+}
+
+.upgrade-choice .choice-keybind-hint {
+  right: 0.5rem;
+  bottom: 0.4rem;
 }

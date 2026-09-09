@@ -53,8 +53,22 @@ export function BehaviorControl({
       }
       setOpen(false)
     }
+    // Escape closes the menu rather than reaching the run behind it and
+    // pausing, which is what one key doing two jobs looked like from the
+    // player's side.
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return
+      }
+      event.preventDefault()
+      setOpen(false)
+    }
     window.addEventListener('pointerdown', handlePointerDown)
-    return () => { window.removeEventListener('pointerdown', handlePointerDown) }
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+    }
   }, [open])
 
   const freeMode = snapshot.behavior.freeMode
@@ -63,7 +77,17 @@ export function BehaviorControl({
   const intentLabel = snapshot.behavior.activeIntent?.label ?? 'No active intent'
 
   return (
-    <div className="hud-behavior" ref={rootRef}>
+    /*
+     * The open state is published to the DOM as well as held in React: the
+     * run's own Escape handler reads it to decide whether Escape is closing
+     * this menu or pausing the run, and it runs before this component's
+     * listener does.
+     */
+    <div
+      className="hud-behavior"
+      ref={rootRef}
+      data-hud-popover={open ? 'open' : undefined}
+    >
       {open ? (
         <div className="hud-behavior-menu" role="menu" aria-label="Movement behavior">
           {BEHAVIOR_PROFILE_ORDER.map((profileId) => {

@@ -170,15 +170,6 @@
   box-sizing: border-box;
 }
 
-.dungeon-stats h3 {
-  margin: 0;
-  color: var(--color-blue-300);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .dungeon-stats-list {
   display: grid;
   gap: 0.4rem;
@@ -973,22 +964,6 @@
 
 .wiki-chart-values strong {
   color: var(--color-sky-100);
-}
-
-.equipped-loadout {
-  position: absolute;
-  top: 5.75rem;
-  left: 1rem;
-  width: min(15rem, calc(100% - 2rem));
-  pointer-events: auto;
-}
-
-.equipped-loadout h3 {
-  margin: 0 0 0.4rem;
-  color: var(--color-blue-200);
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .loadout-list {
@@ -2897,7 +2872,7 @@
   z-index: 3;
   display: grid;
   place-items: center;
-  padding: clamp(0.5rem, 2vh, 1.25rem);
+  padding: clamp(0.3rem, 2vh, 1.25rem);
   pointer-events: none;
 }
 
@@ -3038,7 +3013,7 @@
   position: relative;
   width: min(62rem, 100%);
   max-height: 100%;
-  padding: clamp(0.7rem, min(4vw, 2.6vh), 2.5rem);
+  padding: clamp(0.5rem, min(4vw, 2.6vh), 2.5rem);
   color: var(--color-slate-200);
   background: var(--color-gray-900);
   border: 1px solid var(--color-blue-400);
@@ -3275,12 +3250,12 @@
   color: var(--color-slate-50);
   /* Reads `vh` as well as `vw`: a short landscape phone runs out of height
      long before it runs out of width. */
-  font-size: clamp(1.4rem, min(6vw, 6.5vh), 3.5rem);
+  font-size: clamp(1.15rem, min(6vw, 6.5vh), 3.5rem);
   line-height: 1.1;
 }
 
 .level-up-instructions {
-  margin: clamp(0.2rem, 0.8vh, 0.5rem) 0 clamp(0.5rem, 2vh, 1.5rem);
+  margin: clamp(0.15rem, 0.8vh, 0.5rem) 0 clamp(0.3rem, 2vh, 1.5rem);
   color: var(--color-slate-300);
   font-size: clamp(0.78rem, 1.8vh, 1rem);
 }
@@ -3303,7 +3278,7 @@
    * phone's third choice off the side of the screen.
    */
   grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
-  gap: clamp(0.5rem, 1.6vh, 1rem);
+  gap: clamp(0.32rem, 1.6vh, 1rem);
   align-items: stretch;
 }
 
