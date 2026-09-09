@@ -55,11 +55,11 @@ interface ScreenUnderTest {
 }
 
 const SCREENS: readonly ScreenUnderTest[] = [
-  { name: 'dashboard', path: '/', ready: '.game-dashboard' },
-  { name: 'run-setup', path: '/prepare/dungeon', ready: '.run-setup' },
+  { name: 'dashboard', path: '/', ready: '.game-dashboard', document: true },
+  { name: 'run-setup', path: '/prepare/dungeon', ready: '.run-setup', document: true },
   { name: 'store', path: '/store', ready: '.meta-progression-screen', document: true },
   { name: 'fishing', path: '/fishing', ready: '.fishing-screen' },
-  { name: 'inventory', path: '/inventory', ready: '.inventory-screen' },
+  { name: 'inventory', path: '/inventory', ready: '.inventory-screen', document: true },
   { name: 'champions', path: '/champions', ready: '.champion-management-screen', document: true },
   { name: 'wiki', path: '/wiki', ready: '.wiki-screen', document: true },
 ]

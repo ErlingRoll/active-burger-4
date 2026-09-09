@@ -546,3 +546,23 @@
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   grid-auto-rows: min-content;
 }
+
+/*
+ * A document's sections take their own height.
+ *
+ * The preparation screen divides a screenful between its fieldsets, which is
+ * the right shape while it is a screen: each one shrinks and its list pages.
+ * As a document it scrolls instead, and dividing anyway collapsed every
+ * fieldset to its legend while its contents spilled out of it — the character
+ * cards were drawn straight over the world modifiers, so a tap meant for a
+ * modifier landed on a class.
+ */
+.app-shell-document .dashboard-panel {
+  flex: 0 0 auto;
+  max-height: none;
+}
+
+.app-shell-document .dashboard-choice-group {
+  flex: 0 0 auto;
+  min-height: 0;
+}

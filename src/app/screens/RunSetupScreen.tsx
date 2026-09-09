@@ -58,7 +58,6 @@ import {
   CHARACTER_CLASS_DEFINITIONS,
   type CharacterClassId,
 } from '../../content/classes/CharacterClasses'
-import { FittedRows } from '../../ui/FittedList'
 
 export interface RunSetupScreenProps {
   settings: SettingsDto
@@ -300,7 +299,13 @@ export function RunSetupScreen({
         {selectedMode === 'dungeon' ? (
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
-          <FittedRows className="dashboard-choice-list run-class-list" label="Character">
+          {/*
+            * Every class is listed rather than paged. The screen is a document
+            * now, so a card that does not fit is reached by scrolling to it —
+            * where paging put it behind a Next button that nothing on the first
+            * page pointed at.
+            */}
+          <div className="dashboard-choice-list run-class-list">
             {Object.values(CHARACTER_CLASS_DEFINITIONS).map((characterClass) => {
               const selected = settings.selectedCharacterClassId === characterClass.id
               const startingSkillId = characterClass.startingSkillIds.find(
@@ -421,7 +426,7 @@ export function RunSetupScreen({
                 </button>
               )
             })}
-          </FittedRows>
+          </div>
         </fieldset>
         ) : null}
         {selectedMode === 'dungeon' ? (

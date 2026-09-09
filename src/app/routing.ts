@@ -42,15 +42,30 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  *
  * Everything else fits the viewport and never scrolls. These hold more than a
  * viewport by nature — the codex is a reference manual, the roster grows with
- * every victory, the store's upgrade list grows with every upgrade added, and
- * the moderation dashboards list whatever players have sent in — and shrinking
- * that to fit made them unreadable, so they scroll instead.
- * `app-shell-document` is what grants it.
+ * every victory, the store's upgrade list grows with every upgrade added, the
+ * run's preparation screen sets a character, a length, five meals and seven
+ * world modifiers before it is done, the bag holds whatever the player has
+ * caught and won, and the moderation dashboards list whatever players have
+ * sent in — and shrinking that to fit made them
+ * unreadable, so they scroll instead. `app-shell-document` is what grants it.
+ *
+ * The refuge is the awkward one, and it is here for a different reason. It is
+ * composed as a lit room rather than a page, and on anything with room it fits
+ * without scrolling exactly as it was designed to — the permission is not used.
+ * A phone does not have the room: the fire, the camp's three stations, the
+ * dungeon gate, the campfire signals, the Essence store and a ten-player
+ * leaderboard come to about twice the height of a small phone's screen, and
+ * every way of forcing that into one screenful ends in either unreadable type
+ * or half the refuge hidden behind toggles. Being able to scroll to the
+ * leaderboard beats not being able to reach it.
  */
 export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'wiki',
   'champions',
   'meta-progression',
+  'run-setup',
+  'inventory',
+  'dashboard',
   'admin',
   'nickname-moderation',
 ])

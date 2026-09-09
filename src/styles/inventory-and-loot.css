@@ -995,3 +995,43 @@
   from { opacity: 0; transform: translateY(1.1rem) scale(0.9); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/*
+ * A row of items and the pager that pages them each need their own height.
+ *
+ * The grid was `flex: 1 1 auto` with no floor, so on a phone it was squeezed to
+ * eight pixels while its cards stayed square at forty-seven — and the cards,
+ * overflowing a box that small, were drawn straight over the Previous / Page /
+ * Next row underneath. The floor is one cell, which is the smallest the shelf
+ * was ever meant to be.
+ */
+.inventory-screen .inventory-item-grid {
+  min-height: var(--inventory-cell-min, 42px);
+  /*
+   * The row decides the cell, not the column. A card sized only by its column
+   * width stayed square by growing taller than the row it was in, which is how
+   * it ended up over the pager; taking its height from the row keeps it square
+   * by narrowing instead.
+   */
+  grid-auto-rows: var(--inventory-cell-min, 42px);
+}
+
+.inventory-screen .inventory-item-card {
+  width: auto;
+  height: 100%;
+  justify-self: center;
+}
+
+/*
+ * The shelf's floor is a row of items plus the pager beneath them. Set to a
+ * row alone, the pager was pushed out of the panel and drawn across the one
+ * below it — the shelf fitted, and the way to reach the rest of it did not.
+ */
+.inventory-screen .inventory-paged-grid {
+  min-height: calc(var(--inventory-cell-min, 42px) + 2.4rem);
+}
+
+.inventory-screen .inventory-pagination {
+  flex: 0 0 auto;
+}
+

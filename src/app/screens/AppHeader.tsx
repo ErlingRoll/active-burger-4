@@ -49,7 +49,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <header className="app-header">
-      <div>
+      <div className="app-brand">
         <p className="app-kicker">Dungeon Crawler</p>
         <a
           className="app-title-link"

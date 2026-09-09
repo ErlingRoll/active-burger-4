@@ -3,7 +3,9 @@
   position: relative;
   overflow: hidden;
   place-items: start center;
-  padding: clamp(1rem, 4vw, 3.5rem);
+  /* The refuge is the content; the frame around it is not worth a phone's
+     vertical budget, so the padding gives way on a short screen. */
+  padding: clamp(0.4rem, 1.6vh, 3.5rem) clamp(0.5rem, 4vw, 3.5rem);
   background:
     radial-gradient(circle at 12% 10%, rgb(96 165 250 / 13%), transparent 24rem),
     radial-gradient(circle at 92% 0%, rgb(192 132 252 / 11%), transparent 22rem),
@@ -1507,9 +1509,15 @@
   flex-direction: column;
   gap: clamp(0.75rem, 2vw, 1.5rem);
   width: min(100%, 92rem);
-  min-height: min(50rem, calc(100vh - 5rem));
+  /*
+   * Measured against the box the shell actually gave it rather than against the
+   * viewport minus a guess at the header. The guess was 5rem, the header is
+   * nearer 7, and the difference was a scroll range on a laptop that held no
+   * content — invisible while the refuge clipped, a scrollbar once it stopped.
+   */
+  min-height: min(50rem, 100%);
   margin: 0 auto;
-  padding: clamp(1rem, 2.5vw, 2rem);
+  padding: clamp(0.5rem, 1.6vh, 2rem) clamp(0.6rem, 2.5vw, 2rem);
   overflow: hidden;
   isolation: isolate;
   background:
@@ -2070,16 +2078,32 @@
   background: linear-gradient(180deg, var(--scene-stone) 0%, var(--scene-night) 70%);
 }
 
+/*
+ * The refuge's ground glow. Anchored inside the frame rather than hanging ten
+ * rems below it: the refuge is a scroll container on a screen too small to hold
+ * it, and a decoration outside the box adds that overhang to the scroll range —
+ * a hundred and sixty pixels of empty travel below the last panel, on every
+ * viewport including the ones with room to spare.
+ */
 .adventure-hub::after {
-  bottom: -10rem;
+  top: auto;
+  bottom: 0;
   width: 72rem;
   height: 22rem;
 }
 
+/*
+ * A floor, not a lid.
+ *
+ * `height: 100%` pinned the room to the viewport, and with the scene clipping
+ * its own overflow everything past the fold was not scrolled past but deleted:
+ * on a phone the Essence store and the whole leaderboard were drawn and then
+ * cut off. As a minimum it still fills the screen wherever there is room, which
+ * is what keeps the composition on a desktop.
+ */
 .adventure-hub-scene {
   width: 100%;
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
   margin: 0;
   padding: clamp(0.6rem, 1.7vh, 2rem) clamp(1.25rem, 5vw, 5rem);
   border: 0;
@@ -2712,10 +2736,16 @@
   min-width: 0;
 }
 
-/* Matching bases on the outer columns keep the campfire column centred. */
+/*
+ * Matching bases on the outer columns keep the campfire column centred, and the
+ * base is what decides when the room stops being three columns. At 9.5rem two
+ * of them still fitted a 360-wide phone, which put the campfire signals beside
+ * the camp with neither of them wide enough to read. A base wide enough to hold
+ * a station button means a narrow screen takes one column at a time.
+ */
 .hub-hud-column-start,
 .hub-hud-column-end {
-  flex: 1 1 min(9.5rem, 100%);
+  flex: 1 1 min(16rem, 100%);
 }
 
 .hub-hud-column-start {
@@ -2723,7 +2753,7 @@
 }
 
 .hub-hud-column-center {
-  flex: 1 1 min(9.5rem, 100%);
+  flex: 1 1 min(16rem, 100%);
   align-items: center;
   justify-content: flex-end;
 }
@@ -2895,4 +2925,44 @@
   color: #c4aa92;
   font-size: 0.65rem;
   line-height: 1.4;
+}
+
+/*
+ * The preparation screen's opening, sized for a phone.
+ *
+ * As a document it no longer has to fit, but the first screenful was still a
+ * back button, a title and a briefing card and nothing a player came here to
+ * set — six hundred pixels before the first choice. The chrome now gives way on
+ * a short viewport, and the briefing wraps its action underneath rather than
+ * squeezing "Dungeon run" into two lines beside it.
+ */
+.run-setup .run-setup-topbar {
+  margin-bottom: clamp(0.35rem, 1.2vh, 1rem);
+}
+
+.run-setup .run-dashboard-hero {
+  padding-bottom: clamp(0.35rem, 1.2vh, 1.25rem);
+}
+
+.run-setup .run-dashboard-hero h2 {
+  margin-bottom: clamp(0.15rem, 0.6vh, 0.5rem);
+  font-size: clamp(1.5rem, min(7vw, 4.4vh), 3rem);
+  line-height: 1.05;
+}
+
+.run-setup .run-dashboard-hero p {
+  font-size: clamp(0.82rem, 1.9vh, 1rem);
+}
+
+.run-setup .run-dashboard-command {
+  flex-wrap: wrap;
+  margin: clamp(0.5rem, 1.8vh, 2rem) 0 clamp(0.35rem, 1.2vh, 1rem);
+}
+
+.run-setup .run-dashboard-command > div {
+  flex: 1 1 min(14rem, 100%);
+}
+
+.run-setup .run-dashboard-start {
+  flex: 0 1 auto;
 }

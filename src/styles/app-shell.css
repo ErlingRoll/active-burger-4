@@ -28,6 +28,9 @@
 .app-shell-document > .wiki-screen,
 .app-shell-document > .app-screen,
 .app-shell-document > .meta-progression-screen,
+.app-shell-document > .run-setup,
+.app-shell-document > .game-dashboard,
+.app-shell-document > .inventory-screen,
 .app-shell-document > .admin-reports-screen {
   min-height: 0;
   overflow-y: auto;
@@ -88,7 +91,27 @@
   border-bottom: 1px solid var(--color-slate-700);
 }
 
+/*
+ * The brand block, in two rows rather than three.
+ *
+ * The kicker, the title and the build number were stacked, which on a phone
+ * spent a fifth of the header on two lines of small print. The build number
+ * belongs beside the kicker: both are captions, and together they cost one row
+ * instead of two. The header is on every screen, so what it saves, every screen
+ * gets.
+ */
+.app-brand {
+  display: grid;
+  grid-template-areas:
+    'kicker version'
+    'title title';
+  align-items: baseline;
+  justify-content: start;
+  column-gap: 0.5rem;
+}
+
 .app-kicker {
+  grid-area: kicker;
   margin: 0;
   color: var(--color-blue-400);
   font-size: clamp(0.62rem, 1.5vh, 0.875rem);
@@ -98,6 +121,7 @@
 }
 
 .app-header h1 {
+  grid-area: title;
   margin: clamp(0.1rem, 0.5vh, 0.25rem) 0 0;
   font-size: clamp(1.15rem, min(4vw, 4.2vh), 2.5rem);
 }
@@ -114,7 +138,8 @@
 }
 
 .app-version {
-  margin: clamp(0.1rem, 0.4vh, 0.25rem) 0 0;
+  grid-area: version;
+  margin: 0;
   color: var(--color-slate-500);
   font-size: clamp(0.58rem, 1.2vh, 0.7rem);
   font-weight: 600;
@@ -128,12 +153,18 @@
   text-align: right;
 }
 
+/*
+ * "Signed in" is read out but not drawn. Beside a player's own name it tells a
+ * sighted reader nothing they cannot see, and it cost a row of the header on
+ * every screen; a screen reader still gets the label the name belongs to.
+ */
 .app-account-label {
-  color: var(--color-blue-300);
-  font-size: clamp(0.58rem, 1.3vh, 0.7rem);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .app-account-email {

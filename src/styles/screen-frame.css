@@ -127,6 +127,18 @@
   min-height: 0;
 }
 
+/*
+ * On a document, the panels stop dividing a screenful and take the height they
+ * need; the screen around them is the scroll container, so there is nothing to
+ * divide. Dividing it anyway is what squeezed the inventory's shelf below one
+ * row of items and its pager, and drew the pager across the panel underneath.
+ */
+.app-shell-document .app-screen-frame,
+.app-shell-document .app-screen-frame > .app-panel,
+.app-shell-document .app-screen-frame > .app-screen-panels {
+  flex: 0 0 auto;
+}
+
 /* Several panels on one screen sit side by side while both bases fit and stack
    when they do not. A short landscape viewport has width to spare and almost no
    height, so spending the width is what keeps the panels off each other.
