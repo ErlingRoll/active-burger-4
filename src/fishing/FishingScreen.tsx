@@ -882,33 +882,28 @@ export function FishingScreen({
     }
   }
 
-  const salvageFish = async (fish: InventoryItemInstance): Promise<void> => {
+  const salvageItem = async (target: InventoryItemInstance): Promise<void> => {
     if (!inventoryService || salvagingItemInstanceId) {
       return
     }
-    const itemName = getInventoryItemDefinition(fish.definitionId)?.name ?? fish.definitionId
-    setSalvagingItemInstanceId(fish.itemInstanceId)
+    const itemName = getInventoryItemDefinition(target.definitionId)?.name ?? target.definitionId
+    setSalvagingItemInstanceId(target.itemInstanceId)
     setError(null)
     try {
       const result = await inventoryService.salvageItem(
         crypto.randomUUID(),
-        fish.itemInstanceId,
+        target.itemInstanceId,
         1,
       )
-      const fishDefinition = getFishDefinition(fish.definitionId)
       showLootToast({
-        title: 'Fish salvaged',
+        title: 'Item salvaged',
         itemName,
-        icon: fishDefinition ? (
-          <FishIcon icon={fishDefinition.visual.icon} color={fishDefinition.visual.accent} />
-        ) : '🐟',
-        accentColor: fishDefinition?.visual.accent,
-        glowColor: fishDefinition?.visual.glow,
+        icon: getRewardIcon(target.definitionId),
         reward: `+${result.essenceAwarded} Essence`,
       })
       setItems(await inventoryService.loadInventory())
     } catch (salvageError: unknown) {
-      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
+      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage item.')
     } finally {
       setSalvagingItemInstanceId(null)
     }
@@ -1361,14 +1356,14 @@ export function FishingScreen({
       <LootBoxOpening session={lootBoxOpening.session} onDismiss={lootBoxOpening.dismiss} />
       {pendingSalvage ? (
         <ConfirmationDialog
-          title="Salvage fish?"
+          title="Salvage item?"
           message={`Salvaging ${getInventoryItemDefinition(pendingSalvage.definitionId)?.name ?? pendingSalvage.definitionId} for Essence.`}
-          confirmLabel="Salvage fish"
+          confirmLabel="Salvage"
           onCancel={() => setPendingSalvage(null)}
           onConfirm={() => {
-            const fish = pendingSalvage
+            const target = pendingSalvage
             setPendingSalvage(null)
-            void salvageFish(fish)
+            void salvageItem(target)
           }}
         />
       ) : null}

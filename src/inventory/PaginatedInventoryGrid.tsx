@@ -10,6 +10,7 @@ import { EssenceAmount } from '../ui/EssenceMark'
 import { useFittedItemCount } from '../ui/useFittedItemCount'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { isEnchantedItemMetadata } from '../fishing/FishingContent'
+import { isSalvageableItem } from './InventoryFilters'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import { markInventoryItemAsSeen, useSeenInventoryItemIds } from './InventoryItemSeen'
@@ -304,7 +305,7 @@ export function PaginatedInventoryGrid({
           </dl>
           {selectedItemInstanceId === tooltipItem.itemInstanceId &&
           onSalvage &&
-          getInventoryItemDefinition(tooltipItem.definitionId)?.category === 'fish' ? (
+          isSalvageableItem(tooltipItem) ? (
             <div className="inventory-item-tooltip-actions">
               <button
                 className="inventory-item-salvage"

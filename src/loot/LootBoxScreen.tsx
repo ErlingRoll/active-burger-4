@@ -8,7 +8,8 @@ import {
   getInventoryItemDefinition,
   getInventoryItemEssence,
   getInventoryItemRarity,
-  selectCommonFish,
+  isSalvageableItem,
+  selectCommonSalvage,
 } from '../inventory'
 import type { InventoryCategoryFilter } from '../inventory'
 import { CraftingBench } from '../inventory/CraftingBench'
@@ -19,9 +20,7 @@ import {
   formatFishingBaitEffect,
   formatFishingFishDetail,
   formatFishingRodModifiers,
-  FishIcon,
   getFishingEssenceValue,
-  getFishDefinition,
   isEnchantedItemMetadata,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
@@ -166,52 +165,47 @@ export function InventoryScreen({
   // number has to answer the question the filter just asked.
   const visibleEssence = getInventoryEssenceTotal(visibleItems, getItemEssence)
 
-  const commonFish = selectCommonFish(items)
-  const commonFishEssence = getInventoryEssenceTotal(commonFish, getItemEssence)
+  const commonSalvage = selectCommonSalvage(items)
+  const commonSalvageEssence = getInventoryEssenceTotal(commonSalvage, getItemEssence)
   const busy = salvagingItemInstanceId !== null || sweptCount !== null
 
-  const salvageFish = async (fish: InventoryItemInstance): Promise<void> => {
+  const salvageItem = async (target: InventoryItemInstance): Promise<void> => {
     if (!inventoryService || busy) {
       return
     }
-    const itemName = getInventoryItemName(fish)
-    setSalvagingItemInstanceId(fish.itemInstanceId)
+    const itemName = getInventoryItemName(target)
+    setSalvagingItemInstanceId(target.itemInstanceId)
     setError(null)
     try {
       const result = await inventoryService.salvageItem(
         crypto.randomUUID(),
-        fish.itemInstanceId,
+        target.itemInstanceId,
         1,
       )
-      const fishDefinition = getFishDefinition(fish.definitionId)
       showLootToast({
-        title: 'Fish salvaged',
+        title: 'Item salvaged',
         itemName,
-        icon: fishDefinition ? (
-          <FishIcon icon={fishDefinition.visual.icon} color={fishDefinition.visual.accent} />
-        ) : '🐟',
-        accentColor: fishDefinition?.visual.accent,
-        glowColor: fishDefinition?.visual.glow,
+        icon: getRewardIcon(target.definitionId),
         reward: `+${result.essenceAwarded} Essence`,
       })
       await refresh()
     } catch (salvageError: unknown) {
-      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage fish.')
+      setError(salvageError instanceof Error ? salvageError.message : 'Unable to salvage item.')
     } finally {
       setSalvagingItemInstanceId(null)
     }
   }
 
   /**
-   * Clears the common catch in one action.
+   * Clears the common catch and gear in one action.
    *
-   * Salvaging cost a hover, two clicks and a confirmation per fish, against a
+   * Salvaging cost a hover, two clicks and a confirmation per item, against a
    * bag that fills a page a session with fish worth two Essence apiece. The
    * requests go one at a time because the service salvages one instance at a
    * time; a failure part-way through keeps what it earned and says how far it
    * got rather than pretending the whole sweep failed.
    */
-  const sweepCommonFish = async (fish: readonly InventoryItemInstance[]): Promise<void> => {
+  const sweepCommonSalvage = async (targets: readonly InventoryItemInstance[]): Promise<void> => {
     if (!inventoryService || busy) {
       return
     }
@@ -220,7 +214,7 @@ export function InventoryScreen({
     let essenceAwarded = 0
     let salvaged = 0
     let failure: string | null = null
-    for (const item of fish) {
+    for (const item of targets) {
       try {
         const result = await inventoryService.salvageItem(
           crypto.randomUUID(),
@@ -231,15 +225,15 @@ export function InventoryScreen({
         salvaged += 1
         setSweptCount(salvaged)
       } catch (sweepError: unknown) {
-        failure = sweepError instanceof Error ? sweepError.message : 'Unable to salvage fish.'
+        failure = sweepError instanceof Error ? sweepError.message : 'Unable to salvage item.'
         break
       }
     }
     if (salvaged > 0) {
       showLootToast({
-        title: 'Common catch salvaged',
-        itemName: `${salvaged} common fish`,
-        icon: '🐟',
+        title: 'Common items salvaged',
+        itemName: `${salvaged} common item${salvaged === 1 ? '' : 's'}`,
+        icon: '✨',
         reward: `+${essenceAwarded} Essence`,
       })
     }
@@ -247,7 +241,7 @@ export function InventoryScreen({
       setError(
         salvaged === 0
           ? failure
-          : `Salvaged ${salvaged} of ${fish.length} before stopping: ${failure}`,
+          : `Salvaged ${salvaged} of ${targets.length} before stopping: ${failure}`,
       )
     }
     setSweptCount(null)
@@ -262,7 +256,7 @@ export function InventoryScreen({
   }
 
   const selectedRarity = selectedItem === null ? null : getInventoryItemRarity(selectedItem)
-  const selectedIsFish = selectedItem !== null && getInventoryItemCategory(selectedItem) === 'fish'
+  const selectedIsSalvageable = selectedItem !== null && isSalvageableItem(selectedItem)
   const selectedEssence = selectedItem === null ? null : getItemEssence(selectedItem)
 
   return (
@@ -372,16 +366,16 @@ export function InventoryScreen({
                         </button>
                       ))}
                     </div>
-                    {commonFish.length > 0 ? (
+                    {commonSalvage.length > 0 ? (
                       <button
                         className="inventory-sweep-action"
                         type="button"
                         disabled={busy}
-                        onClick={() => { setPendingSweep(commonFish) }}
+                        onClick={() => { setPendingSweep(commonSalvage) }}
                       >
                         {sweptCount === null
-                          ? `Salvage ${commonFish.length} common`
-                          : `Salvaging ${sweptCount} of ${commonFish.length}…`}
+                          ? `Salvage ${commonSalvage.length} common`
+                          : `Salvaging ${sweptCount} of ${commonSalvage.length}…`}
                       </button>
                     ) : null}
                   </div>
@@ -456,7 +450,7 @@ export function InventoryScreen({
                         </div>
                       </dl>
                     </div>
-                    {selectedIsFish ? (
+                    {selectedIsSalvageable ? (
                       <button
                         className="primary-action inventory-inspector-salvage"
                         type="button"
@@ -542,30 +536,30 @@ export function InventoryScreen({
       <LootBoxOpening session={opening.session} onDismiss={opening.dismiss} />
       {pendingSalvage ? (
         <ConfirmationDialog
-          title="Salvage fish?"
+          title="Salvage item?"
           message={`Salvaging ${getInventoryItemName(pendingSalvage)} for Essence.`}
-          confirmLabel="Salvage fish"
+          confirmLabel="Salvage"
           onCancel={() => setPendingSalvage(null)}
           onConfirm={() => {
-            const fish = pendingSalvage
+            const target = pendingSalvage
             setPendingSalvage(null)
-            void salvageFish(fish)
+            void salvageItem(target)
           }}
         />
       ) : null}
       {pendingSweep ? (
         <ConfirmationDialog
-          title="Salvage every common fish?"
+          title="Salvage every common item?"
           message={
-            `${pendingSweep.length} common fish will be salvaged for about ` +
-            `${commonFishEssence} Essence. Nothing rarer is touched.`
+            `${pendingSweep.length} common item${pendingSweep.length === 1 ? '' : 's'} ` +
+            `will be salvaged for about ${commonSalvageEssence} Essence. Nothing rarer is touched.`
           }
-          confirmLabel={`Salvage ${pendingSweep.length} fish`}
+          confirmLabel={`Salvage ${pendingSweep.length} item${pendingSweep.length === 1 ? '' : 's'}`}
           onCancel={() => setPendingSweep(null)}
           onConfirm={() => {
-            const fish = pendingSweep
+            const targets = pendingSweep
             setPendingSweep(null)
-            void sweepCommonFish(fish)
+            void sweepCommonSalvage(targets)
           }}
         />
       ) : null}

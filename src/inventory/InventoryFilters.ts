@@ -77,17 +77,26 @@ export function filterInventoryItems(
     : items.filter((item) => getInventoryItemCategory(item) === filter)
 }
 
+/** The categories a slot can be individually salvaged from. */
+const SALVAGEABLE_CATEGORIES: readonly InventoryItemCategory[] = ['fish', 'rod']
+
+export function isSalvageableItem(item: InventoryItemInstance): boolean {
+  return SALVAGEABLE_CATEGORIES.includes(getInventoryItemCategory(item))
+}
+
 /**
- * The catch a player would otherwise clear one fish at a time.
+ * The catch and gear a player would otherwise clear one at a time.
  *
- * Deliberately common fish only. A sweep that could take an epic off the shelf
- * needs a per-item decision, and the point of this action is that it does not.
+ * Deliberately common rarity, and deliberately only the categories a player
+ * accumulates faster than they can use: fish and rods. A sweep that could take
+ * an epic off the shelf needs a per-item decision, and the point of this
+ * action is that it does not.
  */
-export function selectCommonFish(
+export function selectCommonSalvage(
   items: readonly InventoryItemInstance[],
 ): InventoryItemInstance[] {
   return items.filter((item) =>
-    getInventoryItemCategory(item) === 'fish' &&
+    isSalvageableItem(item) &&
     getInventoryItemRarity(item) === Rarity.Common,
   )
 }
