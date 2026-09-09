@@ -1,6 +1,9 @@
 /* Inventory grid and loot-box opening flow. */
 .loot-box-panel {
   --screen-measure: 58rem;
+  /* The floor at which a slot stops being a legible target. Declared here so
+     both the grid and the wrapper that reserves room for it can read it. */
+  --inventory-cell-min: 34px;
 }
 
 /*
@@ -8,10 +11,15 @@
  * screen, moonwater in the pond's drawer. Only the shelf changes — the rarity
  * rings below stay fixed, because those carry information rather than mood.
  */
-/* The bag keeps its twelve columns and lets them narrow, rather than dropping
-   slots or running off a small screen. */
+/* The bag fills the shelf it is given and pages what does not fit, rather than
+   rendering a fixed hundred and twenty slots and pushing the screen into a
+   scroll. `--inventory-columns` is set from the measured box; the minimum cell
+   below is the floor at which a slot stops being a legible target. */
 .inventory-screen .inventory-item-grid {
-  grid-template-columns: repeat(12, minmax(0, 3rem));
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: repeat(var(--inventory-columns, 12), minmax(0, 3rem));
+  align-content: start;
   justify-content: start;
 }
 
@@ -176,7 +184,7 @@
 
 .loot-box-list {
   display: grid;
-  gap: 0.7rem;
+  gap: clamp(0.25rem, 0.9vh, 0.7rem);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -186,8 +194,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1rem;
+  gap: clamp(0.4rem, 1.6vw, 1rem);
+  padding: clamp(0.3rem, 1.1vh, 0.9rem) clamp(0.5rem, 1.6vw, 1rem);
   color: var(--color-amber-100);
   background: rgb(68 64 60 / 72%);
   border: 1px solid rgb(251 191 36 / 28%);
@@ -195,8 +203,10 @@
 }
 
 .loot-box-list li > div {
-  display: grid;
-  gap: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: clamp(0.2rem, 1.2vw, 0.6rem);
 }
 
 .loot-box-list li span {
@@ -220,4 +230,18 @@
 
 .loot-box-result span {
   color: var(--color-amber-300);
+}
+
+/* The bag stretches and the reward shelf does not: a slot grid can drop to a
+   single row and page the rest, while a list of loot boxes has no such give.
+   Letting both flex equally squeezed the "Open one" buttons past the frame. */
+.inventory-screen .app-panel[aria-labelledby="loot-box-title"] {
+  flex: 0 1 auto;
+}
+
+/* The bag keeps room for at least one row of slots. Letting it flex all the way
+   to nothing made the shelf disappear entirely on a short screen, which is a
+   worse answer than showing one row and paging the rest. */
+.inventory-screen .inventory-paged-grid {
+  min-height: var(--inventory-cell-min, 34px);
 }

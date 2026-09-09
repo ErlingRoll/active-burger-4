@@ -1661,8 +1661,11 @@
 }
 
 .inventory-paged-grid {
-  display: grid;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 0.55rem;
+  min-height: 0;
 }
 
 .inventory-item-grid {

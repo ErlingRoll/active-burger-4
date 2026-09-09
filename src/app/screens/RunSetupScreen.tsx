@@ -58,6 +58,7 @@ import {
   CHARACTER_CLASS_DEFINITIONS,
   type CharacterClassId,
 } from '../../content/classes/CharacterClasses'
+import { FittedRows } from '../../ui/FittedList'
 
 export interface RunSetupScreenProps {
   settings: SettingsDto
@@ -299,7 +300,7 @@ export function RunSetupScreen({
         {selectedMode === 'dungeon' ? (
         <fieldset className="dashboard-choice-group run-dashboard-choice-group">
           <legend>Character</legend>
-          <div className="dashboard-choice-list">
+          <FittedRows className="dashboard-choice-list run-class-list" label="Character">
             {Object.values(CHARACTER_CLASS_DEFINITIONS).map((characterClass) => {
               const selected = settings.selectedCharacterClassId === characterClass.id
               const startingSkillId = characterClass.startingSkillIds.find(
@@ -420,7 +421,7 @@ export function RunSetupScreen({
                 </button>
               )
             })}
-          </div>
+          </FittedRows>
         </fieldset>
         ) : null}
         {selectedMode === 'dungeon' ? (

@@ -722,11 +722,11 @@
 
 .app-wiki-link {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: clamp(1.7rem, 3.6vh, 2.25rem);
   align-items: center;
-  padding: 0.4rem 0.8rem;
+  padding: clamp(0.22rem, 0.8vh, 0.4rem) clamp(0.5rem, 1.6vw, 0.8rem);
   color: var(--color-amber-400);
-  font-size: 0.82rem;
+  font-size: clamp(0.72rem, 1.5vh, 0.82rem);
   font-weight: 800;
   letter-spacing: 0.08em;
   background: rgb(120 53 15 / 32%);
@@ -741,7 +741,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: clamp(0.3rem, 1vh, 0.5rem);
   align-self: center;
   margin-left: auto;
   overflow: visible;

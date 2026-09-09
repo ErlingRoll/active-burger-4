@@ -1540,9 +1540,9 @@
 
 .hub-heading h2 {
   max-width: 10ch;
-  margin: clamp(0.15rem, 0.6vh, 0.35rem) 0 clamp(0.25rem, 0.9vh, 0.55rem);
+  margin: clamp(0.1rem, 0.45vh, 0.35rem) 0 clamp(0.15rem, 0.7vh, 0.55rem);
   color: var(--color-orange-50);
-  font-size: clamp(2rem, 5vw, 4.6rem);
+  font-size: clamp(1.5rem, min(5vw, 7vh), 4.6rem);
   line-height: 0.9;
   letter-spacing: -0.065em;
 }
@@ -1551,14 +1551,14 @@
   max-width: 34rem;
   margin: 0;
   color: #d6c1ad;
-  font-size: clamp(0.65rem, 1.7vh, 1rem);
+  font-size: clamp(0.6rem, 1.5vh, 1rem);
   line-height: 1.35;
 }
 
 .hub-status-panel,
 .hub-expedition-panel,
 .hub-leaderboard-panel {
-  padding: clamp(0.42rem, 1.2vh, 1rem);
+  padding: clamp(0.3rem, 1vh, 1rem);
   background:
     linear-gradient(135deg, rgb(254 243 199 / 6%), transparent 72%),
     rgb(12 14 19 / 86%);
@@ -1612,8 +1612,8 @@
   gap: clamp(0.5rem, 1.2vh, 0.7rem);
   align-items: center;
   width: 100%;
-  min-height: 4.5rem;
-  padding: clamp(0.3rem, 0.9vh, 0.7rem) 0.8rem;
+  min-height: clamp(2.1rem, 6.4vh, 4.5rem);
+  padding: clamp(0.22rem, 0.9vh, 0.7rem) clamp(0.45rem, 1.6vw, 0.8rem);
   color: #f4e5d6;
   font: inherit;
   text-align: left;
@@ -2697,26 +2697,27 @@
 /* The HUD sits over the scene as three columns. Each one keeps its own
    corner while the row has space for all three, and drops onto a row of its
    own when it does not, so the hub reflows on any viewport without a single
-   breakpoint. */
+   breakpoint.
+
+   It does not scroll. The hub is a screen, not a document, and a HUD layer
+   with its own scrollbar hides the campfire's destinations below the fold just
+   as effectively as a scrolling page would. Everything inside it is sized in
+   `vh` so the column shrinks to the viewport instead. */
 .hub-hud {
   position: relative;
   z-index: 6;
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: clamp(0.75rem, 2vw, 1.5rem);
+  gap: clamp(0.4rem, 1.2vh, 1.5rem);
   justify-content: space-between;
   min-height: 0;
-  overflow: hidden auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(251 146 60 / 45%) transparent;
 }
 
 .hub-hud-column {
   display: flex;
   flex-direction: column;
-  gap: clamp(0.25rem, 0.85vh, 1rem);
+  gap: clamp(0.18rem, 0.7vh, 1rem);
   justify-content: space-between;
   min-width: 0;
 }
@@ -2724,7 +2725,7 @@
 /* Matching bases on the outer columns keep the campfire column centred. */
 .hub-hud-column-start,
 .hub-hud-column-end {
-  flex: 1 1 min(16rem, 100%);
+  flex: 1 1 min(9.5rem, 100%);
 }
 
 .hub-hud-column-start {
@@ -2732,7 +2733,7 @@
 }
 
 .hub-hud-column-center {
-  flex: 1 1 min(17rem, 100%);
+  flex: 1 1 min(9.5rem, 100%);
   align-items: center;
   justify-content: flex-end;
 }
@@ -2746,7 +2747,7 @@
   z-index: 6;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.25rem, 0.85vh, 1rem);
+  gap: clamp(0.18rem, 0.7vh, 1rem);
   min-width: 0;
   width: min(100%, 20rem);
 }

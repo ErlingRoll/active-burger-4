@@ -1,11 +1,16 @@
 /* Shared dashboard, authentication, result, and persistence surfaces. */
+/* Like `.app-screen`, these claim the space the shell gives them and no more,
+   so the panel they centre shrinks to fit rather than being clipped by the
+   frame at both ends. */
 .dashboard,
 .results-screen,
 .auth-gateway {
   display: grid;
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
   place-items: center;
-  padding: clamp(1.25rem, 5vw, 4rem);
+  padding: clamp(0.6rem, 2.4vh, 4rem) clamp(0.9rem, 5vw, 4rem);
   background:
     radial-gradient(circle at top, rgb(30 64 175 / 22%), transparent 60%),
     var(--color-slate-900);
@@ -27,8 +32,12 @@
 
 .dashboard-panel,
 .results-panel {
+  display: flex;
+  flex-direction: column;
   width: min(42rem, 100%);
-  padding: clamp(1.5rem, 5vw, 3rem);
+  max-height: 100%;
+  min-height: 0;
+  padding: clamp(0.6rem, 2.4vh, 3rem) clamp(0.9rem, 5vw, 3rem);
   color: var(--color-blue-100);
   background: var(--color-gray-900);
   border: 1px solid var(--color-slate-700);
@@ -39,7 +48,7 @@
 .screen-kicker {
   margin: 0;
   color: var(--accent);
-  font-size: 0.8rem;
+  font-size: clamp(0.55rem, 1.4vh, 0.8rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -477,4 +486,63 @@
 .screen-loading .dashboard-panel {
   min-width: 18rem;
   text-align: center;
+}
+
+/* A list that pages to fit: the rows take the room the panel has left and the
+   pager sits under them at its natural height. */
+.fitted-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: clamp(0.25rem, 0.9vh, 0.6rem);
+  min-height: 0;
+}
+
+/* The rows container, whichever element it is — `FittedList` renders a `ul`
+   and `FittedRows` a `div`. It has to be the thing that flexes, because its
+   height is what the page size is measured from; left to size itself it reports
+   its own content and pages everything onto a single page. */
+.fitted-list > :first-child {
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+}
+
+/* The store's upgrade section is a column: its heading keeps its height and the
+   paged card list takes what is left of the panel. */
+.meta-shop-unlocks {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Cards spread across the panel before they page, so a wide screen shows more
+   of the store rather than a single tall column with a pager under it. */
+.meta-shop-unlocks .dashboard-choice-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  grid-auto-rows: min-content;
+}
+
+/* Run setup is a column too, so the character list can be told what is left of
+   the panel rather than running past its foot. */
+.run-dashboard-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.run-dashboard-choice-group {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Class cards spread across the panel before they page: they are wide enough to
+   compare side by side, and a single column would page one class at a time. */
+.run-class-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  grid-auto-rows: min-content;
 }

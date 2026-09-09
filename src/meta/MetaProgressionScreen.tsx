@@ -11,6 +11,7 @@ import {
   type MetaUnlockDefinition,
 } from './MetaProgressionService'
 import { getXpMultiplierForLevel } from '../content/progression/XpMultiplier'
+import { FittedRows } from '../ui/FittedList'
 
 export interface MetaProgressionScreenProps {
   snapshot: MetaProgressionSnapshot | null
@@ -300,7 +301,7 @@ export function MetaProgressionScreen({
           <div className="meta-shop-section-heading">
             <h3 id="meta-upgrades-title" style={{marginBottom: "2rem"}}>Permanent upgrades</h3>
           </div>
-          <div className="dashboard-choice-list">
+          <FittedRows className="dashboard-choice-list" label="Permanent upgrades">
             <div className="dashboard-choice meta-unlock-card">
               <div className="meta-unlock-card-multiplier">
                 <span>Rerolls</span>
@@ -532,7 +533,7 @@ export function MetaProgressionScreen({
                 Dungeon maximum floor fully upgraded.
               </p>
             )}
-          </div>
+          </FittedRows>
           {purchaseState === 'purchasing' ? (
             <p className="persistence-status" role="status">Submitting unlock purchase...</p>
           ) : null}

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { getInventoryItemDefinition } from '../inventory'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
+import { FittedList } from '../ui/FittedList'
 import {
   formatFishingBaitEffect,
   formatFishingFishDetail,
@@ -204,7 +205,7 @@ export function InventoryScreen({
         {loadState === 'loading' ? (
           <p role="status">Loading loot boxes…</p>
         ) : (
-          <>
+          <div className="app-screen-panels">
             <section className="app-panel inventory-section" aria-labelledby="inventory-items-title">
               <header className="app-panel-heading">
                 <div>
@@ -221,6 +222,7 @@ export function InventoryScreen({
                 </div>
               ) : (
                 <PaginatedInventoryGrid
+                  fitToContainer
                   items={items}
                   label="Owned items"
                   getItemIcon={getInventoryItemIcon}
@@ -246,9 +248,13 @@ export function InventoryScreen({
                   <p>Complete Abyss floors to earn them.</p>
                 </div>
               ) : (
-                <ul className="loot-box-list">
-                  {boxes.map((box) => (
-                    <li key={box.itemInstanceId}>
+                <FittedList
+                  className="loot-box-list"
+                  items={boxes}
+                  label="Unopened loot boxes"
+                  getKey={(box) => box.itemInstanceId}
+                  renderItem={(box) => (
+                    <>
                       <div>
                         <strong>{getInventoryItemDefinition(box.definitionId)?.name ?? box.definitionId}</strong>
                         <span>×{box.quantity}</span>
@@ -261,12 +267,12 @@ export function InventoryScreen({
                       >
                         {opening ? 'Opening…' : 'Open one'}
                       </button>
-                    </li>
-                  ))}
-                </ul>
+                    </>
+                  )}
+                />
               )}
             </section>
-          </>
+          </div>
         )}
       </div>
       {pendingSalvage ? (
