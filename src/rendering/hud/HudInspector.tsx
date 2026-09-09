@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import type { GameUiSnapshot } from '../../game'
-import { GEAR_XP_BLESSING_MULTIPLIER } from '../../game-config/gear'
 import { CharacterStatsPanel, LoadoutPanel } from './EquippedLoadout'
 import { CloseIcon } from './HudIcons'
 import {
@@ -101,13 +100,9 @@ export function HudInspector({
  */
 export function RunStatsPanel({ snapshot }: { snapshot: GameUiSnapshot }) {
   return (
-    <section className="dungeon-stats" aria-labelledby="dungeon-stats-title">
+    <section className="dungeon-stats hud-panel" aria-labelledby="dungeon-stats-title">
       <h3 id="dungeon-stats-title" className="hud-panel-heading">Dungeon stats</h3>
       <dl className="dungeon-stats-list">
-        <div className="dungeon-stat">
-          <dt>Floor</dt>
-          <dd>{snapshot.floor}</dd>
-        </div>
         <div className="dungeon-stat">
           <dt>Essence</dt>
           <dd aria-label="Estimated Essence">{snapshot.estimatedEssence}</dd>
@@ -115,14 +110,6 @@ export function RunStatsPanel({ snapshot }: { snapshot: GameUiSnapshot }) {
         <div className="dungeon-stat">
           <dt>Kills</dt>
           <dd>{snapshot.killCount}</dd>
-        </div>
-        <div className="dungeon-stat">
-          <dt>Gear blessing</dt>
-          <dd>
-            {snapshot.gearXpBlessingActive
-              ? `${GEAR_XP_BLESSING_MULTIPLIER}x XP`
-              : 'Inactive'}
-          </dd>
         </div>
       </dl>
     </section>

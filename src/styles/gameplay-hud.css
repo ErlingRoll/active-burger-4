@@ -907,6 +907,22 @@
     pointer-events: auto;
   }
 
+  /*
+   * The hotbar floats over the arena rather than standing on the bottom of it.
+   *
+   * In the flow it was a row the middle band had to end above, which pushed the
+   * stat sheet up off the corner it belongs in: the rail stopped where the
+   * skills began. Lifting the bar out of the flow gives the rails the full
+   * height of the frame, so the gear sits against the top margin and the stat
+   * sheet against the bottom one, both on the same inset as everything else.
+   * The bar is centred and the rails are at the edges, so nothing overlaps.
+   */
+  .hud-bar-bottom {
+    position: absolute;
+    inset-inline: var(--hud-pad);
+    bottom: var(--hud-pad);
+  }
+
   /* Gear at the top, the stat sheet at the bottom, and the arena between. */
   .hud-rail-start {
     justify-content: space-between;
