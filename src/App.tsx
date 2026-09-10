@@ -79,7 +79,9 @@ import {
 import {
 } from './fishing'
 import {
+  isChampionRosterFullError,
   type CharacterBuildSnapshot,
+  type ChampionSnapshot,
 } from './characters'
 import {
 } from './loot'
@@ -150,7 +152,7 @@ function App() {
     nickname: nicknameService,
     meta: metaProgressionService,
     characters,
-    essenceLeaderboard,
+    abyssLeaderboard,
     dungeonRunPersistence,
     inventory,
     lootBoxes,
@@ -213,9 +215,16 @@ function App() {
   const [terminalSaveState, setTerminalSaveState] = useState<RunWriteState>('idle')
   const [terminalSaveError, setTerminalSaveError] = useState<string | null>(null)
   const [championSaveState, setChampionSaveState] = useState<
-    'idle' | 'saving' | 'saved' | 'error'
+    'idle' | 'saving' | 'saved' | 'error' | 'roster-full' | 'discarded'
   >('idle')
   const [championSaveError, setChampionSaveError] = useState<string | null>(null)
+  /*
+   * The roster the results screen offers a choice from, loaded only when a win
+   * arrives at a full one. It is the live list rather than anything remembered
+   * from the run, because a Champion may have been archived on another device
+   * while this one was in the dungeon.
+   */
+  const [championRoster, setChampionRoster] = useState<ChampionSnapshot[]>([])
   const [adminReports, setAdminReports] = useState<{
     loadState: 'idle' | 'loading' | 'ready' | 'error'
     reports: BugReport[]
@@ -503,7 +512,13 @@ function App() {
       dungeonMaxFloorBonus: metaProgression.snapshot?.dungeonMaxFloorBonus ?? 0,
       rerollCount: metaProgression.snapshot?.wallet.rerollLevel ?? 0,
       banishCount: metaProgression.snapshot?.banishCount ?? 1,
-      worldModifierIds: settings.selectedWorldModifierIds,
+      /*
+       * The Abyss takes none, and the preference is kept all the same: it is
+       * the player's dungeon setting, waiting for their next dungeon run.
+       */
+      worldModifierIds: (activeRun?.modeId ?? runMode) === 'infinite-abyss'
+        ? []
+        : settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
         : {
@@ -1048,6 +1063,7 @@ function App() {
   const saveChampion = useCallback(async (
     name = DEFAULT_CHAMPION_NAME,
     submissionOverride?: MetaRunResultInput,
+    replacedChampionId?: string,
   ): Promise<void> => {
     const submission = submissionOverride ?? activeRunSubmission
     if (submission?.outcome !== 'victory') {
@@ -1074,11 +1090,29 @@ function App() {
         sourceRunId: submission.runId,
         name: trimmedName,
         contentVersion: RUN_GAME_VERSION,
+        ...(replacedChampionId ? { replacedChampionId } : {}),
       })
       pendingChampionIdRef.current = null
       setChampionAvailability('available')
       setChampionSaveState('saved')
     } catch (error: unknown) {
+      /*
+       * A full roster is a choice to put to the player, not a failure to report:
+       * the build was earned, and something has to give way for it. The roster
+       * is fetched here so the results screen can name what it is offering.
+       */
+      if (isChampionRosterFullError(error)) {
+        try {
+          const collection = await characters.service.loadCharacters()
+          setChampionRoster(collection.champions)
+          setChampionSaveState('roster-full')
+          setChampionSaveError(null)
+          return
+        } catch {
+          // Fall through: without the roster there is no choice to offer, so the
+          // player is told the plain truth instead.
+        }
+      }
       setChampionSaveState('error')
       setChampionSaveError(errorMessage(error))
     }
@@ -1703,8 +1737,8 @@ function App() {
           essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
           presenceService={hubPresence.service}
           presenceConfigurationError={hubPresence.configurationError}
-          leaderboardService={essenceLeaderboard.service}
-          leaderboardConfigurationError={essenceLeaderboard.configurationError}
+          leaderboardService={abyssLeaderboard.service}
+          leaderboardConfigurationError={abyssLeaderboard.configurationError}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}
@@ -1880,7 +1914,15 @@ function App() {
           championSaveState={championSaveState}
           championSaveError={championSaveError}
           championConfigurationError={characters.configurationError}
+          championRoster={championRoster}
           onSaveChampion={saveChampion}
+          onReplaceChampion={(replacedChampionId) =>
+            saveChampion(DEFAULT_CHAMPION_NAME, undefined, replacedChampionId)}
+          onDiscardChampion={() => {
+            pendingChampionIdRef.current = null
+            setChampionSaveState('discarded')
+            setChampionSaveError(null)
+          }}
           onReturn={returnToDashboard}
           onRetryTerminalSave={retryTerminalSave}
           onRetryReward={() => {

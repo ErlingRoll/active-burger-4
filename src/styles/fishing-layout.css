@@ -65,3 +65,258 @@
     opacity: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The pond on a phone.
+
+   The pond is not a document and never was: the scene fills the screen and the
+   HUD is pinned over it top and bottom. What a narrow screen broke was the
+   proportions. The title wrapped to two lines under a kicker that repeats it,
+   the Inventory button fell onto a row of its own, and the three loadout
+   controls stacked into full-width rows — between them the chrome took two
+   thirds of the screen and left the water a band in the middle with the angler
+   off the bottom of it.
+
+   Nothing here moves a control or makes the screen scroll. The parts are simply
+   sized for the screen they are on, so that the pond gets the room back.
+   --------------------------------------------------------------------------- */
+@media (max-width: 47rem), (max-height: 34rem) {
+  /* The scrims exist to hold the HUD's text off the water. Sized for a desktop
+     they are most of a phone's pond. */
+  .fishing-hud::before {
+    height: 6rem;
+  }
+
+  .fishing-hud::after {
+    height: 9rem;
+  }
+
+  .fishing-hud-topbar {
+    top: 0.55rem;
+    right: 0.6rem;
+    left: 0.6rem;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0;
+  }
+
+  /* "Downtime activity · Moonwater Pond" over "Fishing · Moonwater Pond" is the
+     same sentence twice, and on a phone it costs a line to say it again. */
+  .pond-scene-header .screen-kicker {
+    display: none;
+  }
+
+  .pond-scene-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.15;
+  }
+
+  .pond-scene-subline {
+    gap: 0.55rem;
+    margin-top: 0.2rem;
+    font-size: 0.62rem;
+  }
+
+  .fishing-topbar-actions {
+    flex: 0 0 auto;
+  }
+
+  .fishing-inventory-toggle {
+    width: auto;
+    min-height: 2.6rem;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .fishing-hud-bottom {
+    bottom: 0.6rem;
+    width: calc(100% - 1.2rem);
+    padding: 0.6rem;
+  }
+
+  /*
+   * Boats sized for the pond they are on, and centred on their moorings.
+   *
+   * A five-rem angler is a twenty-fifth of a desktop's water and a fifth of a
+   * phone's, which is a rowing boat the size of the far bank. Worse, the figure
+   * hangs to the right of the point that places it: a mooring can be as far
+   * across as the ninety-first hundredth of the pond, and out there the whole
+   * boat was over the edge and clipped away. Half a box to the left puts the
+   * boat on its mooring rather than beside it, and both extremes back in frame.
+   */
+  .pond-angler {
+    margin-left: -2.5rem;
+    scale: 0.68;
+  }
+
+  /*
+   * The cast line keeps the box it has on a desktop, and comes down with the
+   * angler like everything else in the boat.
+   *
+   * Where it meets the rod is decided by the shape of this box. The curve is
+   * drawn in a viewbox of its own that is fitted inside the box and centred
+   * there, so a box wider than the viewbox's two-to-one pushes the curve in from
+   * the left — and that inset is what the rod-tip anchor was tuned around. Both
+   * of the clamps below bottom out on a phone, at exactly two-to-one, which
+   * leaves no inset at all and starts the line a third of the way down the rod.
+   * Sized like the desktop's, every offset involved is the one it was tuned
+   * with, and the angler's own scale takes the whole assembly down together.
+   */
+  .pond-cast-line {
+    width: 14rem;
+    height: 5rem;
+  }
+
+  /* ---------------------------------------------------------------------------
+     The inventory, as a sheet rather than a drawer.
+
+     A drawer tucked into the pond's top-right corner is a desktop idea: at 390
+     points it was a twelve-column grid running off the right of the screen with
+     its own pager cut off after it, wedged between the title and the cast
+     button. It takes the pond instead, and scrolls, which is the one thing on
+     this screen that has to — loot boxes, a paged bag and the crafting bench
+     are three screenfuls however they are arranged.
+     --------------------------------------------------------------------------- */
+  .fishing-inventory-drawer {
+    inset: 0;
+    width: auto;
+    max-height: none;
+    padding: 0 0.7rem 1rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    border-radius: 0;
+    background:
+      linear-gradient(135deg, rgb(14 116 144 / 22%), transparent 60%),
+      rgb(15 23 42 / 98%);
+    /*
+     * Sections stack from the top at the height each one needs, rather than
+     * sharing out a screenful between them. Pinned to all four sides the sheet
+     * is a grid of definite height, and the bag — the one section willing to
+     * shrink below its contents — did not shrink so much as draw its page
+     * straight over the workbench underneath. The sheet scrolls; nothing in it
+     * has to give up height to fit.
+     */
+    align-content: start;
+    grid-auto-rows: min-content;
+  }
+
+  .fishing-inventory-drawer .inventory-paged-grid {
+    flex: 0 0 auto;
+    min-height: auto;
+  }
+
+  /*
+   * The shelf is the exception, and needs telling.
+   *
+   * It pages to the room it is given, which it can only measure if that room
+   * comes from its parent — in a sheet where every section is as tall as its own
+   * contents, it measures the one row it drew and settles on showing one box at
+   * a time. Three rows of boxes is the room, and a player holding more than
+   * three kinds pages through them.
+   */
+  .fishing-inventory-drawer .loot-box-list {
+    height: 12.2rem;
+  }
+
+  /* Full-bleed against the sheet's own side padding, and pinned: the way out of
+     a sheet cannot be at the top of a scroll. */
+  .fishing-inventory-drawer .fishing-inventory-header {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    gap: 0.5rem;
+    margin: 0 -0.7rem;
+    padding: 0.7rem;
+    background: rgb(15 23 42 / 97%);
+    border-bottom: 1px solid rgb(103 232 249 / 22%);
+  }
+
+  .fishing-inventory-drawer .fishing-inventory-header .screen-kicker {
+    display: none;
+  }
+
+  .fishing-inventory-drawer .fishing-inventory-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .fishing-inventory-header-actions {
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: end;
+  }
+
+  /*
+   * The bag fills the width it is given rather than the twelve slots a desktop
+   * drawer has room for, and the empty ones stop being drawn: a page holds a
+   * hundred and twenty, so on a phone the few a player owns arrived under
+   * eighteen rows of empty sockets.
+   */
+  .fishing-inventory-drawer .inventory-item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr));
+    justify-content: stretch;
+  }
+
+  .fishing-inventory-drawer .inventory-item-card-empty {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The loadout bar, stacked, on a narrow screen only.
+
+   Side by side the three controls are too narrow to read a bait's name in, so
+   the mode and the rod — whose values are two words — share a row and the bait,
+   whose value is a sentence about what it catches, takes the width below them.
+
+   Narrow only: turned on its side the same phone has width to spare and height
+   to spare none of, and stacking there spent three fifths of the screen on a
+   bar that fits across the top of it in one row.
+   --------------------------------------------------------------------------- */
+@media (max-width: 47rem) {
+  .pond-scene-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .pond-loadout-controls {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .pond-loadout-controls > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* The cast is the screen's one action, and in manual mode it is a reflex
+     test, so it takes the full width and a thumb's height. */
+  .pond-cast-button {
+    width: 100%;
+    min-height: 3rem;
+  }
+
+  /*
+   * The near shore comes up to meet the bar.
+   *
+   * Your own boat is framed in the front half of the water, as deep as three
+   * quarters of the way down the pond. On a desktop that is well clear of the
+   * bar; here the bar is a fifth of the screen and the boat was behind it, so a
+   * cast played out where it could not be watched — which is most of what there
+   * is to watch. Ending the water above the bar puts the whole pond in view.
+   */
+  .pond-world {
+    bottom: 9.5rem;
+  }
+}
+
+/* The same, for the one row a landscape phone's bar comes to. */
+@media (max-height: 34rem) and (min-width: 47.0625rem) {
+  .pond-world {
+    bottom: 7rem;
+  }
+}

@@ -22,6 +22,7 @@ import {
   type WorldModifierId,
 } from '../../content/modifiers/WorldModifiers'
 import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
+import { CHAMPION_SLOT_LIMIT } from '../../content/progression/ChampionSlots'
 import {
   errorMessage,
   formatChampionExhaustion,
@@ -142,8 +143,16 @@ export function RunSetupScreen({
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000)
     return () => window.clearInterval(timer)
   }, [selectedMode])
+  /*
+   * The roster is loaded for both modes.
+   *
+   * The Abyss needs it to choose a Champion from. A dungeon run needs only its
+   * size — a victory saves a Champion automatically, and at a full roster that
+   * save turns into a choice about which build to lose, which is worth knowing
+   * before the run rather than after it.
+   */
   useEffect(() => {
-    if (selectedMode !== 'infinite-abyss' || !characterService) {
+    if (!characterService) {
       return
     }
     let cancelled = false
@@ -173,7 +182,7 @@ export function RunSetupScreen({
     return () => {
       cancelled = true
     }
-  }, [characterService, selectedMode])
+  }, [characterService])
   const selectedFishSlots = useMemo(
     () => selectedFishIds
       .map((id) => fishItems.find((item) => item.itemInstanceId === id))
@@ -253,7 +262,9 @@ export function RunSetupScreen({
           <div>
             <h2 id="dashboard-title">{selectedMode === 'infinite-abyss' ? 'Infinite Abyss' : 'Dungeon run'}</h2>
             <p>
-              Shape your fighter before entering the dungeon.
+              {selectedMode === 'infinite-abyss'
+                ? 'Pick the Champion who makes the descent.'
+                : 'Shape your fighter before entering the dungeon.'}
             </p>
           </div>
         </div>
@@ -290,6 +301,17 @@ export function RunSetupScreen({
           </button>
         </div>
         {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
+        {/* A dungeon victory saves its build as a Champion on its own, so a full
+            roster turns the win into a choice about what to lose. Said here,
+            while there is still time to archive one. */}
+        {selectedMode === 'dungeon' &&
+          championLoadState === 'ready' &&
+          champions.length >= CHAMPION_SLOT_LIMIT ? (
+          <p className="run-roster-warning" role="status">
+            Your Champion roster is full at {CHAMPION_SLOT_LIMIT}. Win this run and you will
+            be asked which build to let go — this one, or one you already hold.
+          </p>
+        ) : null}
         {selectedMode === 'dungeon' ? (
           <div className="run-dashboard-section-heading">
             <p className="screen-kicker">Choose your fighter</p>
@@ -728,6 +750,15 @@ export function RunSetupScreen({
              Selected fish are consumed when the run starts. Revival Koi is reserved for Champion recovery.
            </p>
          </section>
+         {/*
+           The dungeon's conditions, and only the dungeon's. They are a trade of
+           difficulty for a bigger Essence reward, and the Abyss pays no Essence
+           — so offering them there sold a price with nothing on the other side
+           of it. The choice itself is remembered either way; it is waiting for
+           the next dungeon run.
+         */}
+         {selectedMode !== 'dungeon' ? null : (
+         <>
          <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">
           <p className="screen-kicker">Raise the heat</p>
           <h3>Pick your arena conditions</h3>
@@ -759,6 +790,8 @@ export function RunSetupScreen({
             })}
           </div>
         </fieldset>
+        </>
+        )}
       </div>
     </section>
   )

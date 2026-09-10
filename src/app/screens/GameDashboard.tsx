@@ -9,7 +9,7 @@ import { AdventureHubScene } from '../../hub/AdventureHubScene'
 import {
   errorMessage,
 } from '../runFormatting'
-import type { EssenceLeaderboardService } from '../../leaderboard/EssenceLeaderboardService'
+import type { AbyssLeaderboardService } from '../../leaderboard/AbyssLeaderboardService'
 import type { HubPresenceService } from '../../hub/HubPresenceService'
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
@@ -24,7 +24,7 @@ export interface GameDashboardProps {
   essenceBalance: number | null
   presenceService: HubPresenceService | null
   presenceConfigurationError: string | null
-  leaderboardService: EssenceLeaderboardService | null
+  leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState

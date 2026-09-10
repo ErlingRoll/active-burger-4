@@ -253,6 +253,21 @@ export function createDungeonEncounterTimeline(
   ]
 }
 
+/**
+ * Boss floors ahead of a descent that has no end.
+ *
+ * The dungeon's timeline closes with the Inferno Warden and marks it final. The
+ * Abyss builds its own ten floors past wherever the player has reached, so that
+ * closing encounter became a boss the timeline promised ten floors out and then
+ * moved every time one was cleared — and a final floor is the one thing an
+ * endless mode must not show.
+ */
+export function createAbyssEncounterTimeline(
+  reachedFloor: number,
+): readonly EncounterDefinition[] {
+  return createStoneGolemEncounterTimeline(Math.max(reachedFloor + 10, 10))
+}
+
 export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
   id: DEFAULT_DUNGEON_ID,
   name: 'The First Depths',

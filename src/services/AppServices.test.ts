@@ -11,7 +11,7 @@ const REMOTE_SERVICE_KEYS = [
   'nickname',
   'meta',
   'characters',
-  'essenceLeaderboard',
+  'abyssLeaderboard',
   'dungeonRunPersistence',
   'inventory',
   'lootBoxes',

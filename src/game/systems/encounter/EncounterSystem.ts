@@ -1,5 +1,6 @@
 import type { EncounterDefinition } from '../../../content/encounters/Encounters'
 import {
+  createAbyssEncounterTimeline,
   createDungeonEncounterTimeline,
   getDungeonDefinition,
 } from '../../../content/dungeons/Dungeons'
@@ -33,12 +34,32 @@ function nextEncounter(
     .find((event) => !completedIds.has(event.id))
 }
 
-function getEncounterTimeline(state: GameState): readonly EncounterDefinition[] {
+/*
+ * The Abyss's timeline, remembered between the ticks that ask for it.
+ *
+ * It is derived from the floor and nothing else, and it was rebuilt on every
+ * call: sixty times a second by the encounter update, and again for every HUD
+ * snapshot. Its length grows with the floor, so an endless mode spent an
+ * ever-larger allocation per frame rebuilding a list that only changes when the
+ * player descends. One slot is enough — a run is on one floor at a time — and
+ * the value is a pure function of the floor, so remembering it cannot change
+ * what the simulation does.
+ */
+let cachedAbyssTimelineFloor: number | undefined
+let cachedAbyssTimeline: readonly EncounterDefinition[] = []
+
+function getAbyssEncounterTimeline(floor: number): readonly EncounterDefinition[] {
+  if (cachedAbyssTimelineFloor !== floor) {
+    cachedAbyssTimelineFloor = floor
+    cachedAbyssTimeline = createAbyssEncounterTimeline(floor)
+  }
+  return cachedAbyssTimeline
+}
+
+export function getEncounterTimeline(state: GameState): readonly EncounterDefinition[] {
   const dungeon = getDungeonDefinition(state.run.dungeonId)
   if (state.run.modeId === 'infinite-abyss') {
-    return createDungeonEncounterTimeline(
-      Math.max((state.run.floor ?? 1) + 10, 10),
-    )
+    return getAbyssEncounterTimeline(state.run.floor ?? 1)
   }
   return state.run.dungeonMaxFloor === undefined ||
     state.run.dungeonMaxFloor === dungeon.defaultMaxFloor

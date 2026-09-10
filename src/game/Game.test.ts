@@ -31,6 +31,7 @@ import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
 import { definedAt } from '../testing'
+import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -717,6 +718,10 @@ describe('Game', () => {
     const result = game.getRunResultSnapshot()
     expect(result).toEqual({
       phase: 'defeat',
+      modeId: 'dungeon',
+      floor: game.state.run.floor ?? 1,
+      abyssScore: 0,
+      abyssDangerScore: 0,
       elapsedTime: game.state.time,
       level: game.state.player.level,
       xp: game.state.player.xp,
@@ -1892,5 +1897,165 @@ describe('Game', () => {
     expect(game.selectGearChoice(normal)).toBe(true)
     expect(game.phase).toBe('playing')
     expect(game.state.player.equipment?.[normal.slot]?.itemId).toBe(normal.itemId)
+  })
+})
+
+describe('the Abyss descent', () => {
+  const CHAMPION = {
+    schemaVersion: 1 as const,
+    classId: 'knight' as const,
+    skills: [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+      { skillId: 'whirlwind' as const, level: 1 },
+    ],
+    selectedUpgradeIds: [],
+    equipment: {},
+    behaviorProfileId: 'balanced' as const,
+  }
+
+  function abyssChoicesOf(
+    game: ReturnType<typeof createGame>,
+  ): readonly AbyssModifierChoice[] {
+    const flow = definedAt(game.getPendingChoiceFlows(), 0)
+    if (flow.type !== 'abyss-modifier') {
+      throw new Error(`Expected an Abyss modifier flow, found ${flow.type}.`)
+    }
+    return flow.choices
+  }
+
+  function descendOneFloor(game: ReturnType<typeof createGame>): void {
+    expect(game.startBossEncounter()).toBe(true)
+    const boss = definedAt(game.state.bosses ?? [], 0)
+    boss.xpReward = 0
+    game.state.player.x = boss.x
+    game.state.player.y = boss.y
+    boss.hp = 0
+    game.update(FIXED_STEP_SECONDS)
+  }
+
+  it('will not let a keypress skip the floor\'s price', () => {
+    const game = createGame({ seed: 8, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    descendOneFloor(game)
+
+    // The overlay runs in the level-up phase, and the skip keybind used to ask
+    // about nothing else — so one press descended for free.
+    expect(game.skipChoice()).toBe(false)
+    expect(game.getPendingChoiceFlows()).toHaveLength(1)
+    expect(game.state.run.abyssModifierIds ?? []).toHaveLength(0)
+  })
+
+  it('enters at the level the Champion was saved at', () => {
+    const veteran = createGame({
+      seed: 9,
+      modeId: 'infinite-abyss',
+      champion: { ...CHAMPION, level: 12 },
+    })
+    const novice = createGame({ seed: 9, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    expect(veteran.state.player.level).toBe(12)
+    // Level carries a flat health bonus, so the saved build arrives with the
+    // pool it earned rather than a first-level one.
+    expect(veteran.state.player.maxHp).toBeGreaterThan(novice.state.player.maxHp)
+    expect(veteran.state.player.hp).toBe(veteran.state.player.maxHp)
+  })
+
+  it('offers no upgrade picks for a head start bought with Essence', () => {
+    const dungeon = createGame({ seed: 10, startingLevel: 4 })
+    const abyss = createGame({
+      seed: 10,
+      modeId: 'infinite-abyss',
+      champion: CHAMPION,
+      startingLevel: 4,
+    })
+
+    // The dungeon pays out its head start as choices; the Abyss runs a finished
+    // build and is defined as offering none.
+    expect(dungeon.getPendingChoiceFlows().length).toBeGreaterThan(0)
+    expect(abyss.getPendingChoiceFlows()).toHaveLength(0)
+  })
+
+  it('scales what enemies throw, not only what they touch', () => {
+    const telegraphDamage = (game: ReturnType<typeof createGame>): number => {
+      game.spawnEnemy('brute', { x: 100, y: 0 })
+      game.update(FIXED_STEP_SECONDS)
+      const telegraph = game.state.telegraphs?.[0]
+      if (!telegraph) {
+        throw new Error('Expected the Brute to telegraph an attack.')
+      }
+      return telegraph.damage.physical ?? 0
+    }
+    const dungeon = telegraphDamage(createGame({ seed: 11 }))
+    const abyss = telegraphDamage(createGame({
+      seed: 11,
+      modeId: 'infinite-abyss',
+      champion: CHAMPION,
+    }))
+
+    // Abilities were scaled by the world modifiers alone, so a ranged enemy's
+    // telegraphs stayed at dungeon damage while its touch hit for ten times it.
+    expect(abyss).toBeCloseTo(dungeon * 10)
+  })
+
+  it('asks for one modifier per floor rather than every modifier there is', () => {
+    const game = createGame({ seed: 5, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    descendOneFloor(game)
+
+    const choices = abyssChoicesOf(game)
+    expect(choices).toHaveLength(3)
+
+    expect(game.selectChoice(definedAt(choices, 0))).toBe(true)
+
+    // One pick and the descent continues: the floor was asking for a downside,
+    // not for all of them.
+    expect(game.getPendingChoiceFlows()).toHaveLength(0)
+    expect(game.state.run.abyssModifierIds).toHaveLength(1)
+  })
+
+  it('refuses world modifiers, whatever the run config carries', () => {
+    // They trade difficulty for a larger Essence reward, and the Abyss pays no
+    // Essence — so a descent that took them was paying a price for nothing.
+    const dungeon = createGame({ seed: 7, worldModifierIds: ['juggernauts'] })
+    const abyss = createGame({
+      seed: 7,
+      modeId: 'infinite-abyss',
+      champion: CHAMPION,
+      worldModifierIds: ['juggernauts'],
+    })
+
+    expect(dungeon.state.run.worldModifierIds).toEqual(['juggernauts'])
+    expect(abyss.state.run.worldModifierIds ?? []).toEqual([])
+
+    const plain = createGame({ seed: 7 })
+    const spawnMaxHp = (game: ReturnType<typeof createGame>): number => {
+      const id = game.spawnSlime({ x: 100, y: 0 })
+      const enemy = game.state.enemies.find((candidate) => candidate.id === id)
+      if (!enemy) {
+        throw new Error('The slime did not spawn.')
+      }
+      return enemy.maxHp
+    }
+    const dungeonMaxHp = spawnMaxHp(dungeon)
+    const abyssMaxHp = spawnMaxHp(abyss)
+    const plainMaxHp = spawnMaxHp(plain)
+
+    // Juggernauts lifts the dungeon's slime above the plain one; the Abyss's is
+    // exactly its ten-times baseline and nothing more.
+    expect(dungeonMaxHp).toBeGreaterThan(plainMaxHp)
+    expect(abyssMaxHp).toBeCloseTo(plainMaxHp * 10)
+  })
+
+  it('credits a floor once however many times the descent is re-entered', () => {
+    const game = createGame({ seed: 6, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    descendOneFloor(game)
+    const chosen = definedAt(abyssChoicesOf(game), 0)
+    game.selectChoice(chosen)
+
+    // The modifier's own danger is scored on top of the floor's hundred; the
+    // hundred is what used to be paid three times over.
+    expect(game.state.run.abyssCompletedFloors).toBe(1)
+    expect(game.state.run.abyssScore).toBe(100 + chosen.dangerScore * 10)
   })
 })

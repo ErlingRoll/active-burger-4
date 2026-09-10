@@ -4,9 +4,12 @@ import {
   type RunWriteState,
 } from '../appState'
 import type { RunResultSnapshot } from '../../game'
+import type { ChampionSnapshot } from '../../characters'
+import { CHAMPION_SLOT_LIMIT } from '../../content/progression/ChampionSlots'
 import { SkillIcon } from '../../rendering/SkillIcon'
 import {
   createEssenceReceipt,
+  formatChampionExhaustion,
   formatElapsedTime,
 } from '../runFormatting'
 import { formatCompactDamage, formatExperience } from '../../ui/formatNumbers'
@@ -16,10 +19,15 @@ export interface ResultsScreenProps {
   runReward: RunRewardState
   terminalSaveState: RunWriteState
   terminalSaveError: string | null
-  championSaveState: 'idle' | 'saving' | 'saved' | 'error'
+  championSaveState:
+    | 'idle' | 'saving' | 'saved' | 'error' | 'roster-full' | 'discarded'
   championSaveError: string | null
   championConfigurationError: string | null
+  /** Offered to choose from when a win arrives at a full roster. */
+  championRoster: readonly ChampionSnapshot[]
   onSaveChampion: (name?: string) => Promise<void>
+  onReplaceChampion: (replacedChampionId: string) => Promise<void>
+  onDiscardChampion: () => void
   onReturn: () => void
   onRetryTerminalSave: () => void
   onRetryReward: () => void
@@ -33,12 +41,23 @@ export function ResultsScreen({
   championSaveState,
   championSaveError,
   championConfigurationError,
+  championRoster,
   onSaveChampion,
+  onReplaceChampion,
+  onDiscardChampion,
   onReturn,
   onRetryTerminalSave,
   onRetryReward,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
+  /*
+   * The Abyss is not paid in Essence, so it is not given a receipt for it.
+   *
+   * The reward the run actually earns is decided on the server, which pays the
+   * Abyss nothing; drawing the dungeon's arithmetic here anyway promised a
+   * number that never arrived in the wallet.
+   */
+  const paysEssence = result.modeId !== 'infinite-abyss'
   const essenceReceipt = createEssenceReceipt(result)
   return (
     <section
@@ -49,11 +68,22 @@ export function ResultsScreen({
         <p className="screen-kicker">{victory ? 'Run victorious' : 'Run complete'}</p>
         <h2 id="results-title">{victory ? 'Victory' : 'Defeat'}</h2>
         <p className="results-summary" aria-live="polite">
-          {victory
-            ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
-            : `Your run ended with ${result.killCount} enemies defeated.`}
+          {!paysEssence
+            ? `The Abyss took you on floor ${result.floor}, ${result.killCount} kills deep.`
+            : victory
+              ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
+              : `Your run ended with ${result.killCount} enemies defeated.`}
         </p>
+        {/* How deep, and what it was worth. The Abyss keeps a score for floors
+            survived and dangers accepted, and until now kept it to itself. */}
         <dl className="results-stats">
+          {paysEssence ? null : (
+            <>
+              <div><dt>Depth</dt><dd>Floor {result.floor}</dd></div>
+              <div><dt>Score</dt><dd>{result.abyssScore.toLocaleString()}</dd></div>
+              <div><dt>Danger</dt><dd>{result.abyssDangerScore}</dd></div>
+            </>
+          )}
           <div><dt>Elapsed time</dt><dd>{formatElapsedTime(result.elapsedTime)}</dd></div>
           <div><dt>Level</dt><dd>{result.level}</dd></div>
           <div><dt>XP</dt><dd>{formatExperience(result.xp)}</dd></div>
@@ -129,6 +159,7 @@ export function ResultsScreen({
             )}
           </section>
         ) : null}
+        {!paysEssence ? null : (
         <section className="essence-receipt" aria-labelledby="essence-receipt-title">
           <div className="essence-receipt-heading">
             <p className="screen-kicker">Run reward</p>
@@ -180,6 +211,7 @@ export function ResultsScreen({
             )}
           </dl>
         </section>
+        )}
         {victory ? (
           <section className="champion-save-panel" aria-labelledby="champion-save-title">
             <div>
@@ -198,8 +230,52 @@ export function ResultsScreen({
             ) : null}
             {championSaveState === 'saved' ? (
               <p className="persistence-status" role="status">Champion saved.</p>
+            ) : championSaveState === 'discarded' ? (
+              <p className="persistence-status" role="status">
+                This build was not saved. Your roster is unchanged.
+              </p>
             ) : championSaveState === 'saving' ? (
               <p className="persistence-status" role="status">Saving Champion…</p>
+            ) : championSaveState === 'roster-full' ? (
+              /*
+               * Eleven builds and ten places to keep them. The build that just
+               * finished is one of the eleven rather than a special case: a
+               * player who likes what they already have can let this one go.
+               */
+              <div className="champion-roster-full">
+                <p className="persistence-status" role="status">
+                  Your roster is full at {CHAMPION_SLOT_LIMIT} Champions. Something has to
+                  give way for this build — or it can be the one you let go.
+                  An archived Champion cannot be brought back.
+                </p>
+                <ul className="champion-roster-choices">
+                  {championRoster.map((champion) => (
+                    <li key={champion.championId}>
+                      <button
+                        className="secondary-action champion-roster-choice"
+                        type="button"
+                        onClick={() => { void onReplaceChampion(champion.championId) }}
+                      >
+                        <span>
+                          <strong>{champion.name}</strong>
+                          <small>
+                            Level {champion.build.level ?? 1} ·{' '}
+                            {formatChampionExhaustion(champion.exhaustionUntil)}
+                          </small>
+                        </span>
+                        <em>Replace</em>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  className="secondary-action champion-roster-discard"
+                  type="button"
+                  onClick={onDiscardChampion}
+                >
+                  Keep the roster · archive this build
+                </button>
+              </div>
             ) : championSaveState === 'error' ? (
               <button
                 className="secondary-action"
@@ -216,13 +292,15 @@ export function ResultsScreen({
         ) : null}
         {terminalSaveState === 'saving' ? (
           <p className="persistence-status" role="status">
-            Saving the completed dungeon run…
+            {paysEssence ? 'Saving the completed dungeon run…' : 'Saving the completed descent…'}
           </p>
         ) : null}
         {terminalSaveState === 'error' || terminalSaveState === 'unavailable' ? (
           <>
             <p className="persistence-error" role="alert">
-              {terminalSaveError ?? 'Unable to save the completed dungeon run.'}
+              {terminalSaveError ?? (paysEssence
+                ? 'Unable to save the completed dungeon run.'
+                : 'Unable to save the completed descent.')}
             </p>
             <button className="secondary-action" type="button" onClick={onRetryTerminalSave}>
               Retry run save

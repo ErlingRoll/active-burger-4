@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createCharacterService } from './CharacterService'
+import {
+  createCharacterService,
+  isChampionRosterFullError,
+} from './CharacterService'
 import type { CharacterBuildSnapshot } from './CharacterTypes'
 
 const build: CharacterBuildSnapshot = {
@@ -55,6 +58,76 @@ describe('CharacterService', () => {
       sourceRunId: 'run-1',
       build,
     })
+  })
+
+  it('names the Champion it is displacing when the roster is full', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [{
+        id: 'champion-11',
+        name: 'Eleventh Champion',
+        source_run_id: 'run-11',
+        content_version: 'test',
+        build,
+        exhaustion_until: null,
+        archived: false,
+        created_at: '2026-09-10T00:00:00.000Z',
+      }],
+      error: null,
+    }))
+    const service = createService({ rpc } as unknown as SupabaseClient)
+
+    await service.createChampionFromRun({
+      championId: 'champion-11',
+      sourceRunId: 'run-11',
+      name: 'Eleventh Champion',
+      contentVersion: 'test',
+      replacedChampionId: 'champion-3',
+    })
+
+    // Archiving the old Champion and creating the new one are one call, so a
+    // swap cannot half-happen and leave the roster a Champion short.
+    expect(rpc).toHaveBeenCalledWith('create_champion_from_run', expect.objectContaining({
+      p_champion_id: 'champion-11',
+      p_replaced_champion_id: 'champion-3',
+    }))
+  })
+
+  it('sends no replacement when there is room', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [{
+        id: 'champion-2',
+        name: 'Second Champion',
+        source_run_id: 'run-2',
+        content_version: 'test',
+        build,
+        exhaustion_until: null,
+        archived: false,
+        created_at: '2026-09-10T00:00:00.000Z',
+      }],
+      error: null,
+    }))
+    const service = createService({ rpc } as unknown as SupabaseClient)
+
+    await service.createChampionFromRun({
+      championId: 'champion-2',
+      sourceRunId: 'run-2',
+      name: 'Second Champion',
+      contentVersion: 'test',
+    })
+
+    expect(rpc).toHaveBeenCalledWith('create_champion_from_run', expect.objectContaining({
+      p_replaced_champion_id: null,
+    }))
+  })
+
+  it('tells a full roster apart from any other refusal', () => {
+    // The limit is enforced in the database, so the client learns about it from
+    // the message the call raises — every `raise exception` shares a SQLSTATE.
+    expect(isChampionRosterFullError(new Error('Champion roster is full.'))).toBe(true)
+    expect(isChampionRosterFullError({ message: 'Champion roster is full.' })).toBe(true)
+    expect(isChampionRosterFullError(new Error('The completed run has no checkpoint.')))
+      .toBe(false)
+    expect(isChampionRosterFullError(null)).toBe(false)
   })
 
   it('rejects invalid build revisions before calling the server', async () => {

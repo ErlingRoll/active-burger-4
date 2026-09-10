@@ -21,10 +21,13 @@ export function AbyssModifierOverlay({
         tabIndex={-1}
       >
         <div className="level-up-panel">
-          <p className="level-up-kicker">Abyss floor {flow.floor} complete</p>
+          <p className="level-up-kicker">
+            Abyss floor {flow.floor} complete · Danger {flow.dangerScore}
+          </p>
           <h2 id="abyss-modifier-title">Choose the next danger</h2>
           <p className="level-up-instructions">
-            Select one persistent enemy modifier. It remains active for the rest of this attempt.
+            Select one persistent enemy modifier. It remains active for the rest of
+            this attempt, and taking the same danger again compounds it.
           </p>
           <div className="upgrade-choice-list">
             {flow.choices.map((choice) => (

@@ -54,6 +54,13 @@ export interface CreateChampionInput {
   sourceRunId: string
   name: string
   contentVersion: string
+  /**
+   * The Champion this one takes the place of, when the roster is full.
+   *
+   * Archiving that Champion and creating this one are a single server
+   * operation, so a swap cannot half-happen and leave the roster short.
+   */
+  replacedChampionId?: string
 }
 
 export interface ChampionRevivalResult extends ChampionSnapshot {

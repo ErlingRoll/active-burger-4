@@ -217,6 +217,7 @@ export function createCharacterService(
         p_source_run_id: input.sourceRunId,
         p_name: input.name,
         p_content_version: input.contentVersion,
+        p_replaced_champion_id: input.replacedChampionId ?? null,
       })
       if (response.error) throw response.error
       if (!Array.isArray(response.data) || response.data.length !== 1 ||
@@ -285,4 +286,24 @@ export function createCharacterService(
       if (response.error) throw response.error
     },
   }
+}
+
+/**
+ * Whether a failed Champion save failed because the roster is full.
+ *
+ * The limit is enforced where it cannot be walked around — inside
+ * `create_champion_from_run` — so the client learns about it from the error the
+ * call raises. Matched on the message, as the fishing service matches its own
+ * "not ready to resolve": Postgres gives every `raise exception` the same
+ * SQLSTATE, so the message is what distinguishes them.
+ */
+export function isChampionRosterFullError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return /roster is full/i.test(error.message)
+  }
+  if (typeof error !== 'object' || error === null) {
+    return false
+  }
+  const message = (error as { message?: unknown }).message
+  return typeof message === 'string' && /roster is full/i.test(message)
 }

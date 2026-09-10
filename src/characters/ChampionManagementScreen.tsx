@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNow } from '../ui/useNow'
 import type { ReactNode } from 'react'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
+import { CHAMPION_SLOT_LIMIT } from '../content/progression/ChampionSlots'
 import {
   getSkillDamage,
   getSkillDefinition,
@@ -462,7 +463,7 @@ export function ChampionManagementScreen({
             <dl className="app-screen-stats">
               <div>
                 <dt>Saved</dt>
-                <dd>{champions.length}</dd>
+                <dd>{champions.length} / {CHAMPION_SLOT_LIMIT}</dd>
               </div>
               <div>
                 <dt>Ready</dt>
@@ -477,6 +478,9 @@ export function ChampionManagementScreen({
           <h2 id="champion-management-title">Champions</h2>
           <p className="app-screen-lede">
             View completed-run builds and preserve them for future Infinite Abyss attempts.
+            You may keep {CHAMPION_SLOT_LIMIT}; a Champion resting off an Abyss attempt still
+            holds its place. Winning a dungeon with the roster full asks you which build to
+            let go.
           </p>
         </header>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
