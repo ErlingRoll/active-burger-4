@@ -346,3 +346,17 @@
   visibility: visible;
   transform: translateY(0);
 }
+
+/* The roster is full and a victory will have to displace something. A notice
+   rather than an error: nothing is wrong yet, and the run is still worth
+   starting — it just costs a decision at the end of it. */
+.run-roster-warning {
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  color: var(--color-amber-100);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  background: rgb(120 53 15 / 28%);
+  border: 1px solid rgb(251 191 36 / 40%);
+  border-radius: 0.5rem;
+}

@@ -584,6 +584,67 @@
   outline-offset: 2px;
 }
 
+/* ---------------------------------------------------------------------------
+   Eleven builds, ten places.
+
+   The roster's own rows, offered on the results screen when a victory arrives
+   at a full roster. Laid out as a list of trades rather than a warning: each
+   row is the Champion that would give way, and the last button is the build
+   that just finished giving way instead.
+   --------------------------------------------------------------------------- */
+.champion-roster-full {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.champion-roster-choices {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.champion-roster-choice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+}
+
+.champion-roster-choice span {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.champion-roster-choice small {
+  color: var(--color-slate-300);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.champion-roster-choice em {
+  flex: 0 0 auto;
+  color: var(--color-violet-200);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The way out that keeps what is already saved. Set apart from the trades
+   above it, because it is the one choice that discards the run just played. */
+.champion-roster-discard {
+  border-color: rgb(248 113 113 / 45%);
+  color: var(--color-red-100);
+}
+
 .champion-management-panel {
   --screen-measure: 70rem;
 }

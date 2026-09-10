@@ -4,9 +4,12 @@ import {
   type RunWriteState,
 } from '../appState'
 import type { RunResultSnapshot } from '../../game'
+import type { ChampionSnapshot } from '../../characters'
+import { CHAMPION_SLOT_LIMIT } from '../../content/progression/ChampionSlots'
 import { SkillIcon } from '../../rendering/SkillIcon'
 import {
   createEssenceReceipt,
+  formatChampionExhaustion,
   formatElapsedTime,
 } from '../runFormatting'
 import { formatCompactDamage, formatExperience } from '../../ui/formatNumbers'
@@ -16,10 +19,15 @@ export interface ResultsScreenProps {
   runReward: RunRewardState
   terminalSaveState: RunWriteState
   terminalSaveError: string | null
-  championSaveState: 'idle' | 'saving' | 'saved' | 'error'
+  championSaveState:
+    | 'idle' | 'saving' | 'saved' | 'error' | 'roster-full' | 'discarded'
   championSaveError: string | null
   championConfigurationError: string | null
+  /** Offered to choose from when a win arrives at a full roster. */
+  championRoster: readonly ChampionSnapshot[]
   onSaveChampion: (name?: string) => Promise<void>
+  onReplaceChampion: (replacedChampionId: string) => Promise<void>
+  onDiscardChampion: () => void
   onReturn: () => void
   onRetryTerminalSave: () => void
   onRetryReward: () => void
@@ -33,7 +41,10 @@ export function ResultsScreen({
   championSaveState,
   championSaveError,
   championConfigurationError,
+  championRoster,
   onSaveChampion,
+  onReplaceChampion,
+  onDiscardChampion,
   onReturn,
   onRetryTerminalSave,
   onRetryReward,
@@ -219,8 +230,52 @@ export function ResultsScreen({
             ) : null}
             {championSaveState === 'saved' ? (
               <p className="persistence-status" role="status">Champion saved.</p>
+            ) : championSaveState === 'discarded' ? (
+              <p className="persistence-status" role="status">
+                This build was not saved. Your roster is unchanged.
+              </p>
             ) : championSaveState === 'saving' ? (
               <p className="persistence-status" role="status">Saving Champion…</p>
+            ) : championSaveState === 'roster-full' ? (
+              /*
+               * Eleven builds and ten places to keep them. The build that just
+               * finished is one of the eleven rather than a special case: a
+               * player who likes what they already have can let this one go.
+               */
+              <div className="champion-roster-full">
+                <p className="persistence-status" role="status">
+                  Your roster is full at {CHAMPION_SLOT_LIMIT} Champions. Something has to
+                  give way for this build — or it can be the one you let go.
+                  An archived Champion cannot be brought back.
+                </p>
+                <ul className="champion-roster-choices">
+                  {championRoster.map((champion) => (
+                    <li key={champion.championId}>
+                      <button
+                        className="secondary-action champion-roster-choice"
+                        type="button"
+                        onClick={() => { void onReplaceChampion(champion.championId) }}
+                      >
+                        <span>
+                          <strong>{champion.name}</strong>
+                          <small>
+                            Level {champion.build.level ?? 1} ·{' '}
+                            {formatChampionExhaustion(champion.exhaustionUntil)}
+                          </small>
+                        </span>
+                        <em>Replace</em>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  className="secondary-action champion-roster-discard"
+                  type="button"
+                  onClick={onDiscardChampion}
+                >
+                  Keep the roster · archive this build
+                </button>
+              </div>
             ) : championSaveState === 'error' ? (
               <button
                 className="secondary-action"
