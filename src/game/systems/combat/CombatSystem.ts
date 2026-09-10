@@ -54,6 +54,8 @@ import type { EntityId, EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
   findNearestEnemy,
+  selectPrimaryTarget,
+  type PrimaryTargetOptions,
 } from '../../combat/Targeting'
 import { isSkillResonant, consumeSkillResonance, recordBasicAttackForResonance } from '../../combat/Resonance'
 import {
@@ -939,6 +941,22 @@ function collectProjectileImpactEvents(
     }))
 }
 
+/**
+ * The options the shared primary-target policy needs from this system.
+ *
+ * The engagement range depends on the equipped weapon, so it is handed to
+ * `Targeting` as a callback rather than moved there.
+ */
+function createPrimaryTargetOptions(
+  state: Readonly<GameState>,
+): PrimaryTargetOptions {
+  return {
+    originX: state.player.x,
+    originY: state.player.y,
+    getEngagementRange: (target) => getBasicAttackEngagementRange(state, target),
+  }
+}
+
 function getBasicAttackTarget(
   state: GameState,
 ): EnemyState | BossState | undefined {
@@ -947,15 +965,13 @@ function getBasicAttackTarget(
     return currentTarget
   }
 
-  return [...state.enemies, ...(state.bosses ?? [])]
-    .filter((enemy) =>
-      enemy.hp > 0 && isBasicAttackTargetInRange(state, enemy)
-    )
-    .sort((left, right) =>
-      distanceSquared(state.player.x, state.player.y, left.x, left.y) -
-        distanceSquared(state.player.x, state.player.y, right.x, right.y) ||
-      left.id - right.id,
-    )[0]
+  /*
+   * It re-derives the choice rather than reading `player.targetId`, which
+   * `resolvePlayerTarget` has just written in the real tick. Reading the id
+   * would make an attack depend on another system having run first, and the
+   * out-of-range retention below depends on this staying order-independent.
+   */
+  return selectPrimaryTarget(state, createPrimaryTargetOptions(state))
 }
 
 function isBasicAttackTargetInRange(
@@ -1464,35 +1480,10 @@ export function resolvePlayerTarget(
   if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
     return
   }
-  let nearestTarget: EnemyState | BossState | undefined
-  let nearestDistanceSquared = Number.POSITIVE_INFINITY
-  const considerTarget = (target: EnemyState | BossState): void => {
-    if (target.hp <= 0 || !isBasicAttackTargetInRange(state, target)) {
-      return
-    }
-    const targetDistanceSquared = distanceSquared(
-      player.x,
-      player.y,
-      target.x,
-      target.y,
-    )
-    if (
-      targetDistanceSquared < nearestDistanceSquared ||
-      (targetDistanceSquared === nearestDistanceSquared &&
-        (nearestTarget === undefined || target.id < nearestTarget.id))
-    ) {
-      nearestTarget = target
-      nearestDistanceSquared = targetDistanceSquared
-    }
-  }
-  for (const enemy of state.enemies) {
-    considerTarget(enemy)
-  }
-  for (const boss of state.bosses ?? []) {
-    considerTarget(boss)
-  }
-
-  player.targetId = nearestTarget?.id
+  player.targetId = selectPrimaryTarget(
+    state,
+    createPrimaryTargetOptions(state),
+  )?.id
 }
 
 export function performBasicAttackIfReady(
