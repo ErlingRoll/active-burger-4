@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Graphics } from 'pixi.js'
 import { ENEMY_DEFINITIONS } from '../../game-config/enemies'
-import { drawEnemySilhouette } from './enemySilhouettes'
+import { drawEnemySilhouette, getEnemyShapeFacingOffset } from './enemySilhouettes'
 import type { EnemyRenderShape } from '../../content/enemies/EnemyTypes'
 
 /**
@@ -59,5 +59,44 @@ describe('enemy silhouettes', () => {
 
     expect(shapes.length).toBeGreaterThan(0)
     expect(new Set(shapes).size).toBe(shapes.length)
+  })
+})
+
+describe('which silhouettes turn', () => {
+  it('turns the shapes that have a nose and leaves the radial ones alone', () => {
+    for (const shape of ['dart', 'hook', 'bow', 'bulwark', 'triangle'] as const) {
+      expect(getEnemyShapeFacingOffset(shape), shape).toBe(Math.PI / 2)
+    }
+    for (const shape of ['slime', 'cluster', 'diamond', 'hexagon', 'circle'] as const) {
+      expect(getEnemyShapeFacingOffset(shape), shape).toBeNull()
+    }
+  })
+
+  it('offsets a nose-up shape onto the facing angle', () => {
+    /*
+     * A facing of zero points along positive x, and every directional shape is
+     * drawn pointing up, so the offset has to be the quarter turn that takes
+     * the nose from up to right. Getting the sign wrong is invisible in a test
+     * that only checks the number is a quarter turn.
+     */
+    const offset = getEnemyShapeFacingOffset('dart')
+    expect(offset).not.toBeNull()
+    const nose = { x: 0, y: -1 }
+    const angle = (offset ?? 0) + 0
+    const turned = {
+      x: nose.x * Math.cos(angle) - nose.y * Math.sin(angle),
+      y: nose.x * Math.sin(angle) + nose.y * Math.cos(angle),
+    }
+    expect(turned.x).toBeCloseTo(1)
+    expect(turned.y).toBeCloseTo(0)
+  })
+
+  it('covers every shape the roster uses', () => {
+    for (const definition of Object.values(ENEMY_DEFINITIONS)) {
+      expect(
+        getEnemyShapeFacingOffset(definition.render.shape),
+        definition.id,
+      ).not.toBeUndefined()
+    }
   })
 })

@@ -25,6 +25,40 @@ interface SilhouetteColors {
   outline: string
 }
 
+/**
+ * Which silhouettes have a front, and how far to turn them.
+ *
+ * A shape with a nose looked wrong sliding sideways: a dart crossed the arena
+ * broadside and a hook leaned the same way whichever direction it came from.
+ * The flat, directional shapes are turned to face where they are going; the
+ * radial ones are not, because a slime rolling and a splitter spinning like a
+ * wheel are both worse than either standing still.
+ *
+ * Every directional shape is drawn nose-up, so the offset is a quarter turn:
+ * a facing of zero points along positive x, and adding it swings the nose from
+ * up to right.
+ */
+const SHAPE_FACING_OFFSETS = {
+  dart: Math.PI / 2,
+  hook: Math.PI / 2,
+  bow: Math.PI / 2,
+  bulwark: Math.PI / 2,
+  triangle: Math.PI / 2,
+  slime: null,
+  cluster: null,
+  diamond: null,
+  hexagon: null,
+  circle: null,
+} as const satisfies Record<EnemyRenderShape, number | null>
+
+/**
+ * The rotation to add to a facing angle for this shape, or null when the shape
+ * has no front and should not be turned at all.
+ */
+export function getEnemyShapeFacingOffset(shape: EnemyRenderShape): number | null {
+  return SHAPE_FACING_OFFSETS[shape] ?? null
+}
+
 function regularPolygon(radius: number, sides: number, spin: number): number[] {
   return Array.from({ length: sides }, (_, index) => {
     const angle = spin + (Math.PI * 2 * index) / sides

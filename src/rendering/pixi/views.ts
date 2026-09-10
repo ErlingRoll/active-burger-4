@@ -24,6 +24,10 @@ export interface EnemyView {
   shieldRatio?: number
   lastHp?: number
   hitFlashUntil?: number
+  /** Where the body is pointing, and where it was, so it can turn gradually. */
+  facing?: number
+  lastX?: number
+  lastY?: number
 }
 
 export interface PlayerView {

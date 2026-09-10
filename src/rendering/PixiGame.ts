@@ -88,7 +88,10 @@ import {
   drawHitFlash,
   drawShieldBar,
   drawStatusEffects,
+  updateEnemyFacing,
+  ENEMY_TURN_RATE,
 } from './pixi/entityGraphics'
+import { getEnemyShapeFacingOffset } from './pixi/enemySilhouettes'
 import {
   createBloodPulsePlaceholder,
   createBoneBoltPlaceholder,
@@ -140,6 +143,8 @@ export class PixiGame {
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   private readonly enemyViews = new Map<EntityId, EnemyView>()
+  /** The last frame's length, for the animations that turn rather than jump. */
+  private frameSeconds = 0
   private readonly bossViews = new Map<EntityId, BossView>()
   private readonly telegraphViews = new Map<EntityId, TelegraphView>()
   private readonly projectileViews = new Map<EntityId, Graphics>()
@@ -2593,6 +2598,12 @@ export class PixiGame {
 
   private readonly update = (ticker: Ticker): void => {
     const deltaSeconds = ticker.deltaMS / 1000
+    /*
+     * Kept for the render pass, which animates in rates rather than per frame
+     * and is also called from resize and from the first paint, where there is
+     * no frame to measure. Those get zero, which snaps instead of turning.
+     */
+    this.frameSeconds = deltaSeconds
     const phaseBeforeUpdate = this.game.phase
     this.game.update(deltaSeconds)
     const phaseAfterUpdate = this.game.phase
@@ -2839,15 +2850,22 @@ export class PixiGame {
         0,
         Math.min(1, ((enemyView.hitFlashUntil ?? 0) - state.time) / 0.12),
       )
+      const definition = getEnemyDefinition(enemy.definitionId)
+      const renderScale = definition.render.scale
+      /*
+       * The flash is a sibling of the body rather than a child, so it is not
+       * carried by the body's scale and has to be drawn at the size the body
+       * is actually shown at. Drawn from the raw radius it fell inside the
+       * bodies that are drawn larger than their hitbox.
+       */
       drawHitFlash(
         enemyView.hitFlash,
-        enemy.radius,
+        enemy.radius * renderScale,
         enemy.lastHitVisual,
         hitPulse,
       )
       const poisonStackCount = enemy.poisonStacks?.length ?? 0
       const burningStackCount = enemy.burningStacks?.length ?? 0
-      const renderScale = getEnemyDefinition(enemy.definitionId).render.scale
       const enemyBarWidth = Math.max(28, enemy.radius * renderScale * 1.8)
       this.drawStatusAura(enemyView.poisonAura, enemy, enemy.radius, state.time)
       const enemyStatuses = getEnemyStatusEffects(
@@ -2893,6 +2911,21 @@ export class PixiGame {
       enemyView.body.scale.set(
         renderScale * (1 + attackIntensity * 0.14 + hitPulse * 0.1),
       )
+      /*
+       * A shape with a nose is turned to point along its own path; a radial
+       * one is left alone. Until it has moved it faces its target, which is
+       * what an archer standing off should be doing anyway.
+       */
+      const facingOffset = getEnemyShapeFacingOffset(definition.render.shape)
+      if (facingOffset !== null) {
+        enemyView.body.rotation = facingOffset + updateEnemyFacing(
+          enemyView,
+          enemy.x,
+          enemy.y,
+          Math.atan2(normalizedDirectionY, normalizedDirectionX),
+          this.reducedMotion ? Number.POSITIVE_INFINITY : ENEMY_TURN_RATE * this.frameSeconds,
+        )
+      }
       enemyView.body.alpha = isElitePhaseboundActive(
         enemy,
         state.time,

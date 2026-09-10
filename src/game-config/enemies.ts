@@ -50,7 +50,14 @@ export const ENEMY_DEFINITIONS = {
     render: {
       color: '#f97316',
       outlineColor: '#fed7aa',
-      scale: 1,
+      /*
+       * Drawn a third larger than it is. The runner and the flanker are the
+       * two smallest bodies in the roster and the two fastest, which is the
+       * worst pairing for reading a fight: they were a flicker crossing the
+       * arena. The scale is the renderer's, so they read at a slime's size
+       * while keeping the small hitbox their speed is balanced around.
+       */
+      scale: 1.3,
       shape: 'dart',
     },
   },
@@ -132,9 +139,10 @@ export const ENEMY_DEFINITIONS = {
     controlResistance: 25,
     behavior: FLANKER_BEHAVIOR,
     render: {
+      // Larger than its hitbox for the same reason as the runner above.
       color: '#ec4899',
       outlineColor: '#fbcfe8',
-      scale: 1,
+      scale: 1.3,
       shape: 'hook',
     },
   },
