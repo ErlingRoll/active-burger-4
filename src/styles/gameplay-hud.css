@@ -318,7 +318,9 @@
   border-radius: 999px;
 }
 
-/* Vitals: three rows of label, bar and figure, on one grid so they line up. */
+/* Vitals: two rows of label, bar and figure, on one grid so they line up. The
+   shield shares the health bar rather than taking a row of its own, which is
+   what keeps the panel — and therefore the whole top bar — one height. */
 .hud-vitals {
   display: grid;
   width: 100%;
@@ -353,6 +355,9 @@
   font-weight: 800;
   text-align: right;
   white-space: nowrap;
+  /* Same-width digits, so a falling number does not shuffle the bar beside
+     it every time it loses a digit. */
+  font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -376,19 +381,47 @@
   accent-color: var(--color-green-500);
 }
 
-.hud-vital-shield progress {
-  --bar-fill: linear-gradient(
-    180deg,
-    var(--color-cyan-300),
-    var(--color-cyan-600)
-  );
-
-  accent-color: var(--color-cyan-400);
+/*
+ * The shield, drawn over the health it is protecting.
+ *
+ * The bar cell becomes the positioning context so the overlay can sit exactly
+ * on the track: it is measured against the same maximum as health, so the lit
+ * cyan is literally how much of a full health bar's worth of damage is
+ * absorbed before health is touched.
+ */
+.hud-vital-bar {
+  position: relative;
+  display: grid;
+  min-width: 0;
 }
 
-.hud-vital-shield .hud-vital-label,
-.hud-vital-shield .hud-vital-value {
+.hud-vital-shield-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--shield-share, 0) * 100%);
+  background: linear-gradient(
+    180deg,
+    rgb(103 232 249 / 88%),
+    rgb(8 145 178 / 88%)
+  );
+  border: 1px solid rgb(0 0 0 / 40%);
+  border-right-color: var(--color-cyan-100);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.hud-vital-shield-amount {
+  /*
+   * A reserved slot, wide enough for the largest shield the figure will hold,
+   * so the health bar keeps one length whether a shield is up or not. Empty it
+   * costs a few characters of a panel that is capped for readability anyway.
+   */
+  display: inline-block;
+  min-width: 6.5ch;
+  margin-left: 0.3rem;
   color: var(--color-cyan-200);
+  font-weight: 800;
+  text-align: right;
 }
 
 .hud-vital-xp progress {

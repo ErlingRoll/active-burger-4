@@ -177,3 +177,79 @@ describe('the behavior control', () => {
       .toHaveAttribute('aria-checked', 'false')
   })
 })
+
+describe('the vitals panel', () => {
+  function shieldedSnapshot(): GameUiSnapshot {
+    return snapshotFromGame((game) => {
+      const player = game.state.player
+      player.aegisPulseShieldAmount = 40
+      player.aegisPulseShieldMaxAmount = 60
+      player.aegisPulseShieldRemaining = 3.2
+      player.aegisPulseShieldDuration = 6
+    })
+  }
+
+  it('gains a shield without gaining a row', () => {
+    /*
+     * The regression this pins: the shield used to be a row of its own, and
+     * the top bar stretches every panel to the tallest of them, so casting or
+     * losing a shield moved the height of the whole bar.
+     */
+    const bare = renderHud(snapshotFromGame())
+    const rowsWithoutShield = document.querySelectorAll('.hud-vital').length
+    expect(rowsWithoutShield).toBeGreaterThan(0)
+    expect(document.querySelector('.hud-vital-shield-fill')).toBeNull()
+    bare.unmount()
+
+    renderHud(shieldedSnapshot())
+
+    expect(document.querySelectorAll('.hud-vital')).toHaveLength(rowsWithoutShield)
+    expect(document.querySelector('.hud-vital-shield-fill')).not.toBeNull()
+  })
+
+  it('says how much is absorbed and for how long', () => {
+    renderHud(shieldedSnapshot())
+
+    expect(screen.getByText(/\+40/)).toHaveTextContent('4s')
+  })
+
+  it('reserves the shield figure so the health bar keeps one length', () => {
+    /*
+     * The figure's slot is what stops the bar beside it growing and shrinking
+     * as a shield comes and goes, so the slot has to be in the tree even when
+     * there is nothing to put in it.
+     */
+    const bare = renderHud(snapshotFromGame())
+    const slot = document.querySelector('.hud-vital-shield-amount')
+
+    expect(slot).not.toBeNull()
+    expect(slot).toBeEmptyDOMElement()
+    bare.unmount()
+
+    renderHud(shieldedSnapshot())
+    expect(document.querySelector('.hud-vital-shield-amount')).not.toBeEmptyDOMElement()
+  })
+
+  it('measures the shield against the same maximum as health', () => {
+    const snapshot = shieldedSnapshot()
+    renderHud(snapshot)
+
+    const fill = document.querySelector('.hud-vital-shield-fill')
+    const share = Math.min(1, 40 / snapshot.maxHp)
+    expect(fill?.getAttribute('style')).toContain(`--shield-share: ${share}`)
+  })
+
+  it('never draws more shield than the bar has room for', () => {
+    const snapshot = snapshotFromGame((game) => {
+      const player = game.state.player
+      player.aegisPulseShieldAmount = player.maxHp * 4
+      player.aegisPulseShieldMaxAmount = player.maxHp * 4
+      player.aegisPulseShieldRemaining = 2
+      player.aegisPulseShieldDuration = 6
+    })
+    renderHud(snapshot)
+
+    expect(document.querySelector('.hud-vital-shield-fill')?.getAttribute('style'))
+      .toContain('--shield-share: 1')
+  })
+})
