@@ -85,7 +85,7 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
   exhaustion and revival, floor loot boxes, and a distinct visual identity.
 - Surrounding the run loop: the Adventure Hub dashboard with live visitor
   presence and campfire signals, fishing, champions, inventory and loot boxes,
-  the Essence leaderboard, the in-game wiki, music and audio settings, player
+  the Abyss depth leaderboard, the in-game wiki, music and audio settings, player
   bug reports, and the administrator bug-report and nickname-moderation routes.
 
 ### Viewport support

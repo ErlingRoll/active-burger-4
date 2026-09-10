@@ -150,7 +150,7 @@ function App() {
     nickname: nicknameService,
     meta: metaProgressionService,
     characters,
-    essenceLeaderboard,
+    abyssLeaderboard,
     dungeonRunPersistence,
     inventory,
     lootBoxes,
@@ -1709,8 +1709,8 @@ function App() {
           essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
           presenceService={hubPresence.service}
           presenceConfigurationError={hubPresence.configurationError}
-          leaderboardService={essenceLeaderboard.service}
-          leaderboardConfigurationError={essenceLeaderboard.configurationError}
+          leaderboardService={abyssLeaderboard.service}
+          leaderboardConfigurationError={abyssLeaderboard.configurationError}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}

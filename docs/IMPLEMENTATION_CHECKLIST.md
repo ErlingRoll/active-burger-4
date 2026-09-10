@@ -155,7 +155,7 @@ the check is named; the rest are review responsibilities.
 - [x] **25. Inventory and Loot Boxes:** server-authoritative item grants,
       idempotent inventory operations, sorting, and loot box opening.
 - [x] **26. Adventure Hub:** the dashboard scene with live visitor presence,
-      visitor movement, campfire signals, and the Essence leaderboard.
+      visitor movement, campfire signals, and the Abyss depth leaderboard.
 - [x] **27. Player Reporting and Moderation:** in-game bug reports with floor
       snapshots and images, the administrator report route with soft delete,
       and the nickname approval workflow.

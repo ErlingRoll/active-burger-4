@@ -1,21 +1,22 @@
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export interface EssenceLeaderboardEntry {
+export interface AbyssLeaderboardEntry {
   profileId: string
   displayName: string
-  essence: number
+  /** The deepest Abyss floor this player has reached, across every attempt. */
+  deepestFloor: number
   rank: number
 }
 
-export interface EssenceLeaderboardService {
-  load(): Promise<EssenceLeaderboardEntry[]>
+export interface AbyssLeaderboardService {
+  load(): Promise<AbyssLeaderboardEntry[]>
 }
 
-interface EssenceLeaderboardRow {
+interface AbyssLeaderboardRow {
   profile_id: string
   display_name: string
-  essence_balance: number
+  deepest_floor: number
   rank: number
 }
 
@@ -23,39 +24,41 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isEssenceLeaderboardRow(value: unknown): value is EssenceLeaderboardRow {
+function isAbyssLeaderboardRow(value: unknown): value is AbyssLeaderboardRow {
   return isRecord(value) &&
     typeof value.profile_id === 'string' &&
     typeof value.display_name === 'string' &&
-    typeof value.essence_balance === 'number' &&
-    Number.isFinite(value.essence_balance) &&
+    typeof value.deepest_floor === 'number' &&
+    Number.isInteger(value.deepest_floor) &&
+    value.deepest_floor > 0 &&
     typeof value.rank === 'number' &&
     Number.isInteger(value.rank) &&
     value.rank > 0
 }
 
-export function createEssenceLeaderboardService(
+export function createAbyssLeaderboardService(
   environment: AuthEnvironment,
   resolveClient?: () => SupabaseClient | undefined,
-): EssenceLeaderboardService {
+): AbyssLeaderboardService {
   const defaultClient = getSupabaseClient(environment)
   const getClient = (): SupabaseClient => resolveClient?.() ?? defaultClient
 
   return {
-    async load(): Promise<EssenceLeaderboardEntry[]> {
-      const response = await getClient().rpc('get_essence_leaderboard')
+    async load(): Promise<AbyssLeaderboardEntry[]> {
+      const response = await getClient().rpc('get_abyss_depth_leaderboard')
       if (response.error) {
         throw response.error
       }
+      // Ten places and, when the reader placed outside them, their own row.
       if (!Array.isArray(response.data) ||
-        !response.data.every(isEssenceLeaderboardRow) ||
+        !response.data.every(isAbyssLeaderboardRow) ||
         response.data.length > 11) {
-        throw new Error('Essence leaderboard returned an invalid response.')
+        throw new Error('Abyss leaderboard returned an invalid response.')
       }
       return response.data.map((entry) => ({
         profileId: entry.profile_id,
         displayName: entry.display_name,
-        essence: entry.essence_balance,
+        deepestFloor: entry.deepest_floor,
         rank: entry.rank,
       }))
     },

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
-import { EssenceLeaderboard } from '../leaderboard/EssenceLeaderboard'
-import type { EssenceLeaderboardService } from '../leaderboard/EssenceLeaderboardService'
+import { AbyssLeaderboard } from '../leaderboard/AbyssLeaderboard'
+import type { AbyssLeaderboardService } from '../leaderboard/AbyssLeaderboardService'
 import { useToaster } from '../ui/ToasterContext'
 import {
   HUB_SIGNAL_IDS,
@@ -89,7 +89,7 @@ interface AdventureHubSceneProps {
   essenceBalance: number | null
   presenceService: HubPresenceService | null
   presenceConfigurationError: string | null
-  leaderboardService: EssenceLeaderboardService | null
+  leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
   activeRun: ActiveDungeonRun | null
   activeCharacterClassName: string | null
@@ -894,7 +894,7 @@ export function AdventureHubScene({
             </aside>
 
             <aside className="hub-leaderboard-panel">
-              <EssenceLeaderboard
+              <AbyssLeaderboard
                 accountId={accountId}
                 service={leaderboardService}
                 configurationError={leaderboardConfigurationError}

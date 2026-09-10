@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import type {
-  EssenceLeaderboardEntry,
-  EssenceLeaderboardService,
-} from './EssenceLeaderboardService'
+  AbyssLeaderboardEntry,
+  AbyssLeaderboardService,
+} from './AbyssLeaderboardService'
 import { getPlayerDisplayName } from '../auth'
 
 const LEADERBOARD_REFRESH_INTERVAL_MS = 30_000
 
-interface EssenceLeaderboardProps {
+interface AbyssLeaderboardProps {
   accountId: string
-  service: EssenceLeaderboardService | null
+  service: AbyssLeaderboardService | null
   configurationError: string | null
 }
 
@@ -23,15 +23,15 @@ function leaderboardErrorMessage(error: unknown): string {
     'message' in error && typeof error.message === 'string') {
     return error.message
   }
-  return 'Unable to load the Essence leaderboard.'
+  return 'Unable to load the Abyss leaderboard.'
 }
 
-export function EssenceLeaderboard({
+export function AbyssLeaderboard({
   accountId,
   service,
   configurationError,
-}: EssenceLeaderboardProps) {
-  const [entries, setEntries] = useState<EssenceLeaderboardEntry[]>([])
+}: AbyssLeaderboardProps) {
+  const [entries, setEntries] = useState<AbyssLeaderboardEntry[]>([])
   const [loadState, setLoadState] = useState<LeaderboardLoadState>(
     service ? 'loading' : 'unavailable',
   )
@@ -79,46 +79,46 @@ export function EssenceLeaderboard({
   }, [accountId, loadLeaderboard])
 
   return (
-    <section className="essence-leaderboard" aria-labelledby="essence-leaderboard-title">
-      <div className="essence-leaderboard-heading">
+    <section className="abyss-leaderboard" aria-labelledby="abyss-leaderboard-title">
+      <div className="abyss-leaderboard-heading">
         <div>
           <p className="screen-kicker">Global rankings</p>
-          <h3 id="essence-leaderboard-title">Essence leaderboard</h3>
+          <h3 id="abyss-leaderboard-title">Deepest descent</h3>
         </div>
         <span>Top 10 players</span>
       </div>
       {loadState === 'loading' && entries.length === 0 ? (
-        <p className="essence-leaderboard-message" role="status">Loading rankings…</p>
+        <p className="abyss-leaderboard-message" role="status">Loading rankings…</p>
       ) : null}
       {error && entries.length === 0 ? (
-        <p className="essence-leaderboard-message" role="alert">{error}</p>
+        <p className="abyss-leaderboard-message" role="alert">{error}</p>
       ) : null}
       {loadState === 'ready' && entries.length === 0 ? (
-        <p className="essence-leaderboard-message">No Essence earned yet.</p>
+        <p className="abyss-leaderboard-message">No one has entered the Abyss yet.</p>
       ) : null}
       {entries.length > 0 ? (
-        <ol className="essence-leaderboard-list">
+        <ol className="abyss-leaderboard-list">
           {entries.map((entry) => (
             <li
               className={entry.profileId === accountId
-                ? 'essence-leaderboard-row essence-leaderboard-row-current'
-                : 'essence-leaderboard-row'}
+                ? 'abyss-leaderboard-row abyss-leaderboard-row-current'
+                : 'abyss-leaderboard-row'}
               key={entry.profileId}
             >
-              <span className="essence-leaderboard-rank">#{entry.rank}</span>
-              <span className="essence-leaderboard-player">
+              <span className="abyss-leaderboard-rank">#{entry.rank}</span>
+              <span className="abyss-leaderboard-player">
                 {getPlayerDisplayName({ providerDisplayName: entry.displayName })}
                 {entry.profileId === accountId ? (
                   <small aria-label="Your ranking">You</small>
                 ) : null}
               </span>
-              <strong>{entry.essence.toLocaleString()}</strong>
+              <strong>Floor {entry.deepestFloor.toLocaleString()}</strong>
             </li>
           ))}
         </ol>
       ) : null}
       {error && entries.length > 0 ? (
-        <p className="essence-leaderboard-refresh-error" role="status">
+        <p className="abyss-leaderboard-refresh-error" role="status">
           Rankings could not be refreshed. Showing the last available results.
         </p>
       ) : null}

@@ -16,9 +16,9 @@ import {
   type MetaProgressionService,
 } from '../meta'
 import {
-  createEssenceLeaderboardService,
-  type EssenceLeaderboardService,
-} from '../leaderboard/EssenceLeaderboardService'
+  createAbyssLeaderboardService,
+  type AbyssLeaderboardService,
+} from '../leaderboard/AbyssLeaderboardService'
 import { createHubPresenceService, type HubPresenceService } from '../hub/HubPresenceService'
 import { createBugReportService, type BugReportService } from '../bug-report'
 import { createCharacterService } from '../characters/CharacterService'
@@ -66,7 +66,7 @@ export interface AppServices {
   nickname: ServiceHandle<NicknameService>
   meta: ServiceHandle<MetaProgressionService>
   characters: ServiceHandle<CharacterService>
-  essenceLeaderboard: ServiceHandle<EssenceLeaderboardService>
+  abyssLeaderboard: ServiceHandle<AbyssLeaderboardService>
   dungeonRunPersistence: ServiceHandle<DungeonRunPersistenceService>
   inventory: ServiceHandle<InventoryService>
   shop: ServiceHandle<ShopService>
@@ -120,8 +120,8 @@ export function createAppServices(
     nickname: handle(() => createNicknameService(connection, getClient)),
     meta: handle(() => createMetaProgressionService(connection, getClient)),
     characters: handle(() => createCharacterService(connection, getClient)),
-    essenceLeaderboard: handle(() =>
-      createEssenceLeaderboardService(connection, getClient),
+    abyssLeaderboard: handle(() =>
+      createAbyssLeaderboardService(connection, getClient),
     ),
     dungeonRunPersistence: handle(() =>
       createDungeonRunPersistenceService(connection, getClient),

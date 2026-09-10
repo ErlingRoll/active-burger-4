@@ -18,7 +18,7 @@ rendered output. Pass both values to `getPlayerDisplayName` so an approved
 nickname always wins and future name sources remain centralized.
 
 The Supabase functions that return public player names must keep the same
-precedence. The active-angler, realtime-name, and Essence leaderboard functions
+precedence. The active-angler, realtime-name, and Abyss leaderboard functions
 are updated in
 `supabase/migrations/20260906020000_use_email_local_part_player_names.sql`.
 Realtime fishing presence and activity payloads are also resolved through
