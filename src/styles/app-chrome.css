@@ -270,3 +270,168 @@
   color: var(--color-red-300);
   font-size: 0.75rem;
 }
+
+/* ---------------------------------------------------------------------------
+   The header's drawer.
+
+   Everything the header offers besides the game's own name lives in one box, so
+   that a narrow screen can put it behind a handle. On a desktop the box is not
+   there at all — `display: contents` hands the nav and the account block back to
+   the header's own row, which is where they have always sat.
+   --------------------------------------------------------------------------- */
+.app-header-menu {
+  display: contents;
+}
+
+.app-menu-toggle {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The header on a phone.
+
+   It was three wrapped rows — the brand, five destinations, then the account
+   with its own four buttons beside it — and spent a third of the screen before
+   the game underneath it started. One row now: the name, and a handle for the
+   rest.
+
+   Short as well as narrow, on the same terms as the refuge below it: turned on
+   its side a phone is wide enough to keep all four rows on one line and still
+   spends two fifths of its height on them.
+   --------------------------------------------------------------------------- */
+@media (max-width: 47rem), (max-height: 34rem) {
+  .app-header {
+    position: relative;
+    /* Over the screen below it, so the drawer opens across the room rather than
+       shoving it down the page. */
+    z-index: 8;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.85rem 0.5rem 1rem;
+  }
+
+  /* The name and the build on one line; the kicker says what the title already
+     does and cost a row of every screen to say it. */
+  .app-brand {
+    grid-template-areas: 'title version';
+    align-items: baseline;
+    min-width: 0;
+    column-gap: 0.45rem;
+  }
+
+  .app-kicker {
+    display: none;
+  }
+
+  .app-header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .app-version {
+    font-size: 0.56rem;
+  }
+
+  .app-menu-toggle {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    place-items: center;
+    margin-left: auto;
+    color: var(--color-amber-100);
+    background: var(--color-yellow-900);
+    border: 1px solid var(--color-amber-400);
+    border-radius: 0.45rem;
+    cursor: pointer;
+  }
+
+  .app-menu-toggle svg {
+    width: 1.4rem;
+    height: 1.4rem;
+    fill: currentcolor;
+  }
+
+  .app-menu-toggle:focus-visible {
+    outline: 3px solid rgb(251 191 36 / 30%);
+    outline-offset: 2px;
+  }
+
+  .app-header-menu {
+    display: none;
+  }
+
+  .app-header-menu-open {
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.8rem 1rem 1rem;
+    background: var(--color-zinc-900);
+    border-bottom: 1px solid rgb(245 158 11 / 34%);
+    box-shadow: 0 1rem 1.8rem rgb(0 0 0 / 58%);
+  }
+
+  /* Destinations two by two, each one a thumb's worth of button. */
+  .app-header-menu-open .app-navigation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .app-header-menu-open .app-navigation > * {
+    justify-content: center;
+    min-height: 2.75rem;
+    text-align: center;
+  }
+
+  /* Then who you are signed in as, and what you can do about it. */
+  /* The desktop header packs this block into its right-hand corner, so it
+     aligns everything to the end. In a drawer that is a column of buttons
+     shrunk away from their own cells, so the corner rules come off. */
+  .app-header-menu-open .app-account {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    align-items: center;
+    justify-items: stretch;
+    padding: 0.75rem 0 0;
+    text-align: left;
+    border-top: 1px solid rgb(245 158 11 / 26%);
+    border-left: 0;
+  }
+
+  .app-header-menu-open .app-account-email,
+  .app-header-menu-open .app-account-error {
+    grid-column: 1 / -1;
+  }
+
+  .app-header-menu-open .app-admin-link,
+  .app-header-menu-open .app-sign-out,
+  .app-header-menu-open .account-settings-toggle {
+    min-height: 2.75rem;
+  }
+
+  .app-header-menu-open .account-settings {
+    justify-self: stretch;
+  }
+
+  .app-header-menu-open .account-settings-toggle {
+    width: 100%;
+  }
+
+  /* The settings panel hangs off the right of its button, which is the right of
+     the screen in a desktop header and the middle of a drawer here — from there
+     a nineteen-rem panel opens off the left edge of the phone. It opens the
+     other way in the drawer. */
+  .app-header-menu-open .account-settings-menu {
+    right: auto;
+    left: 0;
+  }
+}
