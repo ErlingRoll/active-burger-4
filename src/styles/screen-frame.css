@@ -25,6 +25,22 @@
   --accent-bright-rgb: 103 232 249;
 }
 
+.run-chronicle-screen {
+  /*
+   * The record stones: moonlit stone, not firelight.
+   *
+   * The chronicle is the one screen that is about runs already over, and
+   * keeping the refuge's ember here would have made a page of finished runs
+   * look like the fire they were prepared at. The cold slate is also what lets
+   * a victory row's amber and a defeat row's red read as the outcome rather
+   * than as more of the screen's own colour.
+   */
+  --accent: var(--color-slate-300);
+  --accent-contrast: var(--color-slate-50);
+  --accent-rgb: 148 163 184;
+  --accent-bright-rgb: 203 213 225;
+}
+
 .wiki-screen,
 .champion-management-screen,
 .abyss-screen {

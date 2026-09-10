@@ -6,13 +6,11 @@ import {
 import type { RunResultSnapshot } from '../../game'
 import type { ChampionSnapshot } from '../../characters'
 import { CHAMPION_SLOT_LIMIT } from '../../content/progression/ChampionSlots'
-import { SkillIcon } from '../../rendering/SkillIcon'
+import { RunReport } from '../../ui/RunReport'
 import {
   createEssenceReceipt,
   formatChampionExhaustion,
-  formatElapsedTime,
 } from '../runFormatting'
-import { formatCompactDamage, formatExperience } from '../../ui/formatNumbers'
 
 export interface ResultsScreenProps {
   result: RunResultSnapshot
@@ -74,91 +72,9 @@ export function ResultsScreen({
               ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
               : `Your run ended with ${result.killCount} enemies defeated.`}
         </p>
-        {/* How deep, and what it was worth. The Abyss keeps a score for floors
-            survived and dangers accepted, and until now kept it to itself. */}
-        <dl className="results-stats">
-          {paysEssence ? null : (
-            <>
-              <div><dt>Depth</dt><dd>Floor {result.floor}</dd></div>
-              <div><dt>Score</dt><dd>{result.abyssScore.toLocaleString()}</dd></div>
-              <div><dt>Danger</dt><dd>{result.abyssDangerScore}</dd></div>
-            </>
-          )}
-          <div><dt>Elapsed time</dt><dd>{formatElapsedTime(result.elapsedTime)}</dd></div>
-          <div><dt>Level</dt><dd>{result.level}</dd></div>
-          <div><dt>XP</dt><dd>{formatExperience(result.xp)}</dd></div>
-          <div><dt>Kills</dt><dd>{result.killCount}</dd></div>
-        </dl>
-        <section className="skill-damage-results" aria-labelledby="skill-damage-results-title">
-          <div className="skill-damage-results-heading">
-            <p className="screen-kicker">Combat performance</p>
-            <h3 id="skill-damage-results-title">Skill damage</h3>
-          </div>
-          {result.skillDamage.length > 0 ? (
-            <ul>
-              {result.skillDamage.map((skill) => (
-                <li key={skill.skillId}>
-                  <span className="results-skill-name">
-                    <SkillIcon skillId={skill.skillId} size={18} />
-                    {skill.name}
-                  </span>
-                  <strong>{formatCompactDamage(skill.damage)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="skill-damage-results-empty">No skill damage was recorded.</p>
-          )}
-        </section>
-        <section className="skill-healing-results" aria-labelledby="skill-healing-results-title">
-          <div className="skill-damage-results-heading">
-            <p className="screen-kicker">Combat performance</p>
-            <h3 id="skill-healing-results-title">Skill healing</h3>
-          </div>
-          {result.skillHealing.length > 0 ? (
-            <ul>
-              {result.skillHealing.map((skill) => (
-                <li key={skill.skillId}>
-                  <span className="results-skill-name">
-                    <SkillIcon skillId={skill.skillId} size={18} />
-                    {skill.name}
-                  </span>
-                  <strong>{formatCompactDamage(skill.healing)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="skill-damage-results-empty">No skill healing was recorded.</p>
-          )}
-        </section>
-        {!victory && !result.forfeited ? (
-          <section className="death-combat-log" aria-labelledby="death-combat-log-title">
-            <div className="death-combat-log-heading">
-              <p className="screen-kicker">Final 10 seconds</p>
-              <h3 id="death-combat-log-title">Damage and healing log</h3>
-            </div>
-            {result.playerCombatLog.length > 0 ? (
-              <ol>
-                {result.playerCombatLog.map((entry, index) => (
-                  <li className={`death-combat-log-entry ${entry.kind}`} key={`${entry.time}-${index}`}>
-                    <span className="death-combat-log-time">
-                      {Math.max(0, result.elapsedTime - entry.time).toFixed(1)}s ago
-                    </span>
-                    <span>
-                      {entry.kind === 'damage'
-                        ? `${Math.ceil(entry.amount)} ${entry.damageType ?? 'unknown'} damage`
-                        : `Healed ${Math.ceil(entry.amount)}`}
-                    </span>
-                    <span>{entry.source}</span>
-                    <strong>{Math.ceil(entry.resultingHp)} HP</strong>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="death-combat-log-empty">No damage or healing was recorded before defeat.</p>
-            )}
-          </section>
-        ) : null}
+        {/* How deep the run got, and what each skill did. The chronicle draws
+            the same report for this run later, from the same component. */}
+        <RunReport result={result} />
         {!paysEssence ? null : (
         <section className="essence-receipt" aria-labelledby="essence-receipt-title">
           <div className="essence-receipt-heading">

@@ -40,13 +40,6 @@ export const DUNGEON_MAX_FLOOR_CONTRACTS = [
   })),
 ]
 
-export function formatElapsedTime(seconds: number): string {
-  const totalSeconds = Math.max(0, Math.floor(seconds))
-  const minutes = Math.floor(totalSeconds / 60)
-  const remainder = totalSeconds % 60
-  return `${minutes}:${remainder.toString().padStart(2, '0')}`
-}
-
 export interface EssenceReceipt extends EssenceRewardCalculation {
   modifiers: ReturnType<typeof getWorldModifierDefinitions>
 }

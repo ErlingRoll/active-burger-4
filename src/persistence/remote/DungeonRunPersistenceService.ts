@@ -99,6 +99,38 @@ export interface ForfeitedDungeonRun extends CompletedDungeonRun {
   outcome: 'defeat'
 }
 
+/** How a run ended, which is what the chronicle lists it under. */
+export type DungeonRunOutcome = 'victory' | 'defeat' | 'forfeited'
+
+/**
+ * One line in the chronicle: a run that is over, without its payload.
+ *
+ * The terminal snapshot's payload is a whole game state, so listing twenty of
+ * them would download twenty game states to draw twenty rows. The columns
+ * beside that payload already hold everything a row needs, and the payload is
+ * fetched only for the run the player opens.
+ */
+export interface FinishedDungeonRun {
+  runId: string
+  outcome: DungeonRunOutcome
+  modeId: RunModeId
+  dungeonId: string
+  characterClassId: string
+  worldModifierIds: readonly string[]
+  /** The floor the run ended on. */
+  reachedFloor: number
+  /** The depth the contract asked for. The Abyss has no bottom to ask for. */
+  maxFloor: number
+  /** Null when the run has no terminal snapshot to read them from. */
+  level: number | null
+  killCount: number | null
+  /** What the run actually paid. Null when no reward was recorded. */
+  essenceEarned: number | null
+  gameVersion: string
+  startedAt: string
+  completedAt: string
+}
+
 export interface DungeonRunPersistenceService {
   loadActiveRun(): Promise<ActiveDungeonRun | null>
   createRun(input: CreateDungeonRunInput): Promise<ActiveDungeonRun>
@@ -106,6 +138,15 @@ export interface DungeonRunPersistenceService {
   pauseRun(runId: string): Promise<void>
   completeRun(input: CompleteDungeonRunInput): Promise<CompletedDungeonRun>
   forfeitRun(runId: string): Promise<ForfeitedDungeonRun>
+  /** Finished runs, newest first. */
+  listFinishedRuns(limit?: number): Promise<FinishedDungeonRun[]>
+  /**
+   * The snapshot a finished run ended on, payload included.
+   *
+   * Null when the run kept none, which is what a run interrupted by a failed
+   * terminal save looks like.
+   */
+  loadTerminalSnapshot(runId: string): Promise<DungeonRunSnapshotRecord | null>
 }
 
 interface DungeonRunRow {
@@ -130,6 +171,32 @@ interface DungeonRunSnapshotRow {
   floor_number: number
   payload: unknown
   saved_at: string
+}
+
+interface FinishedDungeonRunRow {
+  id: string
+  status: DungeonRunOutcome
+  mode_id: RunModeId
+  world_modifier_ids: string[]
+  dungeon_id: string
+  class_id: string
+  game_version: string
+  max_floor: number
+  current_floor: number
+  started_at: string
+  completed_at: string
+}
+
+interface TerminalSnapshotMetaRow {
+  run_id: string
+  floor_number: number
+  level: number
+  kill_count: number
+}
+
+interface RunRewardRow {
+  run_id: string
+  essence_earned: number
 }
 
 interface AbyssFloorRewardRow {
@@ -165,12 +232,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+/** The statuses a run can be in once it is over. */
+const TERMINAL_RUN_STATUSES: readonly DungeonRunOutcome[] = [
+  'victory',
+  'defeat',
+  'forfeited',
+]
+
+/**
+ * The snapshot kinds a finished run ends on.
+ *
+ * A defeat writes `death` and an abandoned run writes `forfeit`, so the kinds
+ * are not the statuses: reading the status and the kind from the same list
+ * would silently list nothing.
+ */
+const TERMINAL_SNAPSHOT_KINDS: readonly DungeonRunSnapshotKind[] = [
+  'victory',
+  'death',
+  'forfeit',
+]
+
+/** How many finished runs the chronicle asks for when it is not told. */
+const DEFAULT_CHRONICLE_LIMIT = 25
+
 function isRunStatus(value: unknown): value is DungeonRunStatus {
   return value === 'active' ||
     value === 'paused' ||
     value === 'victory' ||
     value === 'defeat' ||
     value === 'forfeited'
+}
+
+function isRunOutcome(value: unknown): value is DungeonRunOutcome {
+  return value === 'victory' || value === 'defeat' || value === 'forfeited'
 }
 
 function isSnapshotKind(value: unknown): value is DungeonRunSnapshotKind {
@@ -213,6 +307,42 @@ function isDungeonRunSnapshotRow(value: unknown): value is DungeonRunSnapshotRow
     value.floor_number >= 1 &&
     'payload' in value &&
     typeof value.saved_at === 'string'
+}
+
+function isFinishedRunRow(value: unknown): value is FinishedDungeonRunRow {
+  return isRecord(value) &&
+    typeof value.id === 'string' &&
+    isRunOutcome(value.status) &&
+    isRunModeId(value.mode_id) &&
+    Array.isArray(value.world_modifier_ids) &&
+    value.world_modifier_ids.every((id) => typeof id === 'string') &&
+    typeof value.dungeon_id === 'string' &&
+    typeof value.class_id === 'string' &&
+    typeof value.game_version === 'string' &&
+    typeof value.max_floor === 'number' &&
+    Number.isInteger(value.max_floor) &&
+    typeof value.current_floor === 'number' &&
+    Number.isInteger(value.current_floor) &&
+    typeof value.started_at === 'string' &&
+    typeof value.completed_at === 'string'
+}
+
+function isTerminalSnapshotMetaRow(value: unknown): value is TerminalSnapshotMetaRow {
+  return isRecord(value) &&
+    typeof value.run_id === 'string' &&
+    typeof value.floor_number === 'number' &&
+    Number.isInteger(value.floor_number) &&
+    typeof value.level === 'number' &&
+    Number.isInteger(value.level) &&
+    typeof value.kill_count === 'number' &&
+    Number.isInteger(value.kill_count)
+}
+
+function isRunRewardRow(value: unknown): value is RunRewardRow {
+  return isRecord(value) &&
+    typeof value.run_id === 'string' &&
+    typeof value.essence_earned === 'number' &&
+    Number.isInteger(value.essence_earned)
 }
 
 function isAbyssFloorRewardRow(value: unknown): value is AbyssFloorRewardRow {
@@ -457,6 +587,103 @@ export function createDungeonRunPersistenceService(
         checkpoint,
         ...(floorReward ? { floorReward } : {}),
       }
+    },
+
+    async listFinishedRuns(limit = DEFAULT_CHRONICLE_LIMIT): Promise<FinishedDungeonRun[]> {
+      const client = getClient()
+      const runsResponse = await client
+        .from('dungeon_runs')
+        .select(
+          'id, status, mode_id, world_modifier_ids, dungeon_id, class_id, game_version, max_floor, current_floor, started_at, completed_at',
+        )
+        .in('status', TERMINAL_RUN_STATUSES)
+        .order('completed_at', { ascending: false })
+        .limit(limit)
+      if (runsResponse.error) {
+        throw runsResponse.error
+      }
+      const runRows = runsResponse.data
+      if (!Array.isArray(runRows) || !runRows.every(isFinishedRunRow)) {
+        throw invalidResponse('finished run rows')
+      }
+      if (runRows.length === 0) {
+        return []
+      }
+
+      /*
+       * Depth, level and kills are columns on the terminal snapshot rather than
+       * on the run, and the Essence is on the reward row. Two more queries over
+       * the same run ids beats reading every payload to find them.
+       */
+      const runIds = runRows.map((row) => row.id)
+      const [snapshotsResponse, rewardsResponse] = await Promise.all([
+        client
+          .from('dungeon_run_snapshots')
+          .select('run_id, floor_number, level, kill_count')
+          .in('run_id', runIds)
+          .in('snapshot_kind', TERMINAL_SNAPSHOT_KINDS),
+        client
+          .from('meta_run_rewards')
+          .select('run_id, essence_earned')
+          .in('run_id', runIds),
+      ])
+      if (snapshotsResponse.error) {
+        throw snapshotsResponse.error
+      }
+      if (rewardsResponse.error) {
+        throw rewardsResponse.error
+      }
+      const snapshotRows = snapshotsResponse.data
+      const rewardRows = rewardsResponse.data
+      if (!Array.isArray(snapshotRows) || !snapshotRows.every(isTerminalSnapshotMetaRow)) {
+        throw invalidResponse('terminal snapshot rows')
+      }
+      if (!Array.isArray(rewardRows) || !rewardRows.every(isRunRewardRow)) {
+        throw invalidResponse('run reward rows')
+      }
+      const snapshotsByRunId = new Map(snapshotRows.map((row) => [row.run_id, row]))
+      const essenceByRunId = new Map(rewardRows.map((row) => [row.run_id, row.essence_earned]))
+
+      return runRows.map((row) => {
+        const snapshot = snapshotsByRunId.get(row.id)
+        return {
+          runId: row.id,
+          outcome: row.status,
+          modeId: row.mode_id,
+          dungeonId: row.dungeon_id,
+          characterClassId: row.class_id,
+          worldModifierIds: row.world_modifier_ids,
+          reachedFloor: snapshot?.floor_number ?? row.current_floor,
+          maxFloor: row.max_floor,
+          level: snapshot?.level ?? null,
+          killCount: snapshot?.kill_count ?? null,
+          essenceEarned: essenceByRunId.get(row.id) ?? null,
+          gameVersion: row.game_version,
+          startedAt: row.started_at,
+          completedAt: row.completed_at,
+        }
+      })
+    },
+
+    async loadTerminalSnapshot(runId): Promise<DungeonRunSnapshotRecord | null> {
+      const response = await getClient()
+        .from('dungeon_run_snapshots')
+        .select('snapshot_kind, floor_number, payload, saved_at')
+        .eq('run_id', runId)
+        .in('snapshot_kind', TERMINAL_SNAPSHOT_KINDS)
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (response.error) {
+        throw response.error
+      }
+      if (response.data === null) {
+        return null
+      }
+      if (!isDungeonRunSnapshotRow(response.data)) {
+        throw invalidResponse('terminal snapshot row shape')
+      }
+      return toSnapshot(response.data)
     },
 
     async pauseRun(runId): Promise<void> {

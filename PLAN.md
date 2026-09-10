@@ -652,11 +652,13 @@ src/
 ├── testing/                 # Assertions and the component render harness
 │
 ├── abyss/ admin/ audio/ auth/ bug-report/ characters/ fishing/ hub/
-├── input/ inventory/ leaderboard/ loot/ meta/ wiki/   # Feature modules
+├── input/ inventory/ leaderboard/ loot/ meta/ run-history/ wiki/
+│                                                     # Feature modules
 │
 ├── persistence/             # Dexie locally, Supabase remotely
 ├── styles/                  # tokens.css first, then per-feature sheets
-└── ui/                      # Toaster, ConfirmationDialog, ErrorBoundary
+└── ui/                      # Toaster, ConfirmationDialog, ErrorBoundary,
+                             # RunReport (the report both run screens draw)
 ```
 
 Tests live beside their implementation:

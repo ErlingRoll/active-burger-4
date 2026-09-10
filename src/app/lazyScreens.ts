@@ -66,3 +66,7 @@ export const LazyNicknameModerationScreen = named<
 export const LazyRunSetupScreen = named<
   PropsOf<typeof import('./screens/RunSetupScreen')['RunSetupScreen']>
 >(() => import('./screens/RunSetupScreen'), 'RunSetupScreen')
+
+export const LazyRunChronicleScreen = named<
+  PropsOf<typeof import('../run-history/RunChronicleScreen')['RunChronicleScreen']>
+>(() => import('../run-history/RunChronicleScreen'), 'RunChronicleScreen')

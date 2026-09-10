@@ -63,6 +63,12 @@ const SCREENS: readonly ScreenUnderTest[] = [
   { name: 'shop', path: '/shop', ready: '.shop-screen', document: true },
   { name: 'champions', path: '/champions', ready: '.champion-management-screen', document: true },
   { name: 'wiki', path: '/wiki', ready: '.wiki-screen', document: true },
+  {
+    name: 'chronicle',
+    path: '/chronicle',
+    ready: '.run-chronicle-screen',
+    document: true,
+  },
 ]
 
 /**

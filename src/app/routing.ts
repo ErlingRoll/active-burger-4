@@ -18,6 +18,7 @@ export type AppScreen =
   | 'champions'
   | 'inventory'
   | 'shop'
+  | 'run-history'
   | 'gameplay'
   | 'results'
   | 'admin'
@@ -32,6 +33,7 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   champions: '/champions',
   inventory: '/inventory',
   shop: '/shop',
+  'run-history': '/chronicle',
   gameplay: '/',
   results: '/',
   admin: '/admin',
@@ -48,7 +50,8 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  * run's preparation screen sets a character, a length, five meals and seven
  * world modifiers before it is done, the shop lists what it will buy beside
  * what it is selling today, and the moderation dashboards list whatever players
- * have sent in — and shrinking that to fit made them
+ * have sent in, the chronicle grows with every run that ends and opens a whole
+ * run report inside one of its rows — and shrinking that to fit made them
  * unreadable, so they scroll instead. `app-shell-document` is what grants it.
  *
  * The bag was on this list and has come off it. Reading a manual is nothing
@@ -70,6 +73,7 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
 export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'wiki',
   'champions',
+  'run-history',
   'meta-progression',
   'run-setup',
   'shop',

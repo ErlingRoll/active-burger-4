@@ -1,0 +1,219 @@
+/*
+ * The chronicle.
+ *
+ * A record rather than a room: rows of finished runs on the same iron plates
+ * the rest of the refuge is furnished with, each one opening downward into the
+ * report that run ended on. The report inside a row is drawn by the same
+ * components the end-of-run screen uses, so it needs no styles of its own here
+ * — only the space to sit in.
+ */
+
+.run-chronicle-list {
+  display: grid;
+  gap: clamp(0.35rem, 1.2vh, 0.7rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-chronicle-entry {
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 8%), transparent 46%),
+    linear-gradient(180deg, rgb(20 27 39 / 90%), rgb(7 10 16 / 95%));
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-left: 3px solid rgb(var(--accent-rgb) / 45%);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 26%),
+    0 0.5rem 1.2rem rgb(0 0 0 / 32%);
+}
+
+/* How the run ended is the one thing a row is read for first, so it colours
+   the row's own edge rather than sitting in a badge somewhere inside it. */
+.run-chronicle-entry.victory {
+  border-left-color: var(--color-amber-400);
+}
+
+.run-chronicle-entry.defeat {
+  border-left-color: var(--color-red-500);
+}
+
+.run-chronicle-entry.forfeited {
+  border-left-color: var(--color-stone-500);
+}
+
+.run-chronicle-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem clamp(0.6rem, 2vw, 1.4rem);
+  align-items: center;
+  width: 100%;
+  padding: clamp(0.5rem, 1.6vh, 0.9rem) clamp(0.6rem, 2vw, 1.1rem);
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.run-chronicle-summary:hover,
+.run-chronicle-summary:focus-visible {
+  background: rgb(var(--accent-rgb) / 8%);
+}
+
+.run-chronicle-outcome {
+  flex: 0 0 auto;
+  padding: 0.15rem 0.5rem;
+  color: var(--accent-contrast);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  background: rgb(var(--accent-rgb) / 14%);
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.35rem;
+}
+
+.run-chronicle-entry.victory .run-chronicle-outcome {
+  color: var(--color-amber-100);
+  background: rgb(251 191 36 / 16%);
+  border-color: rgb(251 191 36 / 40%);
+}
+
+.run-chronicle-entry.defeat .run-chronicle-outcome {
+  color: var(--color-red-100);
+  background: rgb(239 68 68 / 14%);
+  border-color: rgb(239 68 68 / 38%);
+}
+
+.run-chronicle-headline {
+  display: grid;
+  flex: 1 1 11rem;
+  gap: 0.1rem;
+}
+
+.run-chronicle-headline strong {
+  color: var(--color-stone-50);
+  font-size: clamp(0.85rem, 2vh, 1.02rem);
+  letter-spacing: -0.02em;
+}
+
+.run-chronicle-headline small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+/* The figures. A row of small plates, and on a phone they wrap under the
+   headline rather than squeezing it out of the row. */
+.run-chronicle-figures {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  justify-content: flex-end;
+}
+
+.run-chronicle-figures > span {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 4.2rem;
+  padding: 0.15rem 0.5rem;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.4rem;
+}
+
+.run-chronicle-figures small {
+  color: var(--text-muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.run-chronicle-figures strong {
+  color: var(--accent);
+  font-size: clamp(0.75rem, 1.8vh, 0.9rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-chronicle-disclosure {
+  /* On a phone the figures take the whole of the second line and the caret
+     wraps onto a third, where it would otherwise sit alone under the outcome
+     badge. Pushed to the end it reads as the row's own handle at either
+     width. */
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+
+.run-chronicle-detail {
+  display: grid;
+  gap: clamp(0.4rem, 1.4vh, 0.9rem);
+  padding: clamp(0.5rem, 1.6vh, 1rem) clamp(0.6rem, 2vw, 1.1rem)
+    clamp(0.7rem, 2vh, 1.2rem);
+  border-top: 1px solid rgb(var(--accent-rgb) / 18%);
+}
+
+.run-chronicle-modifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  align-items: baseline;
+  margin: 0;
+  color: var(--color-stone-300);
+  font-size: 0.82rem;
+}
+
+.run-chronicle-missing {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/*
+ * The report inside a row.
+ *
+ * It is the same report the end-of-run screen draws, and it needs no changes
+ * to its anatomy — only to its scale and its colour. That screen is one panel
+ * filling a viewport, so its figures are two to a row with a full line of air
+ * above and below each block; in a chronicle row that reads as three enormous
+ * plates and a scroll. The figures go as wide as they fit here, the margins a
+ * full page needs come back out, and the labels take the chronicle's stone
+ * instead of the refuge's ember so a row is one thing rather than two.
+ */
+.run-chronicle-detail .results-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr));
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.run-chronicle-detail .results-stats div {
+  padding: 0.4rem 0.6rem;
+  border-color: rgb(var(--accent-rgb) / 20%);
+}
+
+.run-chronicle-detail .results-stats dt {
+  color: var(--text-muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.run-chronicle-detail .results-stats dd {
+  margin: 0.1rem 0 0;
+  color: var(--accent);
+  font-size: clamp(0.85rem, 2vh, 1.02rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-chronicle-detail .skill-damage-results,
+.run-chronicle-detail .skill-healing-results,
+.run-chronicle-detail .death-combat-log {
+  margin: 0;
+  border-color: rgb(var(--accent-rgb) / 20%);
+}
