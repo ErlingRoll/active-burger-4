@@ -379,8 +379,16 @@ export class Game {
     this.random = new Random(runConfig.seed)
     this.gearRandom = new Random(runConfig.seed ^ 0x9e3779b9)
     this.synergyRandom = new Random(runConfig.seed ^ 0x85ebca6b)
+    /*
+     * The Abyss sets its own conditions.
+     *
+     * World modifiers are the dungeon's way of trading difficulty for a larger
+     * Essence reward, and the Abyss pays no Essence — so carrying them in only
+     * ever made a descent harder for nothing. Refused here rather than at the
+     * screen that offers them, so no run config can reintroduce them.
+     */
     this.worldModifierEffects = resolveWorldModifierEffects(
-      runConfig.worldModifierIds,
+      runConfig.modeId === 'infinite-abyss' ? [] : runConfig.worldModifierIds,
       SPAWN_BALANCE,
     )
     this.xpMultiplier = getXpMultiplierForLevel(runConfig.xpMultiplierLevel ?? 0)
@@ -551,20 +559,47 @@ export class Game {
     this.gameState.player.hp = this.gameState.player.maxHp
     this.gameState.player.behaviorController!.freeMode =
       runConfig.freeMovementEnabled ?? true
-    if (isBehaviorProfileId(runConfig.behaviorProfileId)) {
+    /*
+     * A Champion fights the way it was saved fighting.
+     *
+     * The Abyss has no profile picker of its own, so this took whatever the
+     * player last set for a dungeon run and wrote it over the profile the
+     * Champion was preserved with — quietly changing a build the mode exists to
+     * carry unchanged.
+     */
+    if (isBehaviorProfileId(runConfig.behaviorProfileId) && !isAbyss) {
       this.gameState.player.behaviorController!.profileId = runConfig.behaviorProfileId
     }
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.
     this.transitionTo('playing')
+    /*
+     * The head start the Essence store bought, as choices to make.
+     *
+     * Not in the Abyss: a descent is run on a Champion's finished build, and
+     * handing that build a stack of fresh upgrade picks on the first floor is
+     * the one thing the mode is defined as not offering.
+     */
     const startingLevel = this.gameState.player.level
-    if (startingLevel > 1) {
+    if (startingLevel > 1 && this.gameState.run.modeId !== 'infinite-abyss') {
       this.enqueueLevelUpFlows(startingLevel - 1)
     }
   }
 
   private applyChampionBuild(build: CharacterBuildSnapshot): void {
     const player = this.gameState.player
+    /*
+     * The Champion arrives at the level it was saved at.
+     *
+     * Level carries a flat maximum-health bonus, and the build was applied
+     * without it: a thirtieth-level Champion walked into floors of ten-times
+     * health and ten-times damage with a first-level pool to lose. Set before
+     * the derived stats are refreshed below, so the bonus is in `maxHp` by the
+     * time the run fills it.
+     */
+    if (typeof build.level === 'number' && Number.isFinite(build.level)) {
+      player.level = Math.max(1, Math.floor(build.level))
+    }
     player.equipment = JSON.parse(JSON.stringify(build.equipment))
     if (player.behaviorController) {
       player.behaviorController.profileId = build.behaviorProfileId
@@ -1261,6 +1296,17 @@ export class Game {
     ) {
       return false
     }
+    /*
+     * A descent's price is not declinable.
+     *
+     * Abyss modifiers are offered through the same phase as a level-up, and the
+     * skip keybind asked only about the phase — so one press of it dropped the
+     * floor's downside and descended anyway, which is the opposite of what the
+     * mode is for.
+     */
+    if (this.choiceFlows[0]?.type === 'abyss-modifier') {
+      return false
+    }
 
     this.completeActiveChoiceFlow()
     return true
@@ -1513,11 +1559,19 @@ export class Game {
     updateBloodDebt(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
     updateBosses(this.gameState, this.idAllocator, FIXED_STEP_SECONDS)
+    /*
+     * The same multipliers the enemies were spawned with.
+     *
+     * Abilities were scaled by the world modifiers alone, so in the Abyss a
+     * ranged enemy's telegraphs and projectiles stayed at dungeon damage while
+     * everything it touched hit for ten times as much — the further from the
+     * player an enemy fought, the less the mode applied to it.
+     */
     updateEnemyAbilities(
       this.gameState,
       this.idAllocator,
       FIXED_STEP_SECONDS,
-      this.worldModifierEffects,
+      this.getEnemySpawnEffects(),
     )
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState)
@@ -1707,11 +1761,12 @@ export class Game {
        */
       if ((this.gameState.run.abyssModifierIds?.length ?? 0) <
         (this.gameState.run.abyssCompletedFloors ?? 0)) {
-        const choices = getAbyssModifierChoices(this.gameState.run.abyssModifierIds ?? [])
+        const choices = getAbyssModifierChoices()
         if (choices.length > 0) {
           this.choiceFlows.push({
             type: 'abyss-modifier',
             floor: fromFloor,
+            dangerScore: this.gameState.run.abyssDangerScore ?? 0,
             choices,
           })
           this.activateChoiceFlow()

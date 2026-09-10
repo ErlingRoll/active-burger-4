@@ -503,7 +503,13 @@ function App() {
       dungeonMaxFloorBonus: metaProgression.snapshot?.dungeonMaxFloorBonus ?? 0,
       rerollCount: metaProgression.snapshot?.wallet.rerollLevel ?? 0,
       banishCount: metaProgression.snapshot?.banishCount ?? 1,
-      worldModifierIds: settings.selectedWorldModifierIds,
+      /*
+       * The Abyss takes none, and the preference is kept all the same: it is
+       * the player's dungeon setting, waiting for their next dungeon run.
+       */
+      worldModifierIds: (activeRun?.modeId ?? runMode) === 'infinite-abyss'
+        ? []
+        : settings.selectedWorldModifierIds,
       ...(selectedContractIsDefault
         ? {}
         : {

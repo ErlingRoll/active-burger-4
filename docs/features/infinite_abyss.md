@@ -37,8 +37,11 @@ Abyss enemies use a separate difficulty profile. At floor 1, enemies begin with
 data-driven and must be playtested against completed Champions; if it makes the
 mode inaccessible, HP and damage may be tuned independently.
 
-The Abyss does not grant normal enemy XP or normal equipment choices. It may
-reuse combat, movement, floor, and boss systems from dungeon runs, but all
+The Abyss does not grant normal enemy XP or normal equipment choices, and it
+pays no Essence: its reward is depth, the floor's loot box, and the score. World
+modifiers do not apply either — they are the dungeon's trade of difficulty for a
+larger Essence reward, and there is no Essence here to enlarge. It may reuse
+combat, movement, floor, and boss systems from dungeon runs, but all
 reward-producing behavior must be explicitly mode-scoped.
 
 ## Floor decisions
@@ -62,8 +65,10 @@ combination restrictions before the choice is confirmed.
 
 Modifiers use explicit guardrails:
 
-- No duplicate modifier unless the content definition explicitly permits it.
-- Additive stacking is preferred over unbounded multiplicative stacking.
+- Every modifier stays on offer and a repeat compounds. Striking each one off as
+  it was taken left the fourth floor of an endless mode with nothing to ask for:
+  the descent stopped escalating and Danger Score — which is also what the
+  floor's loot is graded against — stopped at six for the rest of the attempt.
 - Each stat has a sensible cap or diminishing return.
 - Impossible or redundant combinations are excluded from the choice pool.
 - Enemy critical chance and critical damage are independently capped.

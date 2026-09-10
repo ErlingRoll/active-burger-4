@@ -1075,19 +1075,24 @@ describe('UI snapshots', () => {
     expect(transitionSnapshot.phase).toBe('floor-transition')
   })
 
-  it('projects a bounded encounter timeline for an Infinite Abyss run', () => {
+  it('projects a bounded encounter timeline with no end for an Infinite Abyss run', () => {
     const game = createGame({ seed: 77 })
     game.state.run.modeId = 'infinite-abyss'
     game.state.run.dungeonMaxFloor = Number.MAX_SAFE_INTEGER
 
     const snapshot = game.getUiSnapshot()
 
-    expect(snapshot.timeline).toHaveLength(11)
+    // Bounded, because the timeline reaches ten floors past the one being
+    // fought; and endless, because none of what it shows is a final floor. It
+    // used to close on an Inferno Warden marked final, which the descent could
+    // never arrive at: it moved a floor further off every time one was cleared.
+    expect(snapshot.timeline).toHaveLength(10)
     expect(snapshot.timeline.at(-1)).toMatchObject({
-      floorNumber: 11,
-      name: 'Inferno Warden',
+      floorNumber: 10,
+      name: 'Stone Golem',
       status: 'upcoming',
     })
+    expect(snapshot.timeline.some((event) => event.isFinal)).toBe(false)
   })
 
   it('projects queued choices without exposing mutable simulation arrays', () => {

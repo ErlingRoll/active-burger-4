@@ -155,10 +155,8 @@ import {
   getBehaviorProfileDefinition,
   type BehaviorProfileId,
 } from '../../content/behaviors/BehaviorProfiles'
-import {
-  createDungeonEncounterTimeline,
-  getDungeonDefinition,
-} from '../../content/dungeons/Dungeons'
+import { getDungeonDefinition } from '../../content/dungeons/Dungeons'
+import { getEncounterTimeline } from '../systems/encounter/EncounterSystem'
 import type { EncounterDefinition } from '../../content/encounters/Encounters'
 import {
   getInfernoWardenEnrageMultipliers,
@@ -1392,6 +1390,12 @@ export interface RunResultSnapshot {
   readonly phase: RunPhase
   /** Which run this was. The Abyss and the dungeon do not pay the same way. */
   readonly modeId: RunModeId
+  /** How deep the run got. The Abyss has nothing else to measure itself by. */
+  readonly floor: number
+  /** Points banked for floors survived and dangers accepted. Abyss runs only. */
+  readonly abyssScore: number
+  /** The accumulated weight of those dangers. Abyss runs only. */
+  readonly abyssDangerScore: number
   readonly elapsedTime: number
   readonly level: number
   readonly xp: number
@@ -1862,20 +1866,19 @@ export function createUiSnapshot(
   const worldModifierRewardMultiplier = calculateWorldModifierRewardMultiplier(
     state.run.worldModifierIds,
   )
-  const estimatedEssence = calculateEssenceReward(
-    state.player.level,
-    state.run.killCount,
-    worldModifierRewardMultiplier,
-  ).projectedReward
+  // Nothing to estimate in the Abyss: it does not pay Essence.
+  const estimatedEssence = state.run.modeId === 'infinite-abyss'
+    ? 0
+    : calculateEssenceReward(
+      state.player.level,
+      state.run.killCount,
+      worldModifierRewardMultiplier,
+    ).projectedReward
   const completedEncounterIds = new Set(state.run.completedEncounterIds ?? [])
-  const encounterTimeline = state.run.modeId === 'infinite-abyss'
-    ? createDungeonEncounterTimeline(Math.max(floor + 10, 10))
-    : state.run.dungeonMaxFloor === undefined ||
-      state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
-      ? dungeon.encounterTimeline
-      : createDungeonEncounterTimeline(
-        state.run.dungeonMaxFloor,
-      )
+  // The same list the encounter system is working from, rather than a second
+  // copy rebuilt per frame that had drifted into promising a final boss the
+  // Abyss never reaches.
+  const encounterTimeline = getEncounterTimeline(state)
   const timeline = encounterTimeline.map((event) =>
     createEncounterTimelineSnapshot(
       event,
@@ -2157,6 +2160,9 @@ export function createRunResultSnapshot(
   const result = {
     phase: state.run.phase,
     modeId: state.run.modeId ?? DEFAULT_RUN_MODE_ID,
+    floor: state.run.floor ?? 1,
+    abyssScore: Math.max(0, Math.floor(state.run.abyssScore ?? 0)),
+    abyssDangerScore: Math.max(0, Math.floor(state.run.abyssDangerScore ?? 0)),
     elapsedTime: state.time,
     level: state.player.level,
     xp: state.player.xp,

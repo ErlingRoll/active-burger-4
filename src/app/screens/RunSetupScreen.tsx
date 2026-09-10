@@ -253,7 +253,9 @@ export function RunSetupScreen({
           <div>
             <h2 id="dashboard-title">{selectedMode === 'infinite-abyss' ? 'Infinite Abyss' : 'Dungeon run'}</h2>
             <p>
-              Shape your fighter before entering the dungeon.
+              {selectedMode === 'infinite-abyss'
+                ? 'Pick the Champion who makes the descent.'
+                : 'Shape your fighter before entering the dungeon.'}
             </p>
           </div>
         </div>
@@ -728,6 +730,15 @@ export function RunSetupScreen({
              Selected fish are consumed when the run starts. Revival Koi is reserved for Champion recovery.
            </p>
          </section>
+         {/*
+           The dungeon's conditions, and only the dungeon's. They are a trade of
+           difficulty for a bigger Essence reward, and the Abyss pays no Essence
+           — so offering them there sold a price with nothing on the other side
+           of it. The choice itself is remembered either way; it is waiting for
+           the next dungeon run.
+         */}
+         {selectedMode !== 'dungeon' ? null : (
+         <>
          <div className="run-dashboard-section-heading run-dashboard-section-heading-risk">
           <p className="screen-kicker">Raise the heat</p>
           <h3>Pick your arena conditions</h3>
@@ -759,6 +770,8 @@ export function RunSetupScreen({
             })}
           </div>
         </fieldset>
+        </>
+        )}
       </div>
     </section>
   )

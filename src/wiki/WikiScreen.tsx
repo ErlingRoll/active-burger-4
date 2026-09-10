@@ -357,8 +357,9 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                 <ul>
                   <li>Complete a Dungeon and save the victorious build as a Champion first.</li>
                   <li>Choose one available Champion to replace the active character.</li>
-                  <li>Enemies begin at <strong>10×</strong> normal HP and contact damage.</li>
+                  <li>Enemies begin at <strong>10×</strong> normal HP and damage.</li>
                   <li>Normal level-up and gear choices are not offered between floors.</li>
+                  <li>World modifiers do not apply, and the Abyss pays no Essence.</li>
                 </ul>
               </section>
               <section className="wiki-card wiki-card-full-width">
@@ -366,7 +367,9 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                 <p>
                   After each completed floor, choose one enemy modifier. The choice
                   remains active for the attempt and adds Danger Score, turning safer
-                  progress into a trade-off against more punishing encounters.
+                  progress into a trade-off against more punishing encounters. Every
+                  modifier stays on offer, and taking one again compounds it — which
+                  is what keeps an endless descent escalating.
                 </p>
                 <WikiTable columns={['Modifier', 'Effect', 'Danger']} rows={ABYSS_MODIFIER_DEFINITIONS.map((modifier) => [
                   modifier.name,

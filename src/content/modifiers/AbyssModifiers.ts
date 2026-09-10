@@ -66,18 +66,25 @@ export function getAbyssModifierDefinition(
   return definition
 }
 
-export function getAbyssModifierChoices(
-  selectedModifierIds: readonly AbyssModifierId[],
-): readonly AbyssModifierChoice[] {
-  const selected = new Set(selectedModifierIds)
-  return ABYSS_MODIFIER_DEFINITIONS
-    .filter((definition) => !selected.has(definition.id))
-    .map((definition) => ({
-      modifierId: definition.id,
-      name: definition.name,
-      description: definition.description,
-      dangerScore: definition.dangerScore,
-    }))
+/**
+ * The dangers on offer for surviving a floor.
+ *
+ * Every danger, every time. They used to be struck off as they were taken,
+ * which in a mode with three of them meant the fourth floor had nothing left to
+ * ask for: the descent stopped escalating, and the Danger Score — which is also
+ * what the floor's loot is graded against — stopped at six for the rest of an
+ * endless run. Stacking is what makes it endless. Each one compounds on the
+ * last in `getAbyssEnemyEffects`, so the tenth Hardened Shells is a harder
+ * bargain than the first, and the count is carried in the tally rather than
+ * being a set of flags.
+ */
+export function getAbyssModifierChoices(): readonly AbyssModifierChoice[] {
+  return ABYSS_MODIFIER_DEFINITIONS.map((definition) => ({
+    modifierId: definition.id,
+    name: definition.name,
+    description: definition.description,
+    dangerScore: definition.dangerScore,
+  }))
 }
 
 export function getAbyssEnemyEffects(

@@ -57,11 +57,22 @@ export function ResultsScreen({
         <p className="screen-kicker">{victory ? 'Run victorious' : 'Run complete'}</p>
         <h2 id="results-title">{victory ? 'Victory' : 'Defeat'}</h2>
         <p className="results-summary" aria-live="polite">
-          {victory
-            ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
-            : `Your run ended with ${result.killCount} enemies defeated.`}
+          {!paysEssence
+            ? `The Abyss took you on floor ${result.floor}, ${result.killCount} kills deep.`
+            : victory
+              ? `The final boss has fallen after ${result.killCount} kills. The depths are conquered.`
+              : `Your run ended with ${result.killCount} enemies defeated.`}
         </p>
+        {/* How deep, and what it was worth. The Abyss keeps a score for floors
+            survived and dangers accepted, and until now kept it to itself. */}
         <dl className="results-stats">
+          {paysEssence ? null : (
+            <>
+              <div><dt>Depth</dt><dd>Floor {result.floor}</dd></div>
+              <div><dt>Score</dt><dd>{result.abyssScore.toLocaleString()}</dd></div>
+              <div><dt>Danger</dt><dd>{result.abyssDangerScore}</dd></div>
+            </>
+          )}
           <div><dt>Elapsed time</dt><dd>{formatElapsedTime(result.elapsedTime)}</dd></div>
           <div><dt>Level</dt><dd>{result.level}</dd></div>
           <div><dt>XP</dt><dd>{formatExperience(result.xp)}</dd></div>
@@ -226,13 +237,15 @@ export function ResultsScreen({
         ) : null}
         {terminalSaveState === 'saving' ? (
           <p className="persistence-status" role="status">
-            Saving the completed dungeon run…
+            {paysEssence ? 'Saving the completed dungeon run…' : 'Saving the completed descent…'}
           </p>
         ) : null}
         {terminalSaveState === 'error' || terminalSaveState === 'unavailable' ? (
           <>
             <p className="persistence-error" role="alert">
-              {terminalSaveError ?? 'Unable to save the completed dungeon run.'}
+              {terminalSaveError ?? (paysEssence
+                ? 'Unable to save the completed dungeon run.'
+                : 'Unable to save the completed descent.')}
             </p>
             <button className="secondary-action" type="button" onClick={onRetryTerminalSave}>
               Retry run save

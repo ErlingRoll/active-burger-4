@@ -21,6 +21,8 @@ export interface GearPickupChoiceFlow {
 export interface AbyssModifierChoiceFlow {
   type: 'abyss-modifier'
   floor: number
+  /** The weight of every danger accepted so far, before this one is added. */
+  dangerScore: number
   choices: readonly AbyssModifierChoice[]
 }
 
