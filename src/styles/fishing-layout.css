@@ -151,6 +151,24 @@
     scale: 0.68;
   }
 
+  /*
+   * The cast line keeps the box it has on a desktop, and comes down with the
+   * angler like everything else in the boat.
+   *
+   * Where it meets the rod is decided by the shape of this box. The curve is
+   * drawn in a viewbox of its own that is fitted inside the box and centred
+   * there, so a box wider than the viewbox's two-to-one pushes the curve in from
+   * the left — and that inset is what the rod-tip anchor was tuned around. Both
+   * of the clamps below bottom out on a phone, at exactly two-to-one, which
+   * leaves no inset at all and starts the line a third of the way down the rod.
+   * Sized like the desktop's, every offset involved is the one it was tuned
+   * with, and the angler's own scale takes the whole assembly down together.
+   */
+  .pond-cast-line {
+    width: 14rem;
+    height: 5rem;
+  }
+
   /* ---------------------------------------------------------------------------
      The inventory, as a sheet rather than a drawer.
 
