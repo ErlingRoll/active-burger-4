@@ -35,38 +35,46 @@ function nextEncounter(
 }
 
 /*
- * The Abyss's timeline, remembered between the ticks that ask for it.
+ * The run's timeline, remembered between the ticks that ask for it.
  *
- * It is derived from the floor and nothing else, and it was rebuilt on every
- * call: sixty times a second by the encounter update, and again for every HUD
- * snapshot. Its length grows with the floor, so an endless mode spent an
- * ever-larger allocation per frame rebuilding a list that only changes when the
- * player descends. One slot is enough — a run is on one floor at a time — and
- * the value is a pure function of the floor, so remembering it cannot change
- * what the simulation does.
+ * It is derived from the floor, the maximum floor and the run seed, and nothing
+ * else. It was rebuilt on every call: sixty times a second by the encounter
+ * update, and again for every HUD snapshot. Its length grows with the floor, so
+ * an endless mode spent an ever-larger allocation per frame rebuilding a list
+ * that only changes when the player descends. One slot is enough - a run is on
+ * one floor at a time - and the value is a pure function of those three
+ * numbers, so remembering it cannot change what the simulation does.
  */
-let cachedAbyssTimelineFloor: number | undefined
-let cachedAbyssTimeline: readonly EncounterDefinition[] = []
-
-function getAbyssEncounterTimeline(floor: number): readonly EncounterDefinition[] {
-  if (cachedAbyssTimelineFloor !== floor) {
-    cachedAbyssTimelineFloor = floor
-    cachedAbyssTimeline = createAbyssEncounterTimeline(floor)
-  }
-  return cachedAbyssTimeline
+interface CachedTimeline {
+  readonly abyss: boolean
+  readonly floor: number
+  readonly seed: number
+  readonly timeline: readonly EncounterDefinition[]
 }
+
+let cachedTimeline: CachedTimeline | undefined
 
 export function getEncounterTimeline(state: GameState): readonly EncounterDefinition[] {
   const dungeon = getDungeonDefinition(state.run.dungeonId)
-  if (state.run.modeId === 'infinite-abyss') {
-    return getAbyssEncounterTimeline(state.run.floor ?? 1)
+  const abyss = state.run.modeId === 'infinite-abyss'
+  const seed = state.run.seed
+  // The Abyss builds ten floors past wherever the run has reached; a dungeon
+  // builds the whole descent once, so its key is its maximum floor.
+  const floor = abyss
+    ? state.run.floor ?? 1
+    : state.run.dungeonMaxFloor ?? dungeon.defaultMaxFloor
+  if (
+    cachedTimeline?.abyss === abyss &&
+    cachedTimeline.floor === floor &&
+    cachedTimeline.seed === seed
+  ) {
+    return cachedTimeline.timeline
   }
-  return state.run.dungeonMaxFloor === undefined ||
-    state.run.dungeonMaxFloor === dungeon.defaultMaxFloor
-    ? dungeon.encounterTimeline
-    : createDungeonEncounterTimeline(
-      state.run.dungeonMaxFloor,
-    )
+  const timeline = abyss
+    ? createAbyssEncounterTimeline(floor, seed)
+    : createDungeonEncounterTimeline(floor, seed)
+  cachedTimeline = { abyss, floor, seed, timeline }
+  return timeline
 }
 
 export function startBossEncounter(

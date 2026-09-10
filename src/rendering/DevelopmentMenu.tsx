@@ -1,4 +1,10 @@
 import { useState } from 'react'
+import {
+  BOSS_DEFINITION_IDS,
+  getBossDefinition,
+  isBossDefinitionId,
+  type BossDefinitionId,
+} from '../content/bosses/Bosses'
 import type { ChangeEvent } from 'react'
 import {
   MAX_TIME_SCALE,
@@ -77,6 +83,9 @@ export function DevelopmentMenu({
     INITIAL_UPGRADES[0]?.id ?? '',
   )
   const [selectedSynergyId, setSelectedSynergyId] = useState<string>('')
+  const [selectedBossId, setSelectedBossId] = useState<BossDefinitionId>(
+    BOSS_DEFINITION_IDS[0] ?? 'stone-golem',
+  )
   const [grantFeedback, setGrantFeedback] = useState<string | null>(null)
   const eligibleSynergies = getEligibleSynergyDefinitions(game.state)
 
@@ -142,7 +151,14 @@ export function DevelopmentMenu({
     game.startEncounter()
   }
 
-  const spawnInfernoWarden = (): void => {
+  /*
+   * Summons any boss in the roster.
+   *
+   * This used to be one button for the Inferno Warden, which was reasonable
+   * while there were two bosses. A floor now draws from the whole roster, so
+   * the only way to look at a given boss is to ask for it by name.
+   */
+  const summonBoss = (): void => {
     if (
       snapshot.phase !== 'playing' ||
       (game.state.bosses?.length ?? 0) > 0 ||
@@ -150,11 +166,8 @@ export function DevelopmentMenu({
     ) {
       return
     }
-    // startEncounter uses the normal named encounter when content provides it.
-    // The direct spawn fallback keeps this development harness useful while
-    // authored final encounter scheduling is being assembled.
-    if (!game.startEncounter('inferno-warden')) {
-      game.spawnBoss('inferno-warden')
+    if (!game.startEncounter(selectedBossId)) {
+      game.spawnBoss(selectedBossId)
     }
   }
 
@@ -306,17 +319,42 @@ export function DevelopmentMenu({
           >
             Spawn Boss
           </button>
-          <button
-            className="debug-spawn-button debug-spawn-final-button"
-            type="button"
-            onClick={spawnInfernoWarden}
-            disabled={
-              snapshot.phase !== 'playing' ||
-              (game.state.bosses?.length ?? 0) > 0
-            }
-          >
-            Spawn Inferno Warden
-          </button>
+          <div className="debug-grant-row">
+            <label className="visually-hidden" htmlFor="debug-boss-select">
+              Boss
+            </label>
+            <select
+              id="debug-boss-select"
+              value={selectedBossId}
+              onChange={(event) => {
+                const value = event.target.value
+                if (isBossDefinitionId(value)) {
+                  setSelectedBossId(value)
+                }
+              }}
+            >
+              {BOSS_DEFINITION_IDS.map((id) => {
+                const boss = getBossDefinition(id)
+                return (
+                  <option value={id} key={id}>
+                    {boss.name}
+                    {boss.role === 'final' ? ' (final)' : ` (floor ${boss.minFloor}+)`}
+                  </option>
+                )
+              })}
+            </select>
+            <button
+              className="debug-spawn-button debug-spawn-final-button"
+              type="button"
+              onClick={summonBoss}
+              disabled={
+                snapshot.phase !== 'playing' ||
+                (game.state.bosses?.length ?? 0) > 0
+              }
+            >
+              Summon boss
+            </button>
+          </div>
           <button
             className="debug-spawn-button debug-spawn-final-button"
             type="button"

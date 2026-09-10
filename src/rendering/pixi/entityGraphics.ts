@@ -16,6 +16,8 @@ import type { StatusEffectBadge } from './renderState'
 import type { BossView, EnemyView, StairsView } from './views'
 import { applyEnemyRenderScale, createEliteAura } from './enemyRendering'
 import { drawEnemySilhouette } from './enemySilhouettes'
+import { drawBossSilhouette } from './bossSilhouettes'
+import { getBossDefinition } from '../../content/bosses/Bosses'
 import { getBossDisplayLabel, getEnemyDisplayLabel } from './labels'
 import { createPolygonPoints, createStarPoints } from './geometry'
 
@@ -92,31 +94,12 @@ export function createEnemyPlaceholder(enemy: {
 }
 
 export function createBossPlaceholder(boss: BossState): BossView {
+  const render = getBossDefinition(boss.bossDefinitionId).render
   const body = new Graphics()
-    .circle(0, 0, boss.radius)
-    .fill('#7c3aed')
-    .stroke({ color: '#fef08a', width: 4 })
-    .circle(0, 0, boss.radius * 0.72)
-    .stroke({ color: '#c4b5fd', width: 2 })
-  const marker = new Graphics()
-    .poly([
-      0,
-      -boss.radius * 1.35,
-      boss.radius * 0.35,
-      -boss.radius * 1.05,
-      boss.radius * 0.7,
-      -boss.radius * 1.35,
-      boss.radius * 0.45,
-      -boss.radius * 0.72,
-      -boss.radius * 0.45,
-      -boss.radius * 0.72,
-      -boss.radius * 0.7,
-      -boss.radius * 1.35,
-      -boss.radius * 0.35,
-      -boss.radius * 1.05,
-    ])
-    .fill('#fef08a')
-    .stroke({ color: '#451a03', width: 1 })
+  drawBossSilhouette(body, render.shape, boss.radius, {
+    fill: render.color,
+    outline: render.outlineColor,
+  })
   const label = new Text({
     text: getBossDisplayLabel(boss.bossDefinitionId),
     style: {
@@ -139,7 +122,7 @@ export function createBossPlaceholder(boss: BossState): BossView {
     .circle(0, 0, boss.radius + 6)
     .fill({ color: '#ffffff', alpha: 0.78 })
   hitFlash.visible = false
-  root.addChild(poisonAura, body, hitFlash, marker, hpBar, statusEffects, label)
+  root.addChild(poisonAura, body, hitFlash, hpBar, statusEffects, label)
   return { root, body, label, hpBar, statusEffects, poisonAura, hitFlash }
 }
 

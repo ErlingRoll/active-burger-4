@@ -45,7 +45,7 @@ describe('behavior controller foundation', () => {
       id: 2,
       sourceId: 3,
       skillId: 'ground-slam',
-      kind: 'ground-slam',
+      shape: 'disc',
       x: 0,
       y: 0,
       radius: 100,

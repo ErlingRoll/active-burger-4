@@ -32,6 +32,11 @@ import { getXpMultiplierForLevel, XP_MULTIPLIER_MAX_LEVEL } from '../content/pro
 import { DEFAULT_DUNGEON_CONFIG, getFloorDifficultyProfile } from '../content/dungeons/Dungeons'
 import { ENEMY_ABILITY_DEFINITIONS, ENEMY_DEFINITIONS } from '../content/enemies/Enemies'
 import { ELITE_MODIFIER_DEFINITIONS } from '../content/enemies/EliteModifiers'
+import {
+  BOSS_DEFINITION_IDS,
+  getBossDefinition,
+  getBossSkillDefinition,
+} from '../content/bosses/Bosses'
 import type { EliteModifierDefinition } from '../content/enemies/EliteModifiers'
 import { SPAWN_BALANCE, calculateThreatPerSecond } from '../content/spawning/SpawnBalance'
 import { WORLD_MODIFIER_DEFINITIONS } from '../content/modifiers/WorldModifiers'
@@ -638,6 +643,41 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   the preparation screen lets you choose any 5-floor increment up to that limit.
                 </p>
               </section>
+            </div>
+            <h3 className="wiki-subheading">Bosses</h3>
+            <p className="wiki-muted">
+              Every floor ends with a boss drawn from the run's seed, so two runs
+              down the same dungeon meet a different order. A boss appears only
+              once the run has reached the floor it is eligible for. The Inferno
+              Warden is not in that draw: it is the encounter that ends a dungeon.
+            </p>
+            <div className="wiki-card-grid">
+              {BOSS_DEFINITION_IDS.map((bossId) => {
+                const boss = getBossDefinition(bossId)
+                return (
+                  <section className="wiki-card" key={bossId} style={{ '--wiki-accent': boss.render.color } as CSSProperties}>
+                    <h3 id={`boss-${bossId}`}>{boss.name}</h3>
+                    <p className="wiki-stat-line">
+                      {boss.role === 'final' ? 'Final encounter' : `Floor ${boss.minFloor}+`}
+                      {' · '}HP <strong>{boss.maxHp}</strong>
+                      {' · '}Speed <strong>{boss.speed}</strong>
+                      {' · '}XP <strong>{boss.xpReward}</strong>
+                    </p>
+                    <p>{boss.tactics}</p>
+                    <ul>
+                      {boss.skills.map((skillId) => {
+                        const skill = getBossSkillDefinition(skillId)
+                        return (
+                          <li key={skillId}>
+                            <strong>{skill.name}</strong> · {skill.damage} {skill.damageType}
+                            {' · '}{skill.telegraphDuration}s warning · {skill.counterplay.toLowerCase()}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </section>
+                )
+              })}
             </div>
             <h3 className="wiki-subheading">Difficulty profile samples</h3>
             <WikiTable columns={['Floor', 'HP', 'Contact damage', 'Threat', 'Elite modifier maximum']} rows={[1, 5, 10, 20, 50, 100].map((floor) => {

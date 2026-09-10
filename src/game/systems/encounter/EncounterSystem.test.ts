@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createGame, FIXED_STEP_SECONDS } from '../../Game'
+import { getBossDefinition } from '../../../content/bosses/Bosses'
 
 describe('boss encounter timeline', () => {
   it('starts on the current floor after its normal progress completes', () => {
@@ -19,7 +20,7 @@ describe('boss encounter timeline', () => {
 
     expect(game.state.encounter).toMatchObject({
       status: 'active',
-      encounterId: 'stone-golem-encounter',
+      encounterId: 'floor-boss-1',
       normalSpawnsSuspended: true,
     })
     expect(game.state.bosses).toHaveLength(1)
@@ -74,9 +75,32 @@ describe('boss encounter timeline', () => {
 
     expect(game.state.encounter).toMatchObject({
       status: 'active',
-      bossDefinitionId: 'stone-golem',
+      bossDefinitionId: game.dungeon.encounterTimeline[0]?.bossDefinitionId,
       floorNumber: 1,
     })
+  })
+
+  it('draws each floor boss from the run seed', () => {
+    const one = createGame({ seed: 901 }).dungeon.encounterTimeline
+    const another = createGame({ seed: 902 }).dungeon.encounterTimeline
+
+    // The same seed has to give the same descent, or a resumed run would meet a
+    // different boss than the one it left.
+    expect(createGame({ seed: 901 }).dungeon.encounterTimeline).toEqual(one)
+    expect(another).not.toEqual(one)
+    // The Warden ends a dungeon and is never drawn for an ordinary floor.
+    expect(
+      one.slice(0, -1).some((event) => event.bossDefinitionId === 'inferno-warden'),
+    ).toBe(false)
+  })
+
+  it('never sends a boss to a floor below its earliest', () => {
+    const timeline = createGame({ seed: 903 }).dungeon.encounterTimeline
+
+    for (const event of timeline.slice(0, -1)) {
+      expect(getBossDefinition(event.bossDefinitionId).minFloor)
+        .toBeLessThanOrEqual(event.floorNumber)
+    }
   })
 
   it('supports a manual encounter and resumes normal spawns after victory', () => {

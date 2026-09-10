@@ -21,7 +21,8 @@ describe('ordinary enemy abilities', () => {
     expect(game.state.telegraphs).toMatchObject([{
       sourceKind: 'enemy',
       skillId: 'brute-shockwave',
-      kind: 'enemy-shockwave',
+      shape: 'disc',
+      element: 'physical',
     }])
     const telegraph = game.state.telegraphs?.[0]
     if (!telegraph) {
@@ -50,7 +51,9 @@ describe('ordinary enemy abilities', () => {
     expect(game.state.telegraphs).toMatchObject([{
       sourceKind: 'enemy',
       skillId: 'archer-shot',
-      kind: 'enemy-projectile',
+      shape: 'line',
+      element: 'physical',
+      tracksCaster: true,
       points: [
         { x: 300, y: 0 },
         { x: 0, y: 0 },

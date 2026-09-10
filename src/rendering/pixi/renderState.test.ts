@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getEnemyStatusEffects,
   getStatusEffectSignature,
+  getTelegraphCounterplay,
   getTelegraphName,
   getTelegraphRenderState,
   hasWorldSpaceEffectGeometry,
@@ -14,7 +15,8 @@ import type { TelegraphState } from '../../game/state/GameState'
 function telegraph(overrides: Partial<TelegraphState> = {}): TelegraphState {
   return {
     id: 1,
-    kind: 'enemy-projectile',
+    shape: 'line',
+    tracksCaster: true,
     skillId: 'archer-shot',
     x: 0,
     y: 0,
@@ -94,11 +96,28 @@ describe('telegraph naming', () => {
       .toBe('Enemy attack')
   })
 
-  it('identifies the telegraph kinds drawn as a line', () => {
-    expect(isLineTelegraphKind(telegraph({ kind: 'charge' }))).toBe(true)
-    expect(isLineTelegraphKind(telegraph({ kind: 'flame-line' }))).toBe(true)
-    expect(isLineTelegraphKind(telegraph({ kind: 'enemy-projectile' }))).toBe(true)
-    expect(isLineTelegraphKind(telegraph({ kind: 'fire-nova' }))).toBe(false)
+  it('identifies the telegraph shapes drawn as a line', () => {
+    expect(isLineTelegraphKind(telegraph({ shape: 'line' }))).toBe(true)
+    expect(isLineTelegraphKind(telegraph({ shape: 'disc' }))).toBe(false)
+    expect(isLineTelegraphKind(telegraph({ shape: 'ring' }))).toBe(false)
+    expect(isLineTelegraphKind(telegraph({ shape: 'cone' }))).toBe(false)
+  })
+})
+
+describe('getTelegraphCounterplay', () => {
+  it('quotes the answer the boss skill states', () => {
+    expect(getTelegraphCounterplay(telegraph({ skillId: 'glacial-ring' })))
+      .toBe('Close in under the ring')
+    expect(getTelegraphCounterplay(telegraph({ skillId: 'stone-sweep' })))
+      .toBe('Get around to its flank')
+  })
+
+  it('falls back to the shape for an attack that states none', () => {
+    expect(getTelegraphCounterplay(telegraph({ skillId: 'archer-shot' })))
+      .toBe('Step off the lane')
+    expect(
+      getTelegraphCounterplay(telegraph({ skillId: 'elite-volatile', shape: 'disc' })),
+    ).toBe('Move clear')
   })
 })
 
@@ -118,7 +137,7 @@ describe('getTelegraphRenderState', () => {
   })
 
   it('leaves the stored geometry alone for a non-projectile telegraph', () => {
-    const original = telegraph({ kind: 'fire-nova' })
+    const original = telegraph({ shape: 'disc', tracksCaster: undefined })
 
     expect(getTelegraphRenderState(state, original)).toBe(original)
   })

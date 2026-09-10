@@ -300,6 +300,8 @@ export interface BossHudSnapshot {
   readonly id: EntityId | undefined
   readonly bossDefinitionId: BossDefinitionId
   readonly name: string
+  /** One line on how this fight works, so a new boss is readable on sight. */
+  readonly tactics: string
   readonly status: EncounterStatus
   readonly hp: number
   readonly maxHp: number
@@ -356,7 +358,7 @@ export interface TelegraphHudSnapshot {
   readonly sourceId: EntityId
   readonly sourceKind?: TelegraphState['sourceKind']
   readonly skillId: TelegraphState['skillId']
-  readonly kind: TelegraphState['kind']
+  readonly shape: TelegraphState['shape']
   readonly x: number
   readonly y: number
   readonly radius: number
@@ -1945,7 +1947,7 @@ export function createUiSnapshot(
         ? { sourceKind: telegraph.sourceKind }
         : {}),
       skillId: telegraph.skillId,
-      kind: telegraph.kind,
+      shape: telegraph.shape,
       x: telegraph.x,
       y: telegraph.y,
       radius: telegraph.radius,
@@ -2083,8 +2085,10 @@ function createBossHudSnapshot(
   const maxHp = boss?.maxHp ?? definition.maxHp
   const hp = Math.max(0, Math.min(maxHp, boss?.hp ?? (status === 'complete' ? 0 : maxHp)))
   const isFinal = state.encounter?.isFinal === true ||
-    bossDefinitionId === 'inferno-warden'
-  const enrage = bossDefinitionId === 'inferno-warden'
+    definition.role === 'final'
+  // Enrage is read from the definition, so a second boss that grows over a long
+  // fight gets the same HUD row without being named here.
+  const enrage = definition.enrage
     ? Object.freeze({
       elapsedSeconds: Math.max(
         0,
@@ -2103,6 +2107,7 @@ function createBossHudSnapshot(
     id: boss?.id,
     bossDefinitionId,
     name: definition.name,
+    tactics: definition.tactics,
     status,
     hp,
     maxHp,

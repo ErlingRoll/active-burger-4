@@ -16,6 +16,7 @@ import {
   getEffectivePlayerMovementSpeed,
 } from '../../stats/DerivedStats'
 import { getPlayerDodgeCandidate } from '../movement/DodgeSystem'
+import { isPointInTelegraph } from '../../geometry/TelegraphGeometry'
 import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   getBehaviorProfilePolicy,
@@ -257,36 +258,6 @@ function getThreatAttackRange(entity: ThreatEntity): number {
   return getEnemyAbilityForDefinition(entity.definitionId)?.range ?? 0
 }
 
-function segmentDistanceSquared(
-  pointX: number,
-  pointY: number,
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number,
-): number {
-  const directionX = endX - startX
-  const directionY = endY - startY
-  const lengthSquared = directionX * directionX + directionY * directionY
-  if (lengthSquared === 0) {
-    return distanceSquared(pointX, pointY, startX, startY)
-  }
-  const progress = Math.max(
-    0,
-    Math.min(
-      1,
-      ((pointX - startX) * directionX + (pointY - startY) * directionY) /
-        lengthSquared,
-    ),
-  )
-  return distanceSquared(
-    pointX,
-    pointY,
-    startX + directionX * progress,
-    startY + directionY * progress,
-  )
-}
-
 function telegraphRiskAt(
   state: Readonly<GameState>,
   x: number,
@@ -296,16 +267,9 @@ function telegraphRiskAt(
     if (telegraph.remainingDuration <= 0) {
       return risk
     }
-    const first = telegraph.points[0]
-    const last = telegraph.points[telegraph.points.length - 1]
-    const isLine = telegraph.kind === 'charge' ||
-      telegraph.kind === 'flame-line' ||
-      telegraph.kind === 'enemy-projectile'
-    const distance = isLine && first && last
-      ? segmentDistanceSquared(x, y, first.x, first.y, last.x, last.y)
-      : distanceSquared(x, y, telegraph.x, telegraph.y)
-    const dangerRadius = telegraph.radius + state.player.radius
-    return distance <= dangerRadius * dangerRadius ? risk + 10_000 : risk
+    return isPointInTelegraph(telegraph, x, y, state.player.radius)
+      ? risk + 10_000
+      : risk
   }, 0)
 }
 

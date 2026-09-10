@@ -13,6 +13,7 @@ import {
   WHIRLWIND_SKILL_ID,
 } from '../../content/skills/Skills'
 import { xpRequiredForNextLevel } from '../../content/progression/XpBalance'
+import { getBossDefinition } from '../../content/bosses/Bosses'
 import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { equipItem, equipRolledItem } from '../equipment/EquipmentState'
 import {
@@ -1040,7 +1041,10 @@ describe('UI snapshots', () => {
 
     expect(snapshot.floor).toBe(1)
     expect(snapshot.timeline[0]).toMatchObject({
-      name: 'Stone Golem',
+      floorNumber: 1,
+      name: getBossDefinition(
+        game.dungeon.encounterTimeline[0]!.bossDefinitionId,
+      ).name,
       status: 'upcoming',
     })
     expect(snapshot.pickups).toHaveLength(1)
@@ -1089,7 +1093,6 @@ describe('UI snapshots', () => {
     expect(snapshot.timeline).toHaveLength(10)
     expect(snapshot.timeline.at(-1)).toMatchObject({
       floorNumber: 10,
-      name: 'Stone Golem',
       status: 'upcoming',
     })
     expect(snapshot.timeline.some((event) => event.isFinal)).toBe(false)

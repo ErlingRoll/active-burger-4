@@ -331,8 +331,8 @@ export function spawnBoss(
   const damageMultiplier = getBossDamageMultiplier(floor)
   const boss: BossState = {
     id: idAllocator.createEntityId(),
-    definitionId: definition.id,
-    bossDefinitionId: definition.id,
+    definitionId: definitionId,
+    bossDefinitionId: definitionId,
     x: position.x,
     y: position.y,
     radius: definition.radius,

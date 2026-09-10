@@ -1,6 +1,9 @@
 import type { Game } from '../../game/Game'
 import type { SkillEffectState, TelegraphState } from '../../game/state/GameState'
-import { getBossSkillDefinition } from '../../content/bosses/Bosses'
+import {
+  getBossSkillDefinition,
+  isBossSkillId,
+} from '../../content/bosses/Bosses'
 import {
   getEnemyAbilityDefinition,
   type EnemyAbilityId,
@@ -72,22 +75,28 @@ export function getTelegraphName(telegraph: TelegraphState): string {
   if (isEnemyAbilityId(telegraph.skillId)) {
     return getEnemyAbilityDefinition(telegraph.skillId).name
   }
-  if (
-    telegraph.skillId === 'ground-slam' ||
-    telegraph.skillId === 'charge' ||
-    telegraph.skillId === 'fire-nova' ||
-    telegraph.skillId === 'flame-line' ||
-    telegraph.skillId === 'meteor-zone'
-  ) {
+  if (isBossSkillId(telegraph.skillId)) {
     return getBossSkillDefinition(telegraph.skillId).name
   }
   return 'Enemy attack'
 }
 
+/**
+ * What the player has to do about this telegraph.
+ *
+ * Every boss attack states its own answer, so the warning can say "step off the
+ * lane" rather than the same "dodge" for a lane, a ring and a cone - three
+ * shapes whose correct answers are in three different directions.
+ */
+export function getTelegraphCounterplay(telegraph: TelegraphState): string {
+  if (isBossSkillId(telegraph.skillId)) {
+    return getBossSkillDefinition(telegraph.skillId).counterplay
+  }
+  return telegraph.shape === 'line' ? 'Step off the lane' : 'Move clear'
+}
+
 export function isLineTelegraphKind(telegraph: TelegraphState): boolean {
-  return telegraph.kind === 'charge' ||
-    telegraph.kind === 'flame-line' ||
-    telegraph.kind === 'enemy-projectile'
+  return telegraph.shape === 'line'
 }
 
 /**
@@ -101,7 +110,7 @@ export function getTelegraphRenderState(
   state: Game['state'],
   telegraph: TelegraphState,
 ): TelegraphState {
-  if (telegraph.kind !== 'enemy-projectile' || telegraph.sourceKind !== 'enemy') {
+  if (!telegraph.tracksCaster || telegraph.sourceKind !== 'enemy') {
     return telegraph
   }
   const source = state.enemies.find(

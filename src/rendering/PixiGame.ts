@@ -75,6 +75,7 @@ import {
 import {
   getEnemyStatusEffects,
   getStatusEffectSignature,
+  getTelegraphCounterplay,
   getTelegraphName,
   getTelegraphRenderState,
   hasWorldSpaceEffectGeometry,
@@ -101,7 +102,12 @@ import {
   createSkeletonRitualPlaceholder,
   createVitalityPlaceholder,
   drawProjectileTrail,
+  drawTelegraphCone,
+  drawTelegraphDisc,
   drawTelegraphLine,
+  drawTelegraphRing,
+  getTelegraphPalette,
+  type TelegraphPalette,
 } from './pixi/effectGraphics'
 import { createPolygonPoints, createStarPoints } from './pixi/geometry'
 import {
@@ -781,11 +787,12 @@ export class PixiGame {
   }
 
   private createTelegraphPlaceholder(telegraph: TelegraphState): TelegraphView {
-    const color = telegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
-    const lightColor = '#fecaca'
-    const view = this.createTelegraphGraphic(telegraph, color, lightColor)
+    const view = this.createTelegraphGraphic(
+      telegraph,
+      getTelegraphPalette(telegraph),
+    )
     const label = new Text({
-      text: `DANGER · ${getTelegraphName(telegraph)} · DODGE`,
+      text: `DANGER · ${getTelegraphName(telegraph)} · ${getTelegraphCounterplay(telegraph).toUpperCase()}`,
       style: {
         fill: '#fee2e2',
         fontSize: 13,
@@ -800,73 +807,29 @@ export class PixiGame {
     return { root, graphic: view, label }
   }
 
+  /**
+   * Draws a telegraph from its shape rather than from the attack that cast it.
+   *
+   * The shape is the counterplay, so each one is drawn to show where the answer
+   * is: a ring marks its safe middle, a cone shows the edge to round, a lane
+   * shows the width to step clear of.
+   */
   private createTelegraphGraphic(
     telegraph: TelegraphState,
-    color: string,
-    lightColor: string,
+    palette: TelegraphPalette,
   ): Graphics {
-    if (telegraph.kind === 'ground-slam' || telegraph.kind === 'enemy-shockwave') {
-      const radius = telegraph.radius
-      const spikeCount = telegraph.kind === 'ground-slam' ? 12 : 10
+    if (telegraph.shape === 'line') {
       const view = new Graphics()
-        .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
-        .stroke({ color: '#450a0a', width: 10, alpha: 0.8 })
-        .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
-        .fill({ color, alpha: 0.16 })
-        .stroke({ color: lightColor, width: 3, alpha: 0.92 })
-        .poly(createPolygonPoints(radius * 0.72, 8, Math.PI / 8))
-        .stroke({ color: lightColor, width: 2, alpha: 0.78 })
-      for (let index = 0; index < spikeCount; index += 1) {
-        const angle = (Math.PI * 2 * index) / spikeCount
-        view
-          .moveTo(
-            Math.cos(angle) * radius * 0.52,
-            Math.sin(angle) * radius * 0.52,
-          )
-          .lineTo(
-            Math.cos(angle) * radius * 0.9,
-            Math.sin(angle) * radius * 0.9,
-          )
-          .stroke({ color: lightColor, width: 1.5, alpha: 0.58 })
-      }
+      drawTelegraphLine(view, telegraph, palette)
       return view
     }
-    if (telegraph.kind === 'fire-nova') {
-      return new Graphics()
-        .poly(createStarPoints(telegraph.radius, 16, 0.52, -Math.PI / 2))
-        .stroke({ color: '#450a0a', width: 10, alpha: 0.82 })
-        .poly(createStarPoints(telegraph.radius, 16, 0.52, -Math.PI / 2))
-        .fill({ color, alpha: 0.22 })
-        .stroke({ color: lightColor, width: 3, alpha: 0.94 })
-        .poly(createStarPoints(telegraph.radius * 0.64, 10, 0.58))
-        .fill({ color: '#facc15', alpha: 0.18 })
-        .stroke({ color: '#fff7ed', width: 2, alpha: 0.84 })
+    if (telegraph.shape === 'ring') {
+      return drawTelegraphRing(new Graphics(), telegraph, palette)
     }
-    if (telegraph.kind === 'meteor-zone') {
-      const radius = telegraph.radius
-      return new Graphics()
-        .poly(createPolygonPoints(radius, 4, Math.PI / 4))
-        .stroke({ color: '#450a0a', width: 10, alpha: 0.82 })
-        .poly(createPolygonPoints(radius, 4, Math.PI / 4))
-        .fill({ color, alpha: 0.18 })
-        .stroke({ color: lightColor, width: 3, alpha: 0.92 })
-        .poly(createPolygonPoints(radius * 0.62, 4, 0))
-        .stroke({ color: '#fef08a', width: 2, alpha: 0.86 })
-        .moveTo(-radius * 0.95, 0)
-        .lineTo(radius * 0.95, 0)
-        .moveTo(0, -radius * 0.95)
-        .lineTo(0, radius * 0.95)
-        .stroke({ color: lightColor, width: 1.5, alpha: 0.72 })
+    if (telegraph.shape === 'cone') {
+      return drawTelegraphCone(new Graphics(), telegraph, palette)
     }
-    if (isLineTelegraphKind(telegraph)) {
-      const view = new Graphics()
-      drawTelegraphLine(view, telegraph, color, lightColor)
-      return view
-    }
-    return new Graphics()
-      .poly(createStarPoints(telegraph.radius, 12, 0.78))
-      .fill({ color, alpha: 0.22 })
-      .stroke({ color: lightColor, width: 3, alpha: 0.9 })
+    return drawTelegraphDisc(new Graphics(), telegraph, palette)
   }
 
   private createPickupPlaceholder(pickup: PickupState): Graphics {
@@ -3101,6 +3064,20 @@ export class PixiGame {
   /** Incoming-attack warnings, re-anchored to their live source. */
   private renderTelegraphs(state: Game['state']): void {
     const activeTelegraphIds = new Set<EntityId>()
+    // One attack can mark several patches of ground at once, and a caption over
+    // each of them says the same sentence three times. The first area of a cast
+    // carries the caption; the rest are the same warning.
+    const captioned = new Set<EntityId>()
+    const spoken = new Set<string>()
+    for (const telegraph of [...(state.telegraphs ?? [])].sort(
+      (left, right) => left.id - right.id,
+    )) {
+      const cast = `${telegraph.sourceId}:${telegraph.skillId}`
+      if (!spoken.has(cast)) {
+        spoken.add(cast)
+        captioned.add(telegraph.id)
+      }
+    }
     for (const telegraph of state.telegraphs ?? []) {
       activeTelegraphIds.add(telegraph.id)
       const renderTelegraph = getTelegraphRenderState(state, telegraph)
@@ -3111,12 +3088,10 @@ export class PixiGame {
         this.telegraphLayer?.addChild(telegraphView.root)
       }
       if (isLineTelegraphKind(renderTelegraph)) {
-        const color = renderTelegraph.sourceKind === 'enemy' ? '#b91c1c' : '#be123c'
         drawTelegraphLine(
           telegraphView.graphic,
           renderTelegraph,
-          color,
-          '#fecaca',
+          getTelegraphPalette(renderTelegraph),
         )
       }
       telegraphView.root.position.set(renderTelegraph.x, renderTelegraph.y)
@@ -3126,7 +3101,9 @@ export class PixiGame {
         : 1
       telegraphView.root.alpha = 0.7 + progress * 0.3
       telegraphView.root.scale.set(0.88 + progress * 0.12)
-      telegraphView.label.text = `${getTelegraphName(renderTelegraph)} · DODGE`
+      telegraphView.label.visible = captioned.has(telegraph.id)
+      telegraphView.label.text =
+        `${getTelegraphName(renderTelegraph)} · ${getTelegraphCounterplay(renderTelegraph).toUpperCase()}`
     }
 
     for (const [telegraphId, telegraphView] of this.telegraphViews) {

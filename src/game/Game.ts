@@ -184,7 +184,14 @@ import {
   CHOICE_RECOVERY_INVULNERABILITY_SECONDS,
   CHOICE_RECOVERY_MOVEMENT_SPEED_BOOST_SECONDS,
 } from '../game-config/movement'
-import type { BossDefinitionId } from '../content/bosses/Bosses'
+import {
+  getBossDefinition,
+  type BossDefinitionId,
+} from '../content/bosses/Bosses'
+import {
+  FLOOR_ENCOUNTER_DURATION_SECONDS,
+  type EncounterDefinition,
+} from '../content/encounters/Encounters'
 import {
   DEFAULT_DUNGEON_ID,
   createDungeonEncounterTimeline,
@@ -436,12 +443,15 @@ export class Game {
     const dungeonMaxFloor = isAbyss
       ? Number.MAX_SAFE_INTEGER
       : runConfig.selectedDungeonMaxFloor ?? maximumUnlockedFloor
-    this.dungeon = isAbyss || dungeonMaxFloor === dungeon.defaultMaxFloor
+    // The timeline is drawn from the run seed, so the dungeon this run descends
+    // is not the catalogue entry: it carries this run's own boss order.
+    this.dungeon = isAbyss
       ? dungeon
       : {
         ...dungeon,
         encounterTimeline: createDungeonEncounterTimeline(
           dungeonMaxFloor,
+          runConfig.seed,
         ),
       }
 
@@ -1432,12 +1442,24 @@ export class Game {
     if (!definitionId) {
       return this.startBossEncounter()
     }
-    const definition = this.dungeon.encounterTimeline.find(
-      (candidate) => candidate.bossDefinitionId === definitionId,
+    // Summons the named boss rather than hunting for it in the timeline: which
+    // bosses a run's timeline holds is now a draw from its seed, and a harness
+    // has to be able to reach every one of them.
+    const boss = getBossDefinition(definitionId)
+    const definition: EncounterDefinition = {
+      id: `manual-${definitionId}`,
+      type: 'boss',
+      bossDefinitionId: definitionId,
+      durationSeconds: FLOOR_ENCOUNTER_DURATION_SECONDS,
+      floorNumber: this.gameState.run.floor ?? 1,
+      ...(boss.role === 'final' ? { isFinal: true } : {}),
+    }
+    return startBossEncounter(
+      this.gameState,
+      this.idAllocator,
+      definition,
+      true,
     )
-    return definition
-      ? startBossEncounter(this.gameState, this.idAllocator, definition, true)
-      : false
   }
 
   /** Moves an active development run directly to its configured final floor. */

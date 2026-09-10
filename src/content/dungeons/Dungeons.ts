@@ -1,6 +1,7 @@
 import {
+  createFloorEncounterTimeline,
   createInfernoWardenEncounter,
-  createStoneGolemEncounterTimeline,
+  ENCOUNTER_CATALOGUE_SEED,
   type EncounterDefinition,
 } from '../encounters/Encounters'
 
@@ -243,12 +244,19 @@ export function getFloorDifficultyProfile(
   }
 }
 
-/** Builds boss encounters for every normal floor, ending with Inferno Warden. */
+/**
+ * Builds boss encounters for every normal floor, ending with Inferno Warden.
+ *
+ * Which boss each floor sends is drawn from the run seed, so two runs down the
+ * same dungeon meet a different sequence. The Warden is not in that draw: it is
+ * the encounter that ends the dungeon and it is always the one waiting there.
+ */
 export function createDungeonEncounterTimeline(
   maximumFloor: number,
+  seed: number,
 ): readonly EncounterDefinition[] {
   return [
-    ...createStoneGolemEncounterTimeline(maximumFloor),
+    ...createFloorEncounterTimeline(maximumFloor, seed),
     createInfernoWardenEncounter(maximumFloor),
   ]
 }
@@ -264,8 +272,9 @@ export function createDungeonEncounterTimeline(
  */
 export function createAbyssEncounterTimeline(
   reachedFloor: number,
+  seed: number,
 ): readonly EncounterDefinition[] {
-  return createStoneGolemEncounterTimeline(Math.max(reachedFloor + 10, 10))
+  return createFloorEncounterTimeline(Math.max(reachedFloor + 10, 10), seed)
 }
 
 export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
@@ -277,7 +286,12 @@ export const DEFAULT_DUNGEON_CONFIG: DungeonDefinition = {
   ordinaryEnemyContactDamageScalingPerFloor:
     ORDINARY_ENEMY_CONTACT_DAMAGE_FLOOR_SCALING,
   bossFloorDurationSeconds: BOSS_FLOOR_EVENT_DURATION_SECONDS,
-  encounterTimeline: createDungeonEncounterTimeline(DEFAULT_DUNGEON_MAX_FLOOR),
+  // One representative draw, for the content validator and for callers that
+  // want the dungeon's shape. A run builds its own from its own seed.
+  encounterTimeline: createDungeonEncounterTimeline(
+    DEFAULT_DUNGEON_MAX_FLOOR,
+    ENCOUNTER_CATALOGUE_SEED,
+  ),
   maximumFloorContracts: [
     {
       id: 'default-dungeon-20-floor',

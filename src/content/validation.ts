@@ -81,8 +81,11 @@ import {
   BOSS_DEFINITIONS,
   BOSS_SKILL_DEFINITIONS,
   type BossDefinition,
+  type BossRenderShape,
   type BossSkillDefinition,
+  type BossSkillShape,
 } from './bosses/Bosses'
+
 import {
   ENCOUNTER_DEFINITIONS,
   type EncounterDefinition,
@@ -96,6 +99,27 @@ import {
   type BehaviorProfileDefinition,
   type BehaviorIntentSource,
 } from './behaviors/BehaviorProfiles'
+
+const BOSS_SKILL_SHAPES: ReadonlySet<string> = new Set<BossSkillShape>([
+  'disc',
+  'ring',
+  'line',
+  'cone',
+])
+
+const BOSS_RENDER_SHAPES: ReadonlySet<string> = new Set<BossRenderShape>([
+  'golem',
+  'colossus',
+  'beast',
+  'herald',
+  'sentinel',
+  'brood',
+  'warlord',
+  'wraith',
+  'monolith',
+  'maw',
+  'warden',
+])
 
 export interface ContentCatalog {
   enemies: readonly EnemyDefinition[]
@@ -1642,8 +1666,34 @@ export function validateContent(catalog: ContentCatalog): string[] {
     ) {
       errors.push(`bosses[${index}].skills must reference known boss skills.`)
     }
-    if (boss.id === 'inferno-warden' && !boss.enrage) {
-      errors.push(`bosses[${index}].enrage must be defined for Inferno Warden.`)
+    if (boss.role !== 'floor' && boss.role !== 'final') {
+      errors.push(`bosses[${index}].role must be "floor" or "final".`)
+    }
+    if (typeof boss.tactics !== 'string' || boss.tactics.trim() === '') {
+      errors.push(`bosses[${index}].tactics must be a non-empty string.`)
+    }
+    if (!Number.isInteger(boss.minFloor) || boss.minFloor < 1) {
+      errors.push(
+        `bosses[${index}].minFloor must be integer-positive; received ${String(boss.minFloor)}.`,
+      )
+    }
+    validateFiniteNumber(errors, `bosses[${index}].weight`, boss.weight, 'non-negative')
+    // A floor boss with no weight can never be drawn, which is a silent way to
+    // remove a boss from the game.
+    if (boss.role === 'floor' && boss.weight <= 0) {
+      errors.push(`bosses[${index}].weight must be positive for a floor boss.`)
+    }
+    if (!BOSS_RENDER_SHAPES.has(boss.render?.shape as string)) {
+      errors.push(
+        `bosses[${index}].render.shape references unknown shape "${String(boss.render?.shape)}".`,
+      )
+    }
+    for (const property of ['color', 'outlineColor'] as const) {
+      if (!/^#[0-9a-f]{6}$/i.test(boss.render?.[property] ?? '')) {
+        errors.push(
+          `bosses[${index}].render.${property} must be a six-digit hex colour.`,
+        )
+      }
     }
     if (boss.enrage) {
       for (const property of [
@@ -1683,6 +1733,85 @@ export function validateContent(catalog: ContentCatalog): string[] {
     validateFiniteNumber(errors, `bossSkills[${index}].radius`, skill.radius, 'positive')
     if (skill.range !== undefined) {
       validateFiniteNumber(errors, `bossSkills[${index}].range`, skill.range, 'positive')
+    }
+    if (typeof skill.counterplay !== 'string' || skill.counterplay.trim() === '') {
+      // Every attack has to be able to say what avoiding it looks like: the
+      // telegraph shows that text, and an attack with no answer is not fair.
+      errors.push(`bossSkills[${index}].counterplay must be a non-empty string.`)
+    }
+    if (!BOSS_SKILL_SHAPES.has(skill.shape as string)) {
+      errors.push(
+        `bossSkills[${index}].shape references unknown shape "${String(skill.shape)}".`,
+      )
+    }
+    if (skill.origin !== 'boss' && skill.origin !== 'player') {
+      errors.push(`bossSkills[${index}].origin must be "boss" or "player".`)
+    }
+    if (!isDamageType(skill.damageType)) {
+      errors.push(
+        `bossSkills[${index}].damageType references unknown damage type "${String(skill.damageType)}".`,
+      )
+    }
+    if (skill.shape === 'ring') {
+      if (
+        !Number.isFinite(skill.innerRadius) ||
+        (skill.innerRadius ?? 0) <= 0 ||
+        (skill.innerRadius ?? 0) >= skill.radius
+      ) {
+        // A ring's counterplay is its safe middle, so the middle has to exist
+        // and has to be inside the band's outer edge.
+        errors.push(
+          `bossSkills[${index}].innerRadius must be positive and below radius for a ring.`,
+        )
+      }
+    } else if (skill.innerRadius !== undefined) {
+      errors.push(`bossSkills[${index}].innerRadius applies only to a ring.`)
+    }
+    if (skill.shape === 'cone') {
+      if (
+        !Number.isFinite(skill.arcDegrees) ||
+        (skill.arcDegrees ?? 0) <= 0 ||
+        (skill.arcDegrees ?? 0) >= 360
+      ) {
+        // A cone that covers every direction cannot be flanked.
+        errors.push(
+          `bossSkills[${index}].arcDegrees must be above 0 and below 360 for a cone.`,
+        )
+      }
+    } else if (skill.arcDegrees !== undefined) {
+      errors.push(`bossSkills[${index}].arcDegrees applies only to a cone.`)
+    }
+    if (skill.count !== undefined) {
+      if (!Number.isInteger(skill.count) || skill.count < 1) {
+        errors.push(
+          `bossSkills[${index}].count must be integer-positive; received ${String(skill.count)}.`,
+        )
+      }
+      const repeated = (skill.count ?? 1) > 1
+      const spreads = skill.shape === 'line' || skill.shape === 'cone'
+      if (repeated && spreads && !skill.spreadDegrees) {
+        errors.push(
+          `bossSkills[${index}].spreadDegrees is required when a ${skill.shape} repeats.`,
+        )
+      }
+      if (repeated && !spreads && !skill.scatter) {
+        errors.push(
+          `bossSkills[${index}].scatter is required when a ${skill.shape} repeats.`,
+        )
+      }
+    }
+    if (skill.scatter !== undefined) {
+      validateFiniteNumber(errors, `bossSkills[${index}].scatter`, skill.scatter, 'positive')
+    }
+    if (skill.dash === true) {
+      if (skill.shape !== 'line') {
+        errors.push(`bossSkills[${index}].dash applies only to a line.`)
+      }
+      // A dash moves the caster to the end of its lane, so several lanes at once
+      // would move it several times and land it wherever the last one pointed.
+      if ((skill.count ?? 1) > 1) {
+        errors.push(`bossSkills[${index}].dash cannot repeat.`)
+      }
     }
   })
   catalog.encounters.forEach((encounter, index) => {

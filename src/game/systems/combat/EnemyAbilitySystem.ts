@@ -110,9 +110,9 @@ function createEnemyAbilityTelegraph(
     targetId: target.id,
     sourceKind: 'enemy',
     skillId: definition.id,
-    kind: definition.kind === 'projectile'
-      ? 'enemy-projectile'
-      : 'enemy-shockwave',
+    shape: definition.kind === 'projectile' ? 'line' : 'disc',
+    element: definition.damageType,
+    ...(definition.kind === 'projectile' ? { tracksCaster: true } : {}),
     x: enemy.x,
     y: enemy.y,
     radius: definition.radius,
@@ -192,7 +192,7 @@ function findProjectileTarget(
 
 export function updateEnemyTelegraphPositions(state: GameState): void {
   for (const telegraph of state.telegraphs ?? []) {
-    if (telegraph.sourceKind !== 'enemy' || telegraph.kind !== 'enemy-projectile') {
+    if (telegraph.sourceKind !== 'enemy' || !telegraph.tracksCaster) {
       continue
     }
     const enemy = state.enemies.find(
@@ -306,7 +306,7 @@ export function resolveEnemyTelegraphs(
       continue
     }
     const ability = getEnemyAbilityDefinition(abilityId)
-    if (telegraph.kind === 'enemy-projectile') {
+    if (ability.kind === 'projectile') {
       const projectile = createEnemyProjectile(
         state,
         allocator,

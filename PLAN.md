@@ -37,7 +37,8 @@ Abyss modifiers:     3
 gear items:         16
 dungeons:            1
 enemy abilities:     2
-boss attack types:   5
+bosses:             11
+boss attack types:  27
 ```
 
 These counts are asserted against the registries by
@@ -73,8 +74,13 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
   projectile trails, pickup feedback, world-space hit anchoring for directional
   and multi-target effects, and reduced-motion/performance budgets.
 - The default dungeon has 30 normal floors, 60-second normal floors,
-  120-second boss floors, floor-scaled encounters, Stone Golem boss floors,
-  and an Inferno Warden final encounter.
+  120-second boss floors and floor-scaled encounters. Every normal floor ends
+  with a boss drawn from the run seed out of the bosses that floor has reached,
+  so two runs down the same dungeon meet a different order; the Inferno Warden
+  is held back as the final encounter. Each boss attack declares the shape of
+  the area it threatens - a marked disc, a lethal band with a safe middle, a
+  lane, or a sector in front - together with the movement that avoids it, and
+  every attack that is not contact damage is telegraphed.
 - Implemented progression includes gear and rarity, passive upgrades, local
   Dexie persistence, Supabase authentication, Essence meta progression, world
   modifiers, character selection, player behavior profiles, and run results.

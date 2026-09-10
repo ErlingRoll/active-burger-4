@@ -15,6 +15,7 @@ import {
   VITALITY_SKILL_ID,
 } from '../../content/skills/Skills'
 import { createPolygonPoints, createStarPoints } from './geometry'
+import type { DamageType } from '../../content/stats/Damage'
 import type { RenderPoint } from './views'
 
 /**
@@ -528,9 +529,9 @@ export function drawProjectileTrail(
 export function drawTelegraphLine(
   view: Graphics,
   telegraph: TelegraphState,
-  color: string,
-  lightColor: string,
+  palette: TelegraphPalette,
 ): void {
+  const { color, lightColor } = palette
   view.clear()
   const start = telegraph.points[0]
   if (!start) {
@@ -544,7 +545,7 @@ export function drawTelegraphLine(
   }
   drawPath()
   view.stroke({
-    color: '#450a0a',
+    color: palette.darkColor,
     width: telegraph.radius * 2 + 10,
     alpha: 0.82,
   })
@@ -577,4 +578,148 @@ export function drawTelegraphLine(
     ])
     .fill(lightColor)
     .stroke({ color, width: 1 })
+}
+
+/**
+ * The palette a telegraph is drawn in.
+ *
+ * Warnings used to be one red for a boss and a darker red for an enemy, so a
+ * freezing cone and a meteor read identically. Colour now follows the damage
+ * school, which is also what the hit will be resisted as - and the halo behind
+ * the shape follows it too, because a dark red rim around a grey wedge read as
+ * a rendering fault rather than as a shadow.
+ */
+export interface TelegraphPalette {
+  /** The area's own colour, laid over the ground at low alpha. */
+  color: string
+  /** The bright edge that says exactly where the danger stops. */
+  lightColor: string
+  /** The shadow that lifts the whole shape off the floor. */
+  darkColor: string
+}
+
+const TELEGRAPH_PALETTES = {
+  physical: { color: '#d6d3d1', lightColor: '#fafaf9', darkColor: '#1c1917' },
+  fire: { color: '#ea580c', lightColor: '#fed7aa', darkColor: '#450a0a' },
+  cold: { color: '#22d3ee', lightColor: '#cffafe', darkColor: '#083344' },
+  lightning: { color: '#eab308', lightColor: '#fef3c7', darkColor: '#422006' },
+  chaos: { color: '#a855f7', lightColor: '#f5d0fe', darkColor: '#3b0764' },
+} as const satisfies Record<DamageType, TelegraphPalette>
+
+const UNKNOWN_TELEGRAPH_PALETTE: TelegraphPalette = {
+  color: '#be123c',
+  lightColor: '#fecaca',
+  darkColor: '#450a0a',
+}
+
+export function getTelegraphPalette(
+  telegraph: Pick<TelegraphState, 'element'>,
+): TelegraphPalette {
+  const element = telegraph.element
+  return element && element in TELEGRAPH_PALETTES
+    ? TELEGRAPH_PALETTES[element]
+    : UNKNOWN_TELEGRAPH_PALETTE
+}
+
+/** A marked circle: a jagged ring with a crosshair over the ground it covers. */
+export function drawTelegraphDisc(
+  view: Graphics,
+  telegraph: Pick<TelegraphState, 'radius'>,
+  palette: TelegraphPalette,
+): Graphics {
+  const radius = telegraph.radius
+  const spikeCount = 12
+  view
+    .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
+    .stroke({ color: palette.darkColor, width: 10, alpha: 0.8 })
+    .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
+    .fill({ color: palette.color, alpha: 0.2 })
+    .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+    .poly(createPolygonPoints(radius * 0.72, 8, Math.PI / 8))
+    .stroke({ color: palette.lightColor, width: 2, alpha: 0.78 })
+    .moveTo(-radius * 0.5, 0)
+    .lineTo(radius * 0.5, 0)
+    .moveTo(0, -radius * 0.5)
+    .lineTo(0, radius * 0.5)
+    .stroke({ color: palette.lightColor, width: 1.5, alpha: 0.7 })
+  return view
+}
+
+/**
+ * A lethal band with a safe middle.
+ *
+ * The band is a single thick stroke at its mid-radius, so its two edges are
+ * exactly where the danger starts and stops, and the hollow centre is marked
+ * with its own quiet ring: the counterplay is to be inside it, and a telegraph
+ * that does not show where safety is is not a telegraph.
+ */
+export function drawTelegraphRing(
+  view: Graphics,
+  telegraph: Pick<TelegraphState, 'radius' | 'innerRadius'>,
+  palette: TelegraphPalette,
+): Graphics {
+  const outer = telegraph.radius
+  const inner = Math.max(0, Math.min(telegraph.innerRadius ?? 0, outer - 1))
+  const band = outer - inner
+  const middle = inner + band / 2
+  view
+    .circle(0, 0, middle)
+    .stroke({ color: palette.darkColor, width: band + 10, alpha: 0.72 })
+    .circle(0, 0, middle)
+    .stroke({ color: palette.color, width: band, alpha: 0.26 })
+    .circle(0, 0, outer)
+    .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+    .circle(0, 0, inner)
+    .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+  // The safe eye, drawn as a dashed inner ring so it reads as shelter rather
+  // than as another edge to stay away from.
+  const safeRadius = inner * 0.58
+  if (safeRadius > 4) {
+    for (let index = 0; index < 10; index += 1) {
+      const from = (Math.PI * 2 * index) / 10
+      view
+        .arc(0, 0, safeRadius, from, from + Math.PI / 10)
+        .stroke({ color: '#bbf7d0', width: 2, alpha: 0.6 })
+    }
+  }
+  return view
+}
+
+/**
+ * A sector in front of the caster, drawn already turned to its own heading.
+ *
+ * The geometry is baked at its final angle rather than rotated at draw time
+ * because a cone's heading is fixed when it is cast: the renderer only moves it
+ * with its caster.
+ */
+export function drawTelegraphCone(
+  view: Graphics,
+  telegraph: Pick<TelegraphState, 'radius' | 'angle' | 'arc'>,
+  palette: TelegraphPalette,
+): Graphics {
+  const radius = telegraph.radius
+  const arc = Math.min(Math.PI * 2, Math.max(0.05, telegraph.arc ?? Math.PI / 2))
+  const centre = telegraph.angle ?? 0
+  const from = centre - arc / 2
+  const to = centre + arc / 2
+  const sector = (): void => {
+    view.moveTo(0, 0).arc(0, 0, radius, from, to).closePath()
+  }
+  sector()
+  view.stroke({ color: palette.darkColor, width: 10, alpha: 0.8 })
+  sector()
+  view
+    .fill({ color: palette.color, alpha: 0.24 })
+    .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+  // The two edges to round, plus the centre line that says which way it faces.
+  view
+    .moveTo(0, 0)
+    .lineTo(Math.cos(from) * radius, Math.sin(from) * radius)
+    .moveTo(0, 0)
+    .lineTo(Math.cos(to) * radius, Math.sin(to) * radius)
+    .stroke({ color: palette.lightColor, width: 2.5, alpha: 0.85 })
+    .moveTo(0, 0)
+    .lineTo(Math.cos(centre) * radius * 0.88, Math.sin(centre) * radius * 0.88)
+    .stroke({ color: palette.lightColor, width: 1.5, alpha: 0.5 })
+  return view
 }

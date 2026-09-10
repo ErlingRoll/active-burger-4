@@ -26,15 +26,19 @@ describe('default dungeon timeline foundation', () => {
     expect(
       DEFAULT_DUNGEON_CONFIG.encounterTimeline.map((event) => event.floorNumber),
     ).toEqual(Array.from({ length: 30 }, (_, index) => index + 1))
-    expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          bossDefinitionId: 'stone-golem',
-          durationSeconds: 120,
-          floorNumber: 1,
-        }),
-      ]),
-    )
+    // Which boss a floor sends is drawn from the run seed, so the timeline is
+    // only committed to there being exactly one boss event per ordinary floor.
+    const floorEvents = DEFAULT_DUNGEON_CONFIG.encounterTimeline.slice(0, -1)
+    expect(
+      floorEvents.filter((event) =>
+        event.type === 'boss' &&
+        event.durationSeconds === 120 &&
+        event.isFinal === undefined,
+      ),
+    ).toHaveLength(29)
+    expect(
+      new Set(floorEvents.map((event) => event.bossDefinitionId)).size,
+    ).toBeGreaterThan(1)
     expect(DEFAULT_DUNGEON_CONFIG.encounterTimeline.at(-1)).toMatchObject({
       floorNumber: DEFAULT_DUNGEON_MAX_FLOOR,
       bossDefinitionId: 'inferno-warden',
@@ -63,8 +67,8 @@ describe('default dungeon timeline foundation', () => {
         new Set([contract.requiredUnlockId]),
       ),
     ).toBe(contract.maxFloor)
-    expect(createDungeonEncounterTimeline(contract.maxFloor)).toHaveLength(200)
-    expect(createDungeonEncounterTimeline(contract.maxFloor).at(-1)).toMatchObject({
+    expect(createDungeonEncounterTimeline(contract.maxFloor, 7)).toHaveLength(200)
+    expect(createDungeonEncounterTimeline(contract.maxFloor, 7).at(-1)).toMatchObject({
       floorNumber: contract.maxFloor,
       bossDefinitionId: 'inferno-warden',
       isFinal: true,

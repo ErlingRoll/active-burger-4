@@ -58,23 +58,44 @@ export interface EncounterState {
   normalSpawnsSuspended: boolean
 }
 
+/**
+ * The geometry of a telegraphed area.
+ *
+ * A telegraph used to be identified by the skill that cast it, which meant
+ * every new boss attack added a case to the damage test, to the Dodge
+ * direction, to the kiting risk map and to the renderer. There are only four
+ * shapes worth drawing, so the shape is what the telegraph carries: a new
+ * attack picks one and needs no simulation change at all.
+ *
+ * - `disc`: everything within `radius` of `x, y`.
+ * - `ring`: the band between `innerRadius` and `radius`. The centre is safe,
+ *   so the way out is inward - toward whatever is casting it.
+ * - `line`: a capsule of half-width `radius` along `points`. The way out is
+ *   sideways, not backward.
+ * - `cone`: the sector of `arc` radians centred on `angle`, out to `radius`.
+ *   The way out is around the edge of the sector.
+ */
+export type TelegraphShape = 'disc' | 'ring' | 'line' | 'cone'
+
 export interface TelegraphState {
   id: EntityId
   sourceId: EntityId
   targetId?: EntityId
   sourceKind?: 'boss' | 'enemy'
   skillId: BossSkillId | EnemyAbilityId | 'elite-volatile'
-  kind:
-    | 'ground-slam'
-    | 'charge'
-    | 'fire-nova'
-    | 'flame-line'
-    | 'meteor-zone'
-    | 'enemy-projectile'
-    | 'enemy-shockwave'
+  shape: TelegraphShape
+  /** Which damage school this will land as, used to colour the warning. */
+  element?: DamageType
   x: number
   y: number
+  /** Outer extent: the disc/ring/cone radius, or a line's half-width. */
   radius: number
+  /** Inner, safe radius of a `ring`. Ignored by every other shape. */
+  innerRadius?: number
+  /** Centre direction of a `cone`, in radians. */
+  angle?: number
+  /** Full angular width of a `cone`, in radians. */
+  arc?: number
   remainingDuration: number
   duration: number
   points: readonly SkillEffectPoint[]
@@ -82,6 +103,10 @@ export interface TelegraphState {
   criticalStrike?: CriticalStrikeStats
   poisonApplication?: PoisonApplication
   projectileDefinitionId?: ProjectileDefinitionId
+  /** Moves the caster to the far end of the line when this resolves. */
+  dashesOnResolve?: boolean
+  /** Re-anchors to the live caster and target while it is visible. */
+  tracksCaster?: boolean
 }
 export type Telegraph = TelegraphState
 

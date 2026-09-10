@@ -71,9 +71,12 @@ describe('boss skills', () => {
     updateBosses(gameState, allocator, 0)
     expect(gameState.telegraphs).toHaveLength(1)
     expect(gameState.telegraphs?.[0]).toMatchObject({
-      kind: 'ground-slam',
-      x: 0,
-      y: 0,
+      skillId: 'ground-slam',
+      shape: 'disc',
+      element: 'physical',
+      // Marked a little short of the player, between them and the Golem, so
+      // that stepping away from it is a definite direction.
+      x: 35,
       radius: 100,
     })
 
@@ -102,7 +105,8 @@ describe('boss skills', () => {
     gameState.bosses![0]!.skills[1]!.cooldownRemaining = 0
     gameState.bosses![0]!.nextSkillIndex = 1
     updateBosses(gameState, createEntityIdAllocator(), 0)
-    expect(gameState.telegraphs?.[0]?.kind).toBe('charge')
+    expect(gameState.telegraphs?.[0]?.skillId).toBe('charge')
+    expect(gameState.telegraphs?.[0]?.shape).toBe('line')
 
     gameState.telegraphs![0]!.remainingDuration = 0
     applyDamageEvents(gameState, resolveBossTelegraphs(gameState), neverCrit)
@@ -153,7 +157,9 @@ describe('boss skills', () => {
       fireNova.cooldown * enrage.cooldownMultiplier,
     )
     expect(gameState.telegraphs?.[0]).toMatchObject({
-      kind: 'fire-nova',
+      skillId: 'fire-nova',
+      shape: 'ring',
+      innerRadius: fireNova.innerRadius,
       x: 0,
       y: 0,
       damage: { fire: fireNova.damage * enrage.damageMultiplier },
@@ -218,7 +224,10 @@ describe('boss skills', () => {
     const allocator = createEntityIdAllocator()
 
     updateBosses(gameState, allocator, 0)
-    expect(gameState.telegraphs?.[0]).toMatchObject({ kind: 'flame-line' })
+    expect(gameState.telegraphs?.[0]).toMatchObject({
+      skillId: 'flame-line',
+      shape: 'line',
+    })
     gameState.telegraphs![0]!.remainingDuration = 0
     expect(resolveBossTelegraphs(gameState)).toMatchObject([
       {
@@ -232,9 +241,12 @@ describe('boss skills', () => {
     gameState.bosses![0]!.nextSkillIndex = 2
     updateBosses(gameState, allocator, 0)
     expect(gameState.telegraphs?.[0]).toMatchObject({
-      kind: 'meteor-zone',
-      x: gameState.player.x,
-      y: gameState.player.y,
+      skillId: 'meteor-zone',
+      shape: 'disc',
     })
+    expect(gameState.telegraphs?.[0]?.x).toBeGreaterThan(gameState.player.x)
+    expect(gameState.telegraphs).toHaveLength(
+      getBossSkillDefinition('meteor-zone').count ?? 1,
+    )
   })
 })

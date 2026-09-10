@@ -500,7 +500,7 @@ describe('data-driven player behavior intents', () => {
       id: 4,
       sourceId: 9,
       skillId: 'ground-slam',
-      kind: 'ground-slam',
+      shape: 'disc',
       x: state.player.x,
       y: state.player.y,
       radius: 100,

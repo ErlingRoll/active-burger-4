@@ -12,6 +12,10 @@ import { ABYSS_MODIFIER_DEFINITIONS } from '../src/content/modifiers/AbyssModifi
 import { ALL_ITEM_DEFINITIONS } from '../src/content/gear/Items'
 import { ENEMY_ABILITY_DEFINITIONS } from '../src/content/enemies/EnemyAbilities'
 import { DUNGEON_DEFINITIONS } from '../src/content/dungeons/Dungeons'
+import {
+  BOSS_DEFINITIONS,
+  BOSS_SKILL_DEFINITIONS,
+} from '../src/content/bosses/Bosses'
 
 /**
  * Keeps PLAN.md's implementation snapshot true.
@@ -44,6 +48,8 @@ const EXPECTED: Record<string, number> = {
   'gear items': ALL_ITEM_DEFINITIONS.length,
   dungeons: Object.keys(DUNGEON_DEFINITIONS).length,
   'enemy abilities': Object.keys(ENEMY_ABILITY_DEFINITIONS).length,
+  bosses: Object.keys(BOSS_DEFINITIONS).length,
+  'boss attack types': Object.keys(BOSS_SKILL_DEFINITIONS).length,
 }
 
 describe("PLAN.md's implementation snapshot", () => {

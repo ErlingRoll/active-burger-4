@@ -889,8 +889,9 @@ export function GameplayHud({
             <span>
               {Math.ceil(snapshot.boss.hp)} / {Math.ceil(snapshot.boss.maxHp)} HP
             </span>
+            <span className="boss-hud-tactics">{snapshot.boss.tactics}</span>
             {snapshot.boss.enrage ? (
-              <div className="boss-enrage" aria-label="Inferno Warden enrage">
+              <div className="boss-enrage" aria-label={`${snapshot.boss.name} enrage`}>
                 <strong>Enrage</strong>
                 <span>
                   {Math.floor(snapshot.boss.enrage.elapsedSeconds)}s · speed{' '}
