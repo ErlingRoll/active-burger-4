@@ -100,3 +100,76 @@ describe('which silhouettes turn', () => {
     }
   })
 })
+
+interface RecordedPoint {
+  x: number
+  y: number
+}
+
+/**
+ * The anchor and control points of a shape's main body, before its first
+ * fill — the interior markings drawn afterward are decoration, not the
+ * silhouette a rotation has to read correctly.
+ */
+function bodyOutlinePoints(shape: EnemyRenderShape, radius: number): RecordedPoint[] {
+  const points: RecordedPoint[] = []
+  let sawFill = false
+  const record = (values: number[]): void => {
+    if (sawFill) {
+      return
+    }
+    for (let index = 0; index + 1 < values.length; index += 2) {
+      points.push({ x: values[index] as number, y: values[index + 1] as number })
+    }
+  }
+  const proxy: Graphics = new Proxy({} as Record<string, unknown>, {
+    get(_target, property) {
+      if (typeof property !== 'string') {
+        return undefined
+      }
+      return (...args: unknown[]) => {
+        if (property === 'fill') {
+          sawFill = true
+        } else if (property === 'poly' && Array.isArray(args[0])) {
+          record(args[0] as number[])
+        } else {
+          record(args.filter((arg): arg is number => typeof arg === 'number'))
+        }
+        return proxy
+      }
+    },
+  }) as unknown as Graphics
+  drawEnemySilhouette(proxy, shape, radius, { fill: '#ff0000', outline: '#ffffff' })
+  return points
+}
+
+describe('rotatable silhouettes are built to rotate', () => {
+  it('mirrors every point of a directional body across its own nose, or a turn never reads correctly', () => {
+    /*
+     * A shape that turns has to be drawn pointing straight up and mirrored
+     * left to right about that line — the same as an arrowhead. The flanker's
+     * hook used to lean permanently to one side instead, a trick to fake a
+     * sense of angle from back when nothing rotated. Once it did rotate, that
+     * baked-in lean fought the real one and it read as sideways no matter
+     * which way it actually moved. This is the check that would have caught
+     * it before it shipped.
+     */
+    for (const shape of ['dart', 'hook', 'bow', 'bulwark', 'triangle'] as const) {
+      const points = bodyOutlinePoints(shape, 20)
+      expect(points.length, shape).toBeGreaterThan(2)
+
+      const remaining = [...points]
+      for (const point of points) {
+        const mirrorIndex = remaining.findIndex((candidate) =>
+          Math.abs(candidate.x + point.x) < 0.001 &&
+          Math.abs(candidate.y - point.y) < 0.001,
+        )
+        expect(
+          mirrorIndex,
+          `${shape} has no mirror for (${point.x}, ${point.y})`,
+        ).toBeGreaterThanOrEqual(0)
+        remaining.splice(mirrorIndex, 1)
+      }
+    }
+  })
+})
