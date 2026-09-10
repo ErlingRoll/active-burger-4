@@ -22,7 +22,7 @@ including:
 - Stable skill IDs and skill levels.
 - Skill evolutions, synergies, and enhancements.
 - Equipped run gear and rolled modifier values.
-- Behavior profile and targeting preferences.
+- Behavior profile and target priority.
 - Character schema version.
 - Content/balance version.
 - Creation metadata and display name.

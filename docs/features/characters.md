@@ -21,7 +21,7 @@ A recipe contains stable IDs and player choices:
 - Skill IDs and levels.
 - Evolutions, synergies, and enhancements.
 - Behavior profile.
-- Targeting preferences.
+- Target priority: one of the authored priorities.
 - Optional starting-loadout choices.
 - Display name and cosmetic metadata.
 
