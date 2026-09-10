@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import type { BehaviorProfileId, GameUiSnapshot } from '../../game'
+import type { BehaviorProfileId, GameUiSnapshot, TargetPriorityId } from '../../game'
 import {
   BEHAVIOR_PROFILE_DEFINITIONS,
   BEHAVIOR_PROFILE_ORDER,
 } from '../../content/behaviors/BehaviorProfiles'
+import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  TARGET_PRIORITY_DEFINITIONS,
+  TARGET_PRIORITY_ORDER,
+} from '../../content/behaviors/TargetPriorities'
 import { formatKeybind, type GameKeybinds } from '../../input/Keybinds'
 import { useTouchOnlyDevice } from '../../input/useTouchOnlyDevice'
 import { BehaviorIcon } from './HudIcons'
@@ -22,11 +27,18 @@ const PROFILE_KEYBIND_IDS = {
  * desktop player nothing: the profiles have keyboard shortcuts, and the
  * shortcut is the fast path. The menu is what makes the same control work
  * under a thumb.
+ *
+ * It holds two questions rather than one: where the character stands, and who
+ * it attacks. They are one control because the top bar has room for one — a
+ * second toggle of this construction wraps the bar onto another row at phone
+ * width — and because only one popover may be open for the run's own Escape
+ * handler to reason about.
  */
 export interface BehaviorControlProps {
   snapshot: GameUiSnapshot
   keybinds: GameKeybinds
   onSelectProfile: (profileId: BehaviorProfileId) => void
+  onSelectTargetPriority: (priorityId: TargetPriorityId) => void
   onToggleFreeMovement: () => void
 }
 
@@ -34,6 +46,7 @@ export function BehaviorControl({
   snapshot,
   keybinds,
   onSelectProfile,
+  onSelectTargetPriority,
   onToggleFreeMovement,
 }: BehaviorControlProps) {
   const [open, setOpen] = useState(false)
@@ -93,6 +106,17 @@ export function BehaviorControl({
       ? 'Drag to steer'
       : 'WASD to steer'
     : (snapshot.behavior.activeIntent?.label ?? 'No active intent')
+  const activePriority = TARGET_PRIORITY_DEFINITIONS[snapshot.behavior.targetPriorityId]
+  /*
+   * The priority joins the first line only once it has been changed. A player
+   * who never touches it keeps the button they already know, and the one who
+   * did can see what they chose without the button growing a third line the
+   * top bar has no room for.
+   */
+  const defaultPriority = activePriority.id === DEFAULT_TARGET_PRIORITY_ID
+  const toggleName = defaultPriority
+    ? activeLabel
+    : `${activeLabel} · ${activePriority.shortLabel}`
 
   return (
     /*
@@ -107,7 +131,9 @@ export function BehaviorControl({
       data-hud-popover={open ? 'open' : undefined}
     >
       {open ? (
-        <div className="hud-behavior-menu" role="menu" aria-label="Movement behavior">
+        <div className="hud-behavior-menu" role="menu" aria-label="Fighting style">
+          <p className="hud-behavior-menu-heading" aria-hidden="true">How I move</p>
+          <div role="group" aria-label="How I move">
           {BEHAVIOR_PROFILE_ORDER.map((profileId) => {
             const profile = BEHAVIOR_PROFILE_DEFINITIONS[profileId]
             const selected = !freeMode && snapshot.behavior.profileId === profile.id
@@ -160,6 +186,34 @@ export function BehaviorControl({
                 ? 'The character plays itself. Drag the arena to take over.'
                 : 'The character plays itself with this profile.'}
           </p>
+          </div>
+          {/*
+            * Offered in free movement too. Steering the character yourself
+            * does not stop it attacking, so the priority is still in force.
+            */}
+          <p className="hud-behavior-menu-heading" aria-hidden="true">Who I hit</p>
+          <div role="group" aria-label="Who I hit">
+            {TARGET_PRIORITY_ORDER.map((priorityId) => {
+              const priority = TARGET_PRIORITY_DEFINITIONS[priorityId]
+              const selected = snapshot.behavior.targetPriorityId === priority.id
+              return (
+                <button
+                  className={`hud-behavior-option${selected ? ' selected' : ''}`}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={selected}
+                  aria-label={`${priority.name}: ${priority.description}`}
+                  key={priority.id}
+                  onClick={() => {
+                    onSelectTargetPriority(priority.id)
+                    setOpen(false)
+                  }}
+                >
+                  <span className="hud-behavior-option-name">{priority.shortLabel}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       ) : null}
       <button
@@ -167,14 +221,14 @@ export function BehaviorControl({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Movement behavior: ${activeLabel}. ${
-          freeMode ? 'Steering' : 'Intent'
-        }: ${intentLabel}. Change`}
+        aria-label={`Fighting style: ${activeLabel}, targeting ${
+          activePriority.name
+        }. ${freeMode ? 'Steering' : 'Intent'}: ${intentLabel}. Change`}
         onClick={() => setOpen((current) => !current)}
       >
         <BehaviorIcon />
         <span className="hud-behavior-toggle-text">
-          <span className="hud-behavior-toggle-name">{activeLabel}</span>
+          <span className="hud-behavior-toggle-name">{toggleName}</span>
           <span className="hud-behavior-toggle-intent">{intentLabel}</span>
         </span>
       </button>

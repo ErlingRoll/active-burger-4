@@ -7,6 +7,7 @@ import {
   type GameUiSnapshot,
   type GearChoice,
   type BehaviorProfileId,
+  type TargetPriorityId,
   type RunConfig,
   type PendingChoiceFlow,
   type RunResultSnapshot,
@@ -42,6 +43,7 @@ interface GameCanvasProps {
   onFloorCheckpoint?: (checkpoint: GameCheckpoint) => Promise<void>
   onSaveAndQuit?: () => Promise<void>
   onBehaviorProfileChange?: (profileId: BehaviorProfileId) => void
+  onTargetPriorityChange?: (priorityId: TargetPriorityId) => void
   keybinds: GameKeybinds
   onKeybindsChange?: (keybinds: GameKeybinds) => Promise<void>
   reportBugRunId?: string
@@ -119,6 +121,7 @@ export function GameCanvas({
   onFloorCheckpoint,
   onSaveAndQuit,
   onBehaviorProfileChange,
+  onTargetPriorityChange,
   keybinds,
   onKeybindsChange,
   reportBugRunId,
@@ -553,6 +556,18 @@ export function GameCanvas({
     }
   }
 
+  const selectTargetPriority = (priorityId: TargetPriorityId): void => {
+    const currentGame = gameRef.current
+    /*
+     * No free-movement reset here, unlike the profile above: steering the
+     * character yourself does not stop it attacking, so the priority applies
+     * either way and turning steering off would be a surprise.
+     */
+    if (currentGame?.setTargetPriority(priorityId) === true) {
+      onTargetPriorityChange?.(priorityId)
+    }
+  }
+
   const toggleFreeMovement = (): void => {
     gameRef.current?.toggleFreeMovement()
   }
@@ -649,6 +664,7 @@ export function GameCanvas({
           onInspectorTabChange={setInspectorTab}
           onPause={pauseRun}
           onSelectBehaviorProfile={selectBehaviorProfile}
+          onSelectTargetPriority={selectTargetPriority}
           onToggleFreeMovement={toggleFreeMovement}
           onSetMirrorcastTarget={(skillId) => {
             gameRef.current?.setMirrorcastTargetSkill(skillId)
@@ -747,6 +763,7 @@ export interface GameplayHudProps {
   onInspectorTabChange: (tab: HudInspectorTab | null) => void
   onPause: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
+  onSelectTargetPriority: (priorityId: TargetPriorityId) => void
   onToggleFreeMovement: () => void
   onSetMirrorcastTarget: (skillId: SkillId | null) => void
   onSetCriticalSpellstrikeTarget: (skillId: SkillId | null) => void
@@ -771,6 +788,7 @@ export function GameplayHud({
   onInspectorTabChange,
   onPause,
   onSelectBehaviorProfile,
+  onSelectTargetPriority,
   onToggleFreeMovement,
   onSetMirrorcastTarget,
   onSetCriticalSpellstrikeTarget,
@@ -847,6 +865,7 @@ export function GameplayHud({
             snapshot={snapshot}
             keybinds={keybinds}
             onSelectProfile={onSelectBehaviorProfile}
+            onSelectTargetPriority={onSelectTargetPriority}
             onToggleFreeMovement={onToggleFreeMovement}
           />
           <HudToolbar

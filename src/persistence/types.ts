@@ -1,4 +1,5 @@
 import type { BehaviorProfileId } from '../content/behaviors/BehaviorProfiles'
+import type { TargetPriorityId } from '../content/behaviors/TargetPriorities'
 import type { WorldModifierId } from '../content/modifiers/WorldModifiers'
 import type { CharacterClassId } from '../content/classes/CharacterClasses'
 import type { GameKeybinds } from '../input/Keybinds'
@@ -13,6 +14,7 @@ export type DungeonMaxFloorContractId = string
 export interface SettingsDto {
   schemaVersion: number
   selectedBehaviorProfileId: BehaviorProfileId
+  selectedTargetPriorityId: TargetPriorityId
   selectedDungeonMaxFloorContractId: DungeonMaxFloorContractId
   selectedWorldModifierIds: WorldModifierId[]
   selectedCharacterClassId: CharacterClassId

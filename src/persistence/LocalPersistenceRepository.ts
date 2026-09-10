@@ -19,6 +19,7 @@ function hiddenBugReportId(userId: string, reportId: number): string {
 
 export interface SettingsPatch {
   selectedBehaviorProfileId?: SettingsDto['selectedBehaviorProfileId']
+  selectedTargetPriorityId?: SettingsDto['selectedTargetPriorityId']
   selectedDungeonMaxFloorContractId?: string
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
   selectedCharacterClassId?: SettingsDto['selectedCharacterClassId']

@@ -26,6 +26,7 @@ function renderHud(
     onInspectorTabChange: vi.fn(),
     onPause: vi.fn(),
     onSelectBehaviorProfile: vi.fn(),
+    onSelectTargetPriority: vi.fn(),
     onToggleFreeMovement: vi.fn(),
     onSetMirrorcastTarget: vi.fn(),
     onSetCriticalSpellstrikeTarget: vi.fn(),
@@ -125,5 +126,54 @@ describe('GameplayHud', () => {
     renderHud(snapshot)
 
     expect(screen.queryByLabelText('Boss status')).toBeNull()
+  })
+})
+
+describe('the behavior control', () => {
+  it('holds both questions, and answers the targeting one', async () => {
+    const { user, onSelectTargetPriority } = renderHud(snapshotFromGame())
+
+    await user.click(screen.getByRole('button', { name: /Fighting style/ }))
+    const menu = screen.getByRole('menu', { name: 'Fighting style' })
+    expect(within(menu).getByRole('group', { name: 'How I move' })).toBeInTheDocument()
+    const targeting = within(menu).getByRole('group', { name: 'Who I hit' })
+
+    await user.click(within(targeting).getByRole('menuitemradio', { name: /Break the Strong/ }))
+
+    expect(onSelectTargetPriority).toHaveBeenCalledWith('elites')
+    expect(screen.queryByRole('menu', { name: 'Fighting style' })).not.toBeInTheDocument()
+  })
+
+  it('names the priority on the toggle only once it is not the default', () => {
+    /*
+     * A run starts steering itself, so the first line is the steering label.
+     * The point is the same either way: the default priority adds nothing to
+     * a button a player already knows.
+     */
+    renderHud(snapshotFromGame())
+    expect(screen.getByRole('button', { name: /Fighting style/ }))
+      .not.toHaveTextContent('Nearest')
+
+    renderHud(snapshotFromGame((game) => {
+      game.setTargetPriority('ranged')
+    }))
+
+    expect(screen.getAllByRole('button', { name: /Fighting style/ })[1])
+      .toHaveTextContent('· Ranged')
+  })
+
+  it('marks the active priority as checked', async () => {
+    const { user } = renderHud(snapshotFromGame((game) => {
+      game.setTargetPriority('wounded')
+    }))
+
+    await user.click(screen.getByRole('button', { name: /Fighting style/ }))
+    const targeting = within(screen.getByRole('menu', { name: 'Fighting style' }))
+      .getByRole('group', { name: 'Who I hit' })
+
+    expect(within(targeting).getByRole('menuitemradio', { name: /Cull the Weak/ }))
+      .toHaveAttribute('aria-checked', 'true')
+    expect(within(targeting).getByRole('menuitemradio', { name: /Nearest/ }))
+      .toHaveAttribute('aria-checked', 'false')
   })
 })

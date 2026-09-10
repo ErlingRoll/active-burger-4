@@ -155,6 +155,11 @@ import {
   getBehaviorProfileDefinition,
   type BehaviorProfileId,
 } from '../../content/behaviors/BehaviorProfiles'
+import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  isTargetPriorityId,
+  type TargetPriorityId,
+} from '../../content/behaviors/TargetPriorities'
 import { getDungeonDefinition } from '../../content/dungeons/Dungeons'
 import { getEncounterTimeline } from '../systems/encounter/EncounterSystem'
 import type { EncounterDefinition } from '../../content/encounters/Encounters'
@@ -394,6 +399,12 @@ export interface BehaviorHudSnapshot {
   readonly profileId: BehaviorProfileId
   readonly profileName: string
   readonly profileDescription: string
+  /**
+   * The id alone: the control reads the authored definition itself, so
+   * projecting the name and description here would be a second copy to keep
+   * in step for no reader.
+   */
+  readonly targetPriorityId: TargetPriorityId
   readonly freeMode: boolean
   readonly activeIntent: BehaviorIntentHudSnapshot | null
 }
@@ -1989,10 +2000,14 @@ export function createUiSnapshot(
     'combat-range': 'Close to target',
     hold: 'Hold position',
   }
+  const storedPriorityId = state.player.behaviorController?.targetPriorityId
   const behavior = Object.freeze({
     profileId,
     profileName: profile.name,
     profileDescription: profile.description,
+    targetPriorityId: isTargetPriorityId(storedPriorityId)
+      ? storedPriorityId
+      : DEFAULT_TARGET_PRIORITY_ID,
     freeMode: state.player.behaviorController?.freeMode ?? false,
     activeIntent: activeIntent
       ? Object.freeze({

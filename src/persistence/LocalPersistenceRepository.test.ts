@@ -46,6 +46,7 @@ describe('local persistence schema', () => {
     expect(DEFAULT_SETTINGS).toEqual({
       schemaVersion: 4,
       selectedBehaviorProfileId: 'balanced',
+      selectedTargetPriorityId: 'nearest',
       selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
       selectedWorldModifierIds: [],
       selectedCharacterClassId: 'knight',
@@ -72,6 +73,7 @@ describe('local persistence schema', () => {
       migrateSettings({
         schemaVersion: 0,
         selectedBehaviorProfileId: 'not-authored',
+        selectedTargetPriorityId: 'not-authored',
         selectedDungeonMaxFloorContractId: '',
       }),
     ).toEqual(DEFAULT_SETTINGS)
