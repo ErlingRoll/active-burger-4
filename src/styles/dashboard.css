@@ -2988,21 +2988,23 @@
   /*
    * The window onto the camp: the same clearing through a letterbox.
    *
-   * Above the dock rather than behind it, because the dock scrolls underneath.
-   * That does make a stacking context of it, which is exactly why the room's
-   * light moves in here too — `.hub-firelight` has to have something to warm.
+   * It is pinned and it is behind. The dock below rides up over it as the screen
+   * scrolls, so the clearing costs a third of the screen only while a player is
+   * looking at it and none of it once they have scrolled past — the camp never
+   * moves, it is simply covered, and scrolling back up uncovers it.
+   *
+   * The `z-index` still makes a stacking context of it, which is why the room's
+   * light moves in here too: `.hub-firelight` has to have something to warm.
    */
   .hub-camp {
     position: sticky;
     top: 0;
-    z-index: 7;
+    z-index: 1;
     flex: 0 0 auto;
     height: clamp(12.5rem, 35svh, 20rem);
     inset-inline: 0;
     overflow: hidden;
     background: var(--hub-room);
-    border-bottom: 1px solid rgb(var(--accent-rgb) / 22%);
-    box-shadow: 0 0.9rem 1.8rem rgb(0 0 0 / 62%);
   }
 
   /*
@@ -3121,7 +3123,20 @@
     flex-wrap: nowrap;
     gap: 0.55rem;
     padding: 0.8rem 0.9rem 1.6rem;
+    /*
+     * A sheet, not a transparent layer. It slides up over the pinned camp, so
+     * it has to be opaque — through a see-through dock the fire would show
+     * between the panels — and it has to take the pointer, or a tap meant for a
+     * panel's margin would fall through and walk the player across a floor that
+     * is no longer under the finger.
+     */
+    background: linear-gradient(180deg, #0b1017 0%, var(--scene-night) 22%);
+    border-top: 1px solid rgb(var(--accent-rgb) / 22%);
+    border-radius: 0.9rem 0.9rem 0 0;
+    box-shadow: 0 -0.9rem 1.8rem rgb(0 0 0 / 62%);
+    pointer-events: auto;
   }
+
 
   .hub-hud-column,
   .hub-left-dock {
