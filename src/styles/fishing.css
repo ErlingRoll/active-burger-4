@@ -197,6 +197,10 @@
 }
 
 .fishing-inventory-toggle {
+  /* The `justify-content` and `gap` below need a flex box to act on; a button is
+     inline by default, which is why the glyph sat against the word. */
+  display: flex;
+  align-items: center;
   width: 100%;
   min-height: 3.15rem;
   justify-content: center;
