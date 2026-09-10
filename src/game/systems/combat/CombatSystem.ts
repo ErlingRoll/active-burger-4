@@ -54,9 +54,11 @@ import type { EntityId, EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
   findNearestEnemy,
+  getTargetPriorityScore,
   selectPrimaryTarget,
   type PrimaryTargetOptions,
 } from '../../combat/Targeting'
+import { getTargetPriorityPolicy } from '../../../content/behaviors/TargetPriorities'
 import { isSkillResonant, consumeSkillResonance, recordBasicAttackForResonance } from '../../combat/Resonance'
 import {
   createMonsterDamageEvent,
@@ -954,6 +956,7 @@ function createPrimaryTargetOptions(
     originX: state.player.x,
     originY: state.player.y,
     getEngagementRange: (target) => getBasicAttackEngagementRange(state, target),
+    priorityId: state.player.behaviorController?.targetPriorityId,
   }
 }
 
@@ -1472,18 +1475,82 @@ export function updateAttackCooldown(
   }
 }
 
+/**
+ * Burns down the dwell time on the current primary target.
+ *
+ * Called once per tick, and deliberately not from `resolvePlayerTarget`, which
+ * runs twice: a timer decremented there would run down at twice the authored
+ * rate. Keeping it separate is also what makes resolution a pure function of
+ * the state and the timer, so the two resolves in a tick agree.
+ */
+export function updateTargetCommitment(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const controller = state.player.behaviorController
+  if (!controller) {
+    return
+  }
+  const step = Number.isFinite(fixedStepSeconds) ? Math.max(0, fixedStepSeconds) : 0
+  controller.targetCommitmentRemaining = Math.max(
+    0,
+    (controller.targetCommitmentRemaining ?? 0) - step,
+  )
+}
+
 export function resolvePlayerTarget(
   state: GameState,
 ): void {
   const player = state.player
+  const controller = player.behaviorController
+  const policy = getTargetPriorityPolicy(controller?.targetPriorityId)
+  const options = createPrimaryTargetOptions(state)
   const currentTarget = findLivingTarget(state, player.targetId)
-  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
+
+  /*
+   * Nothing to hold on to. A dead or escaped target always retargets, whatever
+   * the commitment says, which is the behavior the game has always had.
+   */
+  if (!currentTarget || !isBasicAttackTargetInRange(state, currentTarget)) {
+    player.targetId = selectPrimaryTarget(state, options)?.id
+    if (controller) {
+      controller.targetCommitmentRemaining = policy.commitmentSeconds
+    }
     return
   }
-  player.targetId = selectPrimaryTarget(
-    state,
-    createPrimaryTargetOptions(state),
-  )?.id
+
+  // Still committed to the enemy already being attacked.
+  if ((controller?.targetCommitmentRemaining ?? 0) > 0) {
+    return
+  }
+
+  /*
+   * A challenger has to be meaningfully better, not merely better. Without the
+   * margin two similar enemies would trade the target every tick as the player
+   * drifts a few units between them.
+   */
+  const challenger = selectPrimaryTarget(state, options)
+  if (!challenger || challenger.id === currentTarget.id) {
+    return
+  }
+  const currentDistance = Math.hypot(
+    currentTarget.x - player.x,
+    currentTarget.y - player.y,
+  )
+  const challengerDistance = Math.hypot(
+    challenger.x - player.x,
+    challenger.y - player.y,
+  )
+  if (
+    getTargetPriorityScore(challenger, challengerDistance, options) >
+      getTargetPriorityScore(currentTarget, currentDistance, options) +
+        policy.scoreMargin
+  ) {
+    player.targetId = challenger.id
+    if (controller) {
+      controller.targetCommitmentRemaining = policy.commitmentSeconds
+    }
+  }
 }
 
 export function performBasicAttackIfReady(

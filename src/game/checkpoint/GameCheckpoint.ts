@@ -20,6 +20,10 @@ import {
 } from './CharacterBuild'
 import { isCharacterClassId } from '../../content/classes/CharacterClasses'
 import { isBehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
+import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  isTargetPriorityId,
+} from '../../content/behaviors/TargetPriorities'
 import { isSkillId } from '../../content/skills/Skills'
 
 /** Current checkpoint format version. Bump on breaking schema changes. */
@@ -187,6 +191,17 @@ export function createCharacterBuildSnapshot(
   if (!isBehaviorProfileId(behaviorProfileId)) {
     throw new Error('The checkpoint has no valid behavior profile.')
   }
+  /*
+   * A missing priority is not corruption, unlike a missing profile: every
+   * version of the game has written a profile, while a checkpoint from before
+   * priorities existed has none and the run it describes fought as the
+   * default. The server's own fallback when it assembles a Champion's build
+   * out of this same checkpoint agrees.
+   */
+  const storedPriorityId = player.behaviorController?.targetPriorityId
+  const targetPriorityId = isTargetPriorityId(storedPriorityId)
+    ? storedPriorityId
+    : DEFAULT_TARGET_PRIORITY_ID
   const skills = player.skills.map((skill) => {
     if (!isSkillId(skill.skillId) || !isPositiveInteger(skill.level)) {
       throw new Error('The checkpoint contains an invalid skill.')
@@ -204,5 +219,6 @@ export function createCharacterBuildSnapshot(
     selectedUpgradeIds: [...checkpoint.gameState.run.selectedUpgradeIds],
     equipment: JSON.parse(JSON.stringify(player.equipment ?? {})),
     behaviorProfileId,
+    targetPriorityId,
   }
 }

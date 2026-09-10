@@ -12,6 +12,7 @@ import {
   collectProjectileDamage,
   performBasicAttackIfReady,
   resolvePlayerTarget,
+  updateTargetCommitment,
   updateProjectiles,
   updatePoison,
   updateFrost,
@@ -36,6 +37,11 @@ import {
 import { createGame } from '../../Game'
 import { createDamageValues } from '../../../content/stats/Damage'
 import { Rarity } from '../../../content/rarity/Rarity'
+import {
+  TARGET_PRIORITY_ORDER,
+  type TargetPriorityId,
+} from '../../../content/behaviors/TargetPriorities'
+import { assertDefined } from '../../../testing'
 
 const neverCrit = { next: () => 1 }
 const alwaysCrit = { next: () => 0 }
@@ -1485,5 +1491,128 @@ describe('collectEnemyContactDamage', () => {
       expect(gameState.player.aegisPulseShieldRemaining).toBe(0)
       expect(gameState.player.aegisPulseShieldAmount).toBe(0)
     })
+  })
+})
+
+describe('target priority', () => {
+  /**
+   * A player who cares who they hit.
+   *
+   * The other fixtures in this file have no behavior controller at all, which
+   * is why they keep selecting the nearest enemy no matter what is authored.
+   */
+  function priorityState(
+    priorityId: TargetPriorityId,
+    enemies: EnemyState[],
+    options: { bosses?: BossState[] } = {},
+  ): GameState {
+    const gameState = state(enemies, { projectiles: [], ...options })
+    equipItem(gameState.player, 'starcall-wand')
+    gameState.player.behaviorController = {
+      profileId: 'balanced',
+      targetPriorityId: priorityId,
+      targetCommitmentRemaining: 0,
+    }
+    return gameState
+  }
+
+  function elite(id: number, x: number): EnemyState {
+    return { ...enemy(id, x), eliteModifiers: ['giant'] }
+  }
+
+  it('takes the elite over a nearer ordinary enemy, where nearest does not', () => {
+    const chosen = priorityState('elites', [enemy(2, 10), elite(3, 40)])
+    resolvePlayerTarget(chosen)
+    expect(chosen.player.targetId).toBe(3)
+
+    const baseline = priorityState('nearest', [enemy(2, 10), elite(3, 40)])
+    resolvePlayerTarget(baseline)
+    expect(baseline.player.targetId).toBe(2)
+  })
+
+  it.each(TARGET_PRIORITY_ORDER)('resolves twice in one tick to the same target under %s', (priorityId) => {
+    const gameState = priorityState(priorityId, [
+      enemy(2, 10),
+      { ...enemy(3, 40), hp: 4 },
+      elite(4, 60),
+    ])
+
+    resolvePlayerTarget(gameState)
+    const first = gameState.player.targetId
+    const committedAfterFirst = gameState.player.behaviorController?.targetCommitmentRemaining
+    resolvePlayerTarget(gameState)
+
+    expect(gameState.player.targetId).toBe(first)
+    expect(gameState.player.behaviorController?.targetCommitmentRemaining)
+      .toBe(committedAfterFirst)
+  })
+
+  it('holds a target for its dwell time, then lets a better one take over', () => {
+    const gameState = priorityState('wounded', [enemy(2, 10), enemy(3, 40)])
+    resolvePlayerTarget(gameState)
+    expect(gameState.player.targetId).toBe(2)
+
+    // A better candidate appears while the current one is still committed.
+    const wounded = assertDefined(
+      gameState.enemies.find((candidate) => candidate.id === 3),
+      'wounded enemy',
+    )
+    wounded.hp = 2
+    resolvePlayerTarget(gameState)
+    expect(gameState.player.targetId).toBe(2)
+
+    updateTargetCommitment(gameState, 0.6)
+    resolvePlayerTarget(gameState)
+    expect(gameState.player.targetId).toBe(3)
+  })
+
+  it('keeps the current target when a challenger is only marginally better', () => {
+    const gameState = priorityState('wounded', [enemy(2, 10), enemy(3, 14)])
+    resolvePlayerTarget(gameState)
+    expect(gameState.player.targetId).toBe(2)
+
+    // Two points of health between them is well inside the authored margin.
+    const challenger = assertDefined(
+      gameState.enemies.find((candidate) => candidate.id === 3),
+      'challenger',
+    )
+    challenger.hp = 18
+    updateTargetCommitment(gameState, 5)
+    resolvePlayerTarget(gameState)
+
+    expect(gameState.player.targetId).toBe(2)
+  })
+
+  it('retargets the moment the current target dies, commitment or not', () => {
+    const gameState = priorityState('elites', [elite(2, 10), enemy(3, 40)])
+    resolvePlayerTarget(gameState)
+    expect(gameState.player.targetId).toBe(2)
+    expect(gameState.player.behaviorController?.targetCommitmentRemaining)
+      .toBeGreaterThan(0)
+
+    const dying = assertDefined(
+      gameState.enemies.find((candidate) => candidate.id === 2),
+      'dying elite',
+    )
+    dying.hp = 0
+    resolvePlayerTarget(gameState)
+
+    expect(gameState.player.targetId).toBe(3)
+  })
+
+  it('burns the dwell time down to zero and no further', () => {
+    const gameState = priorityState('elites', [elite(2, 10)])
+    resolvePlayerTarget(gameState)
+
+    updateTargetCommitment(gameState, 10)
+    expect(gameState.player.behaviorController?.targetCommitmentRemaining).toBe(0)
+
+    // A non-finite step is ignored rather than poisoning the timer.
+    gameState.player.behaviorController = {
+      profileId: 'balanced',
+      targetCommitmentRemaining: 0.5,
+    }
+    updateTargetCommitment(gameState, Number.NaN)
+    expect(gameState.player.behaviorController.targetCommitmentRemaining).toBe(0.5)
   })
 })
