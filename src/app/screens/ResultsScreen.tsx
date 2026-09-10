@@ -39,6 +39,14 @@ export function ResultsScreen({
   onRetryReward,
 }: ResultsScreenProps) {
   const victory = result.outcome === 'victory'
+  /*
+   * The Abyss is not paid in Essence, so it is not given a receipt for it.
+   *
+   * The reward the run actually earns is decided on the server, which pays the
+   * Abyss nothing; drawing the dungeon's arithmetic here anyway promised a
+   * number that never arrived in the wallet.
+   */
+  const paysEssence = result.modeId !== 'infinite-abyss'
   const essenceReceipt = createEssenceReceipt(result)
   return (
     <section
@@ -129,6 +137,7 @@ export function ResultsScreen({
             )}
           </section>
         ) : null}
+        {!paysEssence ? null : (
         <section className="essence-receipt" aria-labelledby="essence-receipt-title">
           <div className="essence-receipt-heading">
             <p className="screen-kicker">Run reward</p>
@@ -180,6 +189,7 @@ export function ResultsScreen({
             )}
           </dl>
         </section>
+        )}
         {victory ? (
           <section className="champion-save-panel" aria-labelledby="champion-save-title">
             <div>

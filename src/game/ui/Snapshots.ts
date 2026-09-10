@@ -2,6 +2,7 @@ import {
   xpRequiredForLevel,
   xpRequiredForNextLevel,
 } from '../../content/progression/XpBalance'
+import { DEFAULT_RUN_MODE_ID, type RunModeId } from '../../shared/RunModes'
 import {
   EQUIPMENT_SLOTS,
   getItemDisplayName,
@@ -1389,6 +1390,8 @@ export interface PlayerCombatLogSnapshot {
 
 export interface RunResultSnapshot {
   readonly phase: RunPhase
+  /** Which run this was. The Abyss and the dungeon do not pay the same way. */
+  readonly modeId: RunModeId
   readonly elapsedTime: number
   readonly level: number
   readonly xp: number
@@ -2153,6 +2156,7 @@ export function createRunResultSnapshot(
   })
   const result = {
     phase: state.run.phase,
+    modeId: state.run.modeId ?? DEFAULT_RUN_MODE_ID,
     elapsedTime: state.time,
     level: state.player.level,
     xp: state.player.xp,

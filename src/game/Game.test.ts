@@ -31,6 +31,7 @@ import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
 import { definedAt } from '../testing'
+import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
 
 describe('Game', () => {
   it('starts a freshly created run in the playing phase, unpaused', () => {
@@ -717,6 +718,7 @@ describe('Game', () => {
     const result = game.getRunResultSnapshot()
     expect(result).toEqual({
       phase: 'defeat',
+      modeId: 'dungeon',
       elapsedTime: game.state.time,
       level: game.state.player.level,
       xp: game.state.player.xp,
@@ -1892,5 +1894,68 @@ describe('Game', () => {
     expect(game.selectGearChoice(normal)).toBe(true)
     expect(game.phase).toBe('playing')
     expect(game.state.player.equipment?.[normal.slot]?.itemId).toBe(normal.itemId)
+  })
+})
+
+describe('the Abyss descent', () => {
+  const CHAMPION = {
+    schemaVersion: 1 as const,
+    classId: 'knight' as const,
+    skills: [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+      { skillId: 'whirlwind' as const, level: 1 },
+    ],
+    selectedUpgradeIds: [],
+    equipment: {},
+    behaviorProfileId: 'balanced' as const,
+  }
+
+  function abyssChoicesOf(
+    game: ReturnType<typeof createGame>,
+  ): readonly AbyssModifierChoice[] {
+    const flow = definedAt(game.getPendingChoiceFlows(), 0)
+    if (flow.type !== 'abyss-modifier') {
+      throw new Error(`Expected an Abyss modifier flow, found ${flow.type}.`)
+    }
+    return flow.choices
+  }
+
+  function descendOneFloor(game: ReturnType<typeof createGame>): void {
+    expect(game.startBossEncounter()).toBe(true)
+    const boss = definedAt(game.state.bosses ?? [], 0)
+    boss.xpReward = 0
+    game.state.player.x = boss.x
+    game.state.player.y = boss.y
+    boss.hp = 0
+    game.update(FIXED_STEP_SECONDS)
+  }
+
+  it('asks for one modifier per floor rather than every modifier there is', () => {
+    const game = createGame({ seed: 5, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    descendOneFloor(game)
+
+    const choices = abyssChoicesOf(game)
+    expect(choices).toHaveLength(3)
+
+    expect(game.selectChoice(definedAt(choices, 0))).toBe(true)
+
+    // One pick and the descent continues: the floor was asking for a downside,
+    // not for all of them.
+    expect(game.getPendingChoiceFlows()).toHaveLength(0)
+    expect(game.state.run.abyssModifierIds).toHaveLength(1)
+  })
+
+  it('credits a floor once however many times the descent is re-entered', () => {
+    const game = createGame({ seed: 6, modeId: 'infinite-abyss', champion: CHAMPION })
+
+    descendOneFloor(game)
+    const chosen = definedAt(abyssChoicesOf(game), 0)
+    game.selectChoice(chosen)
+
+    // The modifier's own danger is scored on top of the floor's hundred; the
+    // hundred is what used to be paid three times over.
+    expect(game.state.run.abyssCompletedFloors).toBe(1)
+    expect(game.state.run.abyssScore).toBe(100 + chosen.dangerScore * 10)
   })
 })

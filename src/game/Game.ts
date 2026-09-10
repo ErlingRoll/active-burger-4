@@ -1684,23 +1684,39 @@ export class Game {
     }
     const fromFloor = this.gameState.run.floor ?? stairs.floorNumber
     const toFloor = fromFloor + 1
-    if (this.gameState.run.modeId === 'infinite-abyss' &&
-      !stairs.isFinal &&
-      (this.gameState.run.abyssModifierIds?.length ?? 0) <
-        (this.gameState.run.abyssCompletedFloors ?? 0) + 1) {
-      this.gameState.run.abyssCompletedFloors =
-        (this.gameState.run.abyssCompletedFloors ?? 0) + 1
-      this.gameState.run.abyssScore =
-        (this.gameState.run.abyssScore ?? 0) + 100
-      const choices = getAbyssModifierChoices(this.gameState.run.abyssModifierIds ?? [])
-      if (choices.length > 0) {
-        this.choiceFlows.push({
-          type: 'abyss-modifier',
-          floor: fromFloor,
-          choices,
-        })
-        this.activateChoiceFlow()
-        return
+    if (this.gameState.run.modeId === 'infinite-abyss' && !stairs.isFinal) {
+      /*
+       * The floor is credited by its number, once.
+       *
+       * Choosing a modifier interrupts the descent, and the stairs are still
+       * underfoot when the choice resolves, so this runs again for the same
+       * floor. A counter that only ever added one therefore credited the floor
+       * again for every modifier the player was made to take. Recording which
+       * floor was left makes arriving here a second time a no-op.
+       */
+      if ((this.gameState.run.abyssCompletedFloors ?? 0) < fromFloor) {
+        this.gameState.run.abyssCompletedFloors = fromFloor
+        this.gameState.run.abyssScore =
+          (this.gameState.run.abyssScore ?? 0) + 100
+      }
+      /*
+       * One modifier per floor survived — not one per modifier still on offer.
+       * The old guard compared the tally against a count it was raising in the
+       * same breath, so it could never be satisfied and the descent asked again
+       * until the player had taken every downside in the game.
+       */
+      if ((this.gameState.run.abyssModifierIds?.length ?? 0) <
+        (this.gameState.run.abyssCompletedFloors ?? 0)) {
+        const choices = getAbyssModifierChoices(this.gameState.run.abyssModifierIds ?? [])
+        if (choices.length > 0) {
+          this.choiceFlows.push({
+            type: 'abyss-modifier',
+            floor: fromFloor,
+            choices,
+          })
+          this.activateChoiceFlow()
+          return
+        }
       }
     }
     if (!stairs.isFinal) {
