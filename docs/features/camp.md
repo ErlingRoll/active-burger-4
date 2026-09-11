@@ -152,7 +152,7 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given four more passes the
+Accepted as a first iteration on 2026-09-11 and given five more passes the
 same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
@@ -199,6 +199,18 @@ idea.
   open or closed. A phone keeps the two-abreast grid, where a placed layout
   would not fit. A plot lifts on hover and carries a lantern-amber "Ready"
   tag while something waits.
+- **Things stand between the buildings.** A settlement has furniture in its
+  gaps, drawn in `CampFurniture.tsx` in the same box the plots are placed
+  in: three lantern posts along the path, each throwing its light on the
+  ground, a tent in the gap between the Woodline and the Storehouse, a cart
+  waiting where the path forks, and stores stacked beside the Storehouse
+  door. None of it is drawn on a phone, whose grid has no gaps.
+- **Output is carried along the path.** While the Woodline or the quarry has
+  output waiting, a figure walks the drawn path from that building to the
+  Storehouse with a bundle on its shoulder (timber or stone, by the route)
+  and back without one, turning at each end. The route is the path's own
+  points as keyframes in shares of the ground, so it follows the path at
+  any width. The haulers stand down under `prefers-reduced-motion`.
 - **Champions are figures at the foot of the building.** Every job slot is a
   small figure on the building's ground line: a dark silhouette with a
   lantern in hand while the slot is filled, and a dashed outline while it is
@@ -244,11 +256,9 @@ idea.
   the ground keeps its size. A phone has no side column: the inspector is a
   sheet over the plots and the roster is not shown.
 
-What the fifth pass left for a sixth: the buildings are still eight
-separate pictures rather than one drawn settlement, with nothing between
-them (no fence, no stacked stores, no cart on the path); the figures walk
-but never leave their building for the path; and the phone still shows a
-grid where a placed layout at two columns might read better.
+What the sixth pass left for a seventh: the phone still shows a grid where
+a placed layout at two columns might read better, and the furniture is
+fixed, where a Camp that grows could put more of it out as buildings go up.
 
 ## Design constraints
 

@@ -38,6 +38,7 @@ import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { CampBuildingArt, type CampPlotId } from './CampBuildingArt'
+import { CampFurniture, CampHaulers, type CampHaulRoute } from './CampFurniture'
 import { LabourSheetLine } from './LabourSheetLine'
 import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
@@ -1112,6 +1113,9 @@ export function CampScreen({
     }
   }
 
+  const haulRoutes: CampHaulRoute[] = (['woodline', 'quarry'] as const)
+    .filter((route) => describePlot(route).pending > 0)
+
   const inspected = selectedPlot && state ? CAMP_BUILDING_DEFINITIONS[selectedPlot] : null
   const inspectedLevel = selectedPlot && state ? buildingLevel(state, selectedPlot) : 0
 
@@ -1239,6 +1243,8 @@ export function CampScreen({
             <path d="M 46 74 C 54 80, 62 88, 65 97" />
             <path d="M 65 97 C 74 92, 82 90, 89 86" />
           </svg>
+          <CampFurniture />
+          <CampHaulers routes={haulRoutes} />
           <ul className="camp-plots" aria-label="The buildings">
             {CAMP_PLOTS.map((plotId) => {
               const built = isBuildingId(plotId) && buildingLevel(state, plotId) > 0
@@ -1278,8 +1284,8 @@ export function CampScreen({
                         <CampLevelPips buildingId={plotId} level={buildingLevel(state, plotId)} />
                       ) : null}
                       <small>{plot.status}</small>
+                      {plot.pending > 0 ? <span className="camp-plot-ready">Ready</span> : null}
                     </span>
-                    {plot.pending > 0 ? <span className="camp-plot-ready">Ready</span> : null}
                   </button>
                 </li>
               )
