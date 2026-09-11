@@ -5,6 +5,7 @@ import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses
 import { previewCampProduction } from '../content/camp/CampAccrual'
 import {
   CAMP_BUILDING_DEFINITIONS,
+  CAMP_BUILDING_LEVELS,
   getCampBuildingLevel,
   getCampBuildingMaxLevel,
   getNextCampBuildingLevel,
@@ -38,6 +39,7 @@ import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { CampBuildingArt, type CampPlotId } from './CampBuildingArt'
 import { LabourSheetLine } from './LabourSheetLine'
+import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
 import { REFORGE_COSTS } from './Forge'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
@@ -185,42 +187,6 @@ function canAfford(cost: Readonly<Record<string, number>>, held: readonly Invent
   return Object.entries(cost).every(([definitionId, quantity]) => countHeldQuantity(held, definitionId) >= quantity)
 }
 
-interface CampUpgradeRowProps {
-  buildingId: CampBuildingId
-  level: number
-  held: readonly InventoryItemInstance[]
-  busy: boolean
-  onUpgrade: () => void
-}
-
-function CampUpgradeRow({ buildingId, level, held, busy, onUpgrade }: CampUpgradeRowProps) {
-  const next = getNextCampBuildingLevel(buildingId, level)
-  const name = CAMP_BUILDING_DEFINITIONS[buildingId].name
-  // A building at its top has nothing to sell; the inspector already says its level.
-  if (!next) {
-    return (
-      <p className="camp-upgrade-top">{name} stands at its highest level.</p>
-    )
-  }
-  const building = level === 0
-  return (
-    <div className="camp-upgrade-row">
-      <span className="camp-upgrade-copy">
-        <strong>{building ? `Build the ${name.toLowerCase()}` : `${name} ${next.level}`} · {describeLevel(next)}</strong>
-        <CampCost cost={next.cost} held={held} />
-      </span>
-      <button
-        className="camp-upgrade-action"
-        type="button"
-        onClick={onUpgrade}
-        disabled={busy || !canAfford(next.cost, held)}
-        aria-label={`${building ? 'Build' : 'Upgrade'} the ${name.toLowerCase()}`}
-      >
-        {building ? 'Build' : 'Upgrade'}
-      </button>
-    </div>
-  )
-}
 
 interface CampWorkerProps {
   job: CampJobDefinition
@@ -237,9 +203,13 @@ function CampWorker({ job, assignment, champion, pending, busy, onRecall }: Camp
     : itemName(job.outputDefinitionId ?? '').toLowerCase()
   return (
     <li className="camp-worker">
+      {champion ? <ClassMark classId={champion.build.classId} /> : null}
       <span className="camp-worker-copy">
         <strong>{champion?.name ?? 'A Champion'}</strong>
-        <LabourSheetLine sheet={assignment.sheet} />
+        <span className="camp-sheet">
+          <LabourSheetMeters sheet={assignment.sheet} />
+          <LabourSheetLine sheet={assignment.sheet} />
+        </span>
       </span>
       <span className="camp-worker-pending" aria-label={`${pending} ${unit} pending`}>
         <strong>{pending}</strong>
@@ -298,10 +268,14 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
                   onClick={() => onPick(champion.championId)}
                   disabled={busy}
                 >
+                  <ClassMark classId={champion.build.classId} />
                   <span className="camp-picker-copy">
                     <strong>{champion.name}</strong>
                     <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name} · {status}</span>
-                    <LabourSheetLine sheet={sheet} />
+                    <span className="camp-sheet">
+                      <LabourSheetMeters sheet={sheet} />
+                      <LabourSheetLine sheet={sheet} />
+                    </span>
                   </span>
                   <span className="camp-picker-send" aria-hidden="true">
                     {elsewhere ? 'Move here' : 'Send'}
@@ -481,6 +455,68 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
         Cancel
       </button>
     </div>
+  )
+}
+
+/** The class, as its initial in a badge: a mark the eye can sort a list by. */
+function ClassMark({ classId }: { classId: ChampionSnapshot['build']['classId'] }) {
+  const name = CHARACTER_CLASS_DEFINITIONS[classId].name
+  return (
+    <span className="camp-class-mark" data-class={classId} aria-hidden="true" title={name}>
+      {name.charAt(0)}
+    </span>
+  )
+}
+
+/**
+ * The ladder of a building's levels: what each one does and costs, the ones
+ * already climbed lit, the next one priced against the bag. The inspector
+ * shows the whole climb so a player can see what a building becomes, not
+ * only what it costs next.
+ */
+interface CampLevelLadderProps {
+  buildingId: CampBuildingId
+  level: number
+  held: readonly InventoryItemInstance[]
+  busy: boolean
+  onUpgrade: () => void
+}
+
+function CampLevelLadder({ buildingId, level, held, busy, onUpgrade }: CampLevelLadderProps) {
+  const name = CAMP_BUILDING_DEFINITIONS[buildingId].name
+  const rungs = CAMP_BUILDING_LEVELS.filter((entry) => entry.buildingId === buildingId)
+  const top = !getNextCampBuildingLevel(buildingId, level)
+  return (
+    <ol className="camp-ladder" aria-label={`${name} levels`}>
+      {rungs.map((rung) => {
+        const state = rung.level <= level ? 'built' : rung.level === level + 1 ? 'next' : 'later'
+        const building = state === 'next' && level === 0
+        return (
+          <li key={rung.level} className="camp-rung" data-state={state}>
+            <span className="camp-rung-level" aria-hidden="true">{rung.level}</span>
+            <span className="camp-rung-copy">
+              <strong>{describeLevel(rung)}</strong>
+              {state === 'built'
+                ? <small>{rung.level === level ? (top ? 'Standing, at its highest' : 'Standing') : 'Built'}</small>
+                : Object.keys(rung.cost).length > 0
+                  ? <CampCost cost={rung.cost} held={held} />
+                  : <small>Comes with the Camp</small>}
+            </span>
+            {state === 'next' ? (
+              <button
+                className="camp-upgrade-action"
+                type="button"
+                onClick={onUpgrade}
+                disabled={busy || !canAfford(rung.cost, held)}
+                aria-label={`${building ? 'Build' : 'Upgrade'} the ${name.toLowerCase()}`}
+              >
+                {building ? 'Build' : 'Upgrade'}
+              </button>
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -900,7 +936,7 @@ export function CampScreen({
     const level = buildingLevel(state, buildingId)
     const job = ALL_CAMP_JOB_DEFINITIONS.find((entry) => entry.buildingId === buildingId)
     const upgradeRow = (
-      <CampUpgradeRow
+      <CampLevelLadder
         buildingId={buildingId}
         level={level}
         held={materials}
@@ -1135,7 +1171,7 @@ export function CampScreen({
         <div className="camp-hud-topbar">
           <div className="camp-scene-header">
             <p className="screen-kicker">Between descents · The Camp</p>
-            <h2 id="camp-title">The Camp</h2>
+            <h2 id="camp-title"><i className="camp-title-lantern" aria-hidden="true" />The Camp</h2>
             <div className="camp-scene-subline">
               <span><i className="camp-live-dot" aria-hidden="true" /> {workingCount} {workingCount === 1 ? 'Champion' : 'Champions'} working</span>
               {restingCount > 0 ? <span>{restingCount} resting</span> : null}
@@ -1155,6 +1191,7 @@ export function CampScreen({
             <button
               className="camp-claim-action"
               type="button"
+              data-pending={totalPending > 0 ? 'true' : undefined}
               onClick={claim}
               disabled={busy || !state || state.assignments.length === 0}
             >
@@ -1264,9 +1301,6 @@ export function CampScreen({
             data-plot={selectedPlot}
           >
             <header className="camp-inspector-heading">
-              <span className="camp-inspector-art" aria-hidden="true">
-                <CampBuildingArt plotId={selectedPlot} built={inspectedLevel > 0} />
-              </span>
               <div>
                 <p className="screen-kicker">
                   {inspectedLevel === 0 ? 'Not yet built' : `Level ${inspectedLevel} of ${getCampBuildingMaxLevel(selectedPlot)}`}
@@ -1280,6 +1314,9 @@ export function CampScreen({
             <div className="camp-inspector-body">
               {renderInspector(selectedPlot)}
             </div>
+            <span className="camp-inspector-portrait" data-plot={selectedPlot} data-built={inspectedLevel > 0 ? 'true' : 'false'} aria-hidden="true">
+              <CampBuildingArt plotId={selectedPlot} built={inspectedLevel > 0} />
+            </span>
           </section>
         ) : state ? (
           <aside className="camp-roster camp-side" aria-labelledby="camp-roster-title">
@@ -1317,6 +1354,7 @@ export function CampScreen({
                             ? `${champion.name}, ${relief ? 'resting' : 'working'} at the ${building.name.toLowerCase()}`
                             : undefined}
                         >
+                          <ClassMark classId={champion.build.classId} />
                           <span className="camp-roster-copy">
                             <strong>{champion.name}</strong>
                             <span>

@@ -152,8 +152,8 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given a second, a third and
-a fourth pass the same day. Every visual decision on the screen derives from that one sentence, and
+Accepted as a first iteration on 2026-09-11 and given four more passes the
+same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
 
@@ -211,6 +211,27 @@ idea.
 - **The inspector is the same material as the plots,** a darker glass beside
   them on a desktop and a sheet rising over them on a phone, headed by the
   building's own picture and its level.
+- **The chrome is timber and lantern light.** Erling found the first
+  chrome, dark glass with a green line, uninteresting against the scene, so
+  the fifth pass gave it the camp's own materials. A plank (dark timber,
+  bevelled, with the off-white lettering a camp would paint on it) is
+  declared once on the screen root and every board reads it: the sign
+  under each building hangs on two nails and takes the accent as a frame
+  while its inspector is open; the ledger of materials is one board with
+  dividers rather than a row of pills; the side panel's heading is a plank;
+  a Champion's class is its initial on a small round badge wherever a
+  Champion is named. A lantern flickers beside the screen's title, and the
+  Claim button breathes while something waits to be claimed.
+- **The sheet is read as meters.** Wherever a Champion is offered for work,
+  tempo, stamina, load and fit are four small bars filled across the range
+  the formula can reach, amber at the top of it, so a row of Champions can
+  be compared at a glance; the line of numbers still stands under them.
+- **A building's inspector shows its whole climb.** The ladder of levels
+  lists what each one does and costs, the ones already climbed lit, the
+  next one priced against the bag with the Build or Upgrade button on its
+  rung, and the building's own picture stands at the foot of the column
+  with its light. The ladder is the reason to open a building that is not
+  ready to be raised: it says what the building becomes.
 - **Nothing on the ground moves when a building opens.** Erling found the
   first placed layout jarring: the inspector was a sibling of the ground, so
   opening a plot narrowed the ground and every building slid and shrank at
@@ -223,7 +244,7 @@ idea.
   the ground keeps its size. A phone has no side column: the inspector is a
   sheet over the plots and the roster is not shown.
 
-What the fourth pass left for a fifth: the buildings are still eight
+What the fifth pass left for a sixth: the buildings are still eight
 separate pictures rather than one drawn settlement, with nothing between
 them (no fence, no stacked stores, no cart on the path); the figures walk
 but never leave their building for the path; and the phone still shows a
