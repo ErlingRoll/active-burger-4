@@ -1274,7 +1274,7 @@ export function CampScreen({
                     <span className="camp-plot-stage" aria-hidden="true">
                       <span className="camp-plot-ground" />
                       <span className="camp-plot-glow" />
-                      <CampBuildingArt plotId={plotId} built={built} />
+                      <CampBuildingArt plotId={plotId} built={built} level={isBuildingId(plotId) ? buildingLevel(state, plotId) : 1} />
                       {plot.slots > 0 ? (
                         <span className="camp-plot-workers">
                           {Array.from({ length: plot.slots }, (_, index) => (
@@ -1326,7 +1326,7 @@ export function CampScreen({
               {renderInspector(selectedPlot)}
             </div>
             <span className="camp-inspector-portrait" data-plot={selectedPlot} data-built={inspectedLevel > 0 ? 'true' : 'false'} aria-hidden="true">
-              <CampBuildingArt plotId={selectedPlot} built={inspectedLevel > 0} />
+              <CampBuildingArt plotId={selectedPlot} built={inspectedLevel > 0} level={inspectedLevel} />
             </span>
           </section>
         ) : state ? (

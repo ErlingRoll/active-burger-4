@@ -152,7 +152,7 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given six more passes the
+Accepted as a first iteration on 2026-09-11 and given seven more passes the
 same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
@@ -183,7 +183,15 @@ idea.
   ground is made of. A standing building throws lantern light on its plot and
   its lights move (smoke rises, coals flicker, the rift orb pulses); a
   building at level zero is the same picture drawn faint and grey on a
-  dashed, staked-out plot, so the player sees what could stand there.
+  dashed, staked-out plot, so the player sees what could stand there. A
+  building grows with its level, and each level adds to the first picture
+  rather than replacing it: the Storehouse gains a wing at two and a loft
+  with a second lantern at three; the Woodline a sawhorse and a taller
+  stack; the quarry a ladder up its face and more cut blocks; the Rift
+  anchor two more splinters in a ring of stones at two and a crown of
+  floating shards at three; the Forge a chimney with smoke and a quench
+  barrel at two and a roof over the whole works at three. The Smokehouse
+  and the tackle bench have one level and one picture.
 - **Buildings stand on the ground; there are no cards.** A plot has no plate
   and no border. Its building stands on an ellipse of trodden earth with its
   name on a sign beneath, and the ground is the only shape: it takes an
@@ -261,9 +269,8 @@ idea.
   the ground keeps its size. A phone has no side column: the inspector is a
   sheet over the plots and the roster is not shown.
 
-The seventh pass closed the list. What a later one might take: the
-buildings' pictures themselves could change with their level, and the
-Trophy hall's footprint could become a building once Phase 10 gives it
+The eighth pass made the pictures grow with their levels. What remains is
+the Trophy hall's footprint becoming a building once Phase 10 gives it
 something to hold.
 
 ## Design constraints
