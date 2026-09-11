@@ -12,6 +12,7 @@ function box(rarity: string, itemInstanceId: string): InventoryItemInstance {
     definitionId: `loot-box-${rarity}`,
     quantity: 1,
     bound: false,
+    favorite: false,
     metadata: {},
     source: { type: 'abyss-reward', id: null },
     createdAt: '2026-09-09T00:00:00.000Z',

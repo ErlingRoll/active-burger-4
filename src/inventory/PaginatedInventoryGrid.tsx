@@ -39,6 +39,12 @@ interface PaginatedInventoryGridProps {
   onSalvage?: (item: InventoryItemInstance) => void
   salvagingItemInstanceId?: string | null
   /**
+   * Whether a slot wears a star. Defaults to the instance's own flag; the
+   * stores screen, which also knows the definitions the player has starred as
+   * a whole, passes its own answer.
+   */
+  isItemFavorite?: (item: InventoryItemInstance) => boolean
+  /**
    * Told which slot the player has picked, so a screen with room for a detail
    * panel can show the item there instead of inside a tooltip that disappears
    * the moment the pointer leaves it. `null` when the pick is cleared.
@@ -79,6 +85,7 @@ export function PaginatedInventoryGrid({
   precedingSortComparators,
   onSalvage,
   salvagingItemInstanceId = null,
+  isItemFavorite = (item) => item.favorite,
   onSelect,
   showTooltip = true,
   fitted = false,
@@ -206,6 +213,7 @@ export function PaginatedInventoryGrid({
           const itemName = definition?.name ?? item.definitionId
           const isActive = tooltipItem?.itemInstanceId === item.itemInstanceId
           const isUnseen = !seenItemInstanceIds.has(item.itemInstanceId)
+          const isFavorite = isItemFavorite(item)
           const tooltipId = `inventory-item-tooltip-${item.itemInstanceId}`
           return (
             <li
@@ -213,10 +221,14 @@ export function PaginatedInventoryGrid({
               data-rarity={rarity ?? undefined}
               data-enchanted={isEnchantedItemMetadata(item.metadata) ? 'true' : undefined}
               data-selected={selectedItemInstanceId === item.itemInstanceId ? 'true' : undefined}
+              data-favorite={isFavorite ? 'true' : undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
               tabIndex={0}
-              aria-label={`${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}`}
+              aria-label={
+                `${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}` +
+                (isFavorite ? ', favorite' : '')
+              }
               aria-describedby={isActive ? tooltipId : undefined}
               onFocus={() => showItemTooltip(item.itemInstanceId)}
               onBlur={closeItemTooltip}
@@ -232,6 +244,9 @@ export function PaginatedInventoryGrid({
               }}
             >
               <span className="inventory-item-icon" aria-hidden="true">{getItemIcon(item)}</span>
+              {isFavorite ? (
+                <span className="inventory-item-favorite" aria-hidden="true">★</span>
+              ) : null}
               <strong>{itemName}</strong>
               <small>{getItemDetail(item)}</small>
               {item.quantity > 1 ? (
@@ -291,6 +306,9 @@ export function PaginatedInventoryGrid({
                   {RARITY_VISUALS[tooltipRarity].label}
                 </span>
               )}
+              {isItemFavorite(tooltipItem) ? (
+                <span className="inventory-favorite-mark">★ Favorite</span>
+              ) : null}
             </div>
           </header>
           {tooltipArtifact ? (

@@ -1,7 +1,13 @@
-import { Rarity } from '../content/rarity/Rarity'
+import { RARITY_ORDER } from '../content/rarity/Rarity'
+import { isInventoryItemFavorite } from './InventoryFavorites'
 import { getInventoryItemRarity } from './InventoryRarity'
+import type { SalvageSweepRarity } from './InventorySweepPreference'
 import { getInventoryItemDefinition } from './ItemDefinitions'
-import type { InventoryItemCategory, InventoryItemInstance } from './InventoryTypes'
+import type {
+  InventoryItemCategory,
+  InventoryItemDefinitionId,
+  InventoryItemInstance,
+} from './InventoryTypes'
 
 /** `all`, or one of the categories the player actually owns something in. */
 export type InventoryCategoryFilter = 'all' | InventoryItemCategory
@@ -84,26 +90,55 @@ export function isSalvageableItem(item: InventoryItemInstance): boolean {
   return SALVAGEABLE_CATEGORIES.includes(getInventoryItemCategory(item))
 }
 
+export interface SalvageSweepSelection {
+  /** What the sweep will take, in shelf order. */
+  readonly targets: InventoryItemInstance[]
+  /** What it would have taken but for a star. Said in the confirmation. */
+  readonly favoritesKept: number
+}
+
 /**
- * The categories the common sweep clears: what a player accumulates faster
- * than they can use. An artifact is salvageable but never swept, because even
- * a common one is a roll of its own and worth a look before it goes.
+ * The categories the sweep clears: what a player accumulates faster than they
+ * can use. An artifact is salvageable but never swept, because even a common
+ * one is a roll of its own and worth a look before it goes.
  */
 const SWEEPABLE_CATEGORIES: readonly InventoryItemCategory[] = ['fish', 'rod']
+
+export interface SalvageSweepSelection {
+  /** What the sweep will take, in shelf order. */
+  readonly targets: InventoryItemInstance[]
+  /** What it would have taken but for a star. Said in the confirmation. */
+  readonly favoritesKept: number
+}
 
 /**
  * The catch and gear a player would otherwise clear one at a time.
  *
- * Deliberately common rarity, and deliberately only the categories a player
- * accumulates faster than they can use: fish and rods. A sweep that could take
- * an epic off the shelf needs a per-item decision, and the point of this
- * action is that it does not.
+ * Everything sweepable at or below the chosen rarity, minus favorites. Only
+ * up to rare: a sweep that could take an epic off the shelf needs a per-item
+ * decision, and the point of this action is that it does not. A favorite is
+ * the per-item decision, made in advance.
  */
-export function selectCommonSalvage(
+export function selectSalvageSweep(
   items: readonly InventoryItemInstance[],
-): InventoryItemInstance[] {
-  return items.filter((item) =>
-    SWEEPABLE_CATEGORIES.includes(getInventoryItemCategory(item)) &&
-    getInventoryItemRarity(item) === Rarity.Common,
-  )
+  maxRarity: SalvageSweepRarity,
+  favoriteDefinitionIds: ReadonlySet<InventoryItemDefinitionId>,
+): SalvageSweepSelection {
+  const targets: InventoryItemInstance[] = []
+  let favoritesKept = 0
+  for (const item of items) {
+    if (!SWEEPABLE_CATEGORIES.includes(getInventoryItemCategory(item))) {
+      continue
+    }
+    const rarity = getInventoryItemRarity(item)
+    if (rarity === null || RARITY_ORDER[rarity] > RARITY_ORDER[maxRarity]) {
+      continue
+    }
+    if (isInventoryItemFavorite(item, favoriteDefinitionIds)) {
+      favoritesKept += 1
+      continue
+    }
+    targets.push(item)
+  }
+  return { targets, favoritesKept }
 }

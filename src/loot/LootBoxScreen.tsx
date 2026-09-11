@@ -8,11 +8,16 @@ import {
   getInventoryItemCategory,
   getInventoryItemDefinition,
   getInventoryItemEssence,
+  getInventoryFavoriteScope,
   getInventoryItemRarity,
+  isInventoryItemFavorite,
   isSalvageableItem,
-  selectCommonSalvage,
+  persistSalvageSweepRarity,
+  readSalvageSweepRarity,
+  SALVAGE_SWEEP_RARITIES,
+  selectSalvageSweep,
 } from '../inventory'
-import type { InventoryCategoryFilter } from '../inventory'
+import type { InventoryCategoryFilter, SalvageSweepRarity } from '../inventory'
 import { ArtifactEffectList } from '../inventory/ArtifactEffects'
 import {
   formatArtifactHeadline,
@@ -91,6 +96,9 @@ export function InventoryScreen({
 }: LootBoxScreenProps) {
   const { showLootToast, showToast } = useToaster()
   const [items, setItems] = useState<InventoryItemInstance[]>([])
+  const [favoriteDefinitionIds, setFavoriteDefinitionIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => inventoryService ? 'loading' : 'error',
   )
@@ -102,7 +110,9 @@ export function InventoryScreen({
   const [categoryFilter, setCategoryFilter] = useState<InventoryCategoryFilter>('all')
   const [selectedItem, setSelectedItem] = useState<InventoryItemInstance | null>(null)
   const [pendingSweep, setPendingSweep] = useState<InventoryItemInstance[] | null>(null)
-  const [sweptCount, setSweptCount] = useState<number | null>(null)
+  const [sweeping, setSweeping] = useState(false)
+  const [sweepRarity, setSweepRarityState] = useState<SalvageSweepRarity>(readSalvageSweepRarity)
+  const [favoritingItemInstanceId, setFavoritingItemInstanceId] = useState<string | null>(null)
   /*
    * A phone shows one of the two panels at a time.
    *
@@ -114,13 +124,22 @@ export function InventoryScreen({
   const stackedPanels = useStackedPanels()
   const [openPanel, setOpenPanel] = useState<'bag' | 'rail' | 'bench'>('bag')
 
+  const setSweepRarity = (rarity: SalvageSweepRarity): void => {
+    setSweepRarityState(rarity)
+    persistSalvageSweepRarity(rarity)
+  }
+
   /** Re-reads the shelves, and drops a selection whose item is no longer on them. */
   const refresh = useCallback(async (): Promise<void> => {
     if (!inventoryService) {
       return
     }
-    const loaded = await inventoryService.loadInventory()
+    const [loaded, favorites] = await Promise.all([
+      inventoryService.loadInventory(),
+      inventoryService.loadFavoriteDefinitionIds(),
+    ])
     setItems(loaded)
+    setFavoriteDefinitionIds(new Set(favorites))
     setSelectedItem((current) => current === null
       ? null
       : loaded.find((item) => item.itemInstanceId === current.itemInstanceId) ?? null)
@@ -140,10 +159,14 @@ export function InventoryScreen({
       return
     }
     let cancelled = false
-    void inventoryService.loadInventory()
-      .then((loadedItems) => {
+    void Promise.all([
+      inventoryService.loadInventory(),
+      inventoryService.loadFavoriteDefinitionIds(),
+    ])
+      .then(([loadedItems, favorites]) => {
         if (!cancelled) {
           setItems(loadedItems)
+          setFavoriteDefinitionIds(new Set(favorites))
           setLoadState('ready')
           setError(null)
         }
@@ -177,9 +200,13 @@ export function InventoryScreen({
   // number has to answer the question the filter just asked.
   const visibleEssence = getInventoryEssenceTotal(visibleItems, getItemEssence)
 
-  const commonSalvage = selectCommonSalvage(items)
-  const commonSalvageEssence = getInventoryEssenceTotal(commonSalvage, getItemEssence)
-  const busy = salvagingItemInstanceId !== null || sweptCount !== null
+  const isItemFavorite = (item: InventoryItemInstance): boolean =>
+    isInventoryItemFavorite(item, favoriteDefinitionIds)
+  const sweep = selectSalvageSweep(items, sweepRarity, favoriteDefinitionIds)
+  const sweepEssence = getInventoryEssenceTotal(sweep.targets, getItemEssence)
+  const sweepRarityLabel = RARITY_VISUALS[sweepRarity].label
+  const hasSalvageableItems = items.some(isSalvageableItem)
+  const busy = salvagingItemInstanceId !== null || sweeping || favoritingItemInstanceId !== null
 
   const salvageItem = async (target: InventoryItemInstance): Promise<void> => {
     if (!inventoryService || busy) {
@@ -209,54 +236,43 @@ export function InventoryScreen({
   }
 
   /**
-   * Clears the common catch and gear in one action.
+   * Clears the catch and gear up to the chosen rarity in one action.
    *
    * Salvaging cost a hover, two clicks and a confirmation per item, against a
-   * bag that fills a page a session with fish worth two Essence apiece. The
-   * requests go one at a time because the service salvages one instance at a
-   * time; a failure part-way through keeps what it earned and says how far it
-   * got rather than pretending the whole sweep failed.
+   * bag that fills a page a session. One request carries the whole list: the
+   * server salvages it in a single transaction, keeps back anything starred or
+   * already gone, and says how many it kept.
    */
-  const sweepCommonSalvage = async (targets: readonly InventoryItemInstance[]): Promise<void> => {
-    if (!inventoryService || busy) {
+  const sweepSalvage = async (targets: readonly InventoryItemInstance[]): Promise<void> => {
+    if (!inventoryService || busy || targets.length === 0) {
       return
     }
-    setSweptCount(0)
+    setSweeping(true)
     setError(null)
-    let essenceAwarded = 0
-    let salvaged = 0
-    let failure: string | null = null
-    for (const item of targets) {
-      try {
-        const result = await inventoryService.salvageItem(
-          crypto.randomUUID(),
-          item.itemInstanceId,
-          item.quantity,
-        )
-        essenceAwarded += result.essenceAwarded
-        salvaged += 1
-        setSweptCount(salvaged)
-      } catch (sweepError: unknown) {
-        failure = sweepError instanceof Error ? sweepError.message : 'Unable to salvage item.'
-        break
-      }
-    }
-    if (salvaged > 0) {
-      showLootToast({
-        title: 'Common items salvaged',
-        itemName: `${salvaged} common item${salvaged === 1 ? '' : 's'}`,
-        icon: '✨',
-        reward: `+${essenceAwarded} Essence`,
-      })
-    }
-    if (failure !== null) {
-      setError(
-        salvaged === 0
-          ? failure
-          : `Salvaged ${salvaged} of ${targets.length} before stopping: ${failure}`,
+    try {
+      const result = await inventoryService.salvageItems(
+        crypto.randomUUID(),
+        targets.map((item) => item.itemInstanceId),
       )
+      if (result.itemsSalvaged > 0) {
+        showLootToast({
+          title: 'Items salvaged',
+          itemName: `${result.itemsSalvaged} item${result.itemsSalvaged === 1 ? '' : 's'}`,
+          icon: '✨',
+          reward: formatInventorySalvageReward(result),
+        })
+      }
+      if (result.itemsSkipped > 0) {
+        showToast(
+          `${result.itemsSkipped} item${result.itemsSkipped === 1 ? ' was' : 's were'} kept: ` +
+          'favorited, or no longer on the shelf.',
+        )
+      }
+    } catch (sweepError: unknown) {
+      setError(sweepError instanceof Error ? sweepError.message : 'Unable to salvage items.')
+    } finally {
+      setSweeping(false)
     }
-    setSweptCount(null)
     try {
       await refresh()
     } catch (refreshError: unknown) {
@@ -267,11 +283,40 @@ export function InventoryScreen({
     }
   }
 
+  /**
+   * Stars or unstars the picked item.
+   *
+   * A stackable item is starred by definition, so the star covers the rows
+   * that arrive after it; anything else is starred as the one row it is.
+   */
+  const toggleFavorite = async (target: InventoryItemInstance): Promise<void> => {
+    if (!inventoryService || busy) {
+      return
+    }
+    const favorite = !isItemFavorite(target)
+    setFavoritingItemInstanceId(target.itemInstanceId)
+    setError(null)
+    try {
+      if (getInventoryFavoriteScope(target) === 'definition') {
+        await inventoryService.setDefinitionFavorite(target.definitionId, favorite)
+      } else {
+        await inventoryService.setItemFavorite(target.itemInstanceId, favorite)
+      }
+      await refresh()
+    } catch (favoriteError: unknown) {
+      setError(favoriteError instanceof Error ? favoriteError.message : 'Unable to update the favorite.')
+    } finally {
+      setFavoritingItemInstanceId(null)
+    }
+  }
+
   const selectedRarity = selectedItem === null ? null : getInventoryItemRarity(selectedItem)
   const selectedIsSalvageable = selectedItem !== null && isSalvageableItem(selectedItem)
   const selectedArtifact = selectedItem === null
     ? null
     : readArtifactMetadata(selectedItem.definitionId, selectedItem.metadata)
+  const selectedIsFavorite = selectedItem !== null && isItemFavorite(selectedItem)
+  const selectedFavoriteScope = selectedItem === null ? null : getInventoryFavoriteScope(selectedItem)
   const selectedEssence = selectedItem === null ? null : getItemEssence(selectedItem)
 
   return (
@@ -381,17 +426,42 @@ export function InventoryScreen({
                         </button>
                       ))}
                     </div>
-                    {commonSalvage.length > 0 ? (
-                      <button
-                        className="inventory-sweep-action"
-                        type="button"
-                        disabled={busy}
-                        onClick={() => { setPendingSweep(commonSalvage) }}
-                      >
-                        {sweptCount === null
-                          ? `Salvage ${commonSalvage.length} common`
-                          : `Salvaging ${sweptCount} of ${commonSalvage.length}…`}
-                      </button>
+                    {hasSalvageableItems ? (
+                      <div className="inventory-sweep" role="group" aria-label="Salvage sweep">
+                        <div
+                          className="inventory-sweep-rarities"
+                          role="group"
+                          aria-label="Sweep items up to rarity"
+                        >
+                          <span className="inventory-sweep-label">Up to</span>
+                          {SALVAGE_SWEEP_RARITIES.map((rarity) => (
+                            <button
+                              className="inventory-filter-chip inventory-sweep-rarity"
+                              type="button"
+                              key={rarity}
+                              data-rarity={rarity}
+                              aria-pressed={rarity === sweepRarity}
+                              disabled={busy}
+                              onClick={() => { setSweepRarity(rarity) }}
+                            >
+                              {RARITY_VISUALS[rarity].label}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          className="inventory-sweep-action"
+                          type="button"
+                          aria-busy={sweeping}
+                          disabled={busy || sweep.targets.length === 0}
+                          onClick={() => { setPendingSweep(sweep.targets) }}
+                        >
+                          {sweeping
+                            ? `Salvaging ${sweep.targets.length}…`
+                            : sweep.targets.length === 0
+                              ? 'Nothing to sweep'
+                              : `Salvage ${sweep.targets.length}`}
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                   <PaginatedInventoryGrid
@@ -408,6 +478,7 @@ export function InventoryScreen({
                       }
                     }}
                     salvagingItemInstanceId={salvagingItemInstanceId}
+                    isItemFavorite={isItemFavorite}
                   />
                 </>
               )}
@@ -428,11 +499,16 @@ export function InventoryScreen({
                       <p className="screen-kicker">Selected</p>
                       <h3 id="inventory-inspector-title">{getInventoryItemName(selectedItem)}</h3>
                     </div>
-                    {selectedRarity === null ? null : (
-                      <span className="inventory-rarity-mark" data-rarity={selectedRarity}>
-                        {RARITY_VISUALS[selectedRarity].label}
-                      </span>
-                    )}
+                    <span className="inventory-inspector-marks">
+                      {selectedIsFavorite ? (
+                        <span className="inventory-favorite-mark">★ Favorite</span>
+                      ) : null}
+                      {selectedRarity === null ? null : (
+                        <span className="inventory-rarity-mark" data-rarity={selectedRarity}>
+                          {RARITY_VISUALS[selectedRarity].label}
+                        </span>
+                      )}
+                    </span>
                   </header>
                   <div className="inventory-inspector-body">
                     <span
@@ -474,18 +550,39 @@ export function InventoryScreen({
                         </div>
                       </dl>
                     </div>
-                    {selectedIsSalvageable ? (
+                    <div className="inventory-inspector-actions">
+                      {/* A star keeps the item out of every sweep. It does not
+                          lock the item: salvaging it from here is a decision
+                          about this one item, which is what the star was
+                          reserving the item for. */}
                       <button
-                        className="primary-action inventory-inspector-salvage"
+                        className="inventory-inspector-favorite"
                         type="button"
+                        aria-pressed={selectedIsFavorite}
                         disabled={busy}
-                        onClick={() => { setPendingSalvage(selectedItem) }}
+                        title={selectedFavoriteScope === 'definition'
+                          ? `Keeps every ${getInventoryItemName(selectedItem)} out of salvage sweeps`
+                          : 'Keeps this item out of salvage sweeps'}
+                        onClick={() => { void toggleFavorite(selectedItem) }}
                       >
-                        {salvagingItemInstanceId === selectedItem.itemInstanceId
-                          ? 'Salvaging…'
-                          : 'Salvage'}
+                        <span aria-hidden="true">{selectedIsFavorite ? '★' : '☆'}</span>
+                        {favoritingItemInstanceId === selectedItem.itemInstanceId
+                          ? 'Saving…'
+                          : selectedIsFavorite ? 'Favorited' : 'Favorite'}
                       </button>
-                    ) : null}
+                      {selectedIsSalvageable ? (
+                        <button
+                          className="primary-action inventory-inspector-salvage"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => { setPendingSalvage(selectedItem) }}
+                        >
+                          {salvagingItemInstanceId === selectedItem.itemInstanceId
+                            ? 'Salvaging…'
+                            : 'Salvage'}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                   {selectedArtifact ? (
                     <div className="inventory-inspector-artifact">
@@ -578,17 +675,24 @@ export function InventoryScreen({
       ) : null}
       {pendingSweep ? (
         <ConfirmationDialog
-          title="Salvage every common item?"
+          title={sweepRarity === 'common'
+            ? 'Salvage every common item?'
+            : `Salvage every item up to ${sweepRarityLabel}?`}
           message={
-            `${pendingSweep.length} common item${pendingSweep.length === 1 ? '' : 's'} ` +
-            `will be salvaged for about ${commonSalvageEssence} Essence. Nothing rarer is touched.`
+            `${pendingSweep.length} item${pendingSweep.length === 1 ? '' : 's'} ` +
+            `${sweepRarityLabel.toLowerCase()} or below will be salvaged for about ` +
+            `${sweepEssence} Essence. ` +
+            (sweep.favoritesKept > 0
+              ? `${sweep.favoritesKept} favorite${sweep.favoritesKept === 1 ? ' is' : 's are'} kept. `
+              : '') +
+            'Nothing rarer is touched.'
           }
           confirmLabel={`Salvage ${pendingSweep.length} item${pendingSweep.length === 1 ? '' : 's'}`}
           onCancel={() => setPendingSweep(null)}
           onConfirm={() => {
             const targets = pendingSweep
             setPendingSweep(null)
-            void sweepCommonSalvage(targets)
+            void sweepSalvage(targets)
           }}
         />
       ) : null}

@@ -10,6 +10,7 @@ function item(definitionId: string, itemInstanceId: string): InventoryItemInstan
     definitionId,
     quantity: 1,
     bound: false,
+    favorite: false,
     metadata: {},
     source: { type: 'fishing', id: null },
     createdAt: '2026-09-09T00:00:00.000Z',
@@ -76,6 +77,27 @@ describe('PaginatedInventoryGrid selection', () => {
 
     expect(onSelect).toHaveBeenLastCalledWith(null)
     expect(worm).not.toHaveAttribute('data-selected')
+  })
+})
+
+describe('PaginatedInventoryGrid favorites', () => {
+  it('wears a star on a favorited slot and says so to a reader', () => {
+    const { slotFor } = renderGrid({
+      items: [{ ...item('river-worm', 'worm-1'), favorite: true }, item('glow-grub', 'grub-1')],
+    })
+
+    expect(slotFor('River Worm')).toHaveAttribute('data-favorite', 'true')
+    expect(slotFor('River Worm')).toHaveAccessibleName(/favorite$/)
+    expect(slotFor('Glow Grub')).not.toHaveAttribute('data-favorite')
+  })
+
+  it('lets the screen decide what counts as a favorite', () => {
+    const { slotFor } = renderGrid({
+      isItemFavorite: (entry) => entry.definitionId === 'glow-grub',
+    })
+
+    expect(slotFor('Glow Grub')).toHaveAttribute('data-favorite', 'true')
+    expect(slotFor('River Worm')).not.toHaveAttribute('data-favorite')
   })
 })
 
