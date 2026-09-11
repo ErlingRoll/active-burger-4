@@ -12,6 +12,8 @@ import {
 import { rollGearModifiersForItem } from '../content/gear/ModifierPools'
 import { RARITIES, RARITY_ORDER, Rarity } from '../content/rarity/Rarity'
 import { SKILL_DEFINITIONS, type SkillId } from '../content/skills/Skills'
+import { INITIAL_UPGRADES } from '../content/upgrades/Upgrades'
+import type { UpgradeId } from '../content/upgrades/UpgradeTypes'
 import {
   BEHAVIOR_PROFILE_ORDER,
   type BehaviorProfileId,
@@ -34,10 +36,15 @@ import {
  * would accept from a real run.
  *
  * Every roll goes through the caller's RandomSource, so a seed reproduces a
- * build and the tests can pin one down. Upgrades are left empty: they
- * reference skills and evolutions in combinations the run's choice flow
- * enforces, and inventing them here is the one way to make a build the game
- * would refuse.
+ * build and the tests can pin one down.
+ *
+ * The upgrades are the ones a run would have taken to arrive at the rolled
+ * skills, and nothing else: an unlock for every skill beyond the class's
+ * starting pair, and one level card per rank above the first. A run records
+ * its skills and its upgrades together, so a build that carried the skills
+ * without the upgrades that grant them was a shape no run produces. Evolutions
+ * and synergies stay out; they combine under rules the run's choice flow
+ * enforces, and nothing here depends on them.
  */
 
 export interface DevelopmentChampionOptions {
@@ -142,19 +149,44 @@ function rollEquipment(
   return equipment
 }
 
+/** The catalog's unlock card for a skill, if it has one. */
+function findSkillUpgradeId(skillId: SkillId, action: 'unlock' | 'level'): UpgradeId | undefined {
+  return INITIAL_UPGRADES.find(
+    (upgrade) => upgrade.skillId === skillId && upgrade.skillAction === action,
+  )?.id
+}
+
+/**
+ * Skills a run could have unlocked: those with an unlock card. A skill with
+ * no card cannot be acquired mid-run, so a build carrying it as an extra
+ * would be one no run produces.
+ */
+function getUnlockableSkillIds(): SkillId[] {
+  return (Object.keys(SKILL_DEFINITIONS) as SkillId[]).filter(
+    (skillId) => findSkillUpgradeId(skillId, 'unlock') !== undefined,
+  )
+}
+
+interface RolledSkills {
+  skills: CharacterBuildSkill[]
+  /** The unlock and level cards that produce `skills` from the class's starting ones. */
+  selectedUpgradeIds: UpgradeId[]
+}
+
 function rollSkills(
   classId: CharacterClassId,
   level: number,
   extraSkillCount: number,
   rng: RandomSource,
-): CharacterBuildSkill[] {
+): RolledSkills {
   // Skill levels grow with the character, one rank per six levels, to five.
   const skillLevelCap = clamp(Math.ceil(level / 6), 1, 5)
-  const skills: CharacterBuildSkill[] = CHARACTER_CLASS_DEFINITIONS[classId].startingSkillIds.map(
+  const startingSkillIds = CHARACTER_CLASS_DEFINITIONS[classId].startingSkillIds
+  const skills: CharacterBuildSkill[] = startingSkillIds.map(
     (skillId) => ({ skillId, level: rng.int(1, skillLevelCap) }),
   )
   const taken = new Set<string>(skills.map((skill) => skill.skillId))
-  const pool = (Object.keys(SKILL_DEFINITIONS) as SkillId[]).filter((skillId) => !taken.has(skillId))
+  const pool = getUnlockableSkillIds().filter((skillId) => !taken.has(skillId))
   const extra = clamp(Math.floor(extraSkillCount), 0, pool.length)
   for (let index = 0; index < extra; index += 1) {
     const [skillId] = pool.splice(rng.int(0, pool.length - 1), 1)
@@ -162,7 +194,30 @@ function rollSkills(
       skills.push({ skillId, level: rng.int(1, skillLevelCap) })
     }
   }
-  return skills
+
+  /*
+   * A skill's level is one plus its level cards, so a skill with no level
+   * card stays at rank one however far the character has come.
+   */
+  const selectedUpgradeIds: UpgradeId[] = []
+  for (const skill of skills) {
+    if (!startingSkillIds.includes(skill.skillId)) {
+      const unlockId = findSkillUpgradeId(skill.skillId, 'unlock')
+      if (unlockId === undefined) {
+        throw new Error(`Rolled a skill with no unlock card: ${skill.skillId}`)
+      }
+      selectedUpgradeIds.push(unlockId)
+    }
+    const levelId = findSkillUpgradeId(skill.skillId, 'level')
+    if (levelId === undefined) {
+      skill.level = 1
+      continue
+    }
+    for (let rank = 1; rank < skill.level; rank += 1) {
+      selectedUpgradeIds.push(levelId)
+    }
+  }
+  return { skills, selectedUpgradeIds }
 }
 
 export function generateDevelopmentChampionBuild(
@@ -175,12 +230,13 @@ export function generateDevelopmentChampionBuild(
     DEVELOPMENT_CHAMPION_LEVEL_RANGE.min,
     DEVELOPMENT_CHAMPION_LEVEL_RANGE.max,
   )
+  const { skills, selectedUpgradeIds } = rollSkills(classId, level, options.extraSkillCount, rng)
   const build: CharacterBuildSnapshot = {
     schemaVersion: CHARACTER_SCHEMA_VERSION,
     level,
     classId,
-    skills: rollSkills(classId, level, options.extraSkillCount, rng),
-    selectedUpgradeIds: [],
+    skills,
+    selectedUpgradeIds,
     equipment: rollEquipment(classId, options, rng),
     behaviorProfileId: options.behaviorProfileId === 'random'
       ? rng.pick(BEHAVIOR_PROFILE_ORDER)

@@ -644,14 +644,58 @@ export class Game {
       player.behaviorController.targetPriorityId =
         build.targetPriorityId ?? DEFAULT_TARGET_PRIORITY_ID
     }
+    /*
+     * The saved skills are the Champion's skills, whatever produced them.
+     *
+     * The upgrades are replayed for what they did to the Champion's stats and
+     * flags; the skill list they leave behind is not trusted to match the one
+     * that was saved, and it did not have to. A Knight that released Whirlwind
+     * on floor three still starts here with it, because the replay begins
+     * from the class's starting skills and the release is not recorded. A
+     * Champion won with more skill slots than this run was configured with
+     * would lose its last unlocks to the slot cap. A Champion the development
+     * tools rolled has skills and no upgrades at all. Every one of those was
+     * a Champion refused at the door of the mode built to carry it.
+     *
+     * So the slot count is raised to hold the saved skills, the upgrades are
+     * replayed, and the saved list is then written over whatever the replay
+     * produced. The snapshot validator has already checked every skill id
+     * and level against the current content.
+     */
+    player.skillSlotCount = Math.max(
+      getConfiguredSkillSlotCount(player),
+      build.skills.length,
+    )
     for (const upgradeId of build.selectedUpgradeIds) {
       applyUpgrade(this.gameState, upgradeId)
     }
-    const expectedSkills = build.skills.map((skill) => `${skill.skillId}:${skill.level}`)
-    const actualSkills = player.skills.map((skill) => `${skill.skillId}:${skill.level}`)
-    if (expectedSkills.join('|') !== actualSkills.join('|')) {
-      throw new Error('Champion skills are incompatible with the current content definitions.')
+    player.skills = build.skills.map((skill) => ({
+      skillId: skill.skillId,
+      level: skill.level,
+      cooldownRemaining: 0,
+      resonanceAttackCount: 0,
+    }))
+    /*
+     * Critical Spellstrike picks its target when it is unlocked. A saved list
+     * that carries it without the unlock, or whose target was released, has
+     * to pick again the same way the unlock would have.
+     */
+    const ownsCriticalSpellstrike = player.skills.some(
+      (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+    )
+    const currentTarget = player.criticalSpellstrikeTargetSkillId
+    if (
+      ownsCriticalSpellstrike &&
+      (currentTarget === undefined ||
+        !player.skills.some((skill) => skill.skillId === currentTarget))
+    ) {
+      player.criticalSpellstrikeTargetSkillId = player.skills.find(
+        (skill) => getSkillDefinition(skill.skillId).tags.includes('triggerable'),
+      )?.skillId
+    } else if (!ownsCriticalSpellstrike) {
+      player.criticalSpellstrikeTargetSkillId = undefined
     }
+    refreshPlayerDerivedStats(player)
     this.gameState.run.selectedUpgradeIds = [...build.selectedUpgradeIds]
   }
 

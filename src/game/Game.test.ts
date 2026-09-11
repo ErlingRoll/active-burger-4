@@ -24,7 +24,9 @@ import {
   updatePickups,
 } from './systems/experience/ExperienceSystem'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
-import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
+import { getUpgradeDefinition, REMOVE_SKILL_UPGRADE_ID } from '../content/upgrades/Upgrades'
+import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
+import { createCharacterBuildSnapshot } from './checkpoint/GameCheckpoint'
 import { removeDeadEntities } from './systems/combat/CombatSystem'
 import { collectSkillDamage } from './systems/skills/SkillSystem'
 import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/DerivedStats'
@@ -82,6 +84,69 @@ describe('Game', () => {
     expect(abyss.state.player.characterClassId).toBe('knight')
     expect(abyss.state.run.floor).toBe(1)
     expect(abyssEnemy?.maxHp).toBeCloseTo((normalEnemy?.maxHp ?? 0) * 10)
+  })
+
+  it('starts an Abyss run with exactly the saved skills when a Champion released a starting skill', () => {
+    const source = createGame({ seed: 21, characterClassId: 'knight' })
+    const releasedSkillId = CHARACTER_CLASS_DEFINITIONS.knight.startingSkillIds
+      .find((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
+    assertDefined(releasedSkillId)
+    applyUpgrade(source.state, 'vitality-unlock')
+    applyUpgrade(source.state, 'vitality-level')
+    applyUpgrade(source.state, REMOVE_SKILL_UPGRADE_ID, releasedSkillId)
+    const champion = createCharacterBuildSnapshot(source.createCheckpoint())
+    expect(champion.skills.map((skill) => skill.skillId)).not.toContain(releasedSkillId)
+
+    const abyss = createGame({ seed: 21, modeId: 'infinite-abyss', champion })
+
+    expect(abyss.state.player.skills.map(({ skillId, level }) => ({ skillId, level })))
+      .toEqual(champion.skills)
+    expect(abyss.state.run.selectedUpgradeIds).toEqual(champion.selectedUpgradeIds)
+  })
+
+  it('keeps every saved skill when the Champion was won with more skill slots than the Abyss run has', () => {
+    const source = createGame({ seed: 22, characterClassId: 'knight', skillSlotCount: 6 })
+    for (const upgradeId of [
+      'vitality-unlock',
+      'fiery-touch-unlock',
+      'gravity-well-unlock',
+      'aegis-pulse-unlock',
+      'whirlwind-level',
+      'whirlwind-level',
+    ] as const) {
+      applyUpgrade(source.state, upgradeId)
+    }
+    const champion = createCharacterBuildSnapshot(source.createCheckpoint())
+    expect(champion.skills).toHaveLength(6)
+
+    const abyss = createGame({ seed: 22, modeId: 'infinite-abyss', champion, skillSlotCount: 3 })
+
+    expect(abyss.state.player.skills.map(({ skillId, level }) => ({ skillId, level })))
+      .toEqual(champion.skills)
+    expect(abyss.state.player.skillSlotCount).toBeGreaterThanOrEqual(6)
+  })
+
+  it('accepts a Champion whose skills were saved without the upgrades that grant them', () => {
+    const champion = {
+      schemaVersion: 1 as const,
+      level: 20,
+      classId: 'knight' as const,
+      skills: [
+        { skillId: BASIC_ATTACK_SKILL_ID, level: 3 },
+        { skillId: 'whirlwind' as const, level: 2 },
+        { skillId: 'critical-spellstrike' as const, level: 1 },
+        { skillId: 'vitality' as const, level: 4 },
+      ],
+      selectedUpgradeIds: [],
+      equipment: {},
+      behaviorProfileId: 'balanced' as const,
+    }
+
+    const abyss = createGame({ seed: 23, modeId: 'infinite-abyss', champion })
+
+    expect(abyss.state.player.skills.map(({ skillId, level }) => ({ skillId, level })))
+      .toEqual(champion.skills)
+    expect(abyss.state.player.criticalSpellstrikeTargetSkillId).toBeDefined()
   })
 
   it('applies resolved fish meal effects to the deterministic player state', () => {
