@@ -1,5 +1,6 @@
 export { DEFAULT_RUN_MODE_ID, isRunModeId } from '../shared/RunModes'
 export type { RunModeId } from '../shared/RunModes'
+import { isArtifactMetadata, type ArtifactMetadata } from '../content/artifacts/Artifacts'
 
 export const RUN_PREPARATION_SCHEMA_VERSION = 1 as const
 
@@ -10,9 +11,50 @@ export interface RunPreparationItemSnapshot {
   resolvedEffect?: Record<string, unknown>
 }
 
+/**
+ * An artifact taken into a run.
+ *
+ * The client sends the instance id and nothing else that matters; the server
+ * copies the artifact's rolled metadata in from the owned instance, and it is
+ * that copy, never the bag's, that the simulation reads. Absent on the way up,
+ * present on the way back.
+ */
+export interface RunPreparationArtifactSnapshot {
+  itemInstanceId: string
+  definitionId: string
+  quantity: number
+  artifact?: ArtifactMetadata
+}
+
 export interface RunPreparationSnapshot {
   version: typeof RUN_PREPARATION_SCHEMA_VERSION
   items: readonly RunPreparationItemSnapshot[]
+  /** Omitted by runs prepared before artifacts existed. */
+  artifacts?: readonly RunPreparationArtifactSnapshot[]
+}
+
+export function isRunPreparationArtifactSnapshot(
+  value: unknown,
+): value is RunPreparationArtifactSnapshot {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+  const record = value as Record<string, unknown>
+  return typeof record.itemInstanceId === 'string' &&
+    record.itemInstanceId.length > 0 &&
+    typeof record.definitionId === 'string' &&
+    record.definitionId.length > 0 &&
+    typeof record.quantity === 'number' &&
+    Number.isInteger(record.quantity) &&
+    record.quantity >= 1 &&
+    (record.artifact === undefined || isArtifactMetadata(record.artifact))
+}
+
+/** The artifacts a run was played with, only those the server resolved. */
+export function getPreparationArtifacts(
+  preparation: RunPreparationSnapshot | undefined,
+): ArtifactMetadata[] {
+  return (preparation?.artifacts ?? []).flatMap((entry) => entry.artifact ? [entry.artifact] : [])
 }
 
 export interface RunPreparationEffects {
@@ -44,6 +86,11 @@ export function isRunPreparationSnapshot(
   }
   const record = value as Record<string, unknown>
   if (record.version !== RUN_PREPARATION_SCHEMA_VERSION || !Array.isArray(record.items)) {
+    return false
+  }
+  if (record.artifacts !== undefined &&
+    (!Array.isArray(record.artifacts) ||
+      !record.artifacts.every(isRunPreparationArtifactSnapshot))) {
     return false
   }
   return record.items.every((item) => {

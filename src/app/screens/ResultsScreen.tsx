@@ -137,7 +137,9 @@ export function ResultsScreen({
             <p>
               This completed build is saved automatically as <strong>{DEFAULT_CHAMPION_NAME}</strong>
               for a future Infinite Abyss attempt.
-              Runtime HP, cooldowns, and positions are not copied.
+              Runtime HP, cooldowns, and positions are not copied. Any artifacts the run
+              was played with go with the Champion, and return to the bag only when it is
+              archived.
             </p>
             {championSaveError || championConfigurationError ? (
               <p className="persistence-error" role="alert">

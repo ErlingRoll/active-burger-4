@@ -13,6 +13,10 @@ import {
 import { isSkillId, type SkillId } from '../../content/skills/Skills'
 import type { UpgradeId } from '../../content/upgrades/UpgradeTypes'
 import type { EquipmentLoadout } from '../equipment/EquipmentTypes'
+import {
+  isRunPreparationArtifactSnapshot,
+  type RunPreparationArtifactSnapshot,
+} from '../RunModes'
 
 /**
  * The immutable build a champion carries into a run.
@@ -42,6 +46,13 @@ export interface CharacterBuildSnapshot {
   behaviorProfileId: BehaviorProfileId
   /** Omitted by builds saved before target priorities existed. */
   targetPriorityId?: TargetPriorityId
+  /**
+   * The artifacts the winning run was played with, which the Champion now
+   * holds: they left the bag when it was made and come back when it is
+   * archived. An Abyss attempt reads its loadout from here. Omitted by
+   * Champions saved before artifacts existed.
+   */
+  artifacts?: readonly RunPreparationArtifactSnapshot[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -70,7 +81,10 @@ export function isCharacterBuildSnapshot(
      * level above. A hard requirement here would reject every Champion saved
      * before priorities existed.
      */
-    (value.targetPriorityId !== undefined && !isTargetPriorityId(value.targetPriorityId))) {
+    (value.targetPriorityId !== undefined && !isTargetPriorityId(value.targetPriorityId)) ||
+    (value.artifacts !== undefined &&
+      (!Array.isArray(value.artifacts) ||
+        !value.artifacts.every(isRunPreparationArtifactSnapshot)))) {
     return false
   }
   const seenSkills = new Set<string>()

@@ -21,6 +21,10 @@ import {
   sortGearModifiers,
 } from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { getArtifactBaseDefinition } from '../content/artifacts/Artifacts'
+import { getPreparationArtifacts } from '../game/RunModes'
+import { ArtifactEffectList } from '../inventory/ArtifactEffects'
+import { ArtifactIcon } from '../inventory/ArtifactIcon'
 import { getGearSetDefinition } from '../game-config/gear-sets'
 import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
@@ -345,6 +349,41 @@ export function ChampionDetails({
           ))}
         </ul>
       </section>
+      {(() => {
+        const artifacts = getPreparationArtifacts(champion.build.artifacts
+          ? { version: 1, items: [], artifacts: champion.build.artifacts }
+          : undefined)
+        return artifacts.length === 0 ? null : (
+          <section className="champion-build-section" aria-labelledby="champion-artifacts-title">
+            <header className="champion-build-section-heading">
+              <div>
+                <span>Held artifacts</span>
+                <h4 id="champion-artifacts-title">Artifacts</h4>
+              </div>
+              <small>Return to the bag when the Champion is archived</small>
+            </header>
+            <ul className="champion-artifact-list">
+              {artifacts.map((artifact, index) => {
+                const base = getArtifactBaseDefinition(artifact.baseId)
+                return (
+                  <li className="champion-artifact-card" key={`${artifact.baseId}-${index}`} data-rarity={artifact.rarity}>
+                    <header className="champion-artifact-heading">
+                      <span className="champion-artifact-icon" aria-hidden="true">
+                        {base ? <ArtifactIcon icon={base.id} color={base.accent} /> : '◇'}
+                      </span>
+                      <strong>{base?.name ?? artifact.baseId}</strong>
+                      <span className="champion-gear-rarity" data-rarity={artifact.rarity}>
+                        {RARITY_VISUALS[artifact.rarity].label}
+                      </span>
+                    </header>
+                    <ArtifactEffectList metadata={artifact} />
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )
+      })()}
       <footer className="champion-build-meta">
         <span><strong>Source run</strong>{champion.sourceRunId}</span>
         <span><strong>Content version</strong>{champion.contentVersion}</span>

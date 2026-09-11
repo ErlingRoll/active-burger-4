@@ -48,6 +48,16 @@ import {
   FishIcon,
 } from '../../fishing'
 import { getFishDefinition } from '../../fishing/FishingContent'
+import { getFishMealSlotCount, type FishMealOptions } from '../../fishing/FishMeals'
+import {
+  formatArtifactHeadline,
+  getArtifactBaseDefinition,
+  readArtifactMetadata,
+  type ArtifactMetadata,
+} from '../../content/artifacts/Artifacts'
+import { ArtifactEffectList } from '../../inventory/ArtifactEffects'
+import { ArtifactIcon } from '../../inventory/ArtifactIcon'
+import { getPreparationArtifacts } from '../../game/RunModes'
 import type { ChampionSnapshot } from '../../characters'
 // Imported from the owning module, not the barrel: the barrel no longer
 // re-exports screens so route chunks stay split.
@@ -81,6 +91,8 @@ export interface RunSetupScreenProps {
   /** Which Champions are working at the Camp; a working Champion cannot descend. */
   campService: CampService | null
   maximumDungeonFloor: number
+  /** How many artifacts a dungeon run may take from the bag. */
+  artifactSlotCount: number
   initialMode: RunModeId
   onStart: (options: StartRunOptions) => Promise<void>
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
@@ -99,6 +111,7 @@ export function RunSetupScreen({
   characterError,
   campService,
   maximumDungeonFloor,
+  artifactSlotCount,
   initialMode,
   onStart,
   onSelectCharacterClass,
@@ -115,6 +128,12 @@ export function RunSetupScreen({
   )
   const [selectedFishIds, setSelectedFishIds] = useState<(string | null)[]>([])
   const [activeMealSlotIndex, setActiveMealSlotIndex] = useState<number | null>(null)
+  const [artifactItems, setArtifactItems] = useState<InventoryItemInstance[]>([])
+  const [artifactLoadState, setArtifactLoadState] = useState<'loading' | 'ready' | 'error'>(
+    () => inventoryService ? 'loading' : 'error',
+  )
+  const [selectedArtifactIds, setSelectedArtifactIds] = useState<(string | null)[]>([])
+  const [activeArtifactSlotIndex, setActiveArtifactSlotIndex] = useState<number | null>(null)
   const [selectedMode] = useState<RunModeId>(initialMode)
   const [selectedDungeonMaxFloor, setSelectedDungeonMaxFloor] = useState(maximumDungeonFloor)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
@@ -152,6 +171,31 @@ export function RunSetupScreen({
       cancelled = true
     }
   }, [inventoryService])
+  /*
+   * The bag's artifacts, for a dungeon run to pick from. An Abyss attempt
+   * never reads them: the Champion brings its own.
+   */
+  useEffect(() => {
+    if (!inventoryService || selectedMode === 'infinite-abyss') {
+      return
+    }
+    let cancelled = false
+    void inventoryService.loadInventory('artifact')
+      .then((loadedItems) => {
+        if (!cancelled) {
+          setArtifactItems(loadedItems)
+          setArtifactLoadState('ready')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setArtifactLoadState('error')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [inventoryService, selectedMode])
   useEffect(() => {
     if (selectedMode !== 'infinite-abyss') {
       return
@@ -240,9 +284,49 @@ export function RunSetupScreen({
     () => fishItems.filter((fish) => getFishDefinition(fish.definitionId)?.effect.runMealEligible),
     [fishItems],
   )
-  const fishMeal = useMemo(() => resolveFishMeal(selectedFish), [selectedFish])
   const selectedChampion = champions.find((champion) =>
     champion.championId === selectedChampionId,
+  )
+  const readableArtifacts = useMemo(
+    () => artifactItems.flatMap((item) => {
+      const artifact = readArtifactMetadata(item.definitionId, item.metadata)
+      return artifact ? [{ item, artifact }] : []
+    }),
+    [artifactItems],
+  )
+  const selectedArtifactSlots = useMemo(
+    () => Array.from({ length: artifactSlotCount }, (_, index) =>
+      readableArtifacts.find((entry) => entry.item.itemInstanceId === selectedArtifactIds[index]) ?? null,
+    ),
+    [artifactSlotCount, readableArtifacts, selectedArtifactIds],
+  )
+  const selectedArtifacts = useMemo(
+    () => selectedArtifactSlots.filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+    [selectedArtifactSlots],
+  )
+  /*
+   * The artifacts this run will be played with: the bag's picks for a dungeon
+   * run, the Champion's own for the Abyss. The meal reads the Kettle off them.
+   */
+  const runArtifacts = useMemo<ArtifactMetadata[]>(
+    () => selectedMode === 'infinite-abyss'
+      ? getPreparationArtifacts(selectedChampion?.build.artifacts
+        ? { version: 1, items: [], artifacts: selectedChampion.build.artifacts }
+        : undefined)
+      : selectedArtifacts.map((entry) => entry.artifact),
+    [selectedArtifacts, selectedChampion, selectedMode],
+  )
+  const mealOptions = useMemo<FishMealOptions>(() => {
+    const kettles = runArtifacts.filter((artifact) => artifact.implicit.id === 'hearty-meal')
+    return {
+      extraSlot: kettles.length > 0,
+      bonusPercent: kettles.reduce((total, artifact) => total + artifact.implicit.value, 0),
+    }
+  }, [runArtifacts])
+  const mealSlotCount = getFishMealSlotCount(mealOptions)
+  const fishMeal = useMemo(
+    () => resolveFishMeal(selectedFish.slice(0, mealSlotCount), mealOptions),
+    [mealOptions, mealSlotCount, selectedFish],
   )
   const selectedChampionExhausted = selectedChampion
     ? isChampionExhausted(selectedChampion, currentTime)
@@ -320,7 +404,14 @@ export function RunSetupScreen({
                     preparation: fishMeal.preparation,
                   }
                 : {
-                    preparation: fishMeal.preparation,
+                    preparation: {
+                      ...fishMeal.preparation,
+                      artifacts: selectedArtifacts.map((entry) => ({
+                        itemInstanceId: entry.item.itemInstanceId,
+                        definitionId: entry.item.definitionId,
+                        quantity: 1,
+                      })),
+                    },
                     selectedDungeonMaxFloor,
                   })
             }}
@@ -624,13 +715,131 @@ export function RunSetupScreen({
              )}
            </section>
          ) : null}
+         {selectedMode === 'infinite-abyss' ? null : (
+         <section className="run-dashboard-meal run-dashboard-artifacts" aria-labelledby="artifact-loadout-title">
+           <div className="run-dashboard-section-heading">
+             <p className="screen-kicker">Artifacts</p>
+             <h3 id="artifact-loadout-title">
+               {artifactSlotCount === 1 ? 'Carry one artifact' : `Carry up to ${artifactSlotCount === 2 ? 'two' : 'three'} artifacts`}
+             </h3>
+           </div>
+           {artifactLoadState === 'loading' ? (
+             <p className="fish-meal-muted">Loading artifacts…</p>
+           ) : artifactLoadState === 'error' ? (
+             <p className="fish-meal-muted">Artifacts are unavailable. You can still start without one.</p>
+           ) : readableArtifacts.length === 0 ? (
+             <p className="fish-meal-muted">No artifacts in the bag. Rare and better loot boxes can hold them.</p>
+           ) : (
+             <>
+               <div className="fish-meal-slots artifact-loadout-slots" aria-label="Artifact slots">
+               {selectedArtifactSlots.map((entry, index) => {
+                 const base = entry ? getArtifactBaseDefinition(entry.artifact.baseId) : undefined
+                 return (
+                   <button
+                     className={`fish-meal-slot artifact-loadout-slot${entry ? ' filled' : ''}`}
+                     style={base ? { borderColor: base.accent } : undefined}
+                     type="button"
+                     aria-label={entry && base
+                       ? `Artifact slot ${index + 1}: ${base.name}`
+                       : `Artifact slot ${index + 1}: empty`}
+                     onClick={() => setActiveArtifactSlotIndex(index)}
+                     key={index}
+                   >
+                     <span className="fish-meal-slot-number">{index + 1}</span>
+                     {entry && base ? (
+                       <>
+                         <span className="fish-meal-slot-icon" aria-hidden="true">
+                           <ArtifactIcon icon={base.id} color={base.accent} />
+                         </span>
+                         <strong>{base.name}</strong>
+                         <small>{entry.artifact.rarity} · {formatArtifactHeadline(entry.artifact)}</small>
+                       </>
+                     ) : (
+                       <span className="fish-meal-slot-empty">Click to select</span>
+                     )}
+                   </button>
+                 )
+               })}
+               </div>
+               {activeArtifactSlotIndex !== null ? (
+               <div className="fish-meal-picker artifact-loadout-picker" aria-label="Artifacts in the bag">
+                 <strong>Select an artifact for slot {activeArtifactSlotIndex + 1}</strong>
+                 <div className="fish-meal-picker-list">
+                   {readableArtifacts
+                     .filter((entry) =>
+                       !selectedArtifactIds.filter((id): id is string => id !== null).includes(entry.item.itemInstanceId) ||
+                       selectedArtifactIds[activeArtifactSlotIndex] === entry.item.itemInstanceId,
+                     )
+                     .map((entry) => {
+                       const base = getArtifactBaseDefinition(entry.artifact.baseId)
+                       return (
+                         <button
+                           className="fish-meal-picker-item artifact-loadout-picker-item"
+                           style={base ? { borderColor: base.accent } : undefined}
+                           type="button"
+                           key={entry.item.itemInstanceId}
+                           onClick={() => {
+                             setSelectedArtifactIds((current) => {
+                               const next = Array.from({ length: artifactSlotCount }, (_, index) => current[index] ?? null)
+                               next[activeArtifactSlotIndex] = entry.item.itemInstanceId
+                               return next
+                             })
+                             setActiveArtifactSlotIndex(null)
+                           }}
+                         >
+                           <span className="fish-meal-picker-item-heading">
+                             <span className="fish-meal-picker-item-icon" aria-hidden="true">
+                               {base ? <ArtifactIcon icon={base.id} color={base.accent} /> : '◇'}
+                             </span>
+                             <span>{base?.name ?? entry.item.definitionId}</span>
+                             <span className="inventory-rarity-mark" data-rarity={entry.artifact.rarity}>
+                               {entry.artifact.rarity}
+                             </span>
+                           </span>
+                           <ArtifactEffectList metadata={entry.artifact} />
+                         </button>
+                       )
+                     })}
+                   <button
+                     className="fish-meal-picker-clear"
+                     type="button"
+                     onClick={() => {
+                       setSelectedArtifactIds((current) =>
+                         Array.from({ length: artifactSlotCount }, (_, index) =>
+                           index === activeArtifactSlotIndex ? null : current[index] ?? null,
+                         ),
+                       )
+                       setActiveArtifactSlotIndex(null)
+                     }}
+                   >
+                     Clear this slot
+                   </button>
+                   <button
+                     className="secondary-action"
+                     type="button"
+                     onClick={() => setActiveArtifactSlotIndex(null)}
+                   >
+                     Cancel
+                   </button>
+                 </div>
+               </div>
+               ) : null}
+             </>
+           )}
+           <p className="fish-meal-footnote">
+             Artifacts are held for the run. A victory locks them into the Champion it makes;
+             a defeat puts them back in the bag.
+           </p>
+         </section>
+         )}
          <section className="run-dashboard-meal" aria-labelledby="fish-meal-title">
            <div className="run-dashboard-section-heading">
              <p className="screen-kicker">Pre-run meal</p>
-             <h3 id="fish-meal-title">Choose up to five fish</h3>
+             <h3 id="fish-meal-title">Choose up to {mealSlotCount === 6 ? 'six' : 'five'} fish</h3>
            </div>
            <p className="fish-meal-summary">
-             {getFishMealEffectSummary(fishMeal.effects)} · {selectedFish.length}/{5} selected
+             {getFishMealEffectSummary(fishMeal.effects)} · {Math.min(selectedFish.length, mealSlotCount)}/{mealSlotCount} selected
+             {mealOptions.extraSlot ? ` · Kettle: +${mealOptions.bonusPercent}% and a sixth place` : ''}
            </p>
            {fishLoadState === 'loading' ? (
              <p className="fish-meal-muted">Loading fish inventory…</p>
@@ -642,8 +851,8 @@ export function RunSetupScreen({
              <p className="fish-meal-muted">No fish available. Visit Fishing to catch some.</p>
            ) : (
              <>
-               <div className="fish-meal-slots" aria-label="Five fish meal slots">
-               {Array.from({ length: 5 }, (_, index) => {
+               <div className="fish-meal-slots" aria-label="Fish meal slots" data-slot-count={mealSlotCount}>
+               {Array.from({ length: mealSlotCount }, (_, index) => {
                  const fish = selectedFishSlots[index]
                  const definition = fish ? getFishDefinition(fish.definitionId) : undefined
                  return (
@@ -701,7 +910,7 @@ export function RunSetupScreen({
                          key={fish.itemInstanceId}
                          onClick={() => {
                            setSelectedFishIds((current) => {
-                             const next = Array.from({ length: 5 }, (_, index) => current[index] ?? null)
+                             const next = Array.from({ length: mealSlotCount }, (_, index) => current[index] ?? null)
                              next[activeMealSlotIndex] = fish.itemInstanceId
                              return next
                            })
@@ -734,7 +943,7 @@ export function RunSetupScreen({
                      type="button"
                      onClick={() => {
                        setSelectedFishIds((current) =>
-                         Array.from({ length: 5 }, (_, index) =>
+                         Array.from({ length: mealSlotCount }, (_, index) =>
                            index === activeMealSlotIndex ? null : current[index] ?? null,
                          ),
                        )

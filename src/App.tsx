@@ -29,6 +29,7 @@ import {
 import {
   type MetaRunResultInput,
 } from './meta'
+import { DEFAULT_ARTIFACT_SLOT_COUNT } from './meta/MetaProgressionService'
 import {
   normalizeWorldModifierIds,
   type WorldModifierId,
@@ -1342,10 +1343,28 @@ function App() {
     showToast,
   ])
 
+  /*
+   * A victory keeps its hold on the artifacts it was played with until a
+   * Champion takes them. Leaving the results without one, whichever way,
+   * hands them back; the server also sweeps stale holds before the next
+   * run, so a lost request here costs nothing but a delay.
+   */
+  const releaseUnclaimedArtifacts = useCallback((): void => {
+    const service = dungeonRunPersistence.service
+    const submission = activeRunSubmission
+    if (!service || submission?.outcome !== 'victory' || championSaveState === 'saved') {
+      return
+    }
+    void service.releaseRunArtifacts(submission.runId).catch(() => {
+      // Swept up by the next run start.
+    })
+  }, [activeRunSubmission, championSaveState, dungeonRunPersistence.service])
+
   const returnToDashboard = useCallback((): void => {
+    releaseUnclaimedArtifacts()
     setResult(null)
     navigateToScreen('dashboard', true)
-  }, [navigateToScreen])
+  }, [navigateToScreen, releaseUnclaimedArtifacts])
 
   const openFishing = useCallback((): void => {
     navigateToScreen('fishing')
@@ -1857,6 +1876,7 @@ function App() {
             characterError={characters.configurationError}
             campService={camp.service}
             maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
+            artifactSlotCount={metaProgression.snapshot?.artifactSlotCount ?? DEFAULT_ARTIFACT_SLOT_COUNT}
             initialMode={runMode}
             onStart={startRun}
             onSelectCharacterClass={selectCharacterClass}
@@ -1973,6 +1993,7 @@ function App() {
             pendingChampionIdRef.current = null
             setChampionSaveState('discarded')
             setChampionSaveError(null)
+            releaseUnclaimedArtifacts()
           }}
           onReturn={returnToDashboard}
           onRetryTerminalSave={retryTerminalSave}

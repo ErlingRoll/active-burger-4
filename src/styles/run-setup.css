@@ -335,3 +335,48 @@
   border: 1px solid rgb(251 191 36 / 40%);
   border-radius: 0.5rem;
 }
+
+/* The Kettle sets a sixth place: the meal row widens rather than wraps. */
+.fish-meal-slots[data-slot-count='6'] {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+/* Artifact slots: never more than three, each wide enough for a name and a
+   headline, and they stack on a phone at the width the bases stop fitting. */
+.artifact-loadout-slots {
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+}
+
+.artifact-loadout-slot.filled {
+  color: var(--color-amber-50);
+  background:
+    linear-gradient(135deg, rgb(120 53 15 / 30%), transparent 75%),
+    #1c1917;
+}
+
+.artifact-loadout-slot small {
+  color: var(--color-amber-200);
+  text-transform: none;
+}
+
+.artifact-loadout-slot small::first-letter,
+.artifact-loadout-picker-item .inventory-rarity-mark {
+  text-transform: capitalize;
+}
+
+/* A picker entry carries the whole card, so it takes the width to read it. */
+.artifact-loadout-picker-item {
+  flex: 1 1 min(20rem, 100%);
+  max-width: 28rem;
+}
+
+.artifact-loadout-picker-item .inventory-rarity-mark {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.artifact-loadout-picker-item .artifact-effects {
+  margin-top: 0.15rem;
+}

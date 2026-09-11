@@ -12,6 +12,10 @@ import { DEFAULT_DUNGEON_MAX_FLOOR } from '../content/dungeons/Dungeons'
 import { DEFAULT_SKILL_SLOT_COUNT } from '../game-config/skills'
 
 export const SKILL_SLOT_UNLOCK_CATEGORY = 'skill-slot'
+export const ARTIFACT_SLOT_UNLOCK_CATEGORY = 'artifact-slot'
+/** Every account starts with one artifact slot; the store sells the other two. */
+export const DEFAULT_ARTIFACT_SLOT_COUNT = 1
+export const MAX_ARTIFACT_SLOT_COUNT = 3
 export const DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY = 'dungeon-max-floor'
 export const DUNGEON_MAX_FLOOR_BONUS_PER_RANK = 5
 export const DUNGEON_MAX_FLOOR_MAX_RANK = 4
@@ -47,6 +51,8 @@ export interface MetaProgressionSnapshot {
   startingLevelRank: number
   startingLevel: number
   skillSlotCount: number
+  /** How many artifacts a dungeon run may be prepared with. */
+  artifactSlotCount: number
   banishCount: number
   dungeonMaxFloorRank: number
   dungeonMaxFloorBonus: number
@@ -212,6 +218,29 @@ export function getSkillSlotCount(
   }, DEFAULT_SKILL_SLOT_COUNT)
 }
 
+/**
+ * Kept in step with `artifact_slot_count` in the loadouts migration, which
+ * is the check that cannot be walked around.
+ */
+export function getArtifactSlotCount(
+  definitions: readonly MetaUnlockDefinition[],
+  unlockedIds: readonly string[],
+): number {
+  const unlocked = new Set(unlockedIds)
+  return definitions.reduce((highestCount, definition) => {
+    if (
+      definition.category !== ARTIFACT_SLOT_UNLOCK_CATEGORY ||
+      !unlocked.has(definition.id)
+    ) {
+      return highestCount
+    }
+    const artifactSlotCount = definition.payload.artifactSlotCount
+    return typeof artifactSlotCount === 'number' && Number.isInteger(artifactSlotCount)
+      ? Math.min(MAX_ARTIFACT_SLOT_COUNT, Math.max(highestCount, artifactSlotCount))
+      : highestCount
+  }, DEFAULT_ARTIFACT_SLOT_COUNT)
+}
+
 export function getDungeonMaxFloorRank(
   definitions: readonly MetaUnlockDefinition[],
   unlockedIds: readonly string[],
@@ -308,6 +337,7 @@ function toSnapshot(
   const xpMultiplierLevel = getXpMultiplierLevel(definitions, unlockedIds)
   const startingLevelRank = getStartingLevelRank(definitions, unlockedIds)
   const skillSlotCount = getSkillSlotCount(definitions, unlockedIds)
+  const artifactSlotCount = getArtifactSlotCount(definitions, unlockedIds)
   const banishCount = getBanishCount(definitions, unlockedIds)
   const dungeonMaxFloorRank = getDungeonMaxFloorRank(definitions, unlockedIds)
   const dungeonMaxFloorBonus = getDungeonMaxFloorBonus(definitions, unlockedIds)
@@ -320,6 +350,7 @@ function toSnapshot(
     startingLevelRank,
     startingLevel: getStartingLevelForRank(startingLevelRank),
     skillSlotCount,
+    artifactSlotCount,
     banishCount,
     dungeonMaxFloorRank,
     dungeonMaxFloorBonus,
