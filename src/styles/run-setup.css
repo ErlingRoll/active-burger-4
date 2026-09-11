@@ -146,31 +146,6 @@
   box-shadow: none;
 }
 
-.run-abyss-revival-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.run-abyss-revival-action {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 12rem;
-  text-align: left;
-}
-
-.run-abyss-revival-action span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.run-abyss-revival-action small {
-  color: var(--color-amber-900);
-  font-size: 0.7rem;
-  text-transform: capitalize;
-}
-
 .fish-meal-slots {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

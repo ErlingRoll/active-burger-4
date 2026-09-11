@@ -6,7 +6,6 @@ import {
 } from '../game'
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from '../persistence'
 import type { BasicProfileDto } from '../persistence'
-import type { ChampionSnapshot } from '../characters'
 import {
   calculateWorldModifierRewardMultiplier,
   getWorldModifierDefinitions,
@@ -74,37 +73,11 @@ export function errorMessage(error: unknown): string {
   return 'Unable to access local persistence.'
 }
 
-export function isChampionExhausted(
-  champion: ChampionSnapshot,
-  now = Date.now(),
-): boolean {
-  return champion.exhaustionUntil !== null &&
-    Date.parse(champion.exhaustionUntil) > now
-}
-
-export function formatChampionExhaustion(
-  exhaustionUntil: string | null,
-  now = Date.now(),
-): string {
-  if (!exhaustionUntil) {
-    return 'Available'
-  }
-  const remainingMilliseconds = Date.parse(exhaustionUntil) - now
-  if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
-    return 'Available'
-  }
-  const remainingHours = Math.floor(remainingMilliseconds / 3_600_000)
-  const remainingMinutes = Math.ceil((remainingMilliseconds % 3_600_000) / 60_000)
-  return `${remainingHours}h ${remainingMinutes}m remaining`
-}
-
-export function formatRevivalReduction(seconds: number): string {
-  const hours = Math.floor(seconds / 3_600)
-  const minutes = Math.floor((seconds % 3_600) / 60)
-  return hours > 0
-    ? `${hours}h ${minutes}m`
-    : `${minutes}m`
-}
+export {
+  formatChampionExhaustion,
+  formatRevivalReduction,
+  isChampionExhausted,
+} from '../characters/ChampionExhaustion'
 
 export function parseGameCheckpoint(value: unknown): GameCheckpoint {
   if (!isValidCheckpoint(value)) {

@@ -26,6 +26,8 @@ import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { SkillIcon } from '../rendering/SkillIcon'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
+import { formatChampionAvailability, isChampionExhausted } from './ChampionExhaustion'
+import { ChampionRevivalControl, type RevivalFishLoadState } from './ChampionRevivalControl'
 
 interface ChampionManagementScreenProps {
   service: CharacterService | null
@@ -33,19 +35,6 @@ interface ChampionManagementScreenProps {
   inventoryError: string | null
   configurationError: string | null
   onBack: () => void
-}
-
-function formatExhaustion(exhaustionUntil: string | null, now: number): string {
-  if (!exhaustionUntil) {
-    return 'Available'
-  }
-  const remainingMilliseconds = Date.parse(exhaustionUntil) - now
-  if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
-    return 'Available'
-  }
-  const remainingHours = Math.floor(remainingMilliseconds / 3_600_000)
-  const remainingMinutes = Math.ceil((remainingMilliseconds % 3_600_000) / 60_000)
-  return `${remainingHours}h ${remainingMinutes}m remaining`
 }
 
 const EQUIPMENT_SLOT_LABELS: Record<EquipmentSlot, string> = {
@@ -252,8 +241,8 @@ export function ChampionDetails({
           <span>{classDefinition.name}</span>
         </div>
         <span className="champion-details-status">
-          <span className={`champion-availability${champion.exhaustionUntil ? ' exhausted' : ''}`}>
-            {formatExhaustion(champion.exhaustionUntil, now)}
+          <span className={`champion-availability${isChampionExhausted(champion, now) ? ' exhausted' : ''}`}>
+            {formatChampionAvailability(champion, now)}
           </span>
           {headerAction}
         </span>
@@ -328,9 +317,14 @@ export function ChampionManagementScreen({
   const [renameValue, setRenameValue] = useState<string | null>(null)
   const [actionState, setActionState] = useState<'idle' | 'saving' | 'deleting'>('idle')
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null)
-  const [revivalFish, setRevivalFish] = useState<InventoryItemInstance[]>([])
+  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>([])
+  const [fishLoadState, setFishLoadState] = useState<RevivalFishLoadState>(
+    () => inventoryService ? 'loading' : 'error',
+  )
+  const [fishLoadError, setFishLoadError] = useState<string | null>(inventoryError)
+  const [revivalError, setRevivalError] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
-  const now = useNow()
+  const now = useNow(30_000)
 
   useEffect(() => {
     if (!service) {
@@ -369,12 +363,15 @@ export function ChampionManagementScreen({
     void inventoryService.loadInventory('fish')
       .then((items) => {
         if (!cancelled) {
-          setRevivalFish(items.filter((item) => item.definitionId === 'revival-koi'))
+          setFishItems(items)
+          setFishLoadState('ready')
+          setFishLoadError(null)
         }
       })
       .catch((loadError: unknown) => {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load Revival Koi.')
+          setFishLoadState('error')
+          setFishLoadError(loadError instanceof Error ? loadError.message : 'Unable to load Revival Koi.')
         }
       })
     return () => {
@@ -428,13 +425,12 @@ export function ChampionManagementScreen({
     }
   }
 
-  const reviveChampion = async (): Promise<void> => {
-    const fish = revivalFish[0]
-    if (!service || !selectedChampion || !fish || recovering) {
+  const reviveChampion = async (fish: InventoryItemInstance): Promise<void> => {
+    if (!service || !selectedChampion || recovering) {
       return
     }
     setRecovering(true)
-    setError(null)
+    setRevivalError(null)
     try {
       const result = await service.reviveChampion(
         crypto.randomUUID(),
@@ -444,9 +440,14 @@ export function ChampionManagementScreen({
       setChampions((current) => current.map((champion) =>
         champion.championId === result.championId ? result : champion,
       ))
-      setRevivalFish((current) => current.filter((item) => item.itemInstanceId !== result.fishInstanceId))
+      setFishItems((current) => current.flatMap((item) => {
+        if (item.itemInstanceId !== result.fishInstanceId) {
+          return [item]
+        }
+        return item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []
+      }))
     } catch (recoveryError: unknown) {
-      setError(recoveryError instanceof Error ? recoveryError.message : 'Unable to use Revival Koi.')
+      setRevivalError(recoveryError instanceof Error ? recoveryError.message : 'Unable to use Revival Koi.')
     } finally {
       setRecovering(false)
     }
@@ -467,8 +468,7 @@ export function ChampionManagementScreen({
               </div>
               <div>
                 <dt>Ready</dt>
-                <dd>{champions.filter((champion) => !champion.exhaustionUntil ||
-                  Date.parse(champion.exhaustionUntil) <= now).length}</dd>
+                <dd>{champions.filter((champion) => !isChampionExhausted(champion, now)).length}</dd>
               </div>
             </dl>
           ) : null}
@@ -508,13 +508,27 @@ export function ChampionManagementScreen({
                 >
                   <strong>{champion.name}</strong>
                   <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                  <small>{formatExhaustion(champion.exhaustionUntil, now)}</small>
+                  <small>{formatChampionAvailability(champion, now)}</small>
                 </button>
               ))}
             </div>
             {selectedChampion ? (
               <div>
-                <ChampionDetails champion={selectedChampion} />
+                <ChampionDetails
+                  champion={selectedChampion}
+                  headerAction={isChampionExhausted(selectedChampion, now) ? (
+                    <ChampionRevivalControl
+                      key={selectedChampion.championId}
+                      championId={selectedChampion.championId}
+                      fish={fishItems}
+                      fishLoadState={fishLoadState}
+                      fishLoadError={fishLoadError}
+                      saving={recovering}
+                      error={revivalError}
+                      onRevive={(fish) => { void reviveChampion(fish) }}
+                    />
+                  ) : undefined}
+                />
                 <section className="champion-management-actions" aria-label="Champion actions">
                   <label htmlFor="champion-management-name">Champion name</label>
                   <input
@@ -540,31 +554,6 @@ export function ChampionManagementScreen({
                   >
                     Delete Champion
                   </button>
-                  {selectedChampion.exhaustionUntil &&
-                  Date.parse(selectedChampion.exhaustionUntil) > now ? (
-                    <div className="champion-revival-panel">
-                      <strong>Champion exhausted</strong>
-                      <span>{formatExhaustion(selectedChampion.exhaustionUntil, now)}</span>
-                      {revivalFish.length > 0 ? (
-                        <>
-                          <small>
-                            Revival Koi available: {revivalFish.length}. The selected fish will
-                            reduce the remaining timer based on its rarity and size.
-                          </small>
-                          <button
-                            className="champion-revival-action"
-                            type="button"
-                            onClick={() => { void reviveChampion() }}
-                            disabled={recovering || actionState !== 'idle'}
-                          >
-                            {recovering ? 'Using Revival Koi…' : 'Use Revival Koi'}
-                          </button>
-                        </>
-                      ) : (
-                        <small>Catch a Revival Koi to reduce this timer.</small>
-                      )}
-                    </div>
-                  ) : null}
                 </section>
               </div>
             ) : null}

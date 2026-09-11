@@ -805,7 +805,7 @@
   opacity: 0.7;
 }
 
-.run-abyss-revival-dropdown {
+.champion-revival-dropdown {
   display: grid;
   position: absolute;
   z-index: 3;
@@ -823,16 +823,16 @@
   box-shadow: 0 0.75rem 2rem rgb(2 6 23 / 45%);
 }
 
-.run-abyss-revival-dropdown > strong {
+.champion-revival-dropdown > strong {
   color: var(--color-amber-200);
   font-size: 0.8rem;
 }
 
-.run-abyss-revival-dropdown > small {
+.champion-revival-dropdown > small {
   color: var(--color-red-200);
 }
 
-.run-abyss-revival-dropdown > p {
+.champion-revival-dropdown > p {
   margin: 0;
   color: var(--color-amber-200);
   font-size: 0.8rem;
@@ -3365,4 +3365,40 @@
 
 .run-setup .run-dashboard-start {
   flex: 0 1 auto;
+}
+
+.champion-revival-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.champion-revival-option {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 12rem;
+  text-align: left;
+}
+
+.champion-revival-option span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.champion-revival-option small {
+  color: var(--color-amber-900);
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+/* On a phone the picker cannot hang off the pill without leaving the screen,
+   so it becomes a sheet pinned above the bottom edge instead. */
+@media (max-width: 600px) {
+  .champion-revival-dropdown {
+    position: fixed;
+    inset: auto 1rem 1rem;
+    width: auto;
+    max-height: 60vh;
+  }
 }
