@@ -165,6 +165,11 @@ additional_redirect_urls = [
   "http://localhost:3000",
   "https://activeburger.com",
   "https://www.activeburger.com",
+  # The dev branch's Netlify deploy. The app sends its own origin as the
+  # redirect target, and Supabase falls back to site_url for any origin that
+  # is not listed here, which is how a dev sign-in ended up on production.
+  "https://dev--activ-burger-4.netlify.app",
+  "https://dev--activ-burger-4.netlify.app/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

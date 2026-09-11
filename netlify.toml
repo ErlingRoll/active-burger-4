@@ -1,6 +1,12 @@
 [context.production.environment]
 VITE_AUTH_REDIRECT_URL = "https://activeburger.com"
 
+# The dev branch deploy signs in back to its own origin. Leaving this empty
+# makes the app fall back to window.location.origin and keeps a production
+# value set in the Netlify UI from leaking into the dev build.
+[context.dev.environment]
+VITE_AUTH_REDIRECT_URL = ""
+
 [[redirects]]
 from = "/*"
 to = "/index.html"
