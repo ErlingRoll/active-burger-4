@@ -14,7 +14,8 @@ When using subagents:
 
 The following test account may be used by any agent or human tester: test@mctest.face
 
-Credentials are stored in `.env`
+Credentials are stored in `.env.dev`
+
 - VITE_TEST_USER_EMAIL
 - VITE_TEST_USER_PASSWORD
 
@@ -70,8 +71,7 @@ filesystem path before Node sees it.
 Two viewports matter: a phone at the default iPhone size, 390x844, and a
 desktop at Full HD. Sizes between the two are the end-to-end matrix's business.
 
-**The Playwright suites under `e2e/` are opt-in.** Do not run `npx playwright
-test`, `npm run test:e2e` or `npm run test:layout` unless the person you are
+**The Playwright suites under `e2e/` are opt-in.** Do not run `npx playwright test`, `npm run test:e2e` or `npm run test:layout` unless the person you are
 working for asks for them in that request. A complete end-to-end pass costs
 about two and a half minutes against about ten seconds for the whole unit
 suite, and re-running it after each edit is where a long turn goes. Driving the
