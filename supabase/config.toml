@@ -345,9 +345,15 @@ skip_nonce_check = false
 email_optional = false
 
 [auth.external.discord]
-enabled = false
-client_id = ""
-# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+# This file is applied to the hosted projects by the GitHub integration, so
+# what it says here is what the dashboard ends up with: a false here turned
+# Discord off on the dev branch after every push. The client id is public and
+# the same Discord application serves production and dev. The schema requires
+# the secret field once the provider is enabled; it is an env() reference so
+# the secret is never committed, and each project keeps the value set in its
+# own dashboard when the variable is not provided to the apply.
+enabled = true
+client_id = "1542991019405086751"
 secret = "env(SUPABASE_AUTH_EXTERNAL_DISCORD_SECRET)"
 redirect_uri = ""
 
@@ -429,3 +435,13 @@ enabled = true
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Per-project overrides. The base config above describes production; a
+# [remotes.<name>] block overrides it for one project ref, and the CLI and the
+# GitHub integration pick the block whose project_id matches the target.
+[remotes.dev]
+project_id = "zqddylswqgwuysydgkjh"
+
+[remotes.dev.auth]
+# The dev branch signs in back to its own Netlify deploy, not to production.
+site_url = "https://dev--activ-burger-4.netlify.app"
