@@ -1388,14 +1388,6 @@
   border-color: rgb(253 186 116 / 42%);
 }
 
-.run-abyss-champion-list .game-mode-choice.working {
-  border-color: rgb(253 186 116 / 45%);
-}
-
-.run-abyss-champion-list .game-mode-choice.working small {
-  color: var(--color-orange-300);
-}
-
 /* The sheet per job on the champions page. */
 .champion-labour-sheets {
   display: grid;
