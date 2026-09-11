@@ -62,7 +62,6 @@ import type { ChampionSnapshot } from '../../characters'
 // Imported from the owning module, not the barrel: the barrel no longer
 // re-exports screens so route chunks stay split.
 import { ChampionDetails } from '../../characters/ChampionManagementScreen'
-import { ChampionRevivalControl } from '../../characters/ChampionRevivalControl'
 import {
   getInventoryItemDefinition,
   type InventoryItemInstance,
@@ -79,6 +78,13 @@ import {
   CHARACTER_CLASS_DEFINITIONS,
   type CharacterClassId,
 } from '../../content/classes/CharacterClasses'
+
+/** The building a Champion works at, or null when it is home. */
+function workingAt(campState: CampState | null, championId: string): string | null {
+  const assignment = getCampAssignment(campState, championId)
+  const job = assignment ? getCampJobDefinition(assignment.jobId) : undefined
+  return job ? CAMP_BUILDING_DEFINITIONS[job.buildingId].name : null
+}
 
 export interface RunSetupScreenProps {
   settings: SettingsDto
@@ -144,9 +150,7 @@ export function RunSetupScreen({
   const [championLoadError, setChampionLoadError] = useState<string | null>(
     () => characterService ? characterError : characterError ?? 'Champion storage is unavailable.',
   )
-  const [revivalState, setRevivalState] = useState<'idle' | 'saving'>('idle')
   const [campState, setCampState] = useState<CampState | null>(null)
-  const [revivalError, setRevivalError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
   useEffect(() => {
     if (!inventoryService) {
@@ -244,8 +248,8 @@ export function RunSetupScreen({
     }
   }, [characterService])
   /*
-   * Who is at the Camp. A working Champion is shown and cannot be sent down;
-   * the server refuses it too, so an unreachable Camp only costs the label.
+   * Who is at the Camp. A working Champion is not offered for the descent;
+   * the server refuses it too, so an unreachable Camp only costs the listing.
    */
   useEffect(() => {
     if (!campService || selectedMode !== 'infinite-abyss') {
@@ -265,11 +269,6 @@ export function RunSetupScreen({
       cancelled = true
     }
   }, [campService, selectedMode])
-  const workingAt = (championId: string): string | null => {
-    const assignment = getCampAssignment(campState, championId)
-    const job = assignment ? getCampJobDefinition(assignment.jobId) : undefined
-    return job ? CAMP_BUILDING_DEFINITIONS[job.buildingId].name : null
-  }
   const selectedFishSlots = useMemo(
     () => selectedFishIds
       .map((id) => fishItems.find((item) => item.itemInstanceId === id))
@@ -284,8 +283,41 @@ export function RunSetupScreen({
     () => fishItems.filter((fish) => getFishDefinition(fish.definitionId)?.effect.runMealEligible),
     [fishItems],
   )
-  const selectedChampion = champions.find((champion) =>
-    champion.championId === selectedChampionId,
+  /*
+   * Only a Champion who can actually descend is offered. An exhausted or a
+   * working one used to be listed and greyed, which read as a choice the
+   * Start button then refused; now it is named below the list with the reason
+   * and where to fix it, and the list holds nothing the button will decline.
+   */
+  const heldBack = useMemo(() => champions.flatMap((champion) => {
+    const working = workingAt(campState, champion.championId)
+    if (working) {
+      return [{ champion, reason: `Working · ${working}. Bring it back from the Camp to descend.` }]
+    }
+    if (isChampionExhausted(champion, currentTime)) {
+      return [{
+        champion,
+        reason: `Exhausted · ${formatChampionExhaustion(champion.exhaustionUntil, currentTime)}. Revive it from Champions to descend.`,
+      }]
+    }
+    return []
+  }), [campState, champions, currentTime])
+  const eligibleChampions = useMemo(
+    () => champions.filter((champion) =>
+      !heldBack.some((held) => held.champion.championId === champion.championId),
+    ),
+    [champions, heldBack],
+  )
+  /*
+   * The selection follows the eligible list rather than the roster: a
+   * Champion that drops out (the Camp state arriving, say) hands the choice
+   * to the first one still able to go, so the button never sits on a
+   * Champion the list no longer shows.
+   */
+  const selectedChampion = useMemo(
+    () => eligibleChampions.find((champion) => champion.championId === selectedChampionId) ??
+      eligibleChampions[0],
+    [eligibleChampions, selectedChampionId],
   )
   const readableArtifacts = useMemo(
     () => artifactItems.flatMap((item) => {
@@ -328,39 +360,6 @@ export function RunSetupScreen({
     () => resolveFishMeal(selectedFish.slice(0, mealSlotCount), mealOptions),
     [mealOptions, mealSlotCount, selectedFish],
   )
-  const selectedChampionExhausted = selectedChampion
-    ? isChampionExhausted(selectedChampion, currentTime)
-    : false
-  const selectedChampionWorking = selectedChampion
-    ? workingAt(selectedChampion.championId) !== null
-    : false
-  const reviveChampion = async (fish: InventoryItemInstance): Promise<void> => {
-    if (!characterService || !selectedChampion || !selectedChampionExhausted || revivalState === 'saving') {
-      return
-    }
-    setRevivalState('saving')
-    setRevivalError(null)
-    try {
-      const result = await characterService.reviveChampion(
-        crypto.randomUUID(),
-        selectedChampion.championId,
-        fish.itemInstanceId,
-      )
-      setChampions((current) => current.map((champion) =>
-        champion.championId === result.championId ? result : champion,
-      ))
-      setFishItems((current) => current.flatMap((item) => {
-        if (item.itemInstanceId !== result.fishInstanceId) {
-          return [item]
-        }
-        return item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []
-      }))
-    } catch (error: unknown) {
-      setRevivalError(errorMessage(error))
-    } finally {
-      setRevivalState('idle')
-    }
-  }
   const worldModifierEffects = resolveWorldModifierEffects(
     settings.selectedWorldModifierIds,
     SPAWN_BALANCE,
@@ -416,8 +415,7 @@ export function RunSetupScreen({
                   })
             }}
             disabled={startState === 'saving' ||
-              (selectedMode === 'infinite-abyss' &&
-                (selectedChampion === undefined || selectedChampionExhausted || selectedChampionWorking))}
+              (selectedMode === 'infinite-abyss' && selectedChampion === undefined)}
           >
             <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
             <span aria-hidden="true">→</span>
@@ -642,76 +640,67 @@ export function RunSetupScreen({
                <span>Loading available Champions…</span>
              ) : championLoadState === 'error' ? (
                <span className="persistence-error">{championLoadError}</span>
-             ) : selectedChampion ? (
-               <>
-                 <div className="run-abyss-champion-list">
-                   {champions.map((champion) => {
-                     const isSelected = champion.championId === selectedChampionId
-                     const isExhausted = isChampionExhausted(champion, currentTime)
-                     const working = workingAt(champion.championId)
-                     const panelId = `abyss-champion-panel-${champion.championId}`
-                     const triggerId = `abyss-champion-trigger-${champion.championId}`
-                     return (
-                       <article className={`run-abyss-champion-card${isSelected ? ' selected' : ''}`} key={champion.championId}>
-                         <button
-                           className={`game-mode-choice run-abyss-champion-trigger${isSelected ? ' selected' : ''}${isExhausted ? ' exhausted' : ''}${working ? ' working' : ''}`}
-                           id={triggerId}
-                           type="button"
-                           aria-expanded={isSelected}
-                           aria-controls={panelId}
-                           aria-pressed={isSelected}
-                           onClick={() => {
-                             setSelectedChampionId(champion.championId)
-                             setRevivalError(null)
-                           }}
-                         >
-                           <span className="run-abyss-champion-trigger-copy">
-                             <strong>{champion.name}</strong>
-                             <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                             <small>
-                               {working
-                                 ? `Working · ${working}. Bring it back from the Camp to descend.`
-                                 : isExhausted
-                                   ? `Exhausted · ${formatChampionExhaustion(champion.exhaustionUntil, currentTime)}`
-                                   : 'Available'}
-                             </small>
-                           </span>
-                           <span className="run-abyss-champion-trigger-state" aria-hidden="true">
-                             <span>{isSelected ? 'Selected for run' : 'Select Champion'}</span>
-                             <span className="run-abyss-champion-chevron">{isSelected ? '▴' : '▾'}</span>
-                           </span>
-                         </button>
-                         {isSelected ? (
-                           <div
-                             className="run-abyss-champion-panel"
-                             id={panelId}
-                             role="region"
-                             aria-labelledby={triggerId}
-                           >
-                             <ChampionDetails
-                               champion={champion}
-                               headerAction={selectedChampionExhausted ? (
-                                 <ChampionRevivalControl
-                                   key={champion.championId}
-                                   championId={champion.championId}
-                                   fish={fishItems}
-                                   fishLoadState={fishLoadState}
-                                   fishLoadError={fishLoadError}
-                                   saving={revivalState === 'saving'}
-                                   error={revivalError}
-                                   onRevive={(fish) => { void reviveChampion(fish) }}
-                                 />
-                               ) : undefined}
-                             />
-                           </div>
-                         ) : null}
-                       </article>
-                     )
-                   })}
-                 </div>
-               </>
-             ) : (
+             ) : champions.length === 0 ? (
                <span>Complete a dungeon and save a Champion before entering the Abyss.</span>
+             ) : (
+               <>
+                 {selectedChampion ? (
+                   <div className="run-abyss-champion-list">
+                     {eligibleChampions.map((champion) => {
+                       const isSelected = champion.championId === selectedChampion.championId
+                       const panelId = `abyss-champion-panel-${champion.championId}`
+                       const triggerId = `abyss-champion-trigger-${champion.championId}`
+                       return (
+                         <article className={`run-abyss-champion-card${isSelected ? ' selected' : ''}`} key={champion.championId}>
+                           <button
+                             className={`game-mode-choice run-abyss-champion-trigger${isSelected ? ' selected' : ''}`}
+                             id={triggerId}
+                             type="button"
+                             aria-expanded={isSelected}
+                             aria-controls={panelId}
+                             aria-pressed={isSelected}
+                             onClick={() => setSelectedChampionId(champion.championId)}
+                           >
+                             <span className="run-abyss-champion-trigger-copy">
+                               <strong>{champion.name}</strong>
+                               <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
+                             </span>
+                             <span className="run-abyss-champion-trigger-state" aria-hidden="true">
+                               <span>{isSelected ? 'Selected for run' : 'Select Champion'}</span>
+                               <span className="run-abyss-champion-chevron">{isSelected ? '▴' : '▾'}</span>
+                             </span>
+                           </button>
+                           {isSelected ? (
+                             <div
+                               className="run-abyss-champion-panel"
+                               id={panelId}
+                               role="region"
+                               aria-labelledby={triggerId}
+                             >
+                               <ChampionDetails champion={champion} />
+                             </div>
+                           ) : null}
+                         </article>
+                       )
+                     })}
+                   </div>
+                 ) : (
+                   <span role="status">
+                     No Champion can descend right now. Revive an exhausted one from Champions,
+                     or bring a working one back from the Camp.
+                   </span>
+                 )}
+                 {heldBack.length > 0 ? (
+                   <ul className="run-abyss-champion-held" aria-label="Champions not offered">
+                     {heldBack.map(({ champion, reason }) => (
+                       <li key={champion.championId}>
+                         <strong>{champion.name}</strong>
+                         <span>{reason}</span>
+                       </li>
+                     ))}
+                   </ul>
+                 ) : null}
+               </>
              )}
            </section>
          ) : null}

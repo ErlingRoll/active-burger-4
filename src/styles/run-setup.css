@@ -97,17 +97,26 @@
   gap: 0.25rem;
 }
 
-.run-abyss-champion-trigger-copy small {
+/* Who is held back from the descent, and why. Named, not offered: a greyed
+   card read as a choice the Start button then refused. */
+.run-abyss-champion-held {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-abyss-champion-held li {
+  display: grid;
+  gap: 0.15rem;
   color: var(--color-violet-300);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
-.run-abyss-champion-list .game-mode-choice.exhausted {
-  border-color: rgb(251 191 36 / 50%);
-}
-
-.run-abyss-champion-list .game-mode-choice.exhausted small {
-  color: var(--color-amber-300);
+.run-abyss-champion-held strong {
+  color: var(--color-violet-200);
 }
 
 .run-abyss-champion-trigger-state {
