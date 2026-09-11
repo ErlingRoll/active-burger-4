@@ -74,6 +74,14 @@ jobs:
             echo "Add them to the production and dev environments under Settings > Environments." >&2
             exit 1
           fi
+          case "$SUPABASE_ACCESS_TOKEN" in
+            sbp_*) ;;
+            *)
+              echo "SUPABASE_ACCESS_TOKEN is not a Supabase personal access token: it must start with sbp_." >&2
+              echo "Create one at https://supabase.com/dashboard/account/tokens. It is per account, so one token serves every environment." >&2
+              exit 1
+              ;;
+          esac
       - name: Link the project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Show what will be applied
