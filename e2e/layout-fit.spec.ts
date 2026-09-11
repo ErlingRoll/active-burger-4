@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { requireTestCredentials } from './support/credentials'
+import { skipNicknamePrompt } from './support/nicknamePrompt'
 import {
   VIEWPORTS,
   findClippedControls,
@@ -86,6 +87,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible({
     timeout: 20_000,
   })
+  await skipNicknamePrompt(page)
 }
 
 /**

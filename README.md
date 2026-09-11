@@ -59,6 +59,10 @@ An approved nickname takes priority. Until then, the player's Discord display
 name is used, followed by the local part of an email address (without the
 domain); only players without either name appear as Anonymous player.
 
+A new account is asked to choose a nickname right after its first sign-in, by
+email or Discord alike. The prompt can be skipped and the nickname requested
+later from the account settings menu.
+
 All player-facing names use the shared resolver documented in
 [docs/PLAYER_NAMES.md](docs/PLAYER_NAMES.md). New components must use
 `getPlayerDisplayName` instead of reading an account or nickname field directly.

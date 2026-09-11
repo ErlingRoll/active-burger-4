@@ -148,6 +148,22 @@ async function signIn(page) {
    */
   await page.locator('.game-dashboard')
     .waitFor({ state: 'visible', timeout: 30_000 })
+  await skipNicknamePrompt(page)
+}
+
+/*
+ * A test account that has never asked for a nickname is prompted for one on
+ * arrival, over the very screen the shot is of. The shell says whether that
+ * prompt is still to come, so this waits for the answer rather than guessing.
+ */
+async function skipNicknamePrompt(page) {
+  const shell = page.locator('.app-shell[data-nickname-prompt="open"], .app-shell[data-nickname-prompt="closed"]')
+  await shell.waitFor({ state: 'attached', timeout: 20_000 })
+  if (await shell.getAttribute('data-nickname-prompt') === 'open') {
+    await page.getByRole('button', { name: 'Skip for now' }).click()
+    await page.locator('.app-shell[data-nickname-prompt="closed"]')
+      .waitFor({ state: 'attached', timeout: 10_000 })
+  }
 }
 
 /**

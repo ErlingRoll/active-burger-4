@@ -20,6 +20,10 @@ import {
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   getPlayerDisplayName,
+  hasDismissedNicknamePrompt,
+  NicknameDialog,
+  rememberNicknamePromptDismissed,
+  shouldPromptForNickname,
   type AuthenticationState,
   type NicknameChangeRequest,
   type NicknameState,
@@ -132,6 +136,29 @@ function createInitialMetaProgressionState(
       }
 }
 
+/**
+ * The signed-in account's nickname, plus what the app does about it.
+ *
+ * `loadedForAccountId` names the account the nickname was fetched for, so a
+ * stale answer from the previous account is never mistaken for the current
+ * one. `promptOpen` is decided once per load: a new account (see
+ * `shouldPromptForNickname`) is asked to pick a nickname right after signing
+ * in, on every sign-in method alike, unless it skipped the prompt on this
+ * browser before.
+ */
+interface AccountNickname extends NicknameState {
+  loadedForAccountId: string | null
+  promptOpen: boolean
+}
+
+const EMPTY_ACCOUNT_NICKNAME: AccountNickname = {
+  displayName: null,
+  pendingNickname: null,
+  hasRequestedNickname: false,
+  loadedForAccountId: null,
+  promptOpen: false,
+}
+
 function createInitialAuthenticationState(
   service: AuthenticationService | null,
   configurationError: string | null,
@@ -173,10 +200,7 @@ function App() {
       authenticationService.configurationError,
     ),
   )
-  const [nickname, setNickname] = useState<NicknameState>({
-    displayName: null,
-    pendingNickname: null,
-  })
+  const [nickname, setNickname] = useState<AccountNickname>(EMPTY_ACCOUNT_NICKNAME)
   const [metaProgression, setMetaProgression] = useState<MetaProgressionState>(() =>
     createInitialMetaProgressionState(
       metaProgressionService.service,
@@ -335,7 +359,7 @@ function App() {
       // Signing out clears the cached nickname before any request is made, so the
       // stale name is never shown against the new (signed-out) account.
       // oxlint-disable-next-line react/set-state-in-effect
-      setNickname({ displayName: null, pendingNickname: null })
+      setNickname(EMPTY_ACCOUNT_NICKNAME)
       return
     }
     if (!service) {
@@ -350,11 +374,18 @@ function App() {
     void service.loadOwnNickname(accountId)
       .then((loadedNickname) => {
         if (!cancelled) {
-          setNickname(loadedNickname)
+          setNickname({
+            ...loadedNickname,
+            loadedForAccountId: accountId,
+            promptOpen: shouldPromptForNickname(loadedNickname) &&
+              !hasDismissedNicknamePrompt(accountId),
+          })
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
+          // The load has settled, just without an answer: nothing to prompt for.
+          setNickname({ ...EMPTY_ACCOUNT_NICKNAME, loadedForAccountId: accountId })
           setAuthentication((current) => ({
             ...current,
             error: `Unable to load nickname settings: ${errorMessage(error)}`,
@@ -639,6 +670,8 @@ function App() {
     setNickname((current) => ({
       ...current,
       pendingNickname: requestedNickname,
+      hasRequestedNickname: true,
+      promptOpen: false,
     }))
     showToast('Nickname submitted for moderator review.', 'info')
   }, [
@@ -647,6 +680,25 @@ function App() {
     nicknameService.service,
     showToast,
   ])
+
+  const dismissNicknamePrompt = useCallback((): void => {
+    if (authentication.account) {
+      rememberNicknamePromptDismissed(authentication.account.id)
+    }
+    setNickname((current) => ({ ...current, promptOpen: false }))
+  }, [authentication.account])
+
+  /*
+   * Exposed on the shell for the tooling that signs in as the test account: it
+   * can tell a prompt that is still to come from one that will not come.
+   */
+  const nicknamePromptStatus = !authentication.account
+    ? 'closed'
+    : nickname.loadedForAccountId !== authentication.account.id
+      ? 'loading'
+      : nickname.promptOpen
+        ? 'open'
+        : 'closed'
 
   const refreshMetaProgression = useCallback((): void => {
     setMetaProgression((current) => ({
@@ -1757,17 +1809,35 @@ function App() {
   }
 
   return (
-    <main className={`app-shell${
-      screen === 'gameplay'
-        ? ' app-shell-gameplay'
-        : screen === 'fishing'
-          ? ' app-shell-fishing'
-          : screen === 'camp'
-            ? ' app-shell-camp'
-            : screen === 'dashboard'
-              ? ' app-shell-hub'
-              : ''
-    }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}>
+    <main
+      className={`app-shell${
+        screen === 'gameplay'
+          ? ' app-shell-gameplay'
+          : screen === 'fishing'
+            ? ' app-shell-fishing'
+            : screen === 'camp'
+              ? ' app-shell-camp'
+              : screen === 'dashboard'
+                ? ' app-shell-hub'
+                : ''
+      }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}
+      data-nickname-prompt={nicknamePromptStatus}
+    >
+      {screen !== 'gameplay' && nickname.promptOpen && authentication.account ? (
+        // A run in progress is not interrupted; the prompt waits for the
+        // player to come back out of the dungeon.
+        <NicknameDialog
+          title="Choose a nickname"
+          description="Pick the name other players will see. Nicknames are reviewed before appearing publicly, so offensive or hateful names cannot be published. You can change it later from account settings."
+          inputLabel="Nickname"
+          initialValue=""
+          pendingNickname={null}
+          cancelLabel="Skip for now"
+          submitLabel="Submit for review"
+          onCancel={dismissNicknamePrompt}
+          onSubmit={requestNicknameChange}
+        />
+      ) : null}
       {screen !== 'gameplay' ? (
         <AppHeader
           authentication={authentication}

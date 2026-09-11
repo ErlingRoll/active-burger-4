@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { requireTestCredentials } from './support/credentials'
+import { skipNicknamePrompt } from './support/nicknamePrompt'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -13,6 +14,7 @@ async function signInForFishing(
   await page.getByLabel('Keep me signed in on this browser').check()
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await skipNicknamePrompt(page)
 }
 
 test('resolves an authenticated manual fishing attempt', async ({ page }) => {
