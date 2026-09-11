@@ -4,6 +4,12 @@ import { getSupabaseClient, type AuthEnvironment } from './AuthService'
 export interface NicknameState {
   displayName: string | null
   pendingNickname: string | null
+  /**
+   * Whether the account has ever asked for a nickname, whatever the outcome.
+   * An account that never has is met with the nickname prompt after signing
+   * in; one whose request was rejected is not asked again and again.
+   */
+  hasRequestedNickname: boolean
 }
 
 export interface NicknameChangeRequest {
@@ -31,6 +37,11 @@ interface NicknameRequestRow {
   requested_at: string
 }
 
+interface LatestNicknameRequestRow {
+  requested_nickname: string
+  status: string
+}
+
 const NICKNAME_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9 _-]{1,22}[A-Za-z0-9])$/
 
 export function validateNickname(value: string): string | null {
@@ -45,6 +56,12 @@ function isProfileRow(value: unknown): value is ProfileRow {
   return typeof value === 'object' && value !== null &&
     'display_name' in value &&
     (value.display_name === null || typeof value.display_name === 'string')
+}
+
+function isLatestNicknameRequestRow(value: unknown): value is LatestNicknameRequestRow {
+  return typeof value === 'object' && value !== null &&
+    'requested_nickname' in value && typeof value.requested_nickname === 'string' &&
+    'status' in value && typeof value.status === 'string'
 }
 
 function isNicknameRequestRow(value: unknown): value is NicknameRequestRow {
@@ -64,7 +81,13 @@ export function createNicknameService(
 
   return {
     async loadOwnNickname(accountId): Promise<NicknameState> {
-      const [profileResponse, pendingResponse] = await Promise.all([
+      /*
+       * The newest request of any status answers both questions at once. A
+       * pending request is always the newest one there is, because requesting
+       * a nickname replaces any pending request rather than queueing behind
+       * it, while reviewed requests keep their original timestamp.
+       */
+      const [profileResponse, latestRequestResponse] = await Promise.all([
         getClient()
           .from('profiles')
           .select('display_name')
@@ -72,9 +95,8 @@ export function createNicknameService(
           .maybeSingle(),
         getClient()
           .from('nickname_change_requests')
-          .select('requested_nickname')
+          .select('requested_nickname, status')
           .eq('user_id', accountId)
-          .eq('status', 'pending')
           .order('requested_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -82,19 +104,22 @@ export function createNicknameService(
       if (profileResponse.error) {
         throw profileResponse.error
       }
-      if (pendingResponse.error) {
-        throw pendingResponse.error
+      if (latestRequestResponse.error) {
+        throw latestRequestResponse.error
       }
       if (profileResponse.data !== null && !isProfileRow(profileResponse.data)) {
         throw new Error('Profile returned an invalid nickname response.')
       }
-      if (pendingResponse.data !== null &&
-        typeof pendingResponse.data.requested_nickname !== 'string') {
+      const latestRequest: unknown = latestRequestResponse.data
+      if (latestRequest !== null && !isLatestNicknameRequestRow(latestRequest)) {
         throw new Error('Nickname request returned an invalid response.')
       }
       return {
         displayName: profileResponse.data?.display_name ?? null,
-        pendingNickname: pendingResponse.data?.requested_nickname ?? null,
+        pendingNickname: latestRequest?.status === 'pending'
+          ? latestRequest.requested_nickname
+          : null,
+        hasRequestedNickname: latestRequest !== null,
       }
     },
 

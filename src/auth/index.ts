@@ -18,6 +18,13 @@ export type {
 export { AuthPanel } from './AuthPanel'
 export type { AuthenticationState, AuthenticationStatus } from './AuthPanel'
 export { AccountSettingsMenu } from './AccountSettingsMenu'
+export { NicknameDialog } from './NicknameDialog'
+export type { NicknameDialogProps } from './NicknameDialog'
+export {
+  hasDismissedNicknamePrompt,
+  rememberNicknamePromptDismissed,
+  shouldPromptForNickname,
+} from './NicknamePrompt'
 export { createNicknameService, validateNickname } from './NicknameService'
 export type {
   NicknameChangeRequest,

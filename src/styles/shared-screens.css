@@ -193,8 +193,22 @@
   border-radius: 0.4rem;
 }
 
+/*
+ * Creating an account adds the confirmation directly under the password, in
+ * the right-hand column, so the two password fields read as a pair. The
+ * remember-me checkbox is pinned to the left of that row; without the explicit
+ * placement it would drop to a row of its own, since the auto-placement cursor
+ * never backs up to fill the cell it skipped.
+ */
+.sign-in-form .confirm-password {
+  grid-row: 2;
+  grid-column: 2;
+}
+
 .sign-in-form .remember-session {
   display: flex;
+  grid-row: 2;
+  grid-column: 1;
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 0.5rem;
