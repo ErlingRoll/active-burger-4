@@ -20,6 +20,12 @@ export interface CraftingRecipe {
   outputQuantity: number
 }
 
+/*
+ * Every row here mirrors a row the migrations seed into
+ * `inventory_crafting_recipes`, and tests/craftingRecipes.test.ts fails the
+ * build when the two drift: this registry once listed one recipe while the
+ * server offered three, and the bag showed only the first.
+ */
 export const CRAFTING_RECIPES = {
   'river-worm-from-scrap': {
     id: 'river-worm-from-scrap',
@@ -28,6 +34,24 @@ export const CRAFTING_RECIPES = {
     inputDefinitionId: 'scrap',
     inputQuantity: 8,
     outputDefinitionId: 'river-worm',
+    outputQuantity: 1,
+  },
+  'glow-grub-from-scrap': {
+    id: 'glow-grub-from-scrap',
+    name: 'Coax a glow grub',
+    description: 'A lantern housing beaten from scrap, and the grub that crawls in to live under it.',
+    inputDefinitionId: 'scrap',
+    inputQuantity: 24,
+    outputDefinitionId: 'glow-grub',
+    outputQuantity: 1,
+  },
+  'moonwater-lure-from-scrap': {
+    id: 'moonwater-lure-from-scrap',
+    name: 'Cast a moonwater lure',
+    description: 'Polished plate and a silver pin, shaped to catch the moon on the pond.',
+    inputDefinitionId: 'scrap',
+    inputQuantity: 60,
+    outputDefinitionId: 'moonwater-lure',
     outputQuantity: 1,
   },
 } as const satisfies Record<string, CraftingRecipe>

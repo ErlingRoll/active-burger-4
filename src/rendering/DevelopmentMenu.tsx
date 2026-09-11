@@ -37,6 +37,7 @@ import {
 import {
   storeDevelopmentTimeScale,
 } from './developmentTimeScale'
+import { APP_ENVIRONMENT } from '../shared'
 
 const GRANTABLE_GEAR_DEFINITIONS = ALL_ITEM_DEFINITIONS.filter(
   (item) => !item.starterOnly,
@@ -49,10 +50,12 @@ const GRANTABLE_UPGRADE_DEFINITIONS = INITIAL_UPGRADES.filter(
 /**
  * The in-run development menu.
  *
- * Only mounted when `import.meta.env.DEV` is set or `?devmenu=open` is present,
- * so it never reaches players. It lives apart from GameCanvas because it is the
- * single largest component in the renderer and shares nothing with the HUD but
- * the game instance.
+ * Only mounted when the development tools are enabled (a local dev server, or
+ * a build that serves the dev backend; see `shared/environment.ts`), so it
+ * never reaches players. Opened with its button, the backquote key, or
+ * `?devmenu=open` in the URL. It lives apart from GameCanvas because it is
+ * the single largest component in the renderer and shares nothing with the HUD
+ * but the game instance.
  */
 
 export interface DevelopmentMenuProps {
@@ -203,6 +206,37 @@ export function DevelopmentMenu({
     game.update(1 / 60)
   }
 
+  const atPlayer = (): { x: number; y: number } => ({
+    x: game.state.player.x,
+    y: game.state.player.y,
+  })
+
+  // A pickup dropped on the character is collected by the next update, so
+  // these go through the same pickup path a real drop does.
+  const levelUpNow = (): void => {
+    if (snapshot.phase !== 'playing') {
+      return
+    }
+    game.spawnXpPickup(atPlayer(), Math.max(1, snapshot.xpRequired - snapshot.xp))
+    game.update(1 / 60)
+  }
+
+  const dropHealingPotion = (): void => {
+    if (snapshot.phase !== 'playing') {
+      return
+    }
+    game.spawnHealingPotion(atPlayer())
+    game.update(1 / 60)
+  }
+
+  const dropGearPickup = (): void => {
+    if (snapshot.phase !== 'playing') {
+      return
+    }
+    game.spawnGearPickup(atPlayer())
+    game.update(1 / 60)
+  }
+
   const reportGrantResult = (
     result: DevelopmentGrantResult,
     changedMessage: string,
@@ -281,6 +315,12 @@ export function DevelopmentMenu({
     )
   }
 
+  const outsideRun =
+    snapshot.phase !== 'playing' &&
+    snapshot.phase !== 'paused' &&
+    snapshot.phase !== 'level-up'
+  const floorClock = `${Math.floor(snapshot.floorElapsedTime / 60)}:${String(Math.floor(snapshot.floorElapsedTime % 60)).padStart(2, '0')}`
+
   return (
     <div className="development-controls">
       <button
@@ -298,352 +338,407 @@ export function DevelopmentMenu({
           id="development-menu"
           aria-labelledby="development-menu-title"
         >
-          <p className="development-kicker">Developer controls</p>
+          <p className="development-kicker">Developer controls · {APP_ENVIRONMENT} backend</p>
           <h2 id="development-menu-title">Development Menu</h2>
           <button
-            className="debug-spawn-button"
+            className="development-menu-close"
             type="button"
-            onClick={togglePause}
-            disabled={
-              snapshot.phase !== 'playing' && snapshot.phase !== 'paused' &&
-              snapshot.phase !== 'level-up'
-            }
+            aria-label="Close development menu"
+            onClick={() => onOpenChange(false)}
           >
-            {snapshot.phase === 'paused' ? 'Resume run' : 'Pause run'}
+            ×
           </button>
-          <button
-            className="debug-spawn-button debug-spawn-boss-button"
-            type="button"
-            onClick={spawnBoss}
-            disabled={!canSpawnBoss}
-          >
-            Spawn Boss
-          </button>
-          <div className="debug-grant-row">
-            <label className="visually-hidden" htmlFor="debug-boss-select">
-              Boss
-            </label>
-            <select
-              id="debug-boss-select"
-              value={selectedBossId}
-              onChange={(event) => {
-                const value = event.target.value
-                if (isBossDefinitionId(value)) {
-                  setSelectedBossId(value)
-                }
-              }}
-            >
-              {BOSS_DEFINITION_IDS.map((id) => {
-                const boss = getBossDefinition(id)
-                return (
-                  <option value={id} key={id}>
-                    {boss.name}
-                    {boss.role === 'final' ? ' (final)' : ` (floor ${boss.minFloor}+)`}
-                  </option>
-                )
-              })}
-            </select>
-            <button
-              className="debug-spawn-button debug-spawn-final-button"
-              type="button"
-              onClick={summonBoss}
-              disabled={
-                snapshot.phase !== 'playing' ||
-                (game.state.bosses?.length ?? 0) > 0
-              }
-            >
-              Summon boss
-            </button>
-          </div>
-          <button
-            className="debug-spawn-button debug-spawn-final-button"
-            type="button"
-            onClick={jumpToFinalFloor}
-            disabled={
-              snapshot.phase !== 'playing' ||
-              (game.state.bosses?.length ?? 0) > 0 ||
-              game.state.stairs !== undefined
-            }
-          >
-            Jump to final floor
-          </button>
-          <button
-            className="debug-spawn-button debug-spawn-final-button"
-            type="button"
-            aria-pressed={game.godModeEnabled}
-            onClick={toggleGodMode}
-            disabled={
-              snapshot.phase !== 'playing' &&
-              snapshot.phase !== 'paused' &&
-              snapshot.phase !== 'level-up'
-            }
-          >
-            Godmode: {game.godModeEnabled ? 'ON' : 'OFF'}
-          </button>
-          <p className="input-help">
-            Invulnerable; aura deals 10,000 physical damage per second within 144 units.
+          <p className="input-help development-menu-hint">
+            Backquote toggles this menu. Add ?devmenu=open to the URL to start with it open.
           </p>
-          <div className="debug-transition-control">
-            <p className="development-control-label">Run-flow preview</p>
+          <dl className="development-status" aria-label="Run status">
+            <div><dt>Floor</dt><dd>{snapshot.floor} · {floorClock}</dd></div>
+            <div><dt>Phase</dt><dd>{snapshot.phase}</dd></div>
+            <div><dt>Level</dt><dd>{snapshot.level} · {snapshot.xp}/{snapshot.xpRequired} xp</dd></div>
+            <div><dt>HP</dt><dd>{Math.ceil(snapshot.hp)}/{Math.ceil(snapshot.maxHp)}</dd></div>
+            <div><dt>Kills</dt><dd>{snapshot.killCount}</dd></div>
+            <div><dt>Speed</dt><dd>{game.timeScale}x{game.godModeEnabled ? ' · god' : ''}</dd></div>
+          </dl>
+
+          <section className="development-section" aria-labelledby="development-run-title">
+            <h3 id="development-run-title">Run</h3>
             <div className="debug-spawn-actions">
               <button
                 className="debug-spawn-button"
                 type="button"
-                onClick={() => spawnStairsAtPlayer(false)}
-                disabled={snapshot.phase !== 'playing'}
+                onClick={togglePause}
+                disabled={outsideRun}
               >
-                Test stairs transition
+                {snapshot.phase === 'paused' ? 'Resume run' : 'Pause run'}
               </button>
               <button
                 className="debug-spawn-button debug-spawn-final-button"
                 type="button"
-                onClick={() => spawnStairsAtPlayer(true)}
+                aria-pressed={game.godModeEnabled}
+                onClick={toggleGodMode}
+                disabled={outsideRun}
+              >
+                Godmode: {game.godModeEnabled ? 'ON' : 'OFF'}
+              </button>
+              <button
+                className="debug-spawn-button debug-spawn-final-button"
+                type="button"
+                onClick={jumpToFinalFloor}
+                disabled={
+                  snapshot.phase !== 'playing' ||
+                  (game.state.bosses?.length ?? 0) > 0 ||
+                  game.state.stairs !== undefined
+                }
+              >
+                Jump to final floor
+              </button>
+              <button
+                className="end-run-button"
+                type="button"
+                onClick={() => game.endRun()}
                 disabled={snapshot.phase !== 'playing'}
               >
-                Test final stairs & results
+                End Run
               </button>
-            </div>
-          </div>
-          <div className="debug-grant-control">
-            <p className="development-control-label">Grant gear</p>
-            <div className="debug-grant-row">
-              <label className="visually-hidden" htmlFor="debug-gear-set-select">
-                Gear set
-              </label>
-              <select
-                id="debug-gear-set-select"
-                value={selectedGearSetId}
-                onChange={(event) => {
-                  const value = event.target.value
-                  setSelectedGearSetId(isGearSetId(value) ? value : '')
-                }}
-              >
-                <option value="">No set</option>
-                {ALL_GEAR_SET_DEFINITIONS.map((set) => (
-                  <option value={set.id} key={set.id}>
-                    {set.name} set
-                  </option>
-                ))}
-              </select>
-              <label className="visually-hidden" htmlFor="debug-gear-select">
-                Gear item
-              </label>
-              <select
-                id="debug-gear-select"
-                value={selectedGearId}
-                onChange={(event) => setSelectedGearId(event.target.value)}
-              >
-                {GRANTABLE_GEAR_DEFINITIONS.map((item) => (
-                  <option value={item.id} key={item.id}>
-                    {getItemDisplayName(item)}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="debug-spawn-button"
-                type="button"
-                onClick={grantSelectedGear}
-                disabled={snapshot.phase !== 'playing' &&
-                  snapshot.phase !== 'paused' &&
-                  snapshot.phase !== 'level-up'}
-              >
-                Give gear
-              </button>
-            </div>
-          </div>
-          <div className="debug-grant-control">
-            <p className="development-control-label">Grant skill</p>
-            <div className="debug-grant-row">
-              <label className="visually-hidden" htmlFor="debug-skill-select">
-                Skill
-              </label>
-              <select
-                id="debug-skill-select"
-                value={selectedSkillId}
-                onChange={(event) => setSelectedSkillId(event.target.value)}
-              >
-                {Object.values(SKILL_DEFINITIONS).map((skill) => (
-                  <option value={skill.id} key={skill.id}>
-                    {skill.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="debug-spawn-button"
-                type="button"
-                onClick={grantSelectedSkill}
-                disabled={snapshot.phase !== 'playing' &&
-                  snapshot.phase !== 'paused' &&
-                  snapshot.phase !== 'level-up'}
-              >
-                Give skill
-              </button>
-            </div>
-          </div>
-          <div className="debug-grant-control">
-            <p className="development-control-label">Grant eligible synergy</p>
-            <div className="debug-grant-row">
-              <label className="visually-hidden" htmlFor="debug-synergy-select">
-                Synergy
-              </label>
-              <select
-                id="debug-synergy-select"
-                value={
-                  eligibleSynergies.some((synergy) => synergy.id === selectedSynergyId)
-                    ? selectedSynergyId
-                    : ''
-                }
-                onChange={(event) => setSelectedSynergyId(event.target.value)}
-                disabled={eligibleSynergies.length === 0}
-              >
-                <option value="">
-                  {eligibleSynergies.length === 0
-                    ? 'No eligible synergies'
-                    : 'Select a synergy'}
-                </option>
-                {eligibleSynergies.map((synergy) => (
-                  <option value={synergy.id} key={synergy.id}>
-                    {synergy.name} ({synergy.synergySkillIds
-                      .map((skillId) => SKILL_DEFINITIONS[skillId].name)
-                      .join(' + ')})
-                  </option>
-                ))}
-              </select>
-              <button
-                className="debug-spawn-button"
-                type="button"
-                onClick={grantSelectedSynergy}
-                disabled={
-                  eligibleSynergies.length === 0 ||
-                  (snapshot.phase !== 'playing' &&
-                    snapshot.phase !== 'paused' &&
-                    snapshot.phase !== 'level-up')
-                }
-              >
-                Give synergy
-              </button>
-            </div>
-          </div>
-          <div className="debug-grant-control">
-            <p className="development-control-label">Grant upgrade</p>
-            <div className="debug-grant-row">
-              <label className="visually-hidden" htmlFor="debug-upgrade-select">
-                Upgrade
-              </label>
-              <select
-                id="debug-upgrade-select"
-                value={selectedUpgradeId}
-                onChange={(event) => setSelectedUpgradeId(event.target.value)}
-              >
-                {GRANTABLE_UPGRADE_DEFINITIONS.map((upgrade) => (
-                  <option value={upgrade.id} key={upgrade.id}>
-                    {upgrade.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="debug-spawn-button"
-                type="button"
-                onClick={grantSelectedUpgrade}
-                disabled={snapshot.phase !== 'playing' &&
-                  snapshot.phase !== 'paused' &&
-                  snapshot.phase !== 'level-up'}
-              >
-                Give upgrade
-              </button>
-            </div>
-          </div>
-          {grantFeedback ? (
-            <p className="input-help debug-grant-feedback" role="status">
-              {grantFeedback}
-            </p>
-          ) : null}
-          <dl className="entity-counts" aria-label="Entity counts">
-            <div>
-              <dt>Total entities</dt>
-              <dd>{totalEntities}</dd>
-            </div>
-            <div>
-              <dt>Enemies</dt>
-              <dd>{entityCounts.enemies}</dd>
-            </div>
-            <div>
-              <dt>Bosses</dt>
-              <dd>{entityCounts.bosses}</dd>
-            </div>
-            <div>
-              <dt>Projectiles</dt>
-              <dd>{entityCounts.projectiles}</dd>
-            </div>
-            <div>
-              <dt>Pickups</dt>
-              <dd>{entityCounts.pickups}</dd>
-            </div>
-            <div>
-              <dt>Summons</dt>
-              <dd>{entityCounts.summons}</dd>
-            </div>
-            <div>
-              <dt>Effects</dt>
-              <dd>{entityCounts.effects}</dd>
-            </div>
-          </dl>
-          <div className="debug-spawn-control">
-            <p className="development-control-label">Stress spawn</p>
-            <div className="debug-spawn-actions">
-              {DEBUG_SPAWN_COUNTS.map((count: DebugSpawnCount) => (
-                <button
-                  className="debug-spawn-button"
-                  key={count}
-                  type="button"
-                  onClick={() => game.spawnDebugEnemies(count)}
-                  disabled={snapshot.phase !== 'playing'}
-                >
-                  Spawn {count} enemies
-                </button>
-              ))}
             </div>
             <p className="input-help">
-              Development-only stress spawns add enemies immediately.
+              Godmode: invulnerable; aura deals 10,000 physical damage per second within 144 units.
             </p>
-          </div>
-          <div className="time-scale-control">
-            <label htmlFor="time-scale-input">Simulation speed</label>
-            <div className="time-scale-input-row">
-              <input
-                id="time-scale-input"
-                type="number"
-                min={MIN_TIME_SCALE}
-                max={MAX_TIME_SCALE}
-                step={0.1}
-                value={timeScaleInput}
-                aria-invalid={timeScaleError !== null}
-                aria-describedby={
-                  timeScaleError ? 'time-scale-error' : 'time-scale-help'
-                }
-                onChange={handleTimeScaleChange}
-              />
-              <span aria-hidden="true">x</span>
+            <div className="debug-transition-control">
+              <p className="development-control-label">Run-flow preview</p>
+              <div className="debug-spawn-actions">
+                <button
+                  className="debug-spawn-button"
+                  type="button"
+                  onClick={() => spawnStairsAtPlayer(false)}
+                  disabled={snapshot.phase !== 'playing'}
+                >
+                  Test stairs transition
+                </button>
+                <button
+                  className="debug-spawn-button debug-spawn-final-button"
+                  type="button"
+                  onClick={() => spawnStairsAtPlayer(true)}
+                  disabled={snapshot.phase !== 'playing'}
+                >
+                  Test final stairs & results
+                </button>
+              </div>
             </div>
-            {timeScaleError ? (
-              <p className="input-error" id="time-scale-error" role="alert">
-                {timeScaleError}
+          </section>
+
+          <section className="development-section" aria-labelledby="development-player-title">
+            <h3 id="development-player-title">Character</h3>
+            <div className="debug-spawn-actions">
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={levelUpNow}
+                disabled={snapshot.phase !== 'playing'}
+              >
+                Level up now
+              </button>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={dropHealingPotion}
+                disabled={snapshot.phase !== 'playing'}
+              >
+                Drop healing potion
+              </button>
+              <button
+                className="debug-spawn-button"
+                type="button"
+                onClick={dropGearPickup}
+                disabled={snapshot.phase !== 'playing'}
+              >
+                Drop gear pickup
+              </button>
+            </div>
+            <p className="input-help">
+              Dropped on the character and collected through the normal pickup path.
+            </p>
+          </section>
+
+          <section className="development-section" aria-labelledby="development-boss-title">
+            <h3 id="development-boss-title">Bosses</h3>
+            <button
+              className="debug-spawn-button debug-spawn-boss-button"
+              type="button"
+              onClick={spawnBoss}
+              disabled={!canSpawnBoss}
+            >
+              Spawn Boss
+            </button>
+            <div className="debug-grant-row">
+              <label className="visually-hidden" htmlFor="debug-boss-select">
+                Boss
+              </label>
+              <select
+                id="debug-boss-select"
+                value={selectedBossId}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (isBossDefinitionId(value)) {
+                    setSelectedBossId(value)
+                  }
+                }}
+              >
+                {BOSS_DEFINITION_IDS.map((id) => {
+                  const boss = getBossDefinition(id)
+                  return (
+                    <option value={id} key={id}>
+                      {boss.name}
+                      {boss.role === 'final' ? ' (final)' : ` (floor ${boss.minFloor}+)`}
+                    </option>
+                  )
+                })}
+              </select>
+              <button
+                className="debug-spawn-button debug-spawn-final-button"
+                type="button"
+                onClick={summonBoss}
+                disabled={
+                  snapshot.phase !== 'playing' ||
+                  (game.state.bosses?.length ?? 0) > 0
+                }
+              >
+                Summon boss
+              </button>
+            </div>
+            <p className="input-help">
+              Spawn Boss starts the floor's own encounter; Summon boss brings a chosen one.
+            </p>
+          </section>
+
+          <section className="development-section" aria-labelledby="development-grant-title">
+            <h3 id="development-grant-title">Grants</h3>
+            <div className="debug-grant-control">
+              <p className="development-control-label">Grant gear</p>
+              <div className="debug-grant-row">
+                <label className="visually-hidden" htmlFor="debug-gear-set-select">
+                  Gear set
+                </label>
+                <select
+                  id="debug-gear-set-select"
+                  value={selectedGearSetId}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setSelectedGearSetId(isGearSetId(value) ? value : '')
+                  }}
+                >
+                  <option value="">No set</option>
+                  {ALL_GEAR_SET_DEFINITIONS.map((set) => (
+                    <option value={set.id} key={set.id}>
+                      {set.name} set
+                    </option>
+                  ))}
+                </select>
+                <label className="visually-hidden" htmlFor="debug-gear-select">
+                  Gear item
+                </label>
+                <select
+                  id="debug-gear-select"
+                  value={selectedGearId}
+                  onChange={(event) => setSelectedGearId(event.target.value)}
+                >
+                  {GRANTABLE_GEAR_DEFINITIONS.map((item) => (
+                    <option value={item.id} key={item.id}>
+                      {getItemDisplayName(item)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="debug-spawn-button"
+                  type="button"
+                  onClick={grantSelectedGear}
+                  disabled={outsideRun}
+                >
+                  Give gear
+                </button>
+              </div>
+            </div>
+            <div className="debug-grant-control">
+              <p className="development-control-label">Grant skill</p>
+              <div className="debug-grant-row">
+                <label className="visually-hidden" htmlFor="debug-skill-select">
+                  Skill
+                </label>
+                <select
+                  id="debug-skill-select"
+                  value={selectedSkillId}
+                  onChange={(event) => setSelectedSkillId(event.target.value)}
+                >
+                  {Object.values(SKILL_DEFINITIONS).map((skill) => (
+                    <option value={skill.id} key={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="debug-spawn-button"
+                  type="button"
+                  onClick={grantSelectedSkill}
+                  disabled={outsideRun}
+                >
+                  Give skill
+                </button>
+              </div>
+            </div>
+            <div className="debug-grant-control">
+              <p className="development-control-label">Grant eligible synergy</p>
+              <div className="debug-grant-row">
+                <label className="visually-hidden" htmlFor="debug-synergy-select">
+                  Synergy
+                </label>
+                <select
+                  id="debug-synergy-select"
+                  value={
+                    eligibleSynergies.some((synergy) => synergy.id === selectedSynergyId)
+                      ? selectedSynergyId
+                      : ''
+                  }
+                  onChange={(event) => setSelectedSynergyId(event.target.value)}
+                  disabled={eligibleSynergies.length === 0}
+                >
+                  <option value="">
+                    {eligibleSynergies.length === 0
+                      ? 'No eligible synergies'
+                      : 'Select a synergy'}
+                  </option>
+                  {eligibleSynergies.map((synergy) => (
+                    <option value={synergy.id} key={synergy.id}>
+                      {synergy.name} ({synergy.synergySkillIds
+                        .map((skillId) => SKILL_DEFINITIONS[skillId].name)
+                        .join(' + ')})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="debug-spawn-button"
+                  type="button"
+                  onClick={grantSelectedSynergy}
+                  disabled={eligibleSynergies.length === 0 || outsideRun}
+                >
+                  Give synergy
+                </button>
+              </div>
+            </div>
+            <div className="debug-grant-control">
+              <p className="development-control-label">Grant upgrade</p>
+              <div className="debug-grant-row">
+                <label className="visually-hidden" htmlFor="debug-upgrade-select">
+                  Upgrade
+                </label>
+                <select
+                  id="debug-upgrade-select"
+                  value={selectedUpgradeId}
+                  onChange={(event) => setSelectedUpgradeId(event.target.value)}
+                >
+                  {GRANTABLE_UPGRADE_DEFINITIONS.map((upgrade) => (
+                    <option value={upgrade.id} key={upgrade.id}>
+                      {upgrade.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="debug-spawn-button"
+                  type="button"
+                  onClick={grantSelectedUpgrade}
+                  disabled={outsideRun}
+                >
+                  Give upgrade
+                </button>
+              </div>
+            </div>
+            {grantFeedback ? (
+              <p className="input-help debug-grant-feedback" role="status">
+                {grantFeedback}
               </p>
-            ) : (
-              <p className="input-help" id="time-scale-help">
-                Applied: {game.timeScale}x (range {MIN_TIME_SCALE}x–
-                {MAX_TIME_SCALE}x)
+            ) : null}
+          </section>
+
+          <section className="development-section" aria-labelledby="development-stress-title">
+            <h3 id="development-stress-title">Load and speed</h3>
+            <dl className="entity-counts" aria-label="Entity counts">
+              <div>
+                <dt>Total entities</dt>
+                <dd>{totalEntities}</dd>
+              </div>
+              <div>
+                <dt>Enemies</dt>
+                <dd>{entityCounts.enemies}</dd>
+              </div>
+              <div>
+                <dt>Bosses</dt>
+                <dd>{entityCounts.bosses}</dd>
+              </div>
+              <div>
+                <dt>Projectiles</dt>
+                <dd>{entityCounts.projectiles}</dd>
+              </div>
+              <div>
+                <dt>Pickups</dt>
+                <dd>{entityCounts.pickups}</dd>
+              </div>
+              <div>
+                <dt>Summons</dt>
+                <dd>{entityCounts.summons}</dd>
+              </div>
+              <div>
+                <dt>Effects</dt>
+                <dd>{entityCounts.effects}</dd>
+              </div>
+            </dl>
+            <div className="debug-spawn-control">
+              <p className="development-control-label">Stress spawn</p>
+              <div className="debug-spawn-actions">
+                {DEBUG_SPAWN_COUNTS.map((count: DebugSpawnCount) => (
+                  <button
+                    className="debug-spawn-button"
+                    key={count}
+                    type="button"
+                    onClick={() => game.spawnDebugEnemies(count)}
+                    disabled={snapshot.phase !== 'playing'}
+                  >
+                    Spawn {count} enemies
+                  </button>
+                ))}
+              </div>
+              <p className="input-help">
+                Development-only stress spawns add enemies immediately.
               </p>
-            )}
-          </div>
-          <button
-            className="end-run-button"
-            type="button"
-            onClick={() => game.endRun()}
-            disabled={snapshot.phase !== 'playing'}
-          >
-            End Run
-          </button>
+            </div>
+            <div className="time-scale-control">
+              <label htmlFor="time-scale-input">Simulation speed</label>
+              <div className="time-scale-input-row">
+                <input
+                  id="time-scale-input"
+                  type="number"
+                  min={MIN_TIME_SCALE}
+                  max={MAX_TIME_SCALE}
+                  step={0.1}
+                  value={timeScaleInput}
+                  aria-invalid={timeScaleError !== null}
+                  aria-describedby={
+                    timeScaleError ? 'time-scale-error' : 'time-scale-help'
+                  }
+                  onChange={handleTimeScaleChange}
+                />
+                <span aria-hidden="true">x</span>
+              </div>
+              {timeScaleError ? (
+                <p className="input-error" id="time-scale-error" role="alert">
+                  {timeScaleError}
+                </p>
+              ) : (
+                <p className="input-help" id="time-scale-help">
+                  Applied: {game.timeScale}x (range {MIN_TIME_SCALE}x–
+                  {MAX_TIME_SCALE}x). Remembered between runs.
+                </p>
+              )}
+            </div>
+          </section>
         </section>
       ) : null}
     </div>

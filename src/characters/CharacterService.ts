@@ -11,6 +11,7 @@ import type {
   CharacterService,
   ChampionSnapshot,
   CreateChampionInput,
+  CreateDevelopmentChampionInput,
   SaveCharacterInput,
 } from './CharacterTypes'
 
@@ -223,6 +224,32 @@ export function createCharacterService(
       if (!Array.isArray(response.data) || response.data.length !== 1 ||
         !isChampionRow(response.data[0])) {
         throw invalidResponse('created Champion')
+      }
+      return mapChampion(response.data[0])
+    },
+
+    async createDevelopmentChampion(
+      input: CreateDevelopmentChampionInput,
+    ): Promise<ChampionSnapshot> {
+      if (!isNonEmptyString(input.championId) ||
+        !isNonEmptyString(input.name) ||
+        !isNonEmptyString(input.contentVersion) ||
+        !isCharacterBuildSnapshot(input.build) ||
+        !Number.isSafeInteger(input.exhaustionHours) ||
+        input.exhaustionHours < 0) {
+        throw new Error('Development Champion input is invalid.')
+      }
+      const response = await getClient().rpc('create_development_champion', {
+        p_champion_id: input.championId,
+        p_name: input.name,
+        p_content_version: input.contentVersion,
+        p_build: input.build,
+        p_exhaustion_hours: input.exhaustionHours,
+      })
+      if (response.error) throw response.error
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isChampionRow(response.data[0])) {
+        throw invalidResponse('created development Champion')
       }
       return mapChampion(response.data[0])
     },

@@ -4,12 +4,13 @@ import { loadEnv } from 'vite'
 /**
  * Credentials for the authenticated end-to-end flows.
  *
- * These live in `.env` (never committed) and are read through Vite's `loadEnv`
- * so a single file configures both the dev server and the Playwright run. They
+ * These live in `.env.development` (never committed) and are read through Vite's
+ * `loadEnv` in development mode, the mode the Playwright web server runs in,
+ * so one file configures both the dev server and the Playwright run. They
  * are read in the Node test process only and are never inlined into a client
  * bundle: no `src/` module references them.
  */
-const testEnvironment = loadEnv('test', process.cwd(), 'VITE_')
+const testEnvironment = loadEnv('development', process.cwd(), 'VITE_')
 
 export interface TestCredentials {
   email: string

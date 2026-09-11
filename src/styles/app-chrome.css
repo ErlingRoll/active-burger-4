@@ -435,3 +435,101 @@
     left: 0;
   }
 }
+
+/* The build stamp under the title: environment, release, commit and build time. */
+.app-build {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-build-environment {
+  padding: 0.05rem 0.4rem;
+  color: var(--color-amber-950);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-amber-400);
+  border-radius: 999px;
+}
+
+.app-build time {
+  white-space: nowrap;
+}
+
+/* The header's development tools, widened for the quick grants and the note. */
+.development-inventory-panel {
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100svh - 6rem);
+  overflow-y: auto;
+}
+
+.development-inventory-grants,
+.development-champion-generator {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.development-tools-section {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgb(103 232 249 / 22%);
+}
+
+.development-tools-section h3 {
+  margin: 0;
+  color: var(--color-cyan-200);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.development-champion-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.development-champion-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: end;
+  min-height: 2.1rem;
+}
+
+.development-inventory-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.development-inventory-quick-grant {
+  min-height: 1.9rem;
+  padding: 0.3rem 0.55rem;
+  color: var(--color-cyan-100);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--color-cyan-900);
+  border: 1px solid var(--color-cyan-300);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.development-inventory-quick-grant:hover,
+.development-inventory-quick-grant:focus-visible {
+  background: var(--color-cyan-800);
+  outline: 3px solid rgb(103 232 249 / 28%);
+  outline-offset: 2px;
+}
+
+.development-inventory-quick-grant:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+

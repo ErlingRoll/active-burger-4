@@ -175,7 +175,10 @@ fit        = 1 + set_fit(job, equipment) + tag_fit(job, skills), capped at 1.25
 ```
 
 `set_fit` scales with the rarity of the pieces wearing the job's set, and
-`tag_fit` sums the job's tags across the skills weighted by level. Upgrades
+`tag_fit` sums the job's tags across the skills weighted by level. A Champion
+made by the development tools has no source run; when the run is missing,
+`build.level` stands in for `max_floor`, so a generated Champion works the
+Camp exactly like an earned one. Upgrades
 that touch stats are left out at first and can be added by seeding their
 values into a reference table, the way recipes are mirrored.
 
@@ -282,8 +285,9 @@ twelve hours; Woodline and quarry levels raising the rate and adding a second
 slot; the tackle bench with multi-input recipes that spend timber alongside
 scrap, so the bench is cheaper in scrap than the workbench for the same bait.
 The recipe table gains an `inputs jsonb` column and the craft RPC consumes
-each input in turn. The client recipe registry is brought back in line with
-the server's three rows while it is being touched.
+each input in turn. The client recipe registry already mirrors the server's
+rows and `tests/craftingRecipes.test.ts` keeps it that way; the new column
+extends that test rather than replacing it.
 
 ### Slice 3: timed construction (optional)
 

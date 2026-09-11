@@ -12,9 +12,15 @@ import type { RunModeId, RunPreparationSnapshot } from '../game'
  * per screen.
  */
 
-/** The build identifier stamped onto every run result. */
+/** The commit this build was made from; stamped onto every run result. */
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION
 export const RUN_GAME_VERSION = APP_VERSION ?? 'development'
+/** The release from package.json, as major.minor.patch. */
+export const APP_RELEASE: string | undefined = import.meta.env.VITE_APP_RELEASE
+/** When the build ran, as an ISO timestamp. */
+export const APP_BUILT_AT: string | undefined = import.meta.env.VITE_APP_BUILT_AT
+/** Which backend this build serves, and whether the development tools show. */
+export { APP_ENVIRONMENT, DEVELOPMENT_TOOLS_ENABLED } from '../shared/environment'
 export const DEFAULT_CHAMPION_NAME = 'My Champion'
 
 export type PersistenceLoadState = 'loading' | 'ready' | 'error'

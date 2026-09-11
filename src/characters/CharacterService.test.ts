@@ -194,4 +194,54 @@ describe('CharacterService', () => {
       p_fish_instance_id: 'fish-1',
     })
   })
+
+  it('creates a development Champion from a build, with its exhaustion in hours', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [{
+        id: 'dev-1',
+        name: 'Iron Knight 42',
+        source_run_id: 'development:dev-1',
+        content_version: 'test',
+        build,
+        exhaustion_until: '2026-09-12T00:00:00.000Z',
+        archived: false,
+        created_at: '2026-09-11T00:00:00.000Z',
+      }],
+      error: null,
+    }))
+    const service = createService({ rpc } as unknown as SupabaseClient)
+
+    await expect(service.createDevelopmentChampion({
+      championId: 'dev-1',
+      name: 'Iron Knight 42',
+      contentVersion: 'test',
+      build,
+      exhaustionHours: 24,
+    })).resolves.toMatchObject({
+      championId: 'dev-1',
+      sourceRunId: 'development:dev-1',
+      exhaustionUntil: '2026-09-12T00:00:00.000Z',
+    })
+    expect(rpc).toHaveBeenCalledWith('create_development_champion', {
+      p_champion_id: 'dev-1',
+      p_name: 'Iron Knight 42',
+      p_content_version: 'test',
+      p_build: build,
+      p_exhaustion_hours: 24,
+    })
+  })
+
+  it('rejects a development Champion whose build the game would not load', async () => {
+    const rpc = vi.fn()
+    const service = createService({ rpc } as unknown as SupabaseClient)
+
+    await expect(service.createDevelopmentChampion({
+      championId: 'dev-2',
+      name: 'Broken',
+      contentVersion: 'test',
+      build: { ...build, classId: 'not-a-class' } as unknown as typeof build,
+      exhaustionHours: 0,
+    })).rejects.toThrow('Development Champion input is invalid.')
+    expect(rpc).not.toHaveBeenCalled()
+  })
 })

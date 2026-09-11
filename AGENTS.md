@@ -14,9 +14,15 @@ When using subagents:
 
 The following test account may be used by any agent or human tester: test@mctest.face
 
-Credentials are stored in `.env`
+Credentials are stored in `.env.development`, which points at the development
+Supabase project. `.env.production` is read only by production builds.
+
 - VITE_TEST_USER_EMAIL
 - VITE_TEST_USER_PASSWORD
+
+The development menus and the in-run end-to-end suite need the admin role on
+the account they sign in with; see the README's development tools section for
+the SQL that grants it.
 
 ## Shared loot toast
 
@@ -48,8 +54,9 @@ npm run build     # tsc -b covers src/, e2e/, tests/, and vite.config.ts
 A change under `supabase/migrations/` is also validated in CI: the whole
 history is applied to an empty database and the resulting schema is linted, and
 a failure there fails the build. Run `npm run supabase:validate` locally if
-Docker is available. Pushing the migrations to production is CI's job, on `main`
-only; do not run `supabase db push` yourself.
+Docker is available. Pushing the migrations is CI's job: a push to `dev` applies
+them to the development project and a push to `main` to production. Do not run
+`supabase db push` yourself.
 
 ## Verifying a change in the app
 
@@ -58,10 +65,11 @@ Look at the running application. Do not reach for the end-to-end suites.
 ```bash
 npm run screenshot -- --path wiki            # both viewports
 npm run screenshot -- --run --size desktop   # the in-run HUD
+npm run screenshot -- --run --devmenu        # the in-run development menu
 ```
 
 [scripts/screenshot.mjs](scripts/screenshot.mjs) reuses a dev server if one is
-already listening, signs in with the `.env` test account, and writes a PNG for
+already listening, signs in with the `.env.development` test account, and writes a PNG for
 each viewport. It reports console and page errors alongside the images, so a
 screenshot is a check on the code as well as on the layout. Pass the route
 without a leading slash: a POSIX shell on Windows rewrites `/wiki` into a
@@ -70,8 +78,7 @@ filesystem path before Node sees it.
 Two viewports matter: a phone at the default iPhone size, 390x844, and a
 desktop at Full HD. Sizes between the two are the end-to-end matrix's business.
 
-**The Playwright suites under `e2e/` are opt-in.** Do not run `npx playwright
-test`, `npm run test:e2e` or `npm run test:layout` unless the person you are
+**The Playwright suites under `e2e/` are opt-in.** Do not run `npx playwright test`, `npm run test:e2e` or `npm run test:layout` unless the person you are
 working for asks for them in that request. A complete end-to-end pass costs
 about two and a half minutes against about ten seconds for the whole unit
 suite, and re-running it after each edit is where a long turn goes. Driving the

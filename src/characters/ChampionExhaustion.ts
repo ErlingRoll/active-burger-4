@@ -29,9 +29,10 @@ export function formatChampionExhaustion(
   if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
     return 'Available'
   }
-  const remainingHours = Math.floor(remainingMilliseconds / 3_600_000)
-  const remainingMinutes = Math.ceil((remainingMilliseconds % 3_600_000) / 60_000)
-  return `${remainingHours}h ${remainingMinutes}m remaining`
+  // Round the whole remainder up to a minute first, then split it, so that a
+  // timer a second short of a full day reads "24h 0m" rather than "23h 60m".
+  const remainingMinutes = Math.ceil(remainingMilliseconds / 60_000)
+  return `${Math.floor(remainingMinutes / 60)}h ${remainingMinutes % 60}m remaining`
 }
 
 /**

@@ -29,7 +29,9 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env` and fill in the Supabase values. Without them the
+Copy `.env.example` to `.env.development` and fill in the development project's
+Supabase values; `.env.production` holds the production project's and is read
+only by `npm run build` and `vite preview`. Without them the
 application still runs: each service reports its own configuration error and the
 screens explain what is unavailable.
 
@@ -70,7 +72,7 @@ npm run build     # tsc -b across src, e2e, and tooling, then vite build
 ```
 
 `npm run test:e2e` runs the Playwright suite. It needs a Supabase project and
-`VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` in `.env`, so CI runs lint,
+`VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` in `.env.development`, so CI runs lint,
 tests, and build only.
 
 Some checks read the repository rather than import it, and live in
@@ -80,6 +82,29 @@ Some checks read the repository rather than import it, and live in
   cycles.
 - `styleTokens.test.ts` keeps repeated colours in `src/styles/tokens.css`.
 - `documentation.test.ts` keeps the content counts in PLAN.md true.
+
+## Development tools
+
+Two development menus exist: one in the header, for granting inventory items
+and creating random Champions outside a run, and one in the arena, for driving a run (bosses, gear, skills,
+stress spawns, simulation speed). They show only to an account with the admin
+role, on a local dev server or on any build that serves the dev backend, and
+never on production; the environment half of that switch is
+`DEVELOPMENT_TOOLS_ENABLED` in `src/shared/environment.ts`, which follows the
+build's environment stamp rather than Vite's dev mode, so the Netlify dev
+deploy has them too.
+
+The in-run menu opens from its button, the backquote key, or `?devmenu=open`
+in the URL. The header's inventory grants go through a server function that
+requires the admin role as well, so the role gates both what is shown and what
+is allowed. Grant it to an account in the Supabase SQL editor, then sign out
+and back in:
+
+```sql
+update auth.users
+set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
+where email = 'you@example.com';
+```
 
 ## Architecture
 
@@ -100,31 +125,39 @@ palette token; a colour used more than twice must be in that file.
 ## Database migrations
 
 Every file in [supabase/migrations/](supabase/migrations/) is validated on each
-pull request and on each push to `main`: CI applies the whole history to an
-empty Postgres and then lints the schema it produces. A migration that fails to
-apply, or a function the linter rejects, fails the build.
+pull request and on each push to `main` or `dev`: CI applies the whole history
+to an empty Postgres and then lints the schema it produces. A migration that
+fails to apply, or a function the linter rejects, fails the build.
 
 ```bash
 npm run supabase:validate  # apply every migration to a fresh database, then lint
 npm run supabase:check     # compare local migrations with the linked project
 ```
 
-Validation needs Docker locally; CI has it. Once validation passes on `main`,
-the **Push migrations to production** job runs `supabase db push` against the
-linked project. Nothing is pushed from a pull request, and nothing is pushed
-while lint, tests, build, or migration validation are failing.
+Validation needs Docker locally; CI has it. Once validation passes, the
+**Push migrations** job runs `supabase db push` against the project that
+belongs to the branch: `main` deploys to the production project and `dev` to
+the development one. Nothing is pushed from a pull request, and nothing is
+pushed while lint, tests, build, or migration validation are failing.
 
-The job reads three repository secrets:
+The job runs in the GitHub environment named after its branch, `production` for
+`main` and `dev` for `dev`, and reads from it:
 
-- `SUPABASE_ACCESS_TOKEN` — a personal access token from the Supabase dashboard.
-- `SUPABASE_DB_PASSWORD` — the production database password.
-- `SUPABASE_PROJECT_ID` — the project ref, the subdomain of `VITE_SUPABASE_URL`.
+- `SUPABASE_ACCESS_TOKEN` — a secret; a personal access token from the Supabase
+  dashboard. It is per user rather than per project, so it may live at
+  repository level instead.
+- `SUPABASE_DB_PASSWORD` — a secret; that project's database password.
+- `SUPABASE_PROJECT_ID` — a variable; the project ref, the subdomain of
+  `VITE_SUPABASE_URL`.
 
 ## Deployment
 
 Production deploys to Netlify from `netlify.toml`, with SPA routing via
 `public/_redirects`. `vite.config.ts` stamps the build with the commit SHA,
-reading it from the host's environment or from `git` locally.
+reading it from the host's environment or from `git` locally, the release from
+`package.json`, the build time, and the environment. The header shows all four,
+with a "Dev" tag on any build that is not Netlify's production context; set
+`VITE_APP_ENVIRONMENT` to override that.
 
 ## Conventions
 

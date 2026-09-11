@@ -18,6 +18,7 @@
  *   --path <route>   Screen to open. Default "/".
  *   --size <which>   "phone", "desktop" or "both". Default "both".
  *   --run            Enter the dungeon: resume the active run, or start one.
+ *   --devmenu        With --run: open the in-run development menu before the shot.
  *   --wait <ms>      Settle time after the screen renders. Default 1500.
  *   --out <dir>      Where the images land. Default the scratchpad, else "."
  *   --anon           Skip signing in.
@@ -47,6 +48,7 @@ function readOptions(argv) {
     path: '/',
     size: 'both',
     run: false,
+    devmenu: false,
     wait: 1500,
     out: process.env.CLAUDE_SCRATCHPAD_DIR ?? '.',
     anon: false,
@@ -59,6 +61,7 @@ function readOptions(argv) {
     else if (flag === '--wait') { options.wait = Number(value); index += 1 }
     else if (flag === '--out') { options.out = value; index += 1 }
     else if (flag === '--run') { options.run = true }
+    else if (flag === '--devmenu') { options.devmenu = true }
     else if (flag === '--anon') { options.anon = true }
     else { throw new Error(`Unknown option: ${flag}`) }
   }
@@ -122,7 +125,7 @@ async function signIn(page) {
   const password = environment.VITE_TEST_USER_PASSWORD
   if (!email || !password) {
     throw new Error(
-      'Set VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD in .env, or pass --anon.',
+      'Set VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD in .env.development, or pass --anon.',
     )
   }
   await page.getByLabel('Email').fill(email)
@@ -200,6 +203,10 @@ async function capture(browser, options, viewport, outputDirectory) {
   }
   if (options.run) {
     await enterRun(page)
+    if (options.devmenu) {
+      // The backquote toggles the development menu wherever the tools are on.
+      await page.keyboard.press("Backquote")
+    }
   } else if (options.path !== '/') {
     await page.goto(`${BASE_URL}${options.path}`)
   }
