@@ -61,6 +61,7 @@ function renderScreen(fish: InventoryItemInstance[]) {
       service={service}
       inventoryService={inventoryService}
       inventoryError={null}
+      campService={null}
       configurationError={null}
       onBack={vi.fn()}
     />,

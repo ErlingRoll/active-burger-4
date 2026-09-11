@@ -1,0 +1,371 @@
+/* ---------------------------------------------------------------------------
+   The Camp panel.
+
+   A HUD panel on the hub, in the same plate as the expedition panel, that
+   opens from its own station. It fits the viewport like the rest of the hub:
+   every size is a clamp against the viewport height, and a card grows by a
+   row per working Champion rather than by a scrollbar.
+   --------------------------------------------------------------------------- */
+
+.hub-camp-panel {
+  position: relative;
+  z-index: 6;
+  display: grid;
+  gap: clamp(0.3rem, 0.9vh, 0.6rem);
+  width: min(100%, 38rem);
+  padding: clamp(0.4rem, 1.1vh, 0.85rem) clamp(0.55rem, 1.3vh, 0.9rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 42%),
+    linear-gradient(180deg, rgb(20 27 39 / 92%), rgb(7 10 16 / 96%));
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 32%),
+    inset 0 -1px rgb(0 0 0 / 70%),
+    0 0.9rem 2rem rgb(0 0 0 / 42%);
+  pointer-events: auto;
+}
+
+.camp-panel-heading {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.camp-panel-heading h3 {
+  margin: clamp(0.1rem, 0.4vh, 0.25rem) 0 0;
+  color: var(--color-orange-50);
+  font-size: clamp(0.9rem, 2vh, 1.2rem);
+  letter-spacing: -0.03em;
+}
+
+.camp-panel-close {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.5rem, 3.2vh, 2rem);
+  height: clamp(1.5rem, 3.2vh, 2rem);
+  place-items: center;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.camp-panel-close:hover,
+.camp-panel-close:focus-visible {
+  color: var(--color-orange-50);
+  border-color: rgb(var(--accent-rgb) / 55%);
+}
+
+.camp-panel-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.65rem, 1.5vh, 0.85rem);
+}
+
+.camp-panel-summary {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(0.3rem, 0.8vh, 0.5rem) clamp(0.45rem, 1vh, 0.7rem);
+  background: rgb(0 0 0 / 28%);
+  border: 1px solid rgb(var(--accent-rgb) / 18%);
+  border-radius: 0.35rem;
+}
+
+.camp-panel-summary strong,
+.camp-job-copy strong,
+.camp-worker-copy strong,
+.camp-picker-copy strong {
+  display: block;
+  color: var(--color-orange-50);
+  font-size: clamp(0.68rem, 1.55vh, 0.88rem);
+  line-height: 1.2;
+}
+
+.camp-panel-summary small,
+.camp-job-copy small,
+.camp-worker-pending small,
+.camp-picker-copy > span:not(.camp-sheet-line) {
+  display: block;
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+  line-height: 1.25;
+}
+
+.camp-claim-action,
+.camp-send-action {
+  flex: 0 0 auto;
+  min-height: clamp(1.7rem, 3.8vh, 2.5rem);
+  padding: 0 clamp(0.6rem, 1.4vh, 1rem);
+  color: var(--color-amber-50);
+  font: inherit;
+  font-size: clamp(0.62rem, 1.45vh, 0.82rem);
+  font-weight: 850;
+  background:
+    linear-gradient(90deg, rgb(234 88 12 / 68%), rgb(120 53 15 / 48%)),
+    #44210c;
+  border: 1px solid var(--color-amber-500);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.camp-claim-action:hover:not(:disabled),
+.camp-claim-action:focus-visible,
+.camp-send-action:hover:not(:disabled),
+.camp-send-action:focus-visible {
+  background: linear-gradient(90deg, var(--color-orange-600), var(--color-amber-800));
+  outline: 3px solid rgb(251 191 36 / 25%);
+  outline-offset: 2px;
+}
+
+.camp-claim-action:disabled,
+.camp-send-action:disabled,
+.camp-recall-action:disabled,
+.camp-picker-option:disabled,
+.camp-picker-cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.camp-jobs,
+.camp-workers,
+.camp-picker-list {
+  display: grid;
+  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-job {
+  display: grid;
+  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+  padding: clamp(0.3rem, 0.8vh, 0.55rem) clamp(0.45rem, 1vh, 0.7rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 8%), transparent 60%),
+    rgb(0 0 0 / 24%);
+  border: 1px solid rgb(var(--accent-rgb) / 18%);
+  border-radius: 0.35rem;
+}
+
+.camp-job-heading {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.camp-job-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.5rem, 3.4vh, 2.2rem);
+  height: clamp(1.5rem, 3.4vh, 2.2rem);
+  place-items: center;
+  font-size: clamp(1rem, 2.3vh, 1.5rem);
+  background: rgb(245 158 11 / 12%);
+  border: 1px solid rgb(251 191 36 / 30%);
+  border-radius: 50%;
+}
+
+.camp-job-icon .material-icon {
+  width: 1.1em;
+  height: auto;
+}
+
+.camp-job-copy {
+  min-width: 0;
+}
+
+.camp-worker,
+.camp-picker-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  padding: clamp(0.28rem, 0.7vh, 0.45rem) clamp(0.4rem, 0.9vh, 0.6rem);
+  text-align: left;
+  background: rgb(0 0 0 / 26%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.3rem;
+}
+
+.camp-worker-copy,
+.camp-picker-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.camp-sheet-line {
+  display: block;
+  overflow: hidden;
+  color: var(--color-amber-200);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.camp-worker-pending {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  text-align: right;
+}
+
+.camp-worker-pending strong {
+  color: var(--color-orange-50);
+  font-size: clamp(0.85rem, 2vh, 1.15rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.camp-recall-action,
+.camp-picker-cancel {
+  flex: 0 0 auto;
+  min-height: clamp(1.5rem, 3.2vh, 2.1rem);
+  padding: 0 clamp(0.5rem, 1.1vh, 0.8rem);
+  color: var(--color-orange-50);
+  font: inherit;
+  font-size: clamp(0.58rem, 1.35vh, 0.76rem);
+  font-weight: 800;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.camp-recall-action:hover:not(:disabled),
+.camp-recall-action:focus-visible,
+.camp-picker-cancel:hover:not(:disabled),
+.camp-picker-cancel:focus-visible {
+  border-color: rgb(var(--accent-rgb) / 60%);
+  background: rgb(var(--accent-rgb) / 14%);
+}
+
+.camp-picker {
+  display: grid;
+  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+  justify-items: end;
+}
+
+.camp-picker-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.35vh, 0.76rem);
+  justify-self: start;
+}
+
+.camp-picker-list {
+  width: 100%;
+}
+
+.camp-picker-option {
+  font: inherit;
+  cursor: pointer;
+}
+
+.camp-picker-option:hover:not(:disabled),
+.camp-picker-option:focus-visible {
+  border-color: rgb(var(--accent-rgb) / 55%);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 16%), transparent 70%),
+    rgb(0 0 0 / 26%);
+}
+
+.camp-picker-option.exhausted .camp-picker-copy > span:not(.camp-sheet-line) {
+  color: var(--color-amber-300);
+}
+
+.camp-picker-send {
+  flex: 0 0 auto;
+  color: var(--color-amber-200);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* On a phone the hub is a document and the panel is one more sheet in the
+   dock, opened under the station that opened it. */
+@media (max-width: 47rem), (max-height: 34rem) {
+  .hub-camp-panel {
+    order: 6;
+    width: 100%;
+    padding: 0.7rem 0.75rem 0.8rem;
+  }
+
+  .camp-claim-action,
+  .camp-send-action,
+  .camp-recall-action,
+  .camp-picker-cancel {
+    min-height: 2.5rem;
+  }
+
+  .camp-worker,
+  .camp-picker-option {
+    flex-wrap: wrap;
+  }
+
+  .camp-sheet-line {
+    white-space: normal;
+  }
+}
+
+/* The Camp's station on the hub, beside the other rooms of the refuge. */
+.hub-station-camp::after { content: '⌂'; }
+
+/* A working Champion, wherever a Champion is listed. */
+.champion-availability.working {
+  color: var(--color-orange-200);
+  background: rgb(124 45 18 / 35%);
+  border-color: rgb(253 186 116 / 42%);
+}
+
+.run-abyss-champion-list .game-mode-choice.working {
+  border-color: rgb(253 186 116 / 45%);
+}
+
+.run-abyss-champion-list .game-mode-choice.working small {
+  color: var(--color-orange-300);
+}
+
+/* The sheet per job on the champions page. */
+.champion-labour-sheets {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.champion-labour-sheets div {
+  display: grid;
+  grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.champion-labour-sheets dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.champion-labour-sheets dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.champion-labour-sheets .camp-sheet-line {
+  font-size: 0.8rem;
+  white-space: normal;
+}

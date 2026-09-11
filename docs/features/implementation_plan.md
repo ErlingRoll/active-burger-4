@@ -293,14 +293,19 @@ and the idle layer itself.
 - Building registry with tiers, recipes, and construction costs. *The
   Storehouse, the Woodline and the quarry are seeded with their levels and
   costs, server and client, and held together by a registry test.*
-- Champion job assignment, with exhausted Champions eligible to work.
+- Champion job assignment, with exhausted Champions eligible to work. *Done:
+  assign, unassign and claim, with a Champion moved between jobs settling the
+  old one, and a working Champion refused by the Abyss.*
 - Champion aptitude derived from the existing snapshot, never a new stat.
   *The labour sheet is derived from the build in SQL and TypeScript twins
   pinned to one fixture set; see the delivery plan.*
 - Offline accrual computed from server timestamps with a Storehouse-set cap.
-- Idempotent claim operation.
+  *Done, at eight hours until the Storehouse can be upgraded.*
+- Idempotent claim operation. *Done; a claim is an inventory operation.*
 - Camp stations rendered into the existing hub scene, fitting the viewport
-  without scrolling and without width breakpoints.
+  without scrolling on a desktop and sharing the hub's phone breakpoint.
+  *Done as a panel opened from a sixth station; buildings drawn into the
+  scene are still to come.*
 
 **Exit criteria:** accrual cannot be claimed twice, no building output changes
 a combat statistic, the simulation reads no Camp state, and a player who never

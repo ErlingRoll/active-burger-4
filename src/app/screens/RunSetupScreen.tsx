@@ -37,6 +37,9 @@ import {
   isChampionExhausted,
 } from '../runFormatting'
 import type { CharacterService } from '../../characters'
+import { getCampAssignment, type CampService, type CampState } from '../../camp/CampTypes'
+import { CAMP_BUILDING_DEFINITIONS } from '../../content/camp/CampBuildings'
+import { getCampJobDefinition } from '../../content/camp/CampJobs'
 import type { InventoryService } from '../../inventory'
 import {
   formatFishSizeKg,
@@ -75,6 +78,8 @@ export interface RunSetupScreenProps {
   inventoryError: string | null
   characterService: CharacterService | null
   characterError: string | null
+  /** Which Champions are working at the Camp; a working Champion cannot descend. */
+  campService: CampService | null
   maximumDungeonFloor: number
   initialMode: RunModeId
   onStart: (options: StartRunOptions) => Promise<void>
@@ -92,6 +97,7 @@ export function RunSetupScreen({
   inventoryError,
   characterService,
   characterError,
+  campService,
   maximumDungeonFloor,
   initialMode,
   onStart,
@@ -120,6 +126,7 @@ export function RunSetupScreen({
     () => characterService ? characterError : characterError ?? 'Champion storage is unavailable.',
   )
   const [revivalState, setRevivalState] = useState<'idle' | 'saving'>('idle')
+  const [campState, setCampState] = useState<CampState | null>(null)
   const [revivalError, setRevivalError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
   useEffect(() => {
@@ -192,6 +199,33 @@ export function RunSetupScreen({
       cancelled = true
     }
   }, [characterService])
+  /*
+   * Who is at the Camp. A working Champion is shown and cannot be sent down;
+   * the server refuses it too, so an unreachable Camp only costs the label.
+   */
+  useEffect(() => {
+    if (!campService || selectedMode !== 'infinite-abyss') {
+      return
+    }
+    let cancelled = false
+    void campService.loadState()
+      .then((state) => {
+        if (!cancelled) {
+          setCampState(state)
+        }
+      })
+      .catch(() => {
+        // The lockout is the server's; the screen only loses its label.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [campService, selectedMode])
+  const workingAt = (championId: string): string | null => {
+    const assignment = getCampAssignment(campState, championId)
+    const job = assignment ? getCampJobDefinition(assignment.jobId) : undefined
+    return job ? CAMP_BUILDING_DEFINITIONS[job.buildingId].name : null
+  }
   const selectedFishSlots = useMemo(
     () => selectedFishIds
       .map((id) => fishItems.find((item) => item.itemInstanceId === id))
@@ -212,6 +246,9 @@ export function RunSetupScreen({
   )
   const selectedChampionExhausted = selectedChampion
     ? isChampionExhausted(selectedChampion, currentTime)
+    : false
+  const selectedChampionWorking = selectedChampion
+    ? workingAt(selectedChampion.championId) !== null
     : false
   const reviveChampion = async (fish: InventoryItemInstance): Promise<void> => {
     if (!characterService || !selectedChampion || !selectedChampionExhausted || revivalState === 'saving') {
@@ -289,7 +326,7 @@ export function RunSetupScreen({
             }}
             disabled={startState === 'saving' ||
               (selectedMode === 'infinite-abyss' &&
-                (selectedChampion === undefined || selectedChampionExhausted))}
+                (selectedChampion === undefined || selectedChampionExhausted || selectedChampionWorking))}
           >
             <span>{startState === 'saving' ? 'Saving…' : 'Start Run'}</span>
             <span aria-hidden="true">→</span>
@@ -520,12 +557,13 @@ export function RunSetupScreen({
                    {champions.map((champion) => {
                      const isSelected = champion.championId === selectedChampionId
                      const isExhausted = isChampionExhausted(champion, currentTime)
+                     const working = workingAt(champion.championId)
                      const panelId = `abyss-champion-panel-${champion.championId}`
                      const triggerId = `abyss-champion-trigger-${champion.championId}`
                      return (
                        <article className={`run-abyss-champion-card${isSelected ? ' selected' : ''}`} key={champion.championId}>
                          <button
-                           className={`game-mode-choice run-abyss-champion-trigger${isSelected ? ' selected' : ''}${isExhausted ? ' exhausted' : ''}`}
+                           className={`game-mode-choice run-abyss-champion-trigger${isSelected ? ' selected' : ''}${isExhausted ? ' exhausted' : ''}${working ? ' working' : ''}`}
                            id={triggerId}
                            type="button"
                            aria-expanded={isSelected}
@@ -540,9 +578,11 @@ export function RunSetupScreen({
                              <strong>{champion.name}</strong>
                              <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
                              <small>
-                               {isExhausted
-                                 ? `Exhausted · ${formatChampionExhaustion(champion.exhaustionUntil, currentTime)}`
-                                 : 'Available'}
+                               {working
+                                 ? `Working · ${working}. Bring it back from the Camp to descend.`
+                                 : isExhausted
+                                   ? `Exhausted · ${formatChampionExhaustion(champion.exhaustionUntil, currentTime)}`
+                                   : 'Available'}
                              </small>
                            </span>
                            <span className="run-abyss-champion-trigger-state" aria-hidden="true">

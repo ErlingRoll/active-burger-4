@@ -19,6 +19,9 @@ import {
 } from './HubPresenceService'
 import { tooltipClassName } from '../rendering/TooltipShell'
 import { EssenceMark } from '../ui/EssenceMark'
+import { CampPanel } from '../camp/CampPanel'
+import type { CampService } from '../camp/CampTypes'
+import type { CharacterService } from '../characters/CharacterTypes'
 
 const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
@@ -91,6 +94,9 @@ interface AdventureHubSceneProps {
   presenceConfigurationError: string | null
   leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
+  campService: CampService | null
+  campConfigurationError: string | null
+  characterService: CharacterService | null
   activeRun: ActiveDungeonRun | null
   activeCharacterClassName: string | null
   runLoadState: 'loading' | 'ready' | 'error' | 'unavailable'
@@ -165,6 +171,9 @@ export function AdventureHubScene({
   presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
+  campService,
+  campConfigurationError,
+  characterService,
   activeRun,
   activeCharacterClassName,
   runLoadState,
@@ -195,6 +204,7 @@ export function AdventureHubScene({
   const [sendingSignalId, setSendingSignalId] = useState<HubSignalId | null>(null)
   const [signalCooldownUntil, setSignalCooldownUntil] = useState<number | null>(null)
   const [playerPosition, setPlayerPosition] = useState<HubPosition>(createHubSpawnPosition)
+  const [campOpen, setCampOpen] = useState(false)
   const signalTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const playerPositionRef = useRef<HubPosition>(playerPosition)
@@ -779,6 +789,17 @@ export function AdventureHubScene({
                   <span aria-hidden="true">✦</span>
                   <span><strong>Chronicle</strong><small>Runs already ended</small></span>
                 </button>
+                <button
+                  className="hub-station hub-station-camp"
+                  type="button"
+                  onClick={() => setCampOpen((open) => !open)}
+                  disabled={runLoadState !== 'ready'}
+                  aria-expanded={campOpen}
+                  aria-controls={campOpen ? 'hub-camp-panel' : undefined}
+                >
+                  <span aria-hidden="true">⌂</span>
+                  <span><strong>The Camp</strong><small>{campOpen ? 'Close the Camp' : 'Send Champions to work'}</small></span>
+                </button>
               </div>
 
               <section className="hub-expedition-panel" aria-labelledby="current-run-title">
@@ -836,6 +857,15 @@ export function AdventureHubScene({
 
           <div className="hub-hud-column hub-hud-column-center">
             {presenceError ? <p className="hub-presence-error" role="status">{presenceError}</p> : null}
+            {campOpen ? (
+              <CampPanel
+                id="hub-camp-panel"
+                service={campService}
+                configurationError={campConfigurationError}
+                characterService={characterService}
+                onClose={() => setCampOpen(false)}
+              />
+            ) : null}
             <aside className="hub-social-panel" aria-labelledby="hub-social-title">
               <div className="hub-social-gathered">
                 <p className="screen-kicker" id="hub-social-title">Gathered</p>

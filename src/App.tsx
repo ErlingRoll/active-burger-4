@@ -163,6 +163,7 @@ function App() {
     fishing,
     hubPresence,
     bugReport,
+    camp,
   } = services
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
@@ -1769,6 +1770,9 @@ function App() {
           presenceConfigurationError={hubPresence.configurationError}
           leaderboardService={abyssLeaderboard.service}
           leaderboardConfigurationError={abyssLeaderboard.configurationError}
+          campService={camp.service}
+          campConfigurationError={camp.configurationError}
+          characterService={characters.service}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}
@@ -1849,6 +1853,7 @@ function App() {
             inventoryError={inventory.configurationError}
             characterService={characters.service}
             characterError={characters.configurationError}
+            campService={camp.service}
             maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
             initialMode={runMode}
             onStart={startRun}
@@ -1894,6 +1899,7 @@ function App() {
             service={characters.service}
             inventoryService={inventory.service}
             inventoryError={inventory.configurationError}
+            campService={camp.service}
             configurationError={characters.configurationError}
             onBack={returnToDashboard}
           />

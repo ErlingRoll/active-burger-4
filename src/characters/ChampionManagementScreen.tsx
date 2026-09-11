@@ -28,11 +28,24 @@ import { SkillIcon } from '../rendering/SkillIcon'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
 import { formatChampionAvailability, isChampionExhausted } from './ChampionExhaustion'
 import { ChampionRevivalControl, type RevivalFishLoadState } from './ChampionRevivalControl'
+import {
+  formatCampWork,
+  getCampAssignment,
+  type CampAssignment,
+  type CampService,
+  type CampState,
+} from '../camp/CampTypes'
+import { LabourSheetLine } from '../camp/LabourSheetLine'
+import { CAMP_BUILDING_DEFINITIONS } from '../content/camp/CampBuildings'
+import { ALL_CAMP_JOB_DEFINITIONS } from '../content/camp/CampJobs'
+import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 
 interface ChampionManagementScreenProps {
   service: CharacterService | null
   inventoryService: InventoryService | null
   inventoryError: string | null
+  /** What each Champion is worth at the Camp, and which of them are working there. */
+  campService: CampService | null
   configurationError: string | null
   onBack: () => void
 }
@@ -220,15 +233,56 @@ function ChampionGearCard({
   )
 }
 
+/**
+ * The labour sheet the Champion would work each job with.
+ *
+ * Gear matters twice: once in the run that won the Champion, and again every
+ * time the player chooses who works. The fit differs per job, so each job
+ * gets its line; the floor comes from the Camp so the preview is the sheet
+ * the server would store.
+ */
+function ChampionLabourSheets({
+  champion,
+  sourceFloor,
+}: {
+  champion: ChampionSnapshot
+  sourceFloor: number | null
+}) {
+  return (
+    <section className="champion-build-section" aria-labelledby="champion-labour-title">
+      <header className="champion-build-section-heading">
+        <div>
+          <span>What the Camp gets out of this build</span>
+          <h4 id="champion-labour-title">Camp labour</h4>
+        </div>
+      </header>
+      <dl className="champion-labour-sheets">
+        {ALL_CAMP_JOB_DEFINITIONS.map((job) => (
+          <div key={job.id}>
+            <dt>{CAMP_BUILDING_DEFINITIONS[job.buildingId].name}</dt>
+            <dd>
+              <LabourSheetLine sheet={deriveCampLabourSheet({ build: champion.build, sourceFloor }, job)} />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
 export function ChampionDetails({
   champion,
   headerAction,
+  camp,
 }: {
   champion: ChampionSnapshot
   headerAction?: ReactNode
+  /** Absent when the screen has no Camp to ask; the sheet is then left out rather than guessed. */
+  camp?: { assignment: CampAssignment | undefined, sourceFloor: number | null }
 }) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
   const now = useNow()
+  const work = formatCampWork(camp?.assignment)
   return (
     <section className="champion-details" aria-labelledby="champion-details-title">
       <header className="champion-details-heading">
@@ -244,6 +298,7 @@ export function ChampionDetails({
           <span className={`champion-availability${isChampionExhausted(champion, now) ? ' exhausted' : ''}`}>
             {formatChampionAvailability(champion, now)}
           </span>
+          {work ? <span className="champion-availability working">{work}</span> : null}
           {headerAction}
         </span>
       </header>
@@ -271,6 +326,7 @@ export function ChampionDetails({
           ))}
         </ul>
       </section>
+      {camp ? <ChampionLabourSheets champion={champion} sourceFloor={camp.sourceFloor} /> : null}
       <section className="champion-build-section" aria-labelledby="champion-gear-title">
         <header className="champion-build-section-heading">
           <div>
@@ -301,6 +357,7 @@ export function ChampionManagementScreen({
   service,
   inventoryService,
   inventoryError,
+  campService,
   configurationError,
   onBack,
 }: ChampionManagementScreenProps) {
@@ -324,6 +381,7 @@ export function ChampionManagementScreen({
   const [fishLoadError, setFishLoadError] = useState<string | null>(inventoryError)
   const [revivalError, setRevivalError] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
+  const [campState, setCampState] = useState<CampState | null>(null)
   const now = useNow(30_000)
 
   useEffect(() => {
@@ -378,6 +436,25 @@ export function ChampionManagementScreen({
       cancelled = true
     }
   }, [inventoryService])
+
+  useEffect(() => {
+    if (!campService) {
+      return
+    }
+    let cancelled = false
+    void campService.loadState()
+      .then((state) => {
+        if (!cancelled) {
+          setCampState(state)
+        }
+      })
+      .catch(() => {
+        // The page reads fine without the Camp; it only loses the labour lines.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [campService])
 
   const selectedChampion = useMemo(
     () => champions.find((champion) => champion.championId === selectedChampionId) ?? null,
@@ -508,7 +585,7 @@ export function ChampionManagementScreen({
                 >
                   <strong>{champion.name}</strong>
                   <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                  <small>{formatChampionAvailability(champion, now)}</small>
+                  <small>{formatCampWork(getCampAssignment(campState, champion.championId)) ?? formatChampionAvailability(champion, now)}</small>
                 </button>
               ))}
             </div>
@@ -516,6 +593,10 @@ export function ChampionManagementScreen({
               <div>
                 <ChampionDetails
                   champion={selectedChampion}
+                  camp={campState ? {
+                    assignment: getCampAssignment(campState, selectedChampion.championId),
+                    sourceFloor: campState.championFloors[selectedChampion.championId] ?? null,
+                  } : undefined}
                   headerAction={isChampionExhausted(selectedChampion, now) ? (
                     <ChampionRevivalControl
                       key={selectedChampion.championId}

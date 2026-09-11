@@ -11,6 +11,8 @@ import {
 } from '../runFormatting'
 import type { AbyssLeaderboardService } from '../../leaderboard/AbyssLeaderboardService'
 import type { HubPresenceService } from '../../hub/HubPresenceService'
+import type { CampService } from '../../camp/CampTypes'
+import type { CharacterService } from '../../characters/CharacterTypes'
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
   CHARACTER_CLASS_DEFINITIONS,
@@ -26,6 +28,9 @@ export interface GameDashboardProps {
   presenceConfigurationError: string | null
   leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
+  campService: CampService | null
+  campConfigurationError: string | null
+  characterService: CharacterService | null
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState
   runLoadError: string | null
@@ -52,6 +57,9 @@ export function GameDashboard({
   presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
+  campService,
+  campConfigurationError,
+  characterService,
   activeRun,
   runLoadState,
   runLoadError,
@@ -103,6 +111,9 @@ export function GameDashboard({
         presenceConfigurationError={presenceConfigurationError}
         leaderboardService={leaderboardService}
         leaderboardConfigurationError={leaderboardConfigurationError}
+        campService={campService}
+        campConfigurationError={campConfigurationError}
+        characterService={characterService}
         activeRun={activeRun}
         activeCharacterClassName={activeCharacterClass?.name ?? null}
         runLoadState={runLoadState}

@@ -36,17 +36,25 @@ run gains ongoing value instead of producing a Champion the player may never
 use. The Champion roster becomes a collection worth growing and diversifying.
 Exhaustion becomes a scheduling decision rather than pure downtime.
 
-### Champion aptitude
+### The labour sheet
 
-A job's output scales with something already stored in the Champion snapshot,
-so no new player-facing stat is invented. Use the class affinity and the floor
-the Champion was created on. A Frost Warden works the smokehouse better than
-the forge; a Champion from a deep clear works any job better than one from a
-shallow clear.
+A job's output scales with what is already stored in the Champion snapshot, so
+no new player-facing stat is invented, and the Camp never reduces a Champion
+to its class. The **labour sheet** is derived from the same build the Champion
+fights with: level and the floor of the run that won it set its strength,
+attack speed sets its tempo, Max HP its stamina, the increased-damage rolls its
+load, critical chance the chance of a bonus haul, and the gear set and skill
+tags decide where it is at home. Splintering gear and melee skills fit the
+Woodline; Giant's gear and area skills fit the quarry; summons fit both, as
+extra hands. The formulas and their bounds are in
+[camp_delivery_plan.md](camp_delivery_plan.md).
 
-Aptitude is a modest multiplier, not a gate. Any Champion can work any job. The
-purpose is to make a varied roster slightly better than a stack of clones, not
-to lock a player out of a building because they have the wrong class.
+The sheet is a modest multiplier, not a gate. Any Champion can work any job,
+and everything multiplied together is capped at twice the base rate. The
+purpose is to make a varied roster slightly better than a stack of clones, and
+to make gear matter twice: once in the run that won the Champion, and again
+every time the player chooses who works. The picker shows the sheet on every
+row, so that choice is made with the numbers in view.
 
 ## Buildings
 
@@ -62,6 +70,9 @@ system's input. A proposed building that fails that test does not belong here.
 | Trophy hall | Bestiary and collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
 | Storehouse | Timber and stone | Inventory capacity, and the accrual cap for offline production |
 | Woodline and quarry | Champion labour only | Timber and stone |
+
+The Storehouse, the Woodline and the quarry are live. The rest are proposals,
+each waiting on the system that would feed it; see the delivery plan.
 
 The Rift anchor deserves a note. It makes exhaustion a resource a player can
 spend materials against rather than a wall they wait out, and it gives players
@@ -100,11 +111,13 @@ never raise a combat statistic.
 ## Presentation
 
 The Camp is part of the hub scene and follows the hub's rules, not a
-document's rules. It must fit the viewport without scrolling, including its
-station panels, and it must adapt without width breakpoints. Use intrinsic
-layout: wrapping flex rows with `flex: 1 1 min(<ideal>, 100%)` bases,
-`width: min(100%, <cap>)`, auto-fit grids, and `clamp()` sized against `vh` for
-anything that has to survive a short viewport.
+document's rules. On a desktop it must fit the viewport without scrolling,
+including its station panels; on a phone the hub is a document and the Camp
+is one more sheet in its dock. Intrinsic layout first: wrapping flex rows
+with `flex: 1 1 min(<ideal>, 100%)` bases, `width: min(100%, <cap>)`, auto-fit
+grids, and `clamp()` sized against `vh` for anything that has to survive a
+short viewport. The hub's phone breakpoint is the one width breakpoint, and
+the Camp shares it.
 
 A building's detail view is a panel or a sheet, in the same shape as the in-run
 HUD inspector, not a new full screen and not a scrolling document. If a

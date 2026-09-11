@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slice 0 shipped 2026-09-11; slices 1 and up are still proposals.
+> **Status:** Slices 0 and 1 shipped 2026-09-11; slice 2 and up are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -287,7 +287,7 @@ side and checks the migration's fixture block is a copy of them. The bonus
 stack a critical chance pays is not yet rolled anywhere; that is the claim
 RPC's job in slice 1, from a seed derived from the operation id.
 
-### Slice 1: labour
+### Slice 1: labour *(shipped 2026-09-11)*
 
 The per-player tables and the five RPCs; the Camp service; the hub station
 and panel with the Woodline and the quarry at level 1, the Storehouse at
@@ -298,7 +298,24 @@ anything else is decided, because it is where the loop either feels like a
 check-in or does not, and where the sheet either reads at a glance or does
 not.
 
-### Slice 2: construction
+As built: `20260911170000_add_camp_labour.sql` holds `camp_buildings`,
+`camp_assignments`, `get_camp_state`, `assign_champion_to_camp_job`,
+`unassign_champion_from_camp` and `claim_camp_production`; the upgrade RPC
+waits for slice 2. Every mutation answers with the whole Camp state, so the
+client never reconciles a guess. Two hooks hold the rules: a trigger on the
+champions table's archived flag settles and removes an assignment, which
+covers both the champions page and a victory that replaces a Champion at a
+full roster, and the Abyss exhaustion trigger refuses a working Champion. A
+Champion is also refused a job while it is mid-descent, and moving it between
+jobs settles the old one in the same call. Slots are counted per building,
+which is what `job_slots` means. The bonus stack is a critical hit at the
+Camp: rolled once per claim from the operation id and the Champion, it pays a
+quarter again on top. The floor a Champion was won on reaches the client
+through the Camp state rather than a column on the champions table, so the
+picker previews the sheet the server will store. On the client, `src/camp/`
+holds the service, the panel and the sheet line; the panel opens from a sixth
+station on the hub and sits in the HUD's centre column on a desktop and in the
+dock on a phone.
 
 `upgrade_camp_building`; Storehouse levels 2 and 3 raising the cap to ten and
 twelve hours; Woodline and quarry levels raising the rate and adding a second

@@ -168,6 +168,12 @@ the check is named; the rest are review responsibilities.
       warnings, a component test harness, error boundaries, route-level code
       splitting, and the executable architecture and style rules.
       See [decision 0010](decisions/0010-enforced-architecture-boundaries.md).
+- [x] **31. The Camp, first slices:** timber and stone, the building and job
+      registries mirrored between the migrations and the client, the labour
+      sheet and offline accrual as SQL and TypeScript twins pinned to one
+      fixture set, Champion labour with idempotent claims and settlement on
+      unassign or archive, the Abyss lockout for working Champions, and the
+      Camp panel on the hub. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 
 ## Per-Feature Gate
 
