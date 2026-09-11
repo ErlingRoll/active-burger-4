@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactElement } from 'react'
+import type { CampBuildingId } from '../content/camp/CampTypes'
 
 /**
  * What stands between the buildings.
@@ -10,8 +11,11 @@ import type { CSSProperties, ReactElement } from 'react'
  * because every warm light on the screen is something that burns; a tent
  * stands in the gap between the Woodline and the Storehouse, a cart waits
  * on the path where it forks, and stores are stacked beside the Storehouse
- * door. Decoration only: hidden from readers, and not drawn on a phone,
- * whose grid has no gaps to stand in.
+ * door. A Camp that grows puts more of it out: most pieces wait for a
+ * building to reach a level, so an empty Camp is a tent and a lantern and a
+ * built one is cluttered with the signs of work. Decoration only, hidden
+ * from readers. A phone places its pieces differently, in camp.css, and
+ * shows only the ones that fit between two columns.
  */
 
 const TIMBER = '#3b2a1e'
@@ -20,9 +24,11 @@ const TIMBER_EDGE = '#6b4a30'
 const CANVAS = '#3a2e22'
 const LANTERN = '#fbbf24'
 
-type FurnitureKind = 'lantern' | 'tent' | 'cart' | 'crates'
+type FurnitureKind = 'lantern' | 'tent' | 'cart' | 'crates' | 'woodpile' | 'fence'
 
 interface FurniturePlacement {
+  /** A stable name, which camp.css uses to place the piece on a phone. */
+  id: string
   kind: FurnitureKind
   /** Left edge, as a share of the ground's width. */
   x: number
@@ -30,16 +36,20 @@ interface FurniturePlacement {
   y: number
   /** Width, as a share of the ground's width; the height follows the drawing. */
   w: number
+  /** The building and level that puts this piece out; none means it is there from the start. */
+  requires?: { building: CampBuildingId, level: number }
 }
 
-/** Where each thing stands. The plots' places are in camp.css; these fill the gaps between them. */
+/** Where each thing stands, and what has to be built before it does. */
 const CAMP_FURNITURE: readonly FurniturePlacement[] = [
-  { kind: 'lantern', x: 34.5, y: 33, w: 1.5 },
-  { kind: 'lantern', x: 57.5, y: 65, w: 1.5 },
-  { kind: 'lantern', x: 50.5, y: 84, w: 1.5 },
-  { kind: 'tent', x: 24.5, y: 27, w: 8.5 },
-  { kind: 'cart', x: 47, y: 63, w: 6 },
-  { kind: 'crates', x: 51, y: 40.5, w: 5.5 },
+  { id: 'lantern-store', kind: 'lantern', x: 34.5, y: 33, w: 1.5 },
+  { id: 'tent', kind: 'tent', x: 24.5, y: 27, w: 8.5 },
+  { id: 'lantern-front', kind: 'lantern', x: 50.5, y: 84, w: 1.5, requires: { building: 'tackle-bench', level: 1 } },
+  { id: 'woodpile', kind: 'woodpile', x: 27, y: 49, w: 5, requires: { building: 'smokehouse', level: 1 } },
+  { id: 'lantern-forge', kind: 'lantern', x: 57.5, y: 65, w: 1.5, requires: { building: 'forge', level: 1 } },
+  { id: 'cart', kind: 'cart', x: 47, y: 63, w: 6, requires: { building: 'woodline', level: 2 } },
+  { id: 'fence', kind: 'fence', x: 79, y: 41, w: 12, requires: { building: 'quarry', level: 2 } },
+  { id: 'crates', kind: 'crates', x: 51, y: 40.5, w: 5.5, requires: { building: 'storehouse', level: 2 } },
 ]
 
 function LanternPost() {
@@ -98,21 +108,62 @@ function Crates() {
   )
 }
 
+function Woodpile() {
+  return (
+    <svg viewBox="0 0 100 60" aria-hidden="true">
+      <ellipse cx="50" cy="56" rx="46" ry="4" fill="#0a130e" opacity="0.7" />
+      {[
+        { x: 14, y: 44 }, { x: 38, y: 44 }, { x: 62, y: 44 }, { x: 86, y: 44 },
+        { x: 26, y: 26 }, { x: 50, y: 26 }, { x: 74, y: 26 },
+        { x: 38, y: 10 }, { x: 62, y: 10 },
+      ].map(({ x, y }) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="11" fill={TIMBER_LIGHT} stroke="#2c1d13" strokeWidth="2" />
+      ))}
+    </svg>
+  )
+}
+
+function Fence() {
+  return (
+    <svg viewBox="0 0 200 40" aria-hidden="true">
+      {[6, 54, 102, 150, 194].map((x) => (
+        <rect key={x} x={x - 2} y="8" width="4" height="32" fill={TIMBER} />
+      ))}
+      <rect x="4" y="14" width="192" height="3" fill={TIMBER_LIGHT} />
+      <rect x="4" y="26" width="192" height="3" fill={TIMBER_LIGHT} />
+    </svg>
+  )
+}
+
 const FURNITURE: Record<FurnitureKind, () => ReactElement> = {
   lantern: LanternPost,
   tent: Tent,
   cart: Cart,
   crates: Crates,
+  woodpile: Woodpile,
+  fence: Fence,
 }
 
-export function CampFurniture() {
+interface CampFurnitureProps {
+  /** Each building's level, which decides what has been put out. */
+  levels: Readonly<Record<CampBuildingId, number>>
+}
+
+export function CampFurniture({ levels }: CampFurnitureProps) {
+  const standing = CAMP_FURNITURE.filter((placement) =>
+    !placement.requires || levels[placement.requires.building] >= placement.requires.level,
+  )
   return (
     <div className="camp-furniture" aria-hidden="true">
-      {CAMP_FURNITURE.map((placement, index) => {
+      {standing.map((placement) => {
         const Picture = FURNITURE[placement.kind]
-        const style: CSSProperties = { left: `${placement.x}%`, top: `${placement.y}%`, width: `${placement.w}%` }
+        const style = {
+          '--furniture-x': `${placement.x}%`,
+          '--furniture-y': `${placement.y}%`,
+          '--furniture-w': `${placement.w}%`,
+        } as CSSProperties
         return (
-          <span key={index} className="camp-furniture-piece" data-kind={placement.kind} style={style}>
+          <span key={placement.id} className="camp-furniture-piece" data-kind={placement.kind} data-piece={placement.id} style={style}>
             <Picture />
           </span>
         )

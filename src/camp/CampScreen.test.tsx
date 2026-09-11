@@ -444,6 +444,23 @@ describe('CampScreen', () => {
     expect(screen.getByRole('button', { name: /^Woodline/ })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('puts furniture out as the Camp is built', async () => {
+    const { container, unmount } = renderScreen(emptyState())
+    await screen.findByRole('button', { name: /^Woodline/ })
+    expect(container.querySelector('.camp-furniture-piece[data-piece="tent"]')).not.toBeNull()
+    expect(container.querySelector('.camp-furniture-piece[data-piece="crates"]')).toBeNull()
+    unmount()
+
+    const grown = renderScreen({
+      ...emptyState(),
+      buildings: emptyState().buildings.map((building) =>
+        building.buildingId === 'storehouse' ? { ...building, level: 2 } : building,
+      ),
+    })
+    await screen.findByRole('button', { name: /^Woodline/ })
+    expect(grown.container.querySelector('.camp-furniture-piece[data-piece="crates"]')).not.toBeNull()
+  })
+
   it('walks back to the refuge from its own button', async () => {
     const { user, onBack } = renderScreen(emptyState())
 

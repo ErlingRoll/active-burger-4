@@ -152,7 +152,7 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given five more passes the
+Accepted as a first iteration on 2026-09-11 and given six more passes the
 same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
@@ -196,15 +196,20 @@ idea.
   with the tackle bench at the water. The further off a building stands the
   smaller it is drawn. The places are chosen not to overlap at any width,
   and because they are shares of the ground they fit with the inspector
-  open or closed. A phone keeps the two-abreast grid, where a placed layout
-  would not fit. A plot lifts on hover and carries a lantern-amber "Ready"
-  tag while something waits.
-- **Things stand between the buildings.** A settlement has furniture in its
-  gaps, drawn in `CampFurniture.tsx` in the same box the plots are placed
-  in: three lantern posts along the path, each throwing its light on the
-  ground, a tent in the gap between the Woodline and the Storehouse, a cart
-  waiting where the path forks, and stores stacked beside the Storehouse
-  door. None of it is drawn on a phone, whose grid has no gaps.
+  open or closed. A phone is placed too, in two columns with the right one
+  half a step lower than the left, so the buildings stand along a path that
+  winds up between them rather than in a grid. A plot lifts on hover and
+  carries a lantern-amber "Ready" tag pinned to its sign while something
+  waits.
+- **Things stand between the buildings, and more of them as the Camp is
+  built.** A settlement has furniture in its gaps, drawn in
+  `CampFurniture.tsx` in the same box the plots are placed in. A new Camp
+  has a tent and one lantern post by the Storehouse. The rest waits for a
+  building: a lantern on the front path once the tackle bench stands, a
+  woodpile once the Smokehouse does, a lantern by the Forge once it is
+  built, a cart at the fork once the Woodline is raised, a rail fence by
+  the quarry once it is, and crates by the Storehouse door once it holds
+  more. A phone shows only the two lanterns that fit between its columns.
 - **Output is carried along the path.** While the Woodline or the quarry has
   output waiting, a figure walks the drawn path from that building to the
   Storehouse with a bundle on its shoulder (timber or stone, by the route)
@@ -256,9 +261,10 @@ idea.
   the ground keeps its size. A phone has no side column: the inspector is a
   sheet over the plots and the roster is not shown.
 
-What the sixth pass left for a seventh: the phone still shows a grid where
-a placed layout at two columns might read better, and the furniture is
-fixed, where a Camp that grows could put more of it out as buildings go up.
+The seventh pass closed the list. What a later one might take: the
+buildings' pictures themselves could change with their level, and the
+Trophy hall's footprint could become a building once Phase 10 gives it
+something to hold.
 
 ## Design constraints
 

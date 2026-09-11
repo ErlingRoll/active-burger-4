@@ -1242,8 +1242,13 @@ export function CampScreen({
             <path d="M 46 74 C 34 78, 22 86, 12 95" />
             <path d="M 46 74 C 54 80, 62 88, 65 97" />
             <path d="M 65 97 C 74 92, 82 90, 89 86" />
+            <path className="camp-path-phone" d="M 50 100 C 42 90, 58 82, 50 72 S 42 54, 50 44 S 58 26, 50 16 S 44 6, 50 0" />
           </svg>
-          <CampFurniture />
+          <CampFurniture
+            levels={Object.fromEntries(
+              (Object.keys(CAMP_BUILDING_DEFINITIONS) as CampBuildingId[]).map((id) => [id, buildingLevel(state, id)]),
+            ) as Record<CampBuildingId, number>}
+          />
           <CampHaulers routes={haulRoutes} />
           <ul className="camp-plots" aria-label="The buildings">
             {CAMP_PLOTS.map((plotId) => {

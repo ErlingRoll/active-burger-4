@@ -122,6 +122,10 @@
   pointer-events: none;
 }
 
+.camp-path-phone {
+  display: none;
+}
+
 .camp-path path {
   fill: none;
   stroke: rgb(120 92 60 / 13%);
@@ -141,7 +145,10 @@
 
 .camp-furniture-piece {
   position: absolute;
+  top: var(--furniture-y);
+  left: var(--furniture-x);
   display: block;
+  width: var(--furniture-w);
 }
 
 .camp-furniture-piece svg {
@@ -1689,39 +1696,31 @@
     display: none;
   }
 
-  .camp-plots-ground {
-    display: flex;
-  }
-
-  .camp-path {
+  /*
+   * Placed on a phone too: two columns, the right one half a step lower
+   * than the left, so the buildings stand along a path that winds up
+   * between them rather than in a grid. The same shares of the ground as
+   * the desktop uses, in a different arrangement.
+   */
+  .camp-path path {
     display: none;
+    stroke-width: 44px;
   }
 
-  .camp-plots {
-    position: static;
-    display: grid;
-    flex: 1 1 auto;
-    grid-template-areas:
-      'woodline quarry'
-      'storehouse rift-anchor'
-      'tackle-bench smokehouse'
-      'forge trophy-hall';
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(4, minmax(0, 1fr));
-    gap: 0 0.4rem;
-    min-width: 0;
-    min-height: 0;
+  .camp-path .camp-path-phone {
+    display: block;
   }
 
-  /* The attribute selector outranks a bare li, so the override carries one too. */
-  .camp-plots > li[data-plot] {
-    position: static;
-    inset: auto;
-    width: auto;
-    height: auto;
-  }
+  .camp-plots > li[data-plot='woodline'] { top: 0; left: 0; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='quarry'] { top: 6%; left: 53%; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='storehouse'] { top: 25%; left: 1%; width: 46%; height: 23%; }
+  .camp-plots > li[data-plot='rift-anchor'] { top: 31%; left: 54%; width: 45%; height: 23%; }
+  .camp-plots > li[data-plot='tackle-bench'] { top: 50%; left: 0; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='smokehouse'] { top: 56%; left: 53%; width: 46%; height: 23%; }
+  .camp-plots > li[data-plot='forge'] { top: 75%; left: 1%; width: 46%; height: 25%; }
+  .camp-plots > li[data-plot='trophy-hall'] { top: 78%; left: 54%; width: 45%; height: 22%; }
 
-  /* Two abreast, four deep: every building the same size, the slope gone. */
+  /* Every building the same size; the slope is the stagger now. */
   .camp-plots > li .camp-plot {
     --plot-scale: 1;
     gap: 0.05rem;
@@ -1755,10 +1754,19 @@
 
   .camp-roster,
   .camp-inspector-portrait,
-  .camp-furniture,
+  .camp-furniture-piece,
   .camp-haulers {
     display: none;
   }
+
+  .camp-furniture-piece[data-piece='lantern-store'],
+  .camp-furniture-piece[data-piece='lantern-front'] {
+    display: block;
+    width: 3.5%;
+  }
+
+  .camp-furniture-piece[data-piece='lantern-store'] { --furniture-x: 48.5%; --furniture-y: 20%; }
+  .camp-furniture-piece[data-piece='lantern-front'] { --furniture-x: 48.5%; --furniture-y: 66%; }
 
   .camp-plot-copy {
     margin-top: 0.1rem;
