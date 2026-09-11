@@ -776,10 +776,11 @@ export function AdventureHubScene({
             <div className="hub-left-dock">
               {/*
                 Three distances from the fire. The gate is what a player came
-                for and stands first and largest. Champions and the inventory
-                are what they bring to it, and keep a station each. Everything
-                else is a path out of the clearing — a name and a glyph, because
-                those are places visited now and then rather than every time.
+                for and stands first and largest. The pond and the camp are the
+                life of the refuge between descents, and keep a station each.
+                Everything else is a path out of the clearing — a name and a
+                glyph, because those are places visited now and then rather
+                than every time.
               */}
               <section className="hub-expedition-panel" aria-labelledby="current-run-title">
                 <p className="screen-kicker">Dungeon gate</p>
@@ -832,21 +833,32 @@ export function AdventureHubScene({
                 )}
               </section>
 
-              <div className="hub-kit-stations" aria-label="Your kit">
-                <button className="hub-station hub-station-champions" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">◆</span>
-                  <span><strong>Champions</strong><small>Saved builds</small></span>
+              <div className="hub-kit-stations" aria-label="The refuge">
+                <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">≈</span>
+                  <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
                 </button>
-                <button className="hub-station hub-station-inventory" type="button" onClick={onOpenInventory} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">▣</span>
-                  <span><strong>Inventory</strong><small>Fish, gear, and loot</small></span>
+                <button
+                  className="hub-station hub-station-camp"
+                  type="button"
+                  onClick={() => setCampOpen((open) => !open)}
+                  disabled={runLoadState !== 'ready'}
+                  aria-expanded={campOpen}
+                  aria-controls={campOpen ? 'hub-camp-panel' : undefined}
+                >
+                  <span aria-hidden="true">⌂</span>
+                  <span><strong>The Camp</strong><small>{campOpen ? 'Close the Camp' : 'Send Champions to work'}</small></span>
                 </button>
               </div>
 
               <nav className="hub-paths" aria-label="Elsewhere in the refuge">
-                <button className="hub-path" type="button" onClick={onOpenFishing} title="Go fishing" disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">≈</span>
-                  <span>Moonwater Pond</span>
+                <button className="hub-path" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">◆</span>
+                  <span>Champions</span>
+                </button>
+                <button className="hub-path" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">▣</span>
+                  <span>Inventory</span>
                 </button>
                 <button className="hub-path" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">⇄</span>
@@ -855,18 +867,6 @@ export function AdventureHubScene({
                 <button className="hub-path" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">✦</span>
                   <span>Chronicle</span>
-                </button>
-                <button
-                  className="hub-path hub-path-camp"
-                  type="button"
-                  onClick={() => setCampOpen((open) => !open)}
-                  title={campOpen ? 'Close the Camp' : 'Send Champions to work'}
-                  disabled={runLoadState !== 'ready'}
-                  aria-expanded={campOpen}
-                  aria-controls={campOpen ? 'hub-camp-panel' : undefined}
-                >
-                  <span aria-hidden="true">⌂</span>
-                  <span>The Camp</span>
                 </button>
               </nav>
             </div>

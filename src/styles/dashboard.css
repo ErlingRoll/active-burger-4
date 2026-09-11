@@ -2327,11 +2327,12 @@
   transform: translateY(-50%);
 }
 
-.hub-station-inventory::after { content: '▣'; }
-.hub-station-champions::after { content: '◆'; }
+.hub-station-fishing::after { content: '≈'; }
+.hub-station-camp::after { content: '⌂'; }
 
 .hub-station:hover:not(:disabled),
-.hub-station:focus-visible {
+.hub-station:focus-visible,
+.hub-station[aria-expanded="true"] {
   background:
     linear-gradient(180deg, rgb(var(--accent-rgb) / 26%), transparent 62%),
     linear-gradient(180deg, rgb(32 40 54 / 92%), rgb(12 16 23 / 96%));
@@ -2347,9 +2348,9 @@
  *
  * Six equal bars said nothing about which room a player needs every time and
  * which they wander into now and then, and the dock was a screenful because of
- * it. The pond, the quartermaster, the chronicle and the camp are the second
- * kind, so they are drawn at a second size: a glyph and a name, two by two,
- * with no strapline to read and no watermark to fill.
+ * it. Champions, the inventory, the quartermaster and the chronicle are the
+ * second kind, so they are drawn at a second size: a glyph and a name, two by
+ * two, with no strapline to read and no watermark to fill.
  */
 .hub-paths {
   display: grid;
