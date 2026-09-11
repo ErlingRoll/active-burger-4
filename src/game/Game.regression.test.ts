@@ -153,5 +153,8 @@ describe('headless deterministic scenario regression', () => {
         'startTimeSeconds' in entry ? entry.startTimeSeconds : 0
       expect(firstSpawnTime).toBeGreaterThanOrEqual(startTimeSeconds)
     }
-  })
+    // Two simulated minutes at 60 steps a second is 7,200 updates. That is
+    // about a second here and has crossed the 5 second default on a shared CI
+    // runner, so the budget is set by the work rather than the default.
+  }, 30_000)
 })
