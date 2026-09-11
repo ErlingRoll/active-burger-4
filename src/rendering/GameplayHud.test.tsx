@@ -304,6 +304,28 @@ describe('the vitals panel', () => {
       .toEqual(['true', 'true', 'true', null, null])
   })
 
+  it('counts rift shards, not Essence, in the Abyss run stats', () => {
+    const game = createGame({ seed: 20_260_908, modeId: 'infinite-abyss', champion: CHAMPION })
+    game.state.run.floor = 12
+
+    renderHud(game.getUiSnapshot())
+
+    // Eleven floors done: four at one shard, five at two, two at three.
+    const shards = screen.getAllByLabelText('Rift shards banked')
+    expect(shards.length).toBeGreaterThan(0)
+    for (const cell of shards) {
+      expect(cell).toHaveTextContent(/^20\+3 for this floor$/)
+    }
+    expect(screen.queryByLabelText('Estimated Essence')).toBeNull()
+  })
+
+  it('keeps Essence in the dungeon run stats', () => {
+    renderHud(snapshotFromGame())
+
+    expect(screen.getAllByLabelText('Estimated Essence').length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText('Rift shards banked')).toBeNull()
+  })
+
   it('keeps the loot box odds off a dungeon run', () => {
     renderHud(snapshotFromGame())
 

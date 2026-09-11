@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { GameUiSnapshot } from '../../game'
 import { CharacterStatsPanel, LoadoutPanel } from './EquippedLoadout'
+import { getAbyssFloorRiftShards, getAbyssRiftShardsBanked } from '../../loot/LootBoxes'
+import { MaterialIcon } from '../../inventory/MaterialIcon'
 import { CloseIcon } from './HudIcons'
 import {
   HUD_INSPECTOR_TABS,
@@ -103,10 +105,26 @@ export function RunStatsPanel({ snapshot }: { snapshot: GameUiSnapshot }) {
     <section className="dungeon-stats hud-panel" aria-labelledby="dungeon-stats-title">
       <h3 id="dungeon-stats-title" className="hud-panel-heading">Dungeon stats</h3>
       <dl className="dungeon-stats-list">
-        <div className="dungeon-stat">
-          <dt>Essence</dt>
-          <dd aria-label="Estimated Essence">{snapshot.estimatedEssence}</dd>
-        </div>
+        {/* The Abyss pays no Essence; it pays rift shards a floor. What is
+            banked so far is the number, and the floor in play says what it
+            adds, so the push-or-stop trade reads in shards as it does in boxes. */}
+        {snapshot.modeId === 'infinite-abyss' ? (
+          <div className="dungeon-stat">
+            <dt>Rift shards</dt>
+            <dd aria-label="Rift shards banked">
+              <MaterialIcon icon="rift-shard" color="var(--color-violet-300)" />
+              {getAbyssRiftShardsBanked(snapshot.floor - 1)}
+              <span className="dungeon-stat-note">
+                +{getAbyssFloorRiftShards(snapshot.floor)} for this floor
+              </span>
+            </dd>
+          </div>
+        ) : (
+          <div className="dungeon-stat">
+            <dt>Essence</dt>
+            <dd aria-label="Estimated Essence">{snapshot.estimatedEssence}</dd>
+          </div>
+        )}
         <div className="dungeon-stat">
           <dt>Kills</dt>
           <dd>{snapshot.killCount}</dd>

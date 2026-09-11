@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { RARITIES, Rarity } from '../content/rarity/Rarity'
-import { getAbyssLootBoxRarityChances, resolveAbyssLootBoxRarity } from './LootBoxes'
+import {
+  getAbyssFloorRiftShards,
+  getAbyssLootBoxRarityChances,
+  getAbyssRiftShardsBanked,
+  resolveAbyssLootBoxRarity,
+} from './LootBoxes'
 
 /**
  * The share of milestone boxes that come up legendary, over seeds drawn the
@@ -131,5 +136,19 @@ describe('LootBoxes', () => {
     it('treats anything below the first floor as the first floor', () => {
       expect(getAbyssLootBoxRarityChances(0)).toEqual(getAbyssLootBoxRarityChances(1))
     })
+  })
+})
+
+describe('rift shards', () => {
+  it('pays one a floor and one more for every five floors down, to six', () => {
+    expect([1, 4, 5, 9, 10, 24, 25, 26, 100].map(getAbyssFloorRiftShards))
+      .toEqual([1, 1, 2, 2, 3, 5, 6, 6, 6])
+  })
+
+  it('banks the sum of every completed floor', () => {
+    expect(getAbyssRiftShardsBanked(0)).toBe(0)
+    expect(getAbyssRiftShardsBanked(1)).toBe(1)
+    // Floors 1-4 pay one, 5-9 two, 10 and 11 three.
+    expect(getAbyssRiftShardsBanked(11)).toBe(4 + 10 + 6)
   })
 })

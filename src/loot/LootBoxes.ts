@@ -136,6 +136,32 @@ export function getAbyssLootBoxRarityChances(
   }
 }
 
+/**
+ * Rift shards paid beside the floor box: one a floor, and one more for every
+ * five floors down, to six. The database trigger `grant_abyss_floor_loot_box`
+ * carries the same formula and is what actually grants them; this copy is
+ * what the HUD counts with, so the two must not drift.
+ */
+const RIFT_SHARDS_PER_FLOOR_CAP = 6
+const RIFT_SHARD_BONUS_FLOOR_INTERVAL = 5
+
+export function getAbyssFloorRiftShards(completedFloor: number): number {
+  const floor = Math.max(1, Math.floor(completedFloor))
+  return Math.min(
+    RIFT_SHARDS_PER_FLOOR_CAP,
+    1 + Math.floor(floor / RIFT_SHARD_BONUS_FLOOR_INTERVAL),
+  )
+}
+
+/** The shards a descent has banked after completing the given number of floors. */
+export function getAbyssRiftShardsBanked(completedFloors: number): number {
+  let total = 0
+  for (let floor = 1; floor <= completedFloors; floor += 1) {
+    total += getAbyssFloorRiftShards(floor)
+  }
+  return total
+}
+
 export function getAbyssLootBoxRarityLabel(rarity: LootBoxRarity): string {
   return RARITIES.find((candidate) => candidate === rarity)!.replace(/^./, (letter) =>
     letter.toUpperCase(),

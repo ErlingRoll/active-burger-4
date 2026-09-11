@@ -203,6 +203,18 @@
   font-weight: 800;
 }
 
+.dungeon-stat dd .material-icon {
+  align-self: center;
+  width: 1.1em;
+  height: auto;
+}
+
+.dungeon-stat-note {
+  color: var(--color-blue-300);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .projection-heading,
 .stairs-heading {
   display: flex;
