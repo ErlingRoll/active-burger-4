@@ -1636,6 +1636,7 @@ function App() {
           onOpenShop={openShop}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
+          characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
@@ -1666,6 +1667,7 @@ function App() {
           onOpenShop={openShop}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
+          characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
@@ -1697,6 +1699,7 @@ function App() {
           onOpenShop={openShop}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
+          characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />
@@ -1750,6 +1753,7 @@ function App() {
           onOpenShop={openShop}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
+          characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
         />

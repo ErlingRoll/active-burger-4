@@ -16,16 +16,15 @@ import type {
 import { getFishDefinition } from '../fishing/FishingContent'
 import { FishIcon } from '../fishing/FishIcon'
 import { lastElement } from '../shared'
-import { APP_ENVIRONMENT } from '../shared/environment'
 import { RARITIES, RARITY_WEIGHTS, type Rarity } from '../content/rarity/Rarity'
 import { useToaster } from '../ui/ToasterContext'
 
 /**
- * Rendered only for an administrator on a build with the development tools
- * on. The server refuses the grants without the admin role anyway, so the
- * header keeps the menu out of sight for everyone else.
+ * The inventory section of the header's development tools. Rendered only for
+ * an administrator on a build with the tools on; the server refuses the
+ * grants without the admin role anyway.
  */
-interface DevelopmentInventoryMenuProps {
+interface DevelopmentInventoryGrantsProps {
   inventoryService: InventoryService | null
 }
 
@@ -124,9 +123,9 @@ function createDevelopmentGrant(
   }
 }
 
-export function DevelopmentInventoryMenu({
+export function DevelopmentInventoryGrants({
   inventoryService,
-}: DevelopmentInventoryMenuProps) {
+}: DevelopmentInventoryGrantsProps) {
   const { showLootToast, showToast } = useToaster()
   const [selectedDefinitionId, setSelectedDefinitionId] = useState(
     DEVELOPMENT_ITEM_DEFINITIONS[0]?.id ?? '',
@@ -190,88 +189,84 @@ export function DevelopmentInventoryMenu({
   const busy = granting || inventoryService === null
 
   return (
-    <details className="development-inventory-menu">
-      <summary className="development-inventory-toggle">Dev tools</summary>
-      <div className="development-inventory-panel">
-        <p className="development-inventory-kicker">Development tools · {APP_ENVIRONMENT} backend</p>
-        <div className="development-inventory-quick" role="group" aria-label="Quick grants">
-          {QUICK_GRANTS.map((quick) => {
-            const definition = getInventoryItemDefinition(quick.definitionId)
-            if (!definition) {
-              return null
-            }
-            return (
-              <button
-                className="development-inventory-quick-grant"
-                type="button"
-                key={quick.definitionId}
-                onClick={() => {
-                  void grant(definition, quick.quantity, {
-                    rarity: quick.rarity,
-                    sizePercentile: quick.sizePercentile,
-                  })
-                }}
-                disabled={busy}
-              >
-                {quick.label}
-              </button>
-            )
-          })}
-        </div>
-        <label>
-          Item
-          <select
-            value={selectedDefinitionId}
-            onChange={(event) => { setSelectedDefinitionId(event.target.value) }}
-            disabled={granting}
+    <div className="development-inventory-grants">
+    <div className="development-inventory-quick" role="group" aria-label="Quick grants">
+      {QUICK_GRANTS.map((quick) => {
+        const definition = getInventoryItemDefinition(quick.definitionId)
+        if (!definition) {
+          return null
+        }
+        return (
+          <button
+            className="development-inventory-quick-grant"
+            type="button"
+            key={quick.definitionId}
+            onClick={() => {
+              void grant(definition, quick.quantity, {
+                rarity: quick.rarity,
+                sizePercentile: quick.sizePercentile,
+              })
+            }}
+            disabled={busy}
           >
-            {DEVELOPMENT_ITEM_GROUPS.map((group) => (
-              <optgroup label={group.label} key={group.category}>
-                {group.definitions.map((definition) => (
-                  <option key={definition.id} value={definition.id}>
-                    {definition.name}
-                  </option>
-                ))}
-              </optgroup>
+            {quick.label}
+          </button>
+        )
+      })}
+    </div>
+    <label>
+      Item
+      <select
+        value={selectedDefinitionId}
+        onChange={(event) => { setSelectedDefinitionId(event.target.value) }}
+        disabled={granting}
+      >
+        {DEVELOPMENT_ITEM_GROUPS.map((group) => (
+          <optgroup label={group.label} key={group.category}>
+            {group.definitions.map((definition) => (
+              <option key={definition.id} value={definition.id}>
+                {definition.name}
+              </option>
             ))}
-          </select>
-        </label>
-        {selectedIsFish ? (
-          <label>
-            Rarity
-            <select
-              value={fishRarity}
-              onChange={(event) => { setFishRarity(event.target.value as Rarity | 'random') }}
-              disabled={granting}
-            >
-              {FISH_RARITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        <label>
-          Quantity
-          <input
-            type="number"
-            min="1"
-            max="9999"
-            step="1"
-            value={quantity}
-            onChange={(event) => { setQuantity(event.target.value) }}
-            disabled={granting}
-          />
-        </label>
-        <button
-          className="development-inventory-grant"
-          type="button"
-          onClick={grantSelected}
-          disabled={busy || selectedDefinition === undefined}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+    {selectedIsFish ? (
+      <label>
+        Rarity
+        <select
+          value={fishRarity}
+          onChange={(event) => { setFishRarity(event.target.value as Rarity | 'random') }}
+          disabled={granting}
         >
-          {granting ? 'Granting…' : 'Grant item'}
-        </button>
-        {error ? <p className="development-inventory-error" role="alert">{error}</p> : null}
-      </div>
-    </details>
+          {FISH_RARITY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+    ) : null}
+    <label>
+      Quantity
+      <input
+        type="number"
+        min="1"
+        max="9999"
+        step="1"
+        value={quantity}
+        onChange={(event) => { setQuantity(event.target.value) }}
+        disabled={granting}
+      />
+    </label>
+    <button
+      className="development-inventory-grant"
+      type="button"
+      onClick={grantSelected}
+      disabled={busy || selectedDefinition === undefined}
+    >
+      {granting ? 'Granting…' : 'Grant item'}
+    </button>
+    {error ? <p className="development-inventory-error" role="alert">{error}</p> : null}
+    </div>
   )
 }

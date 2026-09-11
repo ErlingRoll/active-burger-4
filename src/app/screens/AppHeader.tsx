@@ -17,9 +17,8 @@ import {
   type BugReportDungeonContext,
   type BugReportImage,
 } from '../../bug-report'
-import {
-  DevelopmentInventoryMenu,
-} from '../../inventory'
+import type { CharacterService } from '../../characters'
+import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
 
 export interface AppHeaderProps {
   authentication: AuthenticationState
@@ -35,6 +34,7 @@ export interface AppHeaderProps {
   onOpenShop: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
+  characterService: CharacterService | null
   bugReportDungeon: BugReportDungeonContext
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
 }
@@ -53,6 +53,7 @@ export function AppHeader({
   onOpenShop,
   onOpenRunHistory,
   inventoryService,
+  characterService,
   bugReportDungeon,
   onSubmitBugReport,
 }: AppHeaderProps) {
@@ -120,7 +121,10 @@ export function AppHeader({
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)}>Chronicle</button>
           {DEVELOPMENT_TOOLS_ENABLED && authentication.account?.isAdmin ? (
-            <DevelopmentInventoryMenu inventoryService={inventoryService} />
+            <DevelopmentToolsMenu
+              inventoryService={inventoryService}
+              characterService={characterService}
+            />
           ) : null}
         </nav>
         {authentication.account ? (

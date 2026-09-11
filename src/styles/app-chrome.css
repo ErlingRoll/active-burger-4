@@ -462,7 +462,45 @@
 
 /* The header's development tools, widened for the quick grants and the note. */
 .development-inventory-panel {
-  width: min(22rem, calc(100vw - 2rem));
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100svh - 6rem);
+  overflow-y: auto;
+}
+
+.development-inventory-grants,
+.development-champion-generator {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.development-tools-section {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgb(103 232 249 / 22%);
+}
+
+.development-tools-section h3 {
+  margin: 0;
+  color: var(--color-cyan-200);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.development-champion-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.development-champion-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: end;
+  min-height: 2.1rem;
 }
 
 .development-inventory-quick {

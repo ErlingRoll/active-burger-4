@@ -175,7 +175,10 @@ fit        = 1 + set_fit(job, equipment) + tag_fit(job, skills), capped at 1.25
 ```
 
 `set_fit` scales with the rarity of the pieces wearing the job's set, and
-`tag_fit` sums the job's tags across the skills weighted by level. Upgrades
+`tag_fit` sums the job's tags across the skills weighted by level. A Champion
+made by the development tools has no source run; when the run is missing,
+`build.level` stands in for `max_floor`, so a generated Champion works the
+Camp exactly like an earned one. Upgrades
 that touch stats are left out at first and can be added by seeding their
 values into a reference table, the way recipes are mirrored.
 

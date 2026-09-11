@@ -86,7 +86,7 @@ Some checks read the repository rather than import it, and live in
 ## Development tools
 
 Two development menus exist: one in the header, for granting inventory items
-outside a run, and one in the arena, for driving a run (bosses, gear, skills,
+and creating random Champions outside a run, and one in the arena, for driving a run (bosses, gear, skills,
 stress spawns, simulation speed). They show only to an account with the admin
 role, on a local dev server or on any build that serves the dev backend, and
 never on production; the environment half of that switch is

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { renderComponent, screen, waitFor } from '../testing/render'
-import { DevelopmentInventoryMenu } from './DevelopmentInventoryMenu'
+import { DevelopmentInventoryGrants } from './DevelopmentInventoryGrants'
 import type { InventoryItemInstance, InventoryService } from './InventoryTypes'
 
 function createInventoryService() {
@@ -23,14 +23,13 @@ function createInventoryService() {
   }
 }
 
-describe('DevelopmentInventoryMenu', () => {
+describe('DevelopmentInventoryGrants', () => {
   it('grants a quick item with its fixed rarity and size', async () => {
     const { service, grantDevelopmentItems } = createInventoryService()
     const { user } = renderComponent(
-      <DevelopmentInventoryMenu inventoryService={service} />,
+      <DevelopmentInventoryGrants inventoryService={service} />,
     )
 
-    await user.click(screen.getByText('Dev tools'))
     await user.click(screen.getByRole('button', { name: 'Revival Koi, epic and large' }))
 
     await waitFor(() => {
@@ -47,10 +46,9 @@ describe('DevelopmentInventoryMenu', () => {
   it('grants the chosen item in the chosen quantity', async () => {
     const { service, grantDevelopmentItems } = createInventoryService()
     const { user } = renderComponent(
-      <DevelopmentInventoryMenu inventoryService={service} />,
+      <DevelopmentInventoryGrants inventoryService={service} />,
     )
 
-    await user.click(screen.getByText('Dev tools'))
     await user.selectOptions(screen.getByLabelText('Item'), 'scrap')
     const quantity = screen.getByLabelText('Quantity')
     await user.clear(quantity)

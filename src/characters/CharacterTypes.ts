@@ -63,6 +63,20 @@ export interface CreateChampionInput {
   replacedChampionId?: string
 }
 
+/**
+ * A Champion made by the development tools rather than won. The build is
+ * rolled in the browser from the content registries; the server stores it
+ * under a "development:" source run id so it can always be told apart.
+ */
+export interface CreateDevelopmentChampionInput {
+  championId: string
+  name: string
+  contentVersion: string
+  build: CharacterBuildSnapshot
+  /** Zero leaves the Champion rested; otherwise it starts exhausted for this long. */
+  exhaustionHours: number
+}
+
 export interface ChampionRevivalResult extends ChampionSnapshot {
   fishInstanceId: string
   exhaustionReductionSeconds: number
@@ -77,6 +91,8 @@ export interface CharacterService {
   }>
   saveCharacter(input: SaveCharacterInput): Promise<CharacterRevision>
   createChampionFromRun(input: CreateChampionInput): Promise<ChampionSnapshot>
+  /** Administrators only; the server refuses anyone else. */
+  createDevelopmentChampion(input: CreateDevelopmentChampionInput): Promise<ChampionSnapshot>
   renameChampion(championId: string, name: string): Promise<ChampionSnapshot>
   reviveChampion(
     operationId: string,
