@@ -210,6 +210,13 @@
 
 .hud-region-top-end {
   flex: 0 1 auto;
+  /*
+   * The Abyss adds its floor-box odds beside the controls, and a phone's row
+   * has no room for both: without a wrap the behaviour toggle was squeezed to
+   * its icon and the odds ran off the left edge. Wrapping keeps each at its
+   * own width and drops the controls to the next line when the row is full.
+   */
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 
@@ -468,6 +475,67 @@
   width: 100%;
   height: clamp(0.3rem, 0.7vh, 0.45rem);
   accent-color: rgb(var(--accent-rgb));
+}
+
+/*
+ * The Abyss floor's box, read before the floor is finished.
+ *
+ * Five chests in a row with a chance under each: the rarity is legible from
+ * the chest itself, so the row carries no names and stays one tile tall
+ * beside the run controls. The chest takes its colour from `data-rarity` the
+ * same way the shelf's do, so a legendary reads the same here as it does when
+ * it arrives.
+ */
+.abyss-loot-odds {
+  display: grid;
+  flex: 0 0 auto;
+  align-content: center;
+  gap: 0.15rem;
+  padding: clamp(0.25rem, 0.8vh, 0.4rem) clamp(0.4rem, 1vw, 0.6rem);
+}
+
+.abyss-loot-odds-heading {
+  color: var(--accent);
+  font-size: 0.68em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.abyss-loot-odds-list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  gap: 0.35rem;
+  list-style: none;
+}
+
+.abyss-loot-odds-item {
+  display: grid;
+  min-width: 2rem;
+  justify-items: center;
+  gap: 0.05rem;
+}
+
+/* A milestone floor rules three rarities out; they stay in the row, dimmed,
+   so the row keeps its width and the promise reads as a promise. */
+.abyss-loot-odds-item[data-impossible='true'] {
+  opacity: 0.38;
+}
+
+.abyss-loot-odds-icon {
+  display: block;
+  width: clamp(1.1rem, 2.6vh, 1.4rem);
+  height: clamp(1.1rem, 2.6vh, 1.4rem);
+}
+
+.abyss-loot-odds-chance {
+  color: var(--rarity, var(--color-stone-200));
+  font-size: 0.72em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Toolbar: square targets, glyph only, label carried in the accessible name. */
