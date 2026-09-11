@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import {
+  APP_BUILT_AT,
+  APP_ENVIRONMENT,
+  APP_RELEASE,
   APP_VERSION,
 } from '../appState'
 import {
@@ -81,7 +84,7 @@ export function AppHeader({
         >
           <h1>Active Burger</h1>
         </a>
-        <p className="app-version">Version: {APP_VERSION}</p>
+        <BuildStamp />
       </div>
       {/*
         The drawer's handle. It is the header on a phone and nothing at all on a
@@ -160,6 +163,36 @@ export function AppHeader({
 }
 
 const APP_MENU_ID = 'app-header-menu'
+
+const BUILD_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
+
+/**
+ * The build stamp under the title: a "Dev" tag when this build serves the
+ * development backend, the release, the commit, and when it was built. The
+ * build time is shown in the viewer's own zone, with the exact instant on
+ * hover. Production shows no tag at all, so the tag's absence is the signal.
+ */
+function BuildStamp() {
+  const builtAt = APP_BUILT_AT ? new Date(APP_BUILT_AT) : null
+  const builtAtValid = builtAt !== null && !Number.isNaN(builtAt.getTime())
+  return (
+    <p className="app-version app-build">
+      {APP_ENVIRONMENT === 'dev' ? (
+        <span className="app-build-environment">Dev</span>
+      ) : null}
+      {APP_RELEASE ? <span>v{APP_RELEASE}</span> : null}
+      <span>{APP_VERSION ?? 'development'}</span>
+      {builtAtValid ? (
+        <time dateTime={APP_BUILT_AT} title={`Built ${APP_BUILT_AT}`}>
+          {BUILD_TIME_FORMAT.format(builtAt)}
+        </time>
+      ) : null}
+    </p>
+  )
+}
 
 function MenuIcon({ open }: { open: boolean }) {
   return (

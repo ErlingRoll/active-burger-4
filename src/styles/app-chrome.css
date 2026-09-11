@@ -435,3 +435,27 @@
     left: 0;
   }
 }
+
+/* The build stamp under the title: environment, release, commit and build time. */
+.app-build {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.4rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-build-environment {
+  padding: 0.05rem 0.4rem;
+  color: var(--color-amber-950);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-amber-400);
+  border-radius: 999px;
+}
+
+.app-build time {
+  white-space: nowrap;
+}

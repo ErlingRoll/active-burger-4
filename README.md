@@ -131,7 +131,10 @@ The job runs in the GitHub environment named after its branch, `production` for
 
 Production deploys to Netlify from `netlify.toml`, with SPA routing via
 `public/_redirects`. `vite.config.ts` stamps the build with the commit SHA,
-reading it from the host's environment or from `git` locally.
+reading it from the host's environment or from `git` locally, the release from
+`package.json`, the build time, and the environment. The header shows all four,
+with a "Dev" tag on any build that is not Netlify's production context; set
+`VITE_APP_ENVIRONMENT` to override that.
 
 ## Conventions
 
