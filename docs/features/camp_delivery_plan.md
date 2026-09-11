@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Proposal, written 2026-09-11 against the code as it stood that day.
+> **Status:** Slice 0 shipped 2026-09-11; slices 1 and up are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -79,7 +79,8 @@ The sheet is a sidegrade, and these bounds keep it one:
 - Set and tag fit adds up to ×1.25, on the matching job only.
 - The behaviour profile moves one knob against the other: aggressive is
   +20% tempo and −25% stamina, cautious the reverse, balanced neither.
-- Everything multiplied together is capped at ×2.0.
+- Everything multiplied together is capped at ×2.0. The sheet carries that
+  product as its `output`, and accrual reads only that figure.
 - Stamina is clamped between six and twelve hours, so the Storehouse cap is
   still the ceiling and a strong roster cannot out-produce the Abyss.
 
@@ -166,21 +167,30 @@ simulation is not ported; the sheet reads the same inputs through a simpler,
 mirrored formula.
 
 ```text
-strength   = 1 + 0.02 × max(0, max_floor − 10), capped at 1.30
-tempo      = clamp(strength × (1 + attack_speed_percent / 100) × profile_tempo, 1.0, 2.0)
-stamina    = clamp(base_cap_hours × (1 + max_hp_percent / 200) × profile_stamina, 6, 12)
-load       = clamp(strength × (1 + attack_damage_percent / 200), 1.0, 2.0)
+strength   = 1 + 0.01 × max(0, level − 10) + 0.02 × max(0, max_floor − 10), capped at 1.30
+tempo      = clamp(strength × (1 + attack_speed_percent / 200) × profile_tempo, 1.0, 2.0)
+stamina    = clamp(8 × (1 + max_hp_on_gear / 400) × profile_stamina, 6, 12)
+load       = clamp(strength × (1 + increased_damage_percent / 300), 1.0, 2.0)
 bonus      = min(critical_chance_percent, 25) / 100
 fit        = 1 + set_fit(job, equipment) + tag_fit(job, skills), capped at 1.25
+haste      = 1 + movement_speed_percent / 100
+output     = min(2.0, tempo × load × fit)
 ```
 
-`set_fit` scales with the rarity of the pieces wearing the job's set, and
-`tag_fit` sums the job's tags across the skills weighted by level. A Champion
-made by the development tools has no source run; when the run is missing,
+Every figure is rounded to four decimals so a double and a Postgres numeric
+agree. The sums come straight from the rolled gear modifiers: attack speed and
+movement speed are percent rolls, Max HP is a flat roll (twelve to seventy a
+piece, so four hundred is the divisor that lets a hardy set reach the twelve
+hour ceiling), and `increased_damage_percent` is the four increased-damage
+rolls added together, global and typed alike. `set_fit` counts each piece
+wearing the job's set at one for common through five for legendary, half a
+percent a point and capped at fifteen; `tag_fit` adds a percent per level of
+each skill carrying one of the job's tags, capped at ten. A Champion made by
+the development tools has no source run; when the run is missing,
 `build.level` stands in for `max_floor`, so a generated Champion works the
-Camp exactly like an earned one. Upgrades
-that touch stats are left out at first and can be added by seeding their
-values into a reference table, the way recipes are mirrored.
+Camp exactly like an earned one. Upgrades that touch stats are left out at
+first and can be added by seeding their values into a reference table, the
+way recipes are mirrored.
 
 ### Accrual
 
@@ -189,10 +199,10 @@ The arithmetic is a pure function, mirrored in SQL and in
 tests pin down.
 
 ```text
-rate           = base_rate_per_hour × rate_multiplier(level) × tempo × fit
+rate           = base_rate_per_hour × rate_multiplier(level) × output
 elapsed_hours  = min(now − accrued_from, min(stamina, storehouse_cap_hours))
-units          = floor(rate × elapsed_hours × load)
-paid_hours     = units / (rate × load)
+units          = floor(rate × elapsed_hours)
+paid_hours     = units / rate
 accrued_from   = now − (elapsed_hours − paid_hours)
 ```
 
@@ -257,7 +267,7 @@ Each slice is a commit series on main that leaves the game whole, with lint,
 the unit suite and the build green, and the screens checked by screenshot at
 390×844 and 1920×1080.
 
-### Slice 0: foundations
+### Slice 0: foundations *(shipped 2026-09-11)*
 
 Timber and stone as items on both sides; the reference tables and their seed
 rows, including the skill tag table seeded from the registry with a
@@ -266,6 +276,16 @@ content registries; the labour sheet and accrual functions as SQL and
 TypeScript twins, with tests that feed both the same builds and expect the
 same sheets. No UI. Ships with the Storehouse level table so the materials
 have a named sink from the first commit.
+
+As built: `src/content/camp/` holds the registries and the two twins, the
+migration `20260911150000_add_camp_foundations.sql` holds the tables, the
+seeds, `camp_labour_sheet` and `camp_accrue`, and the fixture set lives in
+`tests/fixtures/`. The migration ends by asserting the fixtures against its
+own functions, so applying it is the SQL side of the test, and
+`tests/campRegistry.test.ts` asserts the same files against the TypeScript
+side and checks the migration's fixture block is a copy of them. The bonus
+stack a critical chance pays is not yet rolled anywhere; that is the claim
+RPC's job in slice 1, from a seed derived from the operation id.
 
 ### Slice 1: labour
 

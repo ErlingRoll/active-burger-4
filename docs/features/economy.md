@@ -80,7 +80,10 @@ terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
 the workbench on the bag spends eight of it on a River Worm. Only dungeon runs
 pay: an Abyss attempt wears a Champion's saved gear, which does not change
 between attempts, so paying for it would be a faucet one loadout could run
-forever. The other three families are still proposals.
+forever. Timber and stone exist as items with the Storehouse as their named
+sink, and their producer, Champion labour at the Camp, is the next slice of
+[camp_delivery_plan.md](camp_delivery_plan.md). Roe and rift shards are still
+proposals.
 
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,

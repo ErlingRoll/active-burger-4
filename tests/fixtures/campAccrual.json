@@ -1,0 +1,86 @@
+[
+  {
+    "name": "eleven-whole-units",
+    "ratePerHour": 4,
+    "capHours": 8,
+    "accruedFrom": "2026-09-11T00:00:00Z",
+    "now": "2026-09-11T02:45:00Z",
+    "expected": {
+      "units": 11,
+      "countedSeconds": 9900,
+      "accruedFrom": "2026-09-11T02:45:00.000Z"
+    }
+  },
+  {
+    "name": "a-fraction-carries-forward",
+    "ratePerHour": 4,
+    "capHours": 8,
+    "accruedFrom": "2026-09-11T00:00:00Z",
+    "now": "2026-09-11T02:40:00Z",
+    "expected": {
+      "units": 10,
+      "countedSeconds": 9600,
+      "accruedFrom": "2026-09-11T02:30:00.000Z"
+    }
+  },
+  {
+    "name": "past-the-cap",
+    "ratePerHour": 4,
+    "capHours": 8,
+    "accruedFrom": "2026-09-11T00:00:00Z",
+    "now": "2026-09-11T20:00:00Z",
+    "expected": {
+      "units": 32,
+      "countedSeconds": 28800,
+      "accruedFrom": "2026-09-11T20:00:00.000Z"
+    }
+  },
+  {
+    "name": "stamina-below-the-storehouse",
+    "ratePerHour": 6,
+    "capHours": 6,
+    "accruedFrom": "2026-09-10T12:00:00Z",
+    "now": "2026-09-11T12:00:00Z",
+    "expected": {
+      "units": 36,
+      "countedSeconds": 21600,
+      "accruedFrom": "2026-09-11T12:00:00.000Z"
+    }
+  },
+  {
+    "name": "an-awkward-rate",
+    "ratePerHour": 6.6,
+    "capHours": 10,
+    "accruedFrom": "2026-09-11T00:00:00Z",
+    "now": "2026-09-11T01:00:00Z",
+    "expected": {
+      "units": 6,
+      "countedSeconds": 3600,
+      "accruedFrom": "2026-09-11T00:54:32.727Z"
+    }
+  },
+  {
+    "name": "nothing-yet",
+    "ratePerHour": 4,
+    "capHours": 8,
+    "accruedFrom": "2026-09-11T00:00:00Z",
+    "now": "2026-09-11T00:10:00Z",
+    "expected": {
+      "units": 0,
+      "countedSeconds": 600,
+      "accruedFrom": "2026-09-11T00:00:00.000Z"
+    }
+  },
+  {
+    "name": "clock-in-the-future",
+    "ratePerHour": 4,
+    "capHours": 8,
+    "accruedFrom": "2026-09-11T01:00:00Z",
+    "now": "2026-09-11T00:00:00Z",
+    "expected": {
+      "units": 0,
+      "countedSeconds": 0,
+      "accruedFrom": "2026-09-11T00:00:00.000Z"
+    }
+  }
+]

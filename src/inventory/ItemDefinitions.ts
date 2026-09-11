@@ -316,6 +316,32 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     unlimited: false,
     salvageEssence: 0,
   },
+  timber: {
+    id: 'timber',
+    name: 'Timber',
+    flavorText: 'Felled at the edge of the firelight and stacked to season.',
+    category: 'material',
+    rarity: 'common',
+    stackable: true,
+    maxStackSize: 9999,
+    tradeable: false,
+    bindOnEquip: false,
+    unlimited: false,
+    salvageEssence: 0,
+  },
+  stone: {
+    id: 'stone',
+    name: 'Stone',
+    flavorText: 'Cut from the hillside behind the camp, still cold from the ground.',
+    category: 'material',
+    rarity: 'common',
+    stackable: true,
+    maxStackSize: 9999,
+    tradeable: false,
+    bindOnEquip: false,
+    unlimited: false,
+    salvageEssence: 0,
+  },
 } as const satisfies Record<string, InventoryItemDefinition>
 
 export type KnownInventoryItemDefinitionId = keyof typeof INVENTORY_ITEM_DEFINITIONS

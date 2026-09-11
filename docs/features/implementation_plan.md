@@ -286,12 +286,17 @@ production rate here would be a guess. What remains is the rest of the registry
 and the idle layer itself.
 
 - Material registry: timber and stone, roe, and rift shards, each with a
-  producer and a named sink. *Scrap is done.*
+  producer and a named sink. *Scrap is done. Timber and stone are items with
+  the Storehouse as their sink; their producer lands with Champion labour.*
 - Duplicate loot-box resolution into scrap. *Gear salvage is done: a completed
   dungeon grants scrap from its terminal loadout.*
-- Building registry with tiers, recipes, and construction costs.
+- Building registry with tiers, recipes, and construction costs. *The
+  Storehouse, the Woodline and the quarry are seeded with their levels and
+  costs, server and client, and held together by a registry test.*
 - Champion job assignment, with exhausted Champions eligible to work.
 - Champion aptitude derived from the existing snapshot, never a new stat.
+  *The labour sheet is derived from the build in SQL and TypeScript twins
+  pinned to one fixture set; see the delivery plan.*
 - Offline accrual computed from server timestamps with a Storehouse-set cap.
 - Idempotent claim operation.
 - Camp stations rendered into the existing hub scene, fitting the viewport

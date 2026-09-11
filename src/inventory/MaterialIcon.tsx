@@ -9,7 +9,7 @@ import type { CSSProperties } from 'react'
  * shows. Sized in `em` and painted from `currentColor` where the shape allows,
  * so a material takes the size of whatever slot holds it.
  */
-export type MaterialIconId = 'scrap'
+export type MaterialIconId = 'scrap' | 'timber' | 'stone'
 
 interface MaterialIconProps {
   icon: MaterialIconId
@@ -45,6 +45,29 @@ export function MaterialIcon({ icon, color }: MaterialIconProps) {
             opacity="0.75"
           />
           <circle cx="22" cy="9.5" r="1.4" fill="#07111f" opacity="0.4" />
+        </svg>
+      )
+    case 'timber':
+      return (
+        <svg className="material-icon" viewBox="0 0 32 24" aria-hidden="true" style={style}>
+          {/* Two logs stacked on a third: the round ends show the rings, so it
+              reads as felled wood and not as a plank or a stick. */}
+          <rect x="3" y="13" width="20" height="8" rx="4" fill="currentColor" opacity="0.7" />
+          <rect x="11" y="4" width="18" height="8" rx="4" fill="currentColor" opacity="0.85" />
+          <circle cx="25" cy="8" r="3" fill="#07111f" opacity="0.35" />
+          <circle cx="25" cy="8" r="1.2" fill="#07111f" opacity="0.35" />
+          <circle cx="7" cy="17" r="3" fill="#07111f" opacity="0.35" />
+          <circle cx="7" cy="17" r="1.2" fill="#07111f" opacity="0.35" />
+        </svg>
+      )
+    case 'stone':
+      return (
+        <svg className="material-icon" viewBox="0 0 32 24" aria-hidden="true" style={style}>
+          {/* A cut block with one dressed face catching the light, and a chip
+              beside it, so it is quarried stone rather than a pebble. */}
+          <path fill="currentColor" d="M5 9.5 13 5l12 3.5-1 10.5-12.5 2L4 17Z" opacity="0.85" />
+          <path fill="#07111f" d="M13 5l12 3.5-1 10.5-9.5-2.5Z" opacity="0.25" />
+          <path fill="currentColor" d="m24 16.5 5-1.5 1 4-4.5 1.5Z" opacity="0.6" />
         </svg>
       )
     default:
