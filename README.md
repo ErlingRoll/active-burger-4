@@ -88,7 +88,7 @@ Some checks read the repository rather than import it, and live in
 Three development controls exist: a menu in the header, for granting
 inventory items and creating random Champions outside a run; a menu in the
 arena, for driving a run (bosses, gear, skills, stress spawns, simulation
-speed); and a row in the Camp panel that skips its clock ahead by an hour or
+speed); and a row on the Camp screen that skips its clock ahead by an hour or
 eight, so a claim can be tested without waiting for real hours to pass. They
 show only to an account with the admin
 role, on a local dev server or on any build that serves the dev backend, and

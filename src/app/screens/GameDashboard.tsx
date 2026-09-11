@@ -11,9 +11,6 @@ import {
 } from '../runFormatting'
 import type { AbyssLeaderboardService } from '../../leaderboard/AbyssLeaderboardService'
 import type { HubPresenceService } from '../../hub/HubPresenceService'
-import type { CampService } from '../../camp/CampTypes'
-import type { CharacterService } from '../../characters/CharacterTypes'
-import type { InventoryService } from '../../inventory/InventoryTypes'
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
   CHARACTER_CLASS_DEFINITIONS,
@@ -29,17 +26,13 @@ export interface GameDashboardProps {
   presenceConfigurationError: string | null
   leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
-  campService: CampService | null
-  campConfigurationError: string | null
-  characterService: CharacterService | null
-  inventoryService: InventoryService | null
-  developmentToolsEnabled: boolean
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState
   runLoadError: string | null
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
+  onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
@@ -60,17 +53,13 @@ export function GameDashboard({
   presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
-  campService,
-  campConfigurationError,
-  characterService,
-  inventoryService,
-  developmentToolsEnabled,
   activeRun,
   runLoadState,
   runLoadError,
   onOpenRunSetup,
   onOpenMetaProgression,
   onOpenFishing,
+  onOpenCamp,
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
@@ -116,11 +105,6 @@ export function GameDashboard({
         presenceConfigurationError={presenceConfigurationError}
         leaderboardService={leaderboardService}
         leaderboardConfigurationError={leaderboardConfigurationError}
-        campService={campService}
-        campConfigurationError={campConfigurationError}
-        characterService={characterService}
-        inventoryService={inventoryService}
-        developmentToolsEnabled={developmentToolsEnabled}
         activeRun={activeRun}
         activeCharacterClassName={activeCharacterClass?.name ?? null}
         runLoadState={runLoadState}
@@ -131,6 +115,7 @@ export function GameDashboard({
         onOpenRunSetup={onOpenRunSetup}
         onOpenMetaProgression={onOpenMetaProgression}
         onOpenFishing={onOpenFishing}
+        onOpenCamp={onOpenCamp}
         onOpenChampions={onOpenChampions}
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}

@@ -43,6 +43,10 @@ export const LazyFishingScreen = named<
   PropsOf<typeof import('../fishing/FishingScreen')['FishingScreen']>
 >(() => import('../fishing/FishingScreen'), 'FishingScreen')
 
+export const LazyCampScreen = named<
+  PropsOf<typeof import('../camp/CampScreen')['CampScreen']>
+>(() => import('../camp/CampScreen'), 'CampScreen')
+
 export const LazyChampionManagementScreen = named<
   PropsOf<typeof import('../characters/ChampionManagementScreen')['ChampionManagementScreen']>
 >(() => import('../characters/ChampionManagementScreen'), 'ChampionManagementScreen')

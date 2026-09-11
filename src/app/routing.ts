@@ -15,6 +15,7 @@ export type AppScreen =
   | 'run-setup'
   | 'meta-progression'
   | 'fishing'
+  | 'camp'
   | 'champions'
   | 'inventory'
   | 'shop'
@@ -30,6 +31,7 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'run-setup': '/prepare/dungeon',
   'meta-progression': '/store',
   fishing: '/fishing',
+  camp: '/camp',
   champions: '/champions',
   inventory: '/inventory',
   shop: '/shop',
@@ -138,6 +140,10 @@ export function getMusicPlaylistId(
   }
   if (screen === 'fishing') {
     return 'fishing'
+  }
+  if (screen === 'camp') {
+    // The Camp is the refuge's own ground, and keeps its fire's music.
+    return 'dashboard'
   }
   if (screen === 'gameplay') {
     return runMode === 'infinite-abyss' ? 'abyss' : 'dungeon'

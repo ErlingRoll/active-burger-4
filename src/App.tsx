@@ -56,6 +56,7 @@ import {
 import { AppHeader } from './app/screens/AppHeader'
 import {
   LazyAdminReportsScreen,
+  LazyCampScreen,
   LazyChampionManagementScreen,
   LazyFishingScreen,
   LazyGameCanvas,
@@ -1370,6 +1371,10 @@ function App() {
     navigateToScreen('fishing')
   }, [navigateToScreen])
 
+  const openCamp = useCallback((): void => {
+    navigateToScreen('camp')
+  }, [navigateToScreen])
+
   const openChampions = useCallback((): void => {
     navigateToScreen('champions')
   }, [navigateToScreen])
@@ -1651,6 +1656,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1682,6 +1688,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1714,6 +1721,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1754,9 +1762,11 @@ function App() {
         ? ' app-shell-gameplay'
         : screen === 'fishing'
           ? ' app-shell-fishing'
-          : screen === 'dashboard'
-            ? ' app-shell-hub'
-            : ''
+          : screen === 'camp'
+            ? ' app-shell-camp'
+            : screen === 'dashboard'
+              ? ' app-shell-hub'
+              : ''
     }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}>
       {screen !== 'gameplay' ? (
         <AppHeader
@@ -1768,6 +1778,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1789,16 +1800,12 @@ function App() {
           presenceConfigurationError={hubPresence.configurationError}
           leaderboardService={abyssLeaderboard.service}
           leaderboardConfigurationError={abyssLeaderboard.configurationError}
-          campService={camp.service}
-          campConfigurationError={camp.configurationError}
-          characterService={characters.service}
-          inventoryService={inventory.service}
-          developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}
           onOpenMetaProgression={openMetaProgression}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1854,7 +1861,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1912,6 +1919,18 @@ function App() {
             activityPlayerApprovedNickname={nickname.displayName}
             activityPlayerProviderName={authentication.account.displayName}
             activityPlayerEmail={authentication.account.email}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'camp' && authentication.account ? (
+        <LazyScreen label="The Camp">
+          <LazyCampScreen
+            service={camp.service}
+            configurationError={camp.configurationError}
+            characterService={characters.service}
+            inventoryService={inventory.service}
+            developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
+            onBack={returnToDashboard}
           />
         </LazyScreen>
       ) : null}

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { renderComponent, screen, waitFor, within } from '../testing/render'
-import { CampPanel } from './CampPanel'
+import { CampScreen } from './CampScreen'
 import type { CampService, CampState } from './CampTypes'
 import type { CharacterService, ChampionSnapshot } from '../characters/CharacterTypes'
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
@@ -165,7 +165,7 @@ interface RenderOptions {
   artifacts?: InventoryItemInstance[]
 }
 
-function renderPanel(initial: CampState, options: RenderOptions = {}) {
+function renderScreen(initial: CampState, options: RenderOptions = {}) {
   const assignChampion = vi.fn(async () => workingState())
   const unassignChampion = vi.fn(async () => ({
     paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, effect: 'item' as const, definitionId: 'timber', units: 15, bonusUnits: 0 }],
@@ -222,26 +222,32 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
     )),
     craftItem,
   } as unknown as InventoryService
-  const onClose = vi.fn()
+  const onBack = vi.fn()
   const rendered = renderComponent(
-    <CampPanel
+    <CampScreen
       service={service}
       configurationError={null}
       characterService={characterService}
       inventoryService={inventoryService}
       developmentToolsEnabled={options.developmentToolsEnabled ?? false}
-      onClose={onClose}
+      onBack={onBack}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, onClose }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, onBack }
 }
 
-describe('CampPanel', () => {
-  it('shows the sheet a Champion would work a job with, and sends it there', async () => {
-    const { user, assignChampion } = renderPanel(emptyState())
+/** Opens a building's inspector from its plot on the ground. */
+async function openPlot(user: ReturnType<typeof renderScreen>['user'], name: string): Promise<void> {
+  await user.click(await screen.findByRole('button', { name: new RegExp(`^${name}`) }))
+  await screen.findByRole('heading', { name })
+}
 
-    const sendButtons = await screen.findAllByRole('button', { name: 'Send a Champion' })
-    await user.click(sendButtons[0]!)
+describe('CampScreen', () => {
+  it('shows the sheet a Champion would work a job with, and sends it there', async () => {
+    const { user, assignChampion } = renderScreen(emptyState())
+
+    await openPlot(user, 'Woodline')
+    await user.click(await screen.findByRole('button', { name: 'Send a Champion' }))
 
     const picker = screen.getByRole('group', { name: 'Choose a Champion for Fell timber' })
     const option = within(picker).getByRole('button', { name: /Mira of the Keep/ })
@@ -256,11 +262,11 @@ describe('CampPanel', () => {
       expect(assignChampion).toHaveBeenCalledWith(expect.any(String), 'champion-1', 'woodline-timber')
     })
     expect(await screen.findByRole('button', { name: 'Bring back' })).toBeInTheDocument()
-    expect(screen.getByText('1/1 working', { exact: false })).toBeInTheDocument()
+    expect(screen.getAllByText('1/1 working', { exact: false }).length).toBeGreaterThan(0)
   })
 
   it('claims the whole Camp and reads out what it paid', async () => {
-    const { user, claimProduction } = renderPanel(workingState())
+    const { user, claimProduction } = renderScreen(workingState())
 
     const claim = await screen.findByRole('button', { name: /^Claim/ })
     await user.click(claim)
@@ -274,28 +280,32 @@ describe('CampPanel', () => {
   })
 
   it('brings a Champion back and pays what it produced', async () => {
-    const { user, unassignChampion } = renderPanel(workingState())
+    const { user, unassignChampion } = renderScreen(workingState())
 
+    await openPlot(user, 'Woodline')
     await user.click(await screen.findByRole('button', { name: 'Bring back' }))
 
     await waitFor(() => {
       expect(unassignChampion).toHaveBeenCalledWith(expect.any(String), 'champion-1')
     })
     expect(await screen.findByText('Camp production claimed')).toBeInTheDocument()
-    expect(await screen.findAllByRole('button', { name: 'Send a Champion' })).toHaveLength(2)
+    expect(await screen.findByRole('button', { name: 'Send a Champion' })).toBeInTheDocument()
   })
 
   it('prices the next level against the bag and buys it when the bag can pay', async () => {
-    const { user, upgradeBuilding } = renderPanel(emptyState(), {
+    const { user, upgradeBuilding } = renderScreen(emptyState(), {
       materials: [material('timber', 50), material('stone', 30)],
     })
 
     // The Storehouse wants 48 timber and 48 stone; the bag is short of stone.
+    await openPlot(user, 'Storehouse')
     const storehouse = await screen.findByRole('button', { name: 'Upgrade the storehouse' })
     expect(storehouse).toBeDisabled()
     expect(screen.getByText('48 Stone')).toHaveAttribute('data-short', 'true')
 
-    // The bench wants 40 timber and 20 stone, which the bag has.
+    // The bench wants 40 timber and 20 stone, which the bag has; its plot says so.
+    expect(screen.getByRole('button', { name: /^Tackle bench/ })).toHaveTextContent('Ready to build')
+    await openPlot(user, 'Tackle bench')
     const build = screen.getByRole('button', { name: 'Build the tackle bench' })
     expect(build).toBeEnabled()
     await user.click(build)
@@ -308,10 +318,11 @@ describe('CampPanel', () => {
   })
 
   it('crafts at the bench once it is built', async () => {
-    const { user, craftItem } = renderPanel(builtState(), {
+    const { user, craftItem } = renderScreen(builtState(), {
       materials: [material('timber', 5), material('scrap', 4)],
     })
 
+    await openPlot(user, 'Tackle bench')
     const worm = await screen.findByRole('button', { name: 'Turn a worm float: make 1 River Worm' })
     expect(worm).toBeEnabled()
     expect(screen.getByRole('button', { name: /Carve a grub lantern/ })).toBeDisabled()
@@ -324,7 +335,7 @@ describe('CampPanel', () => {
   })
 
   it('reads a claim at the anchor as minutes of rest', async () => {
-    const { user, claimProduction } = renderPanel(anchorState())
+    const { user, claimProduction } = renderScreen(anchorState())
 
     expect(await screen.findByText('1/1 resting', { exact: false })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Claim/ }))
@@ -338,11 +349,12 @@ describe('CampPanel', () => {
   it('guts a fish for roe and cures a meal fish with it', async () => {
     const perch = fishInstance('silver-perch', { rarity: 'rare', sizePercentile: 0.5 })
     const koi = fishInstance('revival-koi', { rarity: 'epic', sizePercentile: 0.9 })
-    const { user, gutFish, cureFish } = renderPanel(anchorState(), {
+    const { user, gutFish, cureFish } = renderScreen(anchorState(), {
       materials: [material('roe', 3)],
       fish: [perch, koi],
     })
 
+    await openPlot(user, 'Smokehouse')
     await user.click(await screen.findByRole('button', { name: 'Gut a fish' }))
     // A rare perch of middling size: 3 × (0.75 + 0.25) = 3 roe.
     await user.click(await screen.findByRole('button', { name: 'Gut Silver Perch: → 3 roe' }))
@@ -361,11 +373,12 @@ describe('CampPanel', () => {
   })
 
   it('reforges an artifact for scrap and shards, and prices it by rarity', async () => {
-    const { user, reforgeArtifact } = renderPanel(anchorState(), {
+    const { user, reforgeArtifact } = renderScreen(anchorState(), {
       materials: [material('scrap', 45), material('rift-shard', 3)],
       artifacts: [RELIQUARY],
     })
 
+    await openPlot(user, 'Forge')
     await user.click(await screen.findByRole('button', { name: 'Reforge an artifact' }))
     const option = await screen.findByRole('button', { name: 'Reforge Ember Reliquary, Rare' })
     expect(option).toHaveTextContent('45 Scrap')
@@ -380,7 +393,7 @@ describe('CampPanel', () => {
   })
 
   it('lets a development build skip the clock ahead', async () => {
-    const { user, advanceClock } = renderPanel(workingState(), { developmentToolsEnabled: true })
+    const { user, advanceClock } = renderScreen(workingState(), { developmentToolsEnabled: true })
 
     await user.click(await screen.findByRole('button', { name: '+8h' }))
 
@@ -390,17 +403,34 @@ describe('CampPanel', () => {
   })
 
   it('hides the clock-skipping row from an ordinary build', async () => {
-    renderPanel(workingState())
+    renderScreen(workingState())
 
-    await screen.findByRole('button', { name: 'Bring back' })
+    await screen.findByRole('button', { name: /^Woodline/ })
     expect(screen.queryByRole('group', { name: 'Development tools' })).toBeNull()
   })
 
-  it('closes from its own button', async () => {
-    const { user, onClose } = renderPanel(emptyState())
+  it('shows each plot at a glance and opens its inspector', async () => {
+    const { user } = renderScreen(workingState())
 
-    await user.click(await screen.findByRole('button', { name: 'Close the Camp' }))
+    const woodline = await screen.findByRole('button', { name: /^Woodline/ })
+    expect(woodline).toHaveTextContent('1/1 working')
+    expect(woodline).toHaveAttribute('data-built', 'true')
+    expect(screen.getByRole('button', { name: /^Forge/ })).toHaveAttribute('data-built', 'false')
+    expect(screen.getByRole('button', { name: /^Trophy hall/ })).toBeDisabled()
 
-    expect(onClose).toHaveBeenCalled()
+    await user.click(woodline)
+    expect(await screen.findByRole('heading', { name: 'Woodline' })).toBeInTheDocument()
+    expect(woodline).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'Close the woodline' }))
+    expect(screen.queryByRole('heading', { name: 'Woodline' })).toBeNull()
+  })
+
+  it('walks back to the refuge from its own button', async () => {
+    const { user, onBack } = renderScreen(emptyState())
+
+    await user.click(await screen.findByRole('button', { name: /Refuge/ }))
+
+    expect(onBack).toHaveBeenCalled()
   })
 })

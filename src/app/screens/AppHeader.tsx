@@ -29,6 +29,7 @@ export interface AppHeaderProps {
   onOpenAdmin: () => void
   onOpenNicknameModeration: () => void
   onOpenFishing: () => void
+  onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
@@ -48,6 +49,7 @@ export function AppHeader({
   onOpenAdmin,
   onOpenNicknameModeration,
   onOpenFishing,
+  onOpenCamp,
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
@@ -116,6 +118,7 @@ export function AppHeader({
         <nav className="app-navigation" aria-label="Primary navigation">
           <a className="app-wiki-link" href="/wiki">Wiki</a>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenFishing)}>Fishing</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)}>Camp</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)}>Champions</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)}>Inventory</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>

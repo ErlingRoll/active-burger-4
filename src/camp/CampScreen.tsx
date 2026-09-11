@@ -6,6 +6,7 @@ import { previewCampProduction } from '../content/camp/CampAccrual'
 import {
   CAMP_BUILDING_DEFINITIONS,
   getCampBuildingLevel,
+  getCampBuildingMaxLevel,
   getNextCampBuildingLevel,
 } from '../content/camp/CampBuildings'
 import { ALL_CAMP_JOB_DEFINITIONS, getCampJobDefinition } from '../content/camp/CampJobs'
@@ -35,31 +36,34 @@ import type { InventoryItemInstance, InventoryService } from '../inventory/Inven
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
+import { CampBuildingArt, type CampPlotId } from './CampBuildingArt'
 import { LabourSheetLine } from './LabourSheetLine'
 import { nextCureStep, roeForFish } from './Smokehouse'
 import { REFORGE_COSTS } from './Forge'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
 
 /**
- * The Camp, as a panel on the hub.
+ * The Camp, as a place.
  *
- * One card per building. A job card shows the Champions working it and what
- * they have pending, with a picker that opens inside the card when a slot is
- * free; the picker is where the labour sheet earns its keep, because every
- * Champion shows the sheet it would work this job with. An exhausted Champion
- * is pickable, because exhaustion blocks the Abyss and not labour, and the
- * Rift anchor takes only exhausted Champions, because rest is all it gives.
+ * A screen of its own, like the pond: the settlement drawn as a scene, with
+ * a plot for every building standing on the ground between the pines and the
+ * quarry face. A plot shows at a glance what the building is doing, who is
+ * working it and what is waiting to be claimed, and opening one brings its
+ * inspector out from the side of the screen with everything the building can
+ * do: the Champions at a job and the picker that sends more, the bench's
+ * recipes, the Smokehouse's fish, the Forge's relics, and the next level's
+ * price against what the bag holds.
  *
- * The workshops end the list: the tackle bench crafts bait from the Camp's
- * timber, the Smokehouse guts a fish for roe or cures a meal fish with it,
- * and the Forge rerolls an artifact for scrap and shards. Every card ends in
- * its next level's price against what the bag holds.
- * Pending units count up on the client from the server's clock, never from
- * the client's own, and every change is answered with the server's state.
+ * The picker is where the labour sheet earns its keep, because every
+ * Champion shows the sheet it would work this job with. An exhausted
+ * Champion is pickable, because exhaustion blocks the Abyss and not labour,
+ * and the Rift anchor takes only exhausted Champions, because rest is all it
+ * gives. Pending units count up on the client from the server's clock, never
+ * from the client's own, and every change is answered with the server's
+ * state.
  */
 
-interface CampPanelProps {
-  id?: string
+interface CampScreenProps {
   service: CampService | null
   configurationError: string | null
   characterService: CharacterService | null
@@ -67,7 +71,7 @@ interface CampPanelProps {
   inventoryService: InventoryService | null
   /** Shows the clock-skipping row. The header decides this: an administrator on a build with the tools on. */
   developmentToolsEnabled?: boolean
-  onClose: () => void
+  onBack: () => void
 }
 
 /** The hours a tester skips at a time: a few units' worth, and a Storehouse's worth. */
@@ -75,6 +79,21 @@ const DEVELOPMENT_SKIPS = [1, 8] as const
 
 /** How often the pending counts tick. A unit takes minutes, so seconds would be theatre. */
 const CAMP_TICK_MS = 15_000
+
+/**
+ * The plots, in the order they stand on the ground: the Woodline against the
+ * pines, the quarry against the cut hillside, the Storehouse and the anchor
+ * between them, and the workshops along the front where the water is. The
+ * Trophy hall is a footprint with nothing to build yet; it stands on the
+ * scene so the settlement reads as unfinished rather than complete.
+ */
+const CAMP_PLOTS: readonly CampPlotId[] = [
+  'woodline', 'storehouse', 'rift-anchor', 'quarry',
+  'tackle-bench', 'smokehouse', 'forge', 'trophy-hall',
+]
+
+/** The materials the ledger counts, in the order the Camp meets them. */
+const LEDGER_MATERIALS = ['timber', 'stone', 'scrap', 'rift-shard', 'roe'] as const
 
 type FishAction = 'gut' | 'cure'
 
@@ -111,6 +130,10 @@ function formatHours(hours: number): string {
 function buildingLevel(state: CampState, buildingId: CampBuildingId): number {
   return state.buildings.find((entry) => entry.buildingId === buildingId)?.level
     ?? CAMP_BUILDING_DEFINITIONS[buildingId].startingLevel
+}
+
+function isBuildingId(plotId: CampPlotId): plotId is CampBuildingId {
+  return plotId !== 'trophy-hall'
 }
 
 /** What a level is for, in the words the row uses. */
@@ -157,9 +180,11 @@ interface CampUpgradeRowProps {
 function CampUpgradeRow({ buildingId, level, held, busy, onUpgrade }: CampUpgradeRowProps) {
   const next = getNextCampBuildingLevel(buildingId, level)
   const name = CAMP_BUILDING_DEFINITIONS[buildingId].name
-  // A building at its top has nothing to sell; the card already says its level.
+  // A building at its top has nothing to sell; the inspector already says its level.
   if (!next) {
-    return null
+    return (
+      <p className="camp-upgrade-top">{name} stands at its highest level.</p>
+    )
   }
   const building = level === 0
   return (
@@ -443,15 +468,26 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
   )
 }
 
-export function CampPanel({
-  id,
+/** Level pips: one per level the building can reach, lit as far as it has. */
+function CampLevelPips({ buildingId, level }: { buildingId: CampBuildingId, level: number }) {
+  const max = getCampBuildingMaxLevel(buildingId)
+  return (
+    <span className="camp-plot-level" aria-label={level === 0 ? 'Not built' : `Level ${level} of ${max}`}>
+      {Array.from({ length: max }, (_, index) => (
+        <i key={index} data-lit={index < level ? 'true' : 'false'} />
+      ))}
+    </span>
+  )
+}
+
+export function CampScreen({
   service,
   configurationError,
   characterService,
   inventoryService,
   developmentToolsEnabled = false,
-  onClose,
-}: CampPanelProps) {
+  onBack,
+}: CampScreenProps) {
   const { showLootToast, showToast } = useToaster()
   const [state, setState] = useState<CampState | null>(null)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
@@ -469,6 +505,7 @@ export function CampPanel({
       ? configurationError
       : configurationError ?? 'The Camp is unavailable.',
   )
+  const [selectedPlot, setSelectedPlot] = useState<CampBuildingId | null>(null)
   const [pickerJobId, setPickerJobId] = useState<CampJobId | null>(null)
   const [fishAction, setFishAction] = useState<FishAction | null>(null)
   const [busy, setBusy] = useState(false)
@@ -617,7 +654,7 @@ export function CampPanel({
       const collection = await characterService.loadCharacters()
       setChampions(collection.champions.filter((champion) => !champion.archived))
     } catch {
-      // The panel keeps the roster it has; the next open reads it fresh.
+      // The screen keeps the roster it has; the next visit reads it fresh.
     }
   }, [characterService])
 
@@ -766,270 +803,422 @@ export function CampPanel({
     void run(() => service.advanceClock(hours), 'Unable to advance the Camp clock.')
   }
 
-  const storehouseLevel = state ? buildingLevel(state, 'storehouse') : 1
-  const benchLevel = state ? buildingLevel(state, 'tackle-bench') : 0
-  const smokehouseLevel = state ? buildingLevel(state, 'smokehouse') : 0
-  const forgeLevel = state ? buildingLevel(state, 'forge') : 0
+  /** Opening a plot closes whatever picker the last one had open. */
+  const openPlot = (plotId: CampBuildingId): void => {
+    setSelectedPlot((current) => (current === plotId ? null : plotId))
+    setPickerJobId(null)
+    setFishAction(null)
+    setForgeOpen(false)
+  }
+
+  const closeInspector = (): void => {
+    setSelectedPlot(null)
+    setPickerJobId(null)
+    setFishAction(null)
+    setForgeOpen(false)
+  }
+
   const benchRecipes = getCraftingRecipesForBuilding('tackle-bench')
   const roeHeld = countHeldQuantity(materials, 'roe')
+  const workingCount = state
+    ? state.assignments.filter((assignment) => getCampJobDefinition(assignment.jobId)?.effect !== 'exhaustion-relief').length
+    : 0
+  const restingCount = state ? state.assignments.length - workingCount : 0
   const totalPending = state
     ? state.assignments
       .filter((assignment) => getCampJobDefinition(assignment.jobId)?.effect !== 'exhaustion-relief')
       .reduce((total, assignment) => total + pendingFor(assignment, state, now), 0)
     : 0
 
-  return (
-    <section id={id} className="hub-camp-panel" aria-labelledby="camp-panel-title">
-      <header className="camp-panel-heading">
-        <div>
-          <p className="screen-kicker">The Camp</p>
-          <h3 id="camp-panel-title">Send Champions to work</h3>
-        </div>
-        <button className="camp-panel-close" type="button" onClick={onClose} aria-label="Close the Camp">
-          <span aria-hidden="true">×</span>
-        </button>
-      </header>
-      {error ? <p className="persistence-error" role="alert">{error}</p> : null}
-      {loadState === 'loading' ? (
-        <p className="camp-panel-status" role="status">Walking out to the Camp…</p>
-      ) : state ? (
+  /** One line under a plot's name: what the building is doing right now. */
+  const describePlot = (plotId: CampPlotId): { status: string, pending: number, workers: number, slots: number } => {
+    if (!state || !isBuildingId(plotId)) {
+      return { status: 'Someday', pending: 0, workers: 0, slots: 0 }
+    }
+    const level = buildingLevel(state, plotId)
+    if (level === 0) {
+      const next = getNextCampBuildingLevel(plotId, 0)
+      return {
+        status: next && canAfford(next.cost, materials) ? 'Ready to build' : 'Not built',
+        pending: 0,
+        workers: 0,
+        slots: 0,
+      }
+    }
+    const job = ALL_CAMP_JOB_DEFINITIONS.find((entry) => entry.buildingId === plotId)
+    if (job) {
+      const slots = getCampBuildingLevel(plotId, level)?.jobSlots ?? 0
+      const workers = state.assignments.filter((assignment) => assignment.jobId === job.id)
+      const pending = workers.reduce((total, assignment) => total + pendingFor(assignment, state, now), 0)
+      const verb = job.effect === 'exhaustion-relief' ? 'resting' : 'working'
+      const unit = job.effect === 'exhaustion-relief' ? 'min rested' : itemName(job.outputDefinitionId ?? '').toLowerCase()
+      return {
+        status: workers.length === 0
+          ? `Nobody ${verb} · ${slots} ${slots === 1 ? 'slot' : 'slots'}`
+          : `${workers.length}/${slots} ${verb}${pending > 0 ? ` · ${pending} ${unit}` : ''}`,
+        pending,
+        workers: workers.length,
+        slots,
+      }
+    }
+    switch (plotId) {
+      case 'storehouse':
+        return { status: `Holds ${formatHours(state.storehouseCapHours)} of work`, pending: 0, workers: 0, slots: 0 }
+      case 'tackle-bench':
+        return { status: `${benchRecipes.length} ${benchRecipes.length === 1 ? 'recipe' : 'recipes'}`, pending: 0, workers: 0, slots: 0 }
+      case 'smokehouse':
+        return { status: `${roeHeld} roe held`, pending: 0, workers: 0, slots: 0 }
+      case 'forge':
+        return { status: level > 1 ? `+${level === 2 ? 25 : 50}% run salvage` : 'Reforges artifacts', pending: 0, workers: 0, slots: 0 }
+      default:
+        return { status: '', pending: 0, workers: 0, slots: 0 }
+    }
+  }
+
+  /** The inspector's body for the open plot: what the building can do. */
+  const renderInspector = (buildingId: CampBuildingId) => {
+    if (!state) {
+      return null
+    }
+    const building = CAMP_BUILDING_DEFINITIONS[buildingId]
+    const level = buildingLevel(state, buildingId)
+    const job = ALL_CAMP_JOB_DEFINITIONS.find((entry) => entry.buildingId === buildingId)
+    const upgradeRow = (
+      <CampUpgradeRow
+        buildingId={buildingId}
+        level={level}
+        held={materials}
+        busy={busy}
+        onUpgrade={() => upgrade(buildingId)}
+      />
+    )
+    if (job) {
+      const slots = getCampBuildingLevel(buildingId, level)?.jobSlots ?? 0
+      const workers = state.assignments.filter((assignment) => assignment.jobId === job.id)
+      const relief = job.effect === 'exhaustion-relief'
+      const unbuilt = level === 0
+      return (
         <>
-          <div className="camp-panel-summary">
-            <span>
-              <strong>{CAMP_BUILDING_DEFINITIONS.storehouse.name} {storehouseLevel}</strong>
-              <small>Holds {formatHours(state.storehouseCapHours)} of work while you are away</small>
-            </span>
+          <p className="camp-inspector-copy">
+            {unbuilt
+              ? building.description
+              : relief
+                ? `${job.name}: ${job.baseRatePerHour} minutes of rest an hour a Champion · ${workers.length}/${slots} resting`
+                : `${job.name}: ${job.baseRatePerHour} ${itemName(job.outputDefinitionId ?? '').toLowerCase()} an hour a Champion · ${workers.length}/${slots} working`}
+          </p>
+          {workers.length > 0 ? (
+            <ul className="camp-workers">
+              {workers.map((assignment) => (
+                <CampWorker
+                  key={assignment.championId}
+                  job={job}
+                  assignment={assignment}
+                  champion={championsById.get(assignment.championId)}
+                  pending={pendingFor(assignment, state, now)}
+                  busy={busy}
+                  onRecall={() => recall(assignment.championId)}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {pickerJobId === job.id ? (
+            <CampPicker
+              job={job}
+              champions={champions}
+              state={state}
+              now={now}
+              busy={busy}
+              onPick={(championId) => assign(championId, job.id)}
+              onCancel={() => setPickerJobId(null)}
+            />
+          ) : !unbuilt && workers.length < slots ? (
+            <button
+              className="camp-send-action"
+              type="button"
+              onClick={() => setPickerJobId(job.id)}
+              disabled={busy || champions.length === 0}
+            >
+              {champions.length === 0 ? 'No Champions to send yet' : 'Send a Champion'}
+            </button>
+          ) : null}
+          {upgradeRow}
+        </>
+      )
+    }
+    switch (buildingId) {
+      case 'storehouse':
+        return (
+          <>
+            <p className="camp-inspector-copy">
+              Holds {formatHours(state.storehouseCapHours)} of work while you are away. Every job stops
+              when its store is full, so a bigger store waits longer between visits.
+            </p>
+            {upgradeRow}
+          </>
+        )
+      case 'tackle-bench':
+        return (
+          <>
+            <p className="camp-inspector-copy">
+              {level === 0
+                ? building.description
+                : 'Bait from the Camp’s timber and the dungeon’s scrap, cheaper in scrap than digging.'}
+            </p>
+            {level > 0 ? (
+              <ul className="camp-recipes">
+                {benchRecipes.map((recipe) => (
+                  <CampRecipe
+                    key={recipe.id}
+                    recipe={recipe}
+                    held={materials}
+                    busy={busy || !inventoryService}
+                    onCraft={() => craft(recipe)}
+                  />
+                ))}
+              </ul>
+            ) : null}
+            {upgradeRow}
+          </>
+        )
+      case 'smokehouse':
+        return (
+          <>
+            <p className="camp-inspector-copy">
+              {level === 0
+                ? building.description
+                : `Gut a fish for roe, or spend roe to cure a meal fish a tier. ${roeHeld} roe held.`}
+            </p>
+            {level > 0 ? (
+              fishAction ? (
+                <FishPicker
+                  action={fishAction}
+                  fish={fish}
+                  loading={fishLoading}
+                  roeHeld={roeHeld}
+                  busy={busy}
+                  onPick={(item) => (fishAction === 'gut' ? gut(item) : cure(item))}
+                  onCancel={() => setFishAction(null)}
+                />
+              ) : (
+                <div className="camp-fish-actions">
+                  <button
+                    className="camp-send-action"
+                    type="button"
+                    onClick={() => openFishPicker('gut')}
+                    disabled={busy || !inventoryService}
+                  >
+                    Gut a fish
+                  </button>
+                  <button
+                    className="camp-send-action"
+                    type="button"
+                    onClick={() => openFishPicker('cure')}
+                    disabled={busy || !inventoryService}
+                  >
+                    Cure a fish
+                  </button>
+                </div>
+              )
+            ) : null}
+            {upgradeRow}
+          </>
+        )
+      case 'forge':
+        return (
+          <>
+            <p className="camp-inspector-copy">
+              {level === 0
+                ? building.description
+                : `Reroll an artifact for scrap and rift shards.${level > 1 ? ` Finished runs leave ${level === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
+            </p>
+            {level > 0 ? (
+              forgeOpen ? (
+                <ArtifactPicker
+                  artifacts={artifacts}
+                  loading={artifactsLoading}
+                  held={materials}
+                  busy={busy}
+                  onPick={reforge}
+                  onCancel={() => setForgeOpen(false)}
+                />
+              ) : (
+                <button
+                  className="camp-send-action"
+                  type="button"
+                  onClick={openForge}
+                  disabled={busy || !inventoryService}
+                >
+                  Reforge an artifact
+                </button>
+              )
+            ) : null}
+            {upgradeRow}
+          </>
+        )
+      default:
+        return upgradeRow
+    }
+  }
+
+  const inspected = selectedPlot && state ? CAMP_BUILDING_DEFINITIONS[selectedPlot] : null
+  const inspectedLevel = selectedPlot && state ? buildingLevel(state, selectedPlot) : 0
+
+  return (
+    <section
+      className="dashboard camp-screen"
+      aria-labelledby="camp-title"
+      data-inspecting={inspected ? 'true' : undefined}
+    >
+      <div className="camp-scene" aria-hidden="true">
+        <svg className="camp-backdrop" viewBox="0 0 1000 300" preserveAspectRatio="none">
+          <polygon
+            className="camp-backdrop-hills"
+            points="0,300 0,190 90,150 180,175 260,120 340,160 430,110 520,150 600,130 700,170 790,90 860,140 940,120 1000,150 1000,300"
+          />
+          <polygon
+            className="camp-backdrop-pines"
+            points="0,300 0,210 18,170 34,210 46,185 60,215 76,172 92,215 106,190 122,222 140,176 158,224 172,198 188,232 204,186 222,236 240,208 256,242 300,250 340,300"
+          />
+          <polygon
+            className="camp-backdrop-cliff"
+            points="700,300 720,240 760,210 800,150 850,130 900,140 940,110 1000,120 1000,300"
+          />
+          <polygon
+            className="camp-backdrop-cliff-face"
+            points="820,300 830,236 870,206 920,196 960,226 1000,210 1000,300"
+          />
+        </svg>
+        <div className="camp-moon" />
+        <div className="camp-ground" />
+        <div className="camp-water" />
+        <div className="camp-fog" />
+      </div>
+      <div className="camp-hud">
+        <div className="camp-hud-topbar">
+          <div className="camp-scene-header">
+            <p className="screen-kicker">Between descents · The Camp</p>
+            <h2 id="camp-title">The Camp</h2>
+            <div className="camp-scene-subline">
+              <span><i className="camp-live-dot" aria-hidden="true" /> {workingCount} {workingCount === 1 ? 'Champion' : 'Champions'} working</span>
+              {restingCount > 0 ? <span>{restingCount} resting</span> : null}
+              {state ? <span>Storehouse holds {formatHours(state.storehouseCapHours)}</span> : null}
+            </div>
+          </div>
+          <div className="camp-topbar-actions">
+            <ul className="camp-ledger" aria-label="Materials in the bag">
+              {LEDGER_MATERIALS.map((definitionId) => (
+                <li key={definitionId} title={itemName(definitionId)}>
+                  <span className="camp-ledger-icon" aria-hidden="true">{getRewardIcon(definitionId)}</span>
+                  <span className="camp-ledger-count">{countHeldQuantity(materials, definitionId)}</span>
+                  <span className="camp-ledger-name">{itemName(definitionId)}</span>
+                </li>
+              ))}
+            </ul>
             <button
               className="camp-claim-action"
               type="button"
               onClick={claim}
-              disabled={busy || state.assignments.length === 0}
+              disabled={busy || !state || state.assignments.length === 0}
             >
               Claim{totalPending > 0 ? ` ${totalPending}` : ''}
             </button>
+            <button className="camp-back-action" type="button" onClick={onBack}>
+              <span aria-hidden="true">←</span> Refuge
+            </button>
           </div>
-          <CampUpgradeRow
-            buildingId="storehouse"
-            level={storehouseLevel}
-            held={materials}
-            busy={busy}
-            onUpgrade={() => upgrade('storehouse')}
-          />
-          {developmentToolsEnabled ? (
-            <div className="camp-dev-row" role="group" aria-label="Development tools">
-              <span>Dev · skip ahead</span>
-              {DEVELOPMENT_SKIPS.map((hours) => (
-                <button
-                  key={hours}
-                  type="button"
-                  onClick={() => skipAhead(hours)}
-                  disabled={busy || state.assignments.length === 0}
-                >
-                  +{hours}h
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <ul className="camp-jobs">
-            {ALL_CAMP_JOB_DEFINITIONS.map((job) => {
-              const building = CAMP_BUILDING_DEFINITIONS[job.buildingId]
-              const level = buildingLevel(state, job.buildingId)
-              const slots = getCampBuildingLevel(job.buildingId, level)?.jobSlots ?? 0
-              const workers = state.assignments.filter((assignment) => assignment.jobId === job.id)
-              const relief = job.effect === 'exhaustion-relief'
-              const pickerOpen = pickerJobId === job.id
-              const unbuilt = level === 0
+        </div>
+        {developmentToolsEnabled && state ? (
+          <div className="camp-dev-row" role="group" aria-label="Development tools">
+            <span>Dev · skip ahead</span>
+            {DEVELOPMENT_SKIPS.map((hours) => (
+              <button
+                key={hours}
+                type="button"
+                onClick={() => skipAhead(hours)}
+                disabled={busy || state.assignments.length === 0}
+              >
+                +{hours}h
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {error ? <p className="camp-notice camp-notice-error" role="alert">{error}</p> : null}
+        {loadState === 'loading' ? (
+          <p className="camp-notice" role="status">Walking out to the Camp…</p>
+        ) : null}
+        <div className="camp-hud-main">
+        {state ? (
+          <ul className="camp-plots" aria-label="The buildings">
+            {CAMP_PLOTS.map((plotId) => {
+              const built = isBuildingId(plotId) && buildingLevel(state, plotId) > 0
+              const name = isBuildingId(plotId) ? CAMP_BUILDING_DEFINITIONS[plotId].name : 'Trophy hall'
+              const plot = describePlot(plotId)
               return (
-                <li className="camp-job" key={job.id}>
-                  <header className="camp-job-heading">
-                    <span className="camp-job-icon" aria-hidden="true">
-                      {getRewardIcon(job.outputDefinitionId ?? 'rift-shard')}
+                <li key={plotId} data-plot={plotId}>
+                  <button
+                    className="camp-plot"
+                    type="button"
+                    data-plot={plotId}
+                    data-built={built ? 'true' : 'false'}
+                    data-ready={plot.pending > 0 ? 'true' : undefined}
+                    aria-pressed={selectedPlot === plotId}
+                    disabled={!isBuildingId(plotId)}
+                    onClick={() => {
+                      if (isBuildingId(plotId)) {
+                        openPlot(plotId)
+                      }
+                    }}
+                  >
+                    <span className="camp-plot-glow" aria-hidden="true" />
+                    <CampBuildingArt plotId={plotId} built={built} />
+                    {plot.slots > 0 ? (
+                      <span className="camp-plot-workers" aria-hidden="true">
+                        {Array.from({ length: plot.slots }, (_, index) => (
+                          <i key={index} data-filled={index < plot.workers ? 'true' : 'false'} />
+                        ))}
+                      </span>
+                    ) : null}
+                    <span className="camp-plot-copy">
+                      <strong>{name}</strong>
+                      {isBuildingId(plotId) ? (
+                        <CampLevelPips buildingId={plotId} level={buildingLevel(state, plotId)} />
+                      ) : null}
+                      <small>{plot.status}</small>
                     </span>
-                    <span className="camp-job-copy">
-                      <strong>{job.name}</strong>
-                      <small>
-                        {unbuilt
-                          ? building.description
-                          : relief
-                            ? `${building.name} ${level} · ${job.baseRatePerHour} min of rest an hour a Champion · ${workers.length}/${slots} resting`
-                            : `${building.name} ${level} · ${job.baseRatePerHour} ${itemName(job.outputDefinitionId ?? '').toLowerCase()} an hour a Champion · ${workers.length}/${slots} working`}
-                      </small>
-                    </span>
-                  </header>
-                  {workers.length > 0 ? (
-                    <ul className="camp-workers">
-                      {workers.map((assignment) => (
-                        <CampWorker
-                          key={assignment.championId}
-                          job={job}
-                          assignment={assignment}
-                          champion={championsById.get(assignment.championId)}
-                          pending={pendingFor(assignment, state, now)}
-                          busy={busy}
-                          onRecall={() => recall(assignment.championId)}
-                        />
-                      ))}
-                    </ul>
-                  ) : null}
-                  {pickerOpen ? (
-                    <CampPicker
-                      job={job}
-                      champions={champions}
-                      state={state}
-                      now={now}
-                      busy={busy}
-                      onPick={(championId) => assign(championId, job.id)}
-                      onCancel={() => setPickerJobId(null)}
-                    />
-                  ) : workers.length < slots ? (
-                    <button
-                      className="camp-send-action"
-                      type="button"
-                      onClick={() => setPickerJobId(job.id)}
-                      disabled={busy || champions.length === 0}
-                    >
-                      {champions.length === 0 ? 'No Champions to send yet' : 'Send a Champion'}
-                    </button>
-                  ) : null}
-                  <CampUpgradeRow
-                    buildingId={job.buildingId}
-                    level={level}
-                    held={materials}
-                    busy={busy}
-                    onUpgrade={() => upgrade(job.buildingId)}
-                  />
+                    {plot.pending > 0 ? <span className="camp-plot-ready">Ready</span> : null}
+                  </button>
                 </li>
               )
             })}
-            <li className="camp-job" key="tackle-bench">
-              <header className="camp-job-heading">
-                <span className="camp-job-icon" aria-hidden="true">{getRewardIcon('river-worm')}</span>
-                <span className="camp-job-copy">
-                  <strong>{CAMP_BUILDING_DEFINITIONS['tackle-bench'].name}</strong>
-                  <small>
-                    {benchLevel === 0
-                      ? CAMP_BUILDING_DEFINITIONS['tackle-bench'].description
-                      : 'Bait from the Camp’s timber and the dungeon’s scrap, cheaper in scrap than digging.'}
-                  </small>
-                </span>
-              </header>
-              {benchLevel > 0 ? (
-                <ul className="camp-recipes">
-                  {benchRecipes.map((recipe) => (
-                    <CampRecipe
-                      key={recipe.id}
-                      recipe={recipe}
-                      held={materials}
-                      busy={busy || !inventoryService}
-                      onCraft={() => craft(recipe)}
-                    />
-                  ))}
-                </ul>
-              ) : null}
-              <CampUpgradeRow
-                buildingId="tackle-bench"
-                level={benchLevel}
-                held={materials}
-                busy={busy}
-                onUpgrade={() => upgrade('tackle-bench')}
-              />
-            </li>
-            <li className="camp-job" key="smokehouse">
-              <header className="camp-job-heading">
-                <span className="camp-job-icon" aria-hidden="true">{getRewardIcon('roe')}</span>
-                <span className="camp-job-copy">
-                  <strong>{CAMP_BUILDING_DEFINITIONS.smokehouse.name}</strong>
-                  <small>
-                    {smokehouseLevel === 0
-                      ? CAMP_BUILDING_DEFINITIONS.smokehouse.description
-                      : `Gut a fish for roe, or spend roe to cure a meal fish a tier. ${roeHeld} roe held.`}
-                  </small>
-                </span>
-              </header>
-              {smokehouseLevel > 0 ? (
-                fishAction ? (
-                  <FishPicker
-                    action={fishAction}
-                    fish={fish}
-                    loading={fishLoading}
-                    roeHeld={roeHeld}
-                    busy={busy}
-                    onPick={(item) => (fishAction === 'gut' ? gut(item) : cure(item))}
-                    onCancel={() => setFishAction(null)}
-                  />
-                ) : (
-                  <div className="camp-fish-actions">
-                    <button
-                      className="camp-send-action"
-                      type="button"
-                      onClick={() => openFishPicker('gut')}
-                      disabled={busy || !inventoryService}
-                    >
-                      Gut a fish
-                    </button>
-                    <button
-                      className="camp-send-action"
-                      type="button"
-                      onClick={() => openFishPicker('cure')}
-                      disabled={busy || !inventoryService}
-                    >
-                      Cure a fish
-                    </button>
-                  </div>
-                )
-              ) : null}
-              <CampUpgradeRow
-                buildingId="smokehouse"
-                level={smokehouseLevel}
-                held={materials}
-                busy={busy}
-                onUpgrade={() => upgrade('smokehouse')}
-              />
-            </li>
-            <li className="camp-job" key="forge">
-              <header className="camp-job-heading">
-                <span className="camp-job-icon" aria-hidden="true">{getRewardIcon('scrap')}</span>
-                <span className="camp-job-copy">
-                  <strong>{CAMP_BUILDING_DEFINITIONS.forge.name}{forgeLevel > 0 ? ` ${forgeLevel}` : ''}</strong>
-                  <small>
-                    {forgeLevel === 0
-                      ? CAMP_BUILDING_DEFINITIONS.forge.description
-                      : `Reroll an artifact for scrap and rift shards.${forgeLevel > 1 ? ` Finished runs leave ${forgeLevel === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
-                  </small>
-                </span>
-              </header>
-              {forgeLevel > 0 ? (
-                forgeOpen ? (
-                  <ArtifactPicker
-                    artifacts={artifacts}
-                    loading={artifactsLoading}
-                    held={materials}
-                    busy={busy}
-                    onPick={reforge}
-                    onCancel={() => setForgeOpen(false)}
-                  />
-                ) : (
-                  <button
-                    className="camp-send-action"
-                    type="button"
-                    onClick={openForge}
-                    disabled={busy || !inventoryService}
-                  >
-                    Reforge an artifact
-                  </button>
-                )
-              ) : null}
-              <CampUpgradeRow
-                buildingId="forge"
-                level={forgeLevel}
-                held={materials}
-                busy={busy}
-                onUpgrade={() => upgrade('forge')}
-              />
-            </li>
           </ul>
-        </>
-      ) : null}
+        ) : null}
+        {inspected && selectedPlot ? (
+          <section
+            className="camp-inspector"
+            aria-labelledby="camp-inspector-title"
+            data-plot={selectedPlot}
+          >
+            <header className="camp-inspector-heading">
+              <span className="camp-inspector-art" aria-hidden="true">
+                <CampBuildingArt plotId={selectedPlot} built={inspectedLevel > 0} />
+              </span>
+              <div>
+                <p className="screen-kicker">
+                  {inspectedLevel === 0 ? 'Not yet built' : `Level ${inspectedLevel} of ${getCampBuildingMaxLevel(selectedPlot)}`}
+                </p>
+                <h3 id="camp-inspector-title">{inspected.name}</h3>
+              </div>
+              <button className="camp-inspector-close" type="button" onClick={closeInspector} aria-label={`Close the ${inspected.name.toLowerCase()}`}>
+                <span aria-hidden="true">×</span>
+              </button>
+            </header>
+            <div className="camp-inspector-body">
+              {renderInspector(selectedPlot)}
+            </div>
+          </section>
+        ) : null}
+        </div>
+      </div>
     </section>
   )
 }

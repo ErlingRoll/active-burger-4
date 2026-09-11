@@ -117,11 +117,12 @@ hold; only the estimates move.
    it from the build on the server and stores it on the assignment row.
    Claims then read numbers rather than re-deriving them, and a later balance
    change never rewrites production that already happened.
-6. **The Camp opens as a panel on the hub, not as buildings drawn in the
-   scene.** A "Camp" station opens a panel in the HUD (a sheet on a phone),
-   in the shape of the expedition panel. Drawing the woodline and quarry into
-   the scene is worth doing, but after the loop is played and the visuals can
-   be judged on their own.
+6. **The Camp is a screen of its own, with a plot for every building.**
+   It shipped first as a panel on the hub, in the shape of the expedition
+   panel, and moved to its own screen on 2026-09-11 once the loop had been
+   played: the hub's "Camp" station now walks out to it, the way the pond's
+   does, and each building stands on a plot with its own picture, level and
+   status, opening an inspector beside the plots (a sheet on a phone).
 7. **Media queries are allowed.** camp.md's "adapt without width breakpoints"
    predates the change of rule on 2026-09-09; the hub itself uses a phone
    breakpoint. Update that sentence when the Camp ships.
@@ -239,11 +240,12 @@ check.
 src/content/camp/        CampBuildings.ts, CampJobs.ts, CampLabour.ts,
                          CampAccrual.ts (+ tests)          registries, pure
 src/camp/                CampTypes.ts, CampService.ts (+ test),
-                         CampPanel.tsx (+ test), CampJobCard.tsx,
-                         CampChampionPicker.tsx, LabourSheet.tsx
+                         CampScreen.tsx (+ test), CampBuildingArt.tsx,
+                         LabourSheetLine.tsx, Smokehouse.ts, Forge.ts
 src/inventory/           timber and stone definitions, MaterialIcon glyphs
 src/services/            a camp ServiceHandle on AppServices
-src/hub/                 a sixth station and the panel's mount point
+src/hub/                 the Camp station, which opens the screen
+src/app/                 the /camp route and its lazy screen
 src/characters/          the labour sheet and "Working · Woodline" on the details
 src/app/screens/         run setup excludes working Champions from the Abyss
 ```

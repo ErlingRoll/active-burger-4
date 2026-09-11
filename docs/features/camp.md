@@ -6,10 +6,11 @@ The Camp is the idle layer of the game and the hub of its economy. It is where
 materials produced by runs, the Abyss, and fishing are refined into the inputs
 those same systems consume.
 
-It is deliberately not a separate game. It is a set of stations on the existing
-Adventure Hub scene, described in [dashboard_hub.md](dashboard_hub.md), which
-already renders a night-time camp with a fire, a dungeon gate, and the other
-players currently present.
+It is deliberately not a separate game. It is a screen of its own, reached
+from a station on the Adventure Hub scene described in
+[dashboard_hub.md](dashboard_hub.md), the way the Moonwater Pond is: the hub
+stays the refuge with its fire, and the Camp is the ground beyond it where the
+buildings stand.
 
 The Camp produces no raw power. It produces options, capacity, access, and
 time, in the terms set by [economy.md](economy.md).
@@ -130,18 +131,21 @@ never raise a combat statistic.
 
 ## Presentation
 
-The Camp is part of the hub scene and follows the hub's rules, not a
-document's rules. On a desktop it must fit the viewport without scrolling,
-including its station panels; on a phone the hub is a document and the Camp
-is one more sheet in its dock. Intrinsic layout first: wrapping flex rows
-with `flex: 1 1 min(<ideal>, 100%)` bases, `width: min(100%, <cap>)`, auto-fit
-grids, and `clamp()` sized against `vh` for anything that has to survive a
-short viewport. The hub's phone breakpoint is the one width breakpoint, and
-the Camp shares it.
+The Camp is a screen like the pond, not a document. The scene fills the
+viewport under the header and the HUD sits over it: the place's name and a
+ledger of the Camp's materials across the top, a plot for every building on
+the ground, and an inspector for the open building. On a desktop nothing
+scrolls; on a phone the plots stand two abreast and the inspector is a sheet
+over them, and the sheet alone may scroll, the way the pond's inventory drawer
+does. Sizes are `clamp()` against `vh` so the plots survive a short viewport,
+and the phone layout is one width breakpoint shared with the hub's.
 
-A building's detail view is a panel or a sheet, in the same shape as the in-run
-HUD inspector, not a new full screen and not a scrolling document. If a
-building's content cannot fit a panel, the building is doing too much.
+A plot says at a glance what its building is doing: its level as pips, who is
+working it, what is waiting to be claimed, whether it can be built. A
+building's detail view is the inspector beside the plots, not a new screen and
+not a scrolling document; if a building's content cannot fit the inspector,
+the building is doing too much. The Trophy hall stands on the scene as a
+footprint with nothing to build, so the settlement reads as unfinished.
 
 Atmospheric motion only, with complete `prefers-reduced-motion` alternatives,
 matching the rest of the hub.
