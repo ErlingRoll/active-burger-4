@@ -150,6 +150,50 @@ footprint with nothing to build, so the settlement reads as unfinished.
 Atmospheric motion only, with complete `prefers-reduced-motion` alternatives,
 matching the rest of the hub.
 
+### Theme: a working camp at the treeline after dark
+
+Accepted as a first iteration on 2026-09-11, with the expectation that it
+will be improved. Every visual decision on the screen derives from that one
+sentence, and a later pass should improve the execution of it rather than mix
+in a second idea.
+
+- **The place is cold; the work is warm.** The Camp's accent world is moss and
+  pine green, declared in `src/styles/screen-frame.css` beside the pond's cyan
+  and the codex's violet. The only warm colour on the screen is light thrown
+  by something that burns: a lantern by a door, the coals of the Forge, the
+  Smokehouse's fire, the Claim button. This is the refuge's own rule, where
+  the bonfire is the only warm light, carried out to the ground beyond it.
+  The Rift anchor is the one exception and glows violet, because it is a
+  piece of the Abyss and takes the Abyss's colour wherever it appears.
+- **The scene is a silhouette band on a horizon.** Hills, pines on the left and
+  the cut hillside on the right are one flat band drawn in `CampScreen.tsx`,
+  with a moon over the quarry and a pool at the front where the tackle bench
+  stands. The ground is lit by the plots, not by the sky, and a fog darkens
+  the front so the plots read against something quiet. The stars are the
+  refuge's stars.
+- **Buildings are drawn, in one hand.** Every plot carries a picture from
+  `CampBuildingArt.tsx`, on one shared viewbox and one shared ground line, in
+  the flat silhouette style of the pond's fish and the bag's icons. Colour is
+  kept to the lit parts; the rest is the same dark timber and stone the
+  ground is made of. A standing building throws lantern light on its plot and
+  its lights move (smoke rises, coals flicker, the rift orb pulses); a
+  building at level zero is the same picture drawn faint and grey on a
+  dashed, staked-out plot, so the player sees what could stand there.
+- **Plots are glass over the scene, not plates on top of it.** A plot's
+  background is mostly transparent so the treeline shows through the empty
+  top of it, and the building stands at the bottom on its ground line. A plot
+  brightens on hover, takes the accent as a frame while its inspector is
+  open, and takes lantern amber with a "Ready" badge while something on it
+  waits to be claimed.
+- **The inspector is the same material as the plots,** a darker glass beside
+  them on a desktop and a sheet rising over them on a phone, headed by the
+  building's own picture and its level.
+
+The first iteration's known weaknesses, for the next pass: the plots are
+still a grid of cards rather than buildings standing at places on the ground,
+the backdrop is a single band with little depth, and nothing on the ground
+moves apart from the lights.
+
 ## Design constraints
 
 - The Camp never produces Essence, gear, artifacts, or Champions.
