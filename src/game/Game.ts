@@ -89,6 +89,7 @@ import {
   resolveDeadSoulTetherSnaps,
   resolvePlayerTarget,
   updateAttackCooldown,
+  updateTargetCommitment,
   updateEnemyChase,
   updateFrost,
   updateProjectiles,
@@ -207,6 +208,13 @@ import {
   type BehaviorProfileId,
 } from '../content/behaviors/BehaviorProfiles'
 import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  getTargetPriorityDefinition,
+  isTargetPriorityId,
+  type TargetPriorityDefinition,
+  type TargetPriorityId,
+} from '../content/behaviors/TargetPriorities'
+import {
   DEFAULT_RUN_MODE_ID,
   EMPTY_RUN_PREPARATION_SNAPSHOT,
   isRunModeId,
@@ -283,6 +291,17 @@ export type {
   BehaviorProfileDefinition,
   BehaviorProfileId,
 } from '../content/behaviors/BehaviorProfiles'
+export {
+  TARGET_PRIORITY_DEFINITIONS,
+  TARGET_PRIORITY_ORDER,
+  DEFAULT_TARGET_PRIORITY_ID,
+  getTargetPriorityDefinition,
+  isTargetPriorityId,
+} from '../content/behaviors/TargetPriorities'
+export type {
+  TargetPriorityDefinition,
+  TargetPriorityId,
+} from '../content/behaviors/TargetPriorities'
 
 export type GameStateListener = (state: Readonly<GameState>) => void
 
@@ -580,6 +599,11 @@ export class Game {
     if (isBehaviorProfileId(runConfig.behaviorProfileId) && !isAbyss) {
       this.gameState.player.behaviorController!.profileId = runConfig.behaviorProfileId
     }
+    // Targeting is half of the same saved fighting style, so it is held back
+    // from a descent for the same reason.
+    if (isTargetPriorityId(runConfig.targetPriorityId) && !isAbyss) {
+      this.gameState.player.behaviorController!.targetPriorityId = runConfig.targetPriorityId
+    }
     // A freshly created run has nothing left to load, so it moves straight
     // into playing through the same validated transition used by all phases.
     this.transitionTo('playing')
@@ -613,6 +637,12 @@ export class Game {
     player.equipment = JSON.parse(JSON.stringify(build.equipment))
     if (player.behaviorController) {
       player.behaviorController.profileId = build.behaviorProfileId
+      /*
+       * A build saved before priorities existed has none, and the run it came
+       * from fought as the default, so that is what it fights as now.
+       */
+      player.behaviorController.targetPriorityId =
+        build.targetPriorityId ?? DEFAULT_TARGET_PRIORITY_ID
     }
     for (const upgradeId of build.selectedUpgradeIds) {
       applyUpgrade(this.gameState, upgradeId)
@@ -706,6 +736,35 @@ export class Game {
 
   switchBehaviorProfile(profileId: BehaviorProfileId | string): boolean {
     return this.setBehaviorProfile(profileId)
+  }
+
+  get targetPriorityId(): TargetPriorityId {
+    const priorityId = this.gameState.player.behaviorController?.targetPriorityId
+    return isTargetPriorityId(priorityId) ? priorityId : DEFAULT_TARGET_PRIORITY_ID
+  }
+
+  get targetPriority(): TargetPriorityDefinition {
+    return getTargetPriorityDefinition(this.targetPriorityId)
+  }
+
+  /**
+   * Switches which enemy the character prefers, without consuming RNG.
+   *
+   * The current target is left alone: clearing it would leave a tick with
+   * nothing to attack. Zeroing the dwell time is enough, because the next
+   * resolution then re-challenges it immediately under the new priority.
+   */
+  setTargetPriority(priorityId: TargetPriorityId | string): boolean {
+    if (!isTargetPriorityId(priorityId)) {
+      return false
+    }
+    const controller = this.gameState.player.behaviorController ??= {
+      profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+    }
+    controller.targetPriorityId = priorityId
+    controller.targetCommitmentRemaining = 0
+    this.notifyStateChanged()
+    return true
   }
 
   setFreeMovementEnabled(enabled: boolean): boolean {
@@ -1576,6 +1635,7 @@ export class Game {
       this.gameState.run.modeId !== 'infinite-abyss',
     )
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
+    updateTargetCommitment(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
     updateRuinSigils(this.gameState, FIXED_STEP_SECONDS)
     updateBloodDebt(this.gameState, FIXED_STEP_SECONDS)

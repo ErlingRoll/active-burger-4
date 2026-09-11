@@ -7,10 +7,15 @@ import {
   getAutomaticTimeScale,
   Game,
 } from '../Game'
-import { CHECKPOINT_VERSION, isValidCheckpoint } from '../checkpoint/GameCheckpoint'
+import {
+  CHECKPOINT_VERSION,
+  createCharacterBuildSnapshot,
+  isValidCheckpoint,
+} from '../checkpoint/GameCheckpoint'
+import { isCharacterBuildSnapshot } from '../checkpoint/CharacterBuild'
 import type { GameCheckpoint } from '../checkpoint/GameCheckpoint'
 import { xpRequiredForLevel } from '../../content/progression/XpBalance'
-import { definedAt } from '../../testing'
+import { assertDefined, definedAt } from '../../testing'
 
 /** Advance the game by N fixed ticks. */
 function advanceTicks(game: Game, ticks: number): void {
@@ -517,5 +522,66 @@ describe('GameCheckpoint', () => {
       expect(game.state.tick).toBe(300)
       expect(game.state.run.worldModifierIds).toEqual(['fast-start'])
     })
+  })
+})
+
+describe('target priority across a checkpoint', () => {
+  it('carries the priority and a partly burned dwell time', () => {
+    const game = createGame({ seed: 620 })
+    game.setTargetPriority('elites')
+    advanceTicks(game, 12)
+
+    const checkpoint = JSON.parse(JSON.stringify(game.createCheckpoint())) as GameCheckpoint
+    expect(isValidCheckpoint(checkpoint)).toBe(true)
+
+    const restored = Game.restoreFromCheckpoint(checkpoint)
+    expect(restored.targetPriorityId).toBe('elites')
+    expect(restored.state.player.behaviorController?.targetCommitmentRemaining)
+      .toBe(game.state.player.behaviorController?.targetCommitmentRemaining)
+  })
+
+  it('restores a checkpoint written before priorities existed as the default', () => {
+    const game = createGame({ seed: 621 })
+    const checkpoint = JSON.parse(JSON.stringify(game.createCheckpoint())) as GameCheckpoint
+    const controller = assertDefined(
+      checkpoint.gameState.player.behaviorController,
+      'behavior controller',
+    )
+    delete controller.targetPriorityId
+    delete controller.targetCommitmentRemaining
+
+    expect(isValidCheckpoint(checkpoint)).toBe(true)
+    const restored = Game.restoreFromCheckpoint(checkpoint)
+
+    expect(restored.targetPriorityId).toBe('nearest')
+    // And it keeps running rather than tripping over the missing field.
+    advanceTicks(restored, 30)
+    expect(restored.state.tick).toBe(30)
+  })
+
+  it('snapshots a Champion build from a checkpoint that has no priority', () => {
+    const game = createGame({ seed: 622 })
+    const checkpoint = game.createCheckpoint()
+    delete assertDefined(
+      checkpoint.gameState.player.behaviorController,
+      'behavior controller',
+    ).targetPriorityId
+
+    const build = createCharacterBuildSnapshot(checkpoint)
+
+    expect(build.targetPriorityId).toBe('nearest')
+    expect(isCharacterBuildSnapshot(build)).toBe(true)
+  })
+
+  it('keeps a Champion build with an unknown priority out of the roster', () => {
+    const game = createGame({ seed: 623 })
+    game.setTargetPriority('wounded')
+    const build = createCharacterBuildSnapshot(game.createCheckpoint())
+
+    expect(build.targetPriorityId).toBe('wounded')
+    expect(isCharacterBuildSnapshot(build)).toBe(true)
+    expect(isCharacterBuildSnapshot({ ...build, targetPriorityId: 'nope' })).toBe(false)
+    // Absent is still acceptable: an older Champion must stay loadable.
+    expect(isCharacterBuildSnapshot({ ...build, targetPriorityId: undefined })).toBe(true)
   })
 })

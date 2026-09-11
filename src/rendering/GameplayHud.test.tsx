@@ -26,6 +26,7 @@ function renderHud(
     onInspectorTabChange: vi.fn(),
     onPause: vi.fn(),
     onSelectBehaviorProfile: vi.fn(),
+    onSelectTargetPriority: vi.fn(),
     onToggleFreeMovement: vi.fn(),
     onSetMirrorcastTarget: vi.fn(),
     onSetCriticalSpellstrikeTarget: vi.fn(),
@@ -125,5 +126,130 @@ describe('GameplayHud', () => {
     renderHud(snapshot)
 
     expect(screen.queryByLabelText('Boss status')).toBeNull()
+  })
+})
+
+describe('the behavior control', () => {
+  it('holds both questions, and answers the targeting one', async () => {
+    const { user, onSelectTargetPriority } = renderHud(snapshotFromGame())
+
+    await user.click(screen.getByRole('button', { name: /Fighting style/ }))
+    const menu = screen.getByRole('menu', { name: 'Fighting style' })
+    expect(within(menu).getByRole('group', { name: 'How I move' })).toBeInTheDocument()
+    const targeting = within(menu).getByRole('group', { name: 'Who I hit' })
+
+    await user.click(within(targeting).getByRole('menuitemradio', { name: /Break the Strong/ }))
+
+    expect(onSelectTargetPriority).toHaveBeenCalledWith('elites')
+    expect(screen.queryByRole('menu', { name: 'Fighting style' })).not.toBeInTheDocument()
+  })
+
+  it('names the priority on the toggle only once it is not the default', () => {
+    /*
+     * A run starts steering itself, so the first line is the steering label.
+     * The point is the same either way: the default priority adds nothing to
+     * a button a player already knows.
+     */
+    renderHud(snapshotFromGame())
+    expect(screen.getByRole('button', { name: /Fighting style/ }))
+      .not.toHaveTextContent('Nearest')
+
+    renderHud(snapshotFromGame((game) => {
+      game.setTargetPriority('ranged')
+    }))
+
+    expect(screen.getAllByRole('button', { name: /Fighting style/ })[1])
+      .toHaveTextContent('· Ranged')
+  })
+
+  it('marks the active priority as checked', async () => {
+    const { user } = renderHud(snapshotFromGame((game) => {
+      game.setTargetPriority('wounded')
+    }))
+
+    await user.click(screen.getByRole('button', { name: /Fighting style/ }))
+    const targeting = within(screen.getByRole('menu', { name: 'Fighting style' }))
+      .getByRole('group', { name: 'Who I hit' })
+
+    expect(within(targeting).getByRole('menuitemradio', { name: /Cull the Weak/ }))
+      .toHaveAttribute('aria-checked', 'true')
+    expect(within(targeting).getByRole('menuitemradio', { name: /Nearest/ }))
+      .toHaveAttribute('aria-checked', 'false')
+  })
+})
+
+describe('the vitals panel', () => {
+  function shieldedSnapshot(): GameUiSnapshot {
+    return snapshotFromGame((game) => {
+      const player = game.state.player
+      player.aegisPulseShieldAmount = 40
+      player.aegisPulseShieldMaxAmount = 60
+      player.aegisPulseShieldRemaining = 3.2
+      player.aegisPulseShieldDuration = 6
+    })
+  }
+
+  it('gains a shield without gaining a row', () => {
+    /*
+     * The regression this pins: the shield used to be a row of its own, and
+     * the top bar stretches every panel to the tallest of them, so casting or
+     * losing a shield moved the height of the whole bar.
+     */
+    const bare = renderHud(snapshotFromGame())
+    const rowsWithoutShield = document.querySelectorAll('.hud-vital').length
+    expect(rowsWithoutShield).toBeGreaterThan(0)
+    expect(document.querySelector('.hud-vital-shield-fill')).toBeNull()
+    bare.unmount()
+
+    renderHud(shieldedSnapshot())
+
+    expect(document.querySelectorAll('.hud-vital')).toHaveLength(rowsWithoutShield)
+    expect(document.querySelector('.hud-vital-shield-fill')).not.toBeNull()
+  })
+
+  it('says how much is absorbed and for how long', () => {
+    renderHud(shieldedSnapshot())
+
+    expect(screen.getByText(/\+40/)).toHaveTextContent('4s')
+  })
+
+  it('reserves the shield figure so the health bar keeps one length', () => {
+    /*
+     * The figure's slot is what stops the bar beside it growing and shrinking
+     * as a shield comes and goes, so the slot has to be in the tree even when
+     * there is nothing to put in it.
+     */
+    const bare = renderHud(snapshotFromGame())
+    const slot = document.querySelector('.hud-vital-shield-amount')
+
+    expect(slot).not.toBeNull()
+    expect(slot).toBeEmptyDOMElement()
+    bare.unmount()
+
+    renderHud(shieldedSnapshot())
+    expect(document.querySelector('.hud-vital-shield-amount')).not.toBeEmptyDOMElement()
+  })
+
+  it('measures the shield against the same maximum as health', () => {
+    const snapshot = shieldedSnapshot()
+    renderHud(snapshot)
+
+    const fill = document.querySelector('.hud-vital-shield-fill')
+    const share = Math.min(1, 40 / snapshot.maxHp)
+    expect(fill?.getAttribute('style')).toContain(`--shield-share: ${share}`)
+  })
+
+  it('never draws more shield than the bar has room for', () => {
+    const snapshot = snapshotFromGame((game) => {
+      const player = game.state.player
+      player.aegisPulseShieldAmount = player.maxHp * 4
+      player.aegisPulseShieldMaxAmount = player.maxHp * 4
+      player.aegisPulseShieldRemaining = 2
+      player.aegisPulseShieldDuration = 6
+    })
+    renderHud(snapshot)
+
+    expect(document.querySelector('.hud-vital-shield-fill')?.getAttribute('style'))
+      .toContain('--shield-share: 1')
   })
 })

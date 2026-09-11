@@ -99,6 +99,12 @@ import {
   type BehaviorProfileDefinition,
   type BehaviorIntentSource,
 } from './behaviors/BehaviorProfiles'
+import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  TARGET_FEATURE_KEYS,
+  TARGET_PRIORITY_DEFINITIONS,
+  type TargetPriorityDefinition,
+} from './behaviors/TargetPriorities'
 
 const BOSS_SKILL_SHAPES: ReadonlySet<string> = new Set<BossSkillShape>([
   'disc',
@@ -135,6 +141,7 @@ export interface ContentCatalog {
   encounters: readonly EncounterDefinition[]
   dungeons?: readonly DungeonDefinition[]
   behaviorProfiles: readonly BehaviorProfileDefinition[]
+  targetPriorities: readonly TargetPriorityDefinition[]
   xpBalance: XpBalance
   spawnBalance: SpawnBalance
   upgradeChoicesPerLevel: number
@@ -154,6 +161,7 @@ export const CURRENT_CONTENT: ContentCatalog = {
   encounters: ENCOUNTER_DEFINITIONS,
   dungeons: [DEFAULT_DUNGEON_CONFIG],
   behaviorProfiles: Object.values(BEHAVIOR_PROFILE_DEFINITIONS),
+  targetPriorities: Object.values(TARGET_PRIORITY_DEFINITIONS),
   xpBalance: XP_BALANCE,
   spawnBalance: SPAWN_BALANCE,
   upgradeChoicesPerLevel: 3,
@@ -259,6 +267,75 @@ function validateBehaviorProfiles(
   })
   if (profiles.length === 0) {
     errors.push('behaviorProfiles must contain at least one profile.')
+  }
+}
+
+function validateTargetPriorities(
+  errors: string[],
+  priorities: readonly TargetPriorityDefinition[],
+): void {
+  validateIds(errors, 'targetPriorities', priorities)
+  priorities.forEach((priority, index) => {
+    if (typeof priority.id === 'string' && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(priority.id)) {
+      errors.push(
+        `targetPriorities[${index}].id must use lowercase ASCII letters, numbers, and hyphens; received "${priority.id}".`,
+      )
+    }
+    if (typeof priority.name !== 'string' || priority.name.trim() === '') {
+      errors.push(`targetPriorities[${index}].name must be a non-empty string.`)
+    }
+    if (typeof priority.shortLabel !== 'string' || priority.shortLabel.trim() === '') {
+      errors.push(`targetPriorities[${index}].shortLabel must be a non-empty string.`)
+    }
+    if (typeof priority.description !== 'string' || priority.description.trim() === '') {
+      errors.push(`targetPriorities[${index}].description must be a non-empty string.`)
+    }
+    /*
+     * Weights are checked finite but not signed: a priority may weigh a fact
+     * negatively to avoid it, and the evaluator treats the sign as authored.
+     */
+    for (const feature of TARGET_FEATURE_KEYS) {
+      if (!Number.isFinite(priority.weights?.[feature])) {
+        errors.push(
+          `targetPriorities[${index}].weights.${feature} must be a finite number.`,
+        )
+      }
+    }
+    validateFiniteNumber(
+      errors,
+      `targetPriorities[${index}].commitmentSeconds`,
+      priority.commitmentSeconds,
+      'non-negative',
+    )
+    validateFiniteNumber(
+      errors,
+      `targetPriorities[${index}].scoreMargin`,
+      priority.scoreMargin,
+      'non-negative',
+    )
+  })
+  if (priorities.length === 0) {
+    errors.push('targetPriorities must contain at least one priority.')
+    return
+  }
+  /*
+   * Two invariants the profiles have no analogue for. The default must exist,
+   * because every fallback path in the simulation resolves to it, and exactly
+   * one priority must weigh nothing, because that is what makes the default
+   * reproduce plain nearest-first selection rather than approximate it.
+   */
+  if (!priorities.some((priority) => priority.id === DEFAULT_TARGET_PRIORITY_ID)) {
+    errors.push(
+      `targetPriorities must include the default priority "${DEFAULT_TARGET_PRIORITY_ID}".`,
+    )
+  }
+  const unweighted = priorities.filter((priority) =>
+    TARGET_FEATURE_KEYS.every((feature) => priority.weights?.[feature] === 0),
+  )
+  if (unweighted.length !== 1 || unweighted[0]?.id !== DEFAULT_TARGET_PRIORITY_ID) {
+    errors.push(
+      `exactly one target priority must weigh nothing, and it must be "${DEFAULT_TARGET_PRIORITY_ID}".`,
+    )
   }
 }
 
@@ -1629,6 +1706,7 @@ export function validateContent(catalog: ContentCatalog): string[] {
   const encounterIds = validateIds(errors, 'encounters', catalog.encounters)
   validateDungeons(errors, catalog.dungeons ?? [], encounterIds)
   validateBehaviorProfiles(errors, catalog.behaviorProfiles ?? [])
+  validateTargetPriorities(errors, catalog.targetPriorities ?? [])
   const upgradeIds = validateIds(errors, 'upgrades', catalog.upgrades)
   validateIds(errors, 'items', catalog.items)
   validateGearSets(errors, catalog.gearSets ?? ALL_GEAR_SET_DEFINITIONS, catalog.items)

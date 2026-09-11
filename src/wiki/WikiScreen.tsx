@@ -42,6 +42,10 @@ import { SPAWN_BALANCE, calculateThreatPerSecond } from '../content/spawning/Spa
 import { WORLD_MODIFIER_DEFINITIONS } from '../content/modifiers/WorldModifiers'
 import { BEHAVIOR_PROFILE_DEFINITIONS } from '../content/behaviors/BehaviorProfiles'
 import {
+  TARGET_PRIORITY_DEFINITIONS,
+  TARGET_PRIORITY_ORDER,
+} from '../content/behaviors/TargetPriorities'
+import {
   DEFAULT_GAME_KEYBINDS,
   formatKeybind,
   FREE_MOVEMENT_KEYS,
@@ -292,6 +296,22 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                   <h3>{profile.name}</h3>
                   <p>{profile.description}</p>
                   <p className="wiki-stat-line">Threat radius <strong>{profile.thresholds.threatRadius}</strong> · Kite at <strong>{formatNumber(profile.thresholds.kiteThreatScore)}</strong></p>
+                </section>
+              ))}
+            </div>
+            {/* The profile decides where the character stands; the priority
+                decides who it attacks among the enemies it can already
+                reach. */}
+            <div className="wiki-card-grid">
+              {TARGET_PRIORITY_ORDER.map((priorityId) => TARGET_PRIORITY_DEFINITIONS[priorityId]).map((priority) => (
+                <section className="wiki-card" key={priority.id}>
+                  <h3>{priority.name}</h3>
+                  <p>{priority.description}</p>
+                  <p className="wiki-stat-line">
+                    {priority.commitmentSeconds > 0
+                      ? <>Holds a target for <strong>{priority.commitmentSeconds}s</strong> before reconsidering</>
+                      : <>Keeps its target while it lives and stays in reach</>}
+                  </p>
                 </section>
               ))}
             </div>

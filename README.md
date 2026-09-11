@@ -97,6 +97,29 @@ the visual language, and [docs/decisions/](docs/decisions/) for the ADRs.
 Colours come from `src/styles/tokens.css`. Prefer a semantic token, then a
 palette token; a colour used more than twice must be in that file.
 
+## Database migrations
+
+Every file in [supabase/migrations/](supabase/migrations/) is validated on each
+pull request and on each push to `main`: CI applies the whole history to an
+empty Postgres and then lints the schema it produces. A migration that fails to
+apply, or a function the linter rejects, fails the build.
+
+```bash
+npm run supabase:validate  # apply every migration to a fresh database, then lint
+npm run supabase:check     # compare local migrations with the linked project
+```
+
+Validation needs Docker locally; CI has it. Once validation passes on `main`,
+the **Push migrations to production** job runs `supabase db push` against the
+linked project. Nothing is pushed from a pull request, and nothing is pushed
+while lint, tests, build, or migration validation are failing.
+
+The job reads three repository secrets:
+
+- `SUPABASE_ACCESS_TOKEN` — a personal access token from the Supabase dashboard.
+- `SUPABASE_DB_PASSWORD` — the production database password.
+- `SUPABASE_PROJECT_ID` — the project ref, the subdomain of `VITE_SUPABASE_URL`.
+
 ## Deployment
 
 Production deploys to Netlify from `netlify.toml`, with SPA routing via

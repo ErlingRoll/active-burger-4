@@ -2,6 +2,10 @@ import {
   DEFAULT_BEHAVIOR_PROFILE_ID,
   isBehaviorProfileId,
 } from '../content/behaviors/BehaviorProfiles'
+import {
+  DEFAULT_TARGET_PRIORITY_ID,
+  isTargetPriorityId,
+} from '../content/behaviors/TargetPriorities'
 import { normalizeWorldModifierIds } from '../content/modifiers/WorldModifiers'
 import {
   DEFAULT_CHARACTER_CLASS_ID,
@@ -22,6 +26,7 @@ import {
 export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
   selectedBehaviorProfileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+  selectedTargetPriorityId: DEFAULT_TARGET_PRIORITY_ID,
   selectedDungeonMaxFloorContractId: DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID,
   selectedWorldModifierIds: [],
   selectedCharacterClassId: DEFAULT_CHARACTER_CLASS_ID,
@@ -65,6 +70,15 @@ export function migrateSettings(value: unknown): SettingsDto {
   return {
     schemaVersion: PERSISTENCE_SCHEMA_VERSION,
     selectedBehaviorProfileId,
+    /*
+     * A settings record written before priorities existed simply has none, so
+     * it defaults here. That needs no schema bump: every field is defaulted
+     * independently, and the version has only ever moved for a rename that
+     * needed its old key read.
+     */
+    selectedTargetPriorityId: isTargetPriorityId(candidate.selectedTargetPriorityId)
+      ? candidate.selectedTargetPriorityId
+      : DEFAULT_SETTINGS.selectedTargetPriorityId,
     selectedDungeonMaxFloorContractId,
     selectedWorldModifierIds: normalizeWorldModifierIds(
       Array.isArray(candidate.selectedWorldModifierIds)

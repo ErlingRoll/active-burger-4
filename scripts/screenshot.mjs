@@ -129,7 +129,15 @@ async function signIn(page) {
   await page.getByLabel('Password').fill(password)
   await page.getByLabel('Keep me signed in on this browser').check()
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.getByRole('button', { name: 'Sign out' })
+  /*
+   * Wait for the refuge, not for the account block.
+   *
+   * This used to wait for the Sign out button, which a phone keeps inside the
+   * collapsed header menu: the sign-in succeeded and the wait timed out
+   * anyway, so no phone screenshot could be taken at all. The dashboard's own
+   * root is present at every width.
+   */
+  await page.locator('.game-dashboard')
     .waitFor({ state: 'visible', timeout: 30_000 })
 }
 

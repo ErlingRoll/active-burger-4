@@ -28,6 +28,15 @@ The game favors a refined action-roguelike look:
 - High contrast against the dark blue arena.
 - Distinct silhouettes for distinct skills. Reusing a color is acceptable;
   reusing the same shape language is not.
+- A silhouette with a front faces where its body is going. A dart, a hook, a
+  bow and a slab all read as sliding sideways when they do not, and a radial
+  one — a slime, a cluster — reads as rolling when it does. `enemySilhouettes`
+  declares which shapes turn, and a shape that turns is drawn nose-up so one
+  offset serves all of them.
+- A body may be drawn larger than the hitbox it is balanced around when it
+  would otherwise be too small to follow. The runner and the flanker are, at a
+  third over. Anything drawn from the radius rather than parented to the body
+  needs the same multiplier, or it ends up inside the shape it belongs to.
 
 ## Application shell visual direction
 

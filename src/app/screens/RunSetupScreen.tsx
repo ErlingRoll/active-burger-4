@@ -21,6 +21,14 @@ import {
   WORLD_MODIFIER_DEFINITIONS,
   type WorldModifierId,
 } from '../../content/modifiers/WorldModifiers'
+/* Straight from content rather than through the game barrel: this screen is a
+   lazily loaded route, and the barrel would pull the simulation into its
+   chunk. */
+import {
+  TARGET_PRIORITY_DEFINITIONS,
+  TARGET_PRIORITY_ORDER,
+  type TargetPriorityId,
+} from '../../content/behaviors/TargetPriorities'
 import { SPAWN_BALANCE } from '../../content/spawning/SpawnBalance'
 import { CHAMPION_SLOT_LIMIT } from '../../content/progression/ChampionSlots'
 import {
@@ -73,6 +81,7 @@ export interface RunSetupScreenProps {
   onStart: (options: StartRunOptions) => Promise<void>
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
+  onSelectTargetPriority: (priorityId: TargetPriorityId) => void
   onBack: () => void
 }
 
@@ -89,6 +98,7 @@ export function RunSetupScreen({
   onStart,
   onSelectCharacterClass,
   onToggleWorldModifier,
+  onSelectTargetPriority,
   onBack,
 }: RunSetupScreenProps) {
   const [fishItems, setFishItems] = useState<InventoryItemInstance[]>([])
@@ -474,6 +484,38 @@ export function RunSetupScreen({
                   <span>{maxFloor === maximumDungeonFloor ? 'Highest unlocked floor' : 'Set as run maximum'}</span>
                 </button>
               ))}
+            </div>
+          </fieldset>
+        ) : null}
+        {/*
+          * Who the character attacks, chosen with the loadout.
+          *
+          * Dungeon runs only: a descent fights on a Champion's saved build,
+          * and its priority came with it, so offering the choice here would
+          * sell something that mode ignores. It is still changeable during a
+          * run from the behavior control in the HUD.
+          */}
+        {selectedMode === 'dungeon' ? (
+          <fieldset className="dashboard-choice-group run-dashboard-choice-group">
+            <legend>Target priority</legend>
+            <p>Which enemy the character attacks when several are in reach.</p>
+            <div className="dashboard-choice-list">
+              {TARGET_PRIORITY_ORDER.map((priorityId) => {
+                const priority = TARGET_PRIORITY_DEFINITIONS[priorityId]
+                const selected = settings.selectedTargetPriorityId === priority.id
+                return (
+                  <button
+                    className={`dashboard-choice${selected ? ' selected' : ''}`}
+                    type="button"
+                    aria-pressed={selected}
+                    key={priority.id}
+                    onClick={() => onSelectTargetPriority(priority.id)}
+                  >
+                    <strong>{priority.name}</strong>
+                    <span>{priority.description}</span>
+                  </button>
+                )
+              })}
             </div>
           </fieldset>
         ) : null}

@@ -6,8 +6,17 @@ on:
     branches:
       - main
 
+# Never cancel a run on main: it may be in the middle of pushing migrations.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SUPABASE_CLI_VERSION: 2.117.0
+
 jobs:
   validate:
+    name: Lint, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +28,51 @@ jobs:
       - run: npm run lint
       - run: npm run test:run
       - run: npm run build
+
+  migrations:
+    name: Validate migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Apply every migration to an empty database
+        run: supabase db start
+      - name: Lint the resulting schema
+        run: supabase db lint --local --level warning --fail-on error
+
+  migrate:
+    name: Push migrations to production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate, migrations]
+    runs-on: ubuntu-latest
+    # Declaring the environment lets a required reviewer be added later without
+    # touching this file.
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Check the deployment secrets are set
+        run: |
+          missing=()
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing+=(SUPABASE_ACCESS_TOKEN)
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing+=(SUPABASE_DB_PASSWORD)
+          [ -n "$SUPABASE_PROJECT_ID" ] || missing+=(SUPABASE_PROJECT_ID)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing repository secrets: ${missing[*]}" >&2
+            echo "Add them under Settings > Secrets and variables > Actions." >&2
+            exit 1
+          fi
+      - name: Link the production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Show what will be applied
+        run: supabase db push --dry-run
+      - name: Apply the pending migrations
+        run: supabase db push

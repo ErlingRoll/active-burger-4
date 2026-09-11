@@ -19,6 +19,7 @@ import { GEAR_PICKUP_BALANCE } from '../../../content/gear/GearDropConfig'
 import { getItemDefinition } from '../../../content/gear/Items'
 import { Rarity } from '../../../content/rarity/Rarity'
 import { DEFAULT_BEHAVIOR_PROFILE_ID } from '../../../content/behaviors/BehaviorProfiles'
+import { DEFAULT_TARGET_PRIORITY_ID } from '../../../content/behaviors/TargetPriorities'
 import {
   BASIC_ATTACK_SKILL_ID,
   DEFAULT_RESONANCE_ATTACKS,
@@ -175,6 +176,8 @@ export function createInitialPlayerState(
     },
     behaviorController: {
       profileId: DEFAULT_BEHAVIOR_PROFILE_ID,
+      targetPriorityId: DEFAULT_TARGET_PRIORITY_ID,
+      targetCommitmentRemaining: 0,
       freeMode: false,
       freeMovementDirectionX: 0,
       freeMovementDirectionY: 0,

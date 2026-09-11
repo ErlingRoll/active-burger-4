@@ -658,11 +658,13 @@ src/
 ├── testing/                 # Assertions and the component render harness
 │
 ├── abyss/ admin/ audio/ auth/ bug-report/ characters/ fishing/ hub/
-├── input/ inventory/ leaderboard/ loot/ meta/ wiki/   # Feature modules
+├── input/ inventory/ leaderboard/ loot/ meta/ run-history/ wiki/
+│                                                     # Feature modules
 │
 ├── persistence/             # Dexie locally, Supabase remotely
 ├── styles/                  # tokens.css first, then per-feature sheets
-└── ui/                      # Toaster, ConfirmationDialog, ErrorBoundary
+└── ui/                      # Toaster, ConfirmationDialog, ErrorBoundary,
+                             # RunReport (the report both run screens draw)
 ```
 
 Tests live beside their implementation:
@@ -1102,7 +1104,7 @@ Every AI update:
 ```text
 Find nearby enemies
        ↓
-Select nearest valid enemy
+Select a valid enemy by the run's target priority
        ↓
 Determine preferred position
        ↓
@@ -1111,7 +1113,13 @@ Move toward / away from target
 Attack automatically
 ```
 
-Eventually behavior can become configurable.
+Behavior is configurable, in two halves. The behavior profile decides where the
+character stands; the target priority decides which of the enemies already in
+weapon reach it attacks. Both are authored in `content/behaviors/`, both are
+set before a run and changeable during one, and both travel in a Champion's
+saved build. The priorities are weights over facts about a candidate rather
+than rules the evaluator branches on, and the default weighs nothing, which is
+what makes it identical to plain nearest-first selection.
 
 Initially unlocked policies:
 
@@ -1159,7 +1167,7 @@ cluster center
 previous target
 ```
 
-Skills should declare targeting behavior instead of implementing their own enemy scanning whenever possible.
+Skills should declare targeting behavior instead of implementing their own enemy scanning whenever possible. The player's primary target is chosen in one place, `selectPrimaryTarget` in `game/combat/Targeting.ts`; the skills that still scan for their own nearest enemy are the standing argument for collapsing the rest into it.
 
 ---
 

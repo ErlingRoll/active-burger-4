@@ -29,6 +29,7 @@ import type {
   BossSkillId,
 } from '../../content/bosses/Bosses'
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
+import type { TargetPriorityId } from '../../content/behaviors/TargetPriorities'
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
 import type { CharacterClassId } from '../../content/classes/CharacterClasses'
 import type { Rarity } from '../../content/rarity/Rarity'
@@ -150,6 +151,15 @@ export type MovementCandidate = PlayerMovementCandidate
 
 export interface BehaviorControllerState {
   profileId: BehaviorProfileId
+  /**
+   * Which enemy the character attacks when several are in reach.
+   *
+   * Optional so that a checkpoint written before priorities existed restores
+   * as the default rather than failing validation.
+   */
+  targetPriorityId?: TargetPriorityId
+  /** Remaining time for which the current primary target is committed. */
+  targetCommitmentRemaining?: number
   /** True when ordinary movement is controlled directly by the player. */
   freeMode?: boolean
   /** Raw WASD direction, normalized when the movement candidate is applied. */
@@ -176,6 +186,8 @@ export interface RunConfig {
   championId?: string
   /** Initial behavior policy for this run. */
   behaviorProfileId?: BehaviorProfileId
+  /** Initial target priority for this run. */
+  targetPriorityId?: TargetPriorityId
   /** Whether direct player movement starts enabled; defaults to true. */
   freeMovementEnabled?: boolean
   /** Defaults to the first dungeon; maximum floors are selected by unlock state. */

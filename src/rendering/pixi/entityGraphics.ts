@@ -320,3 +320,65 @@ export function drawHitFlash(
       .stroke({ color: '#ffffff', width: 1.5, alpha: intensity * 0.82 })
   }
 }
+
+/**
+ * How fast a body may swing round to face where it is going, in radians per
+ * second. Fast enough that a flanker's hook has turned by the time the eye
+ * follows it, slow enough that the turn itself is visible.
+ */
+export const ENEMY_TURN_RATE = 12
+
+/**
+ * How far an enemy must travel in one frame to count as moving.
+ *
+ * Below this the previous facing is kept rather than recomputed: a body that
+ * is holding position, or a frame the simulation did not tick in, would
+ * otherwise take its heading from rounding noise and jitter on the spot.
+ */
+const ENEMY_FACING_MIN_MOVEMENT = 0.05
+
+/**
+ * Turns an enemy's body toward its own movement, and reports the facing.
+ *
+ * The direction comes from where the body actually went since the last frame
+ * rather than from where it wants to go, so an enemy that is being pushed, or
+ * one circling to a flanking position, points along its real path. Until it
+ * has moved at all it faces the fallback, which is its target: an archer that
+ * has never taken a step should still be aiming.
+ *
+ * Writes the memory it needs back into the view, the way the hit flash does.
+ */
+export function updateEnemyFacing(
+  view: Pick<EnemyView, 'facing' | 'lastX' | 'lastY'>,
+  x: number,
+  y: number,
+  fallbackAngle: number,
+  maxTurnRadians: number,
+): number {
+  const movedX = view.lastX === undefined ? 0 : x - view.lastX
+  const movedY = view.lastY === undefined ? 0 : y - view.lastY
+  view.lastX = x
+  view.lastY = y
+
+  const moved = Math.hypot(movedX, movedY)
+  const desired = moved >= ENEMY_FACING_MIN_MOVEMENT
+    ? Math.atan2(movedY, movedX)
+    : view.facing ?? fallbackAngle
+  const current = view.facing
+  if (current === undefined || !(maxTurnRadians > 0)) {
+    view.facing = desired
+    return desired
+  }
+
+  // The short way round, so a body crossing due west turns through north
+  // rather than spinning the long way back.
+  let difference = (desired - current) % (Math.PI * 2)
+  if (difference > Math.PI) {
+    difference -= Math.PI * 2
+  } else if (difference < -Math.PI) {
+    difference += Math.PI * 2
+  }
+  view.facing = current +
+    Math.max(-maxTurnRadians, Math.min(maxTurnRadians, difference))
+  return view.facing
+}

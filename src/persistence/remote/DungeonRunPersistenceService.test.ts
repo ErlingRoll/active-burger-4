@@ -264,3 +264,136 @@ describe('DungeonRunPersistenceService', () => {
     await expect(service.loadActiveRun()).rejects.toThrow(/invalid response/)
   })
 })
+
+/**
+ * A client for the chronicle's queries.
+ *
+ * These read lists rather than single rows, so the builder is awaited directly
+ * instead of ending in `maybeSingle`. It records the filters each table was
+ * asked for, because the whole point of the query is which statuses and
+ * snapshot kinds it selects.
+ */
+function listClient(tables: Record<string, unknown>): {
+  client: SupabaseClient
+  filters: Record<string, unknown[]>
+} {
+  const filters: Record<string, unknown[]> = {}
+  const from = (table: string) => {
+    const response = { data: tables[table] ?? [], error: null }
+    const builder: Record<string, unknown> = {
+      select: () => builder,
+      eq: () => builder,
+      order: () => builder,
+      limit: () => builder,
+      in: (_column: string, values: unknown[]) => {
+        filters[table] = [...(filters[table] ?? []), values]
+        return builder
+      },
+      maybeSingle: async () => ({
+        data: Array.isArray(response.data) ? response.data[0] ?? null : response.data,
+        error: null,
+      }),
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve(response).then(resolve),
+    }
+    return builder
+  }
+  return { client: { from: vi.fn(from) } as unknown as SupabaseClient, filters }
+}
+
+const finishedRow = {
+  id: 'run-9',
+  status: 'victory',
+  mode_id: 'dungeon',
+  world_modifier_ids: ['swarming'],
+  dungeon_id: 'default-dungeon',
+  class_id: 'ranger',
+  game_version: 'test',
+  max_floor: 10,
+  current_floor: 9,
+  started_at: '2026-09-09T10:00:00.000Z',
+  completed_at: '2026-09-09T10:40:00.000Z',
+}
+
+describe('the chronicle of finished runs', () => {
+  it('joins each run to the snapshot it ended on and to what it paid', async () => {
+    const { client, filters } = listClient({
+      dungeon_runs: [finishedRow],
+      dungeon_run_snapshots: [
+        { run_id: 'run-9', floor_number: 10, level: 24, kill_count: 812 },
+      ],
+      meta_run_rewards: [{ run_id: 'run-9', essence_earned: 305 }],
+    })
+
+    await expect(createService(client).listFinishedRuns()).resolves.toEqual([{
+      runId: 'run-9',
+      outcome: 'victory',
+      modeId: 'dungeon',
+      dungeonId: 'default-dungeon',
+      characterClassId: 'ranger',
+      worldModifierIds: ['swarming'],
+      // The snapshot's floor, not the run row's: it is the one written last.
+      reachedFloor: 10,
+      maxFloor: 10,
+      level: 24,
+      killCount: 812,
+      essenceEarned: 305,
+      gameVersion: 'test',
+      startedAt: finishedRow.started_at,
+      completedAt: finishedRow.completed_at,
+    }])
+    expect(filters.dungeon_runs).toEqual([['victory', 'defeat', 'forfeited']])
+    expect(filters.dungeon_run_snapshots).toEqual([
+      ['run-9'],
+      ['victory', 'death', 'forfeit'],
+    ])
+  })
+
+  it('lists a run whose snapshot and reward are missing rather than hiding it', async () => {
+    const { client } = listClient({ dungeon_runs: [finishedRow] })
+
+    const [run] = await createService(client).listFinishedRuns()
+
+    expect(run?.level).toBeNull()
+    expect(run?.killCount).toBeNull()
+    expect(run?.essenceEarned).toBeNull()
+    // Falls back to the run's own floor rather than claiming floor one.
+    expect(run?.reachedFloor).toBe(9)
+  })
+
+  it('asks for nothing further when no run has finished', async () => {
+    const { client } = listClient({ dungeon_runs: [] })
+
+    await expect(createService(client).listFinishedRuns()).resolves.toEqual([])
+    expect(client.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a malformed finished-run row', async () => {
+    const { client } = listClient({
+      dungeon_runs: [{ ...finishedRow, status: 'paused' }],
+    })
+
+    await expect(createService(client).listFinishedRuns()).rejects.toThrow(/invalid response/)
+  })
+
+  it('reads a terminal snapshot with its payload, and reports one that is absent', async () => {
+    const { client, filters } = listClient({
+      dungeon_run_snapshots: [{
+        snapshot_kind: 'victory',
+        floor_number: 10,
+        payload: { version: 1 },
+        saved_at: '2026-09-09T10:40:00.000Z',
+      }],
+    })
+
+    await expect(createService(client).loadTerminalSnapshot('run-9')).resolves.toEqual({
+      kind: 'victory',
+      floor: 10,
+      payload: { version: 1 },
+      capturedAt: '2026-09-09T10:40:00.000Z',
+    })
+    expect(filters.dungeon_run_snapshots).toEqual([['victory', 'death', 'forfeit']])
+
+    const { client: empty } = listClient({})
+    await expect(createService(empty).loadTerminalSnapshot('run-9')).resolves.toBeNull()
+  })
+})

@@ -6,6 +6,10 @@ import {
   isBehaviorProfileId,
   type BehaviorProfileId,
 } from '../../content/behaviors/BehaviorProfiles'
+import {
+  isTargetPriorityId,
+  type TargetPriorityId,
+} from '../../content/behaviors/TargetPriorities'
 import { isSkillId, type SkillId } from '../../content/skills/Skills'
 import type { UpgradeId } from '../../content/upgrades/UpgradeTypes'
 import type { EquipmentLoadout } from '../equipment/EquipmentTypes'
@@ -36,6 +40,8 @@ export interface CharacterBuildSnapshot {
   selectedUpgradeIds: readonly UpgradeId[]
   equipment: EquipmentLoadout
   behaviorProfileId: BehaviorProfileId
+  /** Omitted by builds saved before target priorities existed. */
+  targetPriorityId?: TargetPriorityId
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -58,7 +64,13 @@ export function isCharacterBuildSnapshot(
     !Array.isArray(value.skills) ||
     !Array.isArray(value.selectedUpgradeIds) ||
     !isRecord(value.equipment) ||
-    !isBehaviorProfileId(value.behaviorProfileId)) {
+    !isBehaviorProfileId(value.behaviorProfileId) ||
+    /*
+     * Absent is fine and present-but-unknown is not, the same terms as the
+     * level above. A hard requirement here would reject every Champion saved
+     * before priorities existed.
+     */
+    (value.targetPriorityId !== undefined && !isTargetPriorityId(value.targetPriorityId))) {
     return false
   }
   const seenSkills = new Set<string>()

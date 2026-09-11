@@ -45,6 +45,12 @@ npm run test:run
 npm run build     # tsc -b covers src/, e2e/, tests/, and vite.config.ts
 ```
 
+A change under `supabase/migrations/` is also validated in CI: the whole
+history is applied to an empty database and the resulting schema is linted, and
+a failure there fails the build. Run `npm run supabase:validate` locally if
+Docker is available. Pushing the migrations to production is CI's job, on `main`
+only; do not run `supabase db push` yourself.
+
 ## Verifying a change in the app
 
 Look at the running application. Do not reach for the end-to-end suites.

@@ -161,7 +161,10 @@ the check is named; the rest are review responsibilities.
       and the nickname approval workflow.
 - [x] **28. Wiki and Audio:** the in-game reference screen, and the music and
       effects settings with per-screen playlists.
-- [x] **29. Engineering Baseline:** strict TypeScript, lint that fails on
+- [x] **29. Chronicle:** the record of finished runs, listing each run's
+      outcome, depth, level, kills and Essence, and rebuilding the end-of-run
+      report from the snapshot the run ended on rather than storing it twice.
+- [x] **30. Engineering Baseline:** strict TypeScript, lint that fails on
       warnings, a component test harness, error boundaries, route-level code
       splitting, and the executable architecture and style rules.
       See [decision 0010](decisions/0010-enforced-architecture-boundaries.md).

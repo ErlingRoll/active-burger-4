@@ -11,6 +11,7 @@ import {
   isRunPreparationSnapshot,
   type BehaviorProfileId,
   type RunModeId,
+  type TargetPriorityId,
 } from './game'
 import {
   type SettingsPatch,
@@ -60,6 +61,7 @@ import {
   LazyInventoryScreen,
   LazyMetaProgressionScreen,
   LazyNicknameModerationScreen,
+  LazyRunChronicleScreen,
   LazyRunSetupScreen,
   LazyShopScreen,
   LazyWikiScreen,
@@ -505,6 +507,7 @@ function App() {
       champion: runChampion ?? undefined,
       championId: runChampionId ?? undefined,
       behaviorProfileId: settings.selectedBehaviorProfileId,
+      targetPriorityId: settings.selectedTargetPriorityId,
       characterClassId: settings.selectedCharacterClassId,
       xpMultiplierLevel: metaProgression.snapshot?.xpMultiplierLevel ?? 0,
       startingLevel: metaProgression.snapshot?.startingLevel ?? 1,
@@ -560,6 +563,20 @@ function App() {
   const selectBehaviorProfile = useCallback(
     (profileId: BehaviorProfileId): void => {
       void persistSettings({ selectedBehaviorProfileId: profileId }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings],
+  )
+
+  /*
+   * Changing the priority mid-run also changes what the next run starts with,
+   * exactly as the behavior profile behaves. It is how the character fights,
+   * not how it fought once.
+   */
+  const selectTargetPriority = useCallback(
+    (priorityId: TargetPriorityId): void => {
+      void persistSettings({ selectedTargetPriorityId: priorityId }).catch(() => {
         // persistSettings already exposes this error in the UI.
       })
     },
@@ -1344,6 +1361,10 @@ function App() {
     navigateToScreen('shop')
   }, [navigateToScreen])
 
+  const openRunHistory = useCallback((): void => {
+    navigateToScreen('run-history')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1612,6 +1633,7 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1641,6 +1663,7 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1671,6 +1694,7 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1723,6 +1747,7 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
@@ -1747,6 +1772,7 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenRunHistory={openRunHistory}
           onOpenAbyss={openAbyssSetup}
           championAvailability={championAvailability}
           onOpenRunSetup={openRunSetup}
@@ -1798,7 +1824,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'inventory') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1823,6 +1849,7 @@ function App() {
             onStart={startRun}
             onSelectCharacterClass={selectCharacterClass}
             onToggleWorldModifier={toggleWorldModifier}
+            onSelectTargetPriority={selectTargetPriority}
             onBack={closeRunSetup}
           />
         </LazyScreen>
@@ -1888,6 +1915,15 @@ function App() {
           />
         </LazyScreen>
       ) : null}
+      {screen === 'run-history' && authentication.account ? (
+        <LazyScreen label="The chronicle">
+          <LazyRunChronicleScreen
+            service={dungeonRunPersistence.service}
+            configurationError={dungeonRunPersistence.configurationError}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
+      ) : null}
       {screen === 'gameplay' ? (
         <LazyScreen label="The dungeon run">
           <LazyGameCanvas
@@ -1898,6 +1934,7 @@ function App() {
             onFloorCheckpoint={saveFloorCheckpoint}
             onSaveAndQuit={saveAndQuitRun}
             onBehaviorProfileChange={selectBehaviorProfile}
+            onTargetPriorityChange={selectTargetPriority}
             keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
             onKeybindsChange={updateKeybinds}
             reportBugRunId={activeRunSubmission?.runId}

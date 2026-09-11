@@ -30,7 +30,7 @@ import { collectSkillDamage } from './systems/skills/SkillSystem'
 import { getDerivedPlayerStats, getEffectivePlayerMovementSpeed } from './stats/DerivedStats'
 import { getPlayerArenaBounds } from '../game-config/arena'
 import { Rarity } from '../content/rarity/Rarity'
-import { definedAt } from '../testing'
+import { assertDefined, definedAt } from '../testing'
 import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
 
 describe('Game', () => {
@@ -2057,5 +2057,128 @@ describe('the Abyss descent', () => {
     // hundred is what used to be paid three times over.
     expect(game.state.run.abyssCompletedFloors).toBe(1)
     expect(game.state.run.abyssScore).toBe(100 + chosen.dangerScore * 10)
+  })
+})
+
+describe('target priority', () => {
+  const CHAMPION_BUILD = {
+    schemaVersion: 1 as const,
+    classId: 'knight' as const,
+    skills: [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+      { skillId: 'whirlwind' as const, level: 1 },
+    ],
+    selectedUpgradeIds: [],
+    equipment: {},
+    behaviorProfileId: 'balanced' as const,
+  }
+
+  it('starts every run on the default priority', () => {
+    const game = createGame({ seed: 11 })
+
+    expect(game.targetPriorityId).toBe('nearest')
+    expect(game.targetPriority.name).toBe('Nearest')
+  })
+
+  it('switches priority without touching the current target', () => {
+    const game = createGame({ seed: 12 })
+    game.state.player.targetId = 4
+    assertDefined(
+      game.state.player.behaviorController,
+      'behavior controller',
+    ).targetCommitmentRemaining = 0.8
+
+    expect(game.setTargetPriority('elites')).toBe(true)
+    expect(game.targetPriorityId).toBe('elites')
+    expect(game.state.player.behaviorController?.targetCommitmentRemaining).toBe(0)
+    // Clearing the target would leave a tick with nothing to attack.
+    expect(game.state.player.targetId).toBe(4)
+  })
+
+  it('refuses a priority that is not authored, and changes nothing', () => {
+    const game = createGame({ seed: 13 })
+
+    expect(game.setTargetPriority('lowest-health')).toBe(false)
+    expect(game.targetPriorityId).toBe('nearest')
+  })
+
+  it('does not consume RNG when the priority changes', () => {
+    const first = createGame({ seed: 14 })
+    const second = createGame({ seed: 14 })
+    second.setTargetPriority('ranged')
+
+    // The RNG cursors are what a checkpoint carries, so comparing them is the
+    // public way to say the switch drew nothing.
+    expect(second.createCheckpoint().rngState).toBe(first.createCheckpoint().rngState)
+  })
+
+  it('takes the run configuration for a dungeon run', () => {
+    const game = createGame({ seed: 15, targetPriorityId: 'wounded' })
+
+    expect(game.targetPriorityId).toBe('wounded')
+  })
+
+  it('leaves a Champion fighting the way it was saved fighting', () => {
+    const descent = createGame({
+      seed: 16,
+      modeId: 'infinite-abyss',
+      targetPriorityId: 'wounded',
+      champion: { ...CHAMPION_BUILD, targetPriorityId: 'elites' },
+    })
+
+    expect(descent.targetPriorityId).toBe('elites')
+  })
+
+  it('runs a Champion saved before priorities existed as the default', () => {
+    const descent = createGame({
+      seed: 17,
+      modeId: 'infinite-abyss',
+      targetPriorityId: 'ranged',
+      champion: CHAMPION_BUILD,
+    })
+
+    expect(descent.targetPriorityId).toBe('nearest')
+  })
+
+  it('aims the attack itself at the prioritised enemy, not merely the HUD', () => {
+    const game = createGame({ seed: 18, characterClassId: 'ranger' })
+    game.setTargetPriority('elites')
+    const player = game.state.player
+    game.state.enemies.push(
+      {
+        id: 900,
+        definitionId: 'slime',
+        x: player.x + 40,
+        y: player.y,
+        radius: 18,
+        hp: 20,
+        maxHp: 20,
+        speed: 0,
+        contactDamage: 0,
+        xpReward: 0,
+        targetId: player.id,
+      },
+      {
+        id: 901,
+        definitionId: 'slime',
+        x: player.x + 120,
+        y: player.y,
+        radius: 18,
+        hp: 20,
+        maxHp: 20,
+        speed: 0,
+        contactDamage: 0,
+        xpReward: 0,
+        eliteModifiers: ['giant'],
+        targetId: player.id,
+      },
+    )
+
+    game.update(FIXED_STEP_SECONDS)
+
+    expect(game.state.player.targetId).toBe(901)
+    // The projectile is the assertion that matters: a target the attack does
+    // not share is a target the player never sees honoured.
+    expect(game.state.projectiles.some((shot) => shot.targetId === 901)).toBe(true)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCompactDamage, formatExperience } from './formatNumbers'
+import { formatCompactDamage, formatElapsedTime, formatExperience } from './formatNumbers'
 
 describe('formatExperience', () => {
   it('removes floating-point noise and decimals', () => {
@@ -26,5 +26,18 @@ describe('formatExperience', () => {
       expect(formatCompactDamage(-10)).toBe('0')
       expect(formatCompactDamage(Number.NaN)).toBe('0')
     })
+  })
+})
+
+describe('formatElapsedTime', () => {
+  it('renders minutes and zero-padded seconds', () => {
+    expect(formatElapsedTime(0)).toBe('0:00')
+    expect(formatElapsedTime(9)).toBe('0:09')
+    expect(formatElapsedTime(75)).toBe('1:15')
+    expect(formatElapsedTime(3_600)).toBe('60:00')
+  })
+
+  it('clamps a negative duration rather than rendering a negative clock', () => {
+    expect(formatElapsedTime(-5)).toBe('0:00')
   })
 })

@@ -10,6 +10,7 @@
     "lint": "oxlint --deny-warnings",
     "supabase:check": "npx supabase migration list",
     "supabase:migrate": "npx supabase db push",
+    "supabase:validate": "npx supabase db start && npx supabase db lint --local --level warning --fail-on error",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",

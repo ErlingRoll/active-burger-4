@@ -12,7 +12,7 @@ import type { EnemyRenderShape } from '../../content/enemies/EnemyTypes'
  *
  * Each enemy now has a shape that says what it does: the Runner is a dart, the
  * Brute is an armoured slab, the Archer is a drawn bow, the Splitter is a
- * cluster already coming apart, the Flanker is a hook that leans. They are
+ * cluster already coming apart, the Flanker is a barbed hook. They are
  * drawn from the enemy's radius so an elite's scale multiplier still works, and
  * they are built from the same fill and outline the definitions already carry.
  *
@@ -23,6 +23,40 @@ import type { EnemyRenderShape } from '../../content/enemies/EnemyTypes'
 interface SilhouetteColors {
   fill: string
   outline: string
+}
+
+/**
+ * Which silhouettes have a front, and how far to turn them.
+ *
+ * A shape with a nose looked wrong sliding sideways: a dart crossed the arena
+ * broadside and a hook leaned the same way whichever direction it came from.
+ * The flat, directional shapes are turned to face where they are going; the
+ * radial ones are not, because a slime rolling and a splitter spinning like a
+ * wheel are both worse than either standing still.
+ *
+ * Every directional shape is drawn nose-up, so the offset is a quarter turn:
+ * a facing of zero points along positive x, and adding it swings the nose from
+ * up to right.
+ */
+const SHAPE_FACING_OFFSETS = {
+  dart: Math.PI / 2,
+  hook: Math.PI / 2,
+  bow: Math.PI / 2,
+  bulwark: Math.PI / 2,
+  triangle: Math.PI / 2,
+  slime: null,
+  cluster: null,
+  diamond: null,
+  hexagon: null,
+  circle: null,
+} as const satisfies Record<EnemyRenderShape, number | null>
+
+/**
+ * The rotation to add to a facing angle for this shape, or null when the shape
+ * has no front and should not be turned at all.
+ */
+export function getEnemyShapeFacingOffset(shape: EnemyRenderShape): number | null {
+  return SHAPE_FACING_OFFSETS[shape] ?? null
 }
 
 function regularPolygon(radius: number, sides: number, spin: number): number[] {
@@ -134,16 +168,25 @@ export function drawEnemySilhouette(
       return
     }
     case 'hook': {
-      // A flanker: a blade that leans, so it reads as coming from the side.
+      /*
+       * A flanker: a barbed hook, point leading with two barbs swept back
+       * and hollowed at the rear. It used to lean permanently to one side to
+       * fake a sense of coming from an angle, back when nothing rotated —
+       * that bakes in a heading of its own, so a real rotation on top of it
+       * only ever cancelled out or compounded, and it read as sideways
+       * whichever way it actually moved. Symmetric about the nose instead,
+       * the same way the dart is, so turning it is what shows its heading.
+       */
       body
-        .moveTo(-radius * 0.2, -radius)
-        .bezierCurveTo(radius * 0.95, -radius * 0.6, radius * 0.85, radius * 0.55, -radius * 0.1, radius)
-        .bezierCurveTo(radius * 0.2, radius * 0.2, radius * 0.1, -radius * 0.3, -radius * 0.2, -radius)
+        .moveTo(0, -radius)
+        .bezierCurveTo(radius * 0.75, -radius * 0.45, radius * 0.62, radius * 0.35, radius * 0.22, radius * 0.78)
+        .quadraticCurveTo(0, radius * 0.42, -radius * 0.22, radius * 0.78)
+        .bezierCurveTo(-radius * 0.62, radius * 0.35, -radius * 0.75, -radius * 0.45, 0, -radius)
         .closePath()
         .fill(colors.fill)
         .stroke(outline)
-        .moveTo(-radius * 0.16, -radius * 0.72)
-        .bezierCurveTo(radius * 0.5, -radius * 0.3, radius * 0.45, radius * 0.3, -radius * 0.1, radius * 0.7)
+        .moveTo(0, -radius * 0.6)
+        .lineTo(0, radius * 0.35)
         .stroke({ color: colors.outline, width: 1.5, alpha: 0.5 })
       return
     }

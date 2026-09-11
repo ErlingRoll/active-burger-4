@@ -54,7 +54,11 @@ import type { EntityId, EntityIdAllocator } from '../../ids'
 import {
   createEnemySpatialHash,
   findNearestEnemy,
+  getTargetPriorityScore,
+  selectPrimaryTarget,
+  type PrimaryTargetOptions,
 } from '../../combat/Targeting'
+import { getTargetPriorityPolicy } from '../../../content/behaviors/TargetPriorities'
 import { isSkillResonant, consumeSkillResonance, recordBasicAttackForResonance } from '../../combat/Resonance'
 import {
   createMonsterDamageEvent,
@@ -939,6 +943,23 @@ function collectProjectileImpactEvents(
     }))
 }
 
+/**
+ * The options the shared primary-target policy needs from this system.
+ *
+ * The engagement range depends on the equipped weapon, so it is handed to
+ * `Targeting` as a callback rather than moved there.
+ */
+function createPrimaryTargetOptions(
+  state: Readonly<GameState>,
+): PrimaryTargetOptions {
+  return {
+    originX: state.player.x,
+    originY: state.player.y,
+    getEngagementRange: (target) => getBasicAttackEngagementRange(state, target),
+    priorityId: state.player.behaviorController?.targetPriorityId,
+  }
+}
+
 function getBasicAttackTarget(
   state: GameState,
 ): EnemyState | BossState | undefined {
@@ -947,15 +968,13 @@ function getBasicAttackTarget(
     return currentTarget
   }
 
-  return [...state.enemies, ...(state.bosses ?? [])]
-    .filter((enemy) =>
-      enemy.hp > 0 && isBasicAttackTargetInRange(state, enemy)
-    )
-    .sort((left, right) =>
-      distanceSquared(state.player.x, state.player.y, left.x, left.y) -
-        distanceSquared(state.player.x, state.player.y, right.x, right.y) ||
-      left.id - right.id,
-    )[0]
+  /*
+   * It re-derives the choice rather than reading `player.targetId`, which
+   * `resolvePlayerTarget` has just written in the real tick. Reading the id
+   * would make an attack depend on another system having run first, and the
+   * out-of-range retention below depends on this staying order-independent.
+   */
+  return selectPrimaryTarget(state, createPrimaryTargetOptions(state))
 }
 
 function isBasicAttackTargetInRange(
@@ -1456,43 +1475,82 @@ export function updateAttackCooldown(
   }
 }
 
+/**
+ * Burns down the dwell time on the current primary target.
+ *
+ * Called once per tick, and deliberately not from `resolvePlayerTarget`, which
+ * runs twice: a timer decremented there would run down at twice the authored
+ * rate. Keeping it separate is also what makes resolution a pure function of
+ * the state and the timer, so the two resolves in a tick agree.
+ */
+export function updateTargetCommitment(
+  state: GameState,
+  fixedStepSeconds: number,
+): void {
+  const controller = state.player.behaviorController
+  if (!controller) {
+    return
+  }
+  const step = Number.isFinite(fixedStepSeconds) ? Math.max(0, fixedStepSeconds) : 0
+  controller.targetCommitmentRemaining = Math.max(
+    0,
+    (controller.targetCommitmentRemaining ?? 0) - step,
+  )
+}
+
 export function resolvePlayerTarget(
   state: GameState,
 ): void {
   const player = state.player
+  const controller = player.behaviorController
+  const policy = getTargetPriorityPolicy(controller?.targetPriorityId)
+  const options = createPrimaryTargetOptions(state)
   const currentTarget = findLivingTarget(state, player.targetId)
-  if (currentTarget && isBasicAttackTargetInRange(state, currentTarget)) {
+
+  /*
+   * Nothing to hold on to. A dead or escaped target always retargets, whatever
+   * the commitment says, which is the behavior the game has always had.
+   */
+  if (!currentTarget || !isBasicAttackTargetInRange(state, currentTarget)) {
+    player.targetId = selectPrimaryTarget(state, options)?.id
+    if (controller) {
+      controller.targetCommitmentRemaining = policy.commitmentSeconds
+    }
     return
   }
-  let nearestTarget: EnemyState | BossState | undefined
-  let nearestDistanceSquared = Number.POSITIVE_INFINITY
-  const considerTarget = (target: EnemyState | BossState): void => {
-    if (target.hp <= 0 || !isBasicAttackTargetInRange(state, target)) {
-      return
-    }
-    const targetDistanceSquared = distanceSquared(
-      player.x,
-      player.y,
-      target.x,
-      target.y,
-    )
-    if (
-      targetDistanceSquared < nearestDistanceSquared ||
-      (targetDistanceSquared === nearestDistanceSquared &&
-        (nearestTarget === undefined || target.id < nearestTarget.id))
-    ) {
-      nearestTarget = target
-      nearestDistanceSquared = targetDistanceSquared
-    }
-  }
-  for (const enemy of state.enemies) {
-    considerTarget(enemy)
-  }
-  for (const boss of state.bosses ?? []) {
-    considerTarget(boss)
+
+  // Still committed to the enemy already being attacked.
+  if ((controller?.targetCommitmentRemaining ?? 0) > 0) {
+    return
   }
 
-  player.targetId = nearestTarget?.id
+  /*
+   * A challenger has to be meaningfully better, not merely better. Without the
+   * margin two similar enemies would trade the target every tick as the player
+   * drifts a few units between them.
+   */
+  const challenger = selectPrimaryTarget(state, options)
+  if (!challenger || challenger.id === currentTarget.id) {
+    return
+  }
+  const currentDistance = Math.hypot(
+    currentTarget.x - player.x,
+    currentTarget.y - player.y,
+  )
+  const challengerDistance = Math.hypot(
+    challenger.x - player.x,
+    challenger.y - player.y,
+  )
+  if (
+    getTargetPriorityScore(challenger, challengerDistance, options) >
+      getTargetPriorityScore(currentTarget, currentDistance, options) +
+        policy.scoreMargin
+  ) {
+    player.targetId = challenger.id
+    if (controller) {
+      controller.targetCommitmentRemaining = policy.commitmentSeconds
+    }
+  }
 }
 
 export function performBasicAttackIfReady(
