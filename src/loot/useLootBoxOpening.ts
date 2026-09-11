@@ -8,7 +8,16 @@ export interface LootBoxOpeningSession {
   readonly boxName: string
   readonly rarity: LootBoxRarity
   readonly phase: LootBoxOpeningPhase
-  readonly result: LootBoxOpeningResult | null
+  /** How many boxes the press asked for. One, or a batch of up to ten. */
+  readonly boxCount: number
+  /**
+   * What has come out so far, one result per box in the order they opened.
+   *
+   * Kept even when the batch fails part way: a box the server has already
+   * spent is spent, and the player should see what it gave rather than only
+   * that the ninth one did not open.
+   */
+  readonly results: readonly LootBoxOpeningResult[]
   readonly error: string | null
 }
 
@@ -34,7 +43,11 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 export interface LootBoxOpeningRequest {
-  boxInstanceId: string
+  /**
+   * The boxes to spend, one entry per box. An instance that holds several
+   * boxes appears once per box, because the server takes one per call.
+   */
+  boxInstanceIds: readonly string[]
   boxName: string
   rarity: LootBoxRarity
 }
@@ -43,7 +56,7 @@ export interface LootBoxOpening {
   session: LootBoxOpeningSession | null
   /** True while a box is in flight, so every Open button can be held shut. */
   isOpening: boolean
-  openBox: (request: LootBoxOpeningRequest) => Promise<void>
+  openBoxes: (request: LootBoxOpeningRequest) => Promise<void>
   dismiss: () => void
 }
 
@@ -53,6 +66,11 @@ export interface LootBoxOpening {
  * Kept out of the screens because both the stores and the pond's drawer open
  * boxes, and an opening that behaved differently in the two places would be a
  * bug nobody would think to look for.
+ *
+ * A batch opens one box at a time rather than all at once. Each call is its
+ * own idempotent operation against the server, so nothing new has to be
+ * deployed for a batch to work, and a batch that fails on its fourth box has
+ * three boxes' worth of loot to show rather than a rolled-back nothing.
  */
 export function useLootBoxOpening(
   lootBoxService: LootBoxService | null,
@@ -66,48 +84,45 @@ export function useLootBoxOpening(
     return () => { isMountedRef.current = false }
   }, [])
 
-  const openBox = useCallback(async (request: LootBoxOpeningRequest): Promise<void> => {
-    if (!lootBoxService) {
+  const openBoxes = useCallback(async (request: LootBoxOpeningRequest): Promise<void> => {
+    const boxCount = request.boxInstanceIds.length
+    const base = { boxName: request.boxName, rarity: request.rarity, boxCount }
+    if (!lootBoxService || boxCount === 0) {
       setSession({
-        boxName: request.boxName,
-        rarity: request.rarity,
+        ...base,
         phase: 'failed',
-        result: null,
-        error: 'Loot boxes are unavailable.',
+        results: [],
+        error: boxCount === 0 ? 'There is no box to open.' : 'Loot boxes are unavailable.',
       })
       return
     }
-    setSession({
-      boxName: request.boxName,
-      rarity: request.rarity,
-      phase: 'charging',
-      result: null,
-      error: null,
-    })
+    setSession({ ...base, phase: 'charging', results: [], error: null })
+    const results: LootBoxOpeningResult[] = []
+    const charge = delay(prefersReducedMotion() ? 0 : CHARGE_FLOOR_MS)
     try {
-      const [result] = await Promise.all([
-        lootBoxService.openBox(crypto.randomUUID(), request.boxInstanceId),
-        delay(prefersReducedMotion() ? 0 : CHARGE_FLOOR_MS),
-      ])
+      for (const boxInstanceId of request.boxInstanceIds) {
+        const result = await lootBoxService.openBox(crypto.randomUUID(), boxInstanceId)
+        results.push(result)
+        if (!isMountedRef.current) {
+          return
+        }
+        // The count ticks up on the charging screen, so a batch reads as
+        // progress rather than as a long silence.
+        setSession({ ...base, phase: 'charging', results: [...results], error: null })
+      }
+      await charge
       if (!isMountedRef.current) {
         return
       }
-      setSession({
-        boxName: request.boxName,
-        rarity: request.rarity,
-        phase: 'revealing',
-        result,
-        error: null,
-      })
+      setSession({ ...base, phase: 'revealing', results, error: null })
     } catch (openError: unknown) {
       if (!isMountedRef.current) {
         return
       }
       setSession({
-        boxName: request.boxName,
-        rarity: request.rarity,
+        ...base,
         phase: 'failed',
-        result: null,
+        results,
         error: openError instanceof Error ? openError.message : 'Unable to open loot box.',
       })
     }
@@ -121,7 +136,7 @@ export function useLootBoxOpening(
   return {
     session,
     isOpening: session?.phase === 'charging',
-    openBox,
+    openBoxes,
     dismiss,
   }
 }

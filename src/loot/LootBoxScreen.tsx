@@ -43,7 +43,7 @@ import { LootBoxOpening } from './LootBoxOpening'
 import { LootBoxShelf } from './LootBoxShelf'
 import { stackInventoryItems } from '../inventory/InventoryStacks'
 import { useStackedPanels } from '../ui/useStackedPanels'
-import { stackLootBoxes } from './LootBoxStacks'
+import { selectLootBoxesToOpen, stackLootBoxes } from './LootBoxStacks'
 import { getRewardIcon } from './RewardIcon'
 import { useLootBoxOpening } from './useLootBoxOpening'
 
@@ -612,12 +612,12 @@ export function InventoryScreen({
                     stacks={boxStacks}
                     label="Unopened loot boxes"
                     opening={opening.isOpening}
-                    onOpen={(stack) => {
+                    onOpen={(stack, count) => {
                       if (stack.rarity === null) {
                         return
                       }
-                      void opening.openBox({
-                        boxInstanceId: stack.first.itemInstanceId,
+                      void opening.openBoxes({
+                        boxInstanceIds: selectLootBoxesToOpen(stack, count),
                         boxName: stack.name,
                         rarity: stack.rarity,
                       })

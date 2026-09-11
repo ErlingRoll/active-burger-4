@@ -36,7 +36,7 @@ import type { LootBoxService } from '../loot/LootBoxService'
 import { LootBoxOpening } from '../loot/LootBoxOpening'
 import { LootBoxShelf } from '../loot/LootBoxShelf'
 import { stackInventoryItems } from '../inventory/InventoryStacks'
-import { stackLootBoxes } from '../loot/LootBoxStacks'
+import { selectLootBoxesToOpen, stackLootBoxes } from '../loot/LootBoxStacks'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useLootBoxOpening } from '../loot/useLootBoxOpening'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
@@ -1216,12 +1216,12 @@ export function FishingScreen({
                       stacks={lootBoxStacks}
                       label="Unopened loot boxes"
                       opening={lootBoxOpening.isOpening}
-                      onOpen={(stack) => {
+                      onOpen={(stack, count) => {
                         if (stack.rarity === null) {
                           return
                         }
-                        void lootBoxOpening.openBox({
-                          boxInstanceId: stack.first.itemInstanceId,
+                        void lootBoxOpening.openBoxes({
+                          boxInstanceIds: selectLootBoxesToOpen(stack, count),
                           boxName: stack.name,
                           rarity: stack.rarity,
                         })
