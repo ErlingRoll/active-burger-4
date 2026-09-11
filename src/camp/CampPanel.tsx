@@ -13,6 +13,7 @@ import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 import type { CampBuildingId, CampBuildingLevel, CampJobDefinition, CampJobId } from '../content/camp/CampTypes'
 import { RARITY_VISUALS, isRarity } from '../content/rarity/Rarity'
 import {
+  formatArtifactHeadline,
   formatArtifactSummary,
   getArtifactBaseByDefinitionId,
   readArtifactMetadata,
@@ -423,7 +424,7 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
                     <strong>{base?.name ?? item.definitionId}</strong>
                     <span>
                       {artifact
-                        ? `${RARITY_VISUALS[artifact.rarity].label} · ${formatArtifactSummary(artifact)}`
+                        ? `${RARITY_VISUALS[artifact.rarity].label} · ${formatArtifactHeadline(artifact)}`
                         : 'An artifact this build cannot read'}
                     </span>
                     {artifact ? <CampCost cost={price} held={held} /> : null}

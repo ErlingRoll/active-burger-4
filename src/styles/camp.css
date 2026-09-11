@@ -529,6 +529,12 @@
   align-items: start;
 }
 
+/* A price inside a picker row keeps its own layout; the row rule above it
+   would otherwise stack the figures with no gap between them. */
+.camp-picker-copy > span.camp-cost {
+  display: inline-flex;
+}
+
 /* The Smokehouse's fish picker, in the same plate as the Champion picker. */
 .camp-fish-option .camp-picker-copy > span:not(.camp-sheet-line) {
   color: var(--text-muted);
