@@ -152,8 +152,8 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given a second pass the same
-day. Every visual decision on the screen derives from that one sentence, and
+Accepted as a first iteration on 2026-09-11 and given a second and a third
+pass the same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
 
@@ -171,7 +171,9 @@ idea.
   front left that the Woodline stands against. Low mist drifts along the far
   edge of the ground, a moon hangs over the quarry, a pool lies at the front
   where the tackle bench stands, and a trodden path runs from the front of
-  the ground up to the Storehouse with a branch each way along the front row.
+  the ground up to the Storehouse and out from there to every other
+  building, drawn in the same box the buildings are placed in so it goes
+  from one door to the next.
   The ground is lit by the plots, not by the sky, and a fog darkens the front
   so the buildings read against something quiet. The stars are the refuge's.
 - **Buildings are drawn, in one hand.** Every plot carries a picture from
@@ -186,25 +188,35 @@ idea.
   and no border. Its building stands on an ellipse of trodden earth with its
   name on a sign beneath, and the ground is the only shape: it takes an
   accent ring while the inspector is open and becomes a dashed, staked-out
-  footprint while nothing stands there. The back row is drawn smaller for
-  distance, with the Storehouse and the anchor a little higher up the slope
-  than the Woodline against the trees and the quarry against the hillside,
-  so the two rows read as a settlement rather than a shelf. A plot lifts on
-  hover and carries a lantern-amber "Ready" tag while something waits.
+  footprint while nothing stands there. On a desktop each building has a
+  place on the ground, given as a share of it rather than a cell of a grid:
+  the Woodline in the trees at the back left and the quarry at the hillside
+  on the back right, the Storehouse between them at the top of the path,
+  the anchor a little apart and lower, and the workshops along the front
+  with the tackle bench at the water. The further off a building stands the
+  smaller it is drawn. The places are chosen not to overlap at any width,
+  and because they are shares of the ground they fit with the inspector
+  open or closed. A phone keeps the two-abreast grid, where a placed layout
+  would not fit. A plot lifts on hover and carries a lantern-amber "Ready"
+  tag while something waits.
 - **Champions are figures at the foot of the building.** Every job slot is a
   small figure on the building's ground line: a dark silhouette with a
-  lantern in hand, bobbing slightly, while the slot is filled, and a dashed
-  outline while it is empty, so a free slot reads as a place to stand.
+  lantern in hand while the slot is filled, and a dashed outline while it is
+  empty, so a free slot reads as a place to stand. A working figure walks
+  its ground line, out and back with a pause and a turn at each end, the
+  turn a flip so the lantern changes hands; two figures at one building walk
+  different distances at different paces so they never move in step.
 - **The ground is alive.** Fireflies drift and blink over the front of the
   ground and the mist moves; both stand still under `prefers-reduced-motion`.
 - **The inspector is the same material as the plots,** a darker glass beside
   them on a desktop and a sheet rising over them on a phone, headed by the
   building's own picture and its level.
 
-What the second pass left for a third: the plots still sit on a grid, so
-the buildings stand in two straight rows rather than where a camp would put
-them; the path is drawn against the scene rather than between the buildings
-it should join; and the figures do not walk, only stand.
+What the third pass left for a fourth: the buildings are still eight
+separate pictures rather than one drawn settlement, with nothing between
+them (no fence, no stacked stores, no cart on the path); the figures walk
+but never leave their building for the path; and the phone still shows a
+grid where a placed layout at two columns might read better.
 
 ## Design constraints
 

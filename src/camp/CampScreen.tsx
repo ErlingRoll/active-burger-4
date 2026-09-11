@@ -1119,11 +1119,6 @@ export function CampScreen({
         </svg>
         <div className="camp-mist" />
         <div className="camp-ground" />
-        <svg className="camp-path" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-          <path d="M 470 1000 C 430 860, 560 760, 500 620 S 520 520, 505 470" />
-          <path d="M 500 700 C 380 690, 300 640, 150 660" />
-          <path d="M 500 700 C 640 690, 700 640, 860 660" />
-        </svg>
         <div className="camp-water" />
         <div className="camp-fireflies">
           {FIREFLIES.map((firefly) => (
@@ -1191,6 +1186,22 @@ export function CampScreen({
         ) : null}
         <div className="camp-hud-main">
         {state ? (
+          <div className="camp-plots-ground">
+          {/*
+            The path between the buildings, drawn in the same box the plots
+            are placed in so it runs from one door to the next: up from the
+            front of the ground to the Storehouse, and out from there to
+            every other building. Its points are the feet of the plots below.
+          */}
+          <svg className="camp-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M 50 100 C 49 88, 45 74, 46 62 S 46 48, 46 41" />
+            <path d="M 46 62 C 34 60, 22 54, 12 45" />
+            <path d="M 46 62 C 58 60, 66 56, 69 49" />
+            <path d="M 69 49 C 76 48, 84 46, 89 43" />
+            <path d="M 46 74 C 34 78, 22 86, 12 95" />
+            <path d="M 46 74 C 54 80, 62 88, 65 97" />
+            <path d="M 65 97 C 74 92, 82 90, 89 86" />
+          </svg>
           <ul className="camp-plots" aria-label="The buildings">
             {CAMP_PLOTS.map((plotId) => {
               const built = isBuildingId(plotId) && buildingLevel(state, plotId) > 0
@@ -1237,6 +1248,7 @@ export function CampScreen({
               )
             })}
           </ul>
+          </div>
         ) : null}
         {inspected && selectedPlot ? (
           <section

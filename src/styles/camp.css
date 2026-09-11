@@ -118,6 +118,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .camp-path path {
@@ -417,28 +419,48 @@
   min-height: 0;
 }
 
-.camp-plots {
-  display: grid;
+/* The ground the buildings are placed on, and the path drawn across it. */
+.camp-plots-ground {
+  position: relative;
   flex: 1 1 auto;
-  grid-template-areas:
-    'woodline storehouse rift-anchor quarry'
-    'tackle-bench smokehouse forge trophy-hall';
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  /* The back row stands further off and gets less of the height. */
-  grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 0 clamp(0.4rem, 1.2vh, 0.9rem);
   min-width: 0;
   min-height: 0;
+}
+
+/*
+ * Where a camp would put things, not where a grid would.
+ *
+ * Each building has a place on the ground, as a share of it: the Woodline
+ * in the trees at the back left and the quarry at the hillside on the back
+ * right, the Storehouse between them at the top of the path, the anchor a
+ * little apart and lower, and the workshops along the front, the tackle
+ * bench at the water. The boxes are chosen not to overlap at any width,
+ * and because they are shares of the ground they fit whatever the ground
+ * is, with the inspector open or closed.
+ */
+.camp-plots {
+  position: absolute;
+  inset: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .camp-plots > li {
+  position: absolute;
   display: grid;
   min-width: 0;
   min-height: 0;
 }
+
+.camp-plots > li[data-plot='woodline'] { top: 5%; left: 0; width: 24%; height: 40%; }
+.camp-plots > li[data-plot='storehouse'] { top: 0; left: 33%; width: 26%; height: 42%; }
+.camp-plots > li[data-plot='rift-anchor'] { top: 10%; left: 60%; width: 18%; height: 40%; }
+.camp-plots > li[data-plot='quarry'] { top: 3%; left: 78%; width: 22%; height: 42%; }
+.camp-plots > li[data-plot='tackle-bench'] { top: 56%; left: 0; width: 24%; height: 44%; }
+.camp-plots > li[data-plot='smokehouse'] { top: 50%; left: 26%; width: 22%; height: 42%; }
+.camp-plots > li[data-plot='forge'] { top: 56%; left: 54%; width: 22%; height: 44%; }
+.camp-plots > li[data-plot='trophy-hall'] { top: 46%; left: 78%; width: 22%; height: 42%; }
 
 .camp-plots > li[data-plot='woodline'] { grid-area: woodline; }
 .camp-plots > li[data-plot='storehouse'] { grid-area: storehouse; }
@@ -449,22 +471,15 @@
 .camp-plots > li[data-plot='forge'] { grid-area: forge; }
 .camp-plots > li[data-plot='trophy-hall'] { grid-area: trophy-hall; }
 
-/* Where each building stands: the back row smaller, for distance, and the
-   two in the middle of it a little higher up the slope than the two against
-   the trees and the hillside, so the row is a settlement and not a shelf. */
+/* The further off a building stands, the smaller it is drawn. */
 .camp-plots > li[data-plot='woodline'] .camp-plot,
 .camp-plots > li[data-plot='quarry'] .camp-plot { --plot-scale: 0.86; }
-
-.camp-plots > li[data-plot='storehouse'] .camp-plot,
-.camp-plots > li[data-plot='rift-anchor'] .camp-plot {
-  --plot-scale: 0.8;
-  padding-bottom: clamp(0.6rem, 4vh, 2.4rem);
-}
-
+.camp-plots > li[data-plot='storehouse'] .camp-plot { --plot-scale: 0.82; }
+.camp-plots > li[data-plot='rift-anchor'] .camp-plot { --plot-scale: 0.78; }
 .camp-plots > li[data-plot='tackle-bench'] .camp-plot { --plot-scale: 1; }
-.camp-plots > li[data-plot='smokehouse'] .camp-plot,
-.camp-plots > li[data-plot='forge'] .camp-plot { --plot-scale: 0.96; padding-bottom: clamp(0.3rem, 1.6vh, 1rem); }
-.camp-plots > li[data-plot='trophy-hall'] .camp-plot { --plot-scale: 0.94; }
+.camp-plots > li[data-plot='smokehouse'] .camp-plot { --plot-scale: 0.94; }
+.camp-plots > li[data-plot='forge'] .camp-plot { --plot-scale: 0.98; }
+.camp-plots > li[data-plot='trophy-hall'] .camp-plot { --plot-scale: 0.92; }
 
 /* A plot: a building standing on its ground, its name on a sign beneath.
    No plate, no border; the ground it stands on is the only shape. */
@@ -645,7 +660,8 @@
 .camp-plot-workers i[data-filled='true'] {
   background: #141c17;
   border: 1px solid #243128;
-  animation: camp-worker-bob 2.6s ease-in-out infinite;
+  --walk: clamp(1.4rem, 6vh, 3.6rem);
+  animation: camp-worker-walk 11s ease-in-out infinite;
 }
 
 .camp-plot-workers i[data-filled='true']::before {
@@ -667,7 +683,11 @@
   animation: camp-coals-flicker 3.1s ease-in-out infinite;
 }
 
-.camp-plot-workers i[data-filled='true']:nth-child(2) { animation-delay: 1.3s; }
+.camp-plot-workers i[data-filled='true']:nth-child(2) {
+  --walk: clamp(1rem, 4.5vh, 2.6rem);
+  animation-duration: 14s;
+  animation-delay: -5s;
+}
 
 /* The sign under the building. */
 .camp-plot-copy {
@@ -1044,9 +1064,16 @@
   100% { opacity: 0; transform: translate(2.2rem, 0.4rem); }
 }
 
-@keyframes camp-worker-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1px); }
+/* A figure walks its ground line: out, a pause, a turn, and back. The turn
+   is a flip, so the lantern changes hands. */
+@keyframes camp-worker-walk {
+  0% { transform: translateX(0) scaleX(1); }
+  38% { transform: translateX(var(--walk)) scaleX(1); }
+  44% { transform: translateX(var(--walk)) scaleX(1); }
+  50% { transform: translateX(var(--walk)) scaleX(-1); }
+  88% { transform: translateX(0) scaleX(-1); }
+  94% { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
 }
 
 @keyframes camp-rift-pulse {
@@ -1171,7 +1198,18 @@
     display: none;
   }
 
+  .camp-plots-ground {
+    display: flex;
+  }
+
+  .camp-path {
+    display: none;
+  }
+
   .camp-plots {
+    position: static;
+    display: grid;
+    flex: 1 1 auto;
     grid-template-areas:
       'woodline quarry'
       'storehouse rift-anchor'
@@ -1180,6 +1218,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(4, minmax(0, 1fr));
     gap: 0 0.4rem;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The attribute selector outranks a bare li, so the override carries one too. */
+  .camp-plots > li[data-plot] {
+    position: static;
+    inset: auto;
+    width: auto;
+    height: auto;
   }
 
   /* Two abreast, four deep: every building the same size, the slope gone. */
