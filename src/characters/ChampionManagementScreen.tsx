@@ -29,6 +29,7 @@ import { getGearSetDefinition } from '../game-config/gear-sets'
 import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { SkillIcon } from '../rendering/SkillIcon'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
 import { formatChampionAvailability, isChampionExhausted } from './ChampionExhaustion'
 import { ChampionRevivalControl, type RevivalFishLoadState } from './ChampionRevivalControl'
@@ -599,7 +600,7 @@ export function ChampionManagementScreen({
             let go.
           </p>
         </header>
-        {error ? <p className="persistence-error" role="alert">{error}</p> : null}
+        {error && !deleteConfirmationId ? <p className="persistence-error" role="alert">{error}</p> : null}
         {loadState === 'loading' ? (
           <p role="status">Loading Champions…</p>
         ) : champions.length === 0 ? (
@@ -680,28 +681,16 @@ export function ChampionManagementScreen({
           </div>
         )}
         {deleteConfirmationId ? (
-          <div className="champion-delete-confirmation" role="alert">
-            <strong>Delete this Champion?</strong>
-            <span>The preserved build cannot be restored after deletion.</span>
-            <div>
-              <button
-                className="champion-delete-action"
-                type="button"
-                onClick={() => { void deleteChampion() }}
-                disabled={actionState === 'deleting'}
-              >
-                {actionState === 'deleting' ? 'Deleting…' : 'Confirm delete'}
-              </button>
-              <button
-                className="secondary-action"
-                type="button"
-                onClick={() => setDeleteConfirmationId(null)}
-                disabled={actionState === 'deleting'}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <ConfirmationDialog
+            title="Delete this Champion?"
+            message="The preserved build cannot be restored after deletion."
+            confirmLabel={actionState === 'deleting' ? 'Deleting…' : 'Confirm delete'}
+            confirmDisabled={actionState === 'deleting'}
+            cancelDisabled={actionState === 'deleting'}
+            errorMessage={error}
+            onConfirm={() => { void deleteChampion() }}
+            onCancel={() => setDeleteConfirmationId(null)}
+          />
         ) : null}
       </div>
     </section>

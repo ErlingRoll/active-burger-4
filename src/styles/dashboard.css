@@ -1323,31 +1323,6 @@
   outline-offset: 2px;
 }
 
-.champion-delete-confirmation {
-  display: grid;
-  gap: 0.55rem;
-  padding: 1rem;
-  background: rgb(30 41 59 / 62%);
-  border: 1px solid rgb(var(--accent-rgb) / 22%);
-  border-radius: 0.55rem;
-}
-
-.champion-delete-confirmation strong {
-  margin: 0;
-  color: var(--color-slate-50);
-}
-
-.champion-delete-confirmation span {
-  margin: 0;
-  color: var(--color-slate-300);
-}
-
-.champion-delete-confirmation > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
 .abyss-screen {
   min-height: 0;
   overflow: auto;
