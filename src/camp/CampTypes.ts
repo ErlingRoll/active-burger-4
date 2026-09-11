@@ -73,6 +73,12 @@ export interface CampService {
   unassignChampion(operationId: string, championId: string): Promise<CampClaimResult>
   /** Pays out every job at once. */
   claimProduction(operationId: string): Promise<CampClaimResult>
+  /**
+   * Moves every assignment's clock back by this many hours, so a claim pays
+   * as if that long had passed. Administrators only; the server refuses
+   * anyone else. A development tool, not a feature.
+   */
+  advanceClock(hours: number): Promise<CampState>
 }
 
 /** Where a working Champion is: "Working · Woodline", or null when it is at the fire. */

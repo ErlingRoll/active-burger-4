@@ -37,8 +37,13 @@ interface CampPanelProps {
   service: CampService | null
   configurationError: string | null
   characterService: CharacterService | null
+  /** Shows the clock-skipping row. The header decides this: an administrator on a build with the tools on. */
+  developmentToolsEnabled?: boolean
   onClose: () => void
 }
+
+/** The hours a tester skips at a time: a few units' worth, and a Storehouse's worth. */
+const DEVELOPMENT_SKIPS = [1, 8] as const
 
 /** How often the pending counts tick. A unit takes minutes, so seconds would be theatre. */
 const CAMP_TICK_MS = 15_000
@@ -164,7 +169,14 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
   )
 }
 
-export function CampPanel({ id, service, configurationError, characterService, onClose }: CampPanelProps) {
+export function CampPanel({
+  id,
+  service,
+  configurationError,
+  characterService,
+  developmentToolsEnabled = false,
+  onClose,
+}: CampPanelProps) {
   const { showLootToast, showToast } = useToaster()
   const [state, setState] = useState<CampState | null>(null)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
@@ -290,6 +302,13 @@ export function CampPanel({ id, service, configurationError, characterService, o
     }, 'Unable to claim Camp production.')
   }
 
+  const skipAhead = (hours: number): void => {
+    if (!service) {
+      return
+    }
+    void run(() => service.advanceClock(hours), 'Unable to advance the Camp clock.')
+  }
+
   const storehouseLevel = state?.buildings.find((building) => building.buildingId === 'storehouse')?.level ?? 1
   const totalPending = state
     ? state.assignments.reduce((total, assignment) => total + pendingFor(assignment, state, now), 0)
@@ -325,6 +344,21 @@ export function CampPanel({ id, service, configurationError, characterService, o
               Claim{totalPending > 0 ? ` ${totalPending}` : ''}
             </button>
           </div>
+          {developmentToolsEnabled ? (
+            <div className="camp-dev-row" role="group" aria-label="Development tools">
+              <span>Dev · skip ahead</span>
+              {DEVELOPMENT_SKIPS.map((hours) => (
+                <button
+                  key={hours}
+                  type="button"
+                  onClick={() => skipAhead(hours)}
+                  disabled={busy || state.assignments.length === 0}
+                >
+                  +{hours}h
+                </button>
+              ))}
+            </div>
+          ) : null}
           <ul className="camp-jobs">
             {ALL_CAMP_JOB_DEFINITIONS.map((job) => {
               const building = CAMP_BUILDING_DEFINITIONS[job.buildingId]

@@ -369,3 +369,37 @@
   font-size: 0.8rem;
   white-space: normal;
 }
+
+/* The development row: a tester's way past the wait, on builds with the
+   tools on and for administrators only. Dashed, so it never reads as play. */
+.camp-dev-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+}
+
+.camp-dev-row span {
+  margin-right: auto;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.camp-dev-row button {
+  min-height: clamp(1.4rem, 3vh, 1.9rem);
+  padding: 0 0.6rem;
+  color: var(--color-orange-50);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 800;
+  background: rgb(0 0 0 / 30%);
+  border: 1px dashed rgb(var(--accent-rgb) / 40%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.camp-dev-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}

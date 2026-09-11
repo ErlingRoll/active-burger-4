@@ -196,5 +196,12 @@ export function createCampService(
       const data = await call('claim_camp_production', { p_operation_id: operationId })
       return readClaim(data, Date.now())
     },
+
+    async advanceClock(hours): Promise<CampState> {
+      if (!Number.isFinite(hours) || hours <= 0) {
+        throw new Error('The Camp clock can only be advanced by a positive number of hours.')
+      }
+      return readState(await call('advance_camp_clock', { p_hours: hours }), Date.now())
+    },
   }
 }

@@ -70,13 +70,14 @@ function workingState(): CampState {
   }
 }
 
-function renderPanel(initial: CampState) {
+function renderPanel(initial: CampState, developmentToolsEnabled = false) {
   const assignChampion = vi.fn(async () => workingState())
   const unassignChampion = vi.fn(async () => ({
     paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, definitionId: 'timber', units: 15, bonusUnits: 0 }],
     wasProcessed: true,
     state: emptyState(),
   }))
+  const advanceClock = vi.fn(async () => workingState())
   const claimProduction = vi.fn(async () => ({
     paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, definitionId: 'timber', units: 15, bonusUnits: 4 }],
     wasProcessed: true,
@@ -87,6 +88,7 @@ function renderPanel(initial: CampState) {
     assignChampion,
     unassignChampion,
     claimProduction,
+    advanceClock,
   } as unknown as CampService
   const characterService = {
     loadCharacters: vi.fn(async () => ({ characters: [], revisions: [], champions: [champion] })),
@@ -97,10 +99,11 @@ function renderPanel(initial: CampState) {
       service={service}
       configurationError={null}
       characterService={characterService}
+      developmentToolsEnabled={developmentToolsEnabled}
       onClose={onClose}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, onClose }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, onClose }
 }
 
 describe('CampPanel', () => {
@@ -150,6 +153,23 @@ describe('CampPanel', () => {
     })
     expect(await screen.findByText('Camp production claimed')).toBeInTheDocument()
     expect(await screen.findAllByRole('button', { name: 'Send a Champion' })).toHaveLength(2)
+  })
+
+  it('lets a development build skip the clock ahead', async () => {
+    const { user, advanceClock } = renderPanel(workingState(), true)
+
+    await user.click(await screen.findByRole('button', { name: '+8h' }))
+
+    await waitFor(() => {
+      expect(advanceClock).toHaveBeenCalledWith(8)
+    })
+  })
+
+  it('hides the clock-skipping row from an ordinary build', async () => {
+    renderPanel(workingState())
+
+    await screen.findByRole('button', { name: 'Bring back' })
+    expect(screen.queryByRole('group', { name: 'Development tools' })).toBeNull()
   })
 
   it('closes from its own button', async () => {

@@ -123,6 +123,16 @@ describe('camp service', () => {
     expect(result.wasProcessed).toBe(false)
   })
 
+  it('advances the clock by hours for a development build', async () => {
+    const client = fakeClient(() => STATE)
+    const service = createService(client)
+
+    await service.advanceClock(8)
+
+    expect(client.rpc).toHaveBeenCalledWith('advance_camp_clock', { p_hours: 8 })
+    await expect(service.advanceClock(0)).rejects.toThrow('positive number of hours')
+  })
+
   it('refuses an empty operation id before calling the server', async () => {
     const client = fakeClient(() => STATE)
     const service = createService(client)

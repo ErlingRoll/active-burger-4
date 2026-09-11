@@ -85,9 +85,12 @@ Some checks read the repository rather than import it, and live in
 
 ## Development tools
 
-Two development menus exist: one in the header, for granting inventory items
-and creating random Champions outside a run, and one in the arena, for driving a run (bosses, gear, skills,
-stress spawns, simulation speed). They show only to an account with the admin
+Three development controls exist: a menu in the header, for granting
+inventory items and creating random Champions outside a run; a menu in the
+arena, for driving a run (bosses, gear, skills, stress spawns, simulation
+speed); and a row in the Camp panel that skips its clock ahead by an hour or
+eight, so a claim can be tested without waiting for real hours to pass. They
+show only to an account with the admin
 role, on a local dev server or on any build that serves the dev backend, and
 never on production; the environment half of that switch is
 `DEVELOPMENT_TOOLS_ENABLED` in `src/shared/environment.ts`, which follows the

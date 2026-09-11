@@ -97,6 +97,8 @@ interface AdventureHubSceneProps {
   campService: CampService | null
   campConfigurationError: string | null
   characterService: CharacterService | null
+  /** An administrator on a build with the tools on; shows the Camp's clock-skipping row. */
+  developmentToolsEnabled: boolean
   activeRun: ActiveDungeonRun | null
   activeCharacterClassName: string | null
   runLoadState: 'loading' | 'ready' | 'error' | 'unavailable'
@@ -174,6 +176,7 @@ export function AdventureHubScene({
   campService,
   campConfigurationError,
   characterService,
+  developmentToolsEnabled,
   activeRun,
   activeCharacterClassName,
   runLoadState,
@@ -863,6 +866,7 @@ export function AdventureHubScene({
                 service={campService}
                 configurationError={campConfigurationError}
                 characterService={characterService}
+                developmentToolsEnabled={developmentToolsEnabled}
                 onClose={() => setCampOpen(false)}
               />
             ) : null}

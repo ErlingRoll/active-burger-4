@@ -31,6 +31,7 @@ export interface GameDashboardProps {
   campService: CampService | null
   campConfigurationError: string | null
   characterService: CharacterService | null
+  developmentToolsEnabled: boolean
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState
   runLoadError: string | null
@@ -60,6 +61,7 @@ export function GameDashboard({
   campService,
   campConfigurationError,
   characterService,
+  developmentToolsEnabled,
   activeRun,
   runLoadState,
   runLoadError,
@@ -114,6 +116,7 @@ export function GameDashboard({
         campService={campService}
         campConfigurationError={campConfigurationError}
         characterService={characterService}
+        developmentToolsEnabled={developmentToolsEnabled}
         activeRun={activeRun}
         activeCharacterClassName={activeCharacterClass?.name ?? null}
         runLoadState={runLoadState}

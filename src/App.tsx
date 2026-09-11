@@ -1773,6 +1773,7 @@ function App() {
           campService={camp.service}
           campConfigurationError={camp.configurationError}
           characterService={characters.service}
+          developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}
