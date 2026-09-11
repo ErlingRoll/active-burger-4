@@ -71,6 +71,7 @@ import { TouchControls } from './hud/TouchControls'
 import { useTouchOnlyDevice } from '../input/useTouchOnlyDevice'
 import { createSteeringHandover } from './hud/steering'
 import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
+import { DEVELOPMENT_TOOLS_ENABLED } from '../shared'
 
 
 
@@ -108,7 +109,7 @@ function isFreeMovementKey(
 }
 
 function applyInitialTimeScale(game: Game): void {
-  if (!import.meta.env.DEV) {
+  if (!DEVELOPMENT_TOOLS_ENABLED) {
     return
   }
   game.setTimeScale(getStoredDevelopmentTimeScale() ?? DEFAULT_TIME_SCALE)
@@ -158,7 +159,7 @@ export function GameCanvas({
   const steeringRef = useRef(createSteeringHandover())
   const touchOnly = useTouchOnlyDevice()
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
-    () => import.meta.env.DEV &&
+    () => DEVELOPMENT_TOOLS_ENABLED &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
   )
   useEffect(() => {
@@ -229,7 +230,7 @@ export function GameCanvas({
     const game = initialCheckpointRef.current
       ? createGameFromCheckpoint(initialCheckpointRef.current)
       : createGame(
-          import.meta.env.DEV && demo === 'starting-level-up'
+          DEVELOPMENT_TOOLS_ENABLED && demo === 'starting-level-up'
             ? {
                 ...initialRunConfigRef.current,
                 startingLevel: Math.max(
@@ -266,13 +267,13 @@ export function GameCanvas({
     // This deterministic setup is only for browser smoke tests and local
     // development; normal runs retain the standard combat-driven progression.
     if (
-      import.meta.env.DEV &&
+      DEVELOPMENT_TOOLS_ENABLED &&
       demo === 'level-up'
     ) {
       game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))
     }
     if (
-      import.meta.env.DEV &&
+      DEVELOPMENT_TOOLS_ENABLED &&
       demo === 'gear'
     ) {
       // Two pickups exercise both the empty-slot comparison and the
@@ -281,14 +282,14 @@ export function GameCanvas({
       game.spawnGearPickup({ x: 0, y: 0 })
     }
     if (
-      import.meta.env.DEV &&
+      DEVELOPMENT_TOOLS_ENABLED &&
       (demo === 'final' || demo === 'final-boss' || demo === 'inferno')
     ) {
       // This only exercises the existing simulation spawn API; production
       // encounter scheduling remains owned by the encounter system.
       game.spawnBoss('inferno-warden')
     }
-    if (import.meta.env.DEV && demo === 'stairs') {
+    if (DEVELOPMENT_TOOLS_ENABLED && demo === 'stairs') {
       game.spawnStairs({ x: 0, y: 0 })
     }
 
@@ -380,6 +381,14 @@ export function GameCanvas({
         event.target.closest('[data-confirmation-dialog="true"]') ||
         event.target.closest('[data-report-bug-dialog="true"]'))
       ) {
+        return
+      }
+
+      // The backquote toggles the development menu wherever the tools are on.
+      // Checked before normalisation, which drops keys the keybinds don't use.
+      if (DEVELOPMENT_TOOLS_ENABLED && event.key === '`' && !event.repeat) {
+        event.preventDefault()
+        setDevelopmentMenuOpen((menuOpen) => !menuOpen)
         return
       }
 
@@ -677,7 +686,7 @@ export function GameCanvas({
           }}
         />
       ) : null}
-      {import.meta.env.DEV && snapshot && game ? (
+      {DEVELOPMENT_TOOLS_ENABLED && snapshot && game ? (
         <DevelopmentMenu
           game={game}
           snapshot={snapshot}

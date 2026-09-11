@@ -4037,3 +4037,101 @@
   font-size: 0.9rem;
 }
 
+
+/* ---------------------------------------------------------------------------
+   The development menu, sectioned.
+
+   It grew one control at a time into a single column that scrolled past
+   anything a tester was looking for. It is now a status strip and five titled
+   sections, wide enough on a desktop for the grant rows to sit on one line.
+   --------------------------------------------------------------------------- */
+.development-menu {
+  position: relative;
+  width: min(27rem, calc(100vw - 2rem));
+}
+
+.development-menu-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-sky-100);
+  font-size: 1.1rem;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid var(--color-cyan-300);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.development-menu-close:hover,
+.development-menu-close:focus-visible {
+  background: var(--color-cyan-900);
+  outline: 3px solid rgb(103 232 249 / 35%);
+  outline-offset: 2px;
+}
+
+.development-menu-hint {
+  margin: 0 0 0.6rem;
+}
+
+.development-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.development-status div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.4rem 0.5rem;
+  background: rgb(8 47 73 / 55%);
+  border: 1px solid rgb(103 232 249 / 25%);
+  border-radius: 0.4rem;
+}
+
+.development-status dt {
+  color: var(--color-cyan-300);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.development-status dd {
+  margin: 0;
+  color: var(--color-sky-100);
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.development-section {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(103 232 249 / 22%);
+}
+
+.development-section h3 {
+  margin: 0;
+  color: var(--color-cyan-200);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.development-section .debug-spawn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.development-section .end-run-button {
+  margin: 0;
+}

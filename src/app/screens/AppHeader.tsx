@@ -4,6 +4,7 @@ import {
   APP_ENVIRONMENT,
   APP_RELEASE,
   APP_VERSION,
+  DEVELOPMENT_TOOLS_ENABLED,
 } from '../appState'
 import {
   AccountSettingsMenu,
@@ -118,8 +119,11 @@ export function AppHeader({
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)}>Inventory</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)}>Chronicle</button>
-          {import.meta.env.DEV && authentication.account?.isAdmin ? (
-            <DevelopmentInventoryMenu inventoryService={inventoryService} />
+          {DEVELOPMENT_TOOLS_ENABLED && authentication.account ? (
+            <DevelopmentInventoryMenu
+              inventoryService={inventoryService}
+              isAdmin={authentication.account.isAdmin}
+            />
           ) : null}
         </nav>
         {authentication.account ? (

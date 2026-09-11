@@ -61,6 +61,7 @@ Look at the running application. Do not reach for the end-to-end suites.
 ```bash
 npm run screenshot -- --path wiki            # both viewports
 npm run screenshot -- --run --size desktop   # the in-run HUD
+npm run screenshot -- --run --devmenu        # the in-run development menu
 ```
 
 [scripts/screenshot.mjs](scripts/screenshot.mjs) reuses a dev server if one is

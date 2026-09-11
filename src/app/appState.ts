@@ -19,9 +19,8 @@ export const RUN_GAME_VERSION = APP_VERSION ?? 'development'
 export const APP_RELEASE: string | undefined = import.meta.env.VITE_APP_RELEASE
 /** When the build ran, as an ISO timestamp. */
 export const APP_BUILT_AT: string | undefined = import.meta.env.VITE_APP_BUILT_AT
-/** Which backend this build serves. Only "dev" is shown to the player. */
-export const APP_ENVIRONMENT: 'production' | 'dev' =
-  import.meta.env.VITE_APP_ENVIRONMENT === 'production' ? 'production' : 'dev'
+/** Which backend this build serves, and whether the development tools show. */
+export { APP_ENVIRONMENT, DEVELOPMENT_TOOLS_ENABLED } from '../shared/environment'
 export const DEFAULT_CHAMPION_NAME = 'My Champion'
 
 export type PersistenceLoadState = 'loading' | 'ready' | 'error'

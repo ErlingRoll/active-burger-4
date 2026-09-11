@@ -459,3 +459,63 @@
 .app-build time {
   white-space: nowrap;
 }
+
+/* The header's development tools, widened for the quick grants and the note. */
+.development-inventory-panel {
+  width: min(22rem, calc(100vw - 2rem));
+}
+
+.development-inventory-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.development-inventory-quick-grant {
+  min-height: 1.9rem;
+  padding: 0.3rem 0.55rem;
+  color: var(--color-cyan-100);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--color-cyan-900);
+  border: 1px solid var(--color-cyan-300);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.development-inventory-quick-grant:hover,
+.development-inventory-quick-grant:focus-visible {
+  background: var(--color-cyan-800);
+  outline: 3px solid rgb(103 232 249 / 28%);
+  outline-offset: 2px;
+}
+
+.development-inventory-quick-grant:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.development-inventory-note {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--color-sky-200);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.development-inventory-note p {
+  margin: 0;
+}
+
+.development-inventory-note pre {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  color: var(--color-sky-100);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--color-slate-800);
+  border: 1px solid var(--color-slate-600);
+  border-radius: 0.35rem;
+}
