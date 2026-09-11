@@ -59,6 +59,8 @@ describe('champion exhaustion', () => {
   it('formats the remaining time, rounding minutes up', () => {
     expect(formatChampionExhaustion('2026-09-08T14:30:00.000Z', NOW)).toBe('2h 30m remaining')
     expect(formatChampionExhaustion('2026-09-08T12:00:30.000Z', NOW)).toBe('0h 1m remaining')
+    // A second short of a day is a day, not twenty-three hours and sixty minutes.
+    expect(formatChampionExhaustion('2026-09-09T11:59:59.000Z', NOW)).toBe('24h 0m remaining')
   })
 
   it('reports availability for an elapsed, absent, or unparseable timestamp', () => {
