@@ -98,6 +98,7 @@ import './App.css'
 
 import {
   APP_VERSION,
+  DEVELOPMENT_TOOLS_ENABLED,
   DEFAULT_CHAMPION_NAME,
   RUN_GAME_VERSION,
   type MetaProgressionState,
@@ -1939,6 +1940,7 @@ function App() {
             onKeybindsChange={updateKeybinds}
             reportBugRunId={activeRunSubmission?.runId}
             onSubmitBugReport={submitBugReport}
+            developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
           />
         </LazyScreen>
       ) : null}

@@ -20,6 +20,10 @@ Supabase project. `.env.production` is read only by production builds.
 - VITE_TEST_USER_EMAIL
 - VITE_TEST_USER_PASSWORD
 
+The development menus and the in-run end-to-end suite need the admin role on
+the account they sign in with; see the README's development tools section for
+the SQL that grants it.
+
 ## Shared loot toast
 
 Use the shared global toast for transient loot feedback such as catches,

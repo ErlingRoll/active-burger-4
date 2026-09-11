@@ -24,23 +24,10 @@ function createInventoryService() {
 }
 
 describe('DevelopmentInventoryMenu', () => {
-  it('explains the admin role instead of offering grants the server would refuse', async () => {
-    const { service, grantDevelopmentItems } = createInventoryService()
-    const { user } = renderComponent(
-      <DevelopmentInventoryMenu inventoryService={service} isAdmin={false} />,
-    )
-
-    await user.click(screen.getByText('Dev tools'))
-
-    expect(screen.getByText(/need the/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Grant item' })).not.toBeInTheDocument()
-    expect(grantDevelopmentItems).not.toHaveBeenCalled()
-  })
-
   it('grants a quick item with its fixed rarity and size', async () => {
     const { service, grantDevelopmentItems } = createInventoryService()
     const { user } = renderComponent(
-      <DevelopmentInventoryMenu inventoryService={service} isAdmin />,
+      <DevelopmentInventoryMenu inventoryService={service} />,
     )
 
     await user.click(screen.getByText('Dev tools'))
@@ -60,7 +47,7 @@ describe('DevelopmentInventoryMenu', () => {
   it('grants the chosen item in the chosen quantity', async () => {
     const { service, grantDevelopmentItems } = createInventoryService()
     const { user } = renderComponent(
-      <DevelopmentInventoryMenu inventoryService={service} isAdmin />,
+      <DevelopmentInventoryMenu inventoryService={service} />,
     )
 
     await user.click(screen.getByText('Dev tools'))

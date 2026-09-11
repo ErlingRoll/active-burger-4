@@ -119,11 +119,8 @@ export function AppHeader({
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)}>Inventory</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)}>Chronicle</button>
-          {DEVELOPMENT_TOOLS_ENABLED && authentication.account ? (
-            <DevelopmentInventoryMenu
-              inventoryService={inventoryService}
-              isAdmin={authentication.account.isAdmin}
-            />
+          {DEVELOPMENT_TOOLS_ENABLED && authentication.account?.isAdmin ? (
+            <DevelopmentInventoryMenu inventoryService={inventoryService} />
           ) : null}
         </nav>
         {authentication.account ? (

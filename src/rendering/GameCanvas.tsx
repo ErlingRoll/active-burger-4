@@ -52,6 +52,13 @@ interface GameCanvasProps {
     image: BugReportImage | undefined,
     dungeon: BugReportDungeonContext,
   ) => Promise<void>
+  /**
+   * Whether the development menu, its hotkey, the demo query parameters and
+   * the remembered simulation speed are on. The app sets it from the build's
+   * environment and the signed-in account's admin role, so a player on the
+   * dev deployment sees a plain arena.
+   */
+  developmentToolsEnabled?: boolean
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
@@ -71,7 +78,6 @@ import { TouchControls } from './hud/TouchControls'
 import { useTouchOnlyDevice } from '../input/useTouchOnlyDevice'
 import { createSteeringHandover } from './hud/steering'
 import { getStoredDevelopmentTimeScale } from './developmentTimeScale'
-import { DEVELOPMENT_TOOLS_ENABLED } from '../shared'
 
 
 
@@ -108,8 +114,8 @@ function isFreeMovementKey(
   return FREE_MOVEMENT_KEYS.some((movementKey) => movementKey === value)
 }
 
-function applyInitialTimeScale(game: Game): void {
-  if (!DEVELOPMENT_TOOLS_ENABLED) {
+function applyInitialTimeScale(game: Game, developmentToolsEnabled: boolean): void {
+  if (!developmentToolsEnabled) {
     return
   }
   game.setTimeScale(getStoredDevelopmentTimeScale() ?? DEFAULT_TIME_SCALE)
@@ -127,8 +133,14 @@ export function GameCanvas({
   onKeybindsChange,
   reportBugRunId,
   onSubmitBugReport,
+  developmentToolsEnabled = false,
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  // Read by the mount-once effect below, which cannot see prop changes.
+  const developmentToolsRef = useRef(developmentToolsEnabled)
+  useEffect(() => {
+    developmentToolsRef.current = developmentToolsEnabled
+  }, [developmentToolsEnabled])
   const gameRef = useRef<Game | null>(null)
   const onRunEndRef = useRef(onRunEnd)
   const onFloorCheckpointRef = useRef(onFloorCheckpoint)
@@ -159,7 +171,7 @@ export function GameCanvas({
   const steeringRef = useRef(createSteeringHandover())
   const touchOnly = useTouchOnlyDevice()
   const [developmentMenuOpen, setDevelopmentMenuOpen] = useState(
-    () => DEVELOPMENT_TOOLS_ENABLED &&
+    () => developmentToolsEnabled &&
       new URLSearchParams(window.location.search).get('devmenu') === 'open',
   )
   useEffect(() => {
@@ -230,7 +242,7 @@ export function GameCanvas({
     const game = initialCheckpointRef.current
       ? createGameFromCheckpoint(initialCheckpointRef.current)
       : createGame(
-          DEVELOPMENT_TOOLS_ENABLED && demo === 'starting-level-up'
+          developmentToolsRef.current && demo === 'starting-level-up'
             ? {
                 ...initialRunConfigRef.current,
                 startingLevel: Math.max(
@@ -240,7 +252,7 @@ export function GameCanvas({
               }
             : initialRunConfigRef.current,
         )
-    applyInitialTimeScale(game)
+    applyInitialTimeScale(game, developmentToolsRef.current)
     const pixiGame = new PixiGame(game)
     let disposed = false
     let runEndNotified = false
@@ -267,13 +279,13 @@ export function GameCanvas({
     // This deterministic setup is only for browser smoke tests and local
     // development; normal runs retain the standard combat-driven progression.
     if (
-      DEVELOPMENT_TOOLS_ENABLED &&
+      developmentToolsRef.current &&
       demo === 'level-up'
     ) {
       game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForNextLevel(1))
     }
     if (
-      DEVELOPMENT_TOOLS_ENABLED &&
+      developmentToolsRef.current &&
       demo === 'gear'
     ) {
       // Two pickups exercise both the empty-slot comparison and the
@@ -282,14 +294,14 @@ export function GameCanvas({
       game.spawnGearPickup({ x: 0, y: 0 })
     }
     if (
-      DEVELOPMENT_TOOLS_ENABLED &&
+      developmentToolsRef.current &&
       (demo === 'final' || demo === 'final-boss' || demo === 'inferno')
     ) {
       // This only exercises the existing simulation spawn API; production
       // encounter scheduling remains owned by the encounter system.
       game.spawnBoss('inferno-warden')
     }
-    if (DEVELOPMENT_TOOLS_ENABLED && demo === 'stairs') {
+    if (developmentToolsRef.current && demo === 'stairs') {
       game.spawnStairs({ x: 0, y: 0 })
     }
 
@@ -386,7 +398,7 @@ export function GameCanvas({
 
       // The backquote toggles the development menu wherever the tools are on.
       // Checked before normalisation, which drops keys the keybinds don't use.
-      if (DEVELOPMENT_TOOLS_ENABLED && event.key === '`' && !event.repeat) {
+      if (developmentToolsRef.current && event.key === '`' && !event.repeat) {
         event.preventDefault()
         setDevelopmentMenuOpen((menuOpen) => !menuOpen)
         return
@@ -686,7 +698,7 @@ export function GameCanvas({
           }}
         />
       ) : null}
-      {DEVELOPMENT_TOOLS_ENABLED && snapshot && game ? (
+      {developmentToolsEnabled && snapshot && game ? (
         <DevelopmentMenu
           game={game}
           snapshot={snapshot}

@@ -87,16 +87,24 @@ Some checks read the repository rather than import it, and live in
 
 Two development menus exist: one in the header, for granting inventory items
 outside a run, and one in the arena, for driving a run (bosses, gear, skills,
-stress spawns, simulation speed). They show on a local dev server and on any
-build that serves the dev backend, and never on production; the switch is
+stress spawns, simulation speed). They show only to an account with the admin
+role, on a local dev server or on any build that serves the dev backend, and
+never on production; the environment half of that switch is
 `DEVELOPMENT_TOOLS_ENABLED` in `src/shared/environment.ts`, which follows the
 build's environment stamp rather than Vite's dev mode, so the Netlify dev
 deploy has them too.
 
 The in-run menu opens from its button, the backquote key, or `?devmenu=open`
 in the URL. The header's inventory grants go through a server function that
-requires the admin role; the menu explains how to grant that role to an account
-when it is missing.
+requires the admin role as well, so the role gates both what is shown and what
+is allowed. Grant it to an account in the Supabase SQL editor, then sign out
+and back in:
+
+```sql
+update auth.users
+set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
+where email = 'you@example.com';
+```
 
 ## Architecture
 
