@@ -63,7 +63,7 @@
   box-shadow: inset 0 0 1rem color-mix(in srgb, var(--toast-glow, var(--color-amber-600)) 20%, transparent);
 }
 
-.global-loot-toast-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.global-loot-toast-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 2.2rem;
   height: 2.2rem;
 }

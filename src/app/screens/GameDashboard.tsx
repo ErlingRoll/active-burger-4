@@ -32,6 +32,7 @@ export interface GameDashboardProps {
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
+  onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
@@ -58,6 +59,7 @@ export function GameDashboard({
   onOpenRunSetup,
   onOpenMetaProgression,
   onOpenFishing,
+  onOpenCamp,
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
@@ -113,6 +115,7 @@ export function GameDashboard({
         onOpenRunSetup={onOpenRunSetup}
         onOpenMetaProgression={onOpenMetaProgression}
         onOpenFishing={onOpenFishing}
+        onOpenCamp={onOpenCamp}
         onOpenChampions={onOpenChampions}
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}

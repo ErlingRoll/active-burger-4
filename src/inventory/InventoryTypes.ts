@@ -56,6 +56,14 @@ export interface InventoryItemInstance {
   definitionId: InventoryItemDefinitionId
   quantity: number
   bound: boolean
+  /**
+   * Set aside by the player: a salvage sweep leaves this instance alone.
+   *
+   * Only meaningful on an item that is one row with its own roll, such as a
+   * rod or a fish. A stackable item is favorited by definition instead, since
+   * more of it arrives as new rows; see `InventoryService.setDefinitionFavorite`.
+   */
+  favorite: boolean
   metadata: Record<string, unknown>
   source: InventoryItemSource
   createdAt: string
@@ -102,7 +110,29 @@ export interface InventoryReleaseResult {
 export interface InventorySalvageResult {
   itemInstanceId: InventoryItemInstanceId
   essenceAwarded: number
+  /** Artifacts salvage to scrap rather than Essence; zero for everything else. */
+  scrapAwarded: number
   wasProcessed: boolean
+}
+
+export interface InventorySalvageSweepResult {
+  itemsSalvaged: number
+  /** Instances the server kept back: favorites, and rows already gone. */
+  itemsSkipped: number
+  essenceAwarded: number
+  /** Artifacts salvage to scrap rather than Essence; zero for everything else. */
+  scrapAwarded: number
+  wasProcessed: boolean
+}
+
+export interface InventoryItemFavoriteResult {
+  itemInstanceId: InventoryItemInstanceId
+  favorite: boolean
+}
+
+export interface InventoryDefinitionFavoriteResult {
+  definitionId: InventoryItemDefinitionId
+  favorite: boolean
 }
 
 export interface InventoryCraftResult {
@@ -133,11 +163,38 @@ export interface InventoryService {
     operationId: InventoryOperationId,
     reservationId: InventoryReservationId,
   ): Promise<InventoryReleaseResult>
+  /** The definitions the player has favorited as a whole; see `setDefinitionFavorite`. */
+  loadFavoriteDefinitionIds(): Promise<InventoryItemDefinitionId[]>
+  setItemFavorite(
+    itemInstanceId: InventoryItemInstanceId,
+    favorite: boolean,
+  ): Promise<InventoryItemFavoriteResult>
+  /**
+   * Favorite every instance of a definition, held now or granted later.
+   *
+   * For stackable items, which the bag shows as one slot: the slot stands for
+   * every row of that kind, and a star on it has to cover the rows that arrive
+   * after it was set or the next sweep takes them.
+   */
+  setDefinitionFavorite(
+    definitionId: InventoryItemDefinitionId,
+    favorite: boolean,
+  ): Promise<InventoryDefinitionFavoriteResult>
   salvageItem(
     operationId: InventoryOperationId,
     itemInstanceId: InventoryItemInstanceId,
     quantity?: number,
   ): Promise<InventorySalvageResult>
+  /**
+   * Salvage every listed instance, whole, in one request.
+   *
+   * The server skips favorites and rows that are already gone rather than
+   * failing the sweep, and reports how many it kept back.
+   */
+  salvageItems(
+    operationId: InventoryOperationId,
+    itemInstanceIds: readonly InventoryItemInstanceId[],
+  ): Promise<InventorySalvageSweepResult>
   /**
    * Spend a material on the thing its recipe makes.
    *

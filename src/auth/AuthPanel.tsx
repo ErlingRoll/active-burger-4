@@ -172,7 +172,7 @@ export function AuthPanel({
           />
         </label>
         {mode === 'sign-up' ? (
-          <label>
+          <label className="confirm-password">
             Confirm password
             <input
               autoComplete="new-password"

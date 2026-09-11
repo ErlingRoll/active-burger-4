@@ -21,18 +21,36 @@ import {
   sortGearModifiers,
 } from '../content/gear/ModifierPools'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { getArtifactBaseDefinition } from '../content/artifacts/Artifacts'
+import { getPreparationArtifacts } from '../game/RunModes'
+import { ArtifactEffectList } from '../inventory/ArtifactEffects'
+import { ArtifactIcon } from '../inventory/ArtifactIcon'
 import { getGearSetDefinition } from '../game-config/gear-sets'
 import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { SkillIcon } from '../rendering/SkillIcon'
+import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
 import { formatChampionAvailability, isChampionExhausted } from './ChampionExhaustion'
 import { ChampionRevivalControl, type RevivalFishLoadState } from './ChampionRevivalControl'
+import {
+  formatCampWork,
+  getCampAssignment,
+  type CampAssignment,
+  type CampService,
+  type CampState,
+} from '../camp/CampTypes'
+import { LabourSheetLine } from '../camp/LabourSheetLine'
+import { CAMP_BUILDING_DEFINITIONS } from '../content/camp/CampBuildings'
+import { ALL_CAMP_JOB_DEFINITIONS } from '../content/camp/CampJobs'
+import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 
 interface ChampionManagementScreenProps {
   service: CharacterService | null
   inventoryService: InventoryService | null
   inventoryError: string | null
+  /** What each Champion is worth at the Camp, and which of them are working there. */
+  campService: CampService | null
   configurationError: string | null
   onBack: () => void
 }
@@ -220,15 +238,56 @@ function ChampionGearCard({
   )
 }
 
+/**
+ * The labour sheet the Champion would work each job with.
+ *
+ * Gear matters twice: once in the run that won the Champion, and again every
+ * time the player chooses who works. The fit differs per job, so each job
+ * gets its line; the floor comes from the Camp so the preview is the sheet
+ * the server would store.
+ */
+function ChampionLabourSheets({
+  champion,
+  sourceFloor,
+}: {
+  champion: ChampionSnapshot
+  sourceFloor: number | null
+}) {
+  return (
+    <section className="champion-build-section" aria-labelledby="champion-labour-title">
+      <header className="champion-build-section-heading">
+        <div>
+          <span>What the Camp gets out of this build</span>
+          <h4 id="champion-labour-title">Camp labour</h4>
+        </div>
+      </header>
+      <dl className="champion-labour-sheets">
+        {ALL_CAMP_JOB_DEFINITIONS.map((job) => (
+          <div key={job.id}>
+            <dt>{CAMP_BUILDING_DEFINITIONS[job.buildingId].name}</dt>
+            <dd>
+              <LabourSheetLine sheet={deriveCampLabourSheet({ build: champion.build, sourceFloor }, job)} />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
 export function ChampionDetails({
   champion,
   headerAction,
+  camp,
 }: {
   champion: ChampionSnapshot
   headerAction?: ReactNode
+  /** Absent when the screen has no Camp to ask; the sheet is then left out rather than guessed. */
+  camp?: { assignment: CampAssignment | undefined, sourceFloor: number | null }
 }) {
   const classDefinition = CHARACTER_CLASS_DEFINITIONS[champion.build.classId]
   const now = useNow()
+  const work = formatCampWork(camp?.assignment)
   return (
     <section className="champion-details" aria-labelledby="champion-details-title">
       <header className="champion-details-heading">
@@ -244,6 +303,7 @@ export function ChampionDetails({
           <span className={`champion-availability${isChampionExhausted(champion, now) ? ' exhausted' : ''}`}>
             {formatChampionAvailability(champion, now)}
           </span>
+          {work ? <span className="champion-availability working">{work}</span> : null}
           {headerAction}
         </span>
       </header>
@@ -271,6 +331,7 @@ export function ChampionDetails({
           ))}
         </ul>
       </section>
+      {camp ? <ChampionLabourSheets champion={champion} sourceFloor={camp.sourceFloor} /> : null}
       <section className="champion-build-section" aria-labelledby="champion-gear-title">
         <header className="champion-build-section-heading">
           <div>
@@ -289,6 +350,41 @@ export function ChampionDetails({
           ))}
         </ul>
       </section>
+      {(() => {
+        const artifacts = getPreparationArtifacts(champion.build.artifacts
+          ? { version: 1, items: [], artifacts: champion.build.artifacts }
+          : undefined)
+        return artifacts.length === 0 ? null : (
+          <section className="champion-build-section" aria-labelledby="champion-artifacts-title">
+            <header className="champion-build-section-heading">
+              <div>
+                <span>Held artifacts</span>
+                <h4 id="champion-artifacts-title">Artifacts</h4>
+              </div>
+              <small>Return to the bag when the Champion is archived</small>
+            </header>
+            <ul className="champion-artifact-list">
+              {artifacts.map((artifact, index) => {
+                const base = getArtifactBaseDefinition(artifact.baseId)
+                return (
+                  <li className="champion-artifact-card" key={`${artifact.baseId}-${index}`} data-rarity={artifact.rarity}>
+                    <header className="champion-artifact-heading">
+                      <span className="champion-artifact-icon" aria-hidden="true">
+                        {base ? <ArtifactIcon icon={base.id} color={base.accent} /> : '◇'}
+                      </span>
+                      <strong>{base?.name ?? artifact.baseId}</strong>
+                      <span className="champion-gear-rarity" data-rarity={artifact.rarity}>
+                        {RARITY_VISUALS[artifact.rarity].label}
+                      </span>
+                    </header>
+                    <ArtifactEffectList metadata={artifact} />
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )
+      })()}
       <footer className="champion-build-meta">
         <span><strong>Source run</strong>{champion.sourceRunId}</span>
         <span><strong>Content version</strong>{champion.contentVersion}</span>
@@ -301,6 +397,7 @@ export function ChampionManagementScreen({
   service,
   inventoryService,
   inventoryError,
+  campService,
   configurationError,
   onBack,
 }: ChampionManagementScreenProps) {
@@ -324,6 +421,7 @@ export function ChampionManagementScreen({
   const [fishLoadError, setFishLoadError] = useState<string | null>(inventoryError)
   const [revivalError, setRevivalError] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
+  const [campState, setCampState] = useState<CampState | null>(null)
   const now = useNow(30_000)
 
   useEffect(() => {
@@ -378,6 +476,25 @@ export function ChampionManagementScreen({
       cancelled = true
     }
   }, [inventoryService])
+
+  useEffect(() => {
+    if (!campService) {
+      return
+    }
+    let cancelled = false
+    void campService.loadState()
+      .then((state) => {
+        if (!cancelled) {
+          setCampState(state)
+        }
+      })
+      .catch(() => {
+        // The page reads fine without the Camp; it only loses the labour lines.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [campService])
 
   const selectedChampion = useMemo(
     () => champions.find((champion) => champion.championId === selectedChampionId) ?? null,
@@ -483,7 +600,7 @@ export function ChampionManagementScreen({
             let go.
           </p>
         </header>
-        {error ? <p className="persistence-error" role="alert">{error}</p> : null}
+        {error && !deleteConfirmationId ? <p className="persistence-error" role="alert">{error}</p> : null}
         {loadState === 'loading' ? (
           <p role="status">Loading Champions…</p>
         ) : champions.length === 0 ? (
@@ -508,7 +625,7 @@ export function ChampionManagementScreen({
                 >
                   <strong>{champion.name}</strong>
                   <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name}</span>
-                  <small>{formatChampionAvailability(champion, now)}</small>
+                  <small>{formatCampWork(getCampAssignment(campState, champion.championId)) ?? formatChampionAvailability(champion, now)}</small>
                 </button>
               ))}
             </div>
@@ -516,6 +633,10 @@ export function ChampionManagementScreen({
               <div>
                 <ChampionDetails
                   champion={selectedChampion}
+                  camp={campState ? {
+                    assignment: getCampAssignment(campState, selectedChampion.championId),
+                    sourceFloor: campState.championFloors[selectedChampion.championId] ?? null,
+                  } : undefined}
                   headerAction={isChampionExhausted(selectedChampion, now) ? (
                     <ChampionRevivalControl
                       key={selectedChampion.championId}
@@ -560,28 +681,16 @@ export function ChampionManagementScreen({
           </div>
         )}
         {deleteConfirmationId ? (
-          <div className="champion-delete-confirmation" role="alert">
-            <strong>Delete this Champion?</strong>
-            <span>The preserved build cannot be restored after deletion.</span>
-            <div>
-              <button
-                className="champion-delete-action"
-                type="button"
-                onClick={() => { void deleteChampion() }}
-                disabled={actionState === 'deleting'}
-              >
-                {actionState === 'deleting' ? 'Deleting…' : 'Confirm delete'}
-              </button>
-              <button
-                className="secondary-action"
-                type="button"
-                onClick={() => setDeleteConfirmationId(null)}
-                disabled={actionState === 'deleting'}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <ConfirmationDialog
+            title="Delete this Champion?"
+            message="The preserved build cannot be restored after deletion."
+            confirmLabel={actionState === 'deleting' ? 'Deleting…' : 'Confirm delete'}
+            confirmDisabled={actionState === 'deleting'}
+            cancelDisabled={actionState === 'deleting'}
+            errorMessage={error}
+            onConfirm={() => { void deleteChampion() }}
+            onCancel={() => setDeleteConfirmationId(null)}
+          />
         ) : null}
       </div>
     </section>

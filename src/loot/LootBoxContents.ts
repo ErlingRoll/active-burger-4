@@ -27,6 +27,10 @@ export interface LootBoxDropEntry {
  * split the same way rarity itself is (`RARITY_WEIGHTS`): the higher a rod's
  * own tier, the smaller its slice, so the Starlit rod stays the rarest thing
  * in a legendary box even though it's the only box that can give it at all.
+ *
+ * Artifacts start at rare: one draw in twenty there, about one in eight from
+ * an epic and one in four from a legendary, split evenly across the five
+ * bases. Their weight is taken from the fish and bait, never from the rods.
  */
 export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootBoxDropEntry[]>> = {
   [Rarity.Common]: [
@@ -45,37 +49,52 @@ export const LOOT_BOX_DROP_TABLES: Readonly<Record<LootBoxRarity, readonly LootB
     { definitionId: 'silverline-fishing-rod', weight: 15 },
   ],
   [Rarity.Rare]: [
-    { definitionId: 'river-minnow', weight: 250 },
-    { definitionId: 'revival-koi', weight: 250 },
+    { definitionId: 'river-minnow', weight: 225 },
+    { definitionId: 'revival-koi', weight: 225 },
     { definitionId: 'river-worm', weight: 250 },
     { definitionId: 'glow-grub', weight: 150 },
     { definitionId: 'moonwater-lure', weight: 50 },
     { definitionId: 'starter-fishing-rod', weight: 32 },
     { definitionId: 'silverline-fishing-rod', weight: 13 },
     { definitionId: 'tideback-fishing-rod', weight: 5 },
+    { definitionId: 'artifact-cartographers-compass', weight: 10 },
+    { definitionId: 'artifact-ember-reliquary', weight: 10 },
+    { definitionId: 'artifact-echoing-tuning-fork', weight: 10 },
+    { definitionId: 'artifact-wayfarers-anklet', weight: 10 },
+    { definitionId: 'artifact-gluttons-kettle', weight: 10 },
   ],
   [Rarity.Epic]: [
-    { definitionId: 'river-minnow', weight: 200 },
-    { definitionId: 'revival-koi', weight: 200 },
-    { definitionId: 'river-worm', weight: 250 },
+    { definitionId: 'river-minnow', weight: 160 },
+    { definitionId: 'revival-koi', weight: 160 },
+    { definitionId: 'river-worm', weight: 210 },
     { definitionId: 'glow-grub', weight: 200 },
     { definitionId: 'moonwater-lure', weight: 100 },
     { definitionId: 'starter-fishing-rod', weight: 30 },
     { definitionId: 'silverline-fishing-rod', weight: 13 },
     { definitionId: 'tideback-fishing-rod', weight: 5 },
     { definitionId: 'moonwater-fishing-rod', weight: 2 },
+    { definitionId: 'artifact-cartographers-compass', weight: 24 },
+    { definitionId: 'artifact-ember-reliquary', weight: 24 },
+    { definitionId: 'artifact-echoing-tuning-fork', weight: 24 },
+    { definitionId: 'artifact-wayfarers-anklet', weight: 24 },
+    { definitionId: 'artifact-gluttons-kettle', weight: 24 },
   ],
   [Rarity.Legendary]: [
-    { definitionId: 'river-minnow', weight: 100 },
-    { definitionId: 'revival-koi', weight: 150 },
-    { definitionId: 'river-worm', weight: 200 },
-    { definitionId: 'glow-grub', weight: 250 },
-    { definitionId: 'moonwater-lure', weight: 200 },
+    { definitionId: 'river-minnow', weight: 50 },
+    { definitionId: 'revival-koi', weight: 100 },
+    { definitionId: 'river-worm', weight: 150 },
+    { definitionId: 'glow-grub', weight: 200 },
+    { definitionId: 'moonwater-lure', weight: 150 },
     { definitionId: 'starter-fishing-rod', weight: 60 },
     { definitionId: 'silverline-fishing-rod', weight: 25 },
     { definitionId: 'tideback-fishing-rod', weight: 10 },
     { definitionId: 'moonwater-fishing-rod', weight: 4 },
     { definitionId: 'starlit-fishing-rod', weight: 1 },
+    { definitionId: 'artifact-cartographers-compass', weight: 50 },
+    { definitionId: 'artifact-ember-reliquary', weight: 50 },
+    { definitionId: 'artifact-echoing-tuning-fork', weight: 50 },
+    { definitionId: 'artifact-wayfarers-anklet', weight: 50 },
+    { definitionId: 'artifact-gluttons-kettle', weight: 50 },
   ],
 }
 

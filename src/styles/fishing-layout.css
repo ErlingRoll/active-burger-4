@@ -80,6 +80,32 @@
    Nothing here moves a control or makes the screen scroll. The parts are simply
    sized for the screen they are on, so that the pond gets the room back.
    --------------------------------------------------------------------------- */
+/*
+ * The reward shelf needs telling how tall it is.
+ *
+ * It pages to the room it is given, which it can only measure if that room
+ * comes from its parent. In the drawer every section is as tall as its own
+ * contents, so the shelf measured the one row it drew and settled on showing
+ * one box at a time, with a pager under it for the rest. Three rows of boxes
+ * is the room, and a player holding more than three kinds pages through them.
+ *
+ * A row is two lines, a name and a line of buttons, and the sum below is that
+ * row: its padding, the title line, the gap, the buttons and its border,
+ * made of the sizes the list names so the room follows the row through every
+ * viewport. The few pixels on top are for the rounding a measured row picks
+ * up, so that three rows that fit on paper also fit in the count.
+ */
+.fishing-inventory-drawer .loot-box-list {
+  --loot-box-row-height: calc(
+    2 * var(--loot-box-row-pad)
+    + 1.25 * var(--loot-box-title-size)
+    + var(--loot-box-row-gap)
+    + var(--loot-box-action-height)
+    + 2px
+  );
+  height: calc(3 * var(--loot-box-row-height) + 2 * clamp(0.25rem, 0.9vh, 0.7rem) + 4px);
+}
+
 @media (max-width: 47rem), (max-height: 34rem) {
   /* The scrims exist to hold the HUD's text off the water. Sized for a desktop
      they are most of a phone's pond. */
@@ -206,19 +232,6 @@
   .fishing-inventory-drawer .inventory-paged-grid {
     flex: 0 0 auto;
     min-height: auto;
-  }
-
-  /*
-   * The shelf is the exception, and needs telling.
-   *
-   * It pages to the room it is given, which it can only measure if that room
-   * comes from its parent — in a sheet where every section is as tall as its own
-   * contents, it measures the one row it drew and settles on showing one box at
-   * a time. Three rows of boxes is the room, and a player holding more than
-   * three kinds pages through them.
-   */
-  .fishing-inventory-drawer .loot-box-list {
-    height: 12.2rem;
   }
 
   /* Full-bleed against the sheet's own side padding, and pinned: the way out of

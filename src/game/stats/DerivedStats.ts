@@ -40,6 +40,8 @@ import {
   getBasicAttackVariant,
 } from '../../content/skills/Skills'
 import type { PlayerState } from '../state/GameState'
+import { getPlayerArtifactEffects } from '../artifacts/ArtifactRunEffects'
+import { ARTIFACT_LAST_STAND_HP_PERCENT } from '../../content/artifacts/Artifacts'
 import {
   DEFAULT_RESONANCE_ATTACKS,
 } from '../../game-config/skills'
@@ -322,6 +324,8 @@ function aggregateGearEffects(
     effects.critMultiplier -= 70
   }
 
+  applyArtifactEffects(effects, player)
+
   const setPieceCounts = getEquippedGearSetPieceCounts(player, itemDefinitions)
   let maxHpSetPercent = 0
   for (const set of ALL_GEAR_SET_DEFINITIONS) {
@@ -355,6 +359,68 @@ function aggregateGearEffects(
   }
 
   return effects
+}
+
+/**
+ * What the artifact loadout adds, on top of the gear.
+ *
+ * The lines that mirror a gear affix land in the same buckets a gear affix
+ * would. The conditional ones read the player's moment: Last Stand looks at
+ * the HP left, the kill surge at its timer, and Momentum at how long the
+ * player has been moving. They are read here rather than written once at
+ * run start because the derived stats are recomputed wherever they matter,
+ * including the resistances at the instant a hit lands.
+ */
+function applyArtifactEffects(
+  effects: AggregatedGearEffects,
+  player: Readonly<PlayerState>,
+): void {
+  const artifact = getPlayerArtifactEffects(player)
+  if (artifact === undefined || (!player.artifacts?.length)) {
+    return
+  }
+  const multiplyStat = (
+    stat: 'maxHp' | 'movementSpeed' | 'attackSpeed',
+    percent: number,
+    sourceId: string,
+  ): void => {
+    if (percent > 0) {
+      effects.statModifiers.push({
+        stat,
+        operation: 'multiply',
+        value: 1 + percent / 100,
+        sourceId,
+      })
+    }
+  }
+  multiplyStat('maxHp', artifact.maxHpPercent, 'artifact:max-hp')
+  multiplyStat('movementSpeed', artifact.movementSpeedPercent, 'artifact:movement-speed')
+  multiplyStat('attackSpeed', artifact.attackSpeedPercent, 'artifact:attack-speed')
+  const momentum = Math.min(1, Math.max(0, player.artifactMomentum ?? 0))
+  if (artifact.momentumPercent > 0 && momentum > 0) {
+    multiplyStat('movementSpeed', artifact.momentumPercent * momentum, 'artifact:momentum')
+    multiplyStat('attackSpeed', artifact.momentumPercent * momentum, 'artifact:momentum')
+  }
+  effects.cooldownReduction += artifact.cooldownReductionPercent
+  effects.areaOfEffect += artifact.areaOfEffectPercent
+  if ((player.artifactAreaSurgeRemaining ?? 0) > 0) {
+    effects.areaOfEffect += artifact.killAreaSurgePercent
+  }
+  effects.critChance += artifact.critChance
+  effects.critMultiplier += artifact.critMultiplierPercent
+  effects.increasedDamage.global += artifact.increasedDamagePercent
+  effects.dotMultiplier += artifact.dotMultiplierPercent
+  effects.meleeLeech += artifact.meleeLeechPercent / 100
+  effects.whirlwindLeech += artifact.meleeLeechPercent / 100
+  effects.experienceGainPercent += artifact.experiencePercent
+  if (
+    artifact.lastStandResistancePercent > 0 &&
+    player.maxHp > 0 &&
+    player.hp <= player.maxHp * (ARTIFACT_LAST_STAND_HP_PERCENT / 100)
+  ) {
+    effects.resistances.physical += artifact.lastStandResistancePercent
+    effects.resistances.elemental += artifact.lastStandResistancePercent
+  }
 }
 
 export function getDerivedPlayerStats(
@@ -404,7 +470,10 @@ export function getDerivedPlayerStats(
     summonMaxCountBonus: Math.max(0, gearEffects.summonMaxCountBonus),
     meleeLeech: gearEffects.meleeLeech,
     whirlwindLeech: gearEffects.whirlwindLeech,
-    increasedHealing: Math.max(0, player.increasedHealing ?? 0),
+    increasedHealing: Math.max(
+      0,
+      (player.increasedHealing ?? 0) + getPlayerArtifactEffects(player).healingReceivedPercent,
+    ),
     dotMultiplier: Math.max(0, player.dotMultiplier ?? 0) +
       gearEffects.dotMultiplier,
     frostStacksOnHit: Math.max(0, gearEffects.frostStacksOnHit),

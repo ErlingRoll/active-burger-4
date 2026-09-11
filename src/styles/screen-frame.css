@@ -25,6 +25,18 @@
   --accent-bright-rgb: 103 232 249;
 }
 
+.app-shell-camp {
+  /*
+   * The Camp: moss and pine under the treeline. Its warm lights are lanterns
+   * and forge coals, drawn in amber inside the plots, so the place itself is
+   * the cold green of the ground they stand on.
+   */
+  --accent: var(--color-green-300);
+  --accent-contrast: var(--color-green-200);
+  --accent-rgb: 134 239 172;
+  --accent-bright-rgb: 187 247 208;
+}
+
 .run-chronicle-screen {
   /*
    * The record stones: moonlit stone, not firelight.

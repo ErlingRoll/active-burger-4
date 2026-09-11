@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import {
-  ALL_CRAFTING_RECIPES,
+  WORKBENCH_RECIPES,
   countAffordableBatches,
   countHeldQuantity,
-  getCraftingRecipeInputName,
+  formatCraftingRecipeCost,
   getCraftingRecipeOutputName,
   type CraftingRecipe,
 } from './CraftingRecipes'
@@ -72,7 +72,7 @@ export function CraftingBench({
         <h4 id="crafting-bench-title">Make something of it</h4>
       </header>
       <ul className="crafting-recipe-list">
-        {ALL_CRAFTING_RECIPES.map((recipe) => {
+        {WORKBENCH_RECIPES.map((recipe) => {
           const held = countHeldQuantity(items, recipe.inputDefinitionId)
           const affordable = countAffordableBatches(items, recipe)
           const isCrafting = craftingRecipeId === recipe.id
@@ -86,7 +86,7 @@ export function CraftingBench({
                 <strong>{recipe.name}</strong>
                 <small>{recipe.description}</small>
                 <span className="crafting-recipe-cost">
-                  {recipe.inputQuantity} {getCraftingRecipeInputName(recipe)}
+                  {formatCraftingRecipeCost(recipe)}
                   <span className="crafting-recipe-held">{held} held</span>
                 </span>
               </div>

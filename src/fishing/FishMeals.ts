@@ -15,6 +15,24 @@ import {
 } from '../game/RunModes'
 
 export const MAX_FISH_MEAL_ITEMS = 5
+/** The Glutton's Kettle sets a sixth place at the table. */
+export const MAX_FISH_MEAL_ITEMS_WITH_KETTLE = 6
+
+/**
+ * What an artifact loadout does to the meal. The server resolves the same
+ * two numbers from the held artifacts; the client reads them off the chosen
+ * ones so the preview matches what the run will get.
+ */
+export interface FishMealOptions {
+  /** True when a Glutton's Kettle is in the loadout. */
+  extraSlot?: boolean
+  /** The Kettle's rolled bonus, applied to every fish before the family caps. */
+  bonusPercent?: number
+}
+
+export function getFishMealSlotCount(options: FishMealOptions = {}): number {
+  return options.extraSlot ? MAX_FISH_MEAL_ITEMS_WITH_KETTLE : MAX_FISH_MEAL_ITEMS
+}
 export const MAX_FISH_MEAL_EFFECTS: Readonly<Record<string, number>> = {
   'movement-speed': 6,
   'attack-speed': 9,
@@ -156,10 +174,13 @@ function getFishEffectKey(
 
 export function resolveFishMeal(
   selectedFish: readonly InventoryItemInstance[],
+  options: FishMealOptions = {},
 ): ResolvedFishMeal {
-  if (selectedFish.length > MAX_FISH_MEAL_ITEMS) {
-    throw new Error(`A fish meal can contain at most ${MAX_FISH_MEAL_ITEMS} fish.`)
+  const slotCount = getFishMealSlotCount(options)
+  if (selectedFish.length > slotCount) {
+    throw new Error(`A fish meal can contain at most ${slotCount} fish.`)
   }
+  const bonusFactor = 1 + Math.max(0, options.bonusPercent ?? 0) / 100
   const ids = new Set<string>()
   const effects = createEmptyEffects()
   const familyCounts = new Map<string, number>()
@@ -186,6 +207,7 @@ export function resolveFishMeal(
       getFishRarityFactor(definition.rarity) *
       (0.75 + getFishSize(fish) * 0.5) *
       getFishEnchantmentFactor(fish) *
+      bonusFactor *
       getDiminishingMultiplier(previousCount)
     const effectKey = getFishEffectKey(family)
     const appliedContribution = Math.min(

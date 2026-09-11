@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { requireTestCredentials } from './support/credentials'
+import { skipNicknamePrompt } from './support/nicknamePrompt'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -72,6 +73,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Keep me signed in on this browser').check()
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await skipNicknamePrompt(page)
   await requireRunPersistence(page)
   await clearExistingRun(page)
   await expect(

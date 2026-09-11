@@ -19,7 +19,8 @@
 .fish-icon,
 .bait-icon,
 .rod-icon,
-.material-icon {
+.material-icon,
+.artifact-icon {
   display: block;
   width: 1em;
   height: 1em;
@@ -1794,7 +1795,7 @@
   border-radius: 0.45rem;
 }
 
-.inventory-item-tooltip-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.inventory-item-tooltip-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 78%;
   height: 78%;
 }

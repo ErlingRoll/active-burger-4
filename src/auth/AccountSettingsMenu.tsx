@@ -1,5 +1,5 @@
-import { useId, useState, type FormEvent } from 'react'
-import { validateNickname } from './NicknameService'
+import { useState } from 'react'
+import { NicknameDialog } from './NicknameDialog'
 import { AudioSettingsPanel } from '../audio'
 import { ReportBugModal } from '../rendering/ReportBugModal'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
@@ -22,19 +22,8 @@ export function AccountSettingsMenu({
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [reportBugOpen, setReportBugOpen] = useState(false)
-  const [nickname, setNickname] = useState(displayName ?? '')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const titleId = useId()
-  const descriptionId = useId()
 
-  // The draft is seeded when the dialog opens rather than reset by an effect
-  // while it is closed: the closed dialog renders nothing, so resetting it on
-  // every displayName/pendingNickname change was invisible work that also made
-  // the component re-render for state no one could see.
   const openNicknameDialog = (): void => {
-    setNickname(pendingNickname ?? displayName ?? '')
-    setError(null)
     setMenuOpen(false)
     setDialogOpen(true)
   }
@@ -42,25 +31,6 @@ export function AccountSettingsMenu({
   const openBugReport = (): void => {
     setMenuOpen(false)
     setReportBugOpen(true)
-  }
-
-  const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault()
-    const validationError = validateNickname(nickname)
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-    setSubmitting(true)
-    setError(null)
-    try {
-      await onRequestNicknameChange(nickname.trim())
-      setDialogOpen(false)
-    } catch (requestError: unknown) {
-      setError(requestError instanceof Error ? requestError.message : 'Unable to submit nickname change.')
-    } finally {
-      setSubmitting(false)
-    }
   }
 
   return (
@@ -89,49 +59,23 @@ export function AccountSettingsMenu({
         ) : null}
       </div>
       {dialogOpen ? (
-        <div className="nickname-dialog-backdrop" role="presentation">
-          <section
-            aria-describedby={descriptionId}
-            aria-labelledby={titleId}
-            aria-modal="true"
-            className="nickname-dialog"
-            role="dialog"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' && !submitting) {
-                setDialogOpen(false)
-              }
-            }}
-          >
-            <h2 id={titleId}>Change nickname</h2>
-            <p id={descriptionId}>
-              Nicknames are reviewed before appearing publicly, so offensive or hateful names cannot be published.
-            </p>
-            {pendingNickname ? <p className="nickname-pending">Pending review: {pendingNickname}</p> : null}
-            <form onSubmit={(event) => { void submit(event) }}>
-              <label htmlFor={`${titleId}-input`}>
-                New nickname
-              </label>
-              <input
-                autoComplete="off"
-                id={`${titleId}-input`}
-                maxLength={24}
-                minLength={3}
-                required
-                value={nickname}
-                onChange={(event) => setNickname(event.target.value)}
-              />
-              {error ? <p className="nickname-error" role="alert">{error}</p> : null}
-              <div className="nickname-dialog-actions">
-                <button disabled={submitting} type="button" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </button>
-                <button disabled={submitting} type="submit">
-                  {submitting ? 'Submitting...' : 'Submit for review'}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+        // The dialog mounts fresh each time it opens, which is what seeds the
+        // draft from the current name: the closed dialog renders nothing, so
+        // there is no draft to keep in sync while no one can see it.
+        <NicknameDialog
+          title="Change nickname"
+          description="Nicknames are reviewed before appearing publicly, so offensive or hateful names cannot be published."
+          inputLabel="New nickname"
+          initialValue={pendingNickname ?? displayName ?? ''}
+          pendingNickname={pendingNickname}
+          cancelLabel="Cancel"
+          submitLabel="Submit for review"
+          onCancel={() => setDialogOpen(false)}
+          onSubmit={async (nickname) => {
+            await onRequestNicknameChange(nickname)
+            setDialogOpen(false)
+          }}
+        />
       ) : null}
       {reportBugOpen ? (
         <ReportBugModal

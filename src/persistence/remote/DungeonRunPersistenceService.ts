@@ -138,6 +138,14 @@ export interface DungeonRunPersistenceService {
   pauseRun(runId: string): Promise<void>
   completeRun(input: CompleteDungeonRunInput): Promise<CompletedDungeonRun>
   forfeitRun(runId: string): Promise<ForfeitedDungeonRun>
+  /**
+   * Gives a finished run's held artifacts back to the bag.
+   *
+   * A victory keeps its hold on the artifacts it was played with until a
+   * Champion takes them; a results screen left without one has to let go.
+   * Resolves to how many came back, zero when nothing was held.
+   */
+  releaseRunArtifacts(runId: string): Promise<number>
   /** Finished runs, newest first. */
   listFinishedRuns(limit?: number): Promise<FinishedDungeonRun[]>
   /**
@@ -736,6 +744,16 @@ export function createDungeonRunPersistenceService(
           wasProcessed: reward.was_processed,
         },
       }
+    },
+
+    async releaseRunArtifacts(runId): Promise<number> {
+      const response = await getClient().rpc('release_run_artifacts', {
+        p_run_id: runId,
+      })
+      if (response.error) {
+        throw response.error
+      }
+      return typeof response.data === 'number' ? response.data : 0
     },
 
     async forfeitRun(runId): Promise<ForfeitedDungeonRun> {

@@ -61,7 +61,11 @@ remain available.
 
 ## Use in the Infinite Abyss
 
-The Abyss requires one available Champion. The selected Champion becomes the
+The Abyss requires one available Champion. The run setup offers only the
+Champions that can descend: an exhausted Champion and one working at the Camp
+are named beneath the list with the reason and where to fix it (revival from
+the Champions screen, or bringing it back from the Camp), never as a choice the
+Start button would refuse. The selected Champion becomes the
 player-controlled simulation actor for that attempt. It receives fresh HP,
 cooldowns, positions, effects, and other runtime fields.
 

@@ -1,6 +1,8 @@
 import {
+  ARTIFACT_SLOT_UNLOCK_CATEGORY,
   BANISH_UNLOCK_CATEGORY,
   DEFAULT_BANISH_COUNT,
+  MAX_ARTIFACT_SLOT_COUNT,
   DUNGEON_MAX_FLOOR_UNLOCK_CATEGORY,
   DUNGEON_MAX_FLOOR_MAX_RANK,
   getRerollPurchaseCost,
@@ -146,6 +148,38 @@ function getBanishUpgradeState(
   return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
 }
 
+function getNextArtifactSlotUpgrade(
+  definitions: readonly MetaUnlockDefinition[],
+  currentCount: number,
+): MetaUnlockDefinition | null {
+  return definitions.find((definition) =>
+    definition.category === ARTIFACT_SLOT_UNLOCK_CATEGORY &&
+    definition.payload.artifactSlotCount === currentCount + 1,
+  ) ?? null
+}
+
+function getArtifactSlotUpgradeState(
+  definition: MetaUnlockDefinition,
+  snapshot: MetaProgressionSnapshot,
+): { label: string; disabled: boolean } {
+  if (snapshot.unlockedIds.includes(definition.id)) {
+    return { label: 'Owned', disabled: true }
+  }
+  if (
+    definition.requiresUnlockId !== null &&
+    !snapshot.unlockedIds.includes(definition.requiresUnlockId)
+  ) {
+    return { label: 'Locked - purchase the previous artifact slot first', disabled: true }
+  }
+  if (snapshot.wallet.essenceBalance < definition.cost) {
+    return {
+      label: `Need ${definition.cost - snapshot.wallet.essenceBalance} more Essence`,
+      disabled: true,
+    }
+  }
+  return { label: `Purchase for ${definition.cost} Essence`, disabled: false }
+}
+
 function getNextDungeonMaxFloorUpgrade(
   definitions: readonly MetaUnlockDefinition[],
   currentRank: number,
@@ -274,6 +308,13 @@ export function MetaProgressionScreen({
   const nextBanishUpgradeState = nextBanishUpgrade === null
     ? null
     : getBanishUpgradeState(nextBanishUpgrade, snapshot)
+  const nextArtifactSlotUpgrade = getNextArtifactSlotUpgrade(
+    snapshot.definitions,
+    snapshot.artifactSlotCount,
+  )
+  const nextArtifactSlotUpgradeState = nextArtifactSlotUpgrade === null
+    ? null
+    : getArtifactSlotUpgradeState(nextArtifactSlotUpgrade, snapshot)
 
   return (
     <section className="dashboard meta-progression-screen" aria-labelledby="meta-progression-title">
@@ -495,6 +536,42 @@ export function MetaProgressionScreen({
                 </button>
               </div>
             ) : null}
+            {nextArtifactSlotUpgrade && nextArtifactSlotUpgradeState ? (
+              <div className="dashboard-choice meta-unlock-card" key={nextArtifactSlotUpgrade.id}>
+                <div className="meta-unlock-card-multiplier">
+                  <span>Artifact slots</span>
+                  <strong>{snapshot.artifactSlotCount} / {MAX_ARTIFACT_SLOT_COUNT}</strong>
+                </div>
+                <div className="meta-unlock-card-heading">
+                  <strong>Another artifact slot</strong>
+                  <span>Slot {snapshot.artifactSlotCount + 1} of {MAX_ARTIFACT_SLOT_COUNT}</span>
+                </div>
+                <p className="meta-unlock-description">
+                  Take one more artifact from the bag into every future dungeon run.
+                  The Champion a run produces carries all of them.
+                </p>
+                <div className="meta-unlock-card-benefit">
+                  <strong>+1 artifact slot</strong>
+                  <span>{snapshot.artifactSlotCount} → {snapshot.artifactSlotCount + 1} artifacts per run</span>
+                </div>
+                <span className="meta-unlock-state">{nextArtifactSlotUpgradeState.label}</span>
+                <button
+                  className="secondary-action meta-purchase-action"
+                  type="button"
+                  disabled={nextArtifactSlotUpgradeState.disabled || purchaseState === 'purchasing'}
+                  onClick={() => { onPurchaseUnlock(nextArtifactSlotUpgrade.id) }}
+                >
+                  {purchaseState === 'purchasing' &&
+                  activePurchaseUnlockId === nextArtifactSlotUpgrade.id
+                    ? 'Purchasing...'
+                    : `Purchase for ${formatCurrency(nextArtifactSlotUpgrade.cost)} Essence`}
+                </button>
+              </div>
+            ) : (
+              <p className="persistence-status" role="status">
+                Artifact slots fully unlocked.
+              </p>
+            )}
             {nextDungeonMaxFloorUpgrade &&
             nextDungeonMaxFloorUpgradeState &&
             nextDungeonMaxFloorRank !== null ? (

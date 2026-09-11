@@ -5,6 +5,9 @@ export interface ConfirmationDialogProps {
   message: string
   confirmLabel: string
   cancelLabel?: string
+  errorMessage?: string | null
+  confirmDisabled?: boolean
+  cancelDisabled?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -14,6 +17,9 @@ export function ConfirmationDialog({
   message,
   confirmLabel,
   cancelLabel = 'Cancel',
+  errorMessage = null,
+  confirmDisabled = false,
+  cancelDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps) {
@@ -49,12 +55,14 @@ export function ConfirmationDialog({
       >
         <h2 id={titleId}>{title}</h2>
         <p id={messageId}>{message}</p>
+        {errorMessage ? <p className="persistence-error" role="alert">{errorMessage}</p> : null}
         <div className="confirmation-dialog-actions">
           <button
             ref={cancelButtonRef}
             className="confirmation-dialog-cancel"
             type="button"
             onClick={onCancel}
+            disabled={cancelDisabled}
           >
             {cancelLabel}
           </button>
@@ -63,6 +71,7 @@ export function ConfirmationDialog({
             className="confirmation-dialog-confirm"
             type="button"
             onClick={onConfirm}
+            disabled={confirmDisabled}
           >
             {confirmLabel}
           </button>

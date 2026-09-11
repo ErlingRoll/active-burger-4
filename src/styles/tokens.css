@@ -238,6 +238,9 @@
   --scene-night: var(--color-slate-950);
   /* What a silhouette falls to once the light stops reaching it. */
   --scene-silhouette: #070b12;
+  /* A Champion drawn small, at work in the Camp: a figure and its edge. */
+  --scene-figure: #141c17;
+  --scene-figure-edge: #243128;
 
   /* Moonwater Pond: the night it is seen under, and the moon seen in it. */
   --pond-sky-high: #04060f;

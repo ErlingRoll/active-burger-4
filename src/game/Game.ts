@@ -16,15 +16,28 @@ import type { RandomSource } from './random/Random'
 import type { RunPhase } from './state/RunPhase'
 import type {
   DamageEvent,
+  EnemyState,
   GameState,
   RunConfig,
 } from './state/GameState'
+import {
+  ARTIFACT_CORPSE_DETONATION_RADIUS,
+  ARTIFACT_SKILL_ECHO_WINDOW_SECONDS,
+  getPlayerArtifactEffects,
+} from './artifacts/ArtifactRunEffects'
+import {
+  ARTIFACT_KILL_AREA_SURGE_SECONDS,
+  ARTIFACT_MOMENTUM_BUILD_SECONDS,
+  ARTIFACT_MOMENTUM_GRACE_SECONDS,
+  ARTIFACT_SKILL_ECHO_INTERVAL,
+} from '../content/artifacts/Artifacts'
 import { SpawnDirector } from './spawning/SpawnDirector'
 import { SPAWN_BALANCE } from '../content/spawning/SpawnBalance'
 import { HEALING_POTION_MAX_HP_FRACTION } from '../content/progression/HealingPotions'
 import { resolveWorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
   createDamageValues,
+  scaleDamageValues,
   RESISTANCE_CAP,
 } from '../content/stats/Damage'
 import {
@@ -37,6 +50,8 @@ import {
 } from './systems/summons/SummonSystem'
 import type { WorldModifierEffects } from '../content/modifiers/WorldModifiers'
 import {
+  applyChartedChoices,
+  countSelectableUpgrades,
   generateUpgradeChoices,
   generateBanishReplacement,
   getEligibleSynergyDefinitions,
@@ -116,7 +131,7 @@ import {
 import { SLIME_DEFINITION_ID } from '../content/enemies/EnemyConfig'
 import type { EliteModifierInput } from '../content/enemies/EliteModifiers'
 import { applyUpgrade } from './systems/upgrades/UpgradeSystem'
-import { refreshPlayerDerivedStats } from './stats/DerivedStats'
+import { getDerivedPlayerStats, refreshPlayerDerivedStats } from './stats/DerivedStats'
 import {
   collectSkillDamage,
   updateSkillCooldowns,
@@ -217,6 +232,7 @@ import {
 import {
   DEFAULT_RUN_MODE_ID,
   EMPTY_RUN_PREPARATION_SNAPSHOT,
+  getPreparationArtifacts,
   isRunModeId,
   resolveRunPreparationEffects,
 } from './RunModes'
@@ -392,6 +408,8 @@ export class Game {
   private choiceFlows: PendingChoiceFlow[] = []
   private readonly collectedGearPickups: GearPickupState[] = []
   private readonly listeners = new Set<GameStateListener>()
+  /** Corpse detonations queued by this tick's kills, applied next tick. */
+  private readonly pendingArtifactDamage: DamageEvent[] = []
 
   constructor(config: RunConfig) {
     assertValidContent()
@@ -584,8 +602,10 @@ export class Game {
     if (preparationEffects.emergencyRevivePercent > 0) {
       this.gameState.player.preparationEmergencyReviveAvailable = true
     }
+    this.gameState.player.artifacts = getPreparationArtifacts(runConfig.preparation)
     refreshPlayerDerivedStats(this.gameState.player)
     this.gameState.player.hp = this.gameState.player.maxHp
+    this.grantArtifactFloorShield()
     this.gameState.player.behaviorController!.freeMode =
       runConfig.freeMovementEnabled ?? true
     /*
@@ -644,14 +664,58 @@ export class Game {
       player.behaviorController.targetPriorityId =
         build.targetPriorityId ?? DEFAULT_TARGET_PRIORITY_ID
     }
+    /*
+     * The saved skills are the Champion's skills, whatever produced them.
+     *
+     * The upgrades are replayed for what they did to the Champion's stats and
+     * flags; the skill list they leave behind is not trusted to match the one
+     * that was saved, and it did not have to. A Knight that released Whirlwind
+     * on floor three still starts here with it, because the replay begins
+     * from the class's starting skills and the release is not recorded. A
+     * Champion won with more skill slots than this run was configured with
+     * would lose its last unlocks to the slot cap. A Champion the development
+     * tools rolled has skills and no upgrades at all. Every one of those was
+     * a Champion refused at the door of the mode built to carry it.
+     *
+     * So the slot count is raised to hold the saved skills, the upgrades are
+     * replayed, and the saved list is then written over whatever the replay
+     * produced. The snapshot validator has already checked every skill id
+     * and level against the current content.
+     */
+    player.skillSlotCount = Math.max(
+      getConfiguredSkillSlotCount(player),
+      build.skills.length,
+    )
     for (const upgradeId of build.selectedUpgradeIds) {
       applyUpgrade(this.gameState, upgradeId)
     }
-    const expectedSkills = build.skills.map((skill) => `${skill.skillId}:${skill.level}`)
-    const actualSkills = player.skills.map((skill) => `${skill.skillId}:${skill.level}`)
-    if (expectedSkills.join('|') !== actualSkills.join('|')) {
-      throw new Error('Champion skills are incompatible with the current content definitions.')
+    player.skills = build.skills.map((skill) => ({
+      skillId: skill.skillId,
+      level: skill.level,
+      cooldownRemaining: 0,
+      resonanceAttackCount: 0,
+    }))
+    /*
+     * Critical Spellstrike picks its target when it is unlocked. A saved list
+     * that carries it without the unlock, or whose target was released, has
+     * to pick again the same way the unlock would have.
+     */
+    const ownsCriticalSpellstrike = player.skills.some(
+      (skill) => skill.skillId === CRITICAL_SPELLSTRIKE_SKILL_ID,
+    )
+    const currentTarget = player.criticalSpellstrikeTargetSkillId
+    if (
+      ownsCriticalSpellstrike &&
+      (currentTarget === undefined ||
+        !player.skills.some((skill) => skill.skillId === currentTarget))
+    ) {
+      player.criticalSpellstrikeTargetSkillId = player.skills.find(
+        (skill) => getSkillDefinition(skill.skillId).tags.includes('triggerable'),
+      )?.skillId
+    } else if (!ownsCriticalSpellstrike) {
+      player.criticalSpellstrikeTargetSkillId = undefined
     }
+    refreshPlayerDerivedStats(player)
     this.gameState.run.selectedUpgradeIds = [...build.selectedUpgradeIds]
   }
 
@@ -1128,12 +1192,7 @@ export class Game {
     }
 
     if (flow.type === 'level-up') {
-      flow.choices = generateUpgradeChoices(
-        this.gameState,
-        UPGRADE_CHOICES_PER_LEVEL,
-        this.random,
-        this.synergyRandom,
-      )
+      flow.choices = this.generateLevelUpChoices()
     } else {
       flow.choices = generateGearChoices(
         this.gameState,
@@ -1637,6 +1696,7 @@ export class Game {
     updateAttackCooldown(this.gameState, FIXED_STEP_SECONDS)
     updateTargetCommitment(this.gameState, FIXED_STEP_SECONDS)
     updateSkillCooldowns(this.gameState, FIXED_STEP_SECONDS)
+    const cooldownsBeforeCasts = this.snapshotSkillCooldowns()
     updateRuinSigils(this.gameState, FIXED_STEP_SECONDS)
     updateBloodDebt(this.gameState, FIXED_STEP_SECONDS)
     updateEnemyChase(this.gameState, FIXED_STEP_SECONDS)
@@ -1657,7 +1717,10 @@ export class Game {
     )
     const enemySpatialHash = createEnemySpatialHash(this.gameState)
     resolvePlayerTarget(this.gameState)
+    const playerXBeforeMove = this.gameState.player.x
+    const playerYBeforeMove = this.gameState.player.y
     updatePlayerBehavior(this.gameState, FIXED_STEP_SECONDS, enemySpatialHash)
+    this.updateArtifactMomentum(playerXBeforeMove, playerYBeforeMove)
     updateEnemyTelegraphPositions(this.gameState)
     resolvePlayerTarget(this.gameState)
     const basicAttackEvents = performBasicAttackIfReady(
@@ -1685,9 +1748,11 @@ export class Game {
       ...this.collectGodModeAuraDamage(FIXED_STEP_SECONDS),
     ]
     updateFrost(this.gameState, FIXED_STEP_SECONDS)
+    this.handleArtifactSkillCasts(cooldownsBeforeCasts)
+    const artifactDamageEvents = this.applyArtifactDamageHooks(damageEvents)
     const appliedDamageEvents = this.godMode
-      ? damageEvents.filter((event) => event.targetId !== this.gameState.player.id)
-      : damageEvents
+      ? artifactDamageEvents.filter((event) => event.targetId !== this.gameState.player.id)
+      : artifactDamageEvents
     applyDamageEvents(
       this.gameState,
       appliedDamageEvents,
@@ -1762,7 +1827,10 @@ export class Game {
       }
     }, this.gearRandom, (position) => {
       spawnHealingPotion(this.gameState, this.idAllocator, position)
-    }, this.idAllocator)
+    }, this.idAllocator, (enemy) => {
+      this.handleArtifactKill(enemy)
+    })
+    this.updateArtifactTimers()
     updateStairs(this.gameState, (stairs) => {
       stairs.rewardsCollected = true
       if (this.choiceFlows.length === 0) {
@@ -1861,6 +1929,8 @@ export class Game {
       this.gameState.run.floorStartedAt = this.gameState.time
       healPlayer(this.gameState, this.gameState.player.maxHp, 'Entering new floor')
       resetFloorCombatState(this.gameState)
+      this.gameState.player.artifactShieldAmount = 0
+      this.grantArtifactFloorShield()
     }
     this.gameState.floorTransition = {
       remainingSeconds: 0,
@@ -1967,12 +2037,233 @@ export class Game {
     if (!flow || flow.type !== 'level-up' || flow.choices.length > 0) {
       return
     }
-    flow.choices = generateUpgradeChoices(
+    flow.choices = this.generateLevelUpChoices()
+  }
+
+  /**
+   * The level-up offer, with the Cartographer's Compass applied: one more
+   * card when there is one more to offer, and each card's chance to arrive
+   * a rarity higher. Without a Compass this draws exactly what it always
+   * did, from the same RNG in the same order.
+   */
+  private generateLevelUpChoices(): LevelUpUpgradeChoice[] {
+    const effects = getPlayerArtifactEffects(this.gameState.player)
+    const extra = effects.chartedChoices &&
+      countSelectableUpgrades(this.gameState) > UPGRADE_CHOICES_PER_LEVEL
+      ? 1
+      : 0
+    const choices = generateUpgradeChoices(
       this.gameState,
-      UPGRADE_CHOICES_PER_LEVEL,
+      UPGRADE_CHOICES_PER_LEVEL + extra,
       this.random,
       this.synergyRandom,
     )
+    return applyChartedChoices(
+      this.gameState,
+      choices,
+      effects.chartedChoicesChancePercent,
+      this.random,
+    )
+  }
+
+  /** Bulwark: a shield worth a share of max HP at the start of every floor. */
+  private grantArtifactFloorShield(): void {
+    const player = this.gameState.player
+    const effects = getPlayerArtifactEffects(player)
+    if (effects.floorShieldPercent <= 0) {
+      return
+    }
+    player.artifactShieldAmount = Math.max(
+      player.artifactShieldAmount ?? 0,
+      Math.round(player.maxHp * effects.floorShieldPercent / 100),
+    )
+  }
+
+  /**
+   * Wayfarer's Anklet. Momentum builds while the player covers ground and
+   * drains to nothing a second after they stop. The derived stats read it
+   * live, but the legacy scalar projection is refreshed when it moves so
+   * every reader agrees.
+   */
+  private updateArtifactMomentum(previousX: number, previousY: number): void {
+    const player = this.gameState.player
+    if (getPlayerArtifactEffects(player).momentumPercent <= 0) {
+      return
+    }
+    const before = player.artifactMomentum ?? 0
+    const moved = Math.hypot(player.x - previousX, player.y - previousY) > 0.01
+    if (moved) {
+      player.artifactMomentumGraceRemaining = ARTIFACT_MOMENTUM_GRACE_SECONDS
+      player.artifactMomentum = Math.min(
+        1,
+        before + FIXED_STEP_SECONDS / ARTIFACT_MOMENTUM_BUILD_SECONDS,
+      )
+    } else {
+      const grace = Math.max(
+        0,
+        (player.artifactMomentumGraceRemaining ?? 0) - FIXED_STEP_SECONDS,
+      )
+      player.artifactMomentumGraceRemaining = grace
+      if (grace <= 0) {
+        player.artifactMomentum = 0
+      }
+    }
+    if ((player.artifactMomentum ?? 0) !== before) {
+      refreshPlayerDerivedStats(player)
+    }
+  }
+
+  /**
+   * Skill casts have no single doorway: each skill sets its own cooldown
+   * when it fires. So a cast is read off the cooldowns instead, as any skill
+   * whose remaining cooldown rose during the tick. Only taken when an
+   * artifact has a use for it.
+   */
+  private snapshotSkillCooldowns(): ReadonlyMap<string, number> | null {
+    const effects = getPlayerArtifactEffects(this.gameState.player)
+    if (effects.primedStrikePercent <= 0 && effects.skillEchoPercent <= 0) {
+      return null
+    }
+    return new Map(
+      this.gameState.player.skills.map((skill) => [skill.skillId, skill.cooldownRemaining]),
+    )
+  }
+
+  private handleArtifactSkillCasts(cooldownsBefore: ReadonlyMap<string, number> | null): void {
+    if (!cooldownsBefore) {
+      return
+    }
+    const player = this.gameState.player
+    const effects = getPlayerArtifactEffects(player)
+    for (const skill of player.skills) {
+      if (
+        skill.skillId === BASIC_ATTACK_SKILL_ID ||
+        skill.cooldownRemaining <= (cooldownsBefore.get(skill.skillId) ?? 0)
+      ) {
+        continue
+      }
+      if (effects.primedStrikePercent > 0) {
+        player.artifactPrimedStrike = true
+      }
+      if (effects.skillEchoPercent > 0) {
+        const casts = (player.artifactSkillCasts ?? 0) + 1
+        player.artifactSkillCasts = casts
+        if (casts % ARTIFACT_SKILL_ECHO_INTERVAL === 0) {
+          player.artifactEchoSkillId = skill.skillId
+          player.artifactEchoRemaining = ARTIFACT_SKILL_ECHO_WINDOW_SECONDS
+        }
+      }
+    }
+  }
+
+  /**
+   * The artifact hooks on this tick's damage: the primed Basic Attack lands
+   * harder, the echoed skill's hits land twice, and the corpse detonations
+   * queued by last tick's kills go off. Returns the list to apply.
+   */
+  private applyArtifactDamageHooks(events: readonly DamageEvent[]): DamageEvent[] {
+    const player = this.gameState.player
+    const effects = getPlayerArtifactEffects(player)
+    const result: DamageEvent[] = [...events]
+    if (player.artifactPrimedStrike && effects.primedStrikePercent > 0) {
+      let primed = false
+      for (let index = 0; index < result.length; index += 1) {
+        const event = result[index]!
+        if (event.sourceSkillId !== BASIC_ATTACK_SKILL_ID || event.targetId === player.id) {
+          continue
+        }
+        result[index] = {
+          ...event,
+          damage: scaleDamageValues(event.damage, 1 + effects.primedStrikePercent / 100),
+        }
+        primed = true
+      }
+      if (primed) {
+        player.artifactPrimedStrike = false
+      }
+    }
+    if (
+      (player.artifactEchoRemaining ?? 0) > 0 &&
+      player.artifactEchoSkillId !== undefined &&
+      effects.skillEchoPercent > 0
+    ) {
+      const echoed = player.artifactEchoSkillId
+      for (const event of events) {
+        if (
+          event.sourceSkillId !== echoed ||
+          event.targetId === player.id ||
+          event.damageOverTime === true
+        ) {
+          continue
+        }
+        result.push({
+          ...event,
+          sourceLabel: 'Echo',
+          damage: scaleDamageValues(event.damage, effects.skillEchoPercent / 100),
+        })
+      }
+    }
+    if (this.pendingArtifactDamage.length > 0) {
+      result.push(...this.pendingArtifactDamage)
+      this.pendingArtifactDamage.length = 0
+    }
+    return result
+  }
+
+  /** What a kill does for the loadout: surge, reset, and the Reliquary's blast. */
+  private handleArtifactKill(enemy: Readonly<EnemyState>): void {
+    const player = this.gameState.player
+    const effects = getPlayerArtifactEffects(player)
+    if (effects.killAreaSurgePercent > 0) {
+      player.artifactAreaSurgeRemaining = ARTIFACT_KILL_AREA_SURGE_SECONDS
+    }
+    if (
+      effects.killCooldownResetChancePercent > 0 &&
+      this.random.chance(effects.killCooldownResetChancePercent / 100)
+    ) {
+      const cooling = player.skills.filter((skill) =>
+        skill.skillId !== BASIC_ATTACK_SKILL_ID && skill.cooldownRemaining > 0,
+      )
+      if (cooling.length > 0) {
+        this.random.pick(cooling).cooldownRemaining = 0
+      }
+    }
+    if (effects.corpseDetonationPercent > 0) {
+      const radius = ARTIFACT_CORPSE_DETONATION_RADIUS *
+        (1 + getDerivedPlayerStats(player).areaOfEffect / 100)
+      const amount = Math.max(1, Math.round(enemy.maxHp * effects.corpseDetonationPercent / 100))
+      for (const target of this.gameState.enemies) {
+        if (target.id === enemy.id || target.hp <= 0) {
+          continue
+        }
+        if (Math.hypot(target.x - enemy.x, target.y - enemy.y) > radius + target.radius) {
+          continue
+        }
+        this.pendingArtifactDamage.push({
+          sourceId: player.id,
+          sourceLabel: 'Ember Reliquary',
+          targetId: target.id,
+          damage: createDamageValues({ fire: amount }),
+        })
+      }
+    }
+  }
+
+  private updateArtifactTimers(): void {
+    const player = this.gameState.player
+    if ((player.artifactAreaSurgeRemaining ?? 0) > 0) {
+      player.artifactAreaSurgeRemaining = Math.max(
+        0,
+        (player.artifactAreaSurgeRemaining ?? 0) - FIXED_STEP_SECONDS,
+      )
+    }
+    if ((player.artifactEchoRemaining ?? 0) > 0) {
+      const remaining = Math.max(0, (player.artifactEchoRemaining ?? 0) - FIXED_STEP_SECONDS)
+      player.artifactEchoRemaining = remaining
+      if (remaining <= 0) {
+        player.artifactEchoSkillId = undefined
+      }
+    }
   }
 
   private updateChoiceRecoveryEffects(): void {
@@ -2133,6 +2424,13 @@ export class Game {
 
     // Overwrite all mutable state from the checkpoint.
     Object.assign(game.gameState, normalizeCheckpointState(checkpoint.gameState))
+    /*
+     * The loadout is the run config's, not the checkpoint's. The first
+     * checkpoint of an Abyss attempt is built by a client that has not seen
+     * the Champion's artifacts, which the server writes into the preparation
+     * afterwards; reading them from the config here is what makes them count.
+     */
+    game.gameState.player.artifacts = getPreparationArtifacts(checkpoint.runConfig.preparation)
     if (!Array.isArray(game.gameState.run.banishedSkillIds)) {
       game.gameState.run.banishedSkillIds = []
     }

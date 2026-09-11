@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Random } from '../game/random/Random'
+import { createGame } from '../game/Game'
+import { getUpgradeDefinition } from '../content/upgrades/Upgrades'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
 import { EQUIPMENT_SLOTS } from '../content/gear/Items'
 import { Rarity } from '../content/rarity/Rarity'
@@ -20,9 +22,54 @@ describe('development Champion builds', () => {
       )
       expect(isCharacterBuildSnapshot(build)).toBe(true)
       expect(build.level).toBe(20)
-      expect(build.selectedUpgradeIds).toEqual([])
       for (const slot of EQUIPMENT_SLOTS) {
         expect(build.equipment[slot], `${slot} at seed ${seed}`).toBeDefined()
+      }
+    }
+  })
+
+  it('records the unlock and level cards that produce its skills, and nothing else', () => {
+    const build = generateDevelopmentChampionBuild(
+      { ...DEFAULT_DEVELOPMENT_CHAMPION_OPTIONS, classId: 'knight', level: 30, extraSkillCount: 4 },
+      new Random(17),
+    )
+    const startingSkillIds = CHARACTER_CLASS_DEFINITIONS.knight.startingSkillIds
+    const counts = new Map<string, number>()
+    for (const upgradeId of build.selectedUpgradeIds) {
+      counts.set(upgradeId, (counts.get(upgradeId) ?? 0) + 1)
+    }
+    let accountedFor = 0
+    for (const skill of build.skills) {
+      const unlocks = counts.get(`${skill.skillId}-unlock`) ?? 0
+      const levels = counts.get(`${skill.skillId}-level`) ?? 0
+      expect(unlocks, `${skill.skillId} unlock`).toBe(startingSkillIds.includes(skill.skillId) ? 0 : 1)
+      expect(levels, `${skill.skillId} level cards`).toBe(skill.level - 1)
+      accountedFor += unlocks + levels
+    }
+    expect(accountedFor).toBe(build.selectedUpgradeIds.length)
+    expect(build.skills.some((skill) => skill.level > 1)).toBe(true)
+    for (const upgradeId of build.selectedUpgradeIds) {
+      expect(() => getUpgradeDefinition(upgradeId)).not.toThrow()
+    }
+  })
+
+  it('starts an Abyss run with exactly its skills, for many seeds and every option shape', () => {
+    const shapes = [
+      DEFAULT_DEVELOPMENT_CHAMPION_OPTIONS,
+      { ...DEFAULT_DEVELOPMENT_CHAMPION_OPTIONS, level: 1, extraSkillCount: 0 },
+      { ...DEFAULT_DEVELOPMENT_CHAMPION_OPTIONS, level: 100, extraSkillCount: 8 },
+      { ...DEFAULT_DEVELOPMENT_CHAMPION_OPTIONS, classId: 'necromancer' as const, level: 60, extraSkillCount: 8 },
+    ]
+    for (const options of shapes) {
+      for (let seed = 1; seed <= 12; seed += 1) {
+        const build = generateDevelopmentChampionBuild(options, new Random(seed))
+        const abyss = createGame({ seed, modeId: 'infinite-abyss', champion: build })
+        expect(
+          abyss.state.player.skills.map(({ skillId, level }) => ({ skillId, level })),
+          `level ${options.level}, ${options.extraSkillCount} extra, seed ${seed}`,
+        ).toEqual(build.skills)
+        expect(abyss.state.run.selectedUpgradeIds).toEqual(build.selectedUpgradeIds)
+        expect(abyss.state.player.level).toBe(build.level)
       }
     }
   })

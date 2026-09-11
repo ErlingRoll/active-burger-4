@@ -168,6 +168,16 @@ the check is named; the rest are review responsibilities.
       warnings, a component test harness, error boundaries, route-level code
       splitting, and the executable architecture and style rules.
       See [decision 0010](decisions/0010-enforced-architecture-boundaries.md).
+- [x] **31. The Camp, first slices:** timber and stone, the building and job
+      registries mirrored between the migrations and the client, the labour
+      sheet and offline accrual as SQL and TypeScript twins pinned to one
+      fixture set, Champion labour with idempotent claims and settlement on
+      unassign or archive, the Abyss lockout for working Champions, and the
+      Camp screen with a plot per building, construction bought with timber and stone, the
+      tackle bench with multi-input recipes, the Rift anchor where an exhausted
+      Champion rests faster, the Smokehouse that guts fish for roe and cures
+      meal fish with it, and the Forge that rerolls artifacts and raises a
+      run's scrap. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 
 ## Per-Feature Gate
 

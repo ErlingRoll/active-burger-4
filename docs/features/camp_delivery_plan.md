@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Proposal, written 2026-09-11 against the code as it stood that day.
+> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12; slice 3 and the Trophy hall are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -79,7 +79,8 @@ The sheet is a sidegrade, and these bounds keep it one:
 - Set and tag fit adds up to ×1.25, on the matching job only.
 - The behaviour profile moves one knob against the other: aggressive is
   +20% tempo and −25% stamina, cautious the reverse, balanced neither.
-- Everything multiplied together is capped at ×2.0.
+- Everything multiplied together is capped at ×2.0. The sheet carries that
+  product as its `output`, and accrual reads only that figure.
 - Stamina is clamped between six and twelve hours, so the Storehouse cap is
   still the ceiling and a strong roster cannot out-produce the Abyss.
 
@@ -116,11 +117,12 @@ hold; only the estimates move.
    it from the build on the server and stores it on the assignment row.
    Claims then read numbers rather than re-deriving them, and a later balance
    change never rewrites production that already happened.
-6. **The Camp opens as a panel on the hub, not as buildings drawn in the
-   scene.** A "Camp" station opens a panel in the HUD (a sheet on a phone),
-   in the shape of the expedition panel. Drawing the woodline and quarry into
-   the scene is worth doing, but after the loop is played and the visuals can
-   be judged on their own.
+6. **The Camp is a screen of its own, with a plot for every building.**
+   It shipped first as a panel on the hub, in the shape of the expedition
+   panel, and moved to its own screen on 2026-09-11 once the loop had been
+   played: the hub's "Camp" station now walks out to it, the way the pond's
+   does, and each building stands on a plot with its own picture, level and
+   status, opening an inspector beside the plots (a sheet on a phone).
 7. **Media queries are allowed.** camp.md's "adapt without width breakpoints"
    predates the change of rule on 2026-09-09; the hub itself uses a phone
    breakpoint. Update that sentence when the Camp ships.
@@ -166,21 +168,30 @@ simulation is not ported; the sheet reads the same inputs through a simpler,
 mirrored formula.
 
 ```text
-strength   = 1 + 0.02 × max(0, max_floor − 10), capped at 1.30
-tempo      = clamp(strength × (1 + attack_speed_percent / 100) × profile_tempo, 1.0, 2.0)
-stamina    = clamp(base_cap_hours × (1 + max_hp_percent / 200) × profile_stamina, 6, 12)
-load       = clamp(strength × (1 + attack_damage_percent / 200), 1.0, 2.0)
+strength   = 1 + 0.01 × max(0, level − 10) + 0.02 × max(0, max_floor − 10), capped at 1.30
+tempo      = clamp(strength × (1 + attack_speed_percent / 200) × profile_tempo, 1.0, 2.0)
+stamina    = clamp(8 × (1 + max_hp_on_gear / 400) × profile_stamina, 6, 12)
+load       = clamp(strength × (1 + increased_damage_percent / 300), 1.0, 2.0)
 bonus      = min(critical_chance_percent, 25) / 100
 fit        = 1 + set_fit(job, equipment) + tag_fit(job, skills), capped at 1.25
+haste      = 1 + movement_speed_percent / 100
+output     = min(2.0, tempo × load × fit)
 ```
 
-`set_fit` scales with the rarity of the pieces wearing the job's set, and
-`tag_fit` sums the job's tags across the skills weighted by level. A Champion
-made by the development tools has no source run; when the run is missing,
+Every figure is rounded to four decimals so a double and a Postgres numeric
+agree. The sums come straight from the rolled gear modifiers: attack speed and
+movement speed are percent rolls, Max HP is a flat roll (twelve to seventy a
+piece, so four hundred is the divisor that lets a hardy set reach the twelve
+hour ceiling), and `increased_damage_percent` is the four increased-damage
+rolls added together, global and typed alike. `set_fit` counts each piece
+wearing the job's set at one for common through five for legendary, half a
+percent a point and capped at fifteen; `tag_fit` adds a percent per level of
+each skill carrying one of the job's tags, capped at ten. A Champion made by
+the development tools has no source run; when the run is missing,
 `build.level` stands in for `max_floor`, so a generated Champion works the
-Camp exactly like an earned one. Upgrades
-that touch stats are left out at first and can be added by seeding their
-values into a reference table, the way recipes are mirrored.
+Camp exactly like an earned one. Upgrades that touch stats are left out at
+first and can be added by seeding their values into a reference table, the
+way recipes are mirrored.
 
 ### Accrual
 
@@ -189,10 +200,10 @@ The arithmetic is a pure function, mirrored in SQL and in
 tests pin down.
 
 ```text
-rate           = base_rate_per_hour × rate_multiplier(level) × tempo × fit
+rate           = base_rate_per_hour × rate_multiplier(level) × output
 elapsed_hours  = min(now − accrued_from, min(stamina, storehouse_cap_hours))
-units          = floor(rate × elapsed_hours × load)
-paid_hours     = units / (rate × load)
+units          = floor(rate × elapsed_hours)
+paid_hours     = units / rate
 accrued_from   = now − (elapsed_hours − paid_hours)
 ```
 
@@ -229,11 +240,12 @@ check.
 src/content/camp/        CampBuildings.ts, CampJobs.ts, CampLabour.ts,
                          CampAccrual.ts (+ tests)          registries, pure
 src/camp/                CampTypes.ts, CampService.ts (+ test),
-                         CampPanel.tsx (+ test), CampJobCard.tsx,
-                         CampChampionPicker.tsx, LabourSheet.tsx
+                         CampScreen.tsx (+ test), CampBuildingArt.tsx,
+                         LabourSheetLine.tsx, Smokehouse.ts, Forge.ts
 src/inventory/           timber and stone definitions, MaterialIcon glyphs
 src/services/            a camp ServiceHandle on AppServices
-src/hub/                 a sixth station and the panel's mount point
+src/hub/                 the Camp station, which opens the screen
+src/app/                 the /camp route and its lazy screen
 src/characters/          the labour sheet and "Working · Woodline" on the details
 src/app/screens/         run setup excludes working Champions from the Abyss
 ```
@@ -257,7 +269,7 @@ Each slice is a commit series on main that leaves the game whole, with lint,
 the unit suite and the build green, and the screens checked by screenshot at
 390×844 and 1920×1080.
 
-### Slice 0: foundations
+### Slice 0: foundations *(shipped 2026-09-11)*
 
 Timber and stone as items on both sides; the reference tables and their seed
 rows, including the skill tag table seeded from the registry with a
@@ -267,7 +279,17 @@ TypeScript twins, with tests that feed both the same builds and expect the
 same sheets. No UI. Ships with the Storehouse level table so the materials
 have a named sink from the first commit.
 
-### Slice 1: labour
+As built: `src/content/camp/` holds the registries and the two twins, the
+migration `20260911150000_add_camp_foundations.sql` holds the tables, the
+seeds, `camp_labour_sheet` and `camp_accrue`, and the fixture set lives in
+`tests/fixtures/`. The migration ends by asserting the fixtures against its
+own functions, so applying it is the SQL side of the test, and
+`tests/campRegistry.test.ts` asserts the same files against the TypeScript
+side and checks the migration's fixture block is a copy of them. The bonus
+stack a critical chance pays is not yet rolled anywhere; that is the claim
+RPC's job in slice 1, from a seed derived from the operation id.
+
+### Slice 1: labour *(shipped 2026-09-11)*
 
 The per-player tables and the five RPCs; the Camp service; the hub station
 and panel with the Woodline and the quarry at level 1, the Storehouse at
@@ -278,7 +300,26 @@ anything else is decided, because it is where the loop either feels like a
 check-in or does not, and where the sheet either reads at a glance or does
 not.
 
-### Slice 2: construction
+As built: `20260911170000_add_camp_labour.sql` holds `camp_buildings`,
+`camp_assignments`, `get_camp_state`, `assign_champion_to_camp_job`,
+`unassign_champion_from_camp` and `claim_camp_production`; the upgrade RPC
+waits for slice 2. Every mutation answers with the whole Camp state, so the
+client never reconciles a guess. Two hooks hold the rules: a trigger on the
+champions table's archived flag settles and removes an assignment, which
+covers both the champions page and a victory that replaces a Champion at a
+full roster, and the Abyss exhaustion trigger refuses a working Champion. A
+Champion is also refused a job while it is mid-descent, and moving it between
+jobs settles the old one in the same call. Slots are counted per building,
+which is what `job_slots` means. The bonus stack is a critical hit at the
+Camp: rolled once per claim from the operation id and the Champion, it pays a
+quarter again on top. The floor a Champion was won on reaches the client
+through the Camp state rather than a column on the champions table, so the
+picker previews the sheet the server will store. On the client, `src/camp/`
+holds the service, the panel and the sheet line; the panel opens from a sixth
+station on the hub and sits in the HUD's centre column on a desktop and in the
+dock on a phone.
+
+### Slice 2: construction *(shipped 2026-09-12)*
 
 `upgrade_camp_building`; Storehouse levels 2 and 3 raising the cap to ten and
 twelve hours; Woodline and quarry levels raising the rate and adding a second
@@ -288,6 +329,20 @@ The recipe table gains an `inputs jsonb` column and the craft RPC consumes
 each input in turn. The client recipe registry already mirrors the server's
 rows and `tests/craftingRecipes.test.ts` keeps it that way; the new column
 extends that test rather than replacing it.
+
+As built: `20260912100000_add_camp_construction.sql` adds
+`upgrade_camp_building`, which settles the building's pending production
+first so the new rate applies from the upgrade and never to hours worked at
+the old one, then consumes the level's cost oldest-stack-first and raises the
+level under a `camp-upgrade` ledger row. A building a player starts without
+has a `starting_level` of zero; the tackle bench is the first. Recipes gained
+an `inputs` list and a `camp_building_id`, backfilled from the single-input
+columns for every row before, and the craft consumes each input in turn and
+refuses a bench recipe until the bench is built. The bench's two recipes turn
+timber and scrap into a River Worm and a Glow Grub, at half the scrap the
+workbench asks. On the client the bag's workbench shows only the recipes
+without a building, and the Camp panel shows the bench's; every card ends in
+an upgrade row that prices the next level against what the bag holds.
 
 ### Slice 3: timed construction (optional)
 
@@ -299,10 +354,33 @@ construction is a wall rather than a rhythm.
 
 ### Later, each behind its own prerequisite
 
-- **Rift anchor** needs rift shards, which need a source: Abyss floor boxes.
-- **Smokehouse** needs roe, which needs gutting: an inventory operation that
-  destroys a fish and grants roe by rarity and size.
-- **Forge** needs artifacts (Phase 9).
+- **Rift anchor** *(shipped 2026-09-12)*. Rift shards come from the Abyss's
+  floors, granted beside the floor box by the same trigger: one a floor and one
+  more for every five floors down, to six. The anchor is built with shards,
+  timber and stone, and its one job, `anchor-rest`, has the job table's new
+  `effect` of `exhaustion-relief`: an exhausted Champion is sent there (a
+  rested one is refused), its units are minutes, and a claim takes them off
+  its own `exhaustion_until`, never past now. Levels raise the rate by half
+  and then double it, and open a second slot. The labour sheet applies as at
+  any job, so a Champion in Astral gear rests faster.
+- **Smokehouse** *(shipped 2026-09-12)*. Roe comes from gutting, which is an
+  RPC at the Smokehouse rather than a bag action: `gut_fish_at_smokehouse`
+  destroys a fish and grants roe by rarity and size. Curing,
+  `cure_fish_at_smokehouse`, spends roe to raise a meal fish's enchantment a
+  tier, writing the same `enchantmentId` and `enchantmentValue` the fishing
+  rod's Enchanter rolls, so the run meal already knows how to read it and no
+  new item category was needed. Both are inventory operations under their own
+  ledger types. The panel's Smokehouse card opens a fish picker for either.
+- **Forge** *(shipped 2026-09-12, once Phase 9 had landed)*. Built for
+  timber, stone and scrap, raised with rift shards. `reforge_artifact` spends
+  scrap and shards by the artifact's rarity and rolls its implicit and
+  modifiers again through `roll_artifact_metadata`, from a seed derived from
+  the instance and a reforge count kept on its metadata, so the same function
+  a box uses decides the roll and a retry cannot roll twice. The base and the
+  rarity stay. An artifact away on a run has no quantity in the bag and is
+  refused. Levels two and three apply `camp_forge_salvage_multiplier` to the
+  scrap `complete_dungeon_run` pays for a finished loadout. The panel's Forge
+  card opens an artifact picker with each relic's summary and price.
 - **Trophy hall** needs collections (Phase 10).
 
 ### A note on the market

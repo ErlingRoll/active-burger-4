@@ -101,6 +101,7 @@ import type {
   HitVisualElement,
 } from '../../state/GameState'
 import { getDerivedPlayerStats } from '../../stats/DerivedStats'
+import { getPlayerEliteDamagePercent } from '../../artifacts/ArtifactRunEffects'
 import { getGearDropChance } from '../../../content/gear/GearDrops'
 import {
   getEliteBerserkingEffect,
@@ -1987,6 +1988,18 @@ export function applyDamageEvents(
           totalAbsorbedByShield += absorption.absorbedDamage
           actualDamage = absorption.remainingDamage
         }
+        // The floor-start shield an artifact grants stands behind the Aegis
+        // one: it is spent before HP and does not come back until the next
+        // floor.
+        if (actualDamage > 0 && (state.player.artifactShieldAmount ?? 0) > 0) {
+          const absorption = calculateShieldAbsorption(
+            actualDamage,
+            state.player.artifactShieldAmount ?? 0,
+          )
+          state.player.artifactShieldAmount = absorption.remainingShield
+          totalAbsorbedByShield += absorption.absorbedDamage
+          actualDamage = absorption.remainingDamage
+        }
         if (actualDamage <= 0) {
           continue
         }
@@ -2052,7 +2065,7 @@ export function applyDamageEvents(
         (shatters ? 1.5 : 1) *
         (isPlayerOwnedDirectHit(state, event) &&
         ((enemy.eliteModifier !== undefined) || (enemy.eliteModifiers?.length ?? 0) > 0)
-          ? 1 + (state.player.preparationEliteDamagePercent ?? 0) / 100
+          ? 1 + getPlayerEliteDamagePercent(state.player) / 100
           : 1) *
         getElitePhaseboundDamageMultiplier(
           enemy,
@@ -2142,7 +2155,7 @@ export function applyDamageEvents(
       const bossDamageMultiplier =
         (shatters ? 1.5 : 1) *
         (isPlayerOwnedDirectHit(state, event)
-          ? 1 + (state.player.preparationEliteDamagePercent ?? 0) / 100
+          ? 1 + getPlayerEliteDamagePercent(state.player) / 100
           : 1)
       const bossEvent = bossDamageMultiplier === 1
         ? event
@@ -3093,6 +3106,8 @@ export function removeDeadEntities(
   random?: RandomSource,
   spawnHealingPotion?: (position: { x: number; y: number }) => void,
   idAllocator?: EntityIdAllocator,
+  /** Told about every enemy this pass buries, after its drops are placed. */
+  onEnemyKilled?: (enemy: Readonly<EnemyState>) => void,
 ): void {
   resolveDeadSoulTetherSnaps(state, random, idAllocator)
 
@@ -3154,6 +3169,7 @@ export function removeDeadEntities(
         }
       }
       childSpawns.push(...getSplitChildren(enemy))
+      onEnemyKilled?.(enemy)
     }
   }
   state.enemies = livingEnemies

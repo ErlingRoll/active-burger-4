@@ -1,0 +1,1850 @@
+/* ---------------------------------------------------------------------------
+   The Camp.
+
+   A place of its own, like the pond: a night scene under the pines, with a
+   plot on the ground for every building and a lantern lit on each one that
+   stands. The theme is "a working camp at the treeline after dark": the
+   screen's own colour is the moss and pine green of the ground, and every
+   warm light on it is a lantern, a forge or a smokehouse fire — the one
+   rule inherited from the refuge, where the bonfire is the only warm light.
+
+   The scene fills the screen and the HUD sits over it: a title and a ledger
+   of materials across the top, the plots across the ground, and an inspector
+   that comes out from the side when a plot is opened. On a desktop nothing
+   scrolls; on a phone the inspector is a sheet over the plots, and the sheet
+   alone may scroll, the way the pond's inventory drawer does.
+   --------------------------------------------------------------------------- */
+
+.dashboard.camp-screen {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  color: var(--color-stone-200);
+  background:
+    radial-gradient(ellipse 60% 36% at 78% -6%, rgb(var(--scene-moonlight-rgb) / 16%), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 20% 110%, rgb(var(--accent-rgb) / 10%), transparent 70%),
+    linear-gradient(180deg, #04060c 0%, #08111a 42%, #0b1a16 68%, #08120e 100%);
+}
+
+/* The stars over the treeline, in the same hand as the refuge's. */
+.camp-screen::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.7;
+  background-image:
+    radial-gradient(circle at 14% 24%, rgb(var(--scene-moonlight-rgb) / 80%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 62% 12%, rgb(var(--scene-moonlight-rgb) / 60%) 0 0.04rem, transparent 0.09rem),
+    radial-gradient(circle at 84% 38%, rgb(var(--scene-moonlight-rgb) / 70%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 34% 62%, rgb(var(--scene-moonlight-rgb) / 50%) 0 0.04rem, transparent 0.08rem),
+    radial-gradient(circle at 7% 71%, rgb(var(--scene-moonlight-rgb) / 62%) 0 0.045rem, transparent 0.09rem),
+    radial-gradient(circle at 47% 33%, rgb(var(--scene-moonlight-rgb) / 42%) 0 0.035rem, transparent 0.08rem),
+    radial-gradient(circle at 73% 57%, rgb(var(--scene-moonlight-rgb) / 72%) 0 0.05rem, transparent 0.1rem),
+    radial-gradient(circle at 26% 8%, rgb(var(--scene-moonlight-rgb) / 52%) 0 0.04rem, transparent 0.09rem);
+  background-size:
+    23rem 17rem, 31rem 23rem, 19rem 15rem, 27rem 19rem, 14rem 11rem,
+    37rem 25rem, 17rem 13rem, 29rem 21rem;
+  mask-image: linear-gradient(to bottom, black 20%, transparent 58%);
+}
+
+.camp-scene {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The hills, the pines on the left and the cut hillside on the right, all
+   drawn as one silhouette band sitting on the horizon. */
+.camp-backdrop {
+  position: absolute;
+  right: 0;
+  bottom: 56%;
+  left: 0;
+  width: 100%;
+  height: 30%;
+}
+
+.camp-moon {
+  position: absolute;
+  top: 9%;
+  right: 30%;
+  width: clamp(2rem, 5vh, 3.6rem);
+  height: clamp(2rem, 5vh, 3.6rem);
+  background: radial-gradient(circle at 40% 40%, rgb(226 232 240 / 92%), rgb(203 213 225 / 70%) 60%, rgb(148 163 184 / 40%));
+  border-radius: 50%;
+  box-shadow:
+    0 0 1.5rem rgb(var(--scene-moonlight-rgb) / 45%),
+    0 0 5rem rgb(var(--scene-moonlight-rgb) / 18%);
+  opacity: 0.85;
+}
+
+/* Four depths: a far range under haze with the keep on its ridge, the hills,
+   the pines and the cut hillside, and a stand of near pines at the front
+   left, darkest of all, that the Woodline stands against. */
+.camp-backdrop-far { fill: #131b27; opacity: 0.85; }
+.camp-backdrop-keep { fill: #0c1119; opacity: 0.9; }
+.camp-backdrop-hills { fill: #0a1512; }
+.camp-backdrop-pines { fill: #050c09; }
+.camp-backdrop-cliff { fill: #121a24; }
+.camp-backdrop-cliff-face { fill: #1a2331; }
+.camp-backdrop-near { fill: #030805; }
+
+/* Low mist lying on the far side of the ground, drifting. */
+.camp-mist {
+  position: absolute;
+  right: -10%;
+  bottom: 52%;
+  left: -10%;
+  height: 12%;
+  background: linear-gradient(to top, transparent, rgb(var(--scene-moonlight-rgb) / 9%) 45%, transparent);
+  filter: blur(10px);
+  animation: camp-mist-drift 46s ease-in-out infinite alternate;
+}
+
+/* A trodden path from the front of the ground up to the Storehouse, with a
+   branch each way along the front row. */
+.camp-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.camp-path-phone {
+  display: none;
+}
+
+.camp-path path {
+  fill: none;
+  stroke: rgb(120 92 60 / 13%);
+  stroke-width: 84px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  filter: blur(14px);
+}
+
+/* What stands between the buildings, placed in the same box as the plots. */
+.camp-furniture,
+.camp-haulers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.camp-furniture-piece {
+  position: absolute;
+  top: var(--furniture-y);
+  left: var(--furniture-x);
+  display: block;
+  width: var(--furniture-w);
+}
+
+.camp-furniture-piece svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.camp-furniture-piece[data-kind='lantern'] .camp-art-lantern {
+  animation: camp-coals-flicker 3.4s ease-in-out infinite;
+}
+
+.camp-furniture-piece[data-kind='lantern']:nth-child(2) .camp-art-lantern { animation-delay: 1.1s; }
+.camp-furniture-piece[data-kind='lantern']:nth-child(3) .camp-art-lantern { animation-delay: 2.3s; }
+
+/* The light a lantern post throws on the ground beneath it. */
+.camp-furniture-piece[data-kind='lantern']::after {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 900%;
+  height: 120%;
+  content: '';
+  background: radial-gradient(ellipse at 50% 60%, rgb(251 191 36 / 16%), transparent 70%);
+  transform: translateX(-50%);
+}
+
+/*
+ * The haulers: a figure per job with output waiting, walking the path to
+ * the Storehouse with a bundle and back without one. The route is the
+ * path's own points, as keyframes in shares of the ground, so the figure
+ * follows the drawn path whatever the width; it turns at each end.
+ */
+.camp-hauler {
+  position: absolute;
+  width: clamp(0.55rem, 1.5vh, 0.85rem);
+  height: clamp(0.95rem, 2.6vh, 1.45rem);
+  transform: translate(-50%, -100%);
+  animation-duration: 26s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.camp-hauler[data-route='woodline'] { animation-name: camp-haul-woodline; }
+.camp-hauler[data-route='quarry'] { animation-name: camp-haul-quarry; animation-delay: -9s; }
+
+.camp-hauler-figure {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--scene-figure);
+  border: 1px solid var(--scene-figure-edge);
+  border-radius: 45% 45% 18% 18%;
+}
+
+.camp-hauler-figure::before {
+  position: absolute;
+  top: -42%;
+  left: 50%;
+  width: 62%;
+  height: 42%;
+  content: '';
+  background: var(--scene-figure);
+  border: 1px solid var(--scene-figure-edge);
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+/* The lantern in the other hand. */
+.camp-hauler-figure::after {
+  position: absolute;
+  right: -55%;
+  bottom: 30%;
+  width: 0.3rem;
+  height: 0.38rem;
+  content: '';
+  background: var(--color-amber-300);
+  border-radius: 0.1rem;
+  box-shadow: 0 0 0.5rem rgb(251 191 36 / 85%), 0 0 1.2rem rgb(251 191 36 / 40%);
+  animation: camp-coals-flicker 3.1s ease-in-out infinite;
+}
+
+/* The bundle on the shoulder, carried on the way there and not on the way back. */
+.camp-hauler-bundle {
+  position: absolute;
+  top: -30%;
+  left: -40%;
+  width: 90%;
+  height: 34%;
+  background: linear-gradient(180deg, #5a3f2b, #3b2a1e);
+  border: 1px solid #6b4a30;
+  border-radius: 0.15rem;
+  animation: camp-haul-bundle 26s linear infinite;
+}
+
+.camp-hauler[data-route='quarry'] .camp-hauler-bundle {
+  background: linear-gradient(180deg, #556074, #3a4150);
+  border-color: #6b7686;
+  animation-delay: -9s;
+}
+
+.camp-fireflies {
+  position: absolute;
+  inset: 0;
+}
+
+.camp-firefly {
+  position: absolute;
+  width: 0.28rem;
+  height: 0.28rem;
+  background: #d9f99d;
+  border-radius: 50%;
+  box-shadow: 0 0 0.4rem #bef264, 0 0 1rem rgb(190 242 100 / 55%);
+  opacity: 0;
+  animation: camp-firefly 9s ease-in-out infinite;
+}
+
+/* The ground: moss and trodden earth, lit from the plots rather than the sky. */
+.camp-ground {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 64%;
+  background:
+    radial-gradient(ellipse 40% 40% at 50% 12%, rgb(var(--accent-rgb) / 10%), transparent 70%),
+    repeating-linear-gradient(174deg, transparent 0 9px, rgb(255 255 255 / 1.2%) 9px 10px),
+    linear-gradient(180deg, transparent 0%, #112219 14%, #0d1913 40%, #0a130e 70%, #070d0a 100%);
+  mask-image: linear-gradient(to bottom, transparent, black 16%);
+}
+
+/* A pool at the front left, where the tackle bench stands. */
+.camp-water {
+  position: absolute;
+  bottom: -4%;
+  left: -6%;
+  width: 34%;
+  height: 16%;
+  background: radial-gradient(ellipse at 50% 50%, rgb(34 211 238 / 22%), rgb(34 211 238 / 6%) 55%, transparent 72%);
+}
+
+/* Night air over the ground, so the plots read against something quiet. */
+.camp-fog {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(3 6 5 / 60%), rgb(3 6 5 / 18%) 40%, transparent 62%);
+}
+
+/* The chrome is timber and lantern light: signs, boards and ledgers are
+   planks, dark and warm, with the same off-white lettering a camp would
+   paint on them. Declared once; every plank below reads these. */
+.camp-screen {
+  --plank: linear-gradient(180deg, #4a3423 0%, #3a2819 55%, #2c1d13 100%);
+  --plank-edge: #6b4a30;
+  --plank-ink: #f5e6d0;
+  --plank-ink-muted: #c9b39a;
+}
+
+.camp-hud {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1.2vh, 0.8rem);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(0.5rem, 1.6vh, 1.1rem) clamp(0.75rem, 2vw, 1.5rem) clamp(0.5rem, 1.6vh, 1.1rem);
+}
+
+/* The topbar: the place's name, and the bag beside it. */
+.camp-hud-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.camp-scene-header {
+  min-width: 0;
+}
+
+.camp-scene-header h2 {
+  margin: 0.15rem 0 0;
+  color: var(--color-slate-50);
+  font-size: clamp(1.35rem, 3.2vh, 2.2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.camp-title-lantern {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.62em;
+  margin-right: 0.35em;
+  vertical-align: -0.04em;
+  background: var(--color-amber-300);
+  border-radius: 0.12em 0.12em 0.2em 0.2em;
+  box-shadow: 0 0 0.5rem rgb(251 191 36 / 85%), 0 0 1.4rem rgb(251 191 36 / 45%);
+  animation: camp-coals-flicker 3.4s ease-in-out infinite;
+}
+
+.camp-scene-subline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.5vh, 0.8rem);
+}
+
+.camp-scene-subline span {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.camp-live-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0.5rem rgb(var(--accent-rgb) / 80%);
+  animation: camp-live-blink 2.4s ease-in-out infinite;
+}
+
+.camp-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* The ledger: what the bag holds of the Camp's materials, one pill each. */
+.camp-ledger {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0 0.2rem;
+  list-style: none;
+  background: var(--plank);
+  border: 1px solid var(--plank-edge);
+  border-radius: 0.35rem;
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 8%),
+    inset 0 -1px rgb(0 0 0 / 50%),
+    0 0.3rem 0.8rem rgb(0 0 0 / 45%);
+}
+
+.camp-ledger li {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-height: clamp(1.7rem, 3.6vh, 2.3rem);
+  padding: 0 0.6rem 0 0.45rem;
+}
+
+.camp-ledger li + li {
+  border-left: 1px solid rgb(0 0 0 / 40%);
+  box-shadow: inset 1px 0 rgb(255 255 255 / 6%);
+}
+
+.camp-ledger-icon {
+  display: grid;
+  width: 1.1em;
+  place-items: center;
+  font-size: clamp(0.85rem, 1.9vh, 1.1rem);
+}
+
+.camp-ledger-icon .material-icon {
+  width: 1em;
+  height: auto;
+}
+
+.camp-ledger-count {
+  color: var(--plank-ink);
+  font-size: clamp(0.72rem, 1.6vh, 0.92rem);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.camp-ledger-name {
+  color: var(--plank-ink-muted);
+  font-size: clamp(0.55rem, 1.3vh, 0.72rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Claiming is the warm action of the screen, in lantern amber. */
+.camp-claim-action,
+.camp-send-action {
+  flex: 0 0 auto;
+  min-height: clamp(1.8rem, 3.8vh, 2.5rem);
+  padding: 0 clamp(0.7rem, 1.4vh, 1.1rem);
+  color: var(--color-amber-50);
+  font: inherit;
+  font-size: clamp(0.65rem, 1.45vh, 0.84rem);
+  font-weight: 850;
+  background:
+    linear-gradient(90deg, rgb(234 88 12 / 68%), rgb(120 53 15 / 48%)),
+    #44210c;
+  border: 1px solid var(--color-amber-500);
+  border-radius: 0.45rem;
+  box-shadow: 0 0 1.2rem rgb(251 191 36 / 12%);
+  cursor: pointer;
+}
+
+.camp-claim-action:hover:not(:disabled),
+.camp-claim-action:focus-visible,
+.camp-send-action:hover:not(:disabled),
+.camp-send-action:focus-visible {
+  background: linear-gradient(90deg, var(--color-orange-600), var(--color-amber-800));
+  outline: 3px solid rgb(251 191 36 / 25%);
+  outline-offset: 2px;
+}
+
+.camp-back-action,
+.camp-recall-action,
+.camp-picker-cancel,
+.camp-upgrade-action {
+  flex: 0 0 auto;
+  min-height: clamp(1.6rem, 3.4vh, 2.2rem);
+  padding: 0 clamp(0.55rem, 1.2vh, 0.85rem);
+  color: var(--color-slate-50);
+  font: inherit;
+  font-size: clamp(0.6rem, 1.35vh, 0.78rem);
+  font-weight: 800;
+  background: rgb(4 8 7 / 60%);
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.camp-back-action:hover,
+.camp-back-action:focus-visible,
+.camp-recall-action:hover:not(:disabled),
+.camp-recall-action:focus-visible,
+.camp-picker-cancel:hover:not(:disabled),
+.camp-picker-cancel:focus-visible,
+.camp-upgrade-action:hover:not(:disabled),
+.camp-upgrade-action:focus-visible {
+  background: rgb(var(--accent-rgb) / 16%);
+  border-color: rgb(var(--accent-rgb) / 65%);
+}
+
+.camp-claim-action[data-pending='true']:not(:disabled) {
+  animation: camp-claim-glow 2.4s ease-in-out infinite;
+}
+
+.camp-claim-action:disabled,
+.camp-send-action:disabled,
+.camp-recall-action:disabled,
+.camp-picker-option:disabled,
+.camp-picker-cancel:disabled,
+.camp-upgrade-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.camp-notice {
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  color: var(--text-muted);
+  font-size: clamp(0.65rem, 1.5vh, 0.85rem);
+  background: rgb(4 8 7 / 60%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 0.4rem;
+  align-self: flex-start;
+}
+
+.camp-notice-error {
+  color: var(--color-red-200);
+  border-color: rgb(248 113 113 / 45%);
+}
+
+/* The development row: a tester's way past the wait, on builds with the
+   tools on and for administrators only. Dashed, so it never reads as play. */
+.camp-dev-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  align-self: flex-end;
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+}
+
+.camp-dev-row span {
+  margin-right: 0.2rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.camp-dev-row button {
+  min-height: clamp(1.4rem, 3vh, 1.9rem);
+  padding: 0 0.6rem;
+  color: var(--color-slate-50);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 800;
+  background: rgb(4 8 7 / 60%);
+  border: 1px dashed rgb(var(--accent-rgb) / 45%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.camp-dev-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+/* The ground with the plots on it, and the inspector beside them. */
+.camp-hud-main {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  gap: clamp(0.5rem, 1.4vh, 1rem);
+  min-height: 0;
+}
+
+/* The ground the buildings are placed on, and the path drawn across it. */
+.camp-plots-ground {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * Where a camp would put things, not where a grid would.
+ *
+ * Each building has a place on the ground, as a share of it: the Woodline
+ * in the trees at the back left and the quarry at the hillside on the back
+ * right, the Storehouse between them at the top of the path, the anchor a
+ * little apart and lower, and the workshops along the front, the tackle
+ * bench at the water. The boxes are chosen not to overlap at any width,
+ * and because they are shares of the ground they fit whatever the ground
+ * is, with the inspector open or closed.
+ */
+.camp-plots {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-plots > li {
+  position: absolute;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.camp-plots > li[data-plot='woodline'] { top: 5%; left: 0; width: 24%; height: 40%; }
+.camp-plots > li[data-plot='storehouse'] { top: 0; left: 33%; width: 26%; height: 42%; }
+.camp-plots > li[data-plot='rift-anchor'] { top: 10%; left: 60%; width: 18%; height: 40%; }
+.camp-plots > li[data-plot='quarry'] { top: 3%; left: 78%; width: 22%; height: 42%; }
+.camp-plots > li[data-plot='tackle-bench'] { top: 56%; left: 0; width: 24%; height: 44%; }
+.camp-plots > li[data-plot='smokehouse'] { top: 50%; left: 26%; width: 22%; height: 42%; }
+.camp-plots > li[data-plot='forge'] { top: 56%; left: 54%; width: 22%; height: 44%; }
+.camp-plots > li[data-plot='trophy-hall'] { top: 46%; left: 78%; width: 22%; height: 42%; }
+
+.camp-plots > li[data-plot='woodline'] { grid-area: woodline; }
+.camp-plots > li[data-plot='storehouse'] { grid-area: storehouse; }
+.camp-plots > li[data-plot='rift-anchor'] { grid-area: rift-anchor; }
+.camp-plots > li[data-plot='quarry'] { grid-area: quarry; }
+.camp-plots > li[data-plot='tackle-bench'] { grid-area: tackle-bench; }
+.camp-plots > li[data-plot='smokehouse'] { grid-area: smokehouse; }
+.camp-plots > li[data-plot='forge'] { grid-area: forge; }
+.camp-plots > li[data-plot='trophy-hall'] { grid-area: trophy-hall; }
+
+/* The further off a building stands, the smaller it is drawn. */
+.camp-plots > li[data-plot='woodline'] .camp-plot,
+.camp-plots > li[data-plot='quarry'] .camp-plot { --plot-scale: 0.86; }
+.camp-plots > li[data-plot='storehouse'] .camp-plot { --plot-scale: 0.82; }
+.camp-plots > li[data-plot='rift-anchor'] .camp-plot { --plot-scale: 0.78; }
+.camp-plots > li[data-plot='tackle-bench'] .camp-plot { --plot-scale: 1; }
+.camp-plots > li[data-plot='smokehouse'] .camp-plot { --plot-scale: 0.94; }
+.camp-plots > li[data-plot='forge'] .camp-plot { --plot-scale: 0.98; }
+.camp-plots > li[data-plot='trophy-hall'] .camp-plot { --plot-scale: 0.92; }
+
+/* A plot: a building standing on its ground, its name on a sign beneath.
+   No plate, no border; the ground it stands on is the only shape. */
+.camp-plot {
+  --plot-scale: 1;
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(0.1rem, 0.5vh, 0.3rem);
+  align-items: end;
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(0.3rem, 1vh, 0.6rem) clamp(0.3rem, 1vh, 0.6rem) 0;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.8rem;
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+.camp-plot:focus-visible {
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 70%);
+  outline-offset: -2px;
+}
+
+.camp-plot:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+
+.camp-plot:disabled {
+  cursor: default;
+}
+
+.camp-plot:disabled .camp-plot-copy strong {
+  color: var(--text-muted);
+}
+
+/* The stage: the ground, the light on it and the building, sharing one
+   bottom edge so every picture stands on the same line. */
+.camp-plot-stage {
+  position: relative;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  width: calc(100% * var(--plot-scale));
+  max-width: calc(clamp(9rem, 44vh, 26rem) * var(--plot-scale));
+  height: 100%;
+  min-height: 0;
+}
+
+/* The trodden ground under a building: an ellipse of earth, which becomes
+   the frame while the inspector is open and the staked-out plot while
+   nothing stands here yet. */
+.camp-plot-ground {
+  position: absolute;
+  right: -6%;
+  bottom: -3%;
+  left: -6%;
+  height: 24%;
+  background: radial-gradient(ellipse at 50% 50%, rgb(22 34 26 / 90%), rgb(12 19 14 / 60%) 52%, transparent 72%);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.camp-plot:hover:not(:disabled) .camp-plot-ground {
+  border-color: rgb(var(--accent-rgb) / 35%);
+}
+
+.camp-plot[aria-pressed='true'] .camp-plot-ground {
+  border-color: rgb(var(--accent-bright-rgb) / 75%);
+  box-shadow:
+    0 0 0 1px rgb(var(--accent-rgb) / 20%),
+    0 0 1.8rem rgb(var(--accent-rgb) / 28%),
+    inset 0 0 2rem rgb(var(--accent-rgb) / 14%);
+}
+
+/* A footprint: pegs and rope around ground nobody has broken yet, and the
+   picture of what could stand there drawn faint on it. */
+.camp-plot[data-built='false'] .camp-plot-ground {
+  background: radial-gradient(ellipse at 50% 50%, rgb(14 22 17 / 55%), transparent 70%);
+  border: 1px dashed rgb(var(--accent-rgb) / 38%);
+}
+
+.camp-plot[data-built='false'] .camp-plot-art {
+  opacity: 0.3;
+  filter: grayscale(0.9);
+}
+
+.camp-plot:disabled .camp-plot-ground {
+  border-color: rgb(var(--accent-rgb) / 18%);
+}
+
+.camp-plot:disabled .camp-plot-art {
+  opacity: 0.2;
+}
+
+/* The light a standing building throws on its ground. */
+.camp-plot-glow {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 90%;
+  background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(251 191 36 / 22%), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.camp-plot[data-built='true'] .camp-plot-glow {
+  opacity: 1;
+  animation: camp-lantern-breathe 5s ease-in-out infinite;
+}
+
+.camp-plot[data-plot='woodline'][data-built='true'] .camp-plot-glow,
+.camp-plot[data-plot='quarry'][data-built='true'] .camp-plot-glow {
+  background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(251 191 36 / 10%), transparent 70%);
+}
+
+.camp-plot[data-plot='rift-anchor'][data-built='true'] .camp-plot-glow {
+  background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(167 139 250 / 24%), transparent 70%);
+}
+
+.camp-plot[data-plot='forge'][data-built='true'] .camp-plot-glow {
+  background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(249 115 22 / 24%), transparent 70%);
+}
+
+.camp-plot-art {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: calc(clamp(3.2rem, 26vh, 16rem) * var(--plot-scale));
+  overflow: visible;
+  transition: opacity 300ms ease, filter 300ms ease;
+}
+
+/* Who is working here: a figure per slot at the foot of the building, a
+   lantern in hand while the slot is filled and an empty outline while not. */
+.camp-plot-workers {
+  position: absolute;
+  bottom: 4%;
+  left: 2%;
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.camp-plot-workers i {
+  position: relative;
+  display: block;
+  width: clamp(0.55rem, 1.5vh, 0.85rem);
+  height: clamp(0.95rem, 2.6vh, 1.45rem);
+  background: rgb(var(--accent-rgb) / 10%);
+  border: 1px dashed rgb(var(--accent-rgb) / 35%);
+  border-radius: 45% 45% 18% 18%;
+}
+
+.camp-plot-workers i::before {
+  position: absolute;
+  top: -42%;
+  left: 50%;
+  width: 62%;
+  height: 42%;
+  content: '';
+  background: inherit;
+  border: inherit;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.camp-plot-workers i[data-filled='true'] {
+  background: var(--scene-figure);
+  border: 1px solid var(--scene-figure-edge);
+  --walk: clamp(1.4rem, 6vh, 3.6rem);
+  animation: camp-worker-walk 11s ease-in-out infinite;
+}
+
+.camp-plot-workers i[data-filled='true']::before {
+  background: var(--scene-figure);
+  border: 1px solid var(--scene-figure-edge);
+}
+
+/* The lantern in the working figure's hand. */
+.camp-plot-workers i[data-filled='true']::after {
+  position: absolute;
+  right: -55%;
+  bottom: 30%;
+  width: 0.3rem;
+  height: 0.38rem;
+  content: '';
+  background: var(--color-amber-300);
+  border-radius: 0.1rem;
+  box-shadow: 0 0 0.5rem rgb(251 191 36 / 85%), 0 0 1.2rem rgb(251 191 36 / 40%);
+  animation: camp-coals-flicker 3.1s ease-in-out infinite;
+}
+
+.camp-plot-workers i[data-filled='true']:nth-child(2) {
+  --walk: clamp(1rem, 4.5vh, 2.6rem);
+  animation-duration: 14s;
+  animation-delay: -5s;
+}
+
+/* The sign under the building: a plank hung on two nails, lettered. */
+.camp-plot-copy {
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  justify-items: center;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0.2rem;
+  padding: clamp(0.2rem, 0.6vh, 0.35rem) clamp(0.7rem, 1.6vh, 1rem) clamp(0.25rem, 0.7vh, 0.4rem);
+  background: var(--plank);
+  border: 1px solid var(--plank-edge);
+  border-radius: 0.25rem;
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 8%),
+    inset 0 -1px rgb(0 0 0 / 50%),
+    0 0.3rem 0.7rem rgb(0 0 0 / 55%);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.camp-plot-copy::before,
+.camp-plot-copy::after {
+  position: absolute;
+  top: 0.3rem;
+  width: 0.22rem;
+  height: 0.22rem;
+  content: '';
+  background: #8a7560;
+  border-radius: 50%;
+  box-shadow: inset 0 1px rgb(0 0 0 / 60%);
+}
+
+.camp-plot-copy::before { left: 0.3rem; }
+.camp-plot-copy::after { right: 0.3rem; }
+
+.camp-plot[aria-pressed='true'] .camp-plot-copy {
+  border-color: rgb(var(--accent-bright-rgb) / 70%);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 8%),
+    inset 0 -1px rgb(0 0 0 / 50%),
+    0 0 1rem rgb(var(--accent-rgb) / 30%);
+}
+
+.camp-plot[data-built='false'] .camp-plot-copy {
+  background: linear-gradient(180deg, rgb(74 52 35 / 55%), rgb(44 29 19 / 55%));
+  border-style: dashed;
+}
+
+.camp-plot-copy strong {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--plank-ink);
+  font-size: clamp(0.72rem, 1.7vh, 0.98rem);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.camp-plot-copy small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--plank-ink-muted);
+  font-size: clamp(0.55rem, 1.3vh, 0.74rem);
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.camp-plot[data-ready='true'] .camp-plot-copy small {
+  color: var(--color-amber-200);
+}
+
+/* Something is waiting to be claimed here: a lit tag pinned to the sign. */
+.camp-plot-ready {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.6rem;
+  padding: 0.12rem 0.5rem;
+  color: var(--color-amber-950);
+  font-size: clamp(0.5rem, 1.2vh, 0.66rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-amber-400);
+  border-radius: 999px;
+  box-shadow: 0 0 0.9rem rgb(251 191 36 / 45%);
+}
+
+/* Level pips, one per level the building can reach. */
+.camp-plot-level {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.camp-plot-level i {
+  display: block;
+  width: 0.42rem;
+  height: 0.42rem;
+  background: rgb(var(--accent-rgb) / 14%);
+  border: 1px solid rgb(var(--accent-rgb) / 40%);
+  border-radius: 50%;
+}
+
+.camp-plot-level i[data-lit='true'] {
+  background: var(--accent);
+  border-color: var(--accent-contrast);
+  box-shadow: 0 0 0.4rem rgb(var(--accent-rgb) / 70%);
+}
+
+/* The side of the screen: the inspector with a plot open, the roster with
+   none. One box, always there on a desktop, so the ground never changes
+   size when a building is opened; the panel inside it fades in place. */
+.camp-side {
+  display: flex;
+  flex: 0 0 min(30rem, 42%);
+  flex-direction: column;
+  animation: camp-side-in 220ms ease;
+}
+
+.camp-roster-list {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-roster-champion {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  padding: clamp(0.26rem, 0.7vh, 0.4rem) clamp(0.45rem, 1vh, 0.65rem);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.35rem;
+  cursor: default;
+}
+
+.camp-roster-champion[data-working='true'] {
+  border-color: rgb(251 191 36 / 30%);
+  cursor: pointer;
+}
+
+.camp-roster-champion[data-working='true']:hover,
+.camp-roster-champion[data-working='true']:focus-visible {
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 16%), transparent 70%),
+    rgb(0 0 0 / 30%);
+  border-color: rgb(var(--accent-rgb) / 55%);
+}
+
+.camp-roster-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.camp-roster-copy strong {
+  display: block;
+  color: var(--color-slate-50);
+  font-size: clamp(0.7rem, 1.6vh, 0.9rem);
+  line-height: 1.2;
+}
+
+.camp-roster-copy > span {
+  display: block;
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  line-height: 1.25;
+}
+
+.camp-roster-champion[data-working='true'] .camp-roster-copy > span {
+  color: var(--color-amber-200);
+}
+
+/* The inspector: one building, everything it can do, beside the plots. */
+.camp-inspector,
+.camp-roster {
+  gap: clamp(0.3rem, 1vh, 0.6rem);
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(0.5rem, 1.4vh, 0.9rem) clamp(0.6rem, 1.6vh, 1rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 40%),
+    linear-gradient(180deg, rgb(10 16 14 / 94%), rgb(4 8 7 / 97%));
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.6rem;
+  box-shadow:
+    inset 0 1px rgb(var(--accent-rgb) / 32%),
+    0 1.2rem 3rem rgb(0 0 0 / 55%);
+  backdrop-filter: blur(0.6rem);
+}
+
+.camp-inspector-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  margin: calc(-1 * clamp(0.5rem, 1.4vh, 0.9rem)) calc(-1 * clamp(0.6rem, 1.6vh, 1rem)) 0;
+  padding: clamp(0.45rem, 1.2vh, 0.75rem) clamp(0.6rem, 1.6vh, 1rem);
+  background: var(--plank);
+  border-bottom: 1px solid var(--plank-edge);
+  border-radius: 0.6rem 0.6rem 0 0;
+  box-shadow: inset 0 1px rgb(255 255 255 / 8%), inset 0 -1px rgb(0 0 0 / 50%);
+}
+
+.camp-inspector-heading .screen-kicker {
+  color: var(--color-amber-300);
+}
+
+.camp-inspector-heading h3 {
+  margin: 0.1rem 0 0;
+  color: var(--plank-ink);
+  font-size: clamp(0.95rem, 2.2vh, 1.3rem);
+  letter-spacing: -0.03em;
+}
+
+/* The building itself, standing at the foot of its ledger. */
+.camp-inspector-portrait {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  align-items: end;
+  justify-items: center;
+  min-height: 0;
+  margin: 0 calc(-1 * clamp(0.6rem, 1.6vh, 1rem)) calc(-1 * clamp(0.5rem, 1.4vh, 0.9rem));
+  padding: 0 clamp(0.6rem, 1.6vh, 1rem) 0;
+  overflow: hidden;
+  border-radius: 0 0 0.6rem 0.6rem;
+}
+
+.camp-inspector-portrait::before {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 70%;
+  content: '';
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgb(251 191 36 / 18%), transparent 70%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.camp-inspector-portrait[data-built='true']::before {
+  opacity: 1;
+}
+
+.camp-inspector-portrait[data-plot='rift-anchor']::before {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgb(167 139 250 / 22%), transparent 70%);
+}
+
+.camp-inspector-portrait[data-plot='forge']::before {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgb(249 115 22 / 22%), transparent 70%);
+}
+
+.camp-inspector-portrait .camp-plot-art {
+  width: min(100%, 22rem);
+  height: auto;
+  max-height: clamp(4rem, 22vh, 13rem);
+}
+
+.camp-inspector-portrait[data-built='false'] .camp-plot-art {
+  opacity: 0.3;
+  filter: grayscale(0.9);
+}
+
+.camp-inspector-close {
+  display: grid;
+  width: clamp(1.6rem, 3.4vh, 2.1rem);
+  height: clamp(1.6rem, 3.4vh, 2.1rem);
+  place-items: center;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.camp-inspector-close:hover,
+.camp-inspector-close:focus-visible {
+  color: var(--color-slate-50);
+  border-color: rgb(var(--accent-rgb) / 60%);
+}
+
+.camp-inspector-body {
+  display: grid;
+  flex: 0 1 auto;
+  align-content: start;
+  gap: clamp(0.3rem, 1vh, 0.6rem);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.camp-inspector-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.45vh, 0.82rem);
+  line-height: 1.35;
+}
+
+.camp-upgrade-top {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.35vh, 0.76rem);
+  font-style: italic;
+}
+
+/* A class, as its initial on a badge. */
+.camp-class-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.4rem, 3.2vh, 1.9rem);
+  height: clamp(1.4rem, 3.2vh, 1.9rem);
+  place-items: center;
+  color: var(--plank-ink);
+  font-size: clamp(0.62rem, 1.5vh, 0.85rem);
+  font-weight: 900;
+  background: var(--plank);
+  border: 1px solid var(--plank-edge);
+  border-radius: 50%;
+  box-shadow: inset 0 1px rgb(255 255 255 / 8%), inset 0 -1px rgb(0 0 0 / 50%);
+}
+
+/* The sheet as meters over the line. */
+.camp-sheet {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.camp-sheet-meters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  max-width: 18rem;
+}
+
+.camp-sheet-meter {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.camp-sheet-meter small {
+  color: var(--text-muted);
+  font-size: clamp(0.48rem, 1.1vh, 0.6rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.camp-sheet-meter i {
+  display: block;
+  height: 0.3rem;
+  background: rgb(var(--accent-rgb) / 55%);
+  border-radius: 999px;
+  box-shadow: 0 0 0.4rem rgb(var(--accent-rgb) / 30%);
+}
+
+.camp-sheet-meter[data-share='mid'] i {
+  background: var(--accent);
+}
+
+.camp-sheet-meter[data-share='high'] i {
+  background: var(--color-amber-300);
+  box-shadow: 0 0 0.5rem rgb(251 191 36 / 55%);
+}
+
+/* The ladder of a building's levels. */
+.camp-ladder {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-rung {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  border-top: 1px dashed transparent;
+  padding: clamp(0.18rem, 0.5vh, 0.3rem) clamp(0.35rem, 0.9vh, 0.55rem);
+  border-radius: 0.3rem;
+}
+
+.camp-rung[data-state='built'] {
+  background: rgb(var(--accent-rgb) / 7%);
+}
+
+.camp-rung[data-state='next'] {
+  padding-top: clamp(0.3rem, 0.9vh, 0.5rem);
+  padding-bottom: clamp(0.3rem, 0.9vh, 0.5rem);
+  border-top-color: rgb(var(--accent-rgb) / 24%);
+}
+
+.camp-rung .camp-upgrade-action {
+  margin-left: auto;
+}
+
+.camp-rung[data-state='later'] {
+  opacity: 0.55;
+}
+
+.camp-rung-level {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.2rem, 2.8vh, 1.6rem);
+  height: clamp(1.2rem, 2.8vh, 1.6rem);
+  place-items: center;
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.35vh, 0.76rem);
+  font-weight: 900;
+  border: 1px solid rgb(var(--accent-rgb) / 35%);
+  border-radius: 50%;
+}
+
+.camp-rung[data-state='built'] .camp-rung-level {
+  color: var(--color-slate-950);
+  background: var(--accent);
+  border-color: var(--accent-contrast);
+  box-shadow: 0 0 0.5rem rgb(var(--accent-rgb) / 60%);
+}
+
+.camp-rung[data-state='next'] .camp-rung-level {
+  color: var(--color-amber-200);
+  border-color: rgb(251 191 36 / 60%);
+}
+
+.camp-rung-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.08rem;
+  min-width: 0;
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  line-height: 1.25;
+}
+
+.camp-rung-copy strong {
+  color: var(--color-slate-50);
+  font-size: clamp(0.62rem, 1.4vh, 0.8rem);
+}
+
+.camp-rung-copy small,
+.camp-rung-copy .camp-cost {
+  color: var(--text-muted);
+}
+
+/* The rows inside the inspector: workers, recipes, the pickers. */
+.camp-workers,
+.camp-picker-list,
+.camp-recipes {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-worker,
+.camp-picker-option,
+.camp-recipe {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  padding: clamp(0.26rem, 0.7vh, 0.4rem) clamp(0.45rem, 1vh, 0.65rem);
+  text-align: left;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.35rem;
+}
+
+.camp-worker-copy,
+.camp-picker-copy,
+.camp-recipe-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.camp-worker-copy strong,
+.camp-picker-copy strong,
+.camp-recipe-copy strong {
+  display: block;
+  color: var(--color-slate-50);
+  font-size: clamp(0.7rem, 1.6vh, 0.9rem);
+  line-height: 1.2;
+}
+
+.camp-worker-pending small,
+.camp-picker-copy > span:not(.camp-sheet-line):not(.camp-cost),
+.camp-recipe-copy .camp-cost {
+  display: block;
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  line-height: 1.25;
+}
+
+.camp-sheet-line {
+  display: block;
+  overflow: hidden;
+  color: var(--accent-contrast);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.camp-worker .camp-sheet-line {
+  white-space: normal;
+}
+
+.camp-worker-pending {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  text-align: right;
+}
+
+.camp-worker-pending strong {
+  color: var(--color-amber-200);
+  font-size: clamp(0.9rem, 2.1vh, 1.2rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.camp-picker {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  justify-items: end;
+}
+
+.camp-picker-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.6rem, 1.4vh, 0.78rem);
+  justify-self: start;
+}
+
+.camp-picker-list {
+  width: 100%;
+}
+
+.camp-picker-option {
+  font: inherit;
+  cursor: pointer;
+}
+
+.camp-picker-option:hover:not(:disabled),
+.camp-picker-option:focus-visible {
+  border-color: rgb(var(--accent-rgb) / 55%);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 16%), transparent 70%),
+    rgb(0 0 0 / 30%);
+}
+
+.camp-picker-option.exhausted .camp-picker-copy > span:not(.camp-sheet-line):not(.camp-cost) {
+  color: var(--color-amber-300);
+}
+
+.camp-picker-send {
+  flex: 0 0 auto;
+  color: var(--color-amber-200);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.camp-recipe-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.3rem, 3vh, 1.9rem);
+  height: clamp(1.3rem, 3vh, 1.9rem);
+  place-items: center;
+  font-size: clamp(0.9rem, 2vh, 1.3rem);
+}
+
+/* The price of the next level against what the bag holds. */
+.camp-upgrade-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: clamp(0.25rem, 0.8vh, 0.5rem);
+  border-top: 1px dashed rgb(var(--accent-rgb) / 24%);
+}
+
+.camp-upgrade-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  line-height: 1.25;
+}
+
+.camp-upgrade-copy strong {
+  color: var(--color-slate-50);
+  font-size: clamp(0.64rem, 1.45vh, 0.82rem);
+}
+
+.camp-cost {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.camp-cost span[data-short='true'] {
+  color: var(--color-amber-300);
+}
+
+.camp-fish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+}
+
+.camp-fish-actions .camp-send-action {
+  flex: 1 1 10rem;
+}
+
+/* The lights in the pictures. */
+@keyframes camp-lantern-breathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+@keyframes camp-live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes camp-smoke-rise {
+  0% { transform: translateY(0) scale(0.8); opacity: 0.45; }
+  100% { transform: translateY(-10px) scale(1.3); opacity: 0; }
+}
+
+@keyframes camp-coals-flicker {
+  0%, 100% { opacity: 0.85; }
+  35% { opacity: 1; }
+  70% { opacity: 0.7; }
+}
+
+/* Out along the path with a bundle, a moment at the door, and back. The
+   points are the path's: the Woodline's foot, the fork, the Storehouse. */
+@keyframes camp-haul-woodline {
+  0% { left: 13%; top: 46%; scale: 1 1; }
+  20% { left: 27%; top: 56%; scale: 1 1; }
+  38% { left: 46%; top: 62%; scale: 1 1; }
+  48% { left: 46%; top: 44%; scale: 1 1; }
+  52% { left: 46%; top: 44%; scale: -1 1; }
+  62% { left: 46%; top: 62%; scale: -1 1; }
+  80% { left: 27%; top: 56%; scale: -1 1; }
+  98% { left: 13%; top: 46%; scale: -1 1; }
+  100% { left: 13%; top: 46%; scale: 1 1; }
+}
+
+@keyframes camp-haul-quarry {
+  0% { left: 88%; top: 44%; scale: -1 1; }
+  16% { left: 69%; top: 49%; scale: -1 1; }
+  38% { left: 46%; top: 62%; scale: -1 1; }
+  48% { left: 46%; top: 44%; scale: -1 1; }
+  52% { left: 46%; top: 44%; scale: 1 1; }
+  62% { left: 46%; top: 62%; scale: 1 1; }
+  84% { left: 69%; top: 49%; scale: 1 1; }
+  98% { left: 88%; top: 44%; scale: 1 1; }
+  100% { left: 88%; top: 44%; scale: -1 1; }
+}
+
+@keyframes camp-haul-bundle {
+  0%, 47% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes camp-claim-glow {
+  0%, 100% { box-shadow: 0 0 1.2rem rgb(251 191 36 / 12%); }
+  50% { box-shadow: 0 0 1.6rem rgb(251 191 36 / 45%), 0 0 0.4rem rgb(251 191 36 / 40%); }
+}
+
+@keyframes camp-side-in {
+  from { opacity: 0; transform: translateX(0.4rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes camp-mist-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(4%); }
+}
+
+@keyframes camp-firefly {
+  0% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: 0.9; }
+  50% { opacity: 0.3; transform: translate(1.2rem, -0.9rem); }
+  70% { opacity: 0.85; }
+  100% { opacity: 0; transform: translate(2.2rem, 0.4rem); }
+}
+
+/* A figure walks its ground line: out, a pause, a turn, and back. The turn
+   is a flip, so the lantern changes hands. */
+@keyframes camp-worker-walk {
+  0% { transform: translateX(0) scaleX(1); }
+  38% { transform: translateX(var(--walk)) scaleX(1); }
+  44% { transform: translateX(var(--walk)) scaleX(1); }
+  50% { transform: translateX(var(--walk)) scaleX(-1); }
+  88% { transform: translateX(0) scaleX(-1); }
+  94% { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+@keyframes camp-rift-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.25); }
+}
+
+.camp-plot-art[data-built='true'] .camp-art-smoke {
+  animation: camp-smoke-rise 3.2s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.camp-plot-art[data-built='true'] .camp-art-smoke-two { animation-delay: 1.1s; }
+.camp-plot-art[data-built='true'] .camp-art-smoke-three { animation-delay: 2.2s; }
+
+.camp-plot-art[data-built='true'] .camp-art-coals {
+  animation: camp-coals-flicker 1.6s ease-in-out infinite;
+}
+
+.camp-plot-art[data-built='true'] .camp-art-pulse {
+  animation: camp-rift-pulse 2.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.camp-plot-art[data-built='true'] .camp-art-lantern {
+  animation: camp-coals-flicker 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camp-plot-glow,
+  .camp-firefly,
+  .camp-mist,
+  .camp-plot-workers i,
+  .camp-plot-workers i::after,
+  .camp-live-dot,
+  .camp-art-smoke,
+  .camp-art-coals,
+  .camp-art-pulse,
+  .camp-art-lantern {
+    animation: none !important;
+  }
+
+  .camp-plot,
+  .camp-plot-ground {
+    transition: none;
+  }
+
+  .camp-side,
+  .camp-claim-action,
+  .camp-title-lantern,
+  .camp-furniture-piece .camp-art-lantern,
+  .camp-hauler-figure::after {
+    animation: none;
+  }
+
+  .camp-haulers {
+    display: none;
+  }
+
+  .camp-firefly {
+    opacity: 0.5;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The Camp on a phone.
+
+   Still a screen, not a document: the plots stand two abreast in four rows
+   and the inspector is a sheet that rises over them from the bottom, closed
+   from its own button. The sheet may scroll, as the pond's drawer does; the
+   screen behind it never does.
+   --------------------------------------------------------------------------- */
+@media (max-width: 47rem), (max-height: 34rem) {
+  .camp-hud {
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+  }
+
+  .camp-scene-header .screen-kicker {
+    display: none;
+  }
+
+  .camp-scene-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .camp-scene-subline {
+    margin-top: 0.15rem;
+    font-size: 0.66rem;
+  }
+
+  .camp-hud-topbar {
+    display: grid;
+    grid-template-areas:
+      'title claim back'
+      'ledger ledger ledger';
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.4rem 0.4rem;
+    align-items: center;
+  }
+
+  .camp-scene-header {
+    grid-area: title;
+  }
+
+  .camp-topbar-actions {
+    display: contents;
+  }
+
+  .camp-claim-action {
+    grid-area: claim;
+  }
+
+  .camp-back-action {
+    grid-area: back;
+  }
+
+  .camp-ledger {
+    grid-area: ledger;
+  }
+
+  .camp-ledger {
+    gap: 0.25rem;
+  }
+
+  .camp-ledger li {
+    min-height: 1.6rem;
+    padding: 0 0.45rem 0 0.35rem;
+  }
+
+  .camp-ledger-name {
+    display: none;
+  }
+
+  /*
+   * Placed on a phone too: two columns, the right one half a step lower
+   * than the left, so the buildings stand along a path that winds up
+   * between them rather than in a grid. The same shares of the ground as
+   * the desktop uses, in a different arrangement.
+   */
+  .camp-path path {
+    display: none;
+    stroke-width: 44px;
+  }
+
+  .camp-path .camp-path-phone {
+    display: block;
+  }
+
+  .camp-plots > li[data-plot='woodline'] { top: 0; left: 0; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='quarry'] { top: 6%; left: 53%; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='storehouse'] { top: 25%; left: 1%; width: 46%; height: 23%; }
+  .camp-plots > li[data-plot='rift-anchor'] { top: 31%; left: 54%; width: 45%; height: 23%; }
+  .camp-plots > li[data-plot='tackle-bench'] { top: 50%; left: 0; width: 47%; height: 23%; }
+  .camp-plots > li[data-plot='smokehouse'] { top: 56%; left: 53%; width: 46%; height: 23%; }
+  .camp-plots > li[data-plot='forge'] { top: 75%; left: 1%; width: 46%; height: 25%; }
+  .camp-plots > li[data-plot='trophy-hall'] { top: 78%; left: 54%; width: 45%; height: 22%; }
+
+  /* Every building the same size; the slope is the stagger now. */
+  .camp-plots > li .camp-plot {
+    --plot-scale: 1;
+    gap: 0.05rem;
+    padding: 0.2rem 0.3rem 0;
+  }
+
+  .camp-plot-art {
+    max-width: 100%;
+    max-height: clamp(2.6rem, 10vh, 5.4rem);
+  }
+
+  .camp-plot-copy strong {
+    font-size: 0.78rem;
+  }
+
+  .camp-plot-copy small {
+    font-size: 0.62rem;
+  }
+
+  .camp-plot-ready {
+    top: -0.6rem;
+    right: -0.4rem;
+  }
+
+  .camp-moon {
+    top: 12%;
+    right: 8%;
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+
+  .camp-roster,
+  .camp-inspector-portrait,
+  .camp-furniture-piece,
+  .camp-haulers {
+    display: none;
+  }
+
+  .camp-furniture-piece[data-piece='lantern-store'],
+  .camp-furniture-piece[data-piece='lantern-front'] {
+    display: block;
+    width: 3.5%;
+  }
+
+  .camp-furniture-piece[data-piece='lantern-store'] { --furniture-x: 48.5%; --furniture-y: 20%; }
+  .camp-furniture-piece[data-piece='lantern-front'] { --furniture-x: 48.5%; --furniture-y: 66%; }
+
+  .camp-plot-copy {
+    margin-top: 0.1rem;
+    padding: 0.15rem 0.55rem 0.2rem;
+  }
+
+  .camp-sheet-meters {
+    max-width: 14rem;
+  }
+
+  .camp-inspector {
+    position: absolute;
+    z-index: 3;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    flex: none;
+    animation: none;
+    max-height: min(100%, 34rem);
+    padding: 0.7rem 0.75rem 0.8rem;
+    border-radius: 0.7rem 0.7rem 0 0;
+  }
+
+  .camp-claim-action,
+  .camp-send-action,
+  .camp-recall-action,
+  .camp-picker-cancel,
+  .camp-upgrade-action {
+    min-height: 2.4rem;
+  }
+
+  .camp-worker,
+  .camp-picker-option {
+    flex-wrap: wrap;
+  }
+
+  .camp-sheet-line {
+    white-space: normal;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   A working Champion, wherever a Champion is listed.
+   --------------------------------------------------------------------------- */
+.champion-availability.working {
+  color: var(--color-orange-200);
+  background: rgb(124 45 18 / 35%);
+  border-color: rgb(253 186 116 / 42%);
+}
+
+/* The sheet per job on the champions page. */
+.champion-labour-sheets {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.champion-labour-sheets div {
+  display: grid;
+  grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.champion-labour-sheets dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.champion-labour-sheets dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.champion-labour-sheets .camp-sheet-line {
+  font-size: 0.8rem;
+  white-space: normal;
+}

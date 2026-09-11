@@ -65,6 +65,7 @@ describe('getMusicPlaylistId', () => {
   it('plays the hub and pond playlists on their screens', () => {
     expect(getMusicPlaylistId('dashboard', 'dungeon')).toBe('dashboard')
     expect(getMusicPlaylistId('fishing', 'dungeon')).toBe('fishing')
+    expect(getMusicPlaylistId('camp', 'dungeon')).toBe('dashboard')
   })
 
   it('plays nothing on screens without their own music', () => {

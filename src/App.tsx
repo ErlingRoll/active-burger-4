@@ -20,6 +20,10 @@ import {
 import { DEFAULT_DUNGEON_MAX_FLOOR_CONTRACT_ID } from './persistence'
 import {
   getPlayerDisplayName,
+  hasDismissedNicknamePrompt,
+  NicknameDialog,
+  rememberNicknamePromptDismissed,
+  shouldPromptForNickname,
   type AuthenticationState,
   type NicknameChangeRequest,
   type NicknameState,
@@ -29,6 +33,7 @@ import {
 import {
   type MetaRunResultInput,
 } from './meta'
+import { DEFAULT_ARTIFACT_SLOT_COUNT } from './meta/MetaProgressionService'
 import {
   normalizeWorldModifierIds,
   type WorldModifierId,
@@ -55,6 +60,7 @@ import {
 import { AppHeader } from './app/screens/AppHeader'
 import {
   LazyAdminReportsScreen,
+  LazyCampScreen,
   LazyChampionManagementScreen,
   LazyFishingScreen,
   LazyGameCanvas,
@@ -130,6 +136,29 @@ function createInitialMetaProgressionState(
       }
 }
 
+/**
+ * The signed-in account's nickname, plus what the app does about it.
+ *
+ * `loadedForAccountId` names the account the nickname was fetched for, so a
+ * stale answer from the previous account is never mistaken for the current
+ * one. `promptOpen` is decided once per load: a new account (see
+ * `shouldPromptForNickname`) is asked to pick a nickname right after signing
+ * in, on every sign-in method alike, unless it skipped the prompt on this
+ * browser before.
+ */
+interface AccountNickname extends NicknameState {
+  loadedForAccountId: string | null
+  promptOpen: boolean
+}
+
+const EMPTY_ACCOUNT_NICKNAME: AccountNickname = {
+  displayName: null,
+  pendingNickname: null,
+  hasRequestedNickname: false,
+  loadedForAccountId: null,
+  promptOpen: false,
+}
+
 function createInitialAuthenticationState(
   service: AuthenticationService | null,
   configurationError: string | null,
@@ -163,6 +192,7 @@ function App() {
     fishing,
     hubPresence,
     bugReport,
+    camp,
   } = services
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
@@ -170,10 +200,7 @@ function App() {
       authenticationService.configurationError,
     ),
   )
-  const [nickname, setNickname] = useState<NicknameState>({
-    displayName: null,
-    pendingNickname: null,
-  })
+  const [nickname, setNickname] = useState<AccountNickname>(EMPTY_ACCOUNT_NICKNAME)
   const [metaProgression, setMetaProgression] = useState<MetaProgressionState>(() =>
     createInitialMetaProgressionState(
       metaProgressionService.service,
@@ -332,7 +359,7 @@ function App() {
       // Signing out clears the cached nickname before any request is made, so the
       // stale name is never shown against the new (signed-out) account.
       // oxlint-disable-next-line react/set-state-in-effect
-      setNickname({ displayName: null, pendingNickname: null })
+      setNickname(EMPTY_ACCOUNT_NICKNAME)
       return
     }
     if (!service) {
@@ -347,11 +374,18 @@ function App() {
     void service.loadOwnNickname(accountId)
       .then((loadedNickname) => {
         if (!cancelled) {
-          setNickname(loadedNickname)
+          setNickname({
+            ...loadedNickname,
+            loadedForAccountId: accountId,
+            promptOpen: shouldPromptForNickname(loadedNickname) &&
+              !hasDismissedNicknamePrompt(accountId),
+          })
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
+          // The load has settled, just without an answer: nothing to prompt for.
+          setNickname({ ...EMPTY_ACCOUNT_NICKNAME, loadedForAccountId: accountId })
           setAuthentication((current) => ({
             ...current,
             error: `Unable to load nickname settings: ${errorMessage(error)}`,
@@ -636,6 +670,8 @@ function App() {
     setNickname((current) => ({
       ...current,
       pendingNickname: requestedNickname,
+      hasRequestedNickname: true,
+      promptOpen: false,
     }))
     showToast('Nickname submitted for moderator review.', 'info')
   }, [
@@ -644,6 +680,25 @@ function App() {
     nicknameService.service,
     showToast,
   ])
+
+  const dismissNicknamePrompt = useCallback((): void => {
+    if (authentication.account) {
+      rememberNicknamePromptDismissed(authentication.account.id)
+    }
+    setNickname((current) => ({ ...current, promptOpen: false }))
+  }, [authentication.account])
+
+  /*
+   * Exposed on the shell for the tooling that signs in as the test account: it
+   * can tell a prompt that is still to come from one that will not come.
+   */
+  const nicknamePromptStatus = !authentication.account
+    ? 'closed'
+    : nickname.loadedForAccountId !== authentication.account.id
+      ? 'loading'
+      : nickname.promptOpen
+        ? 'open'
+        : 'closed'
 
   const refreshMetaProgression = useCallback((): void => {
     setMetaProgression((current) => ({
@@ -1341,13 +1396,35 @@ function App() {
     showToast,
   ])
 
+  /*
+   * A victory keeps its hold on the artifacts it was played with until a
+   * Champion takes them. Leaving the results without one, whichever way,
+   * hands them back; the server also sweeps stale holds before the next
+   * run, so a lost request here costs nothing but a delay.
+   */
+  const releaseUnclaimedArtifacts = useCallback((): void => {
+    const service = dungeonRunPersistence.service
+    const submission = activeRunSubmission
+    if (!service || submission?.outcome !== 'victory' || championSaveState === 'saved') {
+      return
+    }
+    void service.releaseRunArtifacts(submission.runId).catch(() => {
+      // Swept up by the next run start.
+    })
+  }, [activeRunSubmission, championSaveState, dungeonRunPersistence.service])
+
   const returnToDashboard = useCallback((): void => {
+    releaseUnclaimedArtifacts()
     setResult(null)
     navigateToScreen('dashboard', true)
-  }, [navigateToScreen])
+  }, [navigateToScreen, releaseUnclaimedArtifacts])
 
   const openFishing = useCallback((): void => {
     navigateToScreen('fishing')
+  }, [navigateToScreen])
+
+  const openCamp = useCallback((): void => {
+    navigateToScreen('camp')
   }, [navigateToScreen])
 
   const openChampions = useCallback((): void => {
@@ -1631,6 +1708,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1662,6 +1740,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1694,6 +1773,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1729,15 +1809,35 @@ function App() {
   }
 
   return (
-    <main className={`app-shell${
-      screen === 'gameplay'
-        ? ' app-shell-gameplay'
-        : screen === 'fishing'
-          ? ' app-shell-fishing'
-          : screen === 'dashboard'
-            ? ' app-shell-hub'
-            : ''
-    }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}>
+    <main
+      className={`app-shell${
+        screen === 'gameplay'
+          ? ' app-shell-gameplay'
+          : screen === 'fishing'
+            ? ' app-shell-fishing'
+            : screen === 'camp'
+              ? ' app-shell-camp'
+              : screen === 'dashboard'
+                ? ' app-shell-hub'
+                : ''
+      }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}
+      data-nickname-prompt={nicknamePromptStatus}
+    >
+      {screen !== 'gameplay' && nickname.promptOpen && authentication.account ? (
+        // A run in progress is not interrupted; the prompt waits for the
+        // player to come back out of the dungeon.
+        <NicknameDialog
+          title="Choose a nickname"
+          description="Pick the name other players will see. Nicknames are reviewed before appearing publicly, so offensive or hateful names cannot be published. You can change it later from account settings."
+          inputLabel="Nickname"
+          initialValue=""
+          pendingNickname={null}
+          cancelLabel="Skip for now"
+          submitLabel="Submit for review"
+          onCancel={dismissNicknamePrompt}
+          onSubmit={requestNicknameChange}
+        />
+      ) : null}
       {screen !== 'gameplay' ? (
         <AppHeader
           authentication={authentication}
@@ -1748,6 +1848,7 @@ function App() {
           onOpenAdmin={openAdmin}
           onOpenNicknameModeration={openNicknameModeration}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1774,6 +1875,7 @@ function App() {
           runLoadError={runLoadError}
           onOpenMetaProgression={openMetaProgression}
           onOpenFishing={openFishing}
+          onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
@@ -1829,7 +1931,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -1849,7 +1951,9 @@ function App() {
             inventoryError={inventory.configurationError}
             characterService={characters.service}
             characterError={characters.configurationError}
+            campService={camp.service}
             maximumDungeonFloor={metaProgression.snapshot?.dungeonMaxFloor ?? DEFAULT_DUNGEON_CONFIG.defaultMaxFloor}
+            artifactSlotCount={metaProgression.snapshot?.artifactSlotCount ?? DEFAULT_ARTIFACT_SLOT_COUNT}
             initialMode={runMode}
             onStart={startRun}
             onSelectCharacterClass={selectCharacterClass}
@@ -1888,12 +1992,25 @@ function App() {
           />
         </LazyScreen>
       ) : null}
+      {screen === 'camp' && authentication.account ? (
+        <LazyScreen label="The Camp">
+          <LazyCampScreen
+            service={camp.service}
+            configurationError={camp.configurationError}
+            characterService={characters.service}
+            inventoryService={inventory.service}
+            developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
+      ) : null}
       {screen === 'champions' && authentication.account ? (
         <LazyScreen label="Champions">
           <LazyChampionManagementScreen
             service={characters.service}
             inventoryService={inventory.service}
             inventoryError={inventory.configurationError}
+            campService={camp.service}
             configurationError={characters.configurationError}
             onBack={returnToDashboard}
           />
@@ -1965,6 +2082,7 @@ function App() {
             pendingChampionIdRef.current = null
             setChampionSaveState('discarded')
             setChampionSaveError(null)
+            releaseUnclaimedArtifacts()
           }}
           onReturn={returnToDashboard}
           onRetryTerminalSave={retryTerminalSave}

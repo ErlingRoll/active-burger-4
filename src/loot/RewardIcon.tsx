@@ -3,10 +3,27 @@ import { BaitIcon } from '../fishing/BaitIcon'
 import { FishIcon } from '../fishing/FishIcon'
 import { getFishDefinition, getFishingBaitDefinition, getFishingRodVisual } from '../fishing/FishingContent'
 import { RodIcon } from '../fishing/RodIcon'
+import { getArtifactBaseByDefinitionId } from '../content/artifacts/Artifacts'
+import { ArtifactIcon } from '../inventory/ArtifactIcon'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
-import { MaterialIcon } from '../inventory/MaterialIcon'
+import { MaterialIcon, type MaterialIconId } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from './LootBoxIcon'
 import { isLootBoxRarity } from './LootBoxes'
+
+/** Each material in the colour of the thing itself, not of the place it came from. */
+const MATERIAL_ICON_COLORS: Record<MaterialIconId, string> = {
+  scrap: 'var(--color-stone-300)',
+  timber: 'var(--color-orange-300)',
+  stone: 'var(--color-stone-400)',
+  'rift-shard': 'var(--color-violet-300)',
+  roe: 'var(--color-amber-400)',
+}
+
+function materialIconId(definitionId: string): MaterialIconId | undefined {
+  return Object.hasOwn(MATERIAL_ICON_COLORS, definitionId)
+    ? (definitionId as MaterialIconId)
+    : undefined
+}
 
 /**
  * The mark for anything that can come out of a box or sit in a slot.
@@ -32,9 +49,15 @@ export function getRewardIcon(definitionId: string): ReactNode {
     return <RodIcon icon={rod.icon} color={rod.accent} />
   }
 
+  const artifact = getArtifactBaseByDefinitionId(definitionId)
+  if (artifact) {
+    return <ArtifactIcon icon={artifact.id} color={artifact.accent} />
+  }
+
   const definition = getInventoryItemDefinition(definitionId)
-  if (definitionId === 'scrap') {
-    return <MaterialIcon icon="scrap" color="var(--color-stone-300)" />
+  const material = materialIconId(definitionId)
+  if (material) {
+    return <MaterialIcon icon={material} color={MATERIAL_ICON_COLORS[material]} />
   }
   if (definition?.category === 'loot-box') {
     const rarity = definitionId.replace('loot-box-', '')

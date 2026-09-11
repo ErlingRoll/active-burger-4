@@ -101,6 +101,7 @@ interface AdventureHubSceneProps {
   onOpenRunSetup: () => void
   onOpenMetaProgression: () => void
   onOpenFishing: () => void
+  onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
@@ -175,6 +176,7 @@ export function AdventureHubScene({
   onOpenRunSetup,
   onOpenMetaProgression,
   onOpenFishing,
+  onOpenCamp,
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
@@ -758,29 +760,14 @@ export function AdventureHubScene({
             </header>
 
             <div className="hub-left-dock">
-              <div className="hub-utility-stations" aria-label="Camp facilities">
-                <button className="hub-station hub-station-inventory" type="button" onClick={onOpenInventory} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">▣</span>
-                  <span><strong>Inventory</strong><small>Fish, gear, and loot</small></span>
-                </button>
-                <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">≈</span>
-                  <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
-                </button>
-                <button className="hub-station hub-station-champions" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">◆</span>
-                  <span><strong>Champions</strong><small>Saved builds</small></span>
-                </button>
-                <button className="hub-station hub-station-shop" type="button" onClick={onOpenShop} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">⇄</span>
-                  <span><strong>Quartermaster</strong><small>Buy and sell supplies</small></span>
-                </button>
-                <button className="hub-station hub-station-chronicle" type="button" onClick={onOpenRunHistory} disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">✦</span>
-                  <span><strong>Chronicle</strong><small>Runs already ended</small></span>
-                </button>
-              </div>
-
+              {/*
+                Three distances from the fire. The gate is what a player came
+                for and stands first and largest. The pond and the camp are the
+                life of the refuge between descents, and keep a station each.
+                Everything else is a path out of the clearing — a name and a
+                glyph, because those are places visited now and then rather
+                than every time.
+              */}
               <section className="hub-expedition-panel" aria-labelledby="current-run-title">
                 <p className="screen-kicker">Dungeon gate</p>
                 <h3 id="current-run-title">{activeRun ? 'An expedition awaits' : 'Choose your descent'}</h3>
@@ -831,6 +818,36 @@ export function AdventureHubScene({
                   </div>
                 )}
               </section>
+
+              <div className="hub-kit-stations" aria-label="The refuge">
+                <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">≈</span>
+                  <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
+                </button>
+                <button className="hub-station hub-station-camp" type="button" onClick={onOpenCamp} disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">⌂</span>
+                  <span><strong>The Camp</strong><small>Send Champions to work</small></span>
+                </button>
+              </div>
+
+              <nav className="hub-paths" aria-label="Elsewhere in the refuge">
+                <button className="hub-path" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">◆</span>
+                  <span>Champions</span>
+                </button>
+                <button className="hub-path" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">▣</span>
+                  <span>Inventory</span>
+                </button>
+                <button className="hub-path" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">⇄</span>
+                  <span>Quartermaster</span>
+                </button>
+                <button className="hub-path" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">✦</span>
+                  <span>Chronicle</span>
+                </button>
+              </nav>
             </div>
           </div>
 

@@ -9,7 +9,9 @@ import {
 import { EssenceAmount } from '../ui/EssenceMark'
 import { useFittedItemCount } from '../ui/useFittedItemCount'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { getArtifactSalvageScrap, readArtifactMetadata } from '../content/artifacts/Artifacts'
 import { isEnchantedItemMetadata } from '../fishing/FishingContent'
+import { ArtifactEffectList } from './ArtifactEffects'
 import { isSalvageableItem } from './InventoryFilters'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
@@ -36,6 +38,12 @@ interface PaginatedInventoryGridProps {
   precedingSortComparators?: readonly InventoryItemComparator[]
   onSalvage?: (item: InventoryItemInstance) => void
   salvagingItemInstanceId?: string | null
+  /**
+   * Whether a slot wears a star. Defaults to the instance's own flag; the
+   * stores screen, which also knows the definitions the player has starred as
+   * a whole, passes its own answer.
+   */
+  isItemFavorite?: (item: InventoryItemInstance) => boolean
   /**
    * Told which slot the player has picked, so a screen with room for a detail
    * panel can show the item there instead of inside a tooltip that disappears
@@ -77,6 +85,7 @@ export function PaginatedInventoryGrid({
   precedingSortComparators,
   onSalvage,
   salvagingItemInstanceId = null,
+  isItemFavorite = (item) => item.favorite,
   onSelect,
   showTooltip = true,
   fitted = false,
@@ -102,7 +111,12 @@ export function PaginatedInventoryGrid({
   const activeItem = pageItems.find((item) => item.itemInstanceId === activeItemInstanceId) ?? null
   const tooltipItem = showTooltip ? activeItem : null
   const tooltipRarity = tooltipItem === null ? null : getInventoryItemRarity(tooltipItem)
-  const tooltipEssence = tooltipItem === null ? null : getItemEssence?.(tooltipItem) ?? null
+  const tooltipArtifact = tooltipItem === null
+    ? null
+    : readArtifactMetadata(tooltipItem.definitionId, tooltipItem.metadata)
+  const tooltipEssence = tooltipItem === null || tooltipArtifact !== null
+    ? null
+    : getItemEssence?.(tooltipItem) ?? null
 
   /*
    * The closer closes the tooltip, and only the tooltip.
@@ -199,6 +213,7 @@ export function PaginatedInventoryGrid({
           const itemName = definition?.name ?? item.definitionId
           const isActive = tooltipItem?.itemInstanceId === item.itemInstanceId
           const isUnseen = !seenItemInstanceIds.has(item.itemInstanceId)
+          const isFavorite = isItemFavorite(item)
           const tooltipId = `inventory-item-tooltip-${item.itemInstanceId}`
           return (
             <li
@@ -206,10 +221,14 @@ export function PaginatedInventoryGrid({
               data-rarity={rarity ?? undefined}
               data-enchanted={isEnchantedItemMetadata(item.metadata) ? 'true' : undefined}
               data-selected={selectedItemInstanceId === item.itemInstanceId ? 'true' : undefined}
+              data-favorite={isFavorite ? 'true' : undefined}
               key={item.itemInstanceId}
               ref={isActive ? itemTooltipAnchorRef : undefined}
               tabIndex={0}
-              aria-label={`${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}`}
+              aria-label={
+                `${itemName}, ${getItemDetail(item)}, quantity ${item.quantity}` +
+                (isFavorite ? ', favorite' : '')
+              }
               aria-describedby={isActive ? tooltipId : undefined}
               onFocus={() => showItemTooltip(item.itemInstanceId)}
               onBlur={closeItemTooltip}
@@ -225,6 +244,9 @@ export function PaginatedInventoryGrid({
               }}
             >
               <span className="inventory-item-icon" aria-hidden="true">{getItemIcon(item)}</span>
+              {isFavorite ? (
+                <span className="inventory-item-favorite" aria-hidden="true">★</span>
+              ) : null}
               <strong>{itemName}</strong>
               <small>{getItemDetail(item)}</small>
               {item.quantity > 1 ? (
@@ -284,9 +306,16 @@ export function PaginatedInventoryGrid({
                   {RARITY_VISUALS[tooltipRarity].label}
                 </span>
               )}
+              {isItemFavorite(tooltipItem) ? (
+                <span className="inventory-favorite-mark">★ Favorite</span>
+              ) : null}
             </div>
           </header>
-          <p>{getItemDetail(tooltipItem)}</p>
+          {tooltipArtifact ? (
+            <ArtifactEffectList metadata={tooltipArtifact} showFlavor />
+          ) : (
+            <p>{getItemDetail(tooltipItem)}</p>
+          )}
           <dl>
             <div>
               <dt>Quantity</dt>
@@ -300,6 +329,12 @@ export function PaginatedInventoryGrid({
               <div>
                 <dt>Salvage</dt>
                 <dd><EssenceAmount value={tooltipEssence} /></dd>
+              </div>
+            )}
+            {tooltipArtifact === null ? null : (
+              <div>
+                <dt>Salvage</dt>
+                <dd>{getArtifactSalvageScrap(tooltipArtifact.rarity)} scrap</dd>
               </div>
             )}
           </dl>

@@ -16,6 +16,7 @@ function stack(definitionId: string, quantity: number): InventoryItemInstance {
     definitionId,
     quantity,
     bound: false,
+    favorite: false,
     metadata: {},
     source: { type: 'system', id: null },
     createdAt: '2026-09-09T00:00:00.000Z',
@@ -48,6 +49,13 @@ describe('crafting recipes', () => {
     expect(countAffordableBatches([stack('scrap', 7)], recipe)).toBe(0)
     expect(countAffordableBatches([stack('scrap', 8)], recipe)).toBe(1)
     expect(countAffordableBatches([stack('scrap', 8), stack('scrap', 9)], recipe)).toBe(2)
+  })
+
+  it('affords a bench recipe only when every input is held', () => {
+    const recipe = getCraftingRecipe('river-worm-at-the-bench')!
+    expect(countAffordableBatches([stack('timber', 50)], recipe)).toBe(0)
+    expect(countAffordableBatches([stack('timber', 50), stack('scrap', 8)], recipe)).toBe(2)
+    expect(countAffordableBatches([stack('timber', 5), stack('scrap', 80)], recipe)).toBe(1)
   })
 
   it('affords nothing when the bag holds none of the input', () => {

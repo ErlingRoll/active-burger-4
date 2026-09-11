@@ -7,6 +7,7 @@ const itemRow = {
   definition_id: 'river-minnow',
   quantity: 1,
   bound: false,
+  favorite: false,
   metadata: { rarity: 'common', sizePercentile: 0.25 },
   source_type: 'fishing',
   source_id: 'fishing-attempt-1',
@@ -57,6 +58,7 @@ describe('InventoryService', () => {
       definitionId: 'river-minnow',
       quantity: 1,
       bound: false,
+      favorite: false,
       metadata: itemRow.metadata,
       source: {
         type: 'fishing',
@@ -102,6 +104,7 @@ describe('InventoryService', () => {
       return [{
         item_instance_id: 'item-1',
         essence_awarded: 2,
+        scrap_awarded: 0,
         was_processed: true,
       }]
     })
@@ -124,8 +127,71 @@ describe('InventoryService', () => {
     await expect(service.salvageItem('salvage-1', 'item-1')).resolves.toEqual({
       itemInstanceId: 'item-1',
       essenceAwarded: 2,
+      scrapAwarded: 0,
       wasProcessed: true,
     })
+  })
+
+  it('salvages a whole list in one request and reports what was kept back', async () => {
+    const rpc = vi.fn((name: string) => {
+      expect(name).toBe('salvage_inventory_items')
+      return [{
+        items_salvaged: 2,
+        items_skipped: 1,
+        essence_awarded: 14,
+        scrap_awarded: 0,
+        was_processed: true,
+      }]
+    })
+    const service = createService(fakeClient({ rpc }))
+
+    await expect(service.salvageItems('sweep-1', ['item-1', 'item-2', 'item-3'])).resolves.toEqual({
+      itemsSalvaged: 2,
+      itemsSkipped: 1,
+      essenceAwarded: 14,
+      scrapAwarded: 0,
+      wasProcessed: true,
+    })
+    expect(rpc).toHaveBeenCalledWith('salvage_inventory_items', {
+      p_operation_id: 'sweep-1',
+      p_item_instance_ids: ['item-1', 'item-2', 'item-3'],
+    })
+  })
+
+  it('refuses an empty sweep before making an RPC call', async () => {
+    const client = fakeClient()
+    const service = createService(client)
+
+    await expect(service.salvageItems('sweep-1', [])).rejects.toThrow(/at least one item/)
+    expect(client.rpc).not.toHaveBeenCalled()
+  })
+
+  it('sets a favorite on one row or on a whole definition', async () => {
+    const rpc = vi.fn((name: string, params: Record<string, unknown>) => {
+      if (name === 'set_inventory_item_favorite') {
+        return [{ item_instance_id: params.p_item_instance_id, favorite: params.p_favorite }]
+      }
+      expect(name).toBe('set_inventory_definition_favorite')
+      return [{ definition_id: params.p_definition_id, favorite: params.p_favorite }]
+    })
+    const service = createService(fakeClient({ rpc }))
+
+    await expect(service.setItemFavorite('item-1', true)).resolves.toEqual({
+      itemInstanceId: 'item-1',
+      favorite: true,
+    })
+    await expect(service.setDefinitionFavorite('scrap', false)).resolves.toEqual({
+      definitionId: 'scrap',
+      favorite: false,
+    })
+  })
+
+  it('loads the definitions the player has starred as a whole', async () => {
+    const service = createService(fakeClient({
+      inventory: [{ definition_id: 'scrap' }, { definition_id: 'timber' }],
+    }))
+
+    await expect(service.loadFavoriteDefinitionIds()).resolves.toEqual(['scrap', 'timber'])
   })
 
   it('sends only the recipe and batch count when crafting', async () => {
@@ -180,6 +246,7 @@ describe('InventoryService', () => {
         definition_id: 'loot-box-common',
         quantity: 3,
         bound: false,
+        favorite: false,
         metadata: {},
         source_type: 'system',
         source_id: 'development-menu',
@@ -198,6 +265,7 @@ describe('InventoryService', () => {
       definitionId: 'loot-box-common',
       quantity: 3,
       bound: false,
+      favorite: false,
       metadata: {},
       source: {
         type: 'system',

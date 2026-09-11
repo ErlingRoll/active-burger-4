@@ -38,7 +38,9 @@ data-driven and must be playtested against completed Champions; if it makes the
 mode inaccessible, HP and damage may be tuned independently.
 
 The Abyss does not grant normal enemy XP or normal equipment choices, and it
-pays no Essence: its reward is depth, the floor's loot box, and the score. World
+pays no Essence: its reward is depth, the floor's loot box and rift shards, and
+the score. The run stats count the shards banked so far and what the floor in
+play adds, where a dungeon run counts its Essence. World
 modifiers do not apply either — they are the dungeon's trade of difficulty for a
 larger Essence reward, and there is no Essence here to enlarge. It may reuse
 combat, movement, floor, and boss systems from dungeon runs, but all
@@ -86,6 +88,15 @@ completed floors are retained if the attempt ends later.
 Box rarity has a floor-based probability curve that increases until floor 100
 and remains capped after floor 100. Higher Danger Score may improve the curve
 within its configured limits, but it must not bypass the floor-100 cap.
+
+The odds are shown in play: the top-right corner of the Abyss HUD lists the
+chance of each box rarity for the floor currently being fought, so pushing one
+floor deeper is a choice made against a known reward rather than a surprise.
+On every 10th floor the panel shows the milestone promise instead: at least an
+epic box, and a legendary chance of the floor's own curve value plus five
+points.
+The client derives the table from the same cutoff formula the server-side grant
+uses, and a unit test holds the two client halves together.
 
 Normal dungeon loot boxes may drop only up to Rare rarity. Abyss boxes may use
 Epic and Legendary tables once those tables are implemented.

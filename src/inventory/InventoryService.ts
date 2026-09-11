@@ -14,7 +14,10 @@ import type {
   InventoryReservationLine,
   InventoryReservationResult,
   InventoryCraftResult,
+  InventoryDefinitionFavoriteResult,
+  InventoryItemFavoriteResult,
   InventorySalvageResult,
+  InventorySalvageSweepResult,
   InventoryService,
   InventorySourceType,
 } from './InventoryTypes'
@@ -24,6 +27,7 @@ interface InventoryItemRow {
   definition_id: string
   quantity: number
   bound: boolean
+  favorite: boolean
   metadata: Record<string, unknown>
   source_type: InventorySourceType
   source_id: string | null
@@ -66,7 +70,30 @@ interface RpcReleaseRow {
 interface RpcSalvageRow {
   item_instance_id: string
   essence_awarded: number
+  scrap_awarded: number
   was_processed: boolean
+}
+
+interface RpcSalvageSweepRow {
+  items_salvaged: number
+  items_skipped: number
+  essence_awarded: number
+  scrap_awarded: number
+  was_processed: boolean
+}
+
+interface RpcItemFavoriteRow {
+  item_instance_id: string
+  favorite: boolean
+}
+
+interface RpcDefinitionFavoriteRow {
+  definition_id: string
+  favorite: boolean
+}
+
+interface FavoriteDefinitionRow {
+  definition_id: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -79,6 +106,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
 function isInventorySourceType(value: unknown): value is InventorySourceType {
@@ -98,6 +129,7 @@ function isInventoryItemRow(value: unknown): value is InventoryItemRow {
     isNonEmptyString(value.definition_id) &&
     isPositiveInteger(value.quantity) &&
     typeof value.bound === 'boolean' &&
+    typeof value.favorite === 'boolean' &&
     isRecord(value.metadata) &&
     isInventorySourceType(value.source_type) &&
     (value.source_id === null || isNonEmptyString(value.source_id)) &&
@@ -146,10 +178,34 @@ function isRpcReleaseRow(value: unknown): value is RpcReleaseRow {
 function isRpcSalvageRow(value: unknown): value is RpcSalvageRow {
   return isRecord(value) &&
     isNonEmptyString(value.item_instance_id) &&
-    typeof value.essence_awarded === 'number' &&
-    Number.isSafeInteger(value.essence_awarded) &&
-    value.essence_awarded >= 0 &&
+    isNonNegativeInteger(value.essence_awarded) &&
+    isNonNegativeInteger(value.scrap_awarded) &&
     typeof value.was_processed === 'boolean'
+}
+
+function isRpcSalvageSweepRow(value: unknown): value is RpcSalvageSweepRow {
+  return isRecord(value) &&
+    isNonNegativeInteger(value.items_salvaged) &&
+    isNonNegativeInteger(value.items_skipped) &&
+    isNonNegativeInteger(value.essence_awarded) &&
+    isNonNegativeInteger(value.scrap_awarded) &&
+    typeof value.was_processed === 'boolean'
+}
+
+function isRpcItemFavoriteRow(value: unknown): value is RpcItemFavoriteRow {
+  return isRecord(value) &&
+    isNonEmptyString(value.item_instance_id) &&
+    typeof value.favorite === 'boolean'
+}
+
+function isRpcDefinitionFavoriteRow(value: unknown): value is RpcDefinitionFavoriteRow {
+  return isRecord(value) &&
+    isNonEmptyString(value.definition_id) &&
+    typeof value.favorite === 'boolean'
+}
+
+function isFavoriteDefinitionRow(value: unknown): value is FavoriteDefinitionRow {
+  return isRecord(value) && isNonEmptyString(value.definition_id)
 }
 
 interface RpcCraftRow {
@@ -219,6 +275,7 @@ function toItemInstance(row: InventoryItemRow): InventoryItemInstance {
     definitionId: row.definition_id,
     quantity: row.quantity,
     bound: row.bound,
+    favorite: row.favorite,
     metadata: row.metadata,
     source: {
       type: row.source_type,
@@ -282,6 +339,8 @@ export function createInventoryService(
         definitionId: row.definition_id,
         quantity: row.quantity,
         bound: row.bound,
+        // A row that has just been granted has not been set aside by anyone.
+        favorite: false,
         metadata: row.metadata,
         source: {
           type: row.source_type,
@@ -372,6 +431,63 @@ export function createInventoryService(
       }
     },
 
+    async loadFavoriteDefinitionIds(): Promise<string[]> {
+      const response = await getClient()
+        .from('inventory_favorite_definitions')
+        .select('definition_id')
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || !response.data.every(isFavoriteDefinitionRow)) {
+        throw invalidResponse('expected favorite definition rows')
+      }
+      return response.data.map((row) => row.definition_id)
+    },
+
+    async setItemFavorite(
+      itemInstanceId: string,
+      favorite: boolean,
+    ): Promise<InventoryItemFavoriteResult> {
+      if (!isNonEmptyString(itemInstanceId)) {
+        throw new Error('Inventory item instance ID must be non-empty.')
+      }
+      const response = await getClient().rpc('set_inventory_item_favorite', {
+        p_item_instance_id: itemInstanceId,
+        p_favorite: favorite,
+      })
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isRpcItemFavoriteRow(response.data[0])) {
+        throw invalidResponse('expected one favorited item row')
+      }
+      const row = response.data[0]
+      return { itemInstanceId: row.item_instance_id, favorite: row.favorite }
+    },
+
+    async setDefinitionFavorite(
+      definitionId: string,
+      favorite: boolean,
+    ): Promise<InventoryDefinitionFavoriteResult> {
+      if (!isNonEmptyString(definitionId)) {
+        throw new Error('Inventory item definition ID must be non-empty.')
+      }
+      const response = await getClient().rpc('set_inventory_definition_favorite', {
+        p_definition_id: definitionId,
+        p_favorite: favorite,
+      })
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isRpcDefinitionFavoriteRow(response.data[0])) {
+        throw invalidResponse('expected one favorited definition row')
+      }
+      const row = response.data[0]
+      return { definitionId: row.definition_id, favorite: row.favorite }
+    },
+
     async salvageItem(
       operationId: InventoryOperationId,
       itemInstanceId: string,
@@ -400,6 +516,37 @@ export function createInventoryService(
       return {
         itemInstanceId: row.item_instance_id,
         essenceAwarded: row.essence_awarded,
+        scrapAwarded: row.scrap_awarded,
+        wasProcessed: row.was_processed,
+      }
+    },
+
+    async salvageItems(
+      operationId: InventoryOperationId,
+      itemInstanceIds: readonly string[],
+    ): Promise<InventorySalvageSweepResult> {
+      assertOperationId(operationId)
+      assertItems(itemInstanceIds)
+      if (!itemInstanceIds.every(isNonEmptyString)) {
+        throw new Error('Inventory item instance ID must be non-empty.')
+      }
+      const response = await getClient().rpc('salvage_inventory_items', {
+        p_operation_id: operationId,
+        p_item_instance_ids: [...itemInstanceIds],
+      })
+      if (response.error) {
+        throw response.error
+      }
+      if (!Array.isArray(response.data) || response.data.length !== 1 ||
+        !isRpcSalvageSweepRow(response.data[0])) {
+        throw invalidResponse('expected one salvage sweep row')
+      }
+      const row = response.data[0]
+      return {
+        itemsSalvaged: row.items_salvaged,
+        itemsSkipped: row.items_skipped,
+        essenceAwarded: row.essence_awarded,
+        scrapAwarded: row.scrap_awarded,
         wasProcessed: row.was_processed,
       }
     },

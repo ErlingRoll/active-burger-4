@@ -70,17 +70,23 @@ content registry, not in engine code.
 
 | Material | Primary source | Primary sinks |
 | --- | --- | --- |
-| Scrap | Salvaging run gear and duplicate loot-box items | Forge recipes, storage and slot upgrades |
+| Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, the Forge and its artifact rerolls |
 | Timber and stone | Camp passive production | Building construction and upgrades |
-| Roe | Gutting fish | Bait crafting, smokehouse meals |
-| Rift shard | Abyss floor boxes and deep-floor contracts | Artifact rerolls, top-tier buildings |
+| Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
+| Rift shard | Abyss floors, deep-floor contracts later | The Rift anchor and the Forge's artifact rerolls |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
 the workbench on the bag spends eight of it on a River Worm. Only dungeon runs
 pay: an Abyss attempt wears a Champion's saved gear, which does not change
 between attempts, so paying for it would be a faucet one loadout could run
-forever. The other three families are still proposals.
+forever. Timber and stone are live too: Champions sent to the Woodline and
+the quarry produce them while the player is away, up to the Storehouse's cap,
+and the Storehouse, the Woodline, the quarry, the tackle bench, the Rift anchor
+and the Smokehouse are their sinks: each next level is bought with them, and the bench spends timber
+alongside scrap on bait. Roe is live, gutted from fish at the Smokehouse and
+spent there to cure a meal fish. Rift shards are live, paid by every completed
+Abyss floor and spent on the Rift anchor.
 
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,

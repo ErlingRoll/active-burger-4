@@ -190,7 +190,9 @@ species range, so larger species can weigh several kilograms or more:
 | Star Koi | 4.00–24.00 kg |
 
 Most fish have no enchantment. Rod Enchanter rolls use a deterministic
-server-side chance of 1% to 5% based on rod rarity. Enchantments initially apply
+server-side chance of 1% to 5% based on rod rarity. The Camp's Smokehouse is
+the second source: curing a meal fish with roe raises its enchantment a tier,
+and gutting a fish there destroys it for roe. Enchantments initially apply
 only to run-meal-eligible fish; Revival Koi remains reserved for Champion
 recovery.
 
@@ -236,6 +238,22 @@ size factor = 0.5 + normalized size percentile
 enchantment factor = 1 + enchantment value / 100, or 1 when unenchanted
 essence = floor(base value * size factor * enchantment factor)
 ```
+
+#### Salvage sweep and favorites
+
+The Inventory screen can also salvage many items at once. The player picks a
+rarity ceiling (Common, Uncommon, or Rare; Epic and Legendary are never swept),
+and the sweep takes every fish and rod at or below it in one request to
+`salvage_inventory_items`. The server prices each instance with the same
+formula as a single salvage, in one transaction under one operation ID.
+
+A favorite is kept out of every sweep. A rod or fish is favorited as the one
+row it is (`inventory_item_instances.favorite`); a stackable item is favorited
+by definition (`inventory_favorite_definitions`) so rows granted later are
+covered too. The server enforces favorites and reports how many items it kept
+back, so a stale shelf cannot salvage what the player set aside. Favoriting
+does not lock an item: a single, confirmed salvage of a favorite still goes
+through.
 
 Fish definitions store their authoritative rarity on the server, and a fish
 must contain a normalized size from `0` through `1`. Invalid fish metadata is

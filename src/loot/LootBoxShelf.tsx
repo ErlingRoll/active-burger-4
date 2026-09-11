@@ -16,7 +16,7 @@ import {
 } from './LootBoxContents'
 import { LootBoxIcon } from './LootBoxIcon'
 import { getAbyssLootBoxRarityLabel, type LootBoxRarity } from './LootBoxes'
-import type { LootBoxStack } from './LootBoxStacks'
+import { MAX_LOOT_BOXES_PER_OPENING, type LootBoxStack } from './LootBoxStacks'
 import { getRewardIcon } from './RewardIcon'
 
 interface LootBoxShelfProps {
@@ -24,7 +24,8 @@ interface LootBoxShelfProps {
   /** Names the list for assistive technology, and its pager after it. */
   label: string
   opening: boolean
-  onOpen: (stack: LootBoxStack) => void
+  /** Open `count` boxes of the kind, never more than the stack holds. */
+  onOpen: (stack: LootBoxStack, count: number) => void
 }
 
 /**
@@ -33,6 +34,11 @@ interface LootBoxShelfProps {
  * The contents of a box were knowable only by opening one, which is the sort
  * of thing that reads as a slot machine rather than as a game. The card names
  * every drop and its chance, taken from the table the server rolls against.
+ *
+ * Each row offers one box or a batch. A player back from a long session with
+ * fourteen boxes should not have to press a button fourteen times and sit
+ * through fourteen reveals, so the second button opens up to ten at once, and
+ * says "Open all" when the stack has that few.
  */
 export function LootBoxShelf({ stacks, label, opening, onOpen }: LootBoxShelfProps) {
   const [activeDefinitionId, setActiveDefinitionId] = useState<string | null>(null)
@@ -93,7 +99,7 @@ interface LootBoxRowProps {
   opening: boolean
   isActive: boolean
   anchorRef: RefObject<HTMLDivElement | null>
-  onOpen: (stack: LootBoxStack) => void
+  onOpen: (stack: LootBoxStack, count: number) => void
   onShowCard: (definitionId: string) => void
   onHideCard: () => void
 }
@@ -108,6 +114,7 @@ function LootBoxRow({
   onHideCard,
 }: LootBoxRowProps) {
   const itemCount = stack.rarity === null ? 1 : getLootBoxItemCount(stack.rarity)
+  const batchCount = Math.min(stack.quantity, MAX_LOOT_BOXES_PER_OPENING)
   return (
     <div
       className="loot-box-row"
@@ -120,23 +127,40 @@ function LootBoxRow({
         {stack.rarity === null ? '▣' : <LootBoxIcon rarity={stack.rarity} />}
       </span>
       <div className="loot-box-row-copy">
-        <strong>{stack.name}</strong>
+        <span className="loot-box-row-title">
+          <strong>{stack.name}</strong>
+          <span className="loot-box-row-count">×{stack.quantity}</span>
+        </span>
         <span className="loot-box-row-detail">
           {itemCount === 1 ? '1 item' : `${itemCount} items`} inside
         </span>
       </div>
-      <span className="loot-box-row-count">×{stack.quantity}</span>
-      <button
-        className="primary-action loot-box-open"
-        type="button"
-        aria-describedby={isActive ? `loot-box-tooltip-${stack.definitionId}` : undefined}
-        onFocus={() => onShowCard(stack.definitionId)}
-        onBlur={onHideCard}
-        onClick={() => onOpen(stack)}
-        disabled={opening}
-      >
-        {opening ? 'Opening…' : 'Open one'}
-      </button>
+      <div className="loot-box-actions">
+        <button
+          className="primary-action loot-box-open"
+          type="button"
+          aria-describedby={isActive ? `loot-box-tooltip-${stack.definitionId}` : undefined}
+          onFocus={() => onShowCard(stack.definitionId)}
+          onBlur={onHideCard}
+          onClick={() => onOpen(stack, 1)}
+          disabled={opening}
+        >
+          {opening ? 'Opening…' : 'Open one'}
+        </button>
+        {batchCount > 1 ? (
+          <button
+            className="secondary-action loot-box-open-batch"
+            type="button"
+            aria-describedby={isActive ? `loot-box-tooltip-${stack.definitionId}` : undefined}
+            onFocus={() => onShowCard(stack.definitionId)}
+            onBlur={onHideCard}
+            onClick={() => onOpen(stack, batchCount)}
+            disabled={opening}
+          >
+            {batchCount === stack.quantity ? 'Open all' : `Open ${batchCount}`}
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }

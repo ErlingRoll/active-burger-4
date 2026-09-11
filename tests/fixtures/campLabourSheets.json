@@ -1,0 +1,416 @@
+[
+  {
+    "name": "bare-recruit",
+    "jobId": "woodline-timber",
+    "sourceFloor": null,
+    "build": {
+      "schemaVersion": 1,
+      "classId": "knight",
+      "skills": [],
+      "selectedUpgradeIds": [],
+      "equipment": {},
+      "behaviorProfileId": "balanced"
+    },
+    "expected": {
+      "strength": 1,
+      "tempo": 1,
+      "staminaHours": 8,
+      "load": 1,
+      "bonusChance": 0,
+      "fit": 1,
+      "haste": 1,
+      "output": 1,
+      "inputs": {
+        "level": 1,
+        "floor": 1,
+        "attackSpeedPercent": 0,
+        "maxHpFlat": 0,
+        "increasedDamagePercent": 0,
+        "critChancePercent": 0,
+        "movementSpeedPercent": 0,
+        "setRarityWeight": 0,
+        "tagLevelWeight": 0
+      }
+    }
+  },
+  {
+    "name": "deep-clear-aggressive-at-the-quarry",
+    "jobId": "quarry-stone",
+    "sourceFloor": 25,
+    "build": {
+      "schemaVersion": 1,
+      "level": 30,
+      "classId": "knight",
+      "skills": [
+        {
+          "skillId": "whirlwind",
+          "level": 3
+        },
+        {
+          "skillId": "vitality",
+          "level": 2
+        },
+        {
+          "skillId": "raise-skeleton",
+          "level": 4
+        },
+        {
+          "skillId": "chain-lightning",
+          "level": 5
+        }
+      ],
+      "selectedUpgradeIds": [],
+      "equipment": {
+        "weapon": {
+          "itemId": "iron-sword",
+          "rarity": "legendary",
+          "setId": "giant",
+          "modifiers": [
+            {
+              "id": "attack-speed",
+              "tier": 1,
+              "value": 20,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "increased-global-damage",
+              "tier": 1,
+              "value": 21,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "crit-chance",
+              "tier": 1,
+              "value": 14,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "armor": {
+          "itemId": "leather-armor",
+          "rarity": "epic",
+          "setId": "giant",
+          "modifiers": [
+            {
+              "id": "max-hp",
+              "tier": 1,
+              "value": 56,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "attack-speed",
+              "tier": 3,
+              "value": 12,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "boots": {
+          "itemId": "leather-boots",
+          "rarity": "rare",
+          "setId": "giants",
+          "modifiers": [
+            {
+              "id": "movement-speed",
+              "tier": 1,
+              "value": 16,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "attack-speed",
+              "tier": 4,
+              "value": 8,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "ring": {
+          "itemId": "iron-ring",
+          "rarity": "common",
+          "modifiers": [
+            {
+              "id": "crit-chance",
+              "tier": 4,
+              "value": 5,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "increased-physical-damage",
+              "tier": 1,
+              "value": 31,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "helmet": {
+          "itemId": "leather-cap",
+          "rarity": "uncommon",
+          "setId": "giant",
+          "modifiers": [
+            {
+              "id": "max-hp",
+              "tier": 2,
+              "value": 41,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "amulet": {
+          "itemId": "bone-amulet",
+          "rarity": "legendary",
+          "setId": "scholar",
+          "modifiers": [
+            {
+              "id": "attack-speed",
+              "tier": 1,
+              "value": 24,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "increased-chaos-damage",
+              "tier": 2,
+              "value": 20,
+              "sourceId": "fixture"
+            }
+          ]
+        }
+      },
+      "behaviorProfileId": "aggressive",
+      "targetPriorityId": "elites"
+    },
+    "expected": {
+      "strength": 1.3,
+      "tempo": 2,
+      "staminaHours": 7.455,
+      "load": 1.612,
+      "bonusChance": 0.19,
+      "fit": 1.16,
+      "haste": 1.16,
+      "output": 2,
+      "inputs": {
+        "level": 30,
+        "floor": 25,
+        "attackSpeedPercent": 64,
+        "maxHpFlat": 97,
+        "increasedDamagePercent": 72,
+        "critChancePercent": 19,
+        "movementSpeedPercent": 16,
+        "setRarityWeight": 14,
+        "tagLevelWeight": 9
+      }
+    }
+  },
+  {
+    "name": "cautious-lumberjack-in-splintering",
+    "jobId": "woodline-timber",
+    "sourceFloor": 10,
+    "build": {
+      "schemaVersion": 1,
+      "level": 12,
+      "classId": "ranger",
+      "skills": [
+        {
+          "skillId": "lancers-charge",
+          "level": 1
+        },
+        {
+          "skillId": "glacial-orb",
+          "level": 2
+        },
+        {
+          "skillId": "phantom-arsenal",
+          "level": 2
+        }
+      ],
+      "selectedUpgradeIds": [],
+      "equipment": {
+        "weapon": {
+          "itemId": "short-bow",
+          "rarity": "legendary",
+          "setId": "splintering",
+          "modifiers": [
+            {
+              "id": "attack-speed",
+              "tier": 5,
+              "value": 4,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "helmet": {
+          "itemId": "leather-cap",
+          "rarity": "common",
+          "setId": "splintering",
+          "modifiers": [
+            {
+              "id": "max-hp",
+              "tier": 5,
+              "value": 12,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "armor": {
+          "itemId": "leather-armor",
+          "rarity": "common",
+          "setId": "splintering",
+          "modifiers": []
+        },
+        "boots": {
+          "itemId": "leather-boots",
+          "rarity": "common",
+          "setId": "splintering",
+          "modifiers": [
+            {
+              "id": "movement-speed",
+              "tier": 5,
+              "value": 4,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "ring": {
+          "itemId": "iron-ring",
+          "rarity": "common",
+          "setId": "splintering",
+          "modifiers": []
+        },
+        "amulet": {
+          "itemId": "bone-amulet",
+          "rarity": "common",
+          "setId": "splintering",
+          "modifiers": [
+            {
+              "id": "crit-chance",
+              "tier": 5,
+              "value": 2,
+              "sourceId": "fixture"
+            }
+          ]
+        }
+      },
+      "behaviorProfileId": "cautious",
+      "targetPriorityId": "nearest"
+    },
+    "expected": {
+      "strength": 1.02,
+      "tempo": 1,
+      "staminaHours": 10.3,
+      "load": 1.02,
+      "bonusChance": 0.02,
+      "fit": 1.08,
+      "haste": 1.04,
+      "output": 1.1016,
+      "inputs": {
+        "level": 12,
+        "floor": 10,
+        "attackSpeedPercent": 4,
+        "maxHpFlat": 12,
+        "increasedDamagePercent": 0,
+        "critChancePercent": 2,
+        "movementSpeedPercent": 4,
+        "setRarityWeight": 10,
+        "tagLevelWeight": 3
+      }
+    }
+  },
+  {
+    "name": "development-champion-without-a-run",
+    "jobId": "quarry-stone",
+    "sourceFloor": null,
+    "build": {
+      "schemaVersion": 1,
+      "level": 40,
+      "classId": "mage",
+      "skills": [
+        {
+          "skillId": "aegis-pulse",
+          "level": 5
+        },
+        {
+          "skillId": "sigil-of-ruin",
+          "level": 3
+        }
+      ],
+      "selectedUpgradeIds": [],
+      "equipment": {
+        "weapon": {
+          "itemId": "oak-staff",
+          "rarity": "rare",
+          "modifiers": [
+            {
+              "id": "increased-elemental-damage",
+              "tier": 3,
+              "value": 15,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "crit-chance",
+              "tier": 1,
+              "value": 16,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "cooldown-reduction",
+              "tier": 1,
+              "value": 9,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "armor": {
+          "itemId": "leather-armor",
+          "setId": "giant",
+          "modifiers": [
+            {
+              "id": "max-hp",
+              "tier": 1,
+              "value": 70,
+              "sourceId": "fixture"
+            }
+          ]
+        },
+        "ring": {
+          "itemId": "iron-ring",
+          "rarity": "epic",
+          "modifiers": [
+            {
+              "id": "crit-chance",
+              "tier": 2,
+              "value": 13,
+              "sourceId": "fixture"
+            },
+            {
+              "id": "max-hp",
+              "tier": 3,
+              "value": 30,
+              "sourceId": "fixture"
+            }
+          ]
+        }
+      },
+      "behaviorProfileId": "balanced"
+    },
+    "expected": {
+      "strength": 1.3,
+      "tempo": 1.3,
+      "staminaHours": 10,
+      "load": 1.365,
+      "bonusChance": 0.25,
+      "fit": 1.055,
+      "haste": 1,
+      "output": 1.8721,
+      "inputs": {
+        "level": 40,
+        "floor": 40,
+        "attackSpeedPercent": 0,
+        "maxHpFlat": 100,
+        "increasedDamagePercent": 15,
+        "critChancePercent": 29,
+        "movementSpeedPercent": 0,
+        "setRarityWeight": 1,
+        "tagLevelWeight": 5
+      }
+    }
+  }
+]

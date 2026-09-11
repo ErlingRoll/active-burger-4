@@ -286,16 +286,28 @@ production rate here would be a guess. What remains is the rest of the registry
 and the idle layer itself.
 
 - Material registry: timber and stone, roe, and rift shards, each with a
-  producer and a named sink. *Scrap is done.*
+  producer and a named sink. *Done: scrap from salvage, timber and stone from
+  Champion labour, roe from gutting, rift shards from Abyss floors, each with
+  a building that spends it.*
 - Duplicate loot-box resolution into scrap. *Gear salvage is done: a completed
   dungeon grants scrap from its terminal loadout.*
-- Building registry with tiers, recipes, and construction costs.
-- Champion job assignment, with exhausted Champions eligible to work.
+- Building registry with tiers, recipes, and construction costs. *Done:
+  every building is seeded with its levels and costs, server and client, held
+  together by a registry test, and bought with materials through an
+  idempotent upgrade.*
+- Champion job assignment, with exhausted Champions eligible to work. *Done:
+  assign, unassign and claim, with a Champion moved between jobs settling the
+  old one, and a working Champion refused by the Abyss.*
 - Champion aptitude derived from the existing snapshot, never a new stat.
+  *The labour sheet is derived from the build in SQL and TypeScript twins
+  pinned to one fixture set; see the delivery plan.*
 - Offline accrual computed from server timestamps with a Storehouse-set cap.
-- Idempotent claim operation.
+  *Done, at eight hours until the Storehouse can be upgraded.*
+- Idempotent claim operation. *Done; a claim is an inventory operation.*
 - Camp stations rendered into the existing hub scene, fitting the viewport
-  without scrolling and without width breakpoints.
+  without scrolling on a desktop and sharing the hub's phone breakpoint.
+  *Done as a panel opened from a sixth station; buildings drawn into the
+  scene are still to come.*
 
 **Exit criteria:** accrual cannot be claimed twice, no building output changes
 a combat statistic, the simulation reads no Camp state, and a player who never

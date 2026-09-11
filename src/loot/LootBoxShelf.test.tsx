@@ -4,14 +4,15 @@ import { Rarity } from '../content/rarity/Rarity'
 import type { InventoryItemInstance } from '../inventory/InventoryTypes'
 import { renderComponent, screen, within } from '../testing/render'
 import { LootBoxShelf } from './LootBoxShelf'
-import { stackLootBoxes } from './LootBoxStacks'
+import { selectLootBoxesToOpen, stackLootBoxes } from './LootBoxStacks'
 
-function box(rarity: string, itemInstanceId: string): InventoryItemInstance {
+function box(rarity: string, itemInstanceId: string, quantity = 1): InventoryItemInstance {
   return {
     itemInstanceId,
     definitionId: `loot-box-${rarity}`,
-    quantity: 1,
+    quantity,
     bound: false,
+    favorite: false,
     metadata: {},
     source: { type: 'abyss-reward', id: null },
     createdAt: '2026-09-09T00:00:00.000Z',
@@ -55,6 +56,22 @@ describe('stackLootBoxes', () => {
   })
 })
 
+describe('selectLootBoxesToOpen', () => {
+  it('names an instance once per box it holds, and stops at the count asked for', () => {
+    const [stack] = stackLootBoxes([box('rare', 'a', 3), box('rare', 'b', 2)])
+
+    expect(selectLootBoxesToOpen(stack!, 4)).toEqual(['a', 'a', 'a', 'b'])
+  })
+
+  it('never asks for more than the stack holds or more than ten', () => {
+    const [small] = stackLootBoxes([box('rare', 'a', 2)])
+    const [large] = stackLootBoxes([box('common', 'a', 8), box('common', 'b', 8)])
+
+    expect(selectLootBoxesToOpen(small!, 10)).toEqual(['a', 'a'])
+    expect(selectLootBoxesToOpen(large!, 16)).toHaveLength(10)
+  })
+})
+
 describe('LootBoxShelf', () => {
   // The list pages to the rows its container has room for, and a container has
   // no height in jsdom, so each of these renders one kind at a time.
@@ -91,8 +108,8 @@ describe('LootBoxShelf', () => {
     const card = await screen.findByRole('tooltip')
     expect(within(card).getByText('Legendary · 4 draws')).toBeInTheDocument()
     // The published odds are the server's, out of a thousand: a legendary box
-    // draws a glow grub a quarter of the time.
-    expect(within(card).getByText('25.0%')).toBeInTheDocument()
+    // draws a glow grub a fifth of the time.
+    expect(within(card).getByText('20.0%')).toBeInTheDocument()
     expect(within(card).getByText('Glow Grub')).toBeInTheDocument()
     expect(within(card).getByText('Wooden rod')).toBeInTheDocument()
   })
@@ -115,6 +132,52 @@ describe('LootBoxShelf', () => {
       definitionId: 'loot-box-epic',
       quantity: 2,
     })
+    expect(onOpen.mock.calls[0]?.[1]).toBe(1)
+  })
+
+  it('offers the whole stack when it holds no more than ten', async () => {
+    const onOpen = vi.fn()
+    const { user } = renderComponent(
+      <LootBoxShelf
+        stacks={stackLootBoxes([box('common', 'a', 3)])}
+        label="Unopened loot boxes"
+        opening={false}
+        onOpen={onOpen}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open all' }))
+
+    expect(onOpen.mock.calls[0]?.[1]).toBe(3)
+  })
+
+  it('offers ten of a stack that holds more than ten', async () => {
+    const onOpen = vi.fn()
+    const { user } = renderComponent(
+      <LootBoxShelf
+        stacks={stackLootBoxes([box('common', 'a', 14)])}
+        label="Unopened loot boxes"
+        opening={false}
+        onOpen={onOpen}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open 10' }))
+
+    expect(onOpen.mock.calls[0]?.[1]).toBe(10)
+  })
+
+  it('offers only one when that is all there is', () => {
+    renderComponent(
+      <LootBoxShelf
+        stacks={stackLootBoxes([box('rare', 'a')])}
+        label="Unopened loot boxes"
+        opening={false}
+        onOpen={vi.fn()}
+      />,
+    )
+
+    expect(screen.getAllByRole('button')).toHaveLength(1)
   })
 
   it('holds every button shut while a box is in flight', () => {
@@ -127,8 +190,11 @@ describe('LootBoxShelf', () => {
       />,
     )
 
-    for (const button of screen.getAllByRole('button', { name: 'Opening…' })) {
+    // The list pages one row at a time in jsdom, so its pager is on screen
+    // too; the pager is not held shut, only the boxes are.
+    for (const button of screen.getAllByRole('button', { name: /Open/ })) {
       expect(button).toBeDisabled()
     }
+    expect(screen.getAllByRole('button', { name: /Open/ }).length).toBeGreaterThan(0)
   })
 })

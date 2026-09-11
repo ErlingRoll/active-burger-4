@@ -239,6 +239,129 @@
   opacity: 0.6;
 }
 
+/* The sweep and the ceiling it stops at, read as one control: "up to rare,
+   salvage 30". The chips borrow the filter chip's shape and take the rarity's
+   colour when pressed, so the ceiling is legible at a glance as the same
+   colour the slots below it are ringed in. */
+.inventory-sweep {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.18rem, 0.7vh, 0.38rem) clamp(0.3rem, 1vw, 0.6rem);
+  align-items: center;
+  margin-left: auto;
+}
+
+.inventory-sweep-rarities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.18rem, 0.7vh, 0.38rem);
+  align-items: center;
+}
+
+.inventory-sweep-label {
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.35vh, 0.7rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-sweep-rarity[aria-pressed='true'] {
+  color: var(--color-stone-900);
+  background: var(--rarity, var(--accent));
+  border-color: var(--rarity, var(--accent));
+}
+
+.inventory-sweep-rarity:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.inventory-sweep-action:disabled:not([aria-busy='true']) {
+  cursor: default;
+}
+
+/*
+ * The star.
+ *
+ * A favorite is kept out of every sweep, so a slot that wears one has to say so
+ * at the size of a slot: a corner star opposite the unseen pip, over the icon
+ * and under nothing. On the inspector and the hover card it is said in words.
+ */
+.inventory-item-favorite {
+  position: absolute;
+  z-index: 2;
+  top: 0.08rem;
+  right: 0.14rem;
+  color: var(--accent);
+  font-size: clamp(0.55rem, 1.3vh, 0.78rem);
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 0.3rem rgb(0 0 0 / 85%);
+}
+
+.inventory-favorite-mark {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-inspector-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.inventory-inspector-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: clamp(0.25rem, 0.9vh, 0.5rem);
+  align-items: center;
+}
+
+.inventory-inspector-favorite {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: clamp(1.45rem, 3.4vh, 2.4rem);
+  padding: clamp(0.12rem, 0.6vh, 0.6rem) clamp(0.4rem, 1.4vw, 1rem);
+  color: var(--accent);
+  font: inherit;
+  font-size: clamp(0.6rem, 1.5vh, 0.85rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgb(var(--accent-rgb) / 10%);
+  border: 1px solid rgb(var(--accent-rgb) / 48%);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.inventory-inspector-favorite:hover:not(:disabled),
+.inventory-inspector-favorite:focus-visible:not(:disabled) {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 24%);
+  border-color: var(--accent);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 1px;
+}
+
+.inventory-inspector-favorite[aria-pressed='true'] {
+  color: var(--color-stone-900);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.inventory-inspector-favorite:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 /*
  * The bag fills the shelf it is given and pages what does not fit, rather than
  * rendering a fixed hundred and twenty slots and pushing the screen into a
@@ -287,7 +410,7 @@
   border-color: rgb(var(--accent-rgb) / 18%);
 }
 
-.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
@@ -525,7 +648,7 @@
   border-radius: 0.5rem;
 }
 
-.inventory-inspector-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.inventory-inspector-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 74%;
   height: 74%;
 }
@@ -721,8 +844,24 @@
   transform: translateY(-7px) rotate(-8deg);
 }
 
-/* The shelf rows. */
+/*
+ * The shelf rows.
+ *
+ * A row is two lines. The name and how many are held share the first; what a
+ * box is worth and the buttons that open it share the second. One line held
+ * all of it until a second button arrived, and in a column four hundred
+ * pixels wide the name gave way first: "Uncommon Loot Box" was "Unc…".
+ *
+ * The sizes are named on the list, because the drawer on the pond sizes its
+ * shelf from them: three rows is the room it gives, and the sum it makes has
+ * to be made of the same numbers the row is.
+ */
 .loot-box-list {
+  --loot-box-row-pad: clamp(0.25rem, 0.85vh, 0.6rem);
+  --loot-box-row-gap: clamp(0.15rem, 0.5vh, 0.3rem);
+  --loot-box-title-size: clamp(0.72rem, 1.7vh, 0.9rem);
+  --loot-box-action-height: clamp(1.35rem, 2.7vh, 1.9rem);
+
   display: grid;
   gap: clamp(0.25rem, 0.9vh, 0.7rem);
   margin: 0;
@@ -731,10 +870,14 @@
 }
 
 .loot-box-row {
-  display: flex;
-  gap: clamp(0.4rem, 1.4vw, 0.9rem);
+  display: grid;
+  grid-template-areas:
+    'emblem title title'
+    'emblem detail actions';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--loot-box-row-gap) clamp(0.4rem, 1.4vw, 0.9rem);
   align-items: center;
-  padding: clamp(0.25rem, 1vh, 0.7rem) clamp(0.4rem, 1.4vw, 0.9rem);
+  padding: var(--loot-box-row-pad) clamp(0.4rem, 1.4vw, 0.9rem);
   background:
     linear-gradient(115deg, color-mix(in srgb, var(--rarity, var(--color-stone-400)) 20%, transparent), transparent 62%),
     rgb(12 14 19 / 72%);
@@ -750,32 +893,34 @@
 
 .loot-box-row-emblem {
   display: grid;
-  flex: 0 0 auto;
+  grid-area: emblem;
   width: clamp(1.6rem, 4.4vh, 2.6rem);
   height: clamp(1.6rem, 4.4vh, 2.6rem);
   place-items: center;
 }
 
+/* The copy is two grid cells, not a box of its own. */
 .loot-box-row-copy {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 0.05rem;
-  min-width: 0;
+  display: contents;
 }
 
-.loot-box-row-copy strong {
+.loot-box-row-title {
+  display: flex;
+  grid-area: title;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.loot-box-row-title strong {
+  min-width: 0;
   overflow: hidden;
   color: var(--color-stone-50);
-  font-size: clamp(0.72rem, 1.7vh, 0.9rem);
+  font-size: var(--loot-box-title-size);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.loot-box-row-detail {
-  color: var(--text-muted);
-  font-size: clamp(0.56rem, 1.3vh, 0.68rem);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .loot-box-row-count {
@@ -784,6 +929,38 @@
   font-size: clamp(0.68rem, 1.6vh, 0.85rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.loot-box-row-detail {
+  grid-area: detail;
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.68rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* One box, or a batch. */
+.loot-box-actions {
+  display: flex;
+  grid-area: actions;
+  gap: clamp(0.25rem, 0.8vw, 0.45rem);
+  justify-self: end;
+}
+
+/* Named from the list so that this outranks the stores' own sizing of the
+   action button, which is taller than a second line has room for. */
+.loot-box-list .loot-box-actions > .primary-action,
+.loot-box-list .loot-box-actions > .secondary-action {
+  min-height: var(--loot-box-action-height);
+  padding: clamp(0.1rem, 0.4vh, 0.4rem) clamp(0.45rem, 1.4vw, 0.9rem);
+  font-size: clamp(0.6rem, 1.4vh, 0.8rem);
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.loot-box-actions > .secondary-action {
+  color: var(--rarity, var(--color-stone-300));
+  border-color: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 55%, transparent);
 }
 
 /*
@@ -798,6 +975,10 @@
   z-index: 30;
   width: min(21rem, calc(100vw - 1.5rem));
   padding: 0.85rem;
+  /* A tap on a phone is a hover first, and the card is taller than the room
+     above or below a row, so it lands over the row itself. Nothing on the
+     card is for pressing; the press goes through to the button under it. */
+  pointer-events: none;
   border-color: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 58%, transparent);
 }
 
@@ -1009,7 +1190,7 @@
   font-size: clamp(1.1rem, 3vh, 1.7rem);
 }
 
-.loot-box-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.loot-box-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
@@ -1021,6 +1202,56 @@
   color: var(--text-muted);
   font-size: clamp(0.62rem, 1.5vh, 0.76rem);
   font-weight: 700;
+}
+
+/*
+ * A crowded reveal.
+ *
+ * A batch of ten can give a dozen or more kinds of thing even after identical
+ * draws are counted together, and a dozen cards at the single-box size run off
+ * the bottom of a phone. Past eight cards they shrink, and the box above them
+ * gives up some of its height, so the whole haul and the button under it stay
+ * on one screen.
+ */
+.loot-box-opening-rewards[data-crowded] {
+  gap: clamp(0.3rem, 1vh, 0.6rem);
+}
+
+.loot-box-opening-rewards[data-crowded] .loot-box-reward {
+  width: clamp(4.6rem, 10vh, 6.5rem);
+  padding: clamp(0.3rem, 1vh, 0.6rem) clamp(0.25rem, 0.8vw, 0.5rem);
+}
+
+.loot-box-opening-rewards[data-crowded] .loot-box-reward strong {
+  font-size: clamp(0.6rem, 1.3vh, 0.74rem);
+}
+
+.loot-box-opening-rewards[data-crowded] .loot-box-reward-icon {
+  width: clamp(1.5rem, 4vh, 2.4rem);
+  height: clamp(1.5rem, 4vh, 2.4rem);
+  font-size: clamp(0.9rem, 2.2vh, 1.3rem);
+}
+
+.loot-box-opening-stage:has(.loot-box-opening-rewards[data-crowded]) .loot-box-opening-box {
+  width: clamp(3.5rem, 10vh, 6rem);
+  height: clamp(3.5rem, 10vh, 6rem);
+}
+
+/* Past sixteen cards, which a batch of legendary boxes heavy with artifacts
+   can reach, the cards shrink once more so that five sit across a phone. */
+.loot-box-opening-rewards[data-crowded='dense'] .loot-box-reward {
+  width: clamp(3.9rem, 8vh, 5.5rem);
+  padding: clamp(0.25rem, 0.8vh, 0.5rem) clamp(0.2rem, 0.6vw, 0.4rem);
+}
+
+.loot-box-opening-rewards[data-crowded='dense'] .loot-box-reward strong {
+  font-size: clamp(0.54rem, 1.2vh, 0.68rem);
+}
+
+.loot-box-opening-rewards[data-crowded='dense'] .loot-box-reward-icon {
+  width: clamp(1.3rem, 3.4vh, 2rem);
+  height: clamp(1.3rem, 3.4vh, 2rem);
+  font-size: clamp(0.8rem, 2vh, 1.15rem);
 }
 
 @keyframes loot-box-opening-in {
@@ -1064,10 +1295,12 @@
   }
 
   /* Staggered by index, so four rewards land one after another rather than
-     arriving as a block that is over before it is noticed. */
+     arriving as a block that is over before it is noticed. The step is set by
+     the list from how many cards it holds: four land at the full beat, and a
+     batch's twenty share the same second or so rather than taking three. */
   .loot-box-reward {
     animation: loot-box-reward-in 420ms cubic-bezier(0.2, 1.2, 0.35, 1) both;
-    animation-delay: calc(260ms + var(--reveal-index, 0) * 130ms);
+    animation-delay: calc(260ms + var(--reveal-index, 0) * var(--reveal-step, 130ms));
   }
 }
 
@@ -1284,14 +1517,19 @@
   font-size: clamp(0.9rem, 2vh, 1.2rem);
 }
 
-.crafting-recipe-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.crafting-recipe-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
 
+/* The base is what decides whether the button sits beside the copy or under
+   it. At 18rem the stores rail, which is about 25rem inside its padding, could
+   not fit copy and button on one row, so every card grew a third row and the
+   three of them together pushed the bench past the frame once an artifact's
+   card sat above them. */
 .crafting-recipe-copy {
   display: flex;
-  flex: 1 1 min(18rem, 100%);
+  flex: 1 1 min(13rem, 100%);
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
@@ -1328,4 +1566,83 @@
   min-height: 0;
   padding: clamp(0.3rem, 1vh, 0.5rem) clamp(0.5rem, 1.6vw, 0.9rem);
   font-size: clamp(0.65rem, 1.5vh, 0.8rem);
+}
+
+/* An artifact's card: the implicit first, then the rolled modifiers, each
+   with its tier. Shared by the bag's tooltip, the stores inspector and the run
+   setup picker so the same artifact reads the same everywhere. */
+.artifact-effects {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.artifact-effects-flavor {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* One column. Two abreast was tried for the rail and cost more than it saved:
+   a modifier line is about fifty characters, which is one line at the rail's
+   width and three in half of it. */
+.artifact-effects-list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifact-effect {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  color: var(--color-stone-200);
+  font-size: clamp(0.7rem, 1.6vh, 0.86rem);
+  line-height: 1.35;
+}
+
+.artifact-effect[data-kind='implicit'] {
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  color: var(--color-amber-200);
+  font-weight: 700;
+}
+
+.artifact-effect-tier {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.artifact-effect[data-tier='1'] .artifact-effect-tier {
+  border-color: currentColor;
+  color: var(--color-amber-300);
+}
+
+.artifact-effect[data-tier='2'] .artifact-effect-tier {
+  border-color: currentColor;
+  color: var(--color-violet-300);
+}
+
+/* The artifact card rides under the inspector band at the rail's full width. */
+.inventory-inspector-artifact {
+  flex: 0 0 auto;
+  margin-top: clamp(0.25rem, 0.9vh, 0.6rem);
+}
+
+/* The tooltip capitalises its detail line, which suits "epic · 3 modifiers"
+   and ruins a sentence. An artifact's flavour is prose and stays prose. */
+.inventory-item-tooltip .artifact-effects-flavor {
+  margin: 0.35rem 0 0;
+  text-transform: none;
 }

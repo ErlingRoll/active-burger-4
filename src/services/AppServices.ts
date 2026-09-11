@@ -29,6 +29,8 @@ import { createShopService } from '../shop/ShopService'
 import type { ShopService } from '../shop/ShopTypes'
 import { createLootBoxService, type LootBoxService } from '../loot'
 import { createFishingService, type FishingService } from '../fishing/FishingService'
+import { createCampService } from '../camp/CampService'
+import type { CampService } from '../camp/CampTypes'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -72,6 +74,7 @@ export interface AppServices {
   shop: ServiceHandle<ShopService>
   lootBoxes: ServiceHandle<LootBoxService>
   fishing: ServiceHandle<FishingService>
+  camp: ServiceHandle<CampService>
   hubPresence: ServiceHandle<HubPresenceService>
   bugReport: ServiceHandle<BugReportService>
 }
@@ -130,6 +133,7 @@ export function createAppServices(
     shop: handle(() => createShopService(connection, getClient)),
     lootBoxes: handle(() => createLootBoxService(connection, getClient)),
     fishing: handle(() => createFishingService(connection, getClient)),
+    camp: handle(() => createCampService(connection, getClient)),
     hubPresence: handle(() => createHubPresenceService(connection, getClient)),
     bugReport: handle(() => createBugReportService(connection, getClient)),
   }

@@ -30,6 +30,7 @@ function renderDashboard(overrides: Partial<GameDashboardProps> = {}) {
     onOpenRunSetup: vi.fn(),
     onOpenMetaProgression: vi.fn(),
     onOpenFishing: vi.fn(),
+    onOpenCamp: vi.fn(),
     onOpenChampions: vi.fn(),
     onOpenInventory: vi.fn(),
     onOpenShop: vi.fn(),
