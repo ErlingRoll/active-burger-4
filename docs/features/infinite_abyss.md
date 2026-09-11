@@ -38,7 +38,9 @@ data-driven and must be playtested against completed Champions; if it makes the
 mode inaccessible, HP and damage may be tuned independently.
 
 The Abyss does not grant normal enemy XP or normal equipment choices, and it
-pays no Essence: its reward is depth, the floor's loot box, and the score. World
+pays no Essence: its reward is depth, the floor's loot box and rift shards, and
+the score. The run stats count the shards banked so far and what the floor in
+play adds, where a dungeon run counts its Essence. World
 modifiers do not apply either — they are the dungeon's trade of difficulty for a
 larger Essence reward, and there is no Essence here to enlarge. It may reuse
 combat, movement, floor, and boss systems from dungeon runs, but all
