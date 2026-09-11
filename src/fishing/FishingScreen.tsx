@@ -17,15 +17,19 @@ import {
   formatFishingRodModifiers,
   formatFishSizeKg,
   getFishDefinition,
+  getFishingBaitDefinition,
+  getFishingRodModifierDetails,
   FISHING_MODES,
   isFishingMode,
   type FishingMode,
 } from './FishingContent'
+import { FishingDropdown, type FishingDropdownOption } from './FishingLoadoutDropdown'
 // Imported from the owning modules rather than the `../inventory` barrel,
 // which re-exports DevelopmentInventoryMenu and would import this file back.
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { getInventoryItemCategory } from '../inventory/InventoryFilters'
+import { getInventoryItemRarity, getInventoryItemRarityOrder } from '../inventory/InventoryRarity'
 import { formatInventorySalvageReward, getInventoryEssenceTotal } from '../inventory/InventoryValue'
 import { formatArtifactSummary, readArtifactMetadata } from '../content/artifacts/Artifacts'
 import { CraftingBench } from '../inventory/CraftingBench'
@@ -110,6 +114,108 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
     return formatFishingRodModifiers(item.metadata)
   }
   return definition?.category.replace('-', ' ') ?? 'item'
+}
+
+/*
+ * What the loadout controls say about a thing.
+ *
+ * A rod's option carries the same facts as its slot in the bag: rarity, the
+ * modifiers it rolled and, on hover, a card that spells each one out. Two
+ * Silverline rods used to be two identical words in the list; now the line
+ * under each says which one has the Fortune roll.
+ */
+function compareByRarityThenName(a: InventoryItemInstance, b: InventoryItemInstance): number {
+  const rarityDifference = getInventoryItemRarityOrder(b) - getInventoryItemRarityOrder(a)
+  if (rarityDifference !== 0) {
+    return rarityDifference
+  }
+  const nameA = getInventoryItemDefinition(a.definitionId)?.name ?? a.definitionId
+  const nameB = getInventoryItemDefinition(b.definitionId)?.name ?? b.definitionId
+  return nameA.localeCompare(nameB) || a.createdAt.localeCompare(b.createdAt)
+}
+
+function formatRodModifierMagnitude(modifier: { tier: number | null; value: number | null }): string | null {
+  const parts = [
+    modifier.tier === null ? null : `T${modifier.tier}`,
+    modifier.value === null ? null : `+${modifier.value}%`,
+  ].filter((part): part is string => part !== null)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
+const DEFAULT_ROD_OPTION: FishingDropdownOption = {
+  value: '',
+  label: DEFAULT_FISHING_ROD.name,
+  detail: 'No modifiers',
+  icon: getRewardIcon(DEFAULT_FISHING_ROD.id),
+  rarity: DEFAULT_FISHING_ROD.rarity,
+  tooltip: {
+    description: DEFAULT_FISHING_ROD.flavorText,
+    rows: [],
+    emptyRowsLabel: 'No modifiers',
+    facts: [{ label: 'Supply', value: 'Always in the boat' }],
+  },
+}
+
+function getRodOption(rod: InventoryItemInstance): FishingDropdownOption {
+  const definition = getInventoryItemDefinition(rod.definitionId)
+  return {
+    value: rod.itemInstanceId,
+    label: definition?.name ?? rod.definitionId,
+    detail: formatFishingRodModifiers(rod.metadata),
+    icon: getRewardIcon(rod.definitionId),
+    rarity: getInventoryItemRarity(rod),
+    tooltip: {
+      description: definition?.flavorText ?? null,
+      rows: getFishingRodModifierDetails(rod.metadata).map((modifier) => ({
+        label: modifier.label,
+        value: formatRodModifierMagnitude(modifier),
+        description: modifier.description,
+      })),
+      emptyRowsLabel: 'No modifiers',
+    },
+  }
+}
+
+const DEFAULT_BAIT_OPTION: FishingDropdownOption = {
+  value: DEFAULT_FISHING_BAIT_ID,
+  label: FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name,
+  detail: formatFishingBaitEffect(DEFAULT_FISHING_BAIT_ID),
+  icon: getRewardIcon(DEFAULT_FISHING_BAIT_ID),
+  rarity: getInventoryItemDefinition(DEFAULT_FISHING_BAIT_ID)?.rarity ?? null,
+  tooltip: {
+    description: FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].description,
+    rows: [],
+    emptyRowsLabel: 'No bonuses',
+    facts: [{ label: 'Supply', value: 'Unlimited' }],
+  },
+}
+
+/** One option per kind of bait, counted across every row of it in the bag. */
+function getBaitOption(stack: InventoryItemInstance): FishingDropdownOption {
+  const bait = getFishingBaitDefinition(stack.definitionId)
+  const rows = bait
+    ? [
+        { label: 'Rarity', bonus: bait.rarityBonusPercent, description: 'Chance of higher-rarity fish.' },
+        { label: 'Size', bonus: bait.sizeBonusPercent, description: 'Weight of the catch.' },
+        { label: 'Loot boxes', bonus: bait.lootBoxChancePercent, description: 'Chance of a loot box on the line.' },
+      ]
+        .filter((row) => row.bonus > 0)
+        .map((row) => ({ label: row.label, value: `+${row.bonus}%`, description: row.description }))
+    : []
+  return {
+    value: stack.definitionId,
+    label: getInventoryItemDefinition(stack.definitionId)?.name ?? stack.definitionId,
+    detail: formatFishingBaitEffect(stack.definitionId),
+    badge: `×${stack.quantity}`,
+    icon: getRewardIcon(stack.definitionId),
+    rarity: getInventoryItemRarity(stack),
+    tooltip: {
+      description: bait?.description ?? null,
+      rows,
+      emptyRowsLabel: 'No bonuses',
+      facts: [{ label: 'In bag', value: `×${stack.quantity}` }],
+    },
+  }
 }
 
 const FISHING_PHASE_LABELS: Record<FishingPhase, string> = {
@@ -340,105 +446,6 @@ function PondAnglerSprite({ showCastLine = false }: { showCastLine?: boolean }) 
   )
 }
 
-interface FishingDropdownOption {
-  value: string
-  label: string
-}
-
-interface FishingDropdownProps {
-  icon: string
-  label: string
-  value: string
-  options: readonly FishingDropdownOption[]
-  disabled: boolean
-  onChange: (value: string) => void
-}
-
-function FishingDropdown({
-  icon,
-  label,
-  value,
-  options,
-  disabled,
-  onChange,
-}: FishingDropdownProps) {
-  const [isExpanded, setIsOpen] = useState(false)
-  // Derived rather than reset by an effect: a disabled dropdown is closed by
-  // definition, so deriving it avoids rendering an open-but-disabled list for
-  // one frame before an effect could close it.
-  const isOpen = isExpanded && !disabled
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const selectedOption = options.find((option) => option.value === value) ?? options[0]
-
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-    const closeOnOutsidePointer = (event: PointerEvent): void => {
-      if (event.target instanceof Node && !dropdownRef.current?.contains(event.target)) {
-        setIsOpen(false)
-      }
-    }
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', closeOnOutsidePointer)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePointer)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [isOpen])
-
-  return (
-    <div className="pond-loadout-control fishing-dropdown" ref={dropdownRef}>
-      <span><span aria-hidden="true">{icon}</span> {label}</span>
-      <div className="fishing-dropdown-anchor">
-        <button
-          className="fishing-dropdown-trigger"
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          disabled={disabled}
-          onClick={() => setIsOpen((current) => !current)}
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-              event.preventDefault()
-              setIsOpen(true)
-            }
-          }}
-        >
-          <span>{selectedOption?.label ?? 'Select an option'}</span>
-          <span className="fishing-dropdown-chevron" aria-hidden="true">⌄</span>
-        </button>
-        {isOpen ? (
-          <div className="fishing-dropdown-menu" role="listbox" aria-label={label}>
-            {options.map((option) => (
-              <button
-                className={`fishing-dropdown-option${
-                  option.value === value ? ' selected' : ''
-                }`}
-                type="button"
-                role="option"
-                aria-selected={option.value === value}
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value)
-                  setIsOpen(false)
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 export function FishingScreen({
   fishingService,
   inventoryService,
@@ -535,21 +542,33 @@ export function FishingScreen({
   )
 
   const rods = useMemo(
-    () => items.filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'rod'),
+    () => items
+      .filter((item) => getInventoryItemDefinition(item.definitionId)?.category === 'rod')
+      .sort(compareByRarityThenName),
     [items],
   )
-  const baits = useMemo(
-    () => items.filter((item) =>
+  /*
+   * Bait is chosen by kind, not by row.
+   *
+   * The server grants a row per award, so twelve River Worms could be twelve
+   * rows, and the list showed all twelve as "River Worm · 1". They are one
+   * stack here, the way the bag draws them, and the selection is the kind of
+   * bait rather than a particular row: the row that gets spent is the stack's
+   * first, the same one salvaging would take, and when it runs out the next
+   * row of the same bait carries on without the choice resetting.
+   */
+  const baitStacks = useMemo(
+    () => stackInventoryItems(items.filter((item) =>
       getInventoryItemDefinition(item.definitionId)?.category === 'bait' &&
       item.definitionId !== DEFAULT_FISHING_BAIT_ID,
-    ),
+    )).sort(compareByRarityThenName),
     [items],
   )
   const effectiveSelectedBaitId = selectedBaitId === DEFAULT_FISHING_BAIT_ID ||
-    baits.some((bait) => bait.itemInstanceId === selectedBaitId)
+    baitStacks.some((stack) => stack.definitionId === selectedBaitId)
     ? selectedBaitId
     : DEFAULT_FISHING_BAIT_ID
-  const selectedBait = baits.find((bait) => bait.itemInstanceId === effectiveSelectedBaitId)
+  const selectedBait = baitStacks.find((stack) => stack.definitionId === effectiveSelectedBaitId)
   const effectiveSelectedRodId = selectedRodId &&
     rods.some((rod) => rod.itemInstanceId === selectedRodId)
     ? selectedRodId
@@ -1263,6 +1282,7 @@ export function FishingScreen({
                     options={Object.values(FISHING_MODES).map((mode) => ({
                       value: mode.id,
                       label: mode.name,
+                      detail: mode.description,
                     }))}
                     disabled={fishingPhase !== 'idle'}
                     onChange={(value) => {
@@ -1275,13 +1295,7 @@ export function FishingScreen({
                     icon="⌁"
                     label="Rod"
                     value={effectiveSelectedRodId ?? ''}
-                    options={[
-                      { value: '', label: DEFAULT_FISHING_ROD.name },
-                      ...rods.map((rod) => ({
-                        value: rod.itemInstanceId,
-                        label: getInventoryItemDefinition(rod.definitionId)?.name ?? rod.definitionId,
-                      })),
-                    ]}
+                    options={[DEFAULT_ROD_OPTION, ...rods.map(getRodOption)]}
                     disabled={fishingPhase !== 'idle'}
                     onChange={(value) => setSelectedRodId(value || null)}
                   />
@@ -1289,16 +1303,7 @@ export function FishingScreen({
                     icon="●"
                     label="Bait"
                     value={effectiveSelectedBaitId}
-                    options={[
-                      {
-                        value: DEFAULT_FISHING_BAIT_ID,
-                        label: `${FISHING_BAITS[DEFAULT_FISHING_BAIT_ID].name} · ${formatFishingBaitEffect(DEFAULT_FISHING_BAIT_ID)}`,
-                      },
-                      ...baits.map((bait) => ({
-                        value: bait.itemInstanceId,
-                        label: `${getInventoryItemDefinition(bait.definitionId)?.name ?? bait.definitionId} · ${bait.quantity} · ${formatFishingBaitEffect(bait.definitionId)}`,
-                      })),
-                    ]}
+                    options={[DEFAULT_BAIT_OPTION, ...baitStacks.map(getBaitOption)]}
                     disabled={fishingPhase !== 'idle'}
                     onChange={setSelectedBaitId}
                   />

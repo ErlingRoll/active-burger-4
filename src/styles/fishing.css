@@ -1264,15 +1264,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.4rem;
   min-height: 2.45rem;
   width: 100%;
   max-width: none;
-  padding: 0.35rem 0.65rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.65rem;
   color: var(--color-sky-100);
   cursor: pointer;
   font: inherit;
   font-size: 0.75rem;
   letter-spacing: 0;
+  text-align: left;
   text-transform: none;
   background: rgb(15 41 64 / 92%);
   border: 1px solid rgb(103 232 249 / 48%);
@@ -1288,10 +1290,81 @@
 }
 
 .fishing-dropdown-chevron {
-  margin-left: 0.5rem;
+  flex: 0 0 auto;
   color: var(--color-cyan-200);
   font-size: 1rem;
   line-height: 1;
+}
+
+/*
+ * An option is a name and a line about what it does.
+ *
+ * "River Worm · 1 · rarity +10% · size +0%" was one run of text that wrapped
+ * wherever the column happened to end. The name sits on its own line with the
+ * stack count at its end; the effect goes underneath in a quieter face, and
+ * inside the closed trigger it is cut to one line so the bar keeps its height.
+ */
+.fishing-dropdown-value {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.fishing-dropdown-value-name {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.fishing-dropdown-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.fishing-dropdown-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fishing-dropdown-badge {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.35rem;
+  color: var(--color-cyan-100);
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: rgb(34 211 238 / 14%);
+  border: 1px solid rgb(103 232 249 / 32%);
+  border-radius: 999px;
+}
+
+.fishing-dropdown-detail {
+  color: var(--color-cyan-200);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0.86;
+}
+
+.fishing-dropdown-trigger .fishing-dropdown-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In the list there is room to say the whole name; only the trigger cuts it. */
+.fishing-dropdown-option .fishing-dropdown-label {
+  white-space: normal;
 }
 
 .fishing-dropdown-menu {
@@ -1302,7 +1375,7 @@
   left: 0;
   display: grid;
   gap: 0.2rem;
-  max-height: min(14rem, 45vh);
+  max-height: min(18rem, 50vh);
   padding: 0.3rem;
   overflow-y: auto;
   background: rgb(7 20 36 / 98%);
@@ -1312,8 +1385,11 @@
 }
 
 .fishing-dropdown-option {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
   width: 100%;
-  padding: 0.45rem 0.55rem;
+  padding: 0.4rem 0.5rem;
   color: var(--color-blue-100);
   cursor: pointer;
   font: inherit;
@@ -1324,18 +1400,98 @@
   border-radius: 0.25rem;
 }
 
+/* The selected option keeps its ring and its tick; the pointer's row only
+   lightens, so the two never read as the same thing. */
 .fishing-dropdown-option:hover,
-.fishing-dropdown-option:focus-visible,
+.fishing-dropdown-option:focus-visible {
+  color: var(--color-teal-50);
+  background: rgb(30 64 88 / 62%);
+  outline: none;
+}
+
 .fishing-dropdown-option.selected {
   color: var(--color-teal-50);
   background: rgb(30 64 88 / 92%);
   border-color: rgb(103 232 249 / 45%);
-  outline: none;
+}
+
+.fishing-dropdown-check {
+  flex: 0 0 1em;
+  color: var(--color-cyan-300);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: right;
 }
 
 .fishing-dropdown-trigger:disabled {
   cursor: not-allowed;
   opacity: 0.72;
+}
+
+/* A rod with five rolls needs more than a twelve-rem column to list them in.
+   On a screen with the room, the list is wider than its trigger; on a phone
+   the trigger already spans what the screen has. */
+@media (min-width: 47rem) {
+  .fishing-dropdown-menu {
+    right: auto;
+    width: max(100%, 15rem);
+  }
+}
+
+/*
+ * The card an option floats: the bag's item tooltip, with the rod's modifiers
+ * or the bait's bonuses listed as rows rather than run together in a sentence.
+ */
+.fishing-loadout-tooltip {
+  z-index: 31;
+  pointer-events: none;
+}
+
+.fishing-loadout-tooltip .fishing-loadout-tooltip-description,
+.fishing-loadout-tooltip .fishing-loadout-tooltip-empty,
+.fishing-loadout-tooltip.inventory-item-tooltip dd {
+  text-transform: none;
+}
+
+.fishing-loadout-tooltip .fishing-loadout-tooltip-description {
+  font-style: italic;
+}
+
+.fishing-loadout-tooltip-rows {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0 0;
+  list-style: none;
+  border-top: 1px solid rgb(148 163 184 / 22%);
+}
+
+.fishing-loadout-tooltip-rows li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.1rem 0.5rem;
+  align-items: baseline;
+}
+
+.fishing-loadout-tooltip-row-label {
+  color: var(--color-stone-50);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.fishing-loadout-tooltip-row-value {
+  color: var(--color-cyan-200);
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.fishing-loadout-tooltip-rows small {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .pond-action-group {

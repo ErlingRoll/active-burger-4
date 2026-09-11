@@ -280,23 +280,64 @@ export function rollFishingRodModifiers(
   return rolled
 }
 
-export function formatFishingRodModifiers(metadata: Record<string, unknown>): string {
+/**
+ * One modifier as it was rolled on a rod instance, read back from the
+ * inventory metadata: the definition it belongs to, the tier it landed in and
+ * the value it drew, either of which an older rod may lack.
+ */
+export interface FishingRodModifierDetail {
+  id: FishingRodModifierId
+  label: string
+  description: string
+  tier: FishingRodModifierTier | null
+  value: number | null
+}
+
+function isFishingRodModifierTier(value: unknown): value is FishingRodModifierTier {
+  return typeof value === 'number' &&
+    FISHING_ROD_MODIFIER_TIERS.includes(value as FishingRodModifierTier)
+}
+
+/**
+ * The modifiers a rod instance carries, in the order they were rolled.
+ *
+ * Unknown modifier ids are dropped rather than shown as blanks: a rod rolled
+ * by an older build can name a modifier that no longer exists, and a row
+ * with no label would read as a bug rather than as history.
+ */
+export function getFishingRodModifierDetails(
+  metadata: Record<string, unknown>,
+): FishingRodModifierDetail[] {
   if (!Array.isArray(metadata.modifierIds)) {
-    return 'No modifiers'
+    return []
   }
   const tiers = typeof metadata.modifierTiers === 'object' && metadata.modifierTiers !== null
     ? metadata.modifierTiers as Record<string, unknown>
     : {}
-  const labels = metadata.modifierIds
+  return metadata.modifierIds
     .filter(isFishingRodModifierId)
     .map((modifierId) => {
       const definition = FISHING_ROD_MODIFIERS[modifierId]
       const tier = tiers[modifierId]
       const value = metadata[definition.metadataField]
-      const tierLabel = typeof tier === 'number' ? `T${tier} ` : ''
-      const valueLabel = typeof value === 'number' ? `+${value}% ` : ''
-      return `${tierLabel}${valueLabel}${definition.label}`
+      return {
+        id: modifierId,
+        label: definition.label,
+        description: definition.description,
+        tier: isFishingRodModifierTier(tier) ? tier : null,
+        value: typeof value === 'number' ? value : null,
+      }
     })
+}
+
+export function formatFishingRodModifier(modifier: FishingRodModifierDetail): string {
+  const tierLabel = modifier.tier === null ? '' : `T${modifier.tier} `
+  const valueLabel = modifier.value === null ? '' : `+${modifier.value}% `
+  return `${tierLabel}${valueLabel}${modifier.label}`
+}
+
+export function formatFishingRodModifiers(metadata: Record<string, unknown>): string {
+  const labels = getFishingRodModifierDetails(metadata).map(formatFishingRodModifier)
   return labels.length > 0 ? labels.join(', ') : 'No modifiers'
 }
 
@@ -531,11 +572,17 @@ export function formatFishingBaitEffect(
     return 'Unlimited · common fish'
   }
 
-  return [
-    `rarity +${bait.rarityBonusPercent}%`,
-    `size +${bait.sizeBonusPercent}%`,
+  /*
+   * Only the bonuses the bait actually gives. A River Worm used to read
+   * "rarity +10% · size +0%", and a zero is a line the eye has to read and
+   * then discard.
+   */
+  const bonuses = [
+    bait.rarityBonusPercent > 0 ? `rarity +${bait.rarityBonusPercent}%` : null,
+    bait.sizeBonusPercent > 0 ? `size +${bait.sizeBonusPercent}%` : null,
     bait.lootBoxChancePercent > 0 ? `loot boxes +${bait.lootBoxChancePercent}%` : null,
-  ].filter((value): value is string => value !== null).join(' · ')
+  ].filter((value): value is string => value !== null)
+  return bonuses.length > 0 ? bonuses.join(' · ') : 'No bonuses'
 }
 
 export type FishingEnchantmentId = 'bright-scales' | 'deep-current' | 'astral-mark'

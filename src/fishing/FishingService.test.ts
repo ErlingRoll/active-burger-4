@@ -15,6 +15,7 @@ import {
   formatFishingSalvageValue,
   formatFishSizeKg,
   getChampionRevivalReductionSeconds,
+  getFishingRodModifierDetails,
   resolveFishingCatch,
   rollFishingRodModifiers,
 } from './FishingContent'
@@ -144,6 +145,34 @@ describe('FishingContent', () => {
       'rarity +18% · size +5% · loot boxes +1%',
     )
     expect(formatFishingBaitEffect('basic-bait')).toBe('Unlimited · common fish')
+  })
+
+  it('leaves a bonus a bait does not give out of its effect', () => {
+    expect(formatFishingBaitEffect('river-worm')).toBe('rarity +10%')
+  })
+
+  it('reads a rod instance back into its rolled modifiers', () => {
+    expect(getFishingRodModifierDetails({
+      modifierIds: ['rarity', 'speed', 'unknown'],
+      modifierTiers: { rarity: 2, speed: 9 },
+      rarityBonusPercent: 11,
+    })).toEqual([
+      {
+        id: 'rarity',
+        label: 'Fortune',
+        description: 'Improves the chance of higher-rarity fish.',
+        tier: 2,
+        value: 11,
+      },
+      {
+        id: 'speed',
+        label: 'Quick Line',
+        description: 'Reduces the time before the float can be resolved.',
+        tier: null,
+        value: null,
+      },
+    ])
+    expect(getFishingRodModifierDetails({})).toEqual([])
   })
 
   it('applies bait quality to deterministic local catch resolution', () => {
