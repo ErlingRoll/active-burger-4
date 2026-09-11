@@ -22,6 +22,8 @@
  *   --wait <ms>      Settle time after the screen renders. Default 1500.
  *   --out <dir>      Where the images land. Default the scratchpad, else "."
  *   --anon           Skip signing in.
+ *   --full           Capture the whole scrolled page, not only the first screenful.
+ *   --scroll-end     Scroll the page and every inner scroll container to the bottom first.
  */
 
 import { spawn } from 'node:child_process'
@@ -52,6 +54,8 @@ function readOptions(argv) {
     wait: 1500,
     out: process.env.CLAUDE_SCRATCHPAD_DIR ?? '.',
     anon: false,
+    full: false,
+    scrollEnd: false,
   }
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]
@@ -63,6 +67,8 @@ function readOptions(argv) {
     else if (flag === '--run') { options.run = true }
     else if (flag === '--devmenu') { options.devmenu = true }
     else if (flag === '--anon') { options.anon = true }
+    else if (flag === '--full') { options.full = true }
+    else if (flag === '--scroll-end') { options.scrollEnd = true }
     else { throw new Error(`Unknown option: ${flag}`) }
   }
   if (!['phone', 'desktop', 'both'].includes(options.size)) {
@@ -211,9 +217,23 @@ async function capture(browser, options, viewport, outputDirectory) {
     await page.goto(`${BASE_URL}${options.path}`)
   }
   await page.waitForTimeout(options.wait)
+  if (options.scrollEnd) {
+    // The foot of a screen is where a phone hides things, and a phone screen
+    // often scrolls in a sheet rather than in the window.
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight)
+      for (const element of document.querySelectorAll('*')) {
+        const { overflowY } = getComputedStyle(element)
+        if ((overflowY === 'auto' || overflowY === 'scroll') && element.scrollHeight > element.clientHeight) {
+          element.scrollTop = element.scrollHeight
+        }
+      }
+    })
+    await page.waitForTimeout(300)
+  }
 
   const file = path.join(outputDirectory, `${viewport.label}.png`)
-  await page.screenshot({ path: file, fullPage: false })
+  await page.screenshot({ path: file, fullPage: options.full })
   await context.close()
   return { file, problems }
 }

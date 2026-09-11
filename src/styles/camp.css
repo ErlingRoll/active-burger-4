@@ -298,7 +298,7 @@
    dock, opened under the station that opened it. */
 @media (max-width: 47rem), (max-height: 34rem) {
   .hub-camp-panel {
-    order: 6;
+    order: 7;
     width: 100%;
     padding: 0.7rem 0.75rem 0.8rem;
   }
@@ -319,9 +319,6 @@
     white-space: normal;
   }
 }
-
-/* The Camp's station on the hub, beside the other rooms of the refuge. */
-.hub-station-camp::after { content: '⌂'; }
 
 /* A working Champion, wherever a Champion is listed. */
 .champion-availability.working {
