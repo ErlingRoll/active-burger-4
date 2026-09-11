@@ -89,11 +89,12 @@ Two development menus exist: one in the header, for granting inventory items
 outside a run, and one in the arena, for driving a run (bosses, gear, skills,
 stress spawns, simulation speed). They show on a local dev server and on any
 build that serves the dev backend, and never on production; the switch is
- in , which follows the
+`DEVELOPMENT_TOOLS_ENABLED` in `src/shared/environment.ts`, which follows the
 build's environment stamp rather than Vite's dev mode, so the Netlify dev
 deploy has them too.
 
-The in-run menu opens from its button, the backquote key, or in the URL. The header's inventory grants go through a server function that
+The in-run menu opens from its button, the backquote key, or `?devmenu=open`
+in the URL. The header's inventory grants go through a server function that
 requires the admin role; the menu explains how to grant that role to an account
 when it is missing.
 
