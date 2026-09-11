@@ -550,7 +550,13 @@ export function drawTelegraphLine(
     alpha: 0.82,
   })
   drawPath()
-  view.stroke({ color, width: telegraph.radius * 2, alpha: 0.22 })
+  view.stroke({
+    color: HOSTILE_TELEGRAPH_RIM,
+    width: telegraph.radius * 2 + 5,
+    alpha: 0.95,
+  })
+  drawPath()
+  view.stroke({ color, width: telegraph.radius * 2, alpha: 0.26 })
   drawPath()
   view.stroke({ color: lightColor, width: 4, alpha: 0.9 })
 
@@ -581,13 +587,30 @@ export function drawTelegraphLine(
 }
 
 /**
+ * The one colour that means "this is aimed at you".
+ *
+ * Telegraphs used to be red and nothing else, which said that much and no
+ * more: a freezing cone and a meteor read identically. Colouring them by damage
+ * school fixed that and broke this - a cold warning came out the same cyan as
+ * the player's own Glacial Orb, and a chaos one the same violet as Sigil of
+ * Ruin, so the thing that hurts you and the thing you cast looked alike.
+ *
+ * Both are wanted, so they are carried by different parts of the shape. The
+ * interior is the damage school, which is also what the hit is resisted as. The
+ * rim is this, on every hostile warning and nothing else: a red edge means
+ * incoming, and the colour inside it says what kind.
+ *
+ * Nothing the player owns may use it. `effectGraphics.test.ts` fails if a skill
+ * takes this colour, because the rule only works while it is exclusive.
+ */
+export const HOSTILE_TELEGRAPH_RIM = '#f43f5e'
+
+/**
  * The palette a telegraph is drawn in.
  *
- * Warnings used to be one red for a boss and a darker red for an enemy, so a
- * freezing cone and a meteor read identically. Colour now follows the damage
- * school, which is also what the hit will be resisted as - and the halo behind
- * the shape follows it too, because a dark red rim around a grey wedge read as
- * a rendering fault rather than as a shadow.
+ * Colour follows the damage school, which is also what the hit will be resisted
+ * as - and the halo behind the shape follows it too, because a dark red rim
+ * around a grey wedge read as a rendering fault rather than as a shadow.
  */
 export interface TelegraphPalette {
   /** The area's own colour, laid over the ground at low alpha. */
@@ -621,6 +644,12 @@ export function getTelegraphPalette(
     : UNKNOWN_TELEGRAPH_PALETTE
 }
 
+/** Every palette a telegraph can be drawn in, for the colour-clash guard. */
+export const ALL_TELEGRAPH_PALETTES: readonly TelegraphPalette[] = [
+  ...Object.values(TELEGRAPH_PALETTES),
+  UNKNOWN_TELEGRAPH_PALETTE,
+]
+
 /** A marked circle: a jagged ring with a crosshair over the ground it covers. */
 export function drawTelegraphDisc(
   view: Graphics,
@@ -634,6 +663,9 @@ export function drawTelegraphDisc(
     .stroke({ color: palette.darkColor, width: 10, alpha: 0.8 })
     .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
     .fill({ color: palette.color, alpha: 0.2 })
+    // The danger rim, then the school's own edge inside it.
+    .stroke({ color: HOSTILE_TELEGRAPH_RIM, width: 7, alpha: 0.95 })
+    .poly(createStarPoints(radius, spikeCount, 0.86, Math.PI / spikeCount))
     .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
     .poly(createPolygonPoints(radius * 0.72, 8, Math.PI / 8))
     .stroke({ color: palette.lightColor, width: 2, alpha: 0.78 })
@@ -667,8 +699,13 @@ export function drawTelegraphRing(
     .stroke({ color: palette.darkColor, width: band + 10, alpha: 0.72 })
     .circle(0, 0, middle)
     .stroke({ color: palette.color, width: band, alpha: 0.26 })
+    // Both edges of the band carry the rim: either one can be the one you cross.
+    .circle(0, 0, outer)
+    .stroke({ color: HOSTILE_TELEGRAPH_RIM, width: 7, alpha: 0.95 })
     .circle(0, 0, outer)
     .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+    .circle(0, 0, inner)
+    .stroke({ color: HOSTILE_TELEGRAPH_RIM, width: 7, alpha: 0.95 })
     .circle(0, 0, inner)
     .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
   // The safe eye, drawn as a dashed inner ring so it reads as shelter rather
@@ -710,7 +747,9 @@ export function drawTelegraphCone(
   sector()
   view
     .fill({ color: palette.color, alpha: 0.24 })
-    .stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
+    .stroke({ color: HOSTILE_TELEGRAPH_RIM, width: 7, alpha: 0.95 })
+  sector()
+  view.stroke({ color: palette.lightColor, width: 3, alpha: 0.92 })
   // The two edges to round, plus the centre line that says which way it faces.
   view
     .moveTo(0, 0)
