@@ -31,6 +31,7 @@ import type {
 import type { BehaviorProfileId } from '../../content/behaviors/BehaviorProfiles'
 import type { TargetPriorityId } from '../../content/behaviors/TargetPriorities'
 import type { WorldModifierId } from '../../content/modifiers/WorldModifiers'
+import type { ArtifactMetadata } from '../../content/artifacts/Artifacts'
 import type { CharacterClassId } from '../../content/classes/CharacterClasses'
 import type { Rarity } from '../../content/rarity/Rarity'
 import type {
@@ -326,6 +327,28 @@ export interface PlayerState {
   preparationEliteDamagePercent?: number
   /** Whether a one-time run preparation survival effect is still available. */
   preparationEmergencyReviveAvailable?: boolean
+  /**
+   * The artifacts the run was prepared with, as the server resolved them.
+   * Set from the run config whenever a game is created or restored, so an
+   * Abyss attempt's Champion artifacts arrive even though the client that
+   * built the first checkpoint never saw them.
+   */
+  artifacts?: readonly ArtifactMetadata[]
+  /** Seconds of area-of-effect surge left after a kill. */
+  artifactAreaSurgeRemaining?: number
+  /** Wayfarer's Anklet Momentum, zero to one. */
+  artifactMomentum?: number
+  /** Seconds of standing still left before Momentum is lost. */
+  artifactMomentumGraceRemaining?: number
+  /** A skill was cast; the next Basic Attack hit is primed. */
+  artifactPrimedStrike?: boolean
+  /** Skill casts this run, for the Tuning Fork's every-third count. */
+  artifactSkillCasts?: number
+  /** The skill whose hits are being echoed, and for how much longer. */
+  artifactEchoSkillId?: SkillId
+  artifactEchoRemaining?: number
+  /** The floor-start shield that is left. Spent before HP, never regenerates. */
+  artifactShieldAmount?: number
   /** Global percentage multiplier applied to damage-over-time effects. */
   dotMultiplier?: number
   /** Repeatable Raise Skeleton upgrade count. */

@@ -27,6 +27,7 @@ import type { RandomSource } from '../random/Random'
 import type { GameState } from '../state/GameState'
 import {
   RARITIES,
+  RARITY_ORDER,
   RARITY_WEIGHTS,
   Rarity,
 } from '../../content/rarity/Rarity'
@@ -42,6 +43,60 @@ import {
 } from '../../game-config/synergies'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
+
+/** How many selectable upgrades a level-up could offer right now. */
+export function countSelectableUpgrades(state: Readonly<GameState>): number {
+  return getEligibleUpgradeDefinitions(state).filter(isSelectableUpgrade).length
+}
+
+/**
+ * The Cartographer's Compass: each ordinary choice has a chance to arrive a
+ * rarity higher, drawn from what is eligible at exactly one rarity above it,
+ * or failing that at any rarity above it. Removal offers and synergies are
+ * left as they are, so the Compass changes what is on the table without
+ * changing how often the table offers to take something away. Consumes the
+ * RNG only when there is a Compass to consume it for.
+ */
+export function applyChartedChoices(
+  state: Readonly<GameState>,
+  choices: readonly LevelUpUpgradeChoice[],
+  chancePercent: number,
+  rng: RandomSource,
+): LevelUpUpgradeChoice[] {
+  if (chancePercent <= 0) {
+    return [...choices]
+  }
+  const eligible = getEligibleUpgradeDefinitions(state)
+    .filter(isSelectableUpgrade)
+    .filter((upgrade) => !isSynergyUpgradeDefinition(upgrade))
+  const taken = new Set(choices.map((choice) => choice.upgradeId))
+  return choices.map((choice) => {
+    if (
+      choice.upgradeId === REMOVE_SYNERGY_UPGRADE_ID ||
+      choice.upgradeId === 'remove-skill' ||
+      isSynergyUpgradeId(choice.upgradeId) ||
+      !rng.chance(chancePercent / 100)
+    ) {
+      return choice
+    }
+    const currentOrder = RARITY_ORDER[choice.rarity]
+    const oneAbove = eligible.filter((upgrade) =>
+      !taken.has(upgrade.id) && RARITY_ORDER[upgrade.rarity] === currentOrder + 1,
+    )
+    const pool = oneAbove.length > 0
+      ? oneAbove
+      : eligible.filter((upgrade) =>
+        !taken.has(upgrade.id) && RARITY_ORDER[upgrade.rarity] > currentOrder,
+      )
+    const selected = pickWeightedUpgrade(pool, state, rng)
+    if (!selected) {
+      return choice
+    }
+    taken.delete(choice.upgradeId)
+    taken.add(selected.id)
+    return { upgradeId: selected.id, rarity: selected.rarity }
+  })
+}
 
 type SelectableUpgradeDefinition = UpgradeDefinition & {
   id: UpgradeChoice['upgradeId']

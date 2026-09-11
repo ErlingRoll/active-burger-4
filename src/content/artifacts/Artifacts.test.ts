@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import MIGRATION from '../../../supabase/migrations/20260912160000_add_artifacts.sql?raw'
+// The roll functions were restated when Second wind became Bulwark, so the
+// tier ranges and the pool are read from their latest definition.
+import ROLL_MIGRATION from '../../../supabase/migrations/20260912200000_artifact_floor_shield.sql?raw'
 import {
   ALL_ARTIFACT_BASE_DEFINITIONS,
   ARTIFACT_BASE_DEFINITIONS,
@@ -29,9 +32,9 @@ import { LOOT_BOX_DROP_TABLES } from '../../loot/LootBoxContents'
  * everything it does not name, and this reads it the same way.
  */
 function parseSqlTierRanges(): Map<string, ArtifactTierRanges> {
-  const start = MIGRATION.indexOf('returns integer[]')
-  const end = MIGRATION.indexOf('end;\n$$;', start)
-  const body = MIGRATION.slice(start, end)
+  const start = ROLL_MIGRATION.indexOf('returns integer[]')
+  const end = ROLL_MIGRATION.indexOf('end;\n$$;', start)
+  const body = ROLL_MIGRATION.slice(start, end)
   const ladder = /case p_tier\s+when 1 then array\[(\d+), (\d+)\]\s+when 2 then array\[(\d+), (\d+)\]\s+when 3 then array\[(\d+), (\d+)\]\s+when 4 then array\[(\d+), (\d+)\]\s+else array\[(\d+), (\d+)\]\s+end/g
   const named = /when p_effect_id in \(((?:'[a-z-]+'(?:, )?)+)\) then case p_tier/g
   const ranges = new Map<string, ArtifactTierRanges>()
@@ -210,7 +213,7 @@ describe('artifact migration parity', () => {
   })
 
   it('draws modifiers from the same pool in the same order', () => {
-    const match = MIGRATION.match(/v_pool text\[\] := array\[([\s\S]*?)\];/)
+    const match = ROLL_MIGRATION.match(/v_pool text\[\] := array\[([\s\S]*?)\];/)
     expect(match).not.toBeNull()
     const pool = [...match![1]!.matchAll(/'([a-z-]+)'/g)].map((entry) => entry[1])
     expect(pool).toEqual(ARTIFACT_MODIFIER_IDS)

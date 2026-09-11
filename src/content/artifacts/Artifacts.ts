@@ -54,7 +54,7 @@ export type ArtifactModifierId =
   | 'kill-cooldown-reset'
   | 'primed-strike'
   | 'last-stand'
-  | 'floor-heal'
+  | 'floor-shield'
   | 'elite-damage'
   | 'experience-gain'
   | 'healing-received'
@@ -315,10 +315,10 @@ export const ARTIFACT_MODIFIER_DEFINITIONS = {
     description: `+#% physical and elemental resistance while below ${ARTIFACT_LAST_STAND_HP_PERCENT}% HP`,
     tiers: STANDARD_PERCENT_TIERS,
   },
-  'floor-heal': {
-    id: 'floor-heal',
-    label: 'Second wind',
-    description: 'Recover #% of maximum HP on descending a floor',
+  'floor-shield': {
+    id: 'floor-shield',
+    label: 'Bulwark',
+    description: 'Begin each floor with a shield worth #% of maximum HP',
     tiers: BURST_PERCENT_TIERS,
   },
   'elite-damage': {
