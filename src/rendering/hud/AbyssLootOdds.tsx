@@ -15,8 +15,9 @@ import { LootBoxIcon } from '../../loot/LootBoxIcon'
  *
  * The danger score is not a factor: it moves the roll, not the bands, so the
  * panel is a function of the floor number alone and reads the same for the
- * whole floor. Every 10th floor promises at least an epic box, and the panel
- * says so the same way: the three lesser chests drop to nothing and dim.
+ * whole floor. Every 10th floor promises at least an epic box, with the
+ * floor's legendary chance raised by five points, and the panel says so the
+ * same way: the three lesser chests drop to nothing and dim.
  */
 function formatLootBoxChance(chance: number): string {
   const percent = chance * 100

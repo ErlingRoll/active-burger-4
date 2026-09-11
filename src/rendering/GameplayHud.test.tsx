@@ -299,7 +299,7 @@ describe('the vitals panel', () => {
     const panel = screen.getByRole('region', { name: /floor 10 loot box odds/i })
     const rows = within(panel).getAllByRole('listitem')
     expect(rows.map((row) => row.textContent))
-      .toEqual(['Common 0%', 'Uncommon 0%', 'Rare 0%', 'Epic 95%', 'Legendary 5.0%'])
+      .toEqual(['Common 0%', 'Uncommon 0%', 'Rare 0%', 'Epic 94%', 'Legendary 6.3%'])
     expect(rows.map((row) => row.getAttribute('data-impossible')))
       .toEqual(['true', 'true', 'true', null, null])
   })

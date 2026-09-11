@@ -43,8 +43,13 @@ const ROLL_RANGE = 10000
 
 /** Every 10th floor pays at least an epic box, whatever the curve says. */
 const MILESTONE_FLOOR_INTERVAL = 10
-/** Of the milestone roll's range, the share that upgrades the box to legendary. */
-const MILESTONE_LEGENDARY_CUTOFF = 500
+/**
+ * Of the milestone roll's range, the share added on top of the floor's own
+ * legendary band: a milestone's legendary chance is the curve's plus five
+ * points, so the tenth floor is a better floor than the ninth in every rarity,
+ * not only in its floor.
+ */
+const MILESTONE_LEGENDARY_BONUS = 500
 
 function isMilestoneFloor(completedFloor: number): boolean {
   return Math.max(1, Math.floor(completedFloor)) % MILESTONE_FLOOR_INTERVAL === 0
@@ -65,6 +70,11 @@ function abyssLootBoxRollCutoffs(completedFloor: number): {
   return { common, uncommon, rare, epic }
 }
 
+/** The milestone roll's legendary band: the curve's own band plus the bonus. */
+function milestoneLegendaryCutoff(epicCutoff: number): number {
+  return ROLL_RANGE - epicCutoff + MILESTONE_LEGENDARY_BONUS
+}
+
 export function resolveAbyssLootBoxRarity(
   seed: number,
   completedFloor: number,
@@ -83,13 +93,13 @@ export function resolveAbyssLootBoxRarity(
     danger * 97
   ) >>> 0
   const roll = mixedSeed % ROLL_RANGE
+  const cutoffs = abyssLootBoxRollCutoffs(floor)
   if (isMilestoneFloor(floor)) {
     const bonusMixedSeed = (mixedSeed ^ 0x5bd1e995) >>> 0
-    return bonusMixedSeed % ROLL_RANGE < MILESTONE_LEGENDARY_CUTOFF
+    return bonusMixedSeed % ROLL_RANGE < milestoneLegendaryCutoff(cutoffs.epic)
       ? Rarity.Legendary
       : Rarity.Epic
   }
-  const cutoffs = abyssLootBoxRollCutoffs(floor)
   if (roll < cutoffs.common) return Rarity.Common
   if (roll < cutoffs.uncommon) return Rarity.Uncommon
   if (roll < cutoffs.rare) return Rarity.Rare
@@ -106,8 +116,9 @@ export function resolveAbyssLootBoxRarity(
 export function getAbyssLootBoxRarityChances(
   completedFloor: number,
 ): Readonly<Record<LootBoxRarity, number>> {
+  const cutoffs = abyssLootBoxRollCutoffs(completedFloor)
   if (isMilestoneFloor(completedFloor)) {
-    const legendary = MILESTONE_LEGENDARY_CUTOFF / ROLL_RANGE
+    const legendary = milestoneLegendaryCutoff(cutoffs.epic) / ROLL_RANGE
     return {
       [Rarity.Common]: 0,
       [Rarity.Uncommon]: 0,
@@ -116,7 +127,6 @@ export function getAbyssLootBoxRarityChances(
       [Rarity.Legendary]: legendary,
     }
   }
-  const cutoffs = abyssLootBoxRollCutoffs(completedFloor)
   return {
     [Rarity.Common]: cutoffs.common / ROLL_RANGE,
     [Rarity.Uncommon]: (cutoffs.uncommon - cutoffs.common) / ROLL_RANGE,

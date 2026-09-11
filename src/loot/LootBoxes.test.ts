@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { RARITIES, Rarity } from '../content/rarity/Rarity'
 import { getAbyssLootBoxRarityChances, resolveAbyssLootBoxRarity } from './LootBoxes'
 
+/**
+ * The share of milestone boxes that come up legendary, over seeds drawn the
+ * way real runs draw them: spread across the whole 32-bit range.
+ *
+ * Consecutive seeds will not do here. The milestone roll XORs the mixed seed
+ * with a constant, which scatters a consecutive block into aligned pieces
+ * whose residues modulo 10000 are anything but uniform, so a walk from seed 0
+ * measured 4% for a 6.3% band. A fixed linear congruential sequence is as
+ * deterministic and has no such structure.
+ */
+function sampleLegendaryRate(floor: number, sampleSize = 200_000): number {
+  let state = 123_456_789
+  let legendaryCount = 0
+  for (let index = 0; index < sampleSize; index += 1) {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0
+    if (resolveAbyssLootBoxRarity(state, floor, 0) === Rarity.Legendary) {
+      legendaryCount += 1
+    }
+  }
+  return legendaryCount / sampleSize
+}
+
 describe('LootBoxes', () => {
   it('resolves deterministically for the same floor and danger score', () => {
     expect(resolveAbyssLootBoxRarity(42, 20, 4))
@@ -32,17 +54,11 @@ describe('LootBoxes', () => {
     }
   })
 
-  it('gives a milestone epic box roughly a 5% chance of being legendary', () => {
-    const sampleSize = 20000
-    let legendaryCount = 0
-    for (let seed = 0; seed < sampleSize; seed++) {
-      if (resolveAbyssLootBoxRarity(seed, 10, 0) === Rarity.Legendary) {
-        legendaryCount++
-      }
-    }
-    const rate = legendaryCount / sampleSize
-    expect(rate).toBeGreaterThan(0.03)
-    expect(rate).toBeLessThan(0.07)
+  it('gives a milestone box the floor\'s legendary chance plus five points', () => {
+    // Floor 10 rolls legendary on 130 of 10000 on the curve; the milestone adds 500.
+    const rate = sampleLegendaryRate(10)
+    expect(rate).toBeGreaterThan(0.058)
+    expect(rate).toBeLessThan(0.068)
   })
 
   it('does not guarantee epic on non-milestone floors', () => {
@@ -84,24 +100,24 @@ describe('LootBoxes', () => {
     it('promises at least an epic box on every 10th floor', () => {
       for (const floor of [10, 20, 100, 110]) {
         const chances = getAbyssLootBoxRarityChances(floor)
+        const curve = getAbyssLootBoxRarityChances(floor + 1)
         expect(chances[Rarity.Common]).toBe(0)
         expect(chances[Rarity.Uncommon]).toBe(0)
         expect(chances[Rarity.Rare]).toBe(0)
-        expect(chances[Rarity.Epic]).toBeCloseTo(0.95, 12)
-        expect(chances[Rarity.Legendary]).toBeCloseTo(0.05, 12)
+        // The floor after a milestone is a hair further along the curve, so
+        // its legendary band is at least the milestone floor's own.
+        expect(chances[Rarity.Legendary]).toBeGreaterThan(0.05)
+        expect(chances[Rarity.Legendary]).toBeLessThanOrEqual(curve[Rarity.Legendary] + 0.05)
+        expect(chances[Rarity.Epic]).toBeCloseTo(1 - chances[Rarity.Legendary], 12)
       }
+      expect(getAbyssLootBoxRarityChances(10)[Rarity.Legendary]).toBeCloseTo(0.063, 12)
+      expect(getAbyssLootBoxRarityChances(110)[Rarity.Legendary]).toBeCloseTo(0.18, 12)
       // The milestone roll is mixed once more, so it is checked by sampling.
-      const sampleSize = 20000
-      let legendaryCount = 0
-      for (let seed = 0; seed < sampleSize; seed += 1) {
-        if (resolveAbyssLootBoxRarity(seed, 20, 0) === Rarity.Legendary) {
-          legendaryCount += 1
-        }
+      for (const floor of [20, 110]) {
+        expect(Math.abs(
+          sampleLegendaryRate(floor) - getAbyssLootBoxRarityChances(floor)[Rarity.Legendary],
+        )).toBeLessThan(0.005)
       }
-      expect(legendaryCount / sampleSize).toBeCloseTo(
-        getAbyssLootBoxRarityChances(20)[Rarity.Legendary],
-        1,
-      )
     })
 
     it('improves with depth and stops improving after floor 100', () => {
