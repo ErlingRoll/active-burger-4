@@ -152,10 +152,10 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11, with the expectation that it
-will be improved. Every visual decision on the screen derives from that one
-sentence, and a later pass should improve the execution of it rather than mix
-in a second idea.
+Accepted as a first iteration on 2026-09-11 and given a second pass the same
+day. Every visual decision on the screen derives from that one sentence, and
+a later pass should improve the execution of it rather than mix in a second
+idea.
 
 - **The place is cold; the work is warm.** The Camp's accent world is moss and
   pine green, declared in `src/styles/screen-frame.css` beside the pond's cyan
@@ -165,12 +165,15 @@ in a second idea.
   the bonfire is the only warm light, carried out to the ground beyond it.
   The Rift anchor is the one exception and glows violet, because it is a
   piece of the Abyss and takes the Abyss's colour wherever it appears.
-- **The scene is a silhouette band on a horizon.** Hills, pines on the left and
-  the cut hillside on the right are one flat band drawn in `CampScreen.tsx`,
-  with a moon over the quarry and a pool at the front where the tackle bench
-  stands. The ground is lit by the plots, not by the sky, and a fog darkens
-  the front so the plots read against something quiet. The stars are the
-  refuge's stars.
+- **The scene has depth.** Four silhouettes stand one behind another in
+  `CampScreen.tsx`: a far range under haze with the keep on its ridge, the
+  hills, the pines and the cut hillside, and a stand of near pines at the
+  front left that the Woodline stands against. Low mist drifts along the far
+  edge of the ground, a moon hangs over the quarry, a pool lies at the front
+  where the tackle bench stands, and a trodden path runs from the front of
+  the ground up to the Storehouse with a branch each way along the front row.
+  The ground is lit by the plots, not by the sky, and a fog darkens the front
+  so the buildings read against something quiet. The stars are the refuge's.
 - **Buildings are drawn, in one hand.** Every plot carries a picture from
   `CampBuildingArt.tsx`, on one shared viewbox and one shared ground line, in
   the flat silhouette style of the pond's fish and the bag's icons. Colour is
@@ -179,20 +182,29 @@ in a second idea.
   its lights move (smoke rises, coals flicker, the rift orb pulses); a
   building at level zero is the same picture drawn faint and grey on a
   dashed, staked-out plot, so the player sees what could stand there.
-- **Plots are glass over the scene, not plates on top of it.** A plot's
-  background is mostly transparent so the treeline shows through the empty
-  top of it, and the building stands at the bottom on its ground line. A plot
-  brightens on hover, takes the accent as a frame while its inspector is
-  open, and takes lantern amber with a "Ready" badge while something on it
-  waits to be claimed.
+- **Buildings stand on the ground; there are no cards.** A plot has no plate
+  and no border. Its building stands on an ellipse of trodden earth with its
+  name on a sign beneath, and the ground is the only shape: it takes an
+  accent ring while the inspector is open and becomes a dashed, staked-out
+  footprint while nothing stands there. The back row is drawn smaller for
+  distance, with the Storehouse and the anchor a little higher up the slope
+  than the Woodline against the trees and the quarry against the hillside,
+  so the two rows read as a settlement rather than a shelf. A plot lifts on
+  hover and carries a lantern-amber "Ready" tag while something waits.
+- **Champions are figures at the foot of the building.** Every job slot is a
+  small figure on the building's ground line: a dark silhouette with a
+  lantern in hand, bobbing slightly, while the slot is filled, and a dashed
+  outline while it is empty, so a free slot reads as a place to stand.
+- **The ground is alive.** Fireflies drift and blink over the front of the
+  ground and the mist moves; both stand still under `prefers-reduced-motion`.
 - **The inspector is the same material as the plots,** a darker glass beside
   them on a desktop and a sheet rising over them on a phone, headed by the
   building's own picture and its level.
 
-The first iteration's known weaknesses, for the next pass: the plots are
-still a grid of cards rather than buildings standing at places on the ground,
-the backdrop is a single band with little depth, and nothing on the ground
-moves apart from the lights.
+What the second pass left for a third: the plots still sit on a grid, so
+the buildings stand in two straight rows rather than where a camp would put
+them; the path is drawn against the scene rather than between the buildings
+it should join; and the figures do not walk, only stand.
 
 ## Design constraints
 

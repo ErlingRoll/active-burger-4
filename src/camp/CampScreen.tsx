@@ -92,6 +92,22 @@ const CAMP_PLOTS: readonly CampPlotId[] = [
   'tackle-bench', 'smokehouse', 'forge', 'trophy-hall',
 ]
 
+/**
+ * Fireflies over the ground, as a percentage of the scene and a delay so no
+ * two blink together. Decoration only: the layer is hidden from readers and
+ * stands still when motion is reduced.
+ */
+const FIREFLIES: readonly { x: number, y: number, delay: number }[] = [
+  { x: 9, y: 56, delay: 0 },
+  { x: 27, y: 68, delay: 2.1 },
+  { x: 41, y: 60, delay: 4.3 },
+  { x: 58, y: 73, delay: 1.2 },
+  { x: 71, y: 58, delay: 3.4 },
+  { x: 86, y: 70, delay: 5.5 },
+  { x: 50, y: 84, delay: 6.8 },
+  { x: 18, y: 80, delay: 7.9 },
+]
+
 /** The materials the ledger counts, in the order the Camp meets them. */
 const LEDGER_MATERIALS = ['timber', 'stone', 'scrap', 'rift-shard', 'roe'] as const
 
@@ -1070,7 +1086,16 @@ export function CampScreen({
       data-inspecting={inspected ? 'true' : undefined}
     >
       <div className="camp-scene" aria-hidden="true">
+        <div className="camp-moon" />
         <svg className="camp-backdrop" viewBox="0 0 1000 300" preserveAspectRatio="none">
+          <polygon
+            className="camp-backdrop-far"
+            points="0,300 0,128 110,92 230,118 370,66 500,96 640,54 760,90 880,44 1000,74 1000,300"
+          />
+          <polygon
+            className="camp-backdrop-keep"
+            points="606,84 606,52 611,52 611,44 616,49 621,44 626,52 631,52 631,84"
+          />
           <polygon
             className="camp-backdrop-hills"
             points="0,300 0,190 90,150 180,175 260,120 340,160 430,110 520,150 600,130 700,170 790,90 860,140 940,120 1000,150 1000,300"
@@ -1087,10 +1112,28 @@ export function CampScreen({
             className="camp-backdrop-cliff-face"
             points="820,300 830,236 870,206 920,196 960,226 1000,210 1000,300"
           />
+          <polygon
+            className="camp-backdrop-near"
+            points="0,300 0,246 22,190 46,258 68,206 94,266 118,228 142,280 172,256 204,300"
+          />
         </svg>
-        <div className="camp-moon" />
+        <div className="camp-mist" />
         <div className="camp-ground" />
+        <svg className="camp-path" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+          <path d="M 470 1000 C 430 860, 560 760, 500 620 S 520 520, 505 470" />
+          <path d="M 500 700 C 380 690, 300 640, 150 660" />
+          <path d="M 500 700 C 640 690, 700 640, 860 660" />
+        </svg>
         <div className="camp-water" />
+        <div className="camp-fireflies">
+          {FIREFLIES.map((firefly) => (
+            <span
+              key={`${firefly.x}-${firefly.y}`}
+              className="camp-firefly"
+              style={{ left: `${firefly.x}%`, top: `${firefly.y}%`, animationDelay: `${firefly.delay}s` }}
+            />
+          ))}
+        </div>
         <div className="camp-fog" />
       </div>
       <div className="camp-hud">
@@ -1169,15 +1212,18 @@ export function CampScreen({
                       }
                     }}
                   >
-                    <span className="camp-plot-glow" aria-hidden="true" />
-                    <CampBuildingArt plotId={plotId} built={built} />
-                    {plot.slots > 0 ? (
-                      <span className="camp-plot-workers" aria-hidden="true">
-                        {Array.from({ length: plot.slots }, (_, index) => (
-                          <i key={index} data-filled={index < plot.workers ? 'true' : 'false'} />
-                        ))}
-                      </span>
-                    ) : null}
+                    <span className="camp-plot-stage" aria-hidden="true">
+                      <span className="camp-plot-ground" />
+                      <span className="camp-plot-glow" />
+                      <CampBuildingArt plotId={plotId} built={built} />
+                      {plot.slots > 0 ? (
+                        <span className="camp-plot-workers">
+                          {Array.from({ length: plot.slots }, (_, index) => (
+                            <i key={index} data-filled={index < plot.workers ? 'true' : 'false'} />
+                          ))}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="camp-plot-copy">
                       <strong>{name}</strong>
                       {isBuildingId(plotId) ? (
