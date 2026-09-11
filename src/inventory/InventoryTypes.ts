@@ -102,6 +102,8 @@ export interface InventoryReleaseResult {
 export interface InventorySalvageResult {
   itemInstanceId: InventoryItemInstanceId
   essenceAwarded: number
+  /** Artifacts salvage to scrap rather than Essence; zero for everything else. */
+  scrapAwarded: number
   wasProcessed: boolean
 }
 

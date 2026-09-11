@@ -91,8 +91,8 @@ describe('LootBoxShelf', () => {
     const card = await screen.findByRole('tooltip')
     expect(within(card).getByText('Legendary · 4 draws')).toBeInTheDocument()
     // The published odds are the server's, out of a thousand: a legendary box
-    // draws a glow grub a quarter of the time.
-    expect(within(card).getByText('25.0%')).toBeInTheDocument()
+    // draws a glow grub a fifth of the time.
+    expect(within(card).getByText('20.0%')).toBeInTheDocument()
     expect(within(card).getByText('Glow Grub')).toBeInTheDocument()
     expect(within(card).getByText('Wooden rod')).toBeInTheDocument()
   })

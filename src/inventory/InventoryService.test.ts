@@ -102,6 +102,7 @@ describe('InventoryService', () => {
       return [{
         item_instance_id: 'item-1',
         essence_awarded: 2,
+        scrap_awarded: 0,
         was_processed: true,
       }]
     })
@@ -124,6 +125,7 @@ describe('InventoryService', () => {
     await expect(service.salvageItem('salvage-1', 'item-1')).resolves.toEqual({
       itemInstanceId: 'item-1',
       essenceAwarded: 2,
+      scrapAwarded: 0,
       wasProcessed: true,
     })
   })

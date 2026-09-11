@@ -26,7 +26,8 @@ import {
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { getInventoryItemCategory } from '../inventory/InventoryFilters'
-import { getInventoryEssenceTotal } from '../inventory/InventoryValue'
+import { formatInventorySalvageReward, getInventoryEssenceTotal } from '../inventory/InventoryValue'
+import { formatArtifactSummary, readArtifactMetadata } from '../content/artifacts/Artifacts'
 import { CraftingBench } from '../inventory/CraftingBench'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { markInventoryItemAsUnseen } from '../inventory/InventoryItemSeen'
@@ -91,6 +92,10 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
   }
   if (category === 'fish') {
     return formatFishingFishDetail(item.definitionId, item.metadata)
+  }
+  const artifact = readArtifactMetadata(item.definitionId, item.metadata)
+  if (artifact) {
+    return formatArtifactSummary(artifact)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (category === 'rod') {
@@ -899,7 +904,7 @@ export function FishingScreen({
         title: 'Item salvaged',
         itemName,
         icon: getRewardIcon(target.definitionId),
-        reward: `+${result.essenceAwarded} Essence`,
+        reward: formatInventorySalvageReward(result),
       })
       setItems(await inventoryService.loadInventory())
     } catch (salvageError: unknown) {

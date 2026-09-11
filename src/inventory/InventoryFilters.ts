@@ -78,11 +78,18 @@ export function filterInventoryItems(
 }
 
 /** The categories a slot can be individually salvaged from. */
-const SALVAGEABLE_CATEGORIES: readonly InventoryItemCategory[] = ['fish', 'rod']
+const SALVAGEABLE_CATEGORIES: readonly InventoryItemCategory[] = ['fish', 'rod', 'artifact']
 
 export function isSalvageableItem(item: InventoryItemInstance): boolean {
   return SALVAGEABLE_CATEGORIES.includes(getInventoryItemCategory(item))
 }
+
+/**
+ * The categories the common sweep clears: what a player accumulates faster
+ * than they can use. An artifact is salvageable but never swept, because even
+ * a common one is a roll of its own and worth a look before it goes.
+ */
+const SWEEPABLE_CATEGORIES: readonly InventoryItemCategory[] = ['fish', 'rod']
 
 /**
  * The catch and gear a player would otherwise clear one at a time.
@@ -96,7 +103,7 @@ export function selectCommonSalvage(
   items: readonly InventoryItemInstance[],
 ): InventoryItemInstance[] {
   return items.filter((item) =>
-    isSalvageableItem(item) &&
+    SWEEPABLE_CATEGORIES.includes(getInventoryItemCategory(item)) &&
     getInventoryItemRarity(item) === Rarity.Common,
   )
 }

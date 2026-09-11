@@ -66,6 +66,7 @@ interface RpcReleaseRow {
 interface RpcSalvageRow {
   item_instance_id: string
   essence_awarded: number
+  scrap_awarded: number
   was_processed: boolean
 }
 
@@ -149,6 +150,9 @@ function isRpcSalvageRow(value: unknown): value is RpcSalvageRow {
     typeof value.essence_awarded === 'number' &&
     Number.isSafeInteger(value.essence_awarded) &&
     value.essence_awarded >= 0 &&
+    typeof value.scrap_awarded === 'number' &&
+    Number.isSafeInteger(value.scrap_awarded) &&
+    value.scrap_awarded >= 0 &&
     typeof value.was_processed === 'boolean'
 }
 
@@ -400,6 +404,7 @@ export function createInventoryService(
       return {
         itemInstanceId: row.item_instance_id,
         essenceAwarded: row.essence_awarded,
+        scrapAwarded: row.scrap_awarded,
         wasProcessed: row.was_processed,
       }
     },

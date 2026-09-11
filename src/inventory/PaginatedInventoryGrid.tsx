@@ -9,7 +9,9 @@ import {
 import { EssenceAmount } from '../ui/EssenceMark'
 import { useFittedItemCount } from '../ui/useFittedItemCount'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
+import { getArtifactSalvageScrap, readArtifactMetadata } from '../content/artifacts/Artifacts'
 import { isEnchantedItemMetadata } from '../fishing/FishingContent'
+import { ArtifactEffectList } from './ArtifactEffects'
 import { isSalvageableItem } from './InventoryFilters'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
@@ -102,7 +104,12 @@ export function PaginatedInventoryGrid({
   const activeItem = pageItems.find((item) => item.itemInstanceId === activeItemInstanceId) ?? null
   const tooltipItem = showTooltip ? activeItem : null
   const tooltipRarity = tooltipItem === null ? null : getInventoryItemRarity(tooltipItem)
-  const tooltipEssence = tooltipItem === null ? null : getItemEssence?.(tooltipItem) ?? null
+  const tooltipArtifact = tooltipItem === null
+    ? null
+    : readArtifactMetadata(tooltipItem.definitionId, tooltipItem.metadata)
+  const tooltipEssence = tooltipItem === null || tooltipArtifact !== null
+    ? null
+    : getItemEssence?.(tooltipItem) ?? null
 
   /*
    * The closer closes the tooltip, and only the tooltip.
@@ -286,7 +293,11 @@ export function PaginatedInventoryGrid({
               )}
             </div>
           </header>
-          <p>{getItemDetail(tooltipItem)}</p>
+          {tooltipArtifact ? (
+            <ArtifactEffectList metadata={tooltipArtifact} showFlavor />
+          ) : (
+            <p>{getItemDetail(tooltipItem)}</p>
+          )}
           <dl>
             <div>
               <dt>Quantity</dt>
@@ -300,6 +311,12 @@ export function PaginatedInventoryGrid({
               <div>
                 <dt>Salvage</dt>
                 <dd><EssenceAmount value={tooltipEssence} /></dd>
+              </div>
+            )}
+            {tooltipArtifact === null ? null : (
+              <div>
+                <dt>Salvage</dt>
+                <dd>{getArtifactSalvageScrap(tooltipArtifact.rarity)} scrap</dd>
               </div>
             )}
           </dl>

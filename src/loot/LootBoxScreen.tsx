@@ -3,6 +3,7 @@ import type { InventoryItemInstance, InventoryService } from '../inventory'
 import {
   buildInventoryCategoryFilters,
   filterInventoryItems,
+  formatInventorySalvageReward,
   getInventoryEssenceTotal,
   getInventoryItemCategory,
   getInventoryItemDefinition,
@@ -12,6 +13,13 @@ import {
   selectCommonSalvage,
 } from '../inventory'
 import type { InventoryCategoryFilter } from '../inventory'
+import { ArtifactEffectList } from '../inventory/ArtifactEffects'
+import {
+  formatArtifactHeadline,
+  formatArtifactSummary,
+  getArtifactSalvageScrap,
+  readArtifactMetadata,
+} from '../content/artifacts/Artifacts'
 import { CraftingBench } from '../inventory/CraftingBench'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { EssenceAmount } from '../ui/EssenceMark'
@@ -55,6 +63,10 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
   }
   if (definition?.category === 'fish') {
     return formatFishingFishDetail(item.definitionId, item.metadata)
+  }
+  const artifact = readArtifactMetadata(item.definitionId, item.metadata)
+  if (artifact) {
+    return formatArtifactSummary(artifact)
   }
   if (typeof item.metadata.rarity === 'string') {
     if (definition?.category === 'rod') {
@@ -186,7 +198,7 @@ export function InventoryScreen({
         title: 'Item salvaged',
         itemName,
         icon: getRewardIcon(target.definitionId),
-        reward: `+${result.essenceAwarded} Essence`,
+        reward: formatInventorySalvageReward(result),
       })
       await refresh()
     } catch (salvageError: unknown) {
@@ -257,6 +269,9 @@ export function InventoryScreen({
 
   const selectedRarity = selectedItem === null ? null : getInventoryItemRarity(selectedItem)
   const selectedIsSalvageable = selectedItem !== null && isSalvageableItem(selectedItem)
+  const selectedArtifact = selectedItem === null
+    ? null
+    : readArtifactMetadata(selectedItem.definitionId, selectedItem.metadata)
   const selectedEssence = selectedItem === null ? null : getItemEssence(selectedItem)
 
   return (
@@ -428,8 +443,13 @@ export function InventoryScreen({
                       {getRewardIcon(selectedItem.definitionId)}
                     </span>
                     <div className="inventory-inspector-copy">
+                      {/* An artifact's card goes under the band at the rail's
+                          full width; the band keeps one line so the two do not
+                          say the same thing twice. */}
                       <p className="inventory-inspector-detail">
-                        {getInventoryItemDetail(selectedItem)}
+                        {selectedArtifact
+                          ? formatArtifactHeadline(selectedArtifact)
+                          : getInventoryItemDetail(selectedItem)}
                       </p>
                       <dl className="inventory-inspector-facts">
                         <div>
@@ -443,9 +463,13 @@ export function InventoryScreen({
                         <div>
                           <dt>Salvage</dt>
                           <dd>
-                            <EssenceAmount
-                              value={selectedEssence ?? getInventoryItemEssence(selectedItem)}
-                            />
+                            {selectedArtifact ? (
+                              `${getArtifactSalvageScrap(selectedArtifact.rarity)} scrap`
+                            ) : (
+                              <EssenceAmount
+                                value={selectedEssence ?? getInventoryItemEssence(selectedItem)}
+                              />
+                            )}
                           </dd>
                         </div>
                       </dl>
@@ -463,6 +487,11 @@ export function InventoryScreen({
                       </button>
                     ) : null}
                   </div>
+                  {selectedArtifact ? (
+                    <div className="inventory-inspector-artifact">
+                      <ArtifactEffectList metadata={selectedArtifact} />
+                    </div>
+                  ) : null}
                 </>
               )}
               <section

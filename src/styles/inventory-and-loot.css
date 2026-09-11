@@ -287,7 +287,7 @@
   border-color: rgb(var(--accent-rgb) / 18%);
 }
 
-.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.inventory-screen .inventory-item-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
@@ -525,7 +525,7 @@
   border-radius: 0.5rem;
 }
 
-.inventory-inspector-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.inventory-inspector-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 74%;
   height: 74%;
 }
@@ -1009,7 +1009,7 @@
   font-size: clamp(1.1rem, 3vh, 1.7rem);
 }
 
-.loot-box-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.loot-box-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
@@ -1284,14 +1284,19 @@
   font-size: clamp(0.9rem, 2vh, 1.2rem);
 }
 
-.crafting-recipe-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon) {
+.crafting-recipe-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
   width: 100%;
   height: 100%;
 }
 
+/* The base is what decides whether the button sits beside the copy or under
+   it. At 18rem the stores rail, which is about 25rem inside its padding, could
+   not fit copy and button on one row, so every card grew a third row and the
+   three of them together pushed the bench past the frame once an artifact's
+   card sat above them. */
 .crafting-recipe-copy {
   display: flex;
-  flex: 1 1 min(18rem, 100%);
+  flex: 1 1 min(13rem, 100%);
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
@@ -1328,4 +1333,83 @@
   min-height: 0;
   padding: clamp(0.3rem, 1vh, 0.5rem) clamp(0.5rem, 1.6vw, 0.9rem);
   font-size: clamp(0.65rem, 1.5vh, 0.8rem);
+}
+
+/* An artifact's card: the implicit first, then the rolled modifiers, each
+   with its tier. Shared by the bag's tooltip, the stores inspector and the run
+   setup picker so the same artifact reads the same everywhere. */
+.artifact-effects {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.artifact-effects-flavor {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* One column. Two abreast was tried for the rail and cost more than it saved:
+   a modifier line is about fifty characters, which is one line at the rail's
+   width and three in half of it. */
+.artifact-effects-list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifact-effect {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  color: var(--color-stone-200);
+  font-size: clamp(0.7rem, 1.6vh, 0.86rem);
+  line-height: 1.35;
+}
+
+.artifact-effect[data-kind='implicit'] {
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  color: var(--color-amber-200);
+  font-weight: 700;
+}
+
+.artifact-effect-tier {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.artifact-effect[data-tier='1'] .artifact-effect-tier {
+  border-color: currentColor;
+  color: var(--color-amber-300);
+}
+
+.artifact-effect[data-tier='2'] .artifact-effect-tier {
+  border-color: currentColor;
+  color: var(--color-violet-300);
+}
+
+/* The artifact card rides under the inspector band at the rail's full width. */
+.inventory-inspector-artifact {
+  flex: 0 0 auto;
+  margin-top: clamp(0.25rem, 0.9vh, 0.6rem);
+}
+
+/* The tooltip capitalises its detail line, which suits "epic · 3 modifiers"
+   and ruins a sentence. An artifact's flavour is prose and stays prose. */
+.inventory-item-tooltip .artifact-effects-flavor {
+  margin: 0.35rem 0 0;
+  text-transform: none;
 }

@@ -3,6 +3,8 @@ import { BaitIcon } from '../fishing/BaitIcon'
 import { FishIcon } from '../fishing/FishIcon'
 import { getFishDefinition, getFishingBaitDefinition, getFishingRodVisual } from '../fishing/FishingContent'
 import { RodIcon } from '../fishing/RodIcon'
+import { getArtifactBaseByDefinitionId } from '../content/artifacts/Artifacts'
+import { ArtifactIcon } from '../inventory/ArtifactIcon'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { MaterialIcon, type MaterialIconId } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from './LootBoxIcon'
@@ -45,6 +47,11 @@ export function getRewardIcon(definitionId: string): ReactNode {
   const rod = getFishingRodVisual(definitionId)
   if (rod) {
     return <RodIcon icon={rod.icon} color={rod.accent} />
+  }
+
+  const artifact = getArtifactBaseByDefinitionId(definitionId)
+  if (artifact) {
+    return <ArtifactIcon icon={artifact.id} color={artifact.accent} />
   }
 
   const definition = getInventoryItemDefinition(definitionId)

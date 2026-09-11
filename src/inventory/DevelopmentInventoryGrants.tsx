@@ -17,6 +17,8 @@ import { getFishDefinition } from '../fishing/FishingContent'
 import { FishIcon } from '../fishing/FishIcon'
 import { lastElement } from '../shared'
 import { RARITIES, RARITY_WEIGHTS, type Rarity } from '../content/rarity/Rarity'
+import { getArtifactBaseByDefinitionId } from '../content/artifacts/Artifacts'
+import { ArtifactIcon } from './ArtifactIcon'
 import { useToaster } from '../ui/ToasterContext'
 
 /**
@@ -31,11 +33,14 @@ interface DevelopmentInventoryGrantsProps {
 /**
  * Rods are left out on purpose: a rod's modifiers are rolled when fishing
  * creates it, and a rod granted without them is not a rod the game knows.
+ * Artifacts are in because the server rolls one on insert whatever asked for
+ * it; a granted artifact is exactly the artifact a box would have given.
  */
 const GRANTABLE_CATEGORIES: readonly InventoryItemCategory[] = [
   'fish',
   'bait',
   'loot-box',
+  'artifact',
   'material',
 ]
 
@@ -77,9 +82,10 @@ const QUICK_GRANTS: readonly {
   { label: '100 scrap', definitionId: 'scrap', quantity: 100 },
   { label: '20 River Worms', definitionId: 'river-worm', quantity: 20 },
   { label: 'Rare loot box', definitionId: 'loot-box-rare', quantity: 1 },
+  { label: 'Legendary Ember Reliquary', definitionId: 'artifact-ember-reliquary', quantity: 1, rarity: 'legendary' },
 ]
 
-const FISH_RARITY_OPTIONS: readonly { value: Rarity | 'random'; label: string }[] = [
+const RARITY_OPTIONS: readonly { value: Rarity | 'random'; label: string }[] = [
   { value: 'random', label: 'Random rarity' },
   ...RARITIES.map((rarity) => ({ value: rarity, label: rarity.charAt(0).toUpperCase() + rarity.slice(1) })),
 ]
@@ -88,6 +94,10 @@ function getItemIcon(definition: InventoryItemDefinition): ReactNode {
   const fish = getFishDefinition(definition.id)
   if (fish) {
     return <FishIcon icon={fish.visual.icon} color={fish.visual.accent} />
+  }
+  const artifact = getArtifactBaseByDefinitionId(definition.id)
+  if (artifact) {
+    return <ArtifactIcon icon={artifact.id} color={artifact.accent} />
   }
   return definition.category === 'bait' ? '◉' : definition.category === 'material' ? '⚙' : '▣'
 }
@@ -110,17 +120,23 @@ function createDevelopmentGrant(
   options: { rarity?: Rarity | 'random'; sizePercentile?: number } = {},
 ): InventoryItemGrant {
   const fish = getFishDefinition(definition.id)
-  return {
-    definitionId: definition.id,
-    quantity,
-    ...(fish ? {
+  if (fish) {
+    return {
+      definitionId: definition.id,
+      quantity,
       metadata: {
         speciesId: fish.id,
         rarity: options.rarity && options.rarity !== 'random' ? options.rarity : randomFishRarity(),
         sizePercentile: options.sizePercentile ?? 0.1 + Math.random() * 0.89,
       },
-    } : {}),
+    }
   }
+  // An artifact rolls everything on the server. A rarity asked for here is
+  // honoured there; left random, the server rolls that too.
+  if (getArtifactBaseByDefinitionId(definition.id) && options.rarity && options.rarity !== 'random') {
+    return { definitionId: definition.id, quantity, metadata: { rarity: options.rarity } }
+  }
+  return { definitionId: definition.id, quantity }
 }
 
 export function DevelopmentInventoryGrants({
@@ -136,6 +152,8 @@ export function DevelopmentInventoryGrants({
   const [error, setError] = useState<string | null>(null)
   const selectedDefinition = getInventoryItemDefinition(selectedDefinitionId)
   const selectedIsFish = selectedDefinition !== undefined && getFishDefinition(selectedDefinition.id) !== undefined
+  const selectedRollsRarity = selectedIsFish ||
+    (selectedDefinition !== undefined && getArtifactBaseByDefinitionId(selectedDefinition.id) !== undefined)
 
   const grant = async (
     definition: InventoryItemDefinition,
@@ -232,7 +250,7 @@ export function DevelopmentInventoryGrants({
         ))}
       </select>
     </label>
-    {selectedIsFish ? (
+    {selectedRollsRarity ? (
       <label>
         Rarity
         <select
@@ -240,7 +258,7 @@ export function DevelopmentInventoryGrants({
           onChange={(event) => { setFishRarity(event.target.value as Rarity | 'random') }}
           disabled={granting}
         >
-          {FISH_RARITY_OPTIONS.map((option) => (
+          {RARITY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>

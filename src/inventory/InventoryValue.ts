@@ -1,5 +1,22 @@
 import { getInventoryItemDefinition } from './ItemDefinitions'
-import type { InventoryItemInstance } from './InventoryTypes'
+import type { InventoryItemInstance, InventorySalvageResult } from './InventoryTypes'
+
+/**
+ * What a salvage paid, for the toast. Artifacts pay scrap, everything else
+ * Essence, and a salvage that paid both would be a bug worth showing.
+ */
+export function formatInventorySalvageReward(
+  result: Pick<InventorySalvageResult, 'essenceAwarded' | 'scrapAwarded'>,
+): string {
+  const parts: string[] = []
+  if (result.essenceAwarded > 0 || result.scrapAwarded === 0) {
+    parts.push(`+${result.essenceAwarded} Essence`)
+  }
+  if (result.scrapAwarded > 0) {
+    parts.push(`+${result.scrapAwarded} scrap`)
+  }
+  return parts.join(' · ')
+}
 
 /**
  * What one item is worth if it is salvaged.
