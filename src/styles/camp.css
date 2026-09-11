@@ -525,7 +525,7 @@
 }
 
 .camp-jobs {
-  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(18.5rem, 100%), 1fr));
   align-items: start;
 }
 

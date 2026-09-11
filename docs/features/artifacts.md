@@ -57,4 +57,7 @@ the first loot-box vertical slice.
 The shop may accept unwanted artifacts for a low-value salvage reward.
 Artifact sales must not convert loot boxes into an uncontrolled Essence farm.
 Duplicate artifacts should remain useful through salvage, collection progress,
-or later crafting sinks.
+or later crafting sinks. The Camp's Forge is the first such sink: it rerolls an
+artifact's implicit and modifiers for scrap and rift shards, keeping its base
+and rarity, so a poor roll on a rare base is worth keeping rather than
+salvaging. See [camp.md](camp.md).

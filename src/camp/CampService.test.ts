@@ -154,6 +154,26 @@ describe('camp service', () => {
     })
   })
 
+  it('reforges an artifact by instance id', async () => {
+    const client = fakeClient(() => [{
+      definition_id: 'artifact-ember-reliquary',
+      metadata: { baseId: 'ember-reliquary', rarity: 'rare' },
+      scrap_spent: 45,
+      shards_spent: 3,
+      was_processed: true,
+    }])
+    const service = createService(client)
+
+    await expect(service.reforgeArtifact('op-8', 'artifact-1')).resolves.toEqual({
+      definitionId: 'artifact-ember-reliquary',
+      metadata: { baseId: 'ember-reliquary', rarity: 'rare' },
+      scrapSpent: 45,
+      shardsSpent: 3,
+      wasProcessed: true,
+    })
+    expect(client.rpc).toHaveBeenCalledWith('reforge_artifact', { p_operation_id: 'op-8', p_artifact_instance_id: 'artifact-1' })
+  })
+
   it('upgrades a building by name and reads the state back', async () => {
     const client = fakeClient(() => ({ was_processed: true, state: STATE }))
     const service = createService(client)

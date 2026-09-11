@@ -63,6 +63,13 @@ export const CAMP_BUILDING_DEFINITIONS = {
     sortOrder: 5,
     startingLevel: 0,
   },
+  forge: {
+    id: 'forge',
+    name: 'Forge',
+    description: 'Rerolls an artifact for scrap and rift shards, and at higher levels salvages more scrap from a finished run.',
+    sortOrder: 6,
+    startingLevel: 0,
+  },
 } as const satisfies Record<CampBuildingId, CampBuildingDefinition>
 
 export const ALL_CAMP_BUILDING_DEFINITIONS: readonly CampBuildingDefinition[] =
@@ -82,6 +89,9 @@ export const CAMP_BUILDING_LEVELS: readonly CampBuildingLevel[] = [
   { buildingId: 'rift-anchor', level: 2, cost: { timber: 40, stone: 40, 'rift-shard': 20 }, accrualCapHours: null, rateMultiplier: 1.5, jobSlots: 2 },
   { buildingId: 'rift-anchor', level: 3, cost: { timber: 80, stone: 80, 'rift-shard': 40 }, accrualCapHours: null, rateMultiplier: 2, jobSlots: 2 },
   { buildingId: 'smokehouse', level: 1, cost: { timber: 30, stone: 30 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
+  { buildingId: 'forge', level: 1, cost: { timber: 60, stone: 60, scrap: 40 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
+  { buildingId: 'forge', level: 2, cost: { timber: 100, stone: 100, 'rift-shard': 15 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
+  { buildingId: 'forge', level: 3, cost: { timber: 160, stone: 160, 'rift-shard': 40 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
 ]
 
 export function isCampBuildingId(value: unknown): value is CampBuildingId {

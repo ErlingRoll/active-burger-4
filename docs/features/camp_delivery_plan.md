@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slices 0, 1 and 2, the Rift anchor and the Smokehouse shipped 2026-09-11 and 2026-09-12; slice 3, the Forge and the Trophy hall are still proposals.
+> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12; slice 3 and the Trophy hall are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -369,7 +369,16 @@ construction is a wall rather than a rhythm.
   rod's Enchanter rolls, so the run meal already knows how to read it and no
   new item category was needed. Both are inventory operations under their own
   ledger types. The panel's Smokehouse card opens a fish picker for either.
-- **Forge** needs artifacts (Phase 9).
+- **Forge** *(shipped 2026-09-12, once Phase 9 had landed)*. Built for
+  timber, stone and scrap, raised with rift shards. `reforge_artifact` spends
+  scrap and shards by the artifact's rarity and rolls its implicit and
+  modifiers again through `roll_artifact_metadata`, from a seed derived from
+  the instance and a reforge count kept on its metadata, so the same function
+  a box uses decides the roll and a retry cannot roll twice. The base and the
+  rarity stay. An artifact away on a run has no quantity in the bag and is
+  refused. Levels two and three apply `camp_forge_salvage_multiplier` to the
+  scrap `complete_dungeon_run` pays for a finished loadout. The panel's Forge
+  card opens an artifact picker with each relic's summary and price.
 - **Trophy hall** needs collections (Phase 10).
 
 ### A note on the market

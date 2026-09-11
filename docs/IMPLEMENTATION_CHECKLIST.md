@@ -175,8 +175,9 @@ the check is named; the rest are review responsibilities.
       unassign or archive, the Abyss lockout for working Champions, and the
       Camp panel on the hub, construction bought with timber and stone, the
       tackle bench with multi-input recipes, the Rift anchor where an exhausted
-      Champion rests faster, and the Smokehouse that guts fish for roe and
-      cures meal fish with it. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
+      Champion rests faster, the Smokehouse that guts fish for roe and cures
+      meal fish with it, and the Forge that rerolls artifacts and raises a
+      run's scrap. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 
 ## Per-Feature Gate
 

@@ -13,6 +13,11 @@ import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 import type { CampBuildingId, CampBuildingLevel, CampJobDefinition, CampJobId } from '../content/camp/CampTypes'
 import { RARITY_VISUALS, isRarity } from '../content/rarity/Rarity'
 import {
+  formatArtifactSummary,
+  getArtifactBaseByDefinitionId,
+  readArtifactMetadata,
+} from '../content/artifacts/Artifacts'
+import {
   formatFishSizeKg,
   getFishDefinition,
   getFishingEnchantmentDefinition,
@@ -31,6 +36,7 @@ import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { LabourSheetLine } from './LabourSheetLine'
 import { nextCureStep, roeForFish } from './Smokehouse'
+import { REFORGE_COSTS } from './Forge'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
 
 /**
@@ -44,8 +50,9 @@ import type { CampAssignment, CampPayment, CampService, CampState } from './Camp
  * Rift anchor takes only exhausted Champions, because rest is all it gives.
  *
  * The workshops end the list: the tackle bench crafts bait from the Camp's
- * timber, and the Smokehouse guts a fish for roe or cures a meal fish with
- * it. Every card ends in its next level's price against what the bag holds.
+ * timber, the Smokehouse guts a fish for roe or cures a meal fish with it,
+ * and the Forge rerolls an artifact for scrap and shards. Every card ends in
+ * its next level's price against what the bag holds.
  * Pending units count up on the client from the server's clock, never from
  * the client's own, and every change is answered with the server's state.
  */
@@ -114,6 +121,8 @@ function describeLevel(level: CampBuildingLevel): string {
       return 'Crafts bait from timber and scrap'
     case 'smokehouse':
       return 'Guts and cures fish'
+    case 'forge':
+      return level.level === 1 ? 'Reforges artifacts' : `+${level.level === 2 ? 25 : 50}% scrap from run salvage`
     default:
       return `×${level.rateMultiplier} rate · ${level.jobSlots} ${level.jobSlots === 1 ? 'slot' : 'slots'}`
   }
@@ -374,6 +383,65 @@ function FishPicker({ action, fish, loading, roeHeld, busy, onPick, onCancel }: 
   )
 }
 
+interface ArtifactPickerProps {
+  artifacts: readonly InventoryItemInstance[]
+  loading: boolean
+  held: readonly InventoryItemInstance[]
+  busy: boolean
+  onPick: (artifact: InventoryItemInstance) => void
+  onCancel: () => void
+}
+
+function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: ArtifactPickerProps) {
+  return (
+    <div className="camp-picker" role="group" aria-label="Choose an artifact to reforge">
+      {loading ? (
+        <p className="camp-picker-empty">Laying the relics out…</p>
+      ) : artifacts.length === 0 ? (
+        <p className="camp-picker-empty">No artifact in the bag. The rarer boxes hold them.</p>
+      ) : (
+        <ul className="camp-picker-list">
+          {artifacts.map((item) => {
+            const base = getArtifactBaseByDefinitionId(item.definitionId)
+            const artifact = readArtifactMetadata(item.definitionId, item.metadata)
+            const cost = artifact ? REFORGE_COSTS[artifact.rarity] : null
+            const affordable = cost !== null &&
+              countHeldQuantity(held, 'scrap') >= cost.scrap &&
+              countHeldQuantity(held, 'rift-shard') >= cost.riftShards
+            const price: Readonly<Record<string, number>> = cost ? { scrap: cost.scrap, 'rift-shard': cost.riftShards } : {}
+            return (
+              <li key={item.itemInstanceId}>
+                <button
+                  className="camp-picker-option camp-fish-option"
+                  type="button"
+                  onClick={() => onPick(item)}
+                  disabled={busy || !artifact || !affordable}
+                  aria-label={`Reforge ${base?.name ?? item.definitionId}${artifact ? `, ${RARITY_VISUALS[artifact.rarity].label}` : ''}`}
+                >
+                  <span className="camp-recipe-icon" aria-hidden="true">{getRewardIcon(item.definitionId)}</span>
+                  <span className="camp-picker-copy">
+                    <strong>{base?.name ?? item.definitionId}</strong>
+                    <span>
+                      {artifact
+                        ? `${RARITY_VISUALS[artifact.rarity].label} · ${formatArtifactSummary(artifact)}`
+                        : 'An artifact this build cannot read'}
+                    </span>
+                    {artifact ? <CampCost cost={price} held={held} /> : null}
+                  </span>
+                  <span className="camp-picker-send" aria-hidden="true">Reforge</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <button className="camp-picker-cancel" type="button" onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
 export function CampPanel({
   id,
   service,
@@ -389,6 +457,9 @@ export function CampPanel({
   const [materials, setMaterials] = useState<InventoryItemInstance[]>([])
   const [fish, setFish] = useState<InventoryItemInstance[]>([])
   const [fishLoading, setFishLoading] = useState(false)
+  const [artifacts, setArtifacts] = useState<InventoryItemInstance[]>([])
+  const [artifactsLoading, setArtifactsLoading] = useState(false)
+  const [forgeOpen, setForgeOpen] = useState(false)
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => service && characterService ? 'loading' : 'error',
   )
@@ -424,6 +495,20 @@ export function CampPanel({
       showToast(errorMessage(loadError, 'Unable to load the fish.'), 'error')
     } finally {
       setFishLoading(false)
+    }
+  }, [inventoryService, showToast])
+
+  const refreshArtifacts = useCallback(async (): Promise<void> => {
+    if (!inventoryService) {
+      return
+    }
+    setArtifactsLoading(true)
+    try {
+      setArtifacts(await inventoryService.loadInventory('artifact'))
+    } catch (loadError: unknown) {
+      showToast(errorMessage(loadError, 'Unable to load the artifacts.'), 'error')
+    } finally {
+      setArtifactsLoading(false)
     }
   }, [inventoryService, showToast])
 
@@ -647,6 +732,32 @@ export function CampPanel({
     }, 'Unable to cure that fish.')
   }
 
+  const openForge = (): void => {
+    setForgeOpen(true)
+    void refreshArtifacts()
+  }
+
+  const reforge = (item: InventoryItemInstance): void => {
+    if (!service) {
+      return
+    }
+    void run(async () => {
+      const result = await service.reforgeArtifact(crypto.randomUUID(), item.itemInstanceId)
+      if (result.wasProcessed) {
+        const artifact = readArtifactMetadata(result.definitionId, result.metadata)
+        showLootToast({
+          title: 'Reforged',
+          itemName: getArtifactBaseByDefinitionId(result.definitionId)?.name ?? result.definitionId,
+          icon: getRewardIcon(result.definitionId),
+          ...(artifact ? { effect: formatArtifactSummary(artifact) } : {}),
+          details: [`${result.scrapSpent} scrap · ${result.shardsSpent} rift shards`],
+        })
+      }
+      setForgeOpen(false)
+      return null
+    }, 'Unable to reforge that artifact.')
+  }
+
   const skipAhead = (hours: number): void => {
     if (!service) {
       return
@@ -657,6 +768,7 @@ export function CampPanel({
   const storehouseLevel = state ? buildingLevel(state, 'storehouse') : 1
   const benchLevel = state ? buildingLevel(state, 'tackle-bench') : 0
   const smokehouseLevel = state ? buildingLevel(state, 'smokehouse') : 0
+  const forgeLevel = state ? buildingLevel(state, 'forge') : 0
   const benchRecipes = getCraftingRecipesForBuilding('tackle-bench')
   const roeHeld = countHeldQuantity(materials, 'roe')
   const totalPending = state
@@ -871,6 +983,47 @@ export function CampPanel({
                 held={materials}
                 busy={busy}
                 onUpgrade={() => upgrade('smokehouse')}
+              />
+            </li>
+            <li className="camp-job" key="forge">
+              <header className="camp-job-heading">
+                <span className="camp-job-icon" aria-hidden="true">{getRewardIcon('scrap')}</span>
+                <span className="camp-job-copy">
+                  <strong>{CAMP_BUILDING_DEFINITIONS.forge.name}{forgeLevel > 0 ? ` ${forgeLevel}` : ''}</strong>
+                  <small>
+                    {forgeLevel === 0
+                      ? CAMP_BUILDING_DEFINITIONS.forge.description
+                      : `Reroll an artifact for scrap and rift shards.${forgeLevel > 1 ? ` Finished runs leave ${forgeLevel === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
+                  </small>
+                </span>
+              </header>
+              {forgeLevel > 0 ? (
+                forgeOpen ? (
+                  <ArtifactPicker
+                    artifacts={artifacts}
+                    loading={artifactsLoading}
+                    held={materials}
+                    busy={busy}
+                    onPick={reforge}
+                    onCancel={() => setForgeOpen(false)}
+                  />
+                ) : (
+                  <button
+                    className="camp-send-action"
+                    type="button"
+                    onClick={openForge}
+                    disabled={busy || !inventoryService}
+                  >
+                    Reforge an artifact
+                  </button>
+                )
+              ) : null}
+              <CampUpgradeRow
+                buildingId="forge"
+                level={forgeLevel}
+                held={materials}
+                busy={busy}
+                onUpgrade={() => upgrade('forge')}
               />
             </li>
           </ul>

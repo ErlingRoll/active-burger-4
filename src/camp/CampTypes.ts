@@ -66,6 +66,15 @@ export interface CampGutResult {
   wasProcessed: boolean
 }
 
+export interface CampReforgeResult {
+  definitionId: string
+  /** The artifact's new roll, as the server wrote it. */
+  metadata: Record<string, unknown>
+  scrapSpent: number
+  shardsSpent: number
+  wasProcessed: boolean
+}
+
 export interface CampCureResult {
   definitionId: string
   enchantmentId: string
@@ -94,6 +103,8 @@ export interface CampService {
   gutFish(operationId: string, fishInstanceId: string): Promise<CampGutResult>
   /** Spends roe to raise a meal fish's enchantment a tier. Needs the Smokehouse. */
   cureFish(operationId: string, fishInstanceId: string): Promise<CampCureResult>
+  /** Rerolls an artifact's implicit and modifiers for scrap and rift shards. Needs the Forge. */
+  reforgeArtifact(operationId: string, artifactInstanceId: string): Promise<CampReforgeResult>
   /**
    * Moves every assignment's clock back by this many hours, so a claim pays
    * as if that long had passed. Administrators only; the server refuses

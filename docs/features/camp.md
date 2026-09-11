@@ -64,7 +64,7 @@ system's input. A proposed building that fails that test does not belong here.
 | Building | Consumes | Produces |
 | --- | --- | --- |
 | Smokehouse | Fish, roe | Cured fish: a meal fish raised an enchantment tier, so it feeds a run better |
-| Forge | Scrap, rift shards | Artifact rerolls, better gear salvage yield, slot and storage upgrades |
+| Forge | Scrap, rift shards | Artifact rerolls, and more scrap from a finished run's loadout |
 | Tackle bench | Roe, timber, scrap | Bait and rod components that fishing cannot produce for itself |
 | Rift anchor | Rift shards, Champion labour | Reduced Champion exhaustion over time: an exhausted Champion resting there recovers faster |
 | Trophy hall | Bestiary and collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
@@ -79,10 +79,13 @@ fish with a stronger meal effect, so nothing new reaches the simulation. Rift
 shards come out of the Abyss, one a completed floor and one more for every
 five floors down, to six.
 
-The Storehouse, the Woodline, the quarry, the tackle bench, the Rift anchor
-and the Smokehouse are live, each upgraded with timber and stone, the anchor
-with rift shards as well. The Forge waits on artifacts and the Trophy hall on
-collections; see the delivery plan.
+Every building but the Trophy hall is live, each upgraded with timber and
+stone, the anchor and the Forge with rift shards and scrap as well. The Forge
+rerolls an artifact's implicit and modifiers for scrap and shards, keeping its
+base and rarity, and at its second and third levels raises the scrap a
+finished run's loadout leaves behind by a quarter and by half. Slot and
+storage upgrades stay with the Essence store, where artifact slots already
+live. The Trophy hall waits on collections; see the delivery plan.
 
 The Rift anchor deserves a note. It makes exhaustion a resource a player can
 spend materials against rather than a wall they wait out, and it gives players

@@ -70,10 +70,10 @@ content registry, not in engine code.
 
 | Material | Primary source | Primary sinks |
 | --- | --- | --- |
-| Scrap | Salvaging run gear and duplicate loot-box items | Forge recipes, storage and slot upgrades |
+| Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, the Forge and its artifact rerolls |
 | Timber and stone | Camp passive production | Building construction and upgrades |
 | Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
-| Rift shard | Abyss floors, deep-floor contracts later | The Rift anchor; artifact rerolls later |
+| Rift shard | Abyss floors, deep-floor contracts later | The Rift anchor and the Forge's artifact rerolls |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and

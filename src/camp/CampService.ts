@@ -10,6 +10,7 @@ import type {
   CampCureResult,
   CampGutResult,
   CampPayment,
+  CampReforgeResult,
   CampService,
   CampState,
   CampUpgradeResult,
@@ -256,6 +257,29 @@ export function createCampService(
         definitionId: row.definition_id,
         enchantmentId: row.enchantment_id,
         roeSpent: row.roe_spent,
+        wasProcessed: row.was_processed,
+      }
+    },
+
+    async reforgeArtifact(operationId, artifactInstanceId): Promise<CampReforgeResult> {
+      assertOperationId(operationId)
+      if (!isNonEmptyString(artifactInstanceId)) {
+        throw new Error('An artifact instance ID is required.')
+      }
+      const data = await call('reforge_artifact', {
+        p_operation_id: operationId,
+        p_artifact_instance_id: artifactInstanceId,
+      })
+      const row: unknown = Array.isArray(data) ? data[0] : undefined
+      if (!isRecord(row) || !isNonEmptyString(row.definition_id) || !isRecord(row.metadata) ||
+        !isCount(row.scrap_spent) || !isCount(row.shards_spent) || typeof row.was_processed !== 'boolean') {
+        throw invalidResponse('expected one reforged artifact row')
+      }
+      return {
+        definitionId: row.definition_id,
+        metadata: row.metadata,
+        scrapSpent: row.scrap_spent,
+        shardsSpent: row.shards_spent,
         wasProcessed: row.was_processed,
       }
     },

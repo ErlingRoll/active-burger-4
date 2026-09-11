@@ -61,6 +61,7 @@ function emptyState(): CampState {
       { buildingId: 'tackle-bench', level: 0 },
       { buildingId: 'rift-anchor', level: 0 },
       { buildingId: 'smokehouse', level: 0 },
+      { buildingId: 'forge', level: 0 },
     ],
     assignments: [],
     championFloors: { 'champion-1': 20 },
@@ -80,7 +81,28 @@ function fishInstance(definitionId: string, metadata: Record<string, unknown>): 
   }
 }
 
-/** The Rift anchor and Smokehouse built, and Mira exhausted and resting at the anchor. */
+/** A rare reliquary with a middling roll, the way a box would have made it. */
+const RELIQUARY: InventoryItemInstance = {
+  itemInstanceId: 'artifact-1',
+  definitionId: 'artifact-ember-reliquary',
+  quantity: 1,
+  bound: false,
+  metadata: {
+    baseId: 'ember-reliquary',
+    rarity: 'rare',
+    implicit: { id: 'corpse-detonation', tier: 3, value: 35 },
+    modifiers: [
+      { id: 'max-hp', tier: 4, value: 6 },
+      { id: 'attack-speed', tier: 5, value: 4 },
+      { id: 'crit-chance', tier: 3, value: 4 },
+    ],
+  },
+  source: { type: 'loot-box', id: null },
+  createdAt: SERVER_TIME,
+  updatedAt: SERVER_TIME,
+}
+
+/** The Rift anchor, Smokehouse and Forge built, and Mira exhausted and resting at the anchor. */
 function anchorState(): CampState {
   const exhausted = { ...champion, exhaustionUntil: new Date(Date.now() + 10 * 3_600_000).toISOString() }
   const sheet = deriveCampLabourSheet(
@@ -90,7 +112,7 @@ function anchorState(): CampState {
   return {
     ...emptyState(),
     buildings: emptyState().buildings.map((building) =>
-      building.buildingId === 'rift-anchor' || building.buildingId === 'smokehouse'
+      building.buildingId === 'rift-anchor' || building.buildingId === 'smokehouse' || building.buildingId === 'forge'
         ? { ...building, level: 1 }
         : building,
     ),
@@ -140,7 +162,7 @@ interface RenderOptions {
   developmentToolsEnabled?: boolean
   materials?: InventoryItemInstance[]
   fish?: InventoryItemInstance[]
-  claimPaid?: { champion_id?: never }[] | null
+  artifacts?: InventoryItemInstance[]
 }
 
 function renderPanel(initial: CampState, options: RenderOptions = {}) {
@@ -164,6 +186,13 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
       }))
   const gutFish = vi.fn(async () => ({ definitionId: 'silver-perch', roeGranted: 3, wasProcessed: true }))
   const cureFish = vi.fn(async () => ({ definitionId: 'silver-perch', enchantmentId: 'bright-scales', roeSpent: 3, wasProcessed: true }))
+  const reforgeArtifact = vi.fn(async () => ({
+    definitionId: 'artifact-ember-reliquary',
+    metadata: RELIQUARY.metadata,
+    scrapSpent: 45,
+    shardsSpent: 3,
+    wasProcessed: true,
+  }))
   const upgradeBuilding = vi.fn(async () => ({ wasProcessed: true, state: builtState() }))
   const service = {
     loadState: vi.fn(async () => initial),
@@ -174,6 +203,7 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
     upgradeBuilding,
     gutFish,
     cureFish,
+    reforgeArtifact,
   } as unknown as CampService
   const characterService = {
     loadCharacters: vi.fn(async () => ({ characters: [], revisions: [], champions: [champion] })),
@@ -187,7 +217,9 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
     wasProcessed: true,
   }))
   const inventoryService = {
-    loadInventory: vi.fn(async (category?: string) => (category === 'fish' ? options.fish ?? [] : options.materials ?? [])),
+    loadInventory: vi.fn(async (category?: string) => (
+      category === 'fish' ? options.fish ?? [] : category === 'artifact' ? options.artifacts ?? [] : options.materials ?? []
+    )),
     craftItem,
   } as unknown as InventoryService
   const onClose = vi.fn()
@@ -201,7 +233,7 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
       onClose={onClose}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, onClose }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, onClose }
 }
 
 describe('CampPanel', () => {
@@ -326,6 +358,25 @@ describe('CampPanel', () => {
       expect(cureFish).toHaveBeenCalledWith(expect.any(String), perch.itemInstanceId)
     })
     expect(await screen.findByText('Cured')).toBeInTheDocument()
+  })
+
+  it('reforges an artifact for scrap and shards, and prices it by rarity', async () => {
+    const { user, reforgeArtifact } = renderPanel(anchorState(), {
+      materials: [material('scrap', 45), material('rift-shard', 3)],
+      artifacts: [RELIQUARY],
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Reforge an artifact' }))
+    const option = await screen.findByRole('button', { name: 'Reforge Ember Reliquary, Rare' })
+    expect(option).toHaveTextContent('45 Scrap')
+    expect(option).toHaveTextContent('3 Rift shard')
+    expect(option).toBeEnabled()
+    await user.click(option)
+
+    await waitFor(() => {
+      expect(reforgeArtifact).toHaveBeenCalledWith(expect.any(String), 'artifact-1')
+    })
+    expect(await screen.findByText('Reforged')).toBeInTheDocument()
   })
 
   it('lets a development build skip the clock ahead', async () => {
