@@ -4,6 +4,7 @@ import { renderComponent, screen, within } from '../testing/render'
 import { GameplayHud } from './GameCanvas'
 import { createGame } from '../game/Game'
 import { DEFAULT_GAME_KEYBINDS } from '../input/Keybinds'
+import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import type { GameUiSnapshot } from '../game/ui/Snapshots'
 
@@ -43,6 +44,18 @@ function renderHud(
     ),
     ...handlers,
   }
+}
+
+const CHAMPION = {
+  schemaVersion: 1 as const,
+  classId: 'knight' as const,
+  skills: [
+    { skillId: BASIC_ATTACK_SKILL_ID, level: 1 },
+    { skillId: 'whirlwind' as const, level: 1 },
+  ],
+  selectedUpgradeIds: [],
+  equipment: {},
+  behaviorProfileId: 'balanced' as const,
 }
 
 describe('GameplayHud', () => {
@@ -251,5 +264,49 @@ describe('the vitals panel', () => {
 
     expect(document.querySelector('.hud-vital-shield-fill')?.getAttribute('style'))
       .toContain('--shield-share: 1')
+  })
+
+  /*
+   * The floor's box is the Abyss's whole reward, so its odds sit in the
+   * top-right corner beside the run controls. A dungeon run has no floor box
+   * and gets no panel.
+   */
+  it('shows the Abyss floor box odds in the top-right corner', () => {
+    const game = createGame({ seed: 20_260_908, modeId: 'infinite-abyss', champion: CHAMPION })
+    game.state.run.floor = 42
+    const snapshot = game.getUiSnapshot()
+    expect(snapshot.modeId).toBe('infinite-abyss')
+
+    renderHud(snapshot)
+
+    const panel = screen.getByRole('region', { name: /floor 42 loot box odds/i })
+    expect(panel.closest('.hud-region-top-end')).not.toBeNull()
+    const rows = within(panel).getAllByRole('listitem')
+    expect(rows.map((row) => row.getAttribute('data-rarity')))
+      .toEqual(['common', 'uncommon', 'rare', 'epic', 'legendary'])
+    // Floor 42 on the curve: 5900, 2120, 804, 630 and 546 of the 10000 rolls.
+    expect(rows.map((row) => row.textContent))
+      .toEqual(['Common 59%', 'Uncommon 21%', 'Rare 8.0%', 'Epic 6.3%', 'Legendary 5.5%'])
+    expect(rows.every((row) => row.getAttribute('data-impossible') === null)).toBe(true)
+  })
+
+  it('shows the milestone promise of an epic box on every 10th floor', () => {
+    const game = createGame({ seed: 20_260_908, modeId: 'infinite-abyss', champion: CHAMPION })
+    game.state.run.floor = 10
+
+    renderHud(game.getUiSnapshot())
+
+    const panel = screen.getByRole('region', { name: /floor 10 loot box odds/i })
+    const rows = within(panel).getAllByRole('listitem')
+    expect(rows.map((row) => row.textContent))
+      .toEqual(['Common 0%', 'Uncommon 0%', 'Rare 0%', 'Epic 94%', 'Legendary 6.3%'])
+    expect(rows.map((row) => row.getAttribute('data-impossible')))
+      .toEqual(['true', 'true', 'true', null, null])
+  })
+
+  it('keeps the loot box odds off a dungeon run', () => {
+    renderHud(snapshotFromGame())
+
+    expect(screen.queryByRole('region', { name: /loot box odds/i })).toBeNull()
   })
 })

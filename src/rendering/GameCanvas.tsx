@@ -67,6 +67,7 @@ const MIN_CAST_PULSE_INTERVAL_MS = 240
 
 import { DevelopmentMenu } from './DevelopmentMenu'
 import { FloorHud, VitalsPanel } from './hud/StatusPanels'
+import { AbyssLootOddsPanel } from './hud/AbyssLootOdds'
 import { useHudTooltips } from './hud/useHudTooltips'
 import { SkillHud } from './hud/SkillHud'
 import { BehaviorControl } from './hud/BehaviorControl'
@@ -882,6 +883,7 @@ export function GameplayHud({
           <FloorHud snapshot={snapshot} />
         </div>
         <div className="hud-region hud-region-top-end">
+          <AbyssLootOddsPanel snapshot={snapshot} />
           <BehaviorControl
             snapshot={snapshot}
             keybinds={keybinds}

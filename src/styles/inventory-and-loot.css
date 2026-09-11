@@ -239,6 +239,129 @@
   opacity: 0.6;
 }
 
+/* The sweep and the ceiling it stops at, read as one control: "up to rare,
+   salvage 30". The chips borrow the filter chip's shape and take the rarity's
+   colour when pressed, so the ceiling is legible at a glance as the same
+   colour the slots below it are ringed in. */
+.inventory-sweep {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.18rem, 0.7vh, 0.38rem) clamp(0.3rem, 1vw, 0.6rem);
+  align-items: center;
+  margin-left: auto;
+}
+
+.inventory-sweep-rarities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.18rem, 0.7vh, 0.38rem);
+  align-items: center;
+}
+
+.inventory-sweep-label {
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.35vh, 0.7rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-sweep-rarity[aria-pressed='true'] {
+  color: var(--color-stone-900);
+  background: var(--rarity, var(--accent));
+  border-color: var(--rarity, var(--accent));
+}
+
+.inventory-sweep-rarity:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.inventory-sweep-action:disabled:not([aria-busy='true']) {
+  cursor: default;
+}
+
+/*
+ * The star.
+ *
+ * A favorite is kept out of every sweep, so a slot that wears one has to say so
+ * at the size of a slot: a corner star opposite the unseen pip, over the icon
+ * and under nothing. On the inspector and the hover card it is said in words.
+ */
+.inventory-item-favorite {
+  position: absolute;
+  z-index: 2;
+  top: 0.08rem;
+  right: 0.14rem;
+  color: var(--accent);
+  font-size: clamp(0.55rem, 1.3vh, 0.78rem);
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 0.3rem rgb(0 0 0 / 85%);
+}
+
+.inventory-favorite-mark {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-inspector-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.inventory-inspector-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: clamp(0.25rem, 0.9vh, 0.5rem);
+  align-items: center;
+}
+
+.inventory-inspector-favorite {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: clamp(1.45rem, 3.4vh, 2.4rem);
+  padding: clamp(0.12rem, 0.6vh, 0.6rem) clamp(0.4rem, 1.4vw, 1rem);
+  color: var(--accent);
+  font: inherit;
+  font-size: clamp(0.6rem, 1.5vh, 0.85rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgb(var(--accent-rgb) / 10%);
+  border: 1px solid rgb(var(--accent-rgb) / 48%);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.inventory-inspector-favorite:hover:not(:disabled),
+.inventory-inspector-favorite:focus-visible:not(:disabled) {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 24%);
+  border-color: var(--accent);
+  outline: 2px solid rgb(var(--accent-bright-rgb) / 30%);
+  outline-offset: 1px;
+}
+
+.inventory-inspector-favorite[aria-pressed='true'] {
+  color: var(--color-stone-900);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.inventory-inspector-favorite:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 /*
  * The bag fills the shelf it is given and pages what does not fit, rather than
  * rendering a fixed hundred and twenty slots and pushing the screen into a

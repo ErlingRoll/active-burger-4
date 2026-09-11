@@ -42,6 +42,7 @@ function material(definitionId: string, quantity: number): InventoryItemInstance
     definitionId,
     quantity,
     bound: false,
+    favorite: false,
     metadata: {},
     source: { type: 'system', id: null },
     createdAt: SERVER_TIME,
@@ -74,6 +75,7 @@ function fishInstance(definitionId: string, metadata: Record<string, unknown>): 
     definitionId,
     quantity: 1,
     bound: false,
+    favorite: false,
     metadata,
     source: { type: 'fishing', id: null },
     createdAt: SERVER_TIME,
@@ -87,6 +89,7 @@ const RELIQUARY: InventoryItemInstance = {
   definitionId: 'artifact-ember-reliquary',
   quantity: 1,
   bound: false,
+  favorite: false,
   metadata: {
     baseId: 'ember-reliquary',
     rarity: 'rare',

@@ -14,6 +14,7 @@ function fish(
     definitionId,
     quantity: 1,
     bound: false,
+    favorite: false,
     metadata: {
       speciesId: definitionId,
       rarity,

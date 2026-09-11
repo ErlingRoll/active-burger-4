@@ -87,6 +87,15 @@ Box rarity has a floor-based probability curve that increases until floor 100
 and remains capped after floor 100. Higher Danger Score may improve the curve
 within its configured limits, but it must not bypass the floor-100 cap.
 
+The odds are shown in play: the top-right corner of the Abyss HUD lists the
+chance of each box rarity for the floor currently being fought, so pushing one
+floor deeper is a choice made against a known reward rather than a surprise.
+On every 10th floor the panel shows the milestone promise instead: at least an
+epic box, and a legendary chance of the floor's own curve value plus five
+points.
+The client derives the table from the same cutoff formula the server-side grant
+uses, and a unit test holds the two client halves together.
+
 Normal dungeon loot boxes may drop only up to Rare rarity. Abyss boxes may use
 Epic and Legendary tables once those tables are implemented.
 

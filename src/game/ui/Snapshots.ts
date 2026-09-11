@@ -196,6 +196,8 @@ export interface RunHudSnapshot {
   readonly gearXpBlessingActive: boolean
   readonly worldModifierIds?: readonly string[]
   readonly worldModifierRewardMultiplier?: number
+  /** Which run this is. The HUD shows the Abyss its floor box odds. */
+  readonly modeId: RunModeId
   readonly floor: number
   readonly floorProgress: number
   readonly floorElapsedTime: number
@@ -2055,6 +2057,7 @@ export function createUiSnapshot(
           worldModifierRewardMultiplier,
         }
       : {}),
+    modeId: state.run.modeId ?? DEFAULT_RUN_MODE_ID,
     floor,
     floorProgress,
     floorElapsedTime,
