@@ -63,21 +63,36 @@ system's input. A proposed building that fails that test does not belong here.
 
 | Building | Consumes | Produces |
 | --- | --- | --- |
-| Smokehouse | Fish, roe | Preserved meals: longer or combined fish effects for a run |
+| Smokehouse | Fish, roe | Cured fish: a meal fish raised an enchantment tier, so it feeds a run better |
 | Forge | Scrap, rift shards | Artifact rerolls, better gear salvage yield, slot and storage upgrades |
 | Tackle bench | Roe, timber, scrap | Bait and rod components that fishing cannot produce for itself |
-| Rift anchor | Rift shards, Champion labour | Reduced Champion exhaustion over time |
+| Rift anchor | Rift shards, Champion labour | Reduced Champion exhaustion over time: an exhausted Champion resting there recovers faster |
 | Trophy hall | Bestiary and collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
 | Storehouse | Timber and stone | Inventory capacity, and the accrual cap for offline production |
 | Woodline and quarry | Champion labour only | Timber and stone |
 
-The Storehouse, the Woodline and the quarry are live. The rest are proposals,
-each waiting on the system that would feed it; see the delivery plan.
+The Smokehouse as built does two things. Gutting destroys a fish for roe, by
+its rarity and size. Curing spends roe on a meal fish to raise its enchantment
+a tier, Bright Scales to Deep Current to Astral Mark, and the run meal reads
+that enchantment through the contract it already has: a cured fish is the same
+fish with a stronger meal effect, so nothing new reaches the simulation. Rift
+shards come out of the Abyss, one a completed floor and one more for every
+five floors down, to six.
+
+The Storehouse, the Woodline, the quarry, the tackle bench, the Rift anchor
+and the Smokehouse are live, each upgraded with timber and stone, the anchor
+with rift shards as well. The Forge waits on artifacts and the Trophy hall on
+collections; see the delivery plan.
 
 The Rift anchor deserves a note. It makes exhaustion a resource a player can
 spend materials against rather than a wall they wait out, and it gives players
-who dislike waiting a way past it that costs play rather than money. Cap the
-total reduction so it shortens the wait and never removes it.
+who dislike waiting a way past it that costs play rather than money. As built,
+only an exhausted Champion can be sent there, and each hour it rests takes
+minutes off its own timer at a rate the anchor's level and its labour sheet
+set: thirty minutes an hour at level one, an hour an hour at level three, for
+a sheet that multiplies to one. Relief is minutes off a timer that is already
+running, so it shortens the wait and never removes it, and a Champion resting
+at the anchor is a Champion not felling timber, which is the trade.
 
 ## Offline accrual
 
@@ -102,8 +117,10 @@ Rules:
 ## Construction and upgrades
 
 Buildings are constructed and upgraded with timber, stone, and the material
-their tier implies. Construction takes real time, gated by the same accrual
-model, and can be shortened by assigning Champions rather than by payment.
+their tier implies. Construction is instant in the first slices; taking real
+time, gated by the same accrual model and shortened by assigning Champions
+rather than by payment, is the design intent and waits on the delivery plan's
+slice 3.
 
 Building levels raise throughput and unlock recipes. A building level must
 never raise a combat statistic.

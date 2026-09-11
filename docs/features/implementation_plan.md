@@ -286,13 +286,15 @@ production rate here would be a guess. What remains is the rest of the registry
 and the idle layer itself.
 
 - Material registry: timber and stone, roe, and rift shards, each with a
-  producer and a named sink. *Scrap is done. Timber and stone are items with
-  the Storehouse as their sink; their producer lands with Champion labour.*
+  producer and a named sink. *Done: scrap from salvage, timber and stone from
+  Champion labour, roe from gutting, rift shards from Abyss floors, each with
+  a building that spends it.*
 - Duplicate loot-box resolution into scrap. *Gear salvage is done: a completed
   dungeon grants scrap from its terminal loadout.*
-- Building registry with tiers, recipes, and construction costs. *The
-  Storehouse, the Woodline and the quarry are seeded with their levels and
-  costs, server and client, and held together by a registry test.*
+- Building registry with tiers, recipes, and construction costs. *Done:
+  every building is seeded with its levels and costs, server and client, held
+  together by a registry test, and bought with materials through an
+  idempotent upgrade.*
 - Champion job assignment, with exhausted Champions eligible to work. *Done:
   assign, unassign and claim, with a Champion moved between jobs settling the
   old one, and a working Champion refused by the Abyss.*

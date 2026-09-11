@@ -11,6 +11,12 @@ import {
 import { ALL_CAMP_JOB_DEFINITIONS, getCampJobDefinition } from '../content/camp/CampJobs'
 import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 import type { CampBuildingId, CampBuildingLevel, CampJobDefinition, CampJobId } from '../content/camp/CampTypes'
+import { RARITY_VISUALS, isRarity } from '../content/rarity/Rarity'
+import {
+  formatFishSizeKg,
+  getFishDefinition,
+  getFishingEnchantmentDefinition,
+} from '../fishing/FishingContent'
 import {
   countAffordableBatches,
   countHeldQuantity,
@@ -24,21 +30,22 @@ import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { LabourSheetLine } from './LabourSheetLine'
+import { nextCureStep, roeForFish } from './Smokehouse'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
 
 /**
  * The Camp, as a panel on the hub.
  *
- * One card per job with the Champions working it and what they have pending,
- * one Claim for the whole Camp, and a picker that opens inside the card when
- * a slot is free. The picker is where the labour sheet earns its keep: every
- * Champion on the roster shows the sheet it would work this job with, so the
- * player can see that a legendary Giant's set is worth more at the quarry
- * before sending anyone anywhere. An exhausted Champion is pickable, because
- * exhaustion blocks the Abyss and not labour.
+ * One card per building. A job card shows the Champions working it and what
+ * they have pending, with a picker that opens inside the card when a slot is
+ * free; the picker is where the labour sheet earns its keep, because every
+ * Champion shows the sheet it would work this job with. An exhausted Champion
+ * is pickable, because exhaustion blocks the Abyss and not labour, and the
+ * Rift anchor takes only exhausted Champions, because rest is all it gives.
  *
- * Every building ends in its next level's price against what the bag holds,
- * and the tackle bench, once built, crafts bait from the Camp's own timber.
+ * The workshops end the list: the tackle bench crafts bait from the Camp's
+ * timber, and the Smokehouse guts a fish for roe or cures a meal fish with
+ * it. Every card ends in its next level's price against what the bag holds.
  * Pending units count up on the client from the server's clock, never from
  * the client's own, and every change is answered with the server's state.
  */
@@ -48,7 +55,7 @@ interface CampPanelProps {
   service: CampService | null
   configurationError: string | null
   characterService: CharacterService | null
-  /** For what the bag holds against a price, and for the bench's crafts. */
+  /** For what the bag holds against a price, the bench's crafts and the Smokehouse's fish. */
   inventoryService: InventoryService | null
   /** Shows the clock-skipping row. The header decides this: an administrator on a build with the tools on. */
   developmentToolsEnabled?: boolean
@@ -60,6 +67,8 @@ const DEVELOPMENT_SKIPS = [1, 8] as const
 
 /** How often the pending counts tick. A unit takes minutes, so seconds would be theatre. */
 const CAMP_TICK_MS = 15_000
+
+type FishAction = 'gut' | 'cure'
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -98,13 +107,16 @@ function buildingLevel(state: CampState, buildingId: CampBuildingId): number {
 
 /** What a level is for, in the words the row uses. */
 function describeLevel(level: CampBuildingLevel): string {
-  if (level.buildingId === 'storehouse') {
-    return `Holds ${formatHours(level.accrualCapHours ?? 0)} of work`
+  switch (level.buildingId) {
+    case 'storehouse':
+      return `Holds ${formatHours(level.accrualCapHours ?? 0)} of work`
+    case 'tackle-bench':
+      return 'Crafts bait from timber and scrap'
+    case 'smokehouse':
+      return 'Guts and cures fish'
+    default:
+      return `×${level.rateMultiplier} rate · ${level.jobSlots} ${level.jobSlots === 1 ? 'slot' : 'slots'}`
   }
-  if (level.buildingId === 'tackle-bench') {
-    return 'Crafts bait from timber and scrap'
-  }
-  return `×${level.rateMultiplier} rate · ${level.jobSlots} ${level.jobSlots === 1 ? 'slot' : 'slots'}`
 }
 
 /** "48 Timber · 48 Stone", each figure marked when the bag is short of it. */
@@ -160,22 +172,25 @@ function CampUpgradeRow({ buildingId, level, held, busy, onUpgrade }: CampUpgrad
 }
 
 interface CampWorkerProps {
+  job: CampJobDefinition
   assignment: CampAssignment
   champion: ChampionSnapshot | undefined
   pending: number
-  outputName: string
   busy: boolean
   onRecall: () => void
 }
 
-function CampWorker({ assignment, champion, pending, outputName, busy, onRecall }: CampWorkerProps) {
+function CampWorker({ job, assignment, champion, pending, busy, onRecall }: CampWorkerProps) {
+  const unit = job.effect === 'exhaustion-relief'
+    ? 'min of rest'
+    : itemName(job.outputDefinitionId ?? '').toLowerCase()
   return (
     <li className="camp-worker">
       <span className="camp-worker-copy">
         <strong>{champion?.name ?? 'A Champion'}</strong>
         <LabourSheetLine sheet={assignment.sheet} />
       </span>
-      <span className="camp-worker-pending" aria-label={`${pending} ${outputName} pending`}>
+      <span className="camp-worker-pending" aria-label={`${pending} ${unit} pending`}>
         <strong>{pending}</strong>
         <small>{formatRate(assignment.ratePerHour)} · {formatHours(assignment.capHours)} cap</small>
       </span>
@@ -197,16 +212,19 @@ interface CampPickerProps {
 }
 
 function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: CampPickerProps) {
+  const restOnly = job.effect === 'exhaustion-relief'
   const candidates = champions.filter((champion) =>
     !state.assignments.some((assignment) =>
       assignment.championId === champion.championId && assignment.jobId === job.id,
-    ),
+    ) && (!restOnly || isChampionExhausted(champion, now)),
   )
   return (
     <div className="camp-picker" role="group" aria-label={`Choose a Champion for ${job.name}`}>
       {candidates.length === 0 ? (
         <p className="camp-picker-empty">
-          Every Champion on the roster is already here. Win a dungeon to save another.
+          {restOnly
+            ? 'No Champion is exhausted. The anchor has nothing to give a rested one.'
+            : 'Every Champion on the roster is already here. Win a dungeon to save another.'}
         </p>
       ) : (
         <ul className="camp-picker-list">
@@ -279,6 +297,83 @@ function CampRecipe({ recipe, held, busy, onCraft }: CampRecipeProps) {
   )
 }
 
+interface FishPickerProps {
+  action: FishAction
+  fish: readonly InventoryItemInstance[]
+  loading: boolean
+  roeHeld: number
+  busy: boolean
+  onPick: (fish: InventoryItemInstance) => void
+  onCancel: () => void
+}
+
+/** What one fish is worth to the Smokehouse, for the picker's row. */
+function describeFishChoice(action: FishAction, fish: InventoryItemInstance, roeHeld: number): { label: string, disabled: boolean } {
+  const definition = getFishDefinition(fish.definitionId)
+  if (action === 'gut') {
+    const rarity = isRarity(fish.metadata.rarity) ? fish.metadata.rarity : definition?.rarity
+    return { label: `→ ${roeForFish(rarity, fish.metadata.sizePercentile)} roe`, disabled: false }
+  }
+  if (!definition?.effect.runMealEligible) {
+    return { label: 'Not a meal fish', disabled: true }
+  }
+  const step = nextCureStep(fish.metadata)
+  if (!step) {
+    return { label: 'Cured as far as it goes', disabled: true }
+  }
+  const enchantment = getFishingEnchantmentDefinition(step.enchantmentId)
+  return {
+    label: `${step.roeCost} roe → ${enchantment?.name ?? step.enchantmentId} (+${enchantment?.effectBonusPercent ?? 0}%)`,
+    disabled: roeHeld < step.roeCost,
+  }
+}
+
+function FishPicker({ action, fish, loading, roeHeld, busy, onPick, onCancel }: FishPickerProps) {
+  const title = action === 'gut' ? 'Choose a fish to gut' : 'Choose a fish to cure'
+  return (
+    <div className="camp-picker" role="group" aria-label={title}>
+      {loading ? (
+        <p className="camp-picker-empty">Looking through the creel…</p>
+      ) : fish.length === 0 ? (
+        <p className="camp-picker-empty">No fish in the bag. The pond is that way.</p>
+      ) : (
+        <ul className="camp-picker-list">
+          {fish.map((item) => {
+            const definition = getFishDefinition(item.definitionId)
+            const rarity = isRarity(item.metadata.rarity) ? item.metadata.rarity : definition?.rarity
+            const enchantment = getFishingEnchantmentDefinition(item.metadata.enchantmentId)
+            const choice = describeFishChoice(action, item, roeHeld)
+            return (
+              <li key={item.itemInstanceId}>
+                <button
+                  className="camp-picker-option camp-fish-option"
+                  type="button"
+                  onClick={() => onPick(item)}
+                  disabled={busy || choice.disabled}
+                  aria-label={`${action === 'gut' ? 'Gut' : 'Cure'} ${definition?.name ?? item.definitionId}: ${choice.label}`}
+                >
+                  <span className="camp-recipe-icon" aria-hidden="true">{getRewardIcon(item.definitionId)}</span>
+                  <span className="camp-picker-copy">
+                    <strong>{definition?.name ?? item.definitionId}</strong>
+                    <span>
+                      {rarity ? RARITY_VISUALS[rarity].label : 'Unknown'} · {formatFishSizeKg(item.metadata.sizePercentile, definition?.weightRangeKg)}
+                      {enchantment ? ` · ${enchantment.name}` : ''}
+                    </span>
+                  </span>
+                  <span className="camp-picker-send" aria-hidden="true">{choice.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <button className="camp-picker-cancel" type="button" onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
 export function CampPanel({
   id,
   service,
@@ -292,6 +387,8 @@ export function CampPanel({
   const [state, setState] = useState<CampState | null>(null)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
   const [materials, setMaterials] = useState<InventoryItemInstance[]>([])
+  const [fish, setFish] = useState<InventoryItemInstance[]>([])
+  const [fishLoading, setFishLoading] = useState(false)
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => service && characterService ? 'loading' : 'error',
   )
@@ -301,6 +398,7 @@ export function CampPanel({
       : configurationError ?? 'The Camp is unavailable.',
   )
   const [pickerJobId, setPickerJobId] = useState<CampJobId | null>(null)
+  const [fishAction, setFishAction] = useState<FishAction | null>(null)
   const [busy, setBusy] = useState(false)
   const now = useNow(CAMP_TICK_MS)
 
@@ -314,6 +412,20 @@ export function CampPanel({
       // A price still shows; only the "held" mark goes stale.
     }
   }, [inventoryService])
+
+  const refreshFish = useCallback(async (): Promise<void> => {
+    if (!inventoryService) {
+      return
+    }
+    setFishLoading(true)
+    try {
+      setFish(await inventoryService.loadInventory('fish'))
+    } catch (loadError: unknown) {
+      showToast(errorMessage(loadError, 'Unable to load the fish.'), 'error')
+    } finally {
+      setFishLoading(false)
+    }
+  }, [inventoryService, showToast])
 
   useEffect(() => {
     if (!service || !characterService) {
@@ -353,6 +465,11 @@ export function CampPanel({
   const announcePayments = useCallback((paid: readonly CampPayment[]): void => {
     const totals = new Map<string, { units: number, bonus: number }>()
     for (const payment of paid) {
+      if (payment.effect === 'exhaustion-relief' || payment.definitionId === null) {
+        const name = championsById.get(payment.championId)?.name ?? 'A Champion'
+        showToast(`${name} rested ${payment.units + payment.bonusUnits} minutes off its exhaustion at the anchor.`)
+        continue
+      }
       const total = totals.get(payment.definitionId) ?? { units: 0, bonus: 0 }
       total.units += payment.units + payment.bonusUnits
       total.bonus += payment.bonusUnits
@@ -367,7 +484,7 @@ export function CampPanel({
         ...(total.bonus > 0 ? { details: [`${total.bonus} from a lucky haul`] } : {}),
       })
     }
-  }, [showLootToast])
+  }, [championsById, showLootToast, showToast])
 
   /** Runs one change against the server and takes its answer as the truth. */
   const run = useCallback(async (
@@ -405,6 +522,19 @@ export function CampPanel({
     }, 'Unable to send the Champion to work.')
   }
 
+  /** Relief lands on the Champion's timer, which the roster has to re-read to show. */
+  const reloadChampions = useCallback(async (): Promise<void> => {
+    if (!characterService) {
+      return
+    }
+    try {
+      const collection = await characterService.loadCharacters()
+      setChampions(collection.champions.filter((champion) => !champion.archived))
+    } catch {
+      // The panel keeps the roster it has; the next open reads it fresh.
+    }
+  }, [characterService])
+
   const recall = (championId: string): void => {
     if (!service) {
       return
@@ -413,6 +543,9 @@ export function CampPanel({
       const result = await service.unassignChampion(crypto.randomUUID(), championId)
       if (result.wasProcessed) {
         announcePayments(result.paid)
+        if (result.paid.some((payment) => payment.effect === 'exhaustion-relief')) {
+          await reloadChampions()
+        }
       }
       return result.state
     }, 'Unable to bring the Champion back.')
@@ -429,6 +562,9 @@ export function CampPanel({
           showToast('Nothing to claim yet. The Camp is still working.')
         } else {
           announcePayments(result.paid)
+          if (result.paid.some((payment) => payment.effect === 'exhaustion-relief')) {
+            await reloadChampions()
+          }
         }
       }
       return result.state
@@ -465,6 +601,52 @@ export function CampPanel({
     }, 'Unable to craft that.')
   }
 
+  const openFishPicker = (action: FishAction): void => {
+    setFishAction(action)
+    void refreshFish()
+  }
+
+  const gut = (item: InventoryItemInstance): void => {
+    if (!service) {
+      return
+    }
+    void run(async () => {
+      const result = await service.gutFish(crypto.randomUUID(), item.itemInstanceId)
+      if (result.wasProcessed) {
+        showLootToast({
+          title: 'Gutted',
+          itemName: itemName('roe'),
+          icon: getRewardIcon('roe'),
+          reward: `×${result.roeGranted}`,
+          details: [`from a ${itemName(result.definitionId)}`],
+        })
+      }
+      setFishAction(null)
+      return null
+    }, 'Unable to gut that fish.')
+  }
+
+  const cure = (item: InventoryItemInstance): void => {
+    if (!service) {
+      return
+    }
+    void run(async () => {
+      const result = await service.cureFish(crypto.randomUUID(), item.itemInstanceId)
+      if (result.wasProcessed) {
+        const enchantment = getFishingEnchantmentDefinition(result.enchantmentId)
+        showLootToast({
+          title: 'Cured',
+          itemName: itemName(result.definitionId),
+          icon: getRewardIcon(result.definitionId),
+          effect: enchantment ? `${enchantment.name} · +${enchantment.effectBonusPercent}% meal effect` : result.enchantmentId,
+          details: [`${result.roeSpent} roe`],
+        })
+      }
+      setFishAction(null)
+      return null
+    }, 'Unable to cure that fish.')
+  }
+
   const skipAhead = (hours: number): void => {
     if (!service) {
       return
@@ -474,9 +656,13 @@ export function CampPanel({
 
   const storehouseLevel = state ? buildingLevel(state, 'storehouse') : 1
   const benchLevel = state ? buildingLevel(state, 'tackle-bench') : 0
+  const smokehouseLevel = state ? buildingLevel(state, 'smokehouse') : 0
   const benchRecipes = getCraftingRecipesForBuilding('tackle-bench')
+  const roeHeld = countHeldQuantity(materials, 'roe')
   const totalPending = state
-    ? state.assignments.reduce((total, assignment) => total + pendingFor(assignment, state, now), 0)
+    ? state.assignments
+      .filter((assignment) => getCampJobDefinition(assignment.jobId)?.effect !== 'exhaustion-relief')
+      .reduce((total, assignment) => total + pendingFor(assignment, state, now), 0)
     : 0
 
   return (
@@ -537,16 +723,23 @@ export function CampPanel({
               const level = buildingLevel(state, job.buildingId)
               const slots = getCampBuildingLevel(job.buildingId, level)?.jobSlots ?? 0
               const workers = state.assignments.filter((assignment) => assignment.jobId === job.id)
-              const output = itemName(job.outputDefinitionId)
+              const relief = job.effect === 'exhaustion-relief'
               const pickerOpen = pickerJobId === job.id
+              const unbuilt = level === 0
               return (
                 <li className="camp-job" key={job.id}>
                   <header className="camp-job-heading">
-                    <span className="camp-job-icon" aria-hidden="true">{getRewardIcon(job.outputDefinitionId)}</span>
+                    <span className="camp-job-icon" aria-hidden="true">
+                      {getRewardIcon(job.outputDefinitionId ?? 'rift-shard')}
+                    </span>
                     <span className="camp-job-copy">
                       <strong>{job.name}</strong>
                       <small>
-                        {building.name} {level} · {job.baseRatePerHour} {output.toLowerCase()} an hour a Champion · {workers.length}/{slots} working
+                        {unbuilt
+                          ? building.description
+                          : relief
+                            ? `${building.name} ${level} · ${job.baseRatePerHour} min of rest an hour a Champion · ${workers.length}/${slots} resting`
+                            : `${building.name} ${level} · ${job.baseRatePerHour} ${itemName(job.outputDefinitionId ?? '').toLowerCase()} an hour a Champion · ${workers.length}/${slots} working`}
                       </small>
                     </span>
                   </header>
@@ -555,10 +748,10 @@ export function CampPanel({
                       {workers.map((assignment) => (
                         <CampWorker
                           key={assignment.championId}
+                          job={job}
                           assignment={assignment}
                           champion={championsById.get(assignment.championId)}
                           pending={pendingFor(assignment, state, now)}
-                          outputName={output.toLowerCase()}
                           busy={busy}
                           onRecall={() => recall(assignment.championId)}
                         />
@@ -626,6 +819,58 @@ export function CampPanel({
                 held={materials}
                 busy={busy}
                 onUpgrade={() => upgrade('tackle-bench')}
+              />
+            </li>
+            <li className="camp-job" key="smokehouse">
+              <header className="camp-job-heading">
+                <span className="camp-job-icon" aria-hidden="true">{getRewardIcon('roe')}</span>
+                <span className="camp-job-copy">
+                  <strong>{CAMP_BUILDING_DEFINITIONS.smokehouse.name}</strong>
+                  <small>
+                    {smokehouseLevel === 0
+                      ? CAMP_BUILDING_DEFINITIONS.smokehouse.description
+                      : `Gut a fish for roe, or spend roe to cure a meal fish a tier. ${roeHeld} roe held.`}
+                  </small>
+                </span>
+              </header>
+              {smokehouseLevel > 0 ? (
+                fishAction ? (
+                  <FishPicker
+                    action={fishAction}
+                    fish={fish}
+                    loading={fishLoading}
+                    roeHeld={roeHeld}
+                    busy={busy}
+                    onPick={(item) => (fishAction === 'gut' ? gut(item) : cure(item))}
+                    onCancel={() => setFishAction(null)}
+                  />
+                ) : (
+                  <div className="camp-fish-actions">
+                    <button
+                      className="camp-send-action"
+                      type="button"
+                      onClick={() => openFishPicker('gut')}
+                      disabled={busy || !inventoryService}
+                    >
+                      Gut a fish
+                    </button>
+                    <button
+                      className="camp-send-action"
+                      type="button"
+                      onClick={() => openFishPicker('cure')}
+                      disabled={busy || !inventoryService}
+                    >
+                      Cure a fish
+                    </button>
+                  </div>
+                )
+              ) : null}
+              <CampUpgradeRow
+                buildingId="smokehouse"
+                level={smokehouseLevel}
+                held={materials}
+                busy={busy}
+                onUpgrade={() => upgrade('smokehouse')}
               />
             </li>
           </ul>

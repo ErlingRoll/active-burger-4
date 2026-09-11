@@ -9,7 +9,7 @@ import type { CSSProperties } from 'react'
  * shows. Sized in `em` and painted from `currentColor` where the shape allows,
  * so a material takes the size of whatever slot holds it.
  */
-export type MaterialIconId = 'scrap' | 'timber' | 'stone'
+export type MaterialIconId = 'scrap' | 'timber' | 'stone' | 'rift-shard' | 'roe'
 
 interface MaterialIconProps {
   icon: MaterialIconId
@@ -68,6 +68,30 @@ export function MaterialIcon({ icon, color }: MaterialIconProps) {
           <path fill="currentColor" d="M5 9.5 13 5l12 3.5-1 10.5-12.5 2L4 17Z" opacity="0.85" />
           <path fill="#07111f" d="M13 5l12 3.5-1 10.5-9.5-2.5Z" opacity="0.25" />
           <path fill="currentColor" d="m24 16.5 5-1.5 1 4-4.5 1.5Z" opacity="0.6" />
+        </svg>
+      )
+    case 'rift-shard':
+      return (
+        <svg className="material-icon" viewBox="0 0 32 24" aria-hidden="true" style={style}>
+          {/* A long crystal and a chip off it, faceted down one side so the
+              light sits on an edge rather than a face. */}
+          <path fill="currentColor" d="M13 2 22 8l-3 14-9-4Z" opacity="0.85" />
+          <path fill="#07111f" d="M13 2 22 8l-1.5 7L13 9.5Z" opacity="0.3" />
+          <path fill="currentColor" d="m4 13 5-2 1 6-4 3Z" opacity="0.6" />
+          <path fill="none" stroke="currentColor" strokeWidth="1" d="M25 4v4M23 6h4" opacity="0.7" />
+        </svg>
+      )
+    case 'roe':
+      return (
+        <svg className="material-icon" viewBox="0 0 32 24" aria-hidden="true" style={style}>
+          {/* A cluster of eggs, each with a highlight off-centre, packed the
+              way they sit in the hand rather than in a grid. */}
+          <circle cx="11" cy="14" r="5" fill="currentColor" opacity="0.85" />
+          <circle cx="20" cy="11" r="5" fill="currentColor" opacity="0.75" />
+          <circle cx="17" cy="18" r="4.2" fill="currentColor" opacity="0.9" />
+          <circle cx="9.5" cy="12.5" r="1.4" fill="#fff" opacity="0.45" />
+          <circle cx="18.5" cy="9.5" r="1.4" fill="#fff" opacity="0.45" />
+          <circle cx="15.8" cy="16.8" r="1.1" fill="#fff" opacity="0.45" />
         </svg>
       )
     default:

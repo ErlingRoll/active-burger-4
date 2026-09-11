@@ -59,9 +59,51 @@ function emptyState(): CampState {
       { buildingId: 'woodline', level: 1 },
       { buildingId: 'quarry', level: 1 },
       { buildingId: 'tackle-bench', level: 0 },
+      { buildingId: 'rift-anchor', level: 0 },
+      { buildingId: 'smokehouse', level: 0 },
     ],
     assignments: [],
     championFloors: { 'champion-1': 20 },
+  }
+}
+
+function fishInstance(definitionId: string, metadata: Record<string, unknown>): InventoryItemInstance {
+  return {
+    itemInstanceId: `${definitionId}-${JSON.stringify(metadata).length}`,
+    definitionId,
+    quantity: 1,
+    bound: false,
+    metadata,
+    source: { type: 'fishing', id: null },
+    createdAt: SERVER_TIME,
+    updatedAt: SERVER_TIME,
+  }
+}
+
+/** The Rift anchor and Smokehouse built, and Mira exhausted and resting at the anchor. */
+function anchorState(): CampState {
+  const exhausted = { ...champion, exhaustionUntil: new Date(Date.now() + 10 * 3_600_000).toISOString() }
+  const sheet = deriveCampLabourSheet(
+    { build: exhausted.build, sourceFloor: 20 },
+    CAMP_JOB_DEFINITIONS['anchor-rest'],
+  )
+  return {
+    ...emptyState(),
+    buildings: emptyState().buildings.map((building) =>
+      building.buildingId === 'rift-anchor' || building.buildingId === 'smokehouse'
+        ? { ...building, level: 1 }
+        : building,
+    ),
+    assignments: [{
+      championId: 'champion-1',
+      jobId: 'anchor-rest',
+      sheet,
+      assignedAt: '2026-09-11T10:00:00.000Z',
+      accruedFrom: '2026-09-11T10:00:00.000Z',
+      ratePerHour: 30 * sheet.output,
+      capHours: 6,
+      pendingUnits: 60,
+    }],
   }
 }
 
@@ -97,21 +139,31 @@ function builtState(): CampState {
 interface RenderOptions {
   developmentToolsEnabled?: boolean
   materials?: InventoryItemInstance[]
+  fish?: InventoryItemInstance[]
+  claimPaid?: { champion_id?: never }[] | null
 }
 
 function renderPanel(initial: CampState, options: RenderOptions = {}) {
   const assignChampion = vi.fn(async () => workingState())
   const unassignChampion = vi.fn(async () => ({
-    paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, definitionId: 'timber', units: 15, bonusUnits: 0 }],
+    paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, effect: 'item' as const, definitionId: 'timber', units: 15, bonusUnits: 0 }],
     wasProcessed: true,
     state: emptyState(),
   }))
   const advanceClock = vi.fn(async () => workingState())
-  const claimProduction = vi.fn(async () => ({
-    paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, definitionId: 'timber', units: 15, bonusUnits: 4 }],
-    wasProcessed: true,
-    state: { ...workingState(), assignments: workingState().assignments.map((assignment) => ({ ...assignment, accruedFrom: SERVER_TIME })) },
-  }))
+  const claimProduction = vi.fn(async () => (initial.assignments[0]?.jobId === 'anchor-rest'
+    ? {
+        paid: [{ championId: 'champion-1', jobId: 'anchor-rest' as const, effect: 'exhaustion-relief' as const, definitionId: null, units: 60, bonusUnits: 0 }],
+        wasProcessed: true,
+        state: { ...anchorState(), assignments: anchorState().assignments.map((assignment) => ({ ...assignment, accruedFrom: SERVER_TIME })) },
+      }
+    : {
+        paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, effect: 'item' as const, definitionId: 'timber', units: 15, bonusUnits: 4 }],
+        wasProcessed: true,
+        state: { ...workingState(), assignments: workingState().assignments.map((assignment) => ({ ...assignment, accruedFrom: SERVER_TIME })) },
+      }))
+  const gutFish = vi.fn(async () => ({ definitionId: 'silver-perch', roeGranted: 3, wasProcessed: true }))
+  const cureFish = vi.fn(async () => ({ definitionId: 'silver-perch', enchantmentId: 'bright-scales', roeSpent: 3, wasProcessed: true }))
   const upgradeBuilding = vi.fn(async () => ({ wasProcessed: true, state: builtState() }))
   const service = {
     loadState: vi.fn(async () => initial),
@@ -120,6 +172,8 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
     claimProduction,
     advanceClock,
     upgradeBuilding,
+    gutFish,
+    cureFish,
   } as unknown as CampService
   const characterService = {
     loadCharacters: vi.fn(async () => ({ characters: [], revisions: [], champions: [champion] })),
@@ -133,7 +187,7 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
     wasProcessed: true,
   }))
   const inventoryService = {
-    loadInventory: vi.fn(async () => options.materials ?? []),
+    loadInventory: vi.fn(async (category?: string) => (category === 'fish' ? options.fish ?? [] : options.materials ?? [])),
     craftItem,
   } as unknown as InventoryService
   const onClose = vi.fn()
@@ -147,7 +201,7 @@ function renderPanel(initial: CampState, options: RenderOptions = {}) {
       onClose={onClose}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, onClose }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, onClose }
 }
 
 describe('CampPanel', () => {
@@ -235,6 +289,43 @@ describe('CampPanel', () => {
       expect(craftItem).toHaveBeenCalledWith(expect.any(String), 'river-worm-at-the-bench', 1)
     })
     expect(await screen.findByText('Crafted')).toBeInTheDocument()
+  })
+
+  it('reads a claim at the anchor as minutes of rest', async () => {
+    const { user, claimProduction } = renderPanel(anchorState())
+
+    expect(await screen.findByText('1/1 resting', { exact: false })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Claim/ }))
+
+    await waitFor(() => {
+      expect(claimProduction).toHaveBeenCalled()
+    })
+    expect(await screen.findByText('Mira of the Keep rested 60 minutes off its exhaustion at the anchor.')).toBeInTheDocument()
+  })
+
+  it('guts a fish for roe and cures a meal fish with it', async () => {
+    const perch = fishInstance('silver-perch', { rarity: 'rare', sizePercentile: 0.5 })
+    const koi = fishInstance('revival-koi', { rarity: 'epic', sizePercentile: 0.9 })
+    const { user, gutFish, cureFish } = renderPanel(anchorState(), {
+      materials: [material('roe', 3)],
+      fish: [perch, koi],
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Gut a fish' }))
+    // A rare perch of middling size: 3 × (0.75 + 0.25) = 3 roe.
+    await user.click(await screen.findByRole('button', { name: 'Gut Silver Perch: → 3 roe' }))
+    await waitFor(() => {
+      expect(gutFish).toHaveBeenCalledWith(expect.any(String), perch.itemInstanceId)
+    })
+    expect(await screen.findByText('Gutted')).toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'Cure a fish' }))
+    expect(await screen.findByRole('button', { name: 'Cure Revival Koi: Not a meal fish' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Cure Silver Perch: 3 roe → Bright Scales (+15%)' }))
+    await waitFor(() => {
+      expect(cureFish).toHaveBeenCalledWith(expect.any(String), perch.itemInstanceId)
+    })
+    expect(await screen.findByText('Cured')).toBeInTheDocument()
   })
 
   it('lets a development build skip the clock ahead', async () => {

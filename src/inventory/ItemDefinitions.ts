@@ -342,6 +342,32 @@ export const INVENTORY_ITEM_DEFINITIONS = {
     unlimited: false,
     salvageEssence: 0,
   },
+  'rift-shard': {
+    id: 'rift-shard',
+    name: 'Rift shard',
+    flavorText: 'A splinter of the Abyss, humming faintly. It never quite settles in the hand.',
+    category: 'material',
+    rarity: 'rare',
+    stackable: true,
+    maxStackSize: 9999,
+    tradeable: false,
+    bindOnEquip: false,
+    unlimited: false,
+    salvageEssence: 0,
+  },
+  roe: {
+    id: 'roe',
+    name: 'Roe',
+    flavorText: 'Taken from a fish that will not be swimming again. The smokehouse asks for it by the handful.',
+    category: 'material',
+    rarity: 'common',
+    stackable: true,
+    maxStackSize: 9999,
+    tradeable: false,
+    bindOnEquip: false,
+    unlimited: false,
+    salvageEssence: 0,
+  },
 } as const satisfies Record<string, InventoryItemDefinition>
 
 export type KnownInventoryItemDefinitionId = keyof typeof INVENTORY_ITEM_DEFINITIONS

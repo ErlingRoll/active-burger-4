@@ -10,9 +10,21 @@ import type { GearSetId } from '../../game-config/gear-sets'
  * server re-reads its own rows for every decision that moves an item.
  */
 
-export type CampBuildingId = 'storehouse' | 'woodline' | 'quarry' | 'tackle-bench'
+export type CampBuildingId =
+  | 'storehouse'
+  | 'woodline'
+  | 'quarry'
+  | 'tackle-bench'
+  | 'rift-anchor'
+  | 'smokehouse'
 
-export type CampJobId = 'woodline-timber' | 'quarry-stone'
+export type CampJobId = 'woodline-timber' | 'quarry-stone' | 'anchor-rest'
+
+/**
+ * What a job's units are. An item job grants its output on claim; a relief
+ * job takes its units, as minutes, off the working Champion's own exhaustion.
+ */
+export type CampJobEffect = 'item' | 'exhaustion-relief'
 
 export interface CampBuildingDefinition {
   id: CampBuildingId
@@ -41,7 +53,9 @@ export interface CampJobDefinition {
   id: CampJobId
   buildingId: CampBuildingId
   name: string
-  outputDefinitionId: string
+  effect: CampJobEffect
+  /** The item an item job grants; null for a relief job. */
+  outputDefinitionId: string | null
   /** Units per hour for one Champion whose sheet multiplies to exactly one. */
   baseRatePerHour: number
   /** The gear set a Champion is built for when it works here. */

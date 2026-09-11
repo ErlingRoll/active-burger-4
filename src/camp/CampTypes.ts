@@ -1,6 +1,6 @@
 import { CAMP_BUILDING_DEFINITIONS } from '../content/camp/CampBuildings'
 import { getCampJobDefinition } from '../content/camp/CampJobs'
-import type { CampBuildingId, CampJobId } from '../content/camp/CampTypes'
+import type { CampBuildingId, CampJobEffect, CampJobId } from '../content/camp/CampTypes'
 import type { CampLabourSheet } from '../content/camp/CampLabour'
 
 /**
@@ -52,10 +52,25 @@ export interface CampState {
 export interface CampPayment {
   championId: string
   jobId: CampJobId
-  definitionId: string
+  effect: CampJobEffect
+  /** The item paid, or null for a relief job whose units were minutes of rest. */
+  definitionId: string | null
   units: number
   /** Extra units a critical claim paid on top. */
   bonusUnits: number
+}
+
+export interface CampGutResult {
+  definitionId: string
+  roeGranted: number
+  wasProcessed: boolean
+}
+
+export interface CampCureResult {
+  definitionId: string
+  enchantmentId: string
+  roeSpent: number
+  wasProcessed: boolean
 }
 
 export interface CampClaimResult {
@@ -75,6 +90,10 @@ export interface CampService {
   claimProduction(operationId: string): Promise<CampClaimResult>
   /** Buys a building's next level with the materials the level costs. */
   upgradeBuilding(operationId: string, buildingId: CampBuildingId): Promise<CampUpgradeResult>
+  /** Destroys a fish for its roe. Needs the Smokehouse. */
+  gutFish(operationId: string, fishInstanceId: string): Promise<CampGutResult>
+  /** Spends roe to raise a meal fish's enchantment a tier. Needs the Smokehouse. */
+  cureFish(operationId: string, fishInstanceId: string): Promise<CampCureResult>
   /**
    * Moves every assignment's clock back by this many hours, so a claim pays
    * as if that long had passed. Administrators only; the server refuses

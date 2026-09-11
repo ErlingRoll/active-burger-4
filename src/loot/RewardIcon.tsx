@@ -13,6 +13,8 @@ const MATERIAL_ICON_COLORS: Record<MaterialIconId, string> = {
   scrap: 'var(--color-stone-300)',
   timber: 'var(--color-orange-300)',
   stone: 'var(--color-stone-400)',
+  'rift-shard': 'var(--color-violet-300)',
+  roe: 'var(--color-amber-400)',
 }
 
 function materialIconId(definitionId: string): MaterialIconId | undefined {

@@ -20,6 +20,7 @@ export const CAMP_JOB_DEFINITIONS = {
     id: 'woodline-timber',
     buildingId: 'woodline',
     name: 'Fell timber',
+    effect: 'item',
     outputDefinitionId: 'timber',
     baseRatePerHour: 4,
     fitSetId: 'splintering',
@@ -29,10 +30,27 @@ export const CAMP_JOB_DEFINITIONS = {
     id: 'quarry-stone',
     buildingId: 'quarry',
     name: 'Cut stone',
+    effect: 'item',
     outputDefinitionId: 'stone',
     baseRatePerHour: 4,
     fitSetId: 'giant',
     fitTags: ['area', 'defensive', 'summon'],
+  },
+  /*
+   * Rest at the anchor: thirty minutes of relief an hour at level one, off
+   * the resting Champion's own exhaustion. Only an exhausted Champion is sent
+   * here; a rested one has nothing to gain. Astral gear and chaos skills are
+   * at home by the rift.
+   */
+  'anchor-rest': {
+    id: 'anchor-rest',
+    buildingId: 'rift-anchor',
+    name: 'Rest at the anchor',
+    effect: 'exhaustion-relief',
+    outputDefinitionId: null,
+    baseRatePerHour: 30,
+    fitSetId: 'astral',
+    fitTags: ['chaos', 'duration'],
   },
 } as const satisfies Record<CampJobId, CampJobDefinition>
 

@@ -108,7 +108,7 @@ describe('camp service', () => {
     })
     expect(result.wasProcessed).toBe(true)
     expect(result.paid).toEqual([{
-      championId: 'champion-1', jobId: 'woodline-timber', definitionId: 'timber', units: 10, bonusUnits: 3,
+      championId: 'champion-1', jobId: 'woodline-timber', effect: 'item', definitionId: 'timber', units: 10, bonusUnits: 3,
     }])
     expect(result.state.assignments).toEqual([])
   })
@@ -121,6 +121,37 @@ describe('camp service', () => {
 
     expect(client.rpc).toHaveBeenCalledWith('claim_camp_production', { p_operation_id: 'op-3' })
     expect(result.wasProcessed).toBe(false)
+  })
+
+  it('maps a relief payment, which names no item', async () => {
+    const service = createService(fakeClient(() => ({
+      paid: [{
+        champion_id: 'champion-1', job_id: 'anchor-rest', definition_id: null, effect: 'exhaustion-relief', units: 45, bonus_units: 0,
+      }],
+      was_processed: true,
+      state: STATE,
+    })))
+
+    const result = await service.claimProduction('op-5')
+
+    expect(result.paid).toEqual([{
+      championId: 'champion-1', jobId: 'anchor-rest', effect: 'exhaustion-relief', definitionId: null, units: 45, bonusUnits: 0,
+    }])
+  })
+
+  it('guts and cures a fish by instance id', async () => {
+    const client = fakeClient((name) => name === 'gut_fish_at_smokehouse'
+      ? [{ definition_id: 'silver-perch', roe_granted: 3, was_processed: true }]
+      : [{ definition_id: 'silver-perch', enchantment_id: 'bright-scales', roe_spent: 3, was_processed: true }])
+    const service = createService(client)
+
+    await expect(service.gutFish('op-6', 'fish-1')).resolves.toEqual({
+      definitionId: 'silver-perch', roeGranted: 3, wasProcessed: true,
+    })
+    expect(client.rpc).toHaveBeenCalledWith('gut_fish_at_smokehouse', { p_operation_id: 'op-6', p_fish_instance_id: 'fish-1' })
+    await expect(service.cureFish('op-7', 'fish-1')).resolves.toEqual({
+      definitionId: 'silver-perch', enchantmentId: 'bright-scales', roeSpent: 3, wasProcessed: true,
+    })
   })
 
   it('upgrades a building by name and reads the state back', async () => {

@@ -190,7 +190,9 @@ species range, so larger species can weigh several kilograms or more:
 | Star Koi | 4.00–24.00 kg |
 
 Most fish have no enchantment. Rod Enchanter rolls use a deterministic
-server-side chance of 1% to 5% based on rod rarity. Enchantments initially apply
+server-side chance of 1% to 5% based on rod rarity. The Camp's Smokehouse is
+the second source: curing a meal fish with roe raises its enchantment a tier,
+and gutting a fish there destroys it for roe. Enchantments initially apply
 only to run-meal-eligible fish; Revival Koi remains reserved for Champion
 recovery.
 

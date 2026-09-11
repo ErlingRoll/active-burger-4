@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slices 0, 1 and 2 shipped 2026-09-11 and 2026-09-12; slice 3 and the later buildings are still proposals.
+> **Status:** Slices 0, 1 and 2, the Rift anchor and the Smokehouse shipped 2026-09-11 and 2026-09-12; slice 3, the Forge and the Trophy hall are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -352,9 +352,23 @@ construction is a wall rather than a rhythm.
 
 ### Later, each behind its own prerequisite
 
-- **Rift anchor** needs rift shards, which need a source: Abyss floor boxes.
-- **Smokehouse** needs roe, which needs gutting: an inventory operation that
-  destroys a fish and grants roe by rarity and size.
+- **Rift anchor** *(shipped 2026-09-12)*. Rift shards come from the Abyss's
+  floors, granted beside the floor box by the same trigger: one a floor and one
+  more for every five floors down, to six. The anchor is built with shards,
+  timber and stone, and its one job, `anchor-rest`, has the job table's new
+  `effect` of `exhaustion-relief`: an exhausted Champion is sent there (a
+  rested one is refused), its units are minutes, and a claim takes them off
+  its own `exhaustion_until`, never past now. Levels raise the rate by half
+  and then double it, and open a second slot. The labour sheet applies as at
+  any job, so a Champion in Astral gear rests faster.
+- **Smokehouse** *(shipped 2026-09-12)*. Roe comes from gutting, which is an
+  RPC at the Smokehouse rather than a bag action: `gut_fish_at_smokehouse`
+  destroys a fish and grants roe by rarity and size. Curing,
+  `cure_fish_at_smokehouse`, spends roe to raise a meal fish's enchantment a
+  tier, writing the same `enchantmentId` and `enchantmentValue` the fishing
+  rod's Enchanter rolls, so the run meal already knows how to read it and no
+  new item category was needed. Both are inventory operations under their own
+  ledger types. The panel's Smokehouse card opens a fish picker for either.
 - **Forge** needs artifacts (Phase 9).
 - **Trophy hall** needs collections (Phase 10).
 

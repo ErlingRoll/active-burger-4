@@ -49,6 +49,20 @@ export const CAMP_BUILDING_DEFINITIONS = {
     sortOrder: 3,
     startingLevel: 0,
   },
+  'rift-anchor': {
+    id: 'rift-anchor',
+    name: 'Rift anchor',
+    description: 'A splinter of the Abyss driven into the ground. An exhausted Champion rests faster beside it.',
+    sortOrder: 4,
+    startingLevel: 0,
+  },
+  smokehouse: {
+    id: 'smokehouse',
+    name: 'Smokehouse',
+    description: 'Guts a fish for its roe, and cures a meal fish with it so it feeds a run better.',
+    sortOrder: 5,
+    startingLevel: 0,
+  },
 } as const satisfies Record<CampBuildingId, CampBuildingDefinition>
 
 export const ALL_CAMP_BUILDING_DEFINITIONS: readonly CampBuildingDefinition[] =
@@ -64,6 +78,10 @@ export const CAMP_BUILDING_LEVELS: readonly CampBuildingLevel[] = [
   { buildingId: 'quarry', level: 1, cost: {}, accrualCapHours: null, rateMultiplier: 1, jobSlots: 1 },
   { buildingId: 'quarry', level: 2, cost: { timber: 40, stone: 40 }, accrualCapHours: null, rateMultiplier: 1.5, jobSlots: 2 },
   { buildingId: 'tackle-bench', level: 1, cost: { timber: 40, stone: 20 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
+  { buildingId: 'rift-anchor', level: 1, cost: { timber: 20, stone: 20, 'rift-shard': 8 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 1 },
+  { buildingId: 'rift-anchor', level: 2, cost: { timber: 40, stone: 40, 'rift-shard': 20 }, accrualCapHours: null, rateMultiplier: 1.5, jobSlots: 2 },
+  { buildingId: 'rift-anchor', level: 3, cost: { timber: 80, stone: 80, 'rift-shard': 40 }, accrualCapHours: null, rateMultiplier: 2, jobSlots: 2 },
+  { buildingId: 'smokehouse', level: 1, cost: { timber: 30, stone: 30 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
 ]
 
 export function isCampBuildingId(value: unknown): value is CampBuildingId {

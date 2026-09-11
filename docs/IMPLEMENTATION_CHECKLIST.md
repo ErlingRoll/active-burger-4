@@ -173,7 +173,10 @@ the check is named; the rest are review responsibilities.
       sheet and offline accrual as SQL and TypeScript twins pinned to one
       fixture set, Champion labour with idempotent claims and settlement on
       unassign or archive, the Abyss lockout for working Champions, and the
-      Camp panel on the hub. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
+      Camp panel on the hub, construction bought with timber and stone, the
+      tackle bench with multi-input recipes, the Rift anchor where an exhausted
+      Champion rests faster, and the Smokehouse that guts fish for roe and
+      cures meal fish with it. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 
 ## Per-Feature Gate
 

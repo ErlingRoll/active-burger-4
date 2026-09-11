@@ -509,3 +509,37 @@
   color: var(--text-muted);
   font-size: clamp(0.55rem, 1.25vh, 0.7rem);
 }
+
+/* Six cards side by side where there is room, so the panel grows across the
+   HUD rather than down it and still fits a desktop viewport. */
+.hub-camp-panel {
+  width: min(100%, 60rem);
+}
+
+/* The HUD gives its three columns equal room, which is a third of the width
+   and one card wide. While the Camp is open the centre column takes more, so
+   the cards can stand two abreast; the docks either side are fixed-width and
+   lose nothing. */
+.hub-hud-column-center:has(.hub-camp-panel) {
+  flex-grow: 3;
+}
+
+.camp-jobs {
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  align-items: start;
+}
+
+/* The Smokehouse's fish picker, in the same plate as the Champion picker. */
+.camp-fish-option .camp-picker-copy > span:not(.camp-sheet-line) {
+  color: var(--text-muted);
+}
+
+.camp-fish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+}
+
+.camp-fish-actions .camp-send-action {
+  flex: 1 1 10rem;
+}

@@ -180,34 +180,70 @@ describe('camp building levels', () => {
   })
 })
 
-describe('camp jobs', () => {
-  const rows = seedRows(
-    'camp_job_definitions',
-    'id,\\s*building_id,\\s*output_definition_id,\\s*base_rate_per_hour,\\s*fit_set_id,\\s*fit_tags',
-  )
-    .map(fields)
-    .map(([id, buildingId, output, rate, setId, tags]) => ({
-      id: unquote(assertDefined(id)),
-      buildingId: unquote(assertDefined(buildingId)),
-      outputDefinitionId: unquote(assertDefined(output)),
-      baseRatePerHour: Number(rate),
-      fitSetId: unquote(assertDefined(setId)),
-      fitTags: unquote(assertDefined(tags)).replace(/^\{|\}$/g, '').split(',').map((tag) => tag.trim()).sort(),
-    }))
+/**
+ * The job seeds come in two shapes as well: the foundations named an item
+ * output only, and the anchor migration added `effect` and let the output
+ * be null. Read by column list, later rows replacing earlier ones.
+ */
+interface SeededJob {
+  id: string
+  buildingId: string
+  effect: string
+  outputDefinitionId: string | null
+  baseRatePerHour: number
+  fitSetId: string
+  fitTags: string[]
+}
 
-  it('lists exactly the jobs the server seeds, at the same rates and fits', () => {
+function seededJobs(): SeededJob[] {
+  const byId = new Map<string, SeededJob>()
+  for (const sql of migrationSources()) {
+    for (const [, columns, tuples] of sql.matchAll(
+      /insert into public\.camp_job_definitions\s*\(([^)]*)\)\s*values([\s\S]*?)(?:on conflict|;)/g,
+    )) {
+      const names = (columns ?? '').split(',').map((column) => column.trim())
+      for (const [, row] of (tuples ?? '').matchAll(/\(((?:[^()']|'[^']*')*)\)/g)) {
+        const values = fields(row ?? '')
+        const read = (column: string): string | undefined => {
+          const index = names.indexOf(column)
+          return index === -1 ? undefined : values[index]
+        }
+        const output = assertDefined(read('output_definition_id'))
+        byId.set(unquote(assertDefined(read('id'))), {
+          id: unquote(assertDefined(read('id'))),
+          buildingId: unquote(assertDefined(read('building_id'))),
+          effect: read('effect') === undefined ? 'item' : unquote(assertDefined(read('effect'))),
+          outputDefinitionId: output === 'null' ? null : unquote(output),
+          baseRatePerHour: Number(read('base_rate_per_hour')),
+          fitSetId: unquote(assertDefined(read('fit_set_id'))),
+          fitTags: unquote(assertDefined(read('fit_tags'))).replace(/^\{|\}$/g, '').split(',').map((tag) => tag.trim()).sort(),
+        })
+      }
+    }
+  }
+  return [...byId.values()]
+}
+
+describe('camp jobs', () => {
+  const rows = seededJobs()
+
+  it('lists exactly the jobs the server seeds, at the same rates, effects and fits', () => {
     expect(
       ALL_CAMP_JOB_DEFINITIONS
-        .map(({ id, buildingId, outputDefinitionId, baseRatePerHour, fitSetId, fitTags }) => ({
-          id, buildingId, outputDefinitionId, baseRatePerHour, fitSetId, fitTags: [...fitTags].sort(),
+        .map(({ id, buildingId, effect, outputDefinitionId, baseRatePerHour, fitSetId, fitTags }) => ({
+          id, buildingId, effect, outputDefinitionId, baseRatePerHour, fitSetId, fitTags: [...fitTags].sort(),
         }))
         .sort((a, b) => a.id.localeCompare(b.id)),
     ).toEqual([...rows].sort((a, b) => a.id.localeCompare(b.id)))
   })
 
-  it('produces items the client can name', () => {
+  it('produces items the client can name, and names none for a relief job', () => {
     for (const row of rows) {
-      expect(getInventoryItemDefinition(row.outputDefinitionId), row.outputDefinitionId).toBeDefined()
+      if (row.effect === 'item') {
+        expect(getInventoryItemDefinition(assertDefined(row.outputDefinitionId)), row.id).toBeDefined()
+      } else {
+        expect(row.outputDefinitionId, row.id).toBeNull()
+      }
     }
   })
 })

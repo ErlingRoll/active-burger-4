@@ -7,6 +7,8 @@ import type {
   CampAssignment,
   CampBuildingState,
   CampClaimResult,
+  CampCureResult,
+  CampGutResult,
   CampPayment,
   CampService,
   CampState,
@@ -115,17 +117,29 @@ function readPayment(value: unknown): CampPayment {
   if (!isRecord(value) ||
     !isNonEmptyString(value.champion_id) ||
     !isCampJobId(value.job_id) ||
-    !isNonEmptyString(value.definition_id) ||
+    !(value.definition_id === null || value.definition_id === undefined || isNonEmptyString(value.definition_id)) ||
     !isCount(value.units) ||
     !isCount(value.bonus_units)) {
     throw invalidResponse('expected a payment row')
   }
+  const effect = value.effect === 'exhaustion-relief' ? 'exhaustion-relief' : 'item'
+  const definitionId = isNonEmptyString(value.definition_id) ? value.definition_id : null
+  if (effect === 'item' && definitionId === null) {
+    throw invalidResponse('expected an item payment to name its item')
+  }
   return {
     championId: value.champion_id,
     jobId: value.job_id,
-    definitionId: value.definition_id,
+    effect,
+    definitionId,
     units: value.units,
     bonusUnits: value.bonus_units,
+  }
+}
+
+function assertFishInstanceId(fishInstanceId: string): void {
+  if (!isNonEmptyString(fishInstanceId)) {
+    throw new Error('A fish instance ID is required.')
   }
 }
 
@@ -208,6 +222,42 @@ export function createCampService(
         throw invalidResponse('expected an upgrade result')
       }
       return { wasProcessed: data.was_processed, state: readState(data.state, Date.now()) }
+    },
+
+    async gutFish(operationId, fishInstanceId): Promise<CampGutResult> {
+      assertOperationId(operationId)
+      assertFishInstanceId(fishInstanceId)
+      const data = await call('gut_fish_at_smokehouse', {
+        p_operation_id: operationId,
+        p_fish_instance_id: fishInstanceId,
+      })
+      const row: unknown = Array.isArray(data) ? data[0] : undefined
+      if (!isRecord(row) || !isNonEmptyString(row.definition_id) ||
+        !isCount(row.roe_granted) || typeof row.was_processed !== 'boolean') {
+        throw invalidResponse('expected one gutted fish row')
+      }
+      return { definitionId: row.definition_id, roeGranted: row.roe_granted, wasProcessed: row.was_processed }
+    },
+
+    async cureFish(operationId, fishInstanceId): Promise<CampCureResult> {
+      assertOperationId(operationId)
+      assertFishInstanceId(fishInstanceId)
+      const data = await call('cure_fish_at_smokehouse', {
+        p_operation_id: operationId,
+        p_fish_instance_id: fishInstanceId,
+      })
+      const row: unknown = Array.isArray(data) ? data[0] : undefined
+      if (!isRecord(row) || !isNonEmptyString(row.definition_id) ||
+        !isNonEmptyString(row.enchantment_id) || !isCount(row.roe_spent) ||
+        typeof row.was_processed !== 'boolean') {
+        throw invalidResponse('expected one cured fish row')
+      }
+      return {
+        definitionId: row.definition_id,
+        enchantmentId: row.enchantment_id,
+        roeSpent: row.roe_spent,
+        wasProcessed: row.was_processed,
+      }
     },
 
     async advanceClock(hours): Promise<CampState> {
