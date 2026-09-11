@@ -999,7 +999,7 @@ describe('UI snapshots', () => {
     expect(snapshot.behavior).toMatchObject({
       profileId: 'cautious',
       profileName: 'Cautious',
-      profileDescription: 'Kites earlier around packs and high-threat enemies, closing to attack range when needed.',
+      profileDescription: 'Kites early and wide around packs and dangerous enemies, closing to attack range only when it is safe to.',
       freeMode: false,
       activeIntent: {
         source: 'dodge',

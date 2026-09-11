@@ -13,10 +13,13 @@ import type {
   EnemyState,
   GameState,
   ProjectileState,
+  TelegraphState,
 } from '../../state/GameState'
 import { getPlayerArenaBounds } from '../../../game-config/arena'
 import { RALLYING_BANNER_EFFECT_RADIUS } from '../../../game-config/skills'
 import { definedAt } from '../../../testing'
+import { createBossState } from '../boss/BossSystem'
+import { createDamageValues } from '../../../content/stats/Damage'
 
 function createState(
   enemies: EnemyState[] = [],
@@ -585,6 +588,7 @@ describe('data-driven player behavior intents', () => {
       const bounds = getPlayerArenaBounds(state.player.radius)
       state.player.x = bounds.maxX
       state.player.y = bounds.maxY
+      state.player.attackCooldownRemaining = 0.5
       state.player.behaviorController = { profileId }
 
       const kite = getPlayerBehaviorCandidates(state).find(
@@ -594,5 +598,236 @@ describe('data-driven player behavior intents', () => {
       expect(kite?.directionX).toBeLessThan(0)
       expect(kite?.directionY).toBeLessThan(0)
     }
+  })
+})
+
+describe('threat-aware dodging, contact and health', () => {
+  function slamAt(x: number, y: number, remainingDuration = 0.65): TelegraphState {
+    return {
+      id: 40,
+      sourceId: 9,
+      sourceKind: 'boss',
+      skillId: 'ground-slam',
+      shape: 'disc',
+      x,
+      y,
+      radius: 100,
+      remainingDuration,
+      duration: 0.75,
+      points: [{ x, y }],
+      damage: createDamageValues({ physical: 16 }),
+    }
+  }
+
+  it('dodges a slam centred on itself away from the boss rather than into it', () => {
+    const state = createState()
+    state.bosses = [createBossState(state, 9, 'stone-golem', 130, 0)]
+    state.telegraphs = [slamAt(state.player.x, state.player.y)]
+
+    const dodge = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'dodge',
+    )
+    expect(dodge).toMatchObject({ source: 'dodge' })
+    expect(dodge?.directionX).toBeLessThan(-0.5)
+  })
+
+  it('keeps its momentum through a slam it cannot fully clear', () => {
+    const state = createState()
+    state.player.movementVelocityX = 0
+    state.player.movementVelocityY = state.player.movementSpeed
+    state.telegraphs = [slamAt(state.player.x, state.player.y)]
+
+    const dodge = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'dodge',
+    )
+    expect(dodge?.directionY).toBeGreaterThan(0.9)
+  })
+
+  it('dodges a charge away from where the boss will land', () => {
+    const state = createState()
+    const boss = createBossState(state, 9, 'stone-golem', -400, 30)
+    state.bosses = [boss]
+    state.telegraphs = [{
+      id: 41,
+      sourceId: boss.id,
+      sourceKind: 'boss',
+      skillId: 'charge',
+      shape: 'line',
+      dashesOnResolve: true,
+      x: boss.x,
+      y: boss.y,
+      radius: 28,
+      remainingDuration: 0.4,
+      duration: 0.5,
+      points: [{ x: boss.x, y: boss.y }, { x: -30, y: 20 }],
+      damage: createDamageValues({ physical: 20 }),
+    }]
+
+    const dodge = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'dodge',
+    )
+    expect(dodge?.directionX).toBeGreaterThan(0.5)
+  })
+
+  it('keeps Aggressive trading with one Slime but breaks contact with a pack', () => {
+    const lone = createState([enemy(4, 'slime', 30)])
+    lone.player.behaviorController = { profileId: 'aggressive' }
+    expect(getPlayerBehaviorCandidates(lone).some(
+      (candidate) => candidate.source === 'kite',
+    )).toBe(false)
+
+    const pack = createState([enemy(4, 'slime', 30), enemy(5, 'slime', -30)])
+    pack.player.behaviorController = { profileId: 'aggressive' }
+    expect(getPlayerBehaviorCandidates(pack)[0]).toMatchObject({ source: 'kite' })
+  })
+
+  it('makes Aggressive kite a pack it would otherwise charge once badly hurt', () => {
+    const state = createState([enemy(7, 'brute', 130), enemy(2, 'brute', 160)])
+    state.player.attackCooldownRemaining = 0.5
+    state.player.behaviorController = { profileId: 'aggressive' }
+    expect(updatePlayerBehavior(state, 0)?.source).toBe('combat-range')
+
+    state.player.hp = state.player.maxHp * 0.2
+    state.player.behaviorController = { profileId: 'aggressive' }
+    expect(updatePlayerBehavior(state, 0)?.source).toBe('kite')
+  })
+
+  it('treats a long-lived Slime as the fast enemy it has become', () => {
+    const fresh = createState([enemy(4, 'slime', 200), enemy(5, 'slime', 200, 20)])
+    fresh.player.attackCooldownRemaining = 0.5
+    fresh.player.behaviorController = { profileId: 'cautious' }
+    expect(getPlayerBehaviorCandidates(fresh).some(
+      (candidate) => candidate.source === 'kite',
+    )).toBe(false)
+
+    const old = createState([enemy(4, 'slime', 200), enemy(5, 'slime', 200, 20)])
+    old.time = 70
+    for (const slime of old.enemies) {
+      slime.spawnTime = 0
+    }
+    old.player.attackCooldownRemaining = 0.5
+    old.player.behaviorController = { profileId: 'cautious' }
+    expect(getPlayerBehaviorCandidates(old)[0]).toMatchObject({ source: 'kite' })
+  })
+
+  it('keeps kiting a slow enemy until it is comfortably out of reach', () => {
+    const close = createState([enemy(4, 'slime', 40)])
+    close.player.behaviorController = {
+      profileId: 'balanced',
+      lastCandidate: { source: 'kite', directionX: 1, directionY: 0, speed: 1, priority: 1 },
+    }
+    expect(getPlayerBehaviorCandidates(close)[0]).toMatchObject({ source: 'kite' })
+
+    const far = createState([enemy(4, 'slime', 200)])
+    far.player.behaviorController = {
+      profileId: 'balanced',
+      lastCandidate: { source: 'kite', directionX: 1, directionY: 0, speed: 1, priority: 1 },
+    }
+    expect(getPlayerBehaviorCandidates(far).some(
+      (candidate) => candidate.source === 'kite',
+    )).toBe(false)
+  })
+
+  it('approaches around a telegraph instead of through it', () => {
+    const state = createState([enemy(4, 'slime', 300)])
+    state.telegraphs = [{
+      id: 42,
+      sourceId: 9,
+      sourceKind: 'enemy',
+      skillId: 'brute-shockwave',
+      shape: 'disc',
+      x: 150,
+      y: 0,
+      radius: 60,
+      remainingDuration: 0.5,
+      duration: 0.7,
+      points: [{ x: 150, y: 0 }],
+      damage: createDamageValues({ physical: 14 }),
+    }]
+
+    const approach = getPlayerBehaviorCandidates(state).find(
+      (candidate) => candidate.source === 'combat-range',
+    )
+    expect(approach?.directionX).toBeGreaterThan(0.5)
+    expect(Math.abs(approach?.directionY ?? 0)).toBeGreaterThan(0.2)
+  })
+
+  it('never stands still beside a boss', () => {
+    const state = createState()
+    state.bosses = [createBossState(state, 9, 'stone-golem', 300, 0)]
+    for (const profileId of ['aggressive', 'balanced', 'cautious'] as const) {
+      state.player.behaviorController = { profileId }
+      const selected = updatePlayerBehavior(state, 0)
+      expect(selected?.source).not.toBe('hold')
+      expect(Math.hypot(selected?.directionX ?? 0, selected?.directionY ?? 0)).toBeGreaterThan(0)
+    }
+  })
+
+  it('accepts more danger to reach a potion the more health it is missing', () => {
+    const potion: GameState['pickups'][number] = {
+      id: 3,
+      kind: 'healing-potion',
+      x: 60,
+      y: 0,
+      radius: 10,
+      attractionRadius: 180,
+      attractionSpeed: 360,
+    }
+    const slightlyHurt = createState(
+      [enemy(4, 'slime', -120), enemy(5, 'slime', -120, 30), enemy(6, 'slime', -120, -30)],
+      [potion],
+    )
+    slightlyHurt.player.hp = slightlyHurt.player.maxHp * 0.85
+    expect(getPlayerBehaviorCandidates(slightlyHurt).some(
+      (candidate) => candidate.source === 'healing',
+    )).toBe(false)
+
+    const badlyHurt = createState(
+      [enemy(4, 'slime', -120), enemy(5, 'slime', -120, 30), enemy(6, 'slime', -120, -30)],
+      [potion],
+    )
+    badlyHurt.player.hp = badlyHurt.player.maxHp * 0.2
+    expect(getPlayerBehaviorCandidates(badlyHurt).some(
+      (candidate) => candidate.source === 'healing',
+    )).toBe(true)
+  })
+})
+
+describe('hit and run', () => {
+  it('steps in to strike a Slime when the attack is ready, and steps back out while it recharges', () => {
+    const chaser = (): EnemyState => ({ ...enemy(4, 'slime', 120), speed: 90 })
+    const ready = createState([chaser()])
+    ready.player.attackCooldownRemaining = 0
+    ready.player.behaviorController = {
+      profileId: 'balanced',
+      lastCandidate: { source: 'kite', directionX: -1, directionY: 0, speed: 1, priority: 1 },
+    }
+    const readyCandidates = getPlayerBehaviorCandidates(ready)
+    expect(readyCandidates.some((candidate) => candidate.source === 'kite')).toBe(false)
+    expect(readyCandidates.find((candidate) => candidate.source === 'combat-range'))
+      .toMatchObject({ targetId: 4 })
+
+    const recharging = createState([chaser()])
+    recharging.player.attackCooldownRemaining = 0.6
+    recharging.player.behaviorController = {
+      profileId: 'balanced',
+      lastCandidate: { source: 'kite', directionX: -1, directionY: 0, speed: 1, priority: 1 },
+    }
+    expect(getPlayerBehaviorCandidates(recharging)[0]).toMatchObject({
+      source: 'kite',
+      targetId: 4,
+    })
+  })
+
+  it('does not step in on a Brute pack that Cautious would not risk', () => {
+    const state = createState([enemy(7, 'brute', 140), enemy(2, 'brute', 150, 40)])
+    state.player.attackCooldownRemaining = 0
+    state.player.behaviorController = { profileId: 'cautious' }
+    expect(getPlayerBehaviorCandidates(state)[0]).toMatchObject({ source: 'kite' })
+
+    state.player.behaviorController = { profileId: 'aggressive' }
+    expect(getPlayerBehaviorCandidates(state).some(
+      (candidate) => candidate.source === 'kite',
+    )).toBe(false)
   })
 })

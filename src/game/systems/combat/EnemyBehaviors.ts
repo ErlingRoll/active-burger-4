@@ -601,7 +601,13 @@ function finiteValue(value: number | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function getEffectiveEnemySpeed(
+/**
+ * How fast an enemy actually moves right now: its base speed after the
+ * post-spawn ramp, elite Berserking, and Chill. The player's behavior reads
+ * this too, because an enemy that has been alive for a minute closes at four
+ * times the speed its definition says.
+ */
+export function getEffectiveEnemySpeed(
   state: Readonly<GameState>,
   enemy: Readonly<EnemyState>,
 ): number {
