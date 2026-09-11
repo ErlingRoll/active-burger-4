@@ -22,4 +22,33 @@ describe('LootBoxes', () => {
     expect(rarities.has(Rarity.Epic)).toBe(true)
     expect(rarities.has(Rarity.Legendary)).toBe(true)
   })
+
+  it('guarantees at least an epic box on every 10th floor, even early on', () => {
+    for (const floor of [10, 20, 30]) {
+      for (let seed = 0; seed < 200; seed++) {
+        const rarity = resolveAbyssLootBoxRarity(seed, floor, 0)
+        expect([Rarity.Epic, Rarity.Legendary]).toContain(rarity)
+      }
+    }
+  })
+
+  it('gives a milestone epic box roughly a 5% chance of being legendary', () => {
+    const sampleSize = 20000
+    let legendaryCount = 0
+    for (let seed = 0; seed < sampleSize; seed++) {
+      if (resolveAbyssLootBoxRarity(seed, 10, 0) === Rarity.Legendary) {
+        legendaryCount++
+      }
+    }
+    const rate = legendaryCount / sampleSize
+    expect(rate).toBeGreaterThan(0.03)
+    expect(rate).toBeLessThan(0.07)
+  })
+
+  it('does not guarantee epic on non-milestone floors', () => {
+    const rarities = new Set(
+      Array.from({ length: 200 }, (_, seed) => resolveAbyssLootBoxRarity(seed, 9, 0)),
+    )
+    expect(rarities.has(Rarity.Common)).toBe(true)
+  })
 })

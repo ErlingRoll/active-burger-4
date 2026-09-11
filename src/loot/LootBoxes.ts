@@ -47,6 +47,10 @@ export function resolveAbyssLootBoxRarity(
     danger * 97
   ) >>> 0
   const roll = mixedSeed % 10000
+  if (floor % 10 === 0) {
+    const bonusMixedSeed = (mixedSeed ^ 0x5bd1e995) >>> 0
+    return bonusMixedSeed % 10000 < 500 ? Rarity.Legendary : Rarity.Epic
+  }
   const progress = Math.min(1, floor / 100)
   const commonCutoff = Math.floor(8000 - progress * 5000)
   const uncommonCutoff = commonCutoff + Math.floor(1700 + progress * 1000)
