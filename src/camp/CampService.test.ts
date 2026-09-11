@@ -123,6 +123,20 @@ describe('camp service', () => {
     expect(result.wasProcessed).toBe(false)
   })
 
+  it('upgrades a building by name and reads the state back', async () => {
+    const client = fakeClient(() => ({ was_processed: true, state: STATE }))
+    const service = createService(client)
+
+    const result = await service.upgradeBuilding('op-4', 'storehouse')
+
+    expect(client.rpc).toHaveBeenCalledWith('upgrade_camp_building', {
+      p_operation_id: 'op-4',
+      p_building_id: 'storehouse',
+    })
+    expect(result.wasProcessed).toBe(true)
+    expect(result.state.storehouseCapHours).toBe(8)
+  })
+
   it('advances the clock by hours for a development build', async () => {
     const client = fakeClient(() => STATE)
     const service = createService(client)

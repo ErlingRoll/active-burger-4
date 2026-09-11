@@ -27,6 +27,7 @@ function renderDashboard(overrides: Partial<GameDashboardProps> = {}) {
     campService: null,
     campConfigurationError: null,
     characterService: null,
+    inventoryService: null,
     developmentToolsEnabled: false,
     activeRun: ACTIVE_RUN,
     runLoadState: 'ready',

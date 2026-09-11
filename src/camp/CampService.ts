@@ -10,6 +10,7 @@ import type {
   CampPayment,
   CampService,
   CampState,
+  CampUpgradeResult,
 } from './CampTypes'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -195,6 +196,18 @@ export function createCampService(
       assertOperationId(operationId)
       const data = await call('claim_camp_production', { p_operation_id: operationId })
       return readClaim(data, Date.now())
+    },
+
+    async upgradeBuilding(operationId, buildingId): Promise<CampUpgradeResult> {
+      assertOperationId(operationId)
+      const data = await call('upgrade_camp_building', {
+        p_operation_id: operationId,
+        p_building_id: buildingId,
+      })
+      if (!isRecord(data) || typeof data.was_processed !== 'boolean') {
+        throw invalidResponse('expected an upgrade result')
+      }
+      return { wasProcessed: data.was_processed, state: readState(data.state, Date.now()) }
     },
 
     async advanceClock(hours): Promise<CampState> {

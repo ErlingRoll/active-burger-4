@@ -10,7 +10,7 @@ import type { GearSetId } from '../../game-config/gear-sets'
  * server re-reads its own rows for every decision that moves an item.
  */
 
-export type CampBuildingId = 'storehouse' | 'woodline' | 'quarry'
+export type CampBuildingId = 'storehouse' | 'woodline' | 'quarry' | 'tackle-bench'
 
 export type CampJobId = 'woodline-timber' | 'quarry-stone'
 
@@ -19,6 +19,8 @@ export interface CampBuildingDefinition {
   name: string
   description: string
   sortOrder: number
+  /** The level a player starts at: one for a building that is simply there, zero for one that must be built. */
+  startingLevel: number
 }
 
 /** What a level costs and what it does, keyed by building and level. */

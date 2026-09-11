@@ -93,22 +93,47 @@ function number(field: string): number | null {
   return field === 'null' ? null : Number(field)
 }
 
+/**
+ * The building seeds come in two shapes: the foundations named three columns,
+ * and the construction migration added `starting_level` for the bench. Each
+ * statement is read by its own column list, and a later row replaces an
+ * earlier one the way the upsert does.
+ */
+function seededBuildings(): { id: string, name: string, sortOrder: number, startingLevel: number }[] {
+  const byId = new Map<string, { id: string, name: string, sortOrder: number, startingLevel: number }>()
+  for (const sql of migrationSources()) {
+    for (const [, columns, tuples] of sql.matchAll(
+      /insert into public\.camp_building_definitions\s*\(([^)]*)\)\s*values([\s\S]*?)(?:on conflict|;)/g,
+    )) {
+      const names = (columns ?? '').split(',').map((column) => column.trim())
+      for (const [, row] of (tuples ?? '').matchAll(/\(((?:[^()']|'[^']*')*)\)/g)) {
+        const values = fields(row ?? '')
+        const read = (column: string): string | undefined => {
+          const index = names.indexOf(column)
+          return index === -1 ? undefined : values[index]
+        }
+        byId.set(unquote(assertDefined(read('id'))), {
+          id: unquote(assertDefined(read('id'))),
+          name: unquote(assertDefined(read('name'))),
+          sortOrder: Number(read('sort_order')),
+          startingLevel: read('starting_level') === undefined ? 1 : Number(read('starting_level')),
+        })
+      }
+    }
+  }
+  return [...byId.values()]
+}
+
 describe('camp buildings', () => {
-  const rows = seedRows('camp_building_definitions', 'id,\\s*name,\\s*sort_order')
-    .map(fields)
-    .map(([id, name, sortOrder]) => ({
-      id: unquote(assertDefined(id)),
-      name: unquote(assertDefined(name)),
-      sortOrder: Number(sortOrder),
-    }))
+  const rows = seededBuildings()
 
   it('finds the seed rows in the migrations', () => {
     expect(rows.length).toBeGreaterThan(0)
   })
 
-  it('lists exactly the buildings the server seeds, named and ordered the same', () => {
+  it('lists exactly the buildings the server seeds, named, ordered and started the same', () => {
     expect(
-      ALL_CAMP_BUILDING_DEFINITIONS.map(({ id, name, sortOrder }) => ({ id, name, sortOrder })),
+      ALL_CAMP_BUILDING_DEFINITIONS.map(({ id, name, sortOrder, startingLevel }) => ({ id, name, sortOrder, startingLevel })),
     ).toEqual([...rows].sort((left, right) => left.sortOrder - right.sortOrder))
   })
 })
@@ -143,10 +168,14 @@ describe('camp building levels', () => {
     }
   })
 
-  it('starts every building at a free level one', () => {
+  it('makes the starting level of every building free, and the level after it priced', () => {
     for (const building of ALL_CAMP_BUILDING_DEFINITIONS) {
-      const first = rows.find((row) => row.buildingId === building.id && row.level === 1)
-      expect(first?.cost, building.id).toEqual({})
+      const starting = rows.find((row) => row.buildingId === building.id && row.level === building.startingLevel)
+      if (building.startingLevel > 0) {
+        expect(starting?.cost, building.id).toEqual({})
+      }
+      const next = rows.find((row) => row.buildingId === building.id && row.level === building.startingLevel + 1)
+      expect(Object.keys(next?.cost ?? {}).length, `${building.id} level ${building.startingLevel + 1}`).toBeGreaterThan(0)
     }
   })
 })

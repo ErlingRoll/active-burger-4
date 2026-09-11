@@ -13,6 +13,7 @@ import type { AbyssLeaderboardService } from '../../leaderboard/AbyssLeaderboard
 import type { HubPresenceService } from '../../hub/HubPresenceService'
 import type { CampService } from '../../camp/CampTypes'
 import type { CharacterService } from '../../characters/CharacterTypes'
+import type { InventoryService } from '../../inventory/InventoryTypes'
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
   CHARACTER_CLASS_DEFINITIONS,
@@ -31,6 +32,7 @@ export interface GameDashboardProps {
   campService: CampService | null
   campConfigurationError: string | null
   characterService: CharacterService | null
+  inventoryService: InventoryService | null
   developmentToolsEnabled: boolean
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState
@@ -61,6 +63,7 @@ export function GameDashboard({
   campService,
   campConfigurationError,
   characterService,
+  inventoryService,
   developmentToolsEnabled,
   activeRun,
   runLoadState,
@@ -116,6 +119,7 @@ export function GameDashboard({
         campService={campService}
         campConfigurationError={campConfigurationError}
         characterService={characterService}
+        inventoryService={inventoryService}
         developmentToolsEnabled={developmentToolsEnabled}
         activeRun={activeRun}
         activeCharacterClassName={activeCharacterClass?.name ?? null}

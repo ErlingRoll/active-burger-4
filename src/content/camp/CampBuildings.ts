@@ -10,7 +10,10 @@ import type {
  * The Storehouse is the first sink for timber and stone, because it is the one
  * every player wants: it raises the cap on what accrues while they are away.
  * The Woodline and the quarry are the only faucets, and each starts at level
- * one for nothing so a new Camp has work to offer on the day it opens.
+ * one for nothing so a new Camp has work to offer on the day it opens. The
+ * tackle bench is the second sink and the first building a player starts
+ * without: level zero until it is built, then a bench that crafts bait from
+ * timber and scrap together.
  *
  * Numbers are proposals to tune against play, not decisions. The target is
  * that one Champion on one job fills a Storehouse upgrade in about two days of
@@ -23,18 +26,28 @@ export const CAMP_BUILDING_DEFINITIONS = {
     name: 'Storehouse',
     description: 'Holds what the Camp makes while you are away. A bigger store waits longer before the work stops.',
     sortOrder: 0,
+    startingLevel: 1,
   },
   woodline: {
     id: 'woodline',
     name: 'Woodline',
     description: 'A stand of timber at the edge of the firelight, felled and stacked by whoever you send.',
     sortOrder: 1,
+    startingLevel: 1,
   },
   quarry: {
     id: 'quarry',
     name: 'Quarry',
     description: 'A cut in the hillside where stone comes loose for anyone with the arms to carry it.',
     sortOrder: 2,
+    startingLevel: 1,
+  },
+  'tackle-bench': {
+    id: 'tackle-bench',
+    name: 'Tackle bench',
+    description: 'A bench by the water for turning the Camp’s timber and the dungeon’s scrap into bait.',
+    sortOrder: 3,
+    startingLevel: 0,
   },
 } as const satisfies Record<CampBuildingId, CampBuildingDefinition>
 
@@ -50,6 +63,7 @@ export const CAMP_BUILDING_LEVELS: readonly CampBuildingLevel[] = [
   { buildingId: 'woodline', level: 2, cost: { timber: 40, stone: 40 }, accrualCapHours: null, rateMultiplier: 1.5, jobSlots: 2 },
   { buildingId: 'quarry', level: 1, cost: {}, accrualCapHours: null, rateMultiplier: 1, jobSlots: 1 },
   { buildingId: 'quarry', level: 2, cost: { timber: 40, stone: 40 }, accrualCapHours: null, rateMultiplier: 1.5, jobSlots: 2 },
+  { buildingId: 'tackle-bench', level: 1, cost: { timber: 40, stone: 20 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
 ]
 
 export function isCampBuildingId(value: unknown): value is CampBuildingId {

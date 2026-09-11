@@ -22,6 +22,7 @@ import { EssenceMark } from '../ui/EssenceMark'
 import { CampPanel } from '../camp/CampPanel'
 import type { CampService } from '../camp/CampTypes'
 import type { CharacterService } from '../characters/CharacterTypes'
+import type { InventoryService } from '../inventory/InventoryTypes'
 
 const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
@@ -97,6 +98,7 @@ interface AdventureHubSceneProps {
   campService: CampService | null
   campConfigurationError: string | null
   characterService: CharacterService | null
+  inventoryService: InventoryService | null
   /** An administrator on a build with the tools on; shows the Camp's clock-skipping row. */
   developmentToolsEnabled: boolean
   activeRun: ActiveDungeonRun | null
@@ -176,6 +178,7 @@ export function AdventureHubScene({
   campService,
   campConfigurationError,
   characterService,
+  inventoryService,
   developmentToolsEnabled,
   activeRun,
   activeCharacterClassName,
@@ -866,6 +869,7 @@ export function AdventureHubScene({
                 service={campService}
                 configurationError={campConfigurationError}
                 characterService={characterService}
+                inventoryService={inventoryService}
                 developmentToolsEnabled={developmentToolsEnabled}
                 onClose={() => setCampOpen(false)}
               />

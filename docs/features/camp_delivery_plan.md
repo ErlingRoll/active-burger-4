@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slices 0 and 1 shipped 2026-09-11; slice 2 and up are still proposals.
+> **Status:** Slices 0, 1 and 2 shipped 2026-09-11 and 2026-09-12; slice 3 and the later buildings are still proposals.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -317,6 +317,8 @@ holds the service, the panel and the sheet line; the panel opens from a sixth
 station on the hub and sits in the HUD's centre column on a desktop and in the
 dock on a phone.
 
+### Slice 2: construction *(shipped 2026-09-12)*
+
 `upgrade_camp_building`; Storehouse levels 2 and 3 raising the cap to ten and
 twelve hours; Woodline and quarry levels raising the rate and adding a second
 slot; the tackle bench with multi-input recipes that spend timber alongside
@@ -325,6 +327,20 @@ The recipe table gains an `inputs jsonb` column and the craft RPC consumes
 each input in turn. The client recipe registry already mirrors the server's
 rows and `tests/craftingRecipes.test.ts` keeps it that way; the new column
 extends that test rather than replacing it.
+
+As built: `20260912100000_add_camp_construction.sql` adds
+`upgrade_camp_building`, which settles the building's pending production
+first so the new rate applies from the upgrade and never to hours worked at
+the old one, then consumes the level's cost oldest-stack-first and raises the
+level under a `camp-upgrade` ledger row. A building a player starts without
+has a `starting_level` of zero; the tackle bench is the first. Recipes gained
+an `inputs` list and a `camp_building_id`, backfilled from the single-input
+columns for every row before, and the craft consumes each input in turn and
+refuses a bench recipe until the bench is built. The bench's two recipes turn
+timber and scrap into a River Worm and a Glow Grub, at half the scrap the
+workbench asks. On the client the bag's workbench shows only the recipes
+without a building, and the Camp panel shows the bench's; every card ends in
+an upgrade row that prices the next level against what the bag holds.
 
 ### Slice 3: timed construction (optional)
 

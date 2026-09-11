@@ -11,9 +11,9 @@
   position: relative;
   z-index: 6;
   display: grid;
-  gap: clamp(0.3rem, 0.9vh, 0.6rem);
-  width: min(100%, 38rem);
-  padding: clamp(0.4rem, 1.1vh, 0.85rem) clamp(0.55rem, 1.3vh, 0.9rem);
+  gap: clamp(0.25rem, 0.8vh, 0.45rem);
+  width: min(100%, 40rem);
+  padding: clamp(0.35rem, 1vh, 0.7rem) clamp(0.55rem, 1.3vh, 0.9rem);
   background:
     linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 42%),
     linear-gradient(180deg, rgb(20 27 39 / 92%), rgb(7 10 16 / 96%));
@@ -138,7 +138,7 @@
 .camp-workers,
 .camp-picker-list {
   display: grid;
-  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -146,8 +146,8 @@
 
 .camp-job {
   display: grid;
-  gap: clamp(0.25rem, 0.7vh, 0.45rem);
-  padding: clamp(0.3rem, 0.8vh, 0.55rem) clamp(0.45rem, 1vh, 0.7rem);
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  padding: clamp(0.28rem, 0.7vh, 0.45rem) clamp(0.45rem, 1vh, 0.7rem);
   background:
     linear-gradient(180deg, rgb(var(--accent-rgb) / 8%), transparent 60%),
     rgb(0 0 0 / 24%);
@@ -188,7 +188,7 @@
   gap: 0.6rem;
   align-items: center;
   width: 100%;
-  padding: clamp(0.28rem, 0.7vh, 0.45rem) clamp(0.4rem, 0.9vh, 0.6rem);
+  padding: clamp(0.24rem, 0.6vh, 0.36rem) clamp(0.4rem, 0.9vh, 0.6rem);
   text-align: left;
   background: rgb(0 0 0 / 26%);
   border: 1px solid rgb(var(--accent-rgb) / 16%);
@@ -253,7 +253,7 @@
 
 .camp-picker {
   display: grid;
-  gap: clamp(0.25rem, 0.7vh, 0.45rem);
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
   justify-items: end;
 }
 
@@ -402,4 +402,110 @@
 .camp-dev-row button:disabled {
   cursor: not-allowed;
   opacity: 0.52;
+}
+
+/* Construction: the next level's price against what the bag holds. */
+.camp-upgrade-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: clamp(0.15rem, 0.5vh, 0.3rem);
+  border-top: 1px dashed rgb(var(--accent-rgb) / 18%);
+}
+
+.camp-upgrade-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
+  line-height: 1.25;
+}
+
+.camp-upgrade-copy strong {
+  color: var(--color-orange-50);
+  font-size: clamp(0.62rem, 1.4vh, 0.8rem);
+}
+
+.camp-cost {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.camp-cost span[data-short='true'] {
+  color: var(--color-amber-300);
+}
+
+.camp-upgrade-action {
+  flex: 0 0 auto;
+  min-height: clamp(1.5rem, 3.2vh, 2.1rem);
+  padding: 0 clamp(0.5rem, 1.1vh, 0.8rem);
+  color: var(--color-orange-50);
+  font: inherit;
+  font-size: clamp(0.58rem, 1.35vh, 0.76rem);
+  font-weight: 800;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.camp-upgrade-action:hover:not(:disabled),
+.camp-upgrade-action:focus-visible {
+  border-color: rgb(var(--accent-rgb) / 60%);
+  background: rgb(var(--accent-rgb) / 14%);
+}
+
+.camp-upgrade-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+/* The bench's recipes, one row each, in the same plate as a worker. */
+.camp-recipes {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-recipe {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: clamp(0.22rem, 0.55vh, 0.34rem) clamp(0.4rem, 0.9vh, 0.6rem);
+  background: rgb(0 0 0 / 26%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.3rem;
+}
+
+.camp-recipe-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.3rem, 3vh, 1.9rem);
+  height: clamp(1.3rem, 3vh, 1.9rem);
+  place-items: center;
+  font-size: clamp(0.9rem, 2vh, 1.3rem);
+}
+
+.camp-recipe-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.camp-recipe-copy strong {
+  color: var(--color-orange-50);
+  font-size: clamp(0.68rem, 1.55vh, 0.88rem);
+  line-height: 1.2;
+}
+
+.camp-recipe-copy .camp-cost {
+  color: var(--text-muted);
+  font-size: clamp(0.55rem, 1.25vh, 0.7rem);
 }

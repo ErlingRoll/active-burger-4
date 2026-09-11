@@ -4,6 +4,7 @@ import { renderComponent, screen, waitFor, within } from '../testing/render'
 import { CampPanel } from './CampPanel'
 import type { CampService, CampState } from './CampTypes'
 import type { CharacterService, ChampionSnapshot } from '../characters/CharacterTypes'
+import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { deriveCampLabourSheet } from '../content/camp/CampLabour'
 import { CAMP_JOB_DEFINITIONS } from '../content/camp/CampJobs'
 
@@ -35,6 +36,19 @@ const champion: ChampionSnapshot = {
 
 const SERVER_TIME = '2026-09-11T12:00:00.000Z'
 
+function material(definitionId: string, quantity: number): InventoryItemInstance {
+  return {
+    itemInstanceId: `${definitionId}-stack`,
+    definitionId,
+    quantity,
+    bound: false,
+    metadata: {},
+    source: { type: 'system', id: null },
+    createdAt: SERVER_TIME,
+    updatedAt: SERVER_TIME,
+  }
+}
+
 function emptyState(): CampState {
   return {
     serverTime: SERVER_TIME,
@@ -44,6 +58,7 @@ function emptyState(): CampState {
       { buildingId: 'storehouse', level: 1 },
       { buildingId: 'woodline', level: 1 },
       { buildingId: 'quarry', level: 1 },
+      { buildingId: 'tackle-bench', level: 0 },
     ],
     assignments: [],
     championFloors: { 'champion-1': 20 },
@@ -70,7 +85,21 @@ function workingState(): CampState {
   }
 }
 
-function renderPanel(initial: CampState, developmentToolsEnabled = false) {
+function builtState(): CampState {
+  return {
+    ...emptyState(),
+    buildings: emptyState().buildings.map((building) =>
+      building.buildingId === 'tackle-bench' ? { ...building, level: 1 } : building,
+    ),
+  }
+}
+
+interface RenderOptions {
+  developmentToolsEnabled?: boolean
+  materials?: InventoryItemInstance[]
+}
+
+function renderPanel(initial: CampState, options: RenderOptions = {}) {
   const assignChampion = vi.fn(async () => workingState())
   const unassignChampion = vi.fn(async () => ({
     paid: [{ championId: 'champion-1', jobId: 'woodline-timber' as const, definitionId: 'timber', units: 15, bonusUnits: 0 }],
@@ -83,27 +112,42 @@ function renderPanel(initial: CampState, developmentToolsEnabled = false) {
     wasProcessed: true,
     state: { ...workingState(), assignments: workingState().assignments.map((assignment) => ({ ...assignment, accruedFrom: SERVER_TIME })) },
   }))
+  const upgradeBuilding = vi.fn(async () => ({ wasProcessed: true, state: builtState() }))
   const service = {
     loadState: vi.fn(async () => initial),
     assignChampion,
     unassignChampion,
     claimProduction,
     advanceClock,
+    upgradeBuilding,
   } as unknown as CampService
   const characterService = {
     loadCharacters: vi.fn(async () => ({ characters: [], revisions: [], champions: [champion] })),
   } as unknown as CharacterService
+  const craftItem = vi.fn(async () => ({
+    recipeId: 'river-worm-at-the-bench',
+    inputDefinitionId: 'timber',
+    inputSpent: 5,
+    outputDefinitionId: 'river-worm',
+    outputQuantity: 1,
+    wasProcessed: true,
+  }))
+  const inventoryService = {
+    loadInventory: vi.fn(async () => options.materials ?? []),
+    craftItem,
+  } as unknown as InventoryService
   const onClose = vi.fn()
   const rendered = renderComponent(
     <CampPanel
       service={service}
       configurationError={null}
       characterService={characterService}
-      developmentToolsEnabled={developmentToolsEnabled}
+      inventoryService={inventoryService}
+      developmentToolsEnabled={options.developmentToolsEnabled ?? false}
       onClose={onClose}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, onClose }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, onClose }
 }
 
 describe('CampPanel', () => {
@@ -155,8 +199,46 @@ describe('CampPanel', () => {
     expect(await screen.findAllByRole('button', { name: 'Send a Champion' })).toHaveLength(2)
   })
 
+  it('prices the next level against the bag and buys it when the bag can pay', async () => {
+    const { user, upgradeBuilding } = renderPanel(emptyState(), {
+      materials: [material('timber', 50), material('stone', 30)],
+    })
+
+    // The Storehouse wants 48 timber and 48 stone; the bag is short of stone.
+    const storehouse = await screen.findByRole('button', { name: 'Upgrade the storehouse' })
+    expect(storehouse).toBeDisabled()
+    expect(screen.getByText('48 Stone')).toHaveAttribute('data-short', 'true')
+
+    // The bench wants 40 timber and 20 stone, which the bag has.
+    const build = screen.getByRole('button', { name: 'Build the tackle bench' })
+    expect(build).toBeEnabled()
+    await user.click(build)
+
+    await waitFor(() => {
+      expect(upgradeBuilding).toHaveBeenCalledWith(expect.any(String), 'tackle-bench')
+    })
+    expect(await screen.findByText('Tackle bench built.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Turn a worm float/ })).toBeInTheDocument()
+  })
+
+  it('crafts at the bench once it is built', async () => {
+    const { user, craftItem } = renderPanel(builtState(), {
+      materials: [material('timber', 5), material('scrap', 4)],
+    })
+
+    const worm = await screen.findByRole('button', { name: 'Turn a worm float: make 1 River Worm' })
+    expect(worm).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Carve a grub lantern/ })).toBeDisabled()
+    await user.click(worm)
+
+    await waitFor(() => {
+      expect(craftItem).toHaveBeenCalledWith(expect.any(String), 'river-worm-at-the-bench', 1)
+    })
+    expect(await screen.findByText('Crafted')).toBeInTheDocument()
+  })
+
   it('lets a development build skip the clock ahead', async () => {
-    const { user, advanceClock } = renderPanel(workingState(), true)
+    const { user, advanceClock } = renderPanel(workingState(), { developmentToolsEnabled: true })
 
     await user.click(await screen.findByRole('button', { name: '+8h' }))
 
