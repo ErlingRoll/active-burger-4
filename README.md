@@ -29,7 +29,9 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env` and fill in the Supabase values. Without them the
+Copy `.env.example` to `.env.development` and fill in the development project's
+Supabase values; `.env.production` holds the production project's and is read
+only by `npm run build` and `vite preview`. Without them the
 application still runs: each service reports its own configuration error and the
 screens explain what is unavailable.
 
@@ -70,7 +72,7 @@ npm run build     # tsc -b across src, e2e, and tooling, then vite build
 ```
 
 `npm run test:e2e` runs the Playwright suite. It needs a Supabase project and
-`VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` in `.env`, so CI runs lint,
+`VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` in `.env.development`, so CI runs lint,
 tests, and build only.
 
 Some checks read the repository rather than import it, and live in

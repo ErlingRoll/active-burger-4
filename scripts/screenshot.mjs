@@ -122,7 +122,7 @@ async function signIn(page) {
   const password = environment.VITE_TEST_USER_PASSWORD
   if (!email || !password) {
     throw new Error(
-      'Set VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD in .env, or pass --anon.',
+      'Set VITE_TEST_USER_EMAIL and VITE_TEST_USER_PASSWORD in .env.development, or pass --anon.',
     )
   }
   await page.getByLabel('Email').fill(email)

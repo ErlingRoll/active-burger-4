@@ -14,7 +14,8 @@ When using subagents:
 
 The following test account may be used by any agent or human tester: test@mctest.face
 
-Credentials are stored in `.env.dev`
+Credentials are stored in `.env.development`, which points at the development
+Supabase project. `.env.production` is read only by production builds.
 
 - VITE_TEST_USER_EMAIL
 - VITE_TEST_USER_PASSWORD
@@ -62,7 +63,7 @@ npm run screenshot -- --run --size desktop   # the in-run HUD
 ```
 
 [scripts/screenshot.mjs](scripts/screenshot.mjs) reuses a dev server if one is
-already listening, signs in with the `.env` test account, and writes a PNG for
+already listening, signs in with the `.env.development` test account, and writes a PNG for
 each viewport. It reports console and page errors alongside the images, so a
 screenshot is a check on the code as well as on the layout. Pass the route
 without a leading slash: a POSIX shell on Windows rewrites `/wiki` into a
