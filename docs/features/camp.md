@@ -152,8 +152,8 @@ matching the rest of the hub.
 
 ### Theme: a working camp at the treeline after dark
 
-Accepted as a first iteration on 2026-09-11 and given a second and a third
-pass the same day. Every visual decision on the screen derives from that one sentence, and
+Accepted as a first iteration on 2026-09-11 and given a second, a third and
+a fourth pass the same day. Every visual decision on the screen derives from that one sentence, and
 a later pass should improve the execution of it rather than mix in a second
 idea.
 
@@ -211,8 +211,19 @@ idea.
 - **The inspector is the same material as the plots,** a darker glass beside
   them on a desktop and a sheet rising over them on a phone, headed by the
   building's own picture and its level.
+- **Nothing on the ground moves when a building opens.** Erling found the
+  first placed layout jarring: the inspector was a sibling of the ground, so
+  opening a plot narrowed the ground and every building slid and shrank at
+  once, the quarry by four hundred pixels at Full HD. On a desktop the side
+  of the screen is therefore always occupied. With no building open it holds
+  the roster, every Champion with its class and where it stands (working at
+  the Woodline, resting at the anchor, available, exhausted) and what it has
+  pending; a Champion at work opens its building from there. Opening a plot
+  swaps the roster for the inspector in the same box, with a short fade, and
+  the ground keeps its size. A phone has no side column: the inspector is a
+  sheet over the plots and the roster is not shown.
 
-What the third pass left for a fourth: the buildings are still eight
+What the fourth pass left for a fifth: the buildings are still eight
 separate pictures rather than one drawn settlement, with nothing between
 them (no fence, no stacked stores, no cart on the path); the figures walk
 but never leave their building for the path; and the phone still shows a

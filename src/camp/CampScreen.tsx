@@ -1250,9 +1250,16 @@ export function CampScreen({
           </ul>
           </div>
         ) : null}
+        {/*
+          The side of the screen is always occupied on a desktop, so opening
+          a building swaps what stands there and never changes the ground's
+          size: with a plot open it is that building's inspector, and with
+          none open it is the roster, who is where. A phone has no side; the
+          inspector is a sheet there and the roster is not shown.
+        */}
         {inspected && selectedPlot ? (
           <section
-            className="camp-inspector"
+            className="camp-inspector camp-side"
             aria-labelledby="camp-inspector-title"
             data-plot={selectedPlot}
           >
@@ -1274,6 +1281,67 @@ export function CampScreen({
               {renderInspector(selectedPlot)}
             </div>
           </section>
+        ) : state ? (
+          <aside className="camp-roster camp-side" aria-labelledby="camp-roster-title">
+            <header className="camp-inspector-heading">
+              <div>
+                <p className="screen-kicker">
+                  {champions.length} on the roster · {state.assignments.length} at work
+                </p>
+                <h3 id="camp-roster-title">Champions</h3>
+              </div>
+            </header>
+            <div className="camp-inspector-body">
+              {champions.length === 0 ? (
+                <p className="camp-picker-empty">No Champions yet. Win a dungeon to save one, then send it here.</p>
+              ) : (
+                <ul className="camp-roster-list">
+                  {champions.map((champion) => {
+                    const assignment = state.assignments.find((entry) => entry.championId === champion.championId)
+                    const job = assignment ? getCampJobDefinition(assignment.jobId) : undefined
+                    const building = job ? CAMP_BUILDING_DEFINITIONS[job.buildingId] : undefined
+                    const relief = job?.effect === 'exhaustion-relief'
+                    return (
+                      <li key={champion.championId}>
+                        <button
+                          className="camp-roster-champion"
+                          type="button"
+                          data-working={building ? 'true' : undefined}
+                          disabled={!building}
+                          onClick={() => {
+                            if (building) {
+                              openPlot(building.id)
+                            }
+                          }}
+                          aria-label={building
+                            ? `${champion.name}, ${relief ? 'resting' : 'working'} at the ${building.name.toLowerCase()}`
+                            : undefined}
+                        >
+                          <span className="camp-roster-copy">
+                            <strong>{champion.name}</strong>
+                            <span>
+                              {CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name} · {building
+                                ? `${relief ? 'Resting' : 'Working'} · ${building.name}`
+                                : formatChampionAvailability(champion, now)}
+                            </span>
+                          </span>
+                          {assignment && job ? (
+                            <span className="camp-worker-pending">
+                              <strong>{pendingFor(assignment, state, now)}</strong>
+                              <small>{relief ? 'min rested' : itemName(job.outputDefinitionId ?? '').toLowerCase()}</small>
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <p className="camp-inspector-copy">
+                Open a building to send a Champion to it. A Champion at work is listed under where it stands; open it from here.
+              </p>
+            </div>
+          </aside>
         ) : null}
         </div>
       </div>

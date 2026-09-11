@@ -429,6 +429,21 @@ describe('CampScreen', () => {
     expect(screen.queryByRole('heading', { name: 'Woodline' })).toBeNull()
   })
 
+  it('lists who is where beside the ground, and opens a working Champion\'s building from it', async () => {
+    const { user } = renderScreen(workingState())
+
+    const roster = await screen.findByRole('complementary', { name: 'Champions' })
+    expect(roster).toHaveTextContent('1 on the roster · 1 at work')
+    const mira = within(roster).getByRole('button', { name: 'Mira of the Keep, working at the woodline' })
+    expect(mira).toHaveTextContent('Working · Woodline')
+
+    await user.click(mira)
+
+    expect(await screen.findByRole('heading', { name: 'Woodline' })).toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Champions' })).toBeNull()
+    expect(screen.getByRole('button', { name: /^Woodline/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('walks back to the refuge from its own button', async () => {
     const { user, onBack } = renderScreen(emptyState())
 

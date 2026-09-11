@@ -762,11 +762,80 @@
   box-shadow: 0 0 0.4rem rgb(var(--accent-rgb) / 70%);
 }
 
-/* The inspector: one building, everything it can do, beside the plots. */
-.camp-inspector {
+/* The side of the screen: the inspector with a plot open, the roster with
+   none. One box, always there on a desktop, so the ground never changes
+   size when a building is opened; the panel inside it fades in place. */
+.camp-side {
   display: flex;
   flex: 0 0 min(30rem, 42%);
   flex-direction: column;
+  animation: camp-side-in 220ms ease;
+}
+
+.camp-roster-list {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-roster-champion {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  padding: clamp(0.26rem, 0.7vh, 0.4rem) clamp(0.45rem, 1vh, 0.65rem);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.35rem;
+  cursor: default;
+}
+
+.camp-roster-champion[data-working='true'] {
+  border-color: rgb(251 191 36 / 30%);
+  cursor: pointer;
+}
+
+.camp-roster-champion[data-working='true']:hover,
+.camp-roster-champion[data-working='true']:focus-visible {
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 16%), transparent 70%),
+    rgb(0 0 0 / 30%);
+  border-color: rgb(var(--accent-rgb) / 55%);
+}
+
+.camp-roster-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.camp-roster-copy strong {
+  display: block;
+  color: var(--color-slate-50);
+  font-size: clamp(0.7rem, 1.6vh, 0.9rem);
+  line-height: 1.2;
+}
+
+.camp-roster-copy > span {
+  display: block;
+  color: var(--text-muted);
+  font-size: clamp(0.56rem, 1.3vh, 0.72rem);
+  line-height: 1.25;
+}
+
+.camp-roster-champion[data-working='true'] .camp-roster-copy > span {
+  color: var(--color-amber-200);
+}
+
+/* The inspector: one building, everything it can do, beside the plots. */
+.camp-inspector,
+.camp-roster {
   gap: clamp(0.3rem, 1vh, 0.6rem);
   min-width: 0;
   min-height: 0;
@@ -1051,6 +1120,11 @@
   70% { opacity: 0.7; }
 }
 
+@keyframes camp-side-in {
+  from { opacity: 0; transform: translateX(0.4rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes camp-mist-drift {
   from { transform: translateX(0); }
   to { transform: translateX(4%); }
@@ -1121,6 +1195,10 @@
   .camp-plot,
   .camp-plot-ground {
     transition: none;
+  }
+
+  .camp-side {
+    animation: none;
   }
 
   .camp-firefly {
@@ -1266,6 +1344,10 @@
     height: 1.6rem;
   }
 
+  .camp-roster {
+    display: none;
+  }
+
   .camp-inspector {
     position: absolute;
     z-index: 3;
@@ -1273,6 +1355,7 @@
     bottom: 0;
     left: 0;
     flex: none;
+    animation: none;
     max-height: min(100%, 34rem);
     padding: 0.7rem 0.75rem 0.8rem;
     border-radius: 0.7rem 0.7rem 0 0;
