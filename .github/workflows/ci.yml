@@ -48,11 +48,12 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     needs: [validate, migrations]
     runs-on: ubuntu-latest
-    # main deploys to the production project and dev to the development one.
+    # main deploys to the production project and dev to the development one,
+    # through the GitHub environments named production and dev.
     # Each environment carries its own project id and database password, and
     # declaring it here lets a required reviewer be added later without
     # touching this file.
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'dev' }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -70,7 +71,7 @@ jobs:
           [ -n "$SUPABASE_PROJECT_ID" ] || missing+=(SUPABASE_PROJECT_ID)
           if [ ${#missing[@]} -gt 0 ]; then
             echo "Missing environment secrets or variables: ${missing[*]}" >&2
-            echo "Add them to the production and development environments under Settings > Environments." >&2
+            echo "Add them to the production and dev environments under Settings > Environments." >&2
             exit 1
           fi
       - name: Link the project

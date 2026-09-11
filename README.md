@@ -117,8 +117,8 @@ belongs to the branch: `main` deploys to the production project and `dev` to
 the development one. Nothing is pushed from a pull request, and nothing is
 pushed while lint, tests, build, or migration validation are failing.
 
-The job runs in the GitHub environment named after its target, `production` or
-`development`, and reads from it:
+The job runs in the GitHub environment named after its branch, `production` for
+`main` and `dev` for `dev`, and reads from it:
 
 - `SUPABASE_ACCESS_TOKEN` — a secret; a personal access token from the Supabase
   dashboard. It is per user rather than per project, so it may live at
