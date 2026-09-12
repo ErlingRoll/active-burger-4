@@ -117,7 +117,8 @@ where email = 'you@example.com';
 
 `src/game/` is the simulation and depends on nothing but `content/`,
 `game-config/`, and `shared/`. `src/rendering/` projects its state through
-PixiJS. `src/App.tsx` orchestrates the screens in `src/app/screens/`, which are
+PixiJS. `src/App.tsx` orchestrates the screens in `src/app/screens/` from the
+state in `src/app/hooks/`, one hook per domain; the screens are
 loaded per route by `src/app/lazyScreens.ts`. Services are constructed once in
 `src/services/` and read through context.
 

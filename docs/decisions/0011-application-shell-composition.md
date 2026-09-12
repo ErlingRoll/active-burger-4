@@ -52,3 +52,31 @@ Extracting the routing table surfaced a bug the chain-of-comparisons form had
 hidden: `/champions` had a path and a screen but no branch, so reloading on the
 Champions screen resolved back to the dashboard. The lookup is now derived from
 the path table itself.
+
+## Addendum, 2026-09-13: the state moved out too
+
+The screens had left `App.tsx`, but their state had not: by the Camp and the
+contracts it held thirty-three pieces of state and fifty callbacks in one
+component, and every feature added to it. The state now lives beside the
+screens in `app/hooks/`, one hook per domain, each owning its state, its
+effects and its actions and taking the few cross-domain values it needs as
+parameters:
+
+- `useAppNavigation`: the screen and `navigateToScreen`.
+- `useAuthenticationState` and `useAuthenticationActions`: who is signed in,
+  and the sign-in and sign-out actions. The two are split because signing out
+  resets every other domain, so the actions are composed after the domains
+  that need the account.
+- `useAccountNickname`: the nickname and its first-sign-in prompt.
+- `useLocalPersistence`: the IndexedDB settings and profile, and every write.
+- `useMetaProgression` and `useEssencePurchases`: the wallet, its reloads,
+  and the store's purchases.
+- `useDungeonRun`: the run from the refuge to the results and back, including
+  the run configuration, the checkpoints, the terminal save, the reward and
+  the Champion a victory pays.
+- `useAdminModeration`: the bug-report and nickname-moderation routes.
+
+`App.tsx` composes them, holds routing's two effects, bug reports and the
+sign-out reset that calls each domain's `reset()`, and renders the screen.
+The move changed no behaviour: every callback kept its dependency list, the
+effect count is the same ten, and the full suite held.
