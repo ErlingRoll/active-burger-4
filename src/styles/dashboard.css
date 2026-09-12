@@ -1885,13 +1885,39 @@
   line-height: 1.3;
 }
 
+/*
+ * The leaderboard is the column's give.
+ *
+ * The balance and the contracts are the player's own business and keep their
+ * full height; the rankings are two rows on a quiet night and eleven on a busy
+ * one, and were the only panel that could push the contracts — and the whole
+ * column — off the bottom of the screen. So the panel may shrink below its
+ * content, and the list inside it scrolls for the rows the room has no line
+ * for. The heading stays put above them.
+ */
+.hub-leaderboard-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .hub-leaderboard-panel .abyss-leaderboard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
+.hub-leaderboard-panel .abyss-leaderboard-list {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 .hub-leaderboard-panel .abyss-leaderboard-heading {
+  flex: 0 0 auto;
   margin-bottom: clamp(0.35rem, 1.1vh, 1rem);
 }
 
@@ -2136,16 +2162,25 @@
 }
 
 /*
- * A floor, not a lid.
+ * A lid on a desktop, a floor on a phone.
  *
- * `height: 100%` pinned the room to the viewport, and with the scene clipping
- * its own overflow everything past the fold was not scrolled past but deleted:
- * on a phone the Essence store and the whole leaderboard were drawn and then
- * cut off. As a minimum it still fills the screen wherever there is room, which
- * is what keeps the composition on a desktop.
+ * The desktop hub is one picture with the HUD in its corners, and the picture
+ * is the viewport: the room is exactly as tall as the box the shell gives it,
+ * so the HUD below has a real number to fit itself into. Without that number
+ * the room grew with whatever the HUD held — ten rankings instead of two — and
+ * the refuge quietly became a scrolling page, with the bottom of both columns
+ * below the fold. The HUD's columns cap themselves to the room, and the one
+ * panel whose height is data rather than design, the leaderboard, is the one
+ * that gives.
+ *
+ * On a phone a fixed height would delete rather than defer: the scene clips
+ * its own overflow, and the dock's panels past the fold were drawn and then
+ * cut off. The phone block below lets the room grow again, because there the
+ * dock scrolls under a pinned camp and needs its whole length.
  */
 .adventure-hub-scene {
   width: 100%;
+  height: 100%;
   min-height: 100%;
   margin: 0;
   padding: clamp(0.6rem, 1.7vh, 2rem) clamp(1.25rem, 5vw, 5rem);
@@ -3119,7 +3154,23 @@
   gap: clamp(0.18rem, 0.7vh, 1rem);
   justify-content: space-between;
   min-width: 0;
+  /* Never taller than the room. A wrapping row sizes its lines to their
+     content, so without this cap a column could grow past the HUD and take
+     the whole screen with it; with it, a panel inside that is allowed to
+     shrink has something to shrink against. */
+  max-height: 100%;
   pointer-events: none;
+}
+
+/* The panels hold their height; the leaderboard alone is allowed to give
+   (below). Said explicitly because a panel that clips its own overflow —
+   the Essence plate does — would otherwise shrink first and lose its foot. */
+.hub-hud-column > * {
+  flex-shrink: 0;
+}
+
+.hub-hud-column > .hub-leaderboard-panel {
+  flex-shrink: 1;
 }
 
 /*
@@ -3338,6 +3389,9 @@
   .adventure-hub-scene {
     gap: 0;
     padding: 0;
+    /* The dock runs as long as its panels do; it is the screen that scrolls,
+       not the room, so the desktop's lid comes off here. */
+    height: auto;
     /* The camp sticks to the screen's own scroll container, so the scene must
        not quietly become one of its own. */
     overflow: visible;
@@ -3565,6 +3619,11 @@
   .hub-leaderboard-panel,
   .hub-social-panel {
     width: 100%;
+  }
+
+  /* Every ranking on the dock, in the scroll the dock already has. */
+  .hub-leaderboard-panel .abyss-leaderboard-list {
+    overflow-y: visible;
   }
 
   .hub-expedition-panel {
