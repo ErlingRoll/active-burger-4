@@ -117,7 +117,7 @@ export const KEYWORD_DEFINITIONS: Readonly<Record<KeywordId, KeywordDefinition>>
     label: 'Momentum',
     summary: 'Stacks that empower Lancer\'s Charge.',
     details:
-      `Each Lancer's Charge grants one stack after it resolves. Total increased damage is stacks × ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard), up to ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard) at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks. Any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
+      `Each Lancer's Charge grants one stack per enemy it strikes. Total increased damage is stacks × ${LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard), up to ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK}% (${LANCERS_CHARGE_MAX_MOMENTUM_STACKS * LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK}% with Vanguard) at ${LANCERS_CHARGE_MAX_MOMENTUM_STACKS} stacks. Any new stack refreshes its ${LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS}-second timer; all stacks are lost when that timer expires.`,
   },
   resonance: {
     id: 'resonance',
