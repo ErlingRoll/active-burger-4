@@ -20,7 +20,7 @@ import type { CampBuildingId } from '../content/camp/CampTypes'
  * footprint.
  */
 
-export type CampPlotId = CampBuildingId | 'trophy-hall'
+export type CampPlotId = CampBuildingId
 
 interface CampBuildingArtProps {
   plotId: CampPlotId

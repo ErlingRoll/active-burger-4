@@ -34,6 +34,8 @@ function renderDashboard(overrides: Partial<GameDashboardProps> = {}) {
     onOpenChampions: vi.fn(),
     onOpenInventory: vi.fn(),
     onOpenShop: vi.fn(),
+    onOpenContracts: vi.fn(),
+    onOpenCollections: vi.fn(),
     onOpenRunHistory: vi.fn(),
     onOpenAbyss: vi.fn(),
     championAvailability: 'available',

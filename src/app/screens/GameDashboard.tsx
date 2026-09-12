@@ -36,6 +36,8 @@ export interface GameDashboardProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
+  onOpenContracts: () => void
+  onOpenCollections: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
   championAvailability: 'loading' | 'available' | 'none' | 'error'
@@ -63,6 +65,8 @@ export function GameDashboard({
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
+  onOpenContracts,
+  onOpenCollections,
   onOpenRunHistory,
   onOpenAbyss,
   championAvailability,
@@ -119,6 +123,8 @@ export function GameDashboard({
         onOpenChampions={onOpenChampions}
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}
+        onOpenContracts={onOpenContracts}
+        onOpenCollections={onOpenCollections}
         onOpenRunHistory={onOpenRunHistory}
         onOpenAbyss={onOpenAbyss}
         onContinueRun={onContinueRun}

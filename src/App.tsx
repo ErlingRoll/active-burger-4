@@ -61,6 +61,8 @@ import { AppHeader } from './app/screens/AppHeader'
 import {
   LazyAdminReportsScreen,
   LazyCampScreen,
+  LazyContractsScreen,
+  LazyCollectionsScreen,
   LazyChampionManagementScreen,
   LazyFishingScreen,
   LazyGameCanvas,
@@ -193,6 +195,8 @@ function App() {
     hubPresence,
     bugReport,
     camp,
+    contracts,
+    collections,
   } = services
   const [authentication, setAuthentication] = useState<AuthenticationState>(() =>
     createInitialAuthenticationState(
@@ -1443,6 +1447,14 @@ function App() {
     navigateToScreen('run-history')
   }, [navigateToScreen])
 
+  const openContracts = useCallback((): void => {
+    navigateToScreen('contracts')
+  }, [navigateToScreen])
+
+  const openCollections = useCallback((): void => {
+    navigateToScreen('collections')
+  }, [navigateToScreen])
+
   const openAdmin = useCallback((): void => {
     if (!authentication.account?.isAdmin) {
       showToast('Administrator access is required.', 'error')
@@ -1712,6 +1724,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenContracts={openContracts}
+          onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           characterService={characters.service}
@@ -1744,6 +1758,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenContracts={openContracts}
+          onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           characterService={characters.service}
@@ -1777,6 +1793,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenContracts={openContracts}
+          onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           characterService={characters.service}
@@ -1852,6 +1870,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenContracts={openContracts}
+          onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
           characterService={characters.service}
@@ -1879,6 +1899,8 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
+          onOpenContracts={openContracts}
+          onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           onOpenAbyss={openAbyssSetup}
           championAvailability={championAvailability}
@@ -1931,7 +1953,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'contracts' || screen === 'collections' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -2000,6 +2022,8 @@ function App() {
             characterService={characters.service}
             inventoryService={inventory.service}
             developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (authentication.account?.isAdmin ?? false)}
+            collectionService={collections.service}
+            onOpenCollections={openCollections}
             onBack={returnToDashboard}
           />
         </LazyScreen>
@@ -2034,6 +2058,24 @@ function App() {
             configurationError={shop.configurationError ?? inventory.configurationError}
             onBack={returnToDashboard}
             onEssenceChanged={refreshMetaProgression}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'contracts' && authentication.account ? (
+        <LazyScreen label="The contract board">
+          <LazyContractsScreen
+            service={contracts.service}
+            configurationError={contracts.configurationError}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'collections' && authentication.account ? (
+        <LazyScreen label="The collections">
+          <LazyCollectionsScreen
+            service={collections.service}
+            configurationError={collections.configurationError}
+            onBack={returnToDashboard}
           />
         </LazyScreen>
       ) : null}

@@ -18,6 +18,7 @@ export type CampBuildingId =
   | 'rift-anchor'
   | 'smokehouse'
   | 'forge'
+  | 'trophy-hall'
 
 export type CampJobId = 'woodline-timber' | 'quarry-stone' | 'anchor-rest'
 

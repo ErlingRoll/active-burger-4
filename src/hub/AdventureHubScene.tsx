@@ -105,6 +105,8 @@ interface AdventureHubSceneProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
+  onOpenContracts: () => void
+  onOpenCollections: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
   onContinueRun: () => void
@@ -180,6 +182,8 @@ export function AdventureHubScene({
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
+  onOpenContracts,
+  onOpenCollections,
   onOpenRunHistory,
   onOpenAbyss,
   onContinueRun,
@@ -846,6 +850,14 @@ export function AdventureHubScene({
                 <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">✦</span>
                   <span>Chronicle</span>
+                </button>
+                <button className="hub-path hub-path-contracts" type="button" onClick={onOpenContracts} title="Objectives that rotate daily and weekly" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">✎</span>
+                  <span>Contracts</span>
+                </button>
+                <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'}>
+                  <span aria-hidden="true">❖</span>
+                  <span>Collections</span>
                 </button>
               </nav>
             </div>

@@ -2617,6 +2617,22 @@
   --accent-bright-rgb: 203 213 225;
 }
 
+.hub-path-contracts {
+  /* The board: parchment and sealing wax, as the contracts screen declares. */
+  --accent: var(--color-orange-300);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 253 186 116;
+  --accent-bright-rgb: 254 215 170;
+}
+
+.hub-path-collections {
+  /* The cases: the cool teal of glass over a shelf. */
+  --accent: var(--color-teal-300);
+  --accent-contrast: var(--color-teal-50);
+  --accent-rgb: 94 234 212;
+  --accent-bright-rgb: 153 246 228;
+}
+
 .hub-path > span:first-child {
   flex: 0 0 auto;
   color: var(--accent);

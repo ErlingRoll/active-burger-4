@@ -44,6 +44,13 @@ import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
 import { REFORGE_COSTS } from './Forge'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
+import type { CollectionService } from '../collections/CollectionService'
+import {
+  COLLECTION_MILESTONES,
+  deriveCollectionDisplays,
+  type CollectionMilestoneProgress,
+  type CollectionState,
+} from '../content/collections/Collections'
 
 /**
  * The Camp, as a place.
@@ -74,6 +81,10 @@ interface CampScreenProps {
   inventoryService: InventoryService | null
   /** Shows the clock-skipping row. The header decides this: an administrator on a build with the tools on. */
   developmentToolsEnabled?: boolean
+  /** For the Trophy hall: what the collections have earned. Optional; the hall still stands without it. */
+  collectionService?: CollectionService | null
+  /** Opens the collections from the Trophy hall's inspector. */
+  onOpenCollections?: () => void
   onBack: () => void
 }
 
@@ -86,9 +97,9 @@ const CAMP_TICK_MS = 15_000
 /**
  * The plots, in the order they stand on the ground: the Woodline against the
  * pines, the quarry against the cut hillside, the Storehouse and the anchor
- * between them, and the workshops along the front where the water is. The
- * Trophy hall is a footprint with nothing to build yet; it stands on the
- * scene so the settlement reads as unfinished rather than complete.
+ * between them, and the workshops along the front where the water is, with
+ * the Trophy hall last: the one building that produces nothing and shows
+ * everything the others have earned.
  */
 const CAMP_PLOTS: readonly CampPlotId[] = [
   'woodline', 'storehouse', 'rift-anchor', 'quarry',
@@ -151,10 +162,6 @@ function buildingLevel(state: CampState, buildingId: CampBuildingId): number {
     ?? CAMP_BUILDING_DEFINITIONS[buildingId].startingLevel
 }
 
-function isBuildingId(plotId: CampPlotId): plotId is CampBuildingId {
-  return plotId !== 'trophy-hall'
-}
-
 /** What a level is for, in the words the row uses. */
 function describeLevel(level: CampBuildingLevel): string {
   switch (level.buildingId) {
@@ -166,6 +173,8 @@ function describeLevel(level: CampBuildingLevel): string {
       return 'Guts and cures fish'
     case 'forge':
       return level.level === 1 ? 'Reforges artifacts' : `+${level.level === 2 ? 25 : 50}% scrap from run salvage`
+    case 'trophy-hall':
+      return 'Displays what the collections have earned'
     default:
       return `×${level.rateMultiplier} rate · ${level.jobSlots} ${level.jobSlots === 1 ? 'slot' : 'slots'}`
   }
@@ -539,10 +548,13 @@ export function CampScreen({
   characterService,
   inventoryService,
   developmentToolsEnabled = false,
+  collectionService = null,
+  onOpenCollections,
   onBack,
 }: CampScreenProps) {
   const { showLootToast, showToast } = useToaster()
   const [state, setState] = useState<CampState | null>(null)
+  const [collections, setCollections] = useState<CollectionState | null>(null)
   const [champions, setChampions] = useState<ChampionSnapshot[]>([])
   const [materials, setMaterials] = useState<InventoryItemInstance[]>([])
   const [fish, setFish] = useState<InventoryItemInstance[]>([])
@@ -588,6 +600,17 @@ export function CampScreen({
       setFishLoading(false)
     }
   }, [inventoryService, showToast])
+
+  const refreshCollections = useCallback(async (): Promise<void> => {
+    if (!collectionService) {
+      return
+    }
+    try {
+      setCollections(await collectionService.loadState())
+    } catch (loadError: unknown) {
+      showToast(errorMessage(loadError, 'Unable to read the collections.'), 'error')
+    }
+  }, [collectionService, showToast])
 
   const refreshArtifacts = useCallback(async (): Promise<void> => {
     if (!inventoryService) {
@@ -862,6 +885,9 @@ export function CampScreen({
     setPickerJobId(null)
     setFishAction(null)
     setForgeOpen(false)
+    if (plotId === 'trophy-hall' && collections === null) {
+      void refreshCollections()
+    }
   }
 
   const closeInspector = (): void => {
@@ -884,9 +910,11 @@ export function CampScreen({
     : 0
 
   /** One line under a plot's name: what the building is doing right now. */
+  const displays: CollectionMilestoneProgress[] = collections ? deriveCollectionDisplays(collections) : []
+
   const describePlot = (plotId: CampPlotId): { status: string, pending: number, workers: number, slots: number } => {
-    if (!state || !isBuildingId(plotId)) {
-      return { status: 'Someday', pending: 0, workers: 0, slots: 0 }
+    if (!state) {
+      return { status: '', pending: 0, workers: 0, slots: 0 }
     }
     const level = buildingLevel(state, plotId)
     if (level === 0) {
@@ -923,6 +951,13 @@ export function CampScreen({
         return { status: `${roeHeld} roe held`, pending: 0, workers: 0, slots: 0 }
       case 'forge':
         return { status: level > 1 ? `+${level === 2 ? 25 : 50}% run salvage` : 'Reforges artifacts', pending: 0, workers: 0, slots: 0 }
+      case 'trophy-hall':
+        return {
+          status: collections ? `${displays.length} of ${COLLECTION_MILESTONES.length} displays` : 'Displays what the collections earn',
+          pending: 0,
+          workers: 0,
+          slots: 0,
+        }
       default:
         return { status: '', pending: 0, workers: 0, slots: 0 }
     }
@@ -1108,6 +1143,41 @@ export function CampScreen({
             {upgradeRow}
           </>
         )
+      case 'trophy-hall':
+        return (
+          <>
+            <p className="camp-inspector-copy">
+              {level === 0
+                ? building.description
+                : collections
+                  ? `${displays.length} of ${COLLECTION_MILESTONES.length} displays earned. A page of the collections earns one at each of its milestones.`
+                  : 'What the collections have earned stands here.'}
+            </p>
+            {level > 0 && collections ? (
+              displays.length === 0 ? (
+                <p className="camp-picker-empty">Nothing on the shelves yet. Catch a fish, find a relic or win a dungeon.</p>
+              ) : (
+                <ul className="camp-displays" aria-label="Displays">
+                  {displays.map((display) => (
+                    <li key={display.id} className="camp-display" data-page={display.pageId}>
+                      <span className="camp-display-mark" aria-hidden="true">✓</span>
+                      <span className="camp-picker-copy">
+                        <strong>{display.name}</strong>
+                        <span>{display.description}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+            {level > 0 && onOpenCollections ? (
+              <button className="camp-send-action" type="button" onClick={onOpenCollections} disabled={busy}>
+                Open the collections
+              </button>
+            ) : null}
+            {upgradeRow}
+          </>
+        )
       default:
         return upgradeRow
     }
@@ -1252,8 +1322,8 @@ export function CampScreen({
           <CampHaulers routes={haulRoutes} />
           <ul className="camp-plots" aria-label="The buildings">
             {CAMP_PLOTS.map((plotId) => {
-              const built = isBuildingId(plotId) && buildingLevel(state, plotId) > 0
-              const name = isBuildingId(plotId) ? CAMP_BUILDING_DEFINITIONS[plotId].name : 'Trophy hall'
+              const built = buildingLevel(state, plotId) > 0
+              const name = CAMP_BUILDING_DEFINITIONS[plotId].name
               const plot = describePlot(plotId)
               return (
                 <li key={plotId} data-plot={plotId}>
@@ -1264,17 +1334,12 @@ export function CampScreen({
                     data-built={built ? 'true' : 'false'}
                     data-ready={plot.pending > 0 ? 'true' : undefined}
                     aria-pressed={selectedPlot === plotId}
-                    disabled={!isBuildingId(plotId)}
-                    onClick={() => {
-                      if (isBuildingId(plotId)) {
-                        openPlot(plotId)
-                      }
-                    }}
+                    onClick={() => openPlot(plotId)}
                   >
                     <span className="camp-plot-stage" aria-hidden="true">
                       <span className="camp-plot-ground" />
                       <span className="camp-plot-glow" />
-                      <CampBuildingArt plotId={plotId} built={built} level={isBuildingId(plotId) ? buildingLevel(state, plotId) : 1} />
+                      <CampBuildingArt plotId={plotId} built={built} level={buildingLevel(state, plotId)} />
                       {plot.slots > 0 ? (
                         <span className="camp-plot-workers">
                           {Array.from({ length: plot.slots }, (_, index) => (
@@ -1285,9 +1350,7 @@ export function CampScreen({
                     </span>
                     <span className="camp-plot-copy">
                       <strong>{name}</strong>
-                      {isBuildingId(plotId) ? (
-                        <CampLevelPips buildingId={plotId} level={buildingLevel(state, plotId)} />
-                      ) : null}
+                      <CampLevelPips buildingId={plotId} level={buildingLevel(state, plotId)} />
                       <small>{plot.status}</small>
                       {plot.pending > 0 ? <span className="camp-plot-ready">Ready</span> : null}
                     </span>

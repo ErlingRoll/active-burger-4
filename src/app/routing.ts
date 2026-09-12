@@ -16,6 +16,8 @@ export type AppScreen =
   | 'meta-progression'
   | 'fishing'
   | 'camp'
+  | 'contracts'
+  | 'collections'
   | 'champions'
   | 'inventory'
   | 'shop'
@@ -32,6 +34,8 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'meta-progression': '/store',
   fishing: '/fishing',
   camp: '/camp',
+  contracts: '/contracts',
+  collections: '/collections',
   champions: '/champions',
   inventory: '/inventory',
   shop: '/shop',
@@ -53,7 +57,9 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  * world modifiers before it is done, the shop lists what it will buy beside
  * what it is selling today, and the moderation dashboards list whatever players
  * have sent in, the chronicle grows with every run that ends and opens a whole
- * run report inside one of its rows — and shrinking that to fit made them
+ * run report inside one of its rows, the contract board lists four contracts
+ * with their rewards, and the collections are a reference of every species,
+ * relic and class — and shrinking that to fit made them
  * unreadable, so they scroll instead. `app-shell-document` is what grants it.
  *
  * The bag was on this list and has come off it. Reading a manual is nothing
@@ -79,6 +85,8 @@ export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'meta-progression',
   'run-setup',
   'shop',
+  'contracts',
+  'collections',
   'dashboard',
   'admin',
   'nickname-moderation',

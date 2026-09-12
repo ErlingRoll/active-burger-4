@@ -178,6 +178,15 @@ the check is named; the rest are review responsibilities.
       Champion rests faster, the Smokehouse that guts fish for roe and cures
       meal fish with it, and the Forge that rerolls artifacts and raises a
       run's scrap. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
+- [x] **32. Contracts and collections:** a contract pool mirrored between the
+      migrations and the client, a board of three daily and one weekly
+      contract dealt per account from the account and the period, progress
+      computed from the runs, catches, boxes and ledger rows the server already
+      records, an idempotent claim paying materials and loot boxes and never
+      Essence, the fish, artifact and Champion collections derived from the
+      same records, and the Trophy hall at the Camp showing the displays their
+      milestones earn. See
+      [contracts_delivery_plan.md](features/contracts_delivery_plan.md).
 
 ## Per-Feature Gate
 

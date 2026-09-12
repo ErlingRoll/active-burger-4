@@ -1,0 +1,322 @@
+/* ---------------------------------------------------------------------------
+   The contract board and the collections.
+
+   Two document screens on the refuge's iron plates. The board is parchment
+   and sealing wax: the one warm screen among the refuge's cold rooms, because
+   a notice pinned by the gate is lit by the fire beside it. The collections
+   are the cases in the hall, glass over a shelf, and take the cool teal that
+   glass takes at night.
+   --------------------------------------------------------------------------- */
+
+.contracts-screen {
+  --accent: var(--color-orange-300);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 253 186 116;
+  --accent-bright-rgb: 254 215 170;
+}
+
+.collections-screen {
+  --accent: var(--color-teal-300);
+  --accent-contrast: var(--color-teal-50);
+  --accent-rgb: 94 234 212;
+  --accent-bright-rgb: 153 246 228;
+}
+
+/* The daily board is three cards wide and the weekly one; the two share the
+   frame's grid, the weekly panel taking a narrower column when there is room. */
+.contracts-panels {
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  grid-auto-rows: auto;
+}
+
+.contracts-board[data-cadence="daily"] {
+  grid-column: 1 / -1;
+}
+
+.contracts-board[data-cadence="daily"] .contract-card-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+}
+
+.contract-card-list {
+  display: grid;
+  gap: clamp(0.4rem, 1.4vh, 0.8rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A card is a notice: a kicker for the place, the name, the ask, the bar, the
+   pay, and one button. Its state colours its edge the way a chronicle row's
+   outcome does: open is the board's own wax, finished is lit, claimed is
+   spent and grey. */
+.contract-card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 1.2vh, 0.7rem);
+  padding: clamp(0.55rem, 1.6vh, 0.95rem) clamp(0.65rem, 1.8vw, 1rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 8%), transparent 48%),
+    rgb(36 28 24 / 62%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-left: 3px solid rgb(var(--accent-rgb) / 50%);
+  border-radius: 0.55rem;
+}
+
+.contract-card[data-state="complete"] {
+  border-left-color: var(--color-green-300);
+  box-shadow: 0 0 1.2rem rgb(var(--accent-rgb) / 12%);
+}
+
+.contract-card[data-state="claimed"] {
+  border-left-color: var(--color-stone-500);
+  opacity: 0.72;
+}
+
+.contract-card-heading {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.contract-card-heading h4 {
+  margin: 0;
+  color: var(--color-stone-50);
+  font-size: clamp(0.9rem, 2.1vh, 1.15rem);
+  letter-spacing: -0.02em;
+}
+
+.contract-card-objective {
+  margin: 0;
+  color: var(--color-stone-200);
+  font-size: clamp(0.74rem, 1.7vh, 0.9rem);
+  line-height: 1.4;
+}
+
+.contract-card-progress {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.contract-progress-bar {
+  flex: 1 1 auto;
+  height: 0.5rem;
+  overflow: hidden;
+  background: rgb(0 0 0 / 40%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
+  border-radius: 999px;
+}
+
+.contract-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgb(var(--accent-rgb) / 70%), var(--accent));
+  border-radius: inherit;
+  transition: width 320ms ease;
+}
+
+.contract-card[data-state="complete"] .contract-progress-bar > span {
+  background: linear-gradient(90deg, var(--color-green-500), var(--color-green-300));
+}
+
+.contract-progress-figure {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-progress-figure strong {
+  color: var(--color-stone-100);
+}
+
+.contract-card-reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contract-card-reward li {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  color: var(--color-stone-200);
+  font-size: clamp(0.7rem, 1.6vh, 0.84rem);
+  font-weight: 700;
+}
+
+.contract-reward-icon {
+  display: grid;
+  width: clamp(1.2rem, 2.6vh, 1.6rem);
+  height: clamp(1.2rem, 2.6vh, 1.6rem);
+  place-items: center;
+  font-size: clamp(0.8rem, 1.8vh, 1rem);
+}
+
+.contract-reward-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
+  width: 100%;
+  height: 100%;
+}
+
+.contract-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.contract-card-foot small {
+  color: var(--text-muted);
+  font-size: clamp(0.64rem, 1.45vh, 0.78rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-claim-action {
+  min-height: 0;
+  padding: clamp(0.32rem, 1vh, 0.5rem) clamp(0.7rem, 2vw, 1.1rem);
+  font-size: clamp(0.68rem, 1.55vh, 0.84rem);
+}
+
+.contract-claim-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.contracts-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.7rem, 1.6vh, 0.85rem);
+  line-height: 1.45;
+}
+
+/* The collections: each page a panel, each entry a row that is grey until it
+   is found and lit when it is, and the page's milestones listed beneath. */
+.collections-panels {
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  grid-auto-rows: auto;
+}
+
+.collection-entries {
+  display: grid;
+  gap: clamp(0.25rem, 0.9vh, 0.45rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collection-entry {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: clamp(0.3rem, 1vh, 0.5rem) clamp(0.45rem, 1.3vw, 0.7rem);
+  background: rgb(0 0 0 / 28%);
+  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  border-radius: 0.45rem;
+}
+
+.collection-entry[data-found="false"] {
+  opacity: 0.55;
+}
+
+.collection-entry[data-found="false"] .collection-entry-icon {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.collection-entry-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: clamp(1.5rem, 3.2vh, 2rem);
+  height: clamp(1.5rem, 3.2vh, 2rem);
+  place-items: center;
+  color: var(--color-stone-300);
+  font-size: clamp(0.85rem, 1.9vh, 1.1rem);
+}
+
+.collection-entry-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon) {
+  width: 100%;
+  height: 100%;
+}
+
+.collection-class-mark {
+  color: var(--color-stone-50);
+  font-size: clamp(0.62rem, 1.5vh, 0.85rem);
+  font-weight: 900;
+  background: rgb(var(--accent-rgb) / 16%);
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 50%;
+}
+
+.collection-entry-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.collection-entry-copy strong {
+  color: var(--color-stone-100);
+  font-size: clamp(0.74rem, 1.7vh, 0.9rem);
+}
+
+.collection-entry-copy small {
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.4vh, 0.76rem);
+}
+
+.collection-milestones {
+  display: grid;
+  gap: 0.3rem;
+  margin: clamp(0.5rem, 1.6vh, 0.9rem) 0 0;
+  padding: clamp(0.45rem, 1.4vh, 0.75rem) 0 0;
+  border-top: 1px solid rgb(var(--accent-rgb) / 18%);
+  list-style: none;
+}
+
+.collection-milestones li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.collection-milestones li[data-reached="false"] {
+  opacity: 0.6;
+}
+
+.collection-milestone-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  color: var(--color-stone-100);
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: rgb(var(--accent-rgb) / 12%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 50%;
+}
+
+.collection-milestones li[data-reached="true"] .collection-milestone-mark {
+  color: var(--color-stone-900);
+  background: var(--accent);
+}
+
+.collection-milestone-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.collection-milestone-copy strong {
+  color: var(--color-stone-100);
+  font-size: clamp(0.72rem, 1.6vh, 0.86rem);
+}
+
+.collection-milestone-copy small {
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.4vh, 0.76rem);
+}

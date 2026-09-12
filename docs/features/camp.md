@@ -80,13 +80,16 @@ fish with a stronger meal effect, so nothing new reaches the simulation. Rift
 shards come out of the Abyss, one a completed floor and one more for every
 five floors down, to six.
 
-Every building but the Trophy hall is live, each upgraded with timber and
-stone, the anchor and the Forge with rift shards and scrap as well. The Forge
+Every building is live, each upgraded with timber and stone, the anchor and
+the Forge with rift shards and scrap as well. The Forge
 rerolls an artifact's implicit and modifiers for scrap and shards, keeping its
 base and rarity, and at its second and third levels raises the scrap a
 finished run's loadout leaves behind by a quarter and by half. Slot and
 storage upgrades stay with the Essence store, where artifact slots already
-live. The Trophy hall waits on collections; see the delivery plan.
+live. The Trophy hall is bought with timber and stone and shows the displays
+the collections have earned: a milestone on a page of the collections is a
+display on its shelves, derived from the same records and never claimed. See
+[contracts_delivery_plan.md](contracts_delivery_plan.md).
 
 The Rift anchor deserves a note. It makes exhaustion a resource a player can
 spend materials against rather than a wall they wait out, and it gives players
@@ -144,8 +147,8 @@ A plot says at a glance what its building is doing: its level as pips, who is
 working it, what is waiting to be claimed, whether it can be built. A
 building's detail view is the inspector beside the plots, not a new screen and
 not a scrolling document; if a building's content cannot fit the inspector,
-the building is doing too much. The Trophy hall stands on the scene as a
-footprint with nothing to build, so the settlement reads as unfinished.
+the building is doing too much. The Trophy hall's inspector lists its
+displays and opens the collections, which are a document screen of their own.
 
 Atmospheric motion only, with complete `prefers-reduced-motion` alternatives,
 matching the rest of the hub.
@@ -269,9 +272,9 @@ idea.
   the ground keeps its size. A phone has no side column: the inspector is a
   sheet over the plots and the roster is not shown.
 
-The eighth pass made the pictures grow with their levels. What remains is
-the Trophy hall's footprint becoming a building once Phase 10 gives it
-something to hold.
+The eighth pass made the pictures grow with their levels, and Phase 10 gave
+the Trophy hall something to hold, so every plot on the ground is a building
+now.
 
 ## Design constraints
 

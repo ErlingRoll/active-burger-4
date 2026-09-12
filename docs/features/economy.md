@@ -73,7 +73,7 @@ content registry, not in engine code.
 | Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, the Forge and its artifact rerolls |
 | Timber and stone | Camp passive production | Building construction and upgrades |
 | Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
-| Rift shard | Abyss floors, deep-floor contracts later | The Rift anchor and the Forge's artifact rerolls |
+| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor and the Forge's artifact rerolls |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
@@ -86,7 +86,10 @@ and the Storehouse, the Woodline, the quarry, the tackle bench, the Rift anchor
 and the Smokehouse are their sinks: each next level is bought with them, and the bench spends timber
 alongside scrap on bait. Roe is live, gutted from fish at the Smokehouse and
 spent there to cure a meal fish. Rift shards are live, paid by every completed
-Abyss floor and spent on the Rift anchor.
+Abyss floor and spent on the Rift anchor. Contracts are live as a second
+faucet for every material: three a day and one a week pay timber, stone,
+scrap, roe, rift shards and loot boxes, and never Essence; see
+[contracts_delivery_plan.md](contracts_delivery_plan.md).
 
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,

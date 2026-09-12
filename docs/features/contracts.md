@@ -1,5 +1,8 @@
 # Contracts and Collections
 
+> **Status:** Shipped 2026-09-13. How it was built, and the decisions on the
+> way, are in [contracts_delivery_plan.md](contracts_delivery_plan.md).
+
 ## Purpose
 
 Contracts and collections are the cheapest way to make the existing content

@@ -70,6 +70,13 @@ export const CAMP_BUILDING_DEFINITIONS = {
     sortOrder: 6,
     startingLevel: 0,
   },
+  'trophy-hall': {
+    id: 'trophy-hall',
+    name: 'Trophy hall',
+    description: 'A long room under the rafters where what the collections have earned is put on display.',
+    sortOrder: 7,
+    startingLevel: 0,
+  },
 } as const satisfies Record<CampBuildingId, CampBuildingDefinition>
 
 export const ALL_CAMP_BUILDING_DEFINITIONS: readonly CampBuildingDefinition[] =
@@ -92,6 +99,7 @@ export const CAMP_BUILDING_LEVELS: readonly CampBuildingLevel[] = [
   { buildingId: 'forge', level: 1, cost: { timber: 60, stone: 60, scrap: 40 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
   { buildingId: 'forge', level: 2, cost: { timber: 100, stone: 100, 'rift-shard': 15 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
   { buildingId: 'forge', level: 3, cost: { timber: 160, stone: 160, 'rift-shard': 40 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
+  { buildingId: 'trophy-hall', level: 1, cost: { timber: 50, stone: 50 }, accrualCapHours: null, rateMultiplier: 1, jobSlots: 0 },
 ]
 
 export function isCampBuildingId(value: unknown): value is CampBuildingId {

@@ -90,9 +90,10 @@ identities live in [src/game-config/classes.ts](src/game-config/classes.ts).
 - The Infinite Abyss run mode is implemented, with its own modifiers, champion
   exhaustion and revival, floor loot boxes, and a distinct visual identity.
 - Surrounding the run loop: the Adventure Hub dashboard with live visitor
-  presence and campfire signals, fishing, champions, inventory and loot boxes,
-  the Abyss depth leaderboard, the in-game wiki, music and audio settings, player
-  bug reports, and the administrator bug-report and nickname-moderation routes.
+  presence and campfire signals, fishing, the Camp, champions, inventory and
+  loot boxes, the contract board and the collections, the Abyss depth
+  leaderboard, the in-game wiki, music and audio settings, player bug reports,
+  and the administrator bug-report and nickname-moderation routes.
 
 ### Viewport support
 

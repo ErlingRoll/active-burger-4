@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12; slice 3 and the Trophy hall are still proposals.
+> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12, and the Trophy hall on 2026-09-13; slice 3 is still a proposal.
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
@@ -381,7 +381,9 @@ construction is a wall rather than a rhythm.
   refused. Levels two and three apply `camp_forge_salvage_multiplier` to the
   scrap `complete_dungeon_run` pays for a finished loadout. The panel's Forge
   card opens an artifact picker with each relic's summary and price.
-- **Trophy hall** needs collections (Phase 10).
+- **Trophy hall** *(shipped 2026-09-13)*. Built for timber and stone once
+  collections existed; it shows the displays their milestones earn. See
+  [contracts_delivery_plan.md](contracts_delivery_plan.md).
 
 ### A note on the market
 

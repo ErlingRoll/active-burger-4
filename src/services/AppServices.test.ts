@@ -17,6 +17,8 @@ const REMOTE_SERVICE_KEYS = [
   'lootBoxes',
   'fishing',
   'camp',
+  'contracts',
+  'collections',
   'hubPresence',
   'bugReport',
 ] as const

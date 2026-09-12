@@ -765,6 +765,11 @@
   background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(249 115 22 / 24%), transparent 70%);
 }
 
+/* The Trophy hall's windows: the teal of glass over a lit shelf. */
+.camp-plot[data-plot='trophy-hall'][data-built='true'] .camp-plot-glow {
+  background: radial-gradient(ellipse 42% 50% at 50% 74%, rgb(94 234 212 / 16%), transparent 70%);
+}
+
 .camp-plot-art {
   position: relative;
   display: block;
@@ -1101,6 +1106,10 @@
   background: radial-gradient(ellipse 50% 60% at 50% 100%, rgb(249 115 22 / 22%), transparent 70%);
 }
 
+.camp-inspector-portrait[data-plot='trophy-hall']::before {
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgb(94 234 212 / 16%), transparent 70%);
+}
+
 .camp-inspector-portrait .camp-plot-art {
   width: min(100%, 22rem);
   height: auto;
@@ -1399,6 +1408,39 @@
   display: grid;
   gap: clamp(0.2rem, 0.6vh, 0.35rem);
   justify-items: end;
+}
+
+/* The hall's shelves: one row per display the collections have earned. */
+.camp-displays {
+  display: grid;
+  gap: clamp(0.2rem, 0.6vh, 0.35rem);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.camp-display {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: clamp(0.3rem, 1vh, 0.5rem) clamp(0.45rem, 1.3vw, 0.7rem);
+  background: rgb(0 0 0 / 28%);
+  border: 1px solid rgb(var(--accent-rgb) / 18%);
+  border-radius: 0.45rem;
+}
+
+.camp-display-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  color: var(--color-stone-900);
+  font-size: 0.7rem;
+  font-weight: 900;
+  background: var(--accent);
+  border-radius: 50%;
 }
 
 .camp-picker-empty {

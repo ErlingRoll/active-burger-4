@@ -6,6 +6,8 @@ import type { CampService, CampState } from './CampTypes'
 import type { CharacterService, ChampionSnapshot } from '../characters/CharacterTypes'
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { deriveCampLabourSheet } from '../content/camp/CampLabour'
+import type { CollectionState } from '../content/collections/Collections'
+import type { CollectionService } from '../collections/CollectionService'
 import { CAMP_JOB_DEFINITIONS } from '../content/camp/CampJobs'
 
 const champion: ChampionSnapshot = {
@@ -63,6 +65,7 @@ function emptyState(): CampState {
       { buildingId: 'rift-anchor', level: 0 },
       { buildingId: 'smokehouse', level: 0 },
       { buildingId: 'forge', level: 0 },
+      { buildingId: 'trophy-hall', level: 0 },
     ],
     assignments: [],
     championFloors: { 'champion-1': 20 },
@@ -166,6 +169,7 @@ interface RenderOptions {
   materials?: InventoryItemInstance[]
   fish?: InventoryItemInstance[]
   artifacts?: InventoryItemInstance[]
+  collections?: CollectionState
 }
 
 function renderScreen(initial: CampState, options: RenderOptions = {}) {
@@ -226,6 +230,10 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
     craftItem,
   } as unknown as InventoryService
   const onBack = vi.fn()
+  const onOpenCollections = vi.fn()
+  const collectionService: CollectionService = {
+    loadState: vi.fn(async () => options.collections ?? { fish: [], artifacts: [], classes: [] }),
+  }
   const rendered = renderComponent(
     <CampScreen
       service={service}
@@ -233,10 +241,12 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
       characterService={characterService}
       inventoryService={inventoryService}
       developmentToolsEnabled={options.developmentToolsEnabled ?? false}
+      collectionService={collectionService}
+      onOpenCollections={onOpenCollections}
       onBack={onBack}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, onBack }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, collectionService, onOpenCollections, onBack }
 }
 
 /** Opens a building's inspector from its plot on the ground. */
@@ -419,7 +429,7 @@ describe('CampScreen', () => {
     expect(woodline).toHaveTextContent('1/1 working')
     expect(woodline).toHaveAttribute('data-built', 'true')
     expect(screen.getByRole('button', { name: /^Forge/ })).toHaveAttribute('data-built', 'false')
-    expect(screen.getByRole('button', { name: /^Trophy hall/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Trophy hall/ })).toHaveAttribute('data-built', 'false')
 
     await user.click(woodline)
     expect(await screen.findByRole('heading', { name: 'Woodline' })).toBeInTheDocument()
@@ -468,4 +478,46 @@ describe('CampScreen', () => {
 
     expect(onBack).toHaveBeenCalled()
   })
+
+  it('shows the displays the collections have earned in the Trophy hall, and opens the collections', async () => {
+    const hallState: CampState = {
+      ...emptyState(),
+      buildings: emptyState().buildings.map((building) =>
+        building.buildingId === 'trophy-hall' ? { ...building, level: 1 } : building,
+      ),
+    }
+    const { user, collectionService, onOpenCollections } = renderScreen(hallState, {
+      collections: {
+        fish: [{ definitionId: 'river-minnow', catches: 2, bestRarity: 'common', recordSizePercentile: 0.5 }],
+        artifacts: [],
+        classes: [],
+      },
+    })
+
+    await openPlot(user, 'Trophy hall')
+    await waitFor(() => {
+      expect(collectionService.loadState).toHaveBeenCalledTimes(1)
+    })
+    const displays = await screen.findByRole('list', { name: 'Displays' })
+    expect(within(displays).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(displays).getByText('First catch')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Trophy hall/ })).toHaveTextContent('1 of 9 displays')
+
+    await user.click(screen.getByRole('button', { name: 'Open the collections' }))
+    expect(onOpenCollections).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers the Trophy hall for timber and stone before it is built', async () => {
+    const { user, collectionService } = renderScreen(emptyState())
+
+    await openPlot(user, 'Trophy hall')
+    expect(screen.getByRole('heading', { name: 'Trophy hall' })).toBeInTheDocument()
+    expect(screen.getByText('Not yet built')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open the collections' })).toBeNull()
+    // The collections are read even for an unbuilt hall, so the plot can count its displays.
+    await waitFor(() => {
+      expect(collectionService.loadState).toHaveBeenCalledTimes(1)
+    })
+  })
+
 })

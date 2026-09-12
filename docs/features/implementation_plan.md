@@ -239,17 +239,26 @@ the owner's account inventory.
 **Exit criteria:** artifact values cannot be client-authored, equipped artifacts
 cannot be traded, and the game remains playable with zero artifacts.
 
-## Phase 10: Contracts and collections
+## Phase 10: Contracts and collections — done
 
 The cheapest expansion, and the one that makes the existing content feel
-largest. See [contracts.md](contracts.md).
+largest. See [contracts.md](contracts.md) and
+[contracts_delivery_plan.md](contracts_delivery_plan.md).
 
-- Contract definition registry, rotation pools, and a fixed schedule.
-- Three daily and one weekly contract per account.
+- Contract definition registry, rotation pools, and a fixed schedule. *Done:
+  a seeded table with a client mirror held together by a registry test, and
+  a board rolled per account from the account and the period.*
+- Three daily and one weekly contract per account. *Done.*
 - Progress credited from server-recorded run, fishing, and inventory events.
-- Idempotent reward claims paying materials, box keys, and cosmetics.
+  *Done: progress is a query over the period's window, never stored and
+  never reported by the client.*
+- Idempotent reward claims paying materials, box keys, and cosmetics. *Done
+  for materials and loot boxes, as an inventory operation; cosmetics wait on
+  a cosmetic system.*
 - Fish, artifact, and Champion collections derived from recorded events.
-- Completion rewards limited to unlocks, capacity, and cosmetics.
+  *Done, as one read with no table of its own.*
+- Completion rewards limited to unlocks, capacity, and cosmetics. *Done: a
+  milestone earns a display in the Trophy hall and nothing else.*
 
 Roll contracts only from the pool the account has unlocked, so a contract is
 never unachievable with the content the player owns.

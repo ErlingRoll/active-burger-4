@@ -33,6 +33,8 @@ export interface AppHeaderProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
+  onOpenContracts: () => void
+  onOpenCollections: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
   characterService: CharacterService | null
@@ -53,6 +55,8 @@ export function AppHeader({
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
+  onOpenContracts,
+  onOpenCollections,
   onOpenRunHistory,
   inventoryService,
   characterService,
@@ -122,6 +126,8 @@ export function AppHeader({
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)}>Champions</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)}>Inventory</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenContracts)}>Contracts</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)}>Collections</button>
           <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)}>Chronicle</button>
           {DEVELOPMENT_TOOLS_ENABLED && authentication.account?.isAdmin ? (
             <DevelopmentToolsMenu
