@@ -78,6 +78,8 @@ import {
   CHARACTER_CLASS_DEFINITIONS,
   type CharacterClassId,
 } from '../../content/classes/CharacterClasses'
+import { useSeededLoad } from '../../ui/useSeededLoad'
+import type { RunSetupScreenData } from './loadRunSetupScreen'
 
 /** The building a Champion works at, or null when it is home. */
 function workingAt(campState: CampState | null, championId: string): string | null {
@@ -105,6 +107,15 @@ export interface RunSetupScreenProps {
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onSelectTargetPriority: (priorityId: TargetPriorityId) => void
   onBack: () => void
+  /**
+   * The first fetches, already done by the navigator while the previous
+   * screen was still showing. With them the meal slots, the artifact rack and
+   * the roster paint populated on the first frame; without them the screen
+   * fetches for itself, as it did before.
+   */
+  initialData?: RunSetupScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 export function RunSetupScreen({
@@ -124,36 +135,57 @@ export function RunSetupScreen({
   onToggleWorldModifier,
   onSelectTargetPriority,
   onBack,
+  initialData,
+  initialLoadError = null,
 }: RunSetupScreenProps) {
-  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>([])
+  const seeded = useSeededLoad(
+    initialData !== undefined || initialLoadError !== null,
+    inventoryService,
+  )
+  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>(() => initialData?.fish ?? [])
   const [fishLoadState, setFishLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => inventoryService ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !inventoryService ? 'error' : 'loading',
   )
   const [fishLoadError, setFishLoadError] = useState<string | null>(
-    () => inventoryService ? inventoryError : inventoryError ?? 'Inventory is unavailable.',
+    () => initialLoadError ??
+      (inventoryService ? inventoryError : inventoryError ?? 'Inventory is unavailable.'),
   )
   const [selectedFishIds, setSelectedFishIds] = useState<(string | null)[]>([])
   const [activeMealSlotIndex, setActiveMealSlotIndex] = useState<number | null>(null)
-  const [artifactItems, setArtifactItems] = useState<InventoryItemInstance[]>([])
+  const [artifactItems, setArtifactItems] = useState<InventoryItemInstance[]>(
+    () => initialData?.artifacts ?? [],
+  )
   const [artifactLoadState, setArtifactLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => inventoryService ? 'loading' : 'error',
+    () => initialData
+      ? initialData.artifacts === null ? 'error' : 'ready'
+      : initialLoadError !== null || !inventoryService ? 'error' : 'loading',
   )
   const [selectedArtifactIds, setSelectedArtifactIds] = useState<(string | null)[]>([])
   const [activeArtifactSlotIndex, setActiveArtifactSlotIndex] = useState<number | null>(null)
   const [selectedMode] = useState<RunModeId>(initialMode)
   const [selectedDungeonMaxFloor, setSelectedDungeonMaxFloor] = useState(maximumDungeonFloor)
-  const [champions, setChampions] = useState<ChampionSnapshot[]>([])
-  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(null)
+  const [champions, setChampions] = useState<ChampionSnapshot[]>(
+    () => initialData?.champions ?? [],
+  )
+  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(
+    () => initialData?.champions.find((champion) => !isChampionExhausted(champion))?.championId ??
+      initialData?.champions[0]?.championId ?? null,
+  )
   const [championLoadState, setChampionLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    () => characterService ? 'idle' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !characterService ? 'error' : 'idle',
   )
   const [championLoadError, setChampionLoadError] = useState<string | null>(
-    () => characterService ? characterError : characterError ?? 'Champion storage is unavailable.',
+    () => initialLoadError ??
+      (characterService ? characterError : characterError ?? 'Champion storage is unavailable.'),
   )
   const [campState, setCampState] = useState<CampState | null>(null)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
   useEffect(() => {
-    if (!inventoryService) {
+    if (!inventoryService || seeded) {
       return
     }
     let cancelled = false
@@ -174,13 +206,13 @@ export function RunSetupScreen({
     return () => {
       cancelled = true
     }
-  }, [inventoryService])
+  }, [inventoryService, seeded])
   /*
    * The bag's artifacts, for a dungeon run to pick from. An Abyss attempt
    * never reads them: the Champion brings its own.
    */
   useEffect(() => {
-    if (!inventoryService || selectedMode === 'infinite-abyss') {
+    if (!inventoryService || seeded || selectedMode === 'infinite-abyss') {
       return
     }
     let cancelled = false
@@ -199,7 +231,7 @@ export function RunSetupScreen({
     return () => {
       cancelled = true
     }
-  }, [inventoryService, selectedMode])
+  }, [inventoryService, seeded, selectedMode])
   useEffect(() => {
     if (selectedMode !== 'infinite-abyss') {
       return
@@ -216,7 +248,7 @@ export function RunSetupScreen({
    * before the run rather than after it.
    */
   useEffect(() => {
-    if (!characterService) {
+    if (!characterService || seeded) {
       return
     }
     let cancelled = false
@@ -246,7 +278,7 @@ export function RunSetupScreen({
     return () => {
       cancelled = true
     }
-  }, [characterService])
+  }, [characterService, seeded])
   /*
    * Who is at the Camp. A working Champion is not offered for the descent;
    * the server refuses it too, so an unreachable Camp only costs the listing.

@@ -30,7 +30,9 @@ import type { EquippedItem } from '../game/equipment/EquipmentState'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
 import { SkillIcon } from '../rendering/SkillIcon'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
+import { useSeededLoad } from '../ui/useSeededLoad'
 import type { CharacterService, ChampionSnapshot } from './CharacterTypes'
+import type { ChampionsScreenData } from './loadChampionsScreen'
 import { formatChampionAvailability, isChampionExhausted } from './ChampionExhaustion'
 import { ChampionRevivalControl, type RevivalFishLoadState } from './ChampionRevivalControl'
 import {
@@ -53,6 +55,14 @@ interface ChampionManagementScreenProps {
   campService: CampService | null
   configurationError: string | null
   onBack: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the roster paints populated on its first
+   * frame; without it the screen fetches for itself, as it did before.
+   */
+  initialData?: ChampionsScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 const EQUIPMENT_SLOT_LABELS: Record<EquipmentSlot, string> = {
@@ -400,32 +410,46 @@ export function ChampionManagementScreen({
   campService,
   configurationError,
   onBack,
+  initialData,
+  initialLoadError = null,
 }: ChampionManagementScreenProps) {
-  const [champions, setChampions] = useState<ChampionSnapshot[]>([])
-  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(null)
+  const seeded = useSeededLoad(initialData !== undefined || initialLoadError !== null, service)
+  const [champions, setChampions] = useState<ChampionSnapshot[]>(
+    () => initialData?.champions ?? [],
+  )
+  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(
+    () => initialData?.champions[0]?.championId ?? null,
+  )
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => service ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !service ? 'error' : 'loading',
   )
   const [error, setError] = useState<string | null>(
-    () => service && inventoryService
-      ? configurationError
-      : configurationError ?? inventoryError ?? 'Champion storage is unavailable.',
+    () => initialLoadError ??
+      (service && inventoryService
+        ? configurationError
+        : configurationError ?? inventoryError ?? 'Champion storage is unavailable.'),
   )
   const [renameValue, setRenameValue] = useState<string | null>(null)
   const [actionState, setActionState] = useState<'idle' | 'saving' | 'deleting'>('idle')
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null)
-  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>([])
-  const [fishLoadState, setFishLoadState] = useState<RevivalFishLoadState>(
-    () => inventoryService ? 'loading' : 'error',
+  const [fishItems, setFishItems] = useState<InventoryItemInstance[]>(
+    () => initialData?.fish ?? [],
   )
-  const [fishLoadError, setFishLoadError] = useState<string | null>(inventoryError)
+  const [fishLoadState, setFishLoadState] = useState<RevivalFishLoadState>(
+    () => initialData ? 'ready' : inventoryService && initialLoadError === null ? 'loading' : 'error',
+  )
+  const [fishLoadError, setFishLoadError] = useState<string | null>(
+    () => initialData ? null : initialLoadError ?? inventoryError,
+  )
   const [revivalError, setRevivalError] = useState<string | null>(null)
   const [recovering, setRecovering] = useState(false)
-  const [campState, setCampState] = useState<CampState | null>(null)
+  const [campState, setCampState] = useState<CampState | null>(() => initialData?.camp ?? null)
   const now = useNow(30_000)
 
   useEffect(() => {
-    if (!service) {
+    if (!service || seeded) {
       return
     }
     let cancelled = false
@@ -451,10 +475,10 @@ export function ChampionManagementScreen({
     return () => {
       cancelled = true
     }
-  }, [service])
+  }, [seeded, service])
 
   useEffect(() => {
-    if (!inventoryService) {
+    if (!inventoryService || seeded) {
       return
     }
     let cancelled = false
@@ -475,10 +499,10 @@ export function ChampionManagementScreen({
     return () => {
       cancelled = true
     }
-  }, [inventoryService])
+  }, [inventoryService, seeded])
 
   useEffect(() => {
-    if (!campService) {
+    if (!campService || seeded) {
       return
     }
     let cancelled = false
@@ -494,7 +518,7 @@ export function ChampionManagementScreen({
     return () => {
       cancelled = true
     }
-  }, [campService])
+  }, [campService, seeded])
 
   const selectedChampion = useMemo(
     () => champions.find((champion) => champion.championId === selectedChampionId) ?? null,

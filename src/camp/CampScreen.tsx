@@ -37,6 +37,7 @@ import type { InventoryItemInstance, InventoryService } from '../inventory/Inven
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
+import { useSeededLoad } from '../ui/useSeededLoad'
 import { CampBuildingArt, type CampPlotId } from './CampBuildingArt'
 import { CampFurniture, CampHaulers, type CampHaulRoute } from './CampFurniture'
 import { LabourSheetLine } from './LabourSheetLine'
@@ -44,6 +45,7 @@ import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
 import { REFORGE_COSTS } from './Forge'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
+import type { CampScreenData } from './loadCampScreen'
 import type { CollectionService } from '../collections/CollectionService'
 import {
   COLLECTION_MILESTONES,
@@ -86,6 +88,14 @@ interface CampScreenProps {
   /** Opens the collections from the Trophy hall's inspector. */
   onOpenCollections?: () => void
   onBack: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the Camp paints populated on its first frame;
+   * without it the screen fetches for itself, as it did before.
+   */
+  initialData?: CampScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 /** The hours a tester skips at a time: a few units' worth, and a Storehouse's worth. */
@@ -551,24 +561,34 @@ export function CampScreen({
   collectionService = null,
   onOpenCollections,
   onBack,
+  initialData,
+  initialLoadError = null,
 }: CampScreenProps) {
   const { showLootToast, showToast } = useToaster()
-  const [state, setState] = useState<CampState | null>(null)
+  const seeded = useSeededLoad(initialData !== undefined || initialLoadError !== null, service)
+  const [state, setState] = useState<CampState | null>(() => initialData?.state ?? null)
   const [collections, setCollections] = useState<CollectionState | null>(null)
-  const [champions, setChampions] = useState<ChampionSnapshot[]>([])
-  const [materials, setMaterials] = useState<InventoryItemInstance[]>([])
+  const [champions, setChampions] = useState<ChampionSnapshot[]>(
+    () => initialData?.champions ?? [],
+  )
+  const [materials, setMaterials] = useState<InventoryItemInstance[]>(
+    () => initialData?.materials ?? [],
+  )
   const [fish, setFish] = useState<InventoryItemInstance[]>([])
   const [fishLoading, setFishLoading] = useState(false)
   const [artifacts, setArtifacts] = useState<InventoryItemInstance[]>([])
   const [artifactsLoading, setArtifactsLoading] = useState(false)
   const [forgeOpen, setForgeOpen] = useState(false)
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => service && characterService ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !service || !characterService ? 'error' : 'loading',
   )
   const [error, setError] = useState<string | null>(
-    () => service && characterService
-      ? configurationError
-      : configurationError ?? 'The Camp is unavailable.',
+    () => initialLoadError ??
+      (service && characterService
+        ? configurationError
+        : configurationError ?? 'The Camp is unavailable.'),
   )
   const [selectedPlot, setSelectedPlot] = useState<CampBuildingId | null>(null)
   const [pickerJobId, setPickerJobId] = useState<CampJobId | null>(null)
@@ -627,7 +647,7 @@ export function CampScreen({
   }, [inventoryService, showToast])
 
   useEffect(() => {
-    if (!service || !characterService) {
+    if (!service || !characterService || seeded) {
       return
     }
     let cancelled = false
@@ -654,7 +674,7 @@ export function CampScreen({
     return () => {
       cancelled = true
     }
-  }, [service, characterService, inventoryService])
+  }, [service, characterService, inventoryService, seeded])
 
   const championsById = useMemo(
     () => new Map(champions.map((champion) => [champion.championId, champion])),

@@ -4,6 +4,8 @@ import type { InventoryItemInstance, InventoryService } from '../inventory/Inven
 import { getRewardIcon } from '../loot/RewardIcon'
 import { EssenceAmount } from '../ui/EssenceMark'
 import { useToaster } from '../ui/ToasterContext'
+import { useSeededLoad } from '../ui/useSeededLoad'
+import type { ShopScreenData } from './loadShopScreen'
 import { getRemainingStock } from './ShopTypes'
 import type { ShopPriceBand, ShopService, ShopStockLine } from './ShopTypes'
 
@@ -25,6 +27,14 @@ interface ShopScreenProps {
   onBack: () => void
   /** Told when Essence changed, so the rest of the app can re-read the wallet. */
   onEssenceChanged: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the shop paints populated on its first frame;
+   * without it the shop fetches for itself, as it did before.
+   */
+  initialData?: ShopScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 interface SellableLine {
@@ -80,16 +90,22 @@ export function ShopScreen({
   configurationError,
   onBack,
   onEssenceChanged,
+  initialData,
+  initialLoadError = null,
 }: ShopScreenProps) {
   const { showLootToast, showToast } = useToaster()
-  const [bands, setBands] = useState<ShopPriceBand[]>([])
-  const [stock, setStock] = useState<ShopStockLine[]>([])
-  const [items, setItems] = useState<InventoryItemInstance[]>([])
+  const seeded = useSeededLoad(initialData !== undefined || initialLoadError !== null, shopService)
+  const [bands, setBands] = useState<ShopPriceBand[]>(() => initialData?.bands ?? [])
+  const [stock, setStock] = useState<ShopStockLine[]>(() => initialData?.stock ?? [])
+  const [items, setItems] = useState<InventoryItemInstance[]>(() => initialData?.items ?? [])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => shopService ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !shopService ? 'error' : 'loading',
   )
   const [error, setError] = useState<string | null>(
-    () => shopService ? configurationError : configurationError ?? 'The shop is unavailable.',
+    () => initialLoadError ??
+      (shopService ? configurationError : configurationError ?? 'The shop is unavailable.'),
   )
   const [busyDefinitionId, setBusyDefinitionId] = useState<string | null>(null)
 
@@ -117,7 +133,7 @@ export function ShopScreen({
   }, [read])
 
   useEffect(() => {
-    if (!shopService) {
+    if (!shopService || seeded) {
       return
     }
     let cancelled = false
@@ -141,7 +157,7 @@ export function ShopScreen({
     return () => {
       cancelled = true
     }
-  }, [shopService, read])
+  }, [seeded, shopService, read])
 
   const sellable = useMemo(() => collectSellable(items, bands), [items, bands])
   const busy = busyDefinitionId !== null

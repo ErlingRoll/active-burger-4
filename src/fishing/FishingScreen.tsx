@@ -48,7 +48,9 @@ import { ConfirmationDialog } from '../ui/ConfirmationDialog'
 import { useToaster } from '../ui/ToasterContext'
 import { getPlayerDisplayName } from '../auth'
 import { useNow } from '../ui/useNow'
+import { useSeededLoad } from '../ui/useSeededLoad'
 import { FishIcon } from './FishIcon'
+import type { FishingScreenData } from './loadFishingScreen'
 
 interface FishingScreenProps {
   fishingService: FishingService | null
@@ -59,6 +61,14 @@ interface FishingScreenProps {
   activityPlayerApprovedNickname: string | null
   activityPlayerProviderName: string | null
   activityPlayerEmail: string | null
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the pond paints with its rods and bait on its
+   * first frame; without it the screen fetches for itself, as it did before.
+   */
+  initialData?: FishingScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 function createAttemptId(): string {
@@ -455,6 +465,8 @@ export function FishingScreen({
   activityPlayerApprovedNickname,
   activityPlayerProviderName,
   activityPlayerEmail,
+  initialData,
+  initialLoadError = null,
 }: FishingScreenProps) {
   const { showLootToast } = useToaster()
   const activityPlayerName = getPlayerDisplayName({
@@ -462,12 +474,19 @@ export function FishingScreen({
     providerDisplayName: activityPlayerProviderName,
     email: activityPlayerEmail,
   })
-  const [items, setItems] = useState<InventoryItemInstance[]>([])
+  const seeded = useSeededLoad(
+    initialData !== undefined || initialLoadError !== null,
+    inventoryService,
+  )
+  const [items, setItems] = useState<InventoryItemInstance[]>(() => initialData?.items ?? [])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => inventoryService ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !inventoryService ? 'error' : 'loading',
   )
   const [error, setError] = useState<string | null>(
-    () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
+    () => initialLoadError ??
+      (inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.'),
   )
   const [fishingPhase, setFishingPhase] = useState<FishingPhase>('idle')
   /* When the current wait began; the preparation only carries when it ends. */
@@ -763,7 +782,7 @@ export function FishingScreen({
   }, [activityPlayerId, fishingService, trackActivityPresence])
 
   useEffect(() => {
-    if (!inventoryService) {
+    if (!inventoryService || seeded) {
       return
     }
     let cancelled = false
@@ -784,7 +803,7 @@ export function FishingScreen({
     return () => {
       cancelled = true
     }
-  }, [configurationError, inventoryService])
+  }, [configurationError, inventoryService, seeded])
 
   const resolveFishingAttempt = async (
     attemptId: string,

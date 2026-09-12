@@ -46,9 +46,9 @@ interface AdminModerationInputs {
 /**
  * The administrator routes: bug reports and nickname moderation.
  *
- * Both are fetched on navigation to their screen rather than kept current,
- * and both refuse anyone without the admin role on every call, not only at
- * the door.
+ * Both are fetched on the way to their screen rather than kept current, and
+ * both refuse anyone without the admin role on every call, not only at the
+ * door.
  */
 export function useAdminModeration({
   account,
@@ -84,11 +84,18 @@ export function useAdminModeration({
     navigateToScreen('dashboard', true)
   }, [navigateToScreen])
 
-  const refreshAdminReports = useCallback((): void => {
+  /*
+   * The dashboards' first fetches, run by the navigator before the screen
+   * commits so it opens populated. Each settles the state and never rejects,
+   * so a failure reaches the dashboard as its own error panel, with its own
+   * Retry, rather than as a navigation error.
+   */
+  const loadAdminReports = useCallback(async (): Promise<void> => {
     if (!account?.isAdmin) {
       return
     }
-    if (!bugReport.service) {
+    const service = bugReport.service
+    if (!service) {
       setAdminReports((current) => ({
         ...current,
         loadState: 'error',
@@ -96,26 +103,24 @@ export function useAdminModeration({
       }))
       return
     }
-    setAdminReports((current) => ({ ...current, loadState: 'loading', error: null }))
-    void Promise.all([
-      bugReport.service.loadAll(),
-      repository.getHiddenBugReportIds(account.id),
-    ])
-      .then(([reports, hiddenReportIds]) => {
-        setAdminReports({
-          loadState: 'ready',
-          reports,
-          hiddenReportIds: [...hiddenReportIds],
-          error: null,
-        })
+    try {
+      const [reports, hiddenReportIds] = await Promise.all([
+        service.loadAll(),
+        repository.getHiddenBugReportIds(account.id),
+      ])
+      setAdminReports({
+        loadState: 'ready',
+        reports,
+        hiddenReportIds: [...hiddenReportIds],
+        error: null,
       })
-      .catch((error: unknown) => {
-        setAdminReports((current) => ({
-          ...current,
-          loadState: 'error',
-          error: errorMessage(error),
-        }))
-      })
+    } catch (error: unknown) {
+      setAdminReports((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
   }, [
     account,
     bugReport.configurationError,
@@ -123,20 +128,12 @@ export function useAdminModeration({
     repository,
   ])
 
-  useEffect(() => {
-    if (screen === 'admin' && account?.isAdmin) {
-      // Admin data is fetched on navigation to the admin screen. The fetch is
-      // imperative and cannot be derived during render.
-      // oxlint-disable-next-line react/set-state-in-effect
-      refreshAdminReports()
-    }
-  }, [account, refreshAdminReports, screen])
-
-  const refreshNicknameModeration = useCallback((): void => {
+  const loadNicknameModeration = useCallback(async (): Promise<void> => {
     if (!account?.isAdmin) {
       return
     }
-    if (!nicknameService.service) {
+    const service = nicknameService.service
+    if (!service) {
       setNicknameModeration((current) => ({
         ...current,
         loadState: 'error',
@@ -144,32 +141,56 @@ export function useAdminModeration({
       }))
       return
     }
-    setNicknameModeration((current) => ({ ...current, loadState: 'loading', error: null }))
-    void nicknameService.service.loadPendingChanges()
-      .then((requests) => {
-        setNicknameModeration({ loadState: 'ready', requests, error: null })
-      })
-      .catch((error: unknown) => {
-        setNicknameModeration((current) => ({
-          ...current,
-          loadState: 'error',
-          error: errorMessage(error),
-        }))
-      })
+    try {
+      const requests = await service.loadPendingChanges()
+      setNicknameModeration({ loadState: 'ready', requests, error: null })
+    } catch (error: unknown) {
+      setNicknameModeration((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
   }, [
     account,
     nicknameService.configurationError,
     nicknameService.service,
   ])
 
+  const refreshAdminReports = useCallback((): void => {
+    setAdminReports((current) => ({ ...current, loadState: 'loading', error: null }))
+    void loadAdminReports()
+  }, [loadAdminReports])
+
+  /*
+   * A navigation fetches the dashboard's data before it commits. Arriving by
+   * URL, or after a sign-out reset it, skips that, and the fetch happens here
+   * instead: only while nothing has been fetched, so a navigation that has
+   * already done the work is not repeated.
+   */
   useEffect(() => {
-    if (screen === 'nickname-moderation' && account?.isAdmin) {
-      // Moderation data is fetched on navigation to the moderation screen. The
-      // fetch is imperative and cannot be derived during render.
+    if (screen === 'admin' && account?.isAdmin && adminReports.loadState === 'idle') {
+      // The fetch is imperative and cannot be derived during render.
+      // oxlint-disable-next-line react/set-state-in-effect
+      refreshAdminReports()
+    }
+  }, [account, adminReports.loadState, refreshAdminReports, screen])
+
+  const refreshNicknameModeration = useCallback((): void => {
+    setNicknameModeration((current) => ({ ...current, loadState: 'loading', error: null }))
+    void loadNicknameModeration()
+  }, [loadNicknameModeration])
+
+  useEffect(() => {
+    if (
+      screen === 'nickname-moderation' &&
+      account?.isAdmin &&
+      nicknameModeration.loadState === 'idle'
+    ) {
       // oxlint-disable-next-line react/set-state-in-effect
       refreshNicknameModeration()
     }
-  }, [account, refreshNicknameModeration, screen])
+  }, [account, nicknameModeration.loadState, refreshNicknameModeration, screen])
 
   const toggleBugReportHidden = useCallback(async (
     reportId: number,
@@ -285,6 +306,8 @@ export function useAdminModeration({
     openAdmin,
     openNicknameModeration,
     closeAdmin,
+    loadAdminReports,
+    loadNicknameModeration,
     refreshAdminReports,
     refreshNicknameModeration,
     toggleBugReportHidden,

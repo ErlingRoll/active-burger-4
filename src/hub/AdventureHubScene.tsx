@@ -21,6 +21,7 @@ import {
 } from './HubPresenceService'
 import { tooltipClassName } from '../rendering/TooltipShell'
 import { EssenceMark } from '../ui/EssenceMark'
+import { navigationControlProps, type NavigationHints } from '../app/navigationHints'
 
 const HUB_SIGNAL_DURATION_MS = 4_000
 const HUB_SIGNAL_COOLDOWN_MS = 5_000
@@ -114,6 +115,8 @@ interface AdventureHubSceneProps {
   onOpenAbyss: () => void
   onContinueRun: () => void
   onRequestForfeit: () => void
+  /** Which destination is loading, and how to warm one ahead of a click. */
+  navigation?: NavigationHints
 }
 
 function getVisitorStyle(visitor: HubVisitor, total: number, isCurrentPlayer: boolean): CSSProperties {
@@ -192,6 +195,7 @@ export function AdventureHubScene({
   onOpenAbyss,
   onContinueRun,
   onRequestForfeit,
+  navigation,
 }: AdventureHubSceneProps) {
   const { showToast } = useToaster()
   const playerName = getPlayerDisplayName({
@@ -804,7 +808,12 @@ export function AdventureHubScene({
                   </>
                 ) : (
                   <div className="hub-expedition-actions">
-                    <button className="hub-expedition-action" type="button" onClick={onOpenRunSetup}>
+                    <button
+                      className="hub-expedition-action"
+                      type="button"
+                      onClick={onOpenRunSetup}
+                      {...navigationControlProps(navigation, 'run-setup')}
+                    >
                       Begin dungeon run <span aria-hidden="true">→</span>
                     </button>
                     <div className="hub-abyss-action-wrapper">
@@ -814,6 +823,7 @@ export function AdventureHubScene({
                         onClick={onOpenAbyss}
                         disabled={runLoadState !== 'ready' || championAvailability !== 'available'}
                         aria-describedby={abyssEntryMessage ? 'abyss-entry-tooltip' : undefined}
+                        {...navigationControlProps(navigation, 'run-setup')}
                       >
                         Infinite Abyss <span aria-hidden="true">∞</span>
                       </button>
@@ -828,34 +838,34 @@ export function AdventureHubScene({
               </section>
 
               <div className="hub-kit-stations" aria-label="The refuge">
-                <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'}>
+                <button className="hub-station hub-station-fishing" type="button" onClick={onOpenFishing} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'fishing')}>
                   <span aria-hidden="true">≈</span>
                   <span><strong>Moonwater Pond</strong><small>Go fishing</small></span>
                 </button>
-                <button className="hub-station hub-station-camp" type="button" onClick={onOpenCamp} disabled={runLoadState !== 'ready'}>
+                <button className="hub-station hub-station-camp" type="button" onClick={onOpenCamp} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'camp')}>
                   <span aria-hidden="true">⌂</span>
                   <span><strong>The Camp</strong><small>Send Champions to work</small></span>
                 </button>
               </div>
 
               <nav className="hub-paths" aria-label="Elsewhere in the refuge">
-                <button className="hub-path hub-path-champions" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-champions" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'champions')}>
                   <span aria-hidden="true">◆</span>
                   <span>Champions</span>
                 </button>
-                <button className="hub-path hub-path-inventory" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-inventory" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'inventory')}>
                   <span aria-hidden="true">▣</span>
                   <span>Inventory</span>
                 </button>
-                <button className="hub-path hub-path-shop" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-shop" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'shop')}>
                   <span aria-hidden="true">⇄</span>
                   <span>Quartermaster</span>
                 </button>
-                <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'run-history')}>
                   <span aria-hidden="true">✦</span>
                   <span>Chronicle</span>
                 </button>
-                <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'collections')}>
                   <span aria-hidden="true">❖</span>
                   <span>Collections</span>
                 </button>
@@ -923,6 +933,7 @@ export function AdventureHubScene({
                     : 'Checking the current dungeon run before opening the Essence store.'
                   : undefined}
                 aria-describedby={activeRun ? 'store-blocked-help' : undefined}
+                {...navigationControlProps(navigation, 'meta-progression')}
               >
                 <span><strong>Essence upgrades</strong><small>Permanent power</small></span>
                 <span className="hub-store-station-arrow" aria-hidden="true">→</span>

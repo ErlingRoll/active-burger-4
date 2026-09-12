@@ -137,6 +137,33 @@ describe('content and configuration layering', () => {
   })
 })
 
+describe('route splitting', () => {
+  /*
+   * A screen's loader (`loadShopScreen.ts` beside `ShopScreen.tsx`) runs in
+   * the entry chunk before the screen is committed, so it must be small and
+   * must never import the screen: a static import there pulls the screen's
+   * module back into the entry chunk and silently defeats the split, the same
+   * failure a feature barrel re-exporting a screen produces (ADR 0011).
+   */
+  it('keeps screen loaders free of component imports', () => {
+    const loaders = sourceFiles('src')
+      .filter(PRODUCTION_FILE)
+      .filter((file) => /[\\/]load[A-Z]\w*Screen\.ts$/.test(file))
+
+    expect(loaders.length).toBeGreaterThan(0)
+
+    const offenders = loaders.flatMap((file) =>
+      importsOf(file)
+        .filter((entry) => !entry.typeOnly)
+        .map((entry) => ({ ...entry, target: resolveRelative(file, entry.specifier) }))
+        .filter((entry) => entry.target?.endsWith('.tsx') === true)
+        .map((entry) => `${entry.file} -> ${entry.target ?? entry.specifier}`),
+    )
+
+    expect(offenders).toEqual([])
+  })
+})
+
 describe('import cycles', () => {
   it('has none', () => {
     const files = [...sourceFiles('src')]

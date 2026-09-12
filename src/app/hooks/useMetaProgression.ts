@@ -100,6 +100,38 @@ export function useMetaProgression(
     screen,
   ])
 
+  /**
+   * The store's first fetch, run by the navigator before the store commits so
+   * it opens populated. Settles the state and never rejects: a failure
+   * reaches the store as its own error panel, with its own Retry, rather than
+   * as a navigation error.
+   */
+  const loadStoreSnapshot = useCallback(async (): Promise<void> => {
+    const service = metaProgressionService.service
+    if (!service || !account) {
+      return
+    }
+    const requestedAttempt = metaLoadAttempt
+    try {
+      const snapshot = await service.load()
+      setMetaProgression((current) => ({
+        ...current,
+        loadState: 'ready',
+        snapshot,
+        error: null,
+        purchaseState: 'idle',
+        activePurchaseUnlockId: null,
+      }))
+      setMetaLoadedAttempt(requestedAttempt)
+    } catch (error: unknown) {
+      setMetaProgression((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
+  }, [account, metaLoadAttempt, metaProgressionService.service])
+
   /** Asks for a fresh read and shows the store as loading meanwhile. */
   const refreshMetaProgression = useCallback((): void => {
     setMetaProgression((current) => ({
@@ -128,6 +160,7 @@ export function useMetaProgression(
   return {
     metaProgression,
     setMetaProgression,
+    loadStoreSnapshot,
     refreshMetaProgression,
     requestReload,
     resetMetaProgression,

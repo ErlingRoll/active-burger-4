@@ -53,6 +53,15 @@ hidden: `/champions` had a path and a screen but no branch, so reloading on the
 Champions screen resolved back to the dashboard. The lookup is now derived from
 the path table itself.
 
+The split's cost was that every first visit to a screen showed the loading
+panel, and every visit showed the screen's own empty state while it fetched.
+ADR 0013 removes both: the previous screen is held until the chunk and the
+first fetch are both done, `app/lazyScreens.ts` shares one import promise
+between warming and rendering instead of using `React.lazy`, and each screen
+that fetches on mount gets a loader beside it. The loader rule is the barrel
+rule again in a new place: a loader must not import a screen component, and
+the architecture test that checks it sits alongside the cycle check.
+
 ## Addendum, 2026-09-13: the state moved out too
 
 The screens had left `App.tsx`, but their state had not: by the Camp and the
@@ -62,7 +71,10 @@ screens in `app/hooks/`, one hook per domain, each owning its state, its
 effects and its actions and taking the few cross-domain values it needs as
 parameters:
 
-- `useAppNavigation`: the screen and `navigateToScreen`.
+- `useAppNavigation`: the committed screen, `navigateToScreen`, and the
+  held-page navigator of ADR 0013. What a destination waits on is decided by
+  the domains below, which need the screen from this hook, so `App.tsx` hands
+  the navigator its preparation afterwards through `useScreenPreparation`.
 - `useAuthenticationState` and `useAuthenticationActions`: who is signed in,
   and the sign-in and sign-out actions. The two are split because signing out
   resets every other domain, so the actions are composed after the domains
@@ -70,13 +82,14 @@ parameters:
 - `useAccountNickname`: the nickname and its first-sign-in prompt.
 - `useLocalPersistence`: the IndexedDB settings and profile, and every write.
 - `useMetaProgression` and `useEssencePurchases`: the wallet, its reloads,
-  and the store's purchases.
+  the store's first fetch for the navigator, and the store's purchases.
 - `useDungeonRun`: the run from the refuge to the results and back, including
   the run configuration, the checkpoints, the terminal save, the reward and
   the Champion a victory pays.
-- `useAdminModeration`: the bug-report and nickname-moderation routes.
+- `useAdminModeration`: the bug-report and nickname-moderation routes, and
+  their first fetches for the navigator.
 
-`App.tsx` composes them, holds routing's two effects, bug reports and the
-sign-out reset that calls each domain's `reset()`, and renders the screen.
-The move changed no behaviour: every callback kept its dependency list, the
-effect count is the same ten, and the full suite held.
+`App.tsx` composes them, holds routing's effects (the popstate listener, the
+active-run guard and the chunk warming), bug reports and the sign-out reset
+that calls each domain's `reset()`, and renders the screen. The move changed
+no behaviour: every callback kept its dependency list and the full suite held.

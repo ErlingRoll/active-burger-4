@@ -14,7 +14,9 @@ import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { formatFishSizeKg, getFishDefinition } from '../fishing/FishingContent'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { CHARACTER_CLASS_DEFINITIONS, isCharacterClassId } from '../content/classes/CharacterClasses'
+import { useSeededLoad } from '../ui/useSeededLoad'
 import type { CollectionService } from './CollectionService'
+import type { CollectionsScreenData } from './loadCollectionsScreen'
 
 /**
  * The collections: a reference of what has been caught, found and cleared
@@ -27,6 +29,14 @@ interface CollectionsScreenProps {
   service: CollectionService | null
   configurationError: string | null
   onBack: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the cases open filled on the first frame;
+   * without it the screen fetches for itself, as it did before.
+   */
+  initialData?: CollectionsScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 type LoadState = 'loading' | 'ready' | 'error'
@@ -139,15 +149,27 @@ function CollectionPage({ pageId, state }: { pageId: CollectionPageId, state: Co
   )
 }
 
-export function CollectionsScreen({ service, configurationError, onBack }: CollectionsScreenProps) {
-  const [state, setState] = useState<CollectionState | null>(null)
-  const [loadState, setLoadState] = useState<LoadState>(() => service ? 'loading' : 'error')
+export function CollectionsScreen({
+  service,
+  configurationError,
+  onBack,
+  initialData,
+  initialLoadError = null,
+}: CollectionsScreenProps) {
+  const seeded = useSeededLoad(initialData !== undefined || initialLoadError !== null, service)
+  const [state, setState] = useState<CollectionState | null>(() => initialData?.state ?? null)
+  const [loadState, setLoadState] = useState<LoadState>(
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !service ? 'error' : 'loading',
+  )
   const [error, setError] = useState<string | null>(
-    () => service ? configurationError : configurationError ?? 'The collections are unavailable.',
+    () => initialLoadError ??
+      (service ? configurationError : configurationError ?? 'The collections are unavailable.'),
   )
 
   useEffect(() => {
-    if (!service) {
+    if (!service || seeded) {
       return
     }
     let cancelled = false
@@ -169,7 +191,7 @@ export function CollectionsScreen({ service, configurationError, onBack }: Colle
     return () => {
       cancelled = true
     }
-  }, [service])
+  }, [seeded, service])
 
   return (
     <section className="app-screen collections-screen" aria-labelledby="collections-title">
