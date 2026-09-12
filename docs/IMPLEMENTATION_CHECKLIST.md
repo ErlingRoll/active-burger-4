@@ -179,8 +179,9 @@ the check is named; the rest are review responsibilities.
       meal fish with it, and the Forge that rerolls artifacts and raises a
       run's scrap. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 - [x] **32. Contracts and collections:** a contract pool mirrored between the
-      migrations and the client, a board of three daily and one weekly
-      contract dealt per account from the account and the period, progress
+      migrations and the client, a board on the refuge of three daily slots
+      and one weekly contract dealt per account from the account and the
+      period, a claimed daily replaced on the spot, progress
       computed from the runs, catches, boxes and ledger rows the server already
       records, an idempotent claim paying materials and loot boxes and never
       Essence, the fish, artifact and Champion collections derived from the

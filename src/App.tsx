@@ -61,7 +61,6 @@ import { AppHeader } from './app/screens/AppHeader'
 import {
   LazyAdminReportsScreen,
   LazyCampScreen,
-  LazyContractsScreen,
   LazyCollectionsScreen,
   LazyChampionManagementScreen,
   LazyFishingScreen,
@@ -1447,10 +1446,6 @@ function App() {
     navigateToScreen('run-history')
   }, [navigateToScreen])
 
-  const openContracts = useCallback((): void => {
-    navigateToScreen('contracts')
-  }, [navigateToScreen])
-
   const openCollections = useCallback((): void => {
     navigateToScreen('collections')
   }, [navigateToScreen])
@@ -1724,7 +1719,6 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
-          onOpenContracts={openContracts}
           onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
@@ -1758,7 +1752,6 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
-          onOpenContracts={openContracts}
           onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
@@ -1793,7 +1786,6 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
-          onOpenContracts={openContracts}
           onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
@@ -1870,7 +1862,6 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
-          onOpenContracts={openContracts}
           onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           inventoryService={inventory.service}
@@ -1890,6 +1881,8 @@ function App() {
           presenceConfigurationError={hubPresence.configurationError}
           leaderboardService={abyssLeaderboard.service}
           leaderboardConfigurationError={abyssLeaderboard.configurationError}
+          contractService={contracts.service}
+          contractConfigurationError={contracts.configurationError}
           activeRun={activeRun}
           runLoadState={runLoadState}
           runLoadError={runLoadError}
@@ -1899,7 +1892,6 @@ function App() {
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
           onOpenShop={openShop}
-          onOpenContracts={openContracts}
           onOpenCollections={openCollections}
           onOpenRunHistory={openRunHistory}
           onOpenAbyss={openAbyssSetup}
@@ -1953,7 +1945,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'contracts' || screen === 'collections' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'collections' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !authentication.account ? (
         <AuthGateway
           authentication={authentication}
@@ -2058,15 +2050,6 @@ function App() {
             configurationError={shop.configurationError ?? inventory.configurationError}
             onBack={returnToDashboard}
             onEssenceChanged={refreshMetaProgression}
-          />
-        </LazyScreen>
-      ) : null}
-      {screen === 'contracts' && authentication.account ? (
-        <LazyScreen label="The contract board">
-          <LazyContractsScreen
-            service={contracts.service}
-            configurationError={contracts.configurationError}
-            onBack={returnToDashboard}
           />
         </LazyScreen>
       ) : null}

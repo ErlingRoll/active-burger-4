@@ -248,7 +248,8 @@ largest. See [contracts.md](contracts.md) and
 - Contract definition registry, rotation pools, and a fixed schedule. *Done:
   a seeded table with a client mirror held together by a registry test, and
   a board rolled per account from the account and the period.*
-- Three daily and one weekly contract per account. *Done.*
+- Three daily and one weekly contract per account. *Done, with a claimed
+  daily replaced on the spot so the day's board never empties.*
 - Progress credited from server-recorded run, fishing, and inventory events.
   *Done: progress is a query over the period's window, never stored and
   never reported by the client.*

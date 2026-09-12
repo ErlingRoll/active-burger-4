@@ -5,6 +5,7 @@ import { getContractsByCadence, isContractComplete } from './ContractTypes'
 
 const STATE = {
   server_time: '2026-09-13T12:00:00+00:00',
+  daily_claimed: 2,
   contracts: [
     {
       assignment_id: 7,
@@ -58,6 +59,7 @@ describe('contract service', () => {
     expect(client.rpc).toHaveBeenCalledWith('get_contract_state', {})
     expect(state.serverTime).toBe(STATE.server_time)
     expect(state.receivedAt).toBeGreaterThanOrEqual(before)
+    expect(state.dailyClaimed).toBe(2)
     expect(state.contracts).toEqual([
       {
         assignmentId: 7,
@@ -87,7 +89,7 @@ describe('contract service', () => {
   })
 
   it('refuses a board it cannot read', async () => {
-    const service = createService(fakeClient(() => ({ server_time: STATE.server_time, contracts: [{ assignment_id: 'seven' }] })))
+    const service = createService(fakeClient(() => ({ server_time: STATE.server_time, daily_claimed: 0, contracts: [{ assignment_id: 'seven' }] })))
     await expect(service.loadState()).rejects.toThrow(/invalid response/)
   })
 

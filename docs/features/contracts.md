@@ -17,7 +17,9 @@ happened.
 
 A contract is a rotating objective completed through normal play.
 
-- Three daily contracts and one weekly contract, replaced on a fixed schedule.
+- Three daily slots and one weekly contract. A claimed daily is replaced at
+  once by the next contract from the pool, so the day's board never empties;
+  the slots turn over with the day, and the weekly with the week.
 - Objectives span every system: clear floors, defeat elites carrying a named
   modifier, reach an Abyss depth, catch a species, craft at the Camp, salvage
   a quantity.

@@ -1,8 +1,9 @@
 # Contracts and collections: delivery plan
 
 > **Status:** Shipped 2026-09-13: the contract board, the three collections and
-> the Trophy hall. Elite-by-modifier contracts wait on a kill record the run
-> does not keep; see the note under objectives.
+> the Trophy hall. Later the same day the board moved onto the refuge and the
+> daily slots became endless. Elite-by-modifier contracts wait on a kill
+> record the run does not keep; see the note under objectives.
 > **Design:** [contracts.md](contracts.md) says what contracts and collections
 > are. This document says how they are built, in what order, and which
 > decisions were settled on the way.
@@ -56,6 +57,13 @@ so each slice is wiring rather than invention.
    of the account, the period and the definition. Refreshing returns the same
    board. The rows are what a claim is made against, so a definition retuned
    later never changes what a contract already on the board asks for.
+   **A daily slot never stays spent.** Claiming a daily contract deals the
+   next one into its slot in the same transaction, drawn from the dailies
+   the player can reach and not already on the board, the ones dealt fewest
+   times today first, so the whole pool is seen before any repeats. The
+   replacement's window opens at the claim and still closes at midnight, so
+   the morning's play does not count toward a contract dealt at noon. The
+   weekly contract is dealt once a week and claimed once.
 4. **Eligibility is measured at the roll.** A contract that needs a Champion
    is not offered to a player without one, and one that needs the Smokehouse
    is not offered before it is built. A player who gains either sees the
@@ -95,8 +103,11 @@ contract_assignments   id, profile_id, definition_id, cadence, period_key,
                        window_start, window_end, slot, claimed_at,
                        claim_operation_id
                        unique (profile_id, cadence, period_key, slot)
-                       unique (profile_id, period_key, definition_id)
+                         where claimed_at is null
 ```
+
+A claimed row keeps its slot number as the record of the day; only the live
+rows hold a slot, which is what the partial index says.
 
 `period_key` is the UTC date for a daily contract and the ISO week
 (`2026-W37`) for a weekly one. The window is stored on the row so a claim
@@ -175,8 +186,8 @@ displays are the same list read twice.
 
 | RPC | Does |
 | --- | --- |
-| `get_contract_state()` | Rolls the day's and the week's assignments if they do not exist, then returns every current assignment with its live progress and `server_time`. |
-| `claim_contract_reward(op, assignment)` | Owner check; the assignment is unclaimed; progress at or above target; grants the reward under `op || ':reward'`; stamps `claimed_at`. Returns what was paid and the state. |
+| `get_contract_state()` | Rolls the day's and the week's assignments if they do not exist, then returns the live dailies, the week's contract, how many dailies were claimed today, and `server_time`. |
+| `claim_contract_reward(op, assignment)` | Owner check; the assignment is unclaimed; progress at or above target; grants each reward line under `op || ':' || definition`; stamps `claimed_at`; deals a replacement into a daily slot. Returns what was paid and the state. |
 | `get_collection_state()` | The three pages. |
 
 ## Client
@@ -185,22 +196,24 @@ displays are the same list read twice.
 src/content/contracts/     Contracts.ts (+ test)            registry, pure
 src/content/collections/   Collections.ts (+ test)          pages, milestones, pure
 src/contracts/             ContractTypes.ts, ContractService.ts (+ test),
-                           ContractsScreen.tsx (+ test)
+                           ContractBoard.tsx (+ test), on the refuge
 src/collections/           CollectionTypes.ts, CollectionService.ts (+ test),
                            CollectionsScreen.tsx (+ test)
 src/camp/                  the Trophy hall as a building with an inspector
-src/hub/, src/app/         two paths on the refuge, two header links,
-                           two routes, two lazy screens
-src/styles/contracts.css   both screens
+src/hub/, src/app/         the board's panel on the refuge, a path and a
+                           header link to the collections, one route
+src/styles/contracts.css   the board's panel and the collections screen
 ```
 
-The contract board is a document screen: three daily cards and one weekly,
-each with the objective, a progress bar counting the window's events against
-the target, the reward, and a Claim button that is enabled at the target and
-becomes "Claimed" after. The board reads the state on open and after every
-claim, and never guesses in between. The collections screen is a reference
-document, as contracts.md asks: one section per page with an entry per
-species, base and class, greyed until found, and the milestones beneath.
+The contract board is a panel on the refuge, beside the leaderboard: the
+three dailies and the week's contract as one line each, with the ask, a bar
+counting the window's events against the target, the pay as icons, and a
+Claim that appears at the target. A claimed daily's line is replaced by the
+next contract's; the weekly line reads "Claimed". The panel reads the state
+on open and after every claim, and never guesses in between. The collections
+screen is a reference document, as contracts.md asks: one section per page
+with an entry per species, base and class, greyed until found, and the
+milestones beneath.
 
 ## Slices
 
@@ -209,9 +222,12 @@ species, base and class, greyed until found, and the milestones beneath.
 The reference table and its seed rows, the assignment table, the rotation,
 the progress function and the claim, all in
 `20260913120000_add_contracts_and_collections.sql`; the registry with its
-test; the service with its stubbed-RPC test; the screen with a component
-test that reads a board and claims a finished contract; the paths, links and
-routes.
+test; the service with its stubbed-RPC test; the board with a component
+test that reads it and claims a finished contract; the paths, links and
+routes. Revised the same day by
+`20260913150000_daily_contracts_replace_on_claim.sql`: the board moved from
+a screen of its own onto the refuge, and a claimed daily is replaced on the
+spot.
 
 ### Slice 2: collections and the Trophy hall *(shipped 2026-09-13)*
 
@@ -236,12 +252,13 @@ displays earned and opens the collections.
   covers the Trophy hall's building and level rows.
 - Services: stubbed `rpc` calls asserting the exact argument bag and the
   mapping of every response shape, as `CampService.test.ts` does.
-- Screens: a component test per screen that renders a known state, and for
-  the board one that claims a finished contract and reads the toast.
+- Screens: a component test for the board that renders a known state,
+  claims a finished contract, reads the toast and sees the replacement
+  dealt, and one for the collections screen.
 - Migrations: `npm run supabase:validate` locally with Docker; CI applies the
   whole history and lints it.
-- End to end: `e2e/contracts.spec.ts` signs in, reads the board and the
-  collections. Opt-in like every other browser suite.
+- End to end: `e2e/contracts.spec.ts` signs in, reads the board on the
+  refuge and the collections. Opt-in like every other browser suite.
 
 ## Risks
 

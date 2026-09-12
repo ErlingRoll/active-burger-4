@@ -10,6 +10,7 @@ import {
   errorMessage,
 } from '../runFormatting'
 import type { AbyssLeaderboardService } from '../../leaderboard/AbyssLeaderboardService'
+import type { ContractService } from '../../contracts/ContractTypes'
 import type { HubPresenceService } from '../../hub/HubPresenceService'
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
@@ -26,6 +27,8 @@ export interface GameDashboardProps {
   presenceConfigurationError: string | null
   leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
+  contractService: ContractService | null
+  contractConfigurationError: string | null
   activeRun: ActiveDungeonRun | null
   runLoadState: RunLoadState
   runLoadError: string | null
@@ -36,7 +39,6 @@ export interface GameDashboardProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
-  onOpenContracts: () => void
   onOpenCollections: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
@@ -55,6 +57,8 @@ export function GameDashboard({
   presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
+  contractService,
+  contractConfigurationError,
   activeRun,
   runLoadState,
   runLoadError,
@@ -65,7 +69,6 @@ export function GameDashboard({
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
-  onOpenContracts,
   onOpenCollections,
   onOpenRunHistory,
   onOpenAbyss,
@@ -109,6 +112,8 @@ export function GameDashboard({
         presenceConfigurationError={presenceConfigurationError}
         leaderboardService={leaderboardService}
         leaderboardConfigurationError={leaderboardConfigurationError}
+        contractService={contractService}
+        contractConfigurationError={contractConfigurationError}
         activeRun={activeRun}
         activeCharacterClassName={activeCharacterClass?.name ?? null}
         runLoadState={runLoadState}
@@ -123,7 +128,6 @@ export function GameDashboard({
         onOpenChampions={onOpenChampions}
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}
-        onOpenContracts={onOpenContracts}
         onOpenCollections={onOpenCollections}
         onOpenRunHistory={onOpenRunHistory}
         onOpenAbyss={onOpenAbyss}

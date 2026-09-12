@@ -58,12 +58,13 @@ function readAssignment(value: unknown): ContractAssignment {
 }
 
 function readState(value: unknown, receivedAt: number): ContractState {
-  if (!isRecord(value) || !isTimestamp(value.server_time) || !Array.isArray(value.contracts)) {
+  if (!isRecord(value) || !isTimestamp(value.server_time) || !isCount(value.daily_claimed) || !Array.isArray(value.contracts)) {
     throw invalidResponse('expected a contract state')
   }
   return {
     serverTime: value.server_time,
     receivedAt,
+    dailyClaimed: value.daily_claimed,
     contracts: value.contracts.map(readAssignment),
   }
 }

@@ -1574,6 +1574,7 @@
 .hub-paths,
 .hub-expedition-panel,
 .hub-leaderboard-panel,
+.hub-contracts-panel,
 .hub-presence-error {
   position: relative;
   z-index: 6;
@@ -1606,7 +1607,8 @@
 
 .hub-status-panel,
 .hub-expedition-panel,
-.hub-leaderboard-panel {
+.hub-leaderboard-panel,
+.hub-contracts-panel {
   padding: clamp(0.3rem, 1vh, 1rem);
   background:
     linear-gradient(135deg, rgb(254 243 199 / 6%), transparent 72%),
@@ -2227,6 +2229,7 @@
 .hub-status-panel,
 .hub-expedition-panel,
 .hub-leaderboard-panel,
+.hub-contracts-panel,
 .hub-social-panel {
   background:
     linear-gradient(180deg, rgb(var(--accent-rgb) / 10%), transparent 42%),
@@ -2615,14 +2618,6 @@
   --accent-contrast: var(--color-slate-50);
   --accent-rgb: 148 163 184;
   --accent-bright-rgb: 203 213 225;
-}
-
-.hub-path-contracts {
-  /* The board: parchment and sealing wax, as the contracts screen declares. */
-  --accent: var(--color-orange-300);
-  --accent-contrast: var(--color-amber-50);
-  --accent-rgb: 253 186 116;
-  --accent-bright-rgb: 254 215 170;
 }
 
 .hub-path-collections {
@@ -3513,6 +3508,7 @@
   .hub-expedition-panel { order: 4; }
   .hub-kit-stations { order: 5; }
   .hub-paths { order: 6; }
+  .hub-contracts-panel { order: 7; }
   .hub-social-panel { order: 8; }
   .hub-leaderboard-panel { order: 9; }
 

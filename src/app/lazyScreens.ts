@@ -47,10 +47,6 @@ export const LazyCampScreen = named<
   PropsOf<typeof import('../camp/CampScreen')['CampScreen']>
 >(() => import('../camp/CampScreen'), 'CampScreen')
 
-export const LazyContractsScreen = named<
-  PropsOf<typeof import('../contracts/ContractsScreen')['ContractsScreen']>
->(() => import('../contracts/ContractsScreen'), 'ContractsScreen')
-
 export const LazyCollectionsScreen = named<
   PropsOf<typeof import('../collections/CollectionsScreen')['CollectionsScreen']>
 >(() => import('../collections/CollectionsScreen'), 'CollectionsScreen')

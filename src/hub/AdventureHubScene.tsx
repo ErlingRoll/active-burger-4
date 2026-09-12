@@ -4,6 +4,8 @@ import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
 import { AbyssLeaderboard } from '../leaderboard/AbyssLeaderboard'
 import type { AbyssLeaderboardService } from '../leaderboard/AbyssLeaderboardService'
+import { ContractBoard } from '../contracts/ContractBoard'
+import type { ContractService } from '../contracts/ContractTypes'
 import { useToaster } from '../ui/ToasterContext'
 import {
   HUB_SIGNAL_IDS,
@@ -91,6 +93,8 @@ interface AdventureHubSceneProps {
   presenceConfigurationError: string | null
   leaderboardService: AbyssLeaderboardService | null
   leaderboardConfigurationError: string | null
+  contractService: ContractService | null
+  contractConfigurationError: string | null
   activeRun: ActiveDungeonRun | null
   activeCharacterClassName: string | null
   runLoadState: 'loading' | 'ready' | 'error' | 'unavailable'
@@ -105,7 +109,6 @@ interface AdventureHubSceneProps {
   onOpenChampions: () => void
   onOpenInventory: () => void
   onOpenShop: () => void
-  onOpenContracts: () => void
   onOpenCollections: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
@@ -168,6 +171,8 @@ export function AdventureHubScene({
   presenceConfigurationError,
   leaderboardService,
   leaderboardConfigurationError,
+  contractService,
+  contractConfigurationError,
   activeRun,
   activeCharacterClassName,
   runLoadState,
@@ -182,7 +187,6 @@ export function AdventureHubScene({
   onOpenChampions,
   onOpenInventory,
   onOpenShop,
-  onOpenContracts,
   onOpenCollections,
   onOpenRunHistory,
   onOpenAbyss,
@@ -851,10 +855,6 @@ export function AdventureHubScene({
                   <span aria-hidden="true">✦</span>
                   <span>Chronicle</span>
                 </button>
-                <button className="hub-path hub-path-contracts" type="button" onClick={onOpenContracts} title="Objectives that rotate daily and weekly" disabled={runLoadState !== 'ready'}>
-                  <span aria-hidden="true">✎</span>
-                  <span>Contracts</span>
-                </button>
                 <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">❖</span>
                   <span>Collections</span>
@@ -927,6 +927,19 @@ export function AdventureHubScene({
                 <span><strong>Essence upgrades</strong><small>Permanent power</small></span>
                 <span className="hub-store-station-arrow" aria-hidden="true">→</span>
               </button>
+            </aside>
+
+            {/*
+              The notices pinned by the gate: three daily contracts and the
+              week's, each a line with a bar, and a Claim when it is done.
+              A claimed daily is replaced on the spot, so the board never
+              empties.
+            */}
+            <aside className="hub-contracts-panel">
+              <ContractBoard
+                service={contractService}
+                configurationError={contractConfigurationError}
+              />
             </aside>
 
             <aside className="hub-leaderboard-panel">

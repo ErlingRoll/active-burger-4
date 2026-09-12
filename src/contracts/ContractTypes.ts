@@ -28,6 +28,8 @@ export interface ContractState {
   serverTime: string
   /** The client's clock when it arrived, for counting down to the window's end. */
   receivedAt: number
+  /** Daily contracts claimed today. A claimed daily is replaced at once, so this is the day's tally. */
+  dailyClaimed: number
   contracts: readonly ContractAssignment[]
 }
 
