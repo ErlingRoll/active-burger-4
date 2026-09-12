@@ -1,6 +1,6 @@
 # The Camp: delivery plan
 
-> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12, and the Trophy hall on 2026-09-13; slice 3 is still a proposal.
+> **Status:** Slices 0, 1 and 2, the Rift anchor, the Smokehouse and the Forge shipped 2026-09-11 and 2026-09-12, and the Trophy hall on 2026-09-13; slice 3 is still a proposal. What keeps the Camp worth opening after the last upgrade is proposed in [camp_late_game.md](camp_late_game.md).
 > **Design:** [camp.md](camp.md) says what the Camp is. This document says how to
 > build it, in what order, and which decisions are still open.
 
