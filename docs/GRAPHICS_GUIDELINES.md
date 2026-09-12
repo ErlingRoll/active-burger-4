@@ -122,6 +122,10 @@ identically in the refuge's ember, the pond's cyan and the Codex's violet.
 
 - Tokens: `--essence`, `--essence-contrast`, `--essence-rgb`,
   `--essence-bright-rgb`.
+- The hub's Essence panel is the one panel drawn in these tokens rather than
+  in the refuge's ember: it declares them as its accent, so the shared panel
+  and door rules compose its plate, its ringed arrow and its glow from the
+  gem's blue.
 - Mark: [`src/ui/EssenceMark.tsx`](../src/ui/EssenceMark.tsx). `<EssenceMark />`
   is the gem alone; `<EssenceAmount value={…} />` is the gem and the number, and
   is how an amount is shown **without** a label. It is a drawn SVG rather than a

@@ -898,6 +898,7 @@ export function AdventureHubScene({
                     <dd>{essenceBalance === null ? '—' : essenceBalance.toLocaleString()}</dd>
                   </div>
                 </dl>
+                <span className="hub-essence-watermark" aria-hidden="true"><EssenceMark /></span>
               </div>
               <button
                 className="hub-store-station"
