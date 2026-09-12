@@ -1,25 +1,27 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { renderComponent, screen } from '../testing/render'
-import { AccountSettingsMenu } from './AccountSettingsMenu'
+import { AccountSettingsMenu, type AccountSettingsAccount } from './AccountSettingsMenu'
 
-function renderMenu(overrides: Partial<Parameters<typeof AccountSettingsMenu>[0]> = {}) {
+function renderMenu(overrides: Partial<AccountSettingsAccount> = {}) {
   const onRequestNicknameChange = vi.fn(() => Promise.resolve())
   const result = renderComponent(
     <AccountSettingsMenu
-      displayName="Mira"
-      pendingNickname={null}
-      onRequestNicknameChange={onRequestNicknameChange}
-      bugReportDungeon={{
-        dungeonId: 'sunken-keep',
-        dungeonName: 'Sunken Keep',
-        currentFloor: 1,
-        maxFloor: 10,
-        characterClassId: 'knight',
-        worldModifierIds: [],
+      account={{
+        displayName: 'Mira',
+        pendingNickname: null,
+        onRequestNicknameChange,
+        bugReportDungeon: {
+          dungeonId: 'sunken-keep',
+          dungeonName: 'Sunken Keep',
+          currentFloor: 1,
+          maxFloor: 10,
+          characterClassId: 'knight',
+          worldModifierIds: [],
+        },
+        onSubmitBugReport: () => Promise.resolve(),
+        ...overrides,
       }}
-      onSubmitBugReport={() => Promise.resolve()}
-      {...overrides}
     />,
   )
   return { ...result, onRequestNicknameChange }
@@ -71,5 +73,14 @@ describe('AccountSettingsMenu', () => {
     await user.click(screen.getByRole('button', { name: 'Submit for review' }))
 
     expect(onRequestNicknameChange).toHaveBeenCalledWith('Ashling')
+  })
+
+  it('offers a visitor the audio settings and nothing of the account', async () => {
+    const { user } = renderComponent(<AccountSettingsMenu account={null} />)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(screen.getByRole('group', { name: 'Audio' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument()
   })
 })
