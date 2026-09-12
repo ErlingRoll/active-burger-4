@@ -777,7 +777,43 @@
   height: 100%;
   max-height: calc(clamp(3.2rem, 26vh, 16rem) * var(--plot-scale));
   overflow: visible;
-  transition: opacity 300ms ease, filter 300ms ease;
+  transition: opacity 300ms ease, filter 180ms ease;
+}
+
+/* A standing building is edged in light, so it reads against the dark it is
+   drawn in: a thin bright line traced round its silhouette with a soft halo
+   behind it, in the colour of whatever lights that building. The line is
+   drawn with drop-shadows on the picture itself, so it follows the roofline
+   and the chimney rather than a box. It brightens and widens under the
+   pointer, and burns brightest while the building's inspector is open. */
+.camp-plot {
+  --plot-outline-rgb: 251 191 36;
+}
+
+.camp-plot[data-plot='rift-anchor'] { --plot-outline-rgb: 167 139 250; }
+.camp-plot[data-plot='forge'] { --plot-outline-rgb: 249 115 22; }
+.camp-plot[data-plot='trophy-hall'] { --plot-outline-rgb: 94 234 212; }
+
+.camp-plot[data-built='true'] .camp-plot-art {
+  filter:
+    drop-shadow(0 0 1px rgb(var(--plot-outline-rgb) / 75%))
+    drop-shadow(0 0 4px rgb(var(--plot-outline-rgb) / 30%));
+}
+
+.camp-plot[data-built='true']:hover:not(:disabled) .camp-plot-art,
+.camp-plot[data-built='true']:focus-visible .camp-plot-art {
+  filter:
+    drop-shadow(0 0 1.5px rgb(var(--plot-outline-rgb) / 95%))
+    drop-shadow(0 0 6px rgb(var(--plot-outline-rgb) / 55%))
+    drop-shadow(0 0 14px rgb(var(--plot-outline-rgb) / 28%));
+}
+
+.camp-plot[data-built='true'][aria-pressed='true'] .camp-plot-art,
+.camp-plot[data-built='true'][aria-pressed='true']:hover:not(:disabled) .camp-plot-art {
+  filter:
+    drop-shadow(0 0 2px rgb(var(--plot-outline-rgb) / 100%))
+    drop-shadow(0 0 8px rgb(var(--plot-outline-rgb) / 70%))
+    drop-shadow(0 0 20px rgb(var(--plot-outline-rgb) / 40%));
 }
 
 /* Who is working here: a figure per slot at the foot of the building, a
@@ -1665,7 +1701,8 @@
   }
 
   .camp-plot,
-  .camp-plot-ground {
+  .camp-plot-ground,
+  .camp-plot-art {
     transition: none;
   }
 
