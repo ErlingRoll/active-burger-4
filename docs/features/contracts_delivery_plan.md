@@ -64,6 +64,10 @@ so each slice is wiring rather than invention.
    replacement's window opens at the claim and still closes at midnight, so
    the morning's play does not count toward a contract dealt at noon. The
    weekly contract is dealt once a week and claimed once.
+   Every read of the board also deals into any daily slot with nothing live
+   in it, so a slot emptied by a claim the pool could not follow, or by the
+   board as it stood before dailies were endless, is filled the next time
+   the refuge is opened.
 4. **Eligibility is measured at the roll.** A contract that needs a Champion
    is not offered to a player without one, and one that needs the Smokehouse
    is not offered before it is built. A player who gains either sees the
