@@ -119,7 +119,7 @@ class BrowserAudioSystem {
       }
       const resumePlayback = (): void => {
         const audio = this.audio
-        if (!audio) {
+        if (!audio || !audio.paused) {
           return
         }
         void audio.play()
@@ -130,8 +130,19 @@ class BrowserAudioSystem {
           })
           .catch(() => undefined)
       }
-      window.addEventListener('pointerdown', resumePlayback)
-      window.addEventListener('keydown', resumePlayback)
+      /*
+       * A browser lets a page start sound only once the player has
+       * interacted with it, and which event grants that depends on the
+       * pointer. A mouse grants it on `pointerdown`; a finger does not, only
+       * on the `pointerup` that follows. Listening to `pointerdown` alone
+       * meant that on a phone the first tap's play() was refused a moment
+       * before the tap counted, and the music waited for a second tap: on the
+       * sign-in page, the tap into the email field did nothing and the music
+       * arrived only with the sign-in button.
+       */
+      for (const type of ['pointerdown', 'pointerup', 'keydown'] as const) {
+        window.addEventListener(type, resumePlayback)
+      }
     }
   }
 

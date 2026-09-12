@@ -17,7 +17,7 @@ export type {
 } from './AuthService'
 export { AuthPanel } from './AuthPanel'
 export type { AuthenticationState, AuthenticationStatus } from './AuthPanel'
-export { AccountSettingsMenu } from './AccountSettingsMenu'
+export { AccountSettingsMenu, type AccountSettingsAccount } from './AccountSettingsMenu'
 export { NicknameDialog } from './NicknameDialog'
 export type { NicknameDialogProps } from './NicknameDialog'
 export {

@@ -123,13 +123,22 @@ export function AppHeader({
       >
         <nav className="app-navigation" aria-label="Primary navigation">
           <a className="app-wiki-link" href="/wiki">Wiki</a>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenFishing)} {...navigationControlProps(navigation, 'fishing')}>Fishing</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)} {...navigationControlProps(navigation, 'camp')}>Camp</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)} {...navigationControlProps(navigation, 'champions')}>Champions</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
+          {/*
+            Every destination past the wiki belongs to an account. A visitor
+            on the sign-in page is offered none of them: each would only have
+            shown the same gate again.
+          */}
+          {authentication.account ? (
+            <>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenFishing)} {...navigationControlProps(navigation, 'fishing')}>Fishing</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)} {...navigationControlProps(navigation, 'camp')}>Camp</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)} {...navigationControlProps(navigation, 'champions')}>Champions</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
+            </>
+          ) : null}
           {DEVELOPMENT_TOOLS_ENABLED && authentication.account?.isAdmin ? (
             <DevelopmentToolsMenu
               inventoryService={inventoryService}
@@ -171,17 +180,28 @@ export function AppHeader({
               </>
             ) : null}
             <AccountSettingsMenu
-              displayName={nickname.displayName}
-              pendingNickname={nickname.pendingNickname}
-              onRequestNicknameChange={onRequestNicknameChange}
-              bugReportDungeon={bugReportDungeon}
-              onSubmitBugReport={onSubmitBugReport}
+              account={{
+                displayName: nickname.displayName,
+                pendingNickname: nickname.pendingNickname,
+                onRequestNicknameChange,
+                bugReportDungeon,
+                onSubmitBugReport,
+              }}
             />
             <button className="app-sign-out" type="button" onClick={() => { void onSignOut() }}>
               Sign out
             </button>
           </div>
-        ) : null}
+        ) : (
+          /*
+            The sign-in page plays the refuge's music, and the volume is the
+            device's setting rather than the account's, so the same menu is
+            here for a visitor with only the audio panel in it.
+          */
+          <div className="app-account">
+            <AccountSettingsMenu account={null} />
+          </div>
+        )}
       </div>
     </header>
   )

@@ -23,6 +23,9 @@ import {
 } from '../../../content/skills/Skills'
 import { createGearModifier } from '../../../content/gear/ModifierPools'
 import {
+  LANCERS_CHARGE_HOLD_SECONDS,
+  LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+  LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
   RALLYING_BANNER_BASE_DURATION_SECONDS,
   RALLYING_BANNER_AREA_OF_EFFECT_PER_RANK,
   RALLYING_BANNER_EFFECT_RADIUS,
@@ -874,7 +877,7 @@ describe('skill system', () => {
   })
 
   describe("Lancer's Charge", () => {
-    it('strikes every enemy in the charge corridor toward the nearest target', () => {
+    it('strikes every enemy in the charge corridor and grants Momentum per enemy struck', () => {
       const game = createGame({ seed: 63 })
       game.state.player.skills = [{
         skillId: LANCERS_CHARGE_SKILL_ID,
@@ -883,7 +886,7 @@ describe('skill system', () => {
       }]
       const targetId = game.spawnSlime({ x: 150, y: 0 })
       const inCorridorId = game.spawnSlime({ x: 100, y: 20 })
-      const outsideId = game.spawnSlime({ x: 100, y: 80 })
+      const outsideId = game.spawnSlime({ x: 100, y: 120 })
 
       const events = collectSkillDamage(game.state, allocator)
 
@@ -894,8 +897,118 @@ describe('skill system', () => {
       )).toBe(true)
       expect(events.some((event) => event.targetId === outsideId)).toBe(false)
       expect(game.state.player.x).toBeGreaterThan(0)
+      expect(game.state.player.lancerMomentumStacks).toBe(2)
+      expect(game.state.player.lancerMomentumDecayRemaining).toBe(
+        LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
+      )
+      expect(game.state.player.lancerChargeHoldRemaining).toBeUndefined()
+    })
+
+    it('aims down the line that strikes the most enemies instead of at the nearest one', () => {
+      const game = createGame({ seed: 631 })
+      game.state.player.skills = [{
+        skillId: LANCERS_CHARGE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const nearestId = game.spawnSlime({ x: 0, y: 80 })
+      const packIds = [
+        game.spawnSlime({ x: 120, y: 0 }),
+        game.spawnSlime({ x: 160, y: 0 }),
+        game.spawnSlime({ x: 190, y: 0 }),
+      ]
+
+      const events = collectSkillDamage(game.state, allocator)
+
+      expect(events.map((event) => event.targetId).sort((a, b) => a - b))
+        .toEqual([...packIds].sort((a, b) => a - b))
+      expect(events.some((event) => event.targetId === nearestId)).toBe(false)
+      expect(game.state.player.x).toBeGreaterThan(0)
+      expect(game.state.player.y).toBeCloseTo(0)
+      expect(game.state.player.lancerMomentumStacks).toBe(
+        LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+      )
+    })
+
+    it('lands in front of the first enemy along the line, not beside the scoring target', () => {
+      const game = createGame({ seed: 632 })
+      game.state.player.skills = [{
+        skillId: LANCERS_CHARGE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 100, y: 0 })
+      game.spawnSlime({ x: 180, y: 0 })
+      const firstRadius = game.state.enemies[0]!.radius
+
+      collectSkillDamage(game.state, allocator)
+
+      expect(game.state.player.x).toBeCloseTo(
+        100 - firstRadius - game.state.player.radius - 4,
+      )
+      expect(game.state.player.x).toBeLessThan(100)
+    })
+
+    it('holds a single-target charge until the hold window expires, then deals more damage', () => {
+      const game = createGame({ seed: 64 })
+      game.state.player.skills = [{
+        skillId: LANCERS_CHARGE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      game.spawnSlime({ x: 150, y: 0 })
+
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      expect(game.state.player.lancerChargeHoldRemaining).toBe(
+        LANCERS_CHARGE_HOLD_SECONDS,
+      )
+      expect(game.state.player.skills[0]!.cooldownRemaining).toBe(0)
+      expect(game.state.player.x).toBe(0)
+
+      updateSkillCooldowns(game.state, LANCERS_CHARGE_HOLD_SECONDS / 2)
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+
+      updateSkillCooldowns(game.state, LANCERS_CHARGE_HOLD_SECONDS / 2)
+      const [event] = collectSkillDamage(game.state, allocator)
+
+      expect(event?.damage.physical).toBeCloseTo(11 * 1.5 + 8)
+      expect(game.state.player.x).toBeGreaterThan(0)
+      expect(game.state.player.lancerChargeHoldRemaining).toBeUndefined()
       expect(game.state.player.lancerMomentumStacks).toBe(1)
-      expect(game.state.player.lancerMomentumDecayRemaining).toBe(4)
+    })
+
+    it('clears the hold when no enemy is in range', () => {
+      const game = createGame({ seed: 641 })
+      game.state.player.skills = [{
+        skillId: LANCERS_CHARGE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const slimeId = game.spawnSlime({ x: 150, y: 0 })
+      collectSkillDamage(game.state, allocator)
+      expect(game.state.player.lancerChargeHoldRemaining).toBe(
+        LANCERS_CHARGE_HOLD_SECONDS,
+      )
+
+      game.state.enemies.find((enemy) => enemy.id === slimeId)!.hp = 0
+      expect(collectSkillDamage(game.state, allocator)).toEqual([])
+      expect(game.state.player.lancerChargeHoldRemaining).toBeUndefined()
+    })
+
+    it('charges a lone boss without waiting', () => {
+      const game = createGame({ seed: 642 })
+      game.state.player.skills = [{
+        skillId: LANCERS_CHARGE_SKILL_ID,
+        level: 1,
+        cooldownRemaining: 0,
+      }]
+      const bossId = game.spawnBoss('stone-golem', { x: 150, y: 0 })
+
+      const events = collectSkillDamage(game.state, allocator)
+
+      expect(events.map((event) => event.targetId)).toEqual([bossId])
+      expect(game.state.player.lancerChargeHoldRemaining).toBeUndefined()
+      expect(game.state.player.lancerMomentumStacks).toBe(1)
     })
 
     it('builds capped Momentum stacks across casts and decays them after inactivity', () => {
@@ -906,16 +1019,19 @@ describe('skill system', () => {
         cooldownRemaining: 0,
       }]
       game.spawnSlime({ x: 150, y: 0 })
+      game.spawnSlime({ x: 120, y: 10 })
 
       collectSkillDamage(game.state, allocator)
-      expect(game.state.player.lancerMomentumStacks).toBe(1)
+      expect(game.state.player.lancerMomentumStacks).toBe(2)
 
       game.state.player.skills[0]!.cooldownRemaining = 0
       const [secondEvent] = collectSkillDamage(game.state, allocator)
-      expect(secondEvent?.damage.physical).toBeCloseTo(19.66)
-      expect(game.state.player.lancerMomentumStacks).toBe(2)
+      expect(secondEvent?.damage.physical).toBeCloseTo(20.32)
+      expect(game.state.player.lancerMomentumStacks).toBe(
+        LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
+      )
 
-      updateSkillCooldowns(game.state, 4)
+      updateSkillCooldowns(game.state, LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS)
       expect(game.state.player.lancerMomentumStacks).toBe(0)
     })
 
@@ -928,11 +1044,14 @@ describe('skill system', () => {
       }]
       game.state.run.selectedUpgradeIds.push('lancers-charge-vanguard')
       game.state.player.lancerMomentumStacks = 1
+      game.state.player.lancerMomentumDecayRemaining =
+        LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
+      game.state.player.lancerChargeHoldRemaining = 0
       game.spawnSlime({ x: 150, y: 0 })
 
       const [event] = collectSkillDamage(game.state, allocator)
 
-      expect(event?.damage.physical).toBeCloseTo(21.75)
+      expect(event?.damage.physical).toBeCloseTo(11 * 1.25 * 1.5 + 8)
     })
 
     it('gives Impaler more range at the cost of reduced damage', () => {
@@ -942,7 +1061,8 @@ describe('skill system', () => {
         level: 1,
         cooldownRemaining: 0,
       }]
-      withoutImpaler.spawnSlime({ x: 190, y: 0 })
+      withoutImpaler.state.player.lancerChargeHoldRemaining = 0
+      withoutImpaler.spawnSlime({ x: 220, y: 0 })
       expect(collectSkillDamage(withoutImpaler.state, allocator)).toEqual([])
 
       const withImpaler = createGame({ seed: 66 })
@@ -952,10 +1072,11 @@ describe('skill system', () => {
         cooldownRemaining: 0,
       }]
       withImpaler.state.run.selectedUpgradeIds.push('lancers-charge-impaler')
-      withImpaler.spawnSlime({ x: 190, y: 0 })
+      withImpaler.state.player.lancerChargeHoldRemaining = 0
+      withImpaler.spawnSlime({ x: 220, y: 0 })
 
       const [event] = collectSkillDamage(withImpaler.state, allocator)
-      expect(event?.damage.physical).toBeCloseTo(17.35)
+      expect(event?.damage.physical).toBeCloseTo(11 * 0.85 * 1.5 + 8)
     })
   })
 
