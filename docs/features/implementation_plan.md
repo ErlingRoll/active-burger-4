@@ -248,8 +248,7 @@ largest. See [contracts.md](contracts.md).
 - Three daily and one weekly contract per account.
 - Progress credited from server-recorded run, fishing, and inventory events.
 - Idempotent reward claims paying materials, box keys, and cosmetics.
-- Bestiary, fish, artifact, and Champion collections derived from recorded
-  events.
+- Fish, artifact, and Champion collections derived from recorded events.
 - Completion rewards limited to unlocks, capacity, and cosmetics.
 
 Roll contracts only from the pool the account has unlocked, so a contract is

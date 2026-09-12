@@ -68,7 +68,7 @@ system's input. A proposed building that fails that test does not belong here.
 | Forge | Scrap, rift shards | Artifact rerolls, and more scrap from a finished run's loadout |
 | Tackle bench | Roe, timber, scrap | Bait and rod components that fishing cannot produce for itself |
 | Rift anchor | Rift shards, Champion labour | Reduced Champion exhaustion over time: an exhausted Champion resting there recovers faster |
-| Trophy hall | Bestiary and collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
+| Trophy hall | Collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
 | Storehouse | Timber and stone | Inventory capacity, and the accrual cap for offline production |
 | Woodline and quarry | Champion labour only | Timber and stone |
 

@@ -39,9 +39,6 @@ uncompleted contract simply rotates away.
 
 Collections record what a player has seen and reward completion.
 
-- **Bestiary.** Enemies, elites by modifier, and bosses, recorded on first
-  kill, with each entry showing the runtime behaviour already documented for
-  that elite modifier.
 - **Fish.** Species, rarity, and record size, in the shape fishing already
   implies.
 - **Artifacts and gear.** Definitions seen, matching the duplicate handling
@@ -49,8 +46,11 @@ Collections record what a player has seen and reward completion.
 - **Champions.** Classes cleared with, and the deepest floor reached with each.
 
 Completion rewards follow the same rule as everything else outside the run:
-options, capacity, access, and cosmetics. A completed bestiary page may unlock
-a Camp recipe, a Trophy hall display, or a cosmetic. It may not grant damage.
+options, capacity, access, and cosmetics. A completed fish page may unlock a
+Camp recipe, a Trophy hall display, or a cosmetic. It may not grant damage.
+
+A bestiary of enemies, elites and bosses was considered and set aside. It is
+not planned; the elite modifiers stay documented in the wiki.
 
 Collections are the one part of this proposal where a scrolling document screen
 is appropriate, in the same way the wiki and the champions page already are.

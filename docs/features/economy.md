@@ -119,7 +119,7 @@ not, because each player reaches the others through the one they like.
 | --- | --- | --- |
 | Theorycrafter | Skills, synergies, evolutions, artifacts | Meals and rerolls that need materials |
 | Idler | The camp and offline accrual | Champions, which only runs produce |
-| Collector | Fish, bestiary, artifact collection | Contracts that direct play |
+| Collector | Fish and artifact collection | Contracts that direct play |
 | Competitor | Abyss depth, which is what the leaderboard ranks | Preparation systems that raise the ceiling |
 | Trader | The market | Everything, because it moves everything |
 | Socialiser | Hub presence, pond presence, borrowed Champions | Published builds |
