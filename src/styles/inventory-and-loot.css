@@ -1634,6 +1634,13 @@
   color: var(--color-violet-300);
 }
 
+/* A rod with nothing rolled says so in the card's own voice, not a blank. */
+.rod-modifiers-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: clamp(0.7rem, 1.6vh, 0.86rem);
+}
+
 /* The artifact card rides under the inspector band at the rail's full width. */
 .inventory-inspector-artifact {
   flex: 0 0 auto;

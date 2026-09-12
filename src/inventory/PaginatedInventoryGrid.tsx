@@ -12,6 +12,7 @@ import { RARITY_VISUALS } from '../content/rarity/Rarity'
 import { getArtifactSalvageScrap, readArtifactMetadata } from '../content/artifacts/Artifacts'
 import { isEnchantedItemMetadata } from '../fishing/FishingContent'
 import { ArtifactEffectList } from './ArtifactEffects'
+import { FishingRodModifierList } from './FishingRodModifiers'
 import { isSalvageableItem } from './InventoryFilters'
 import { getInventoryItemRarity } from './InventoryRarity'
 import { getInventoryItemDefinition } from './ItemDefinitions'
@@ -117,6 +118,8 @@ export function PaginatedInventoryGrid({
   const tooltipEssence = tooltipItem === null || tooltipArtifact !== null
     ? null
     : getItemEssence?.(tooltipItem) ?? null
+  const tooltipIsRod = tooltipItem !== null
+    && getInventoryItemDefinition(tooltipItem.definitionId)?.category === 'rod'
 
   /*
    * The closer closes the tooltip, and only the tooltip.
@@ -313,6 +316,12 @@ export function PaginatedInventoryGrid({
           </header>
           {tooltipArtifact ? (
             <ArtifactEffectList metadata={tooltipArtifact} showFlavor />
+          ) : tooltipIsRod ? (
+            <FishingRodModifierList
+              definitionId={tooltipItem.definitionId}
+              metadata={tooltipItem.metadata}
+              showFlavor
+            />
           ) : (
             <p>{getItemDetail(tooltipItem)}</p>
           )}

@@ -19,6 +19,7 @@ import {
 } from '../inventory'
 import type { InventoryCategoryFilter, SalvageSweepRarity } from '../inventory'
 import { ArtifactEffectList } from '../inventory/ArtifactEffects'
+import { FishingRodModifierList } from '../inventory/FishingRodModifiers'
 import {
   formatArtifactHeadline,
   formatArtifactSummary,
@@ -34,6 +35,7 @@ import {
   formatFishingFishDetail,
   formatFishingRodModifiers,
   getFishingEssenceValue,
+  getFishingRodModifierDetails,
   isEnchantedItemMetadata,
 } from '../fishing'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
@@ -83,6 +85,17 @@ function getInventoryItemDetail(item: InventoryItemInstance): string {
     return formatFishingRodModifiers(item.metadata)
   }
   return definition?.category.replace('-', ' ') ?? 'item'
+}
+
+/**
+ * The inspector band's one line for a rod. The card under the band lists the
+ * rolls, so the band only counts them; naming them twice on one panel was
+ * the complaint that moved the list off the line.
+ */
+function formatFishingRodHeadline(item: InventoryItemInstance): string {
+  const count = getFishingRodModifierDetails(item.metadata).length
+  const modifiers = count === 0 ? 'No modifiers' : count === 1 ? '1 modifier' : `${count} modifiers`
+  return typeof item.metadata.rarity === 'string' ? `${item.metadata.rarity} · ${modifiers}` : modifiers
 }
 
 const getItemEssence = (item: InventoryItemInstance): number | null =>
@@ -316,6 +329,8 @@ export function InventoryScreen({
     ? null
     : readArtifactMetadata(selectedItem.definitionId, selectedItem.metadata)
   const selectedIsFavorite = selectedItem !== null && isItemFavorite(selectedItem)
+  const selectedIsRod = selectedItem !== null
+    && getInventoryItemDefinition(selectedItem.definitionId)?.category === 'rod'
   const selectedFavoriteScope = selectedItem === null ? null : getInventoryFavoriteScope(selectedItem)
   const selectedEssence = selectedItem === null ? null : getItemEssence(selectedItem)
 
@@ -525,7 +540,9 @@ export function InventoryScreen({
                       <p className="inventory-inspector-detail">
                         {selectedArtifact
                           ? formatArtifactHeadline(selectedArtifact)
-                          : getInventoryItemDetail(selectedItem)}
+                          : selectedIsRod
+                            ? formatFishingRodHeadline(selectedItem)
+                            : getInventoryItemDetail(selectedItem)}
                       </p>
                       <dl className="inventory-inspector-facts">
                         <div>
@@ -587,6 +604,13 @@ export function InventoryScreen({
                   {selectedArtifact ? (
                     <div className="inventory-inspector-artifact">
                       <ArtifactEffectList metadata={selectedArtifact} />
+                    </div>
+                  ) : selectedIsRod ? (
+                    <div className="inventory-inspector-artifact">
+                      <FishingRodModifierList
+                        definitionId={selectedItem.definitionId}
+                        metadata={selectedItem.metadata}
+                      />
                     </div>
                   ) : null}
                 </>

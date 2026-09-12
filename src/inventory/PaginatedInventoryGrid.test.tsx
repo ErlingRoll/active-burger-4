@@ -115,6 +115,32 @@ describe('PaginatedInventoryGrid hover card', () => {
     expect(within(card).getByText('Salvage')).toBeInTheDocument()
   })
 
+  it('lists a rod\'s rolls one per line with their tiers, as an artifact\'s card does', async () => {
+    const rod: InventoryItemInstance = {
+      ...item('tideback-fishing-rod', 'rod-1'),
+      metadata: {
+        rarity: 'rare',
+        modifierIds: ['rarity', 'bait-retention', 'speed'],
+        modifierTiers: { rarity: 5, 'bait-retention': 1, speed: 2 },
+        rarityBonusPercent: 1,
+        baitRetentionPercent: 45,
+        speedPercent: 4,
+      },
+    }
+    const { user } = renderGrid({ items: [rod] })
+
+    await user.hover(screen.getByRole('listitem', { name: /^Tideback rod,/ }))
+
+    const card = await screen.findByRole('tooltip')
+    const rows = within(card).getAllByRole('listitem')
+    expect(rows.map((row) => row.textContent)).toEqual([
+      '+1% FortuneT5',
+      '+45% Bait KeeperT1',
+      '+4% Quick LineT2',
+    ])
+    expect(within(card).queryByText(/Fortune,/)).not.toBeInTheDocument()
+  })
+
   it('offers no way to spend an item from a card the pointer can leave', async () => {
     const { user, slotFor } = renderGrid()
 
