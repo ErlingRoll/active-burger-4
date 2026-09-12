@@ -78,7 +78,16 @@
     radial-gradient(ellipse at 82% 70%, transparent 0 13rem, rgb(14 116 144 / 20%) 18rem, transparent 32rem);
 }
 
+/* The header is a stacking context of its own: screen-transitions.css names it
+   for the dissolve, and a `view-transition-name` isolates everything inside it
+   the way `isolation: isolate` would. Without a `z-index` here that context
+   paints in tree order, which puts the screen below it over the settings menu
+   and the header's dialogs, whatever `z-index` they carry inside it. Above
+   every screen, then; the navigation veil in screen-transitions.css raises it
+   further while a page is loading. */
 .app-header {
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
