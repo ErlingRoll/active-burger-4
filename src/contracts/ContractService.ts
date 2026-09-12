@@ -40,6 +40,7 @@ function readAssignment(value: unknown): ContractAssignment {
     !isCount(value.slot) ||
     !isCount(value.target) ||
     !isCount(value.progress) ||
+    !isCount(value.repeat_claims) ||
     !(value.claimed_at === null || value.claimed_at === undefined || isTimestamp(value.claimed_at))) {
     throw invalidResponse('expected a contract row')
   }
@@ -53,6 +54,7 @@ function readAssignment(value: unknown): ContractAssignment {
     slot: value.slot,
     target: value.target,
     progress: value.progress,
+    repeatClaims: value.repeat_claims,
     claimedAt: isTimestamp(value.claimed_at) ? value.claimed_at : null,
   }
 }

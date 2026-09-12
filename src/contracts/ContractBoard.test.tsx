@@ -16,6 +16,7 @@ function assignment(overrides: Partial<ContractAssignment> & Pick<ContractAssign
     slot: 1,
     target: 5,
     progress: 0,
+    repeatClaims: 0,
     claimedAt: null,
     ...overrides,
   }
@@ -102,6 +103,18 @@ describe('ContractBoard', () => {
     expect(screen.queryByRole('listitem', { name: /Down the stairs/ })).toBeNull()
     expect(screen.getByText(/2 claimed today/)).toBeVisible()
     expect(screen.getAllByText('Contract fulfilled')).toHaveLength(2)
+  })
+
+  it('shows half pay on a contract dealt for the third time today', async () => {
+    const repeated = state([
+      assignment({ assignmentId: 5, definitionId: 'daily-catch', slot: 1, target: 5, progress: 5, repeatClaims: 2 }),
+    ])
+    renderComponent(<ContractBoard service={fakeService({ loadState: vi.fn(async () => repeated) })} configurationError={null} />)
+
+    const row = await screen.findByRole('listitem', { name: /A day's catch: ready to claim/ })
+    const reward = within(row).getByRole('list', { name: 'Reward, halved for a repeat' })
+    expect(within(reward).getByText('2')).toBeVisible()
+    expect(within(reward).getByText('½')).toBeVisible()
   })
 
   it('marks a claimed weekly rather than replacing it', async () => {

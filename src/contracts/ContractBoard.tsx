@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { describeContractObjective, getContractDefinition } from '../content/contracts/Contracts'
+import { describeContractObjective, getContractDefinition, scaleContractReward } from '../content/contracts/Contracts'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
@@ -58,7 +58,11 @@ function ContractRow({ assignment, busy, onClaim }: ContractRowProps) {
   const shown = Math.min(assignment.progress, assignment.target)
   const percent = assignment.target > 0 ? Math.round((shown / assignment.target) * 100) : 0
   const name = definition?.name ?? assignment.definitionId
-  const reward = definition?.reward ?? []
+  const reward = (definition?.reward ?? []).map((line) => ({
+    ...line,
+    quantity: scaleContractReward(line.quantity, assignment.repeatClaims),
+  }))
+  const halved = reward.some((line, index) => line.quantity < (definition?.reward[index]?.quantity ?? 0))
   return (
     <li
       className="hub-contract"
@@ -82,7 +86,7 @@ function ContractRow({ assignment, busy, onClaim }: ContractRowProps) {
       </div>
       <div className="hub-contract-side">
         <span className="hub-contract-figure">{shown}/{assignment.target}</span>
-        <ul className="hub-contract-reward" aria-label="Reward">
+        <ul className="hub-contract-reward" aria-label={halved ? 'Reward, halved for a repeat' : 'Reward'}>
           {reward.map((line) => (
             <li key={line.definitionId} title={`${line.quantity} ${itemName(line.definitionId)}`}>
               <span aria-hidden="true">{getRewardIcon(line.definitionId)}</span>
@@ -90,6 +94,7 @@ function ContractRow({ assignment, busy, onClaim }: ContractRowProps) {
               <span className="visually-hidden">{itemName(line.definitionId)}</span>
             </li>
           ))}
+          {halved ? <li className="hub-contract-repeat" title="Dealt again today: half pay">½</li> : null}
         </ul>
         {claimed ? (
           <span className="hub-contract-claimed">Claimed</span>

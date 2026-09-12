@@ -190,6 +190,15 @@
   height: 100%;
 }
 
+/* A repeat's mark: the pay is half, and the mark says so beside it. */
+.hub-contract-repeat {
+  padding: 0 0.3rem;
+  color: var(--color-stone-300);
+  background: rgb(0 0 0 / 40%);
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
+  border-radius: 999px;
+}
+
 .hub-contract-claim {
   min-height: 0;
   padding: 0.22rem 0.55rem;

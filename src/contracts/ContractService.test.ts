@@ -17,6 +17,7 @@ const STATE = {
       slot: 1,
       target: 5,
       progress: 2,
+      repeat_claims: 0,
       claimed_at: null,
     },
     {
@@ -29,6 +30,7 @@ const STATE = {
       slot: 1,
       target: 25,
       progress: 31,
+      repeat_claims: 1,
       claimed_at: '2026-09-13T11:00:00+00:00',
     },
   ],
@@ -71,6 +73,7 @@ describe('contract service', () => {
         slot: 1,
         target: 5,
         progress: 2,
+        repeatClaims: 0,
         claimedAt: null,
       },
       {
@@ -83,6 +86,7 @@ describe('contract service', () => {
         slot: 1,
         target: 25,
         progress: 31,
+        repeatClaims: 1,
         claimedAt: '2026-09-13T11:00:00+00:00',
       },
     ])

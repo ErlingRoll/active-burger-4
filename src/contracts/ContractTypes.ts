@@ -20,6 +20,8 @@ export interface ContractAssignment {
   target: number
   /** Events counted in the window as of `serverTime`. May exceed the target. */
   progress: number
+  /** Times this contract was already claimed in its period. From the third, it pays half. */
+  repeatClaims: number
   claimedAt: string | null
 }
 

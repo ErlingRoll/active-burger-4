@@ -134,6 +134,11 @@ made after the period reads the same bounds the board did. Claims go through
 | `salvage-items` | Items salvaged, singly or in a sweep | `inventory_operations` of types `salvage` and `salvage-sweep` |
 | `gather-materials` | Timber and stone paid by Camp claims | `inventory_operations` of type `camp-claim` |
 | `gut-fish` | Fish gutted at the Smokehouse | `inventory_operations` of type `camp-gut` |
+| `reach-dungeon-floor` | The deepest floor checkpoint of a dungeon run in the window | `dungeon_run_snapshots` |
+| `sell-items` | Units sold to the quartermaster | `inventory_operations` of type `sell` |
+| `upgrade-buildings` | Camp buildings raised | `inventory_operations` of type `camp-upgrade` |
+| `cure-fish` | Fish cured at the Smokehouse | `inventory_operations` of type `camp-cure` |
+| `reforge-artifacts` | Artifacts reforged at the Forge | `inventory_operations` of type `camp-reforge` |
 
 Each is one branch of `contract_progress(profile, definition, window)`. The
 TypeScript registry in `src/content/contracts/Contracts.ts` mirrors the
@@ -143,30 +148,40 @@ retuned on one side without the other fails the build.
 
 ### The pool
 
-Eleven daily contracts and five weekly ones, three and one drawn a period.
-The daily pool is wide enough that a player sees a different board most days
-and narrow enough that every contract is reachable in a session; the weekly
-pool asks for the one thing a week of play produces.
+Thirty-six daily contracts and ten weekly ones, three and one dealt at a
+time. Every objective is a ladder of two or three rungs, so the board reads
+"Down the stairs", "Deeper stairs", "The long stair" with the target and the
+pay climbing together, and the daily pool is wide enough that a heavy session
+sees the whole of it before any contract is dealt twice. The rows are the
+registry in `src/content/contracts/Contracts.ts`; the ladder rule and the
+count of each cadence are tested there.
 
-| Contract | Cadence | Asks | Pays | Needs |
-| --- | --- | --- | --- | --- |
-| Down the stairs | daily | Descend 8 floors | 12 timber, 12 stone | |
-| A cull | daily | Slay 300 monsters | 6 scrap | |
-| A day's catch | daily | Catch 5 fish | 4 roe | |
-| Something rare | daily | Catch a rare fish or better | an uncommon box | |
-| The pike | daily | Catch a Lantern Pike | 10 stone | |
-| The trout | daily | Catch a Glassfin Trout | 10 timber | |
-| Unboxing | daily | Open 2 loot boxes | 5 scrap | |
-| At the bench | daily | Craft 2 batches | 8 timber | |
-| Clear out | daily | Salvage 5 items | 6 timber, 6 stone | |
-| Timber and stone | daily | Gather 30 at the Camp | 8 scrap | a Champion |
-| Into the rift | daily | Complete 5 Abyss floors | 2 rift shards | a Champion |
-| The Smokehouse | daily | Gut 2 fish | 10 stone | the Smokehouse |
-| The long way down | weekly | Win a dungeon | a rare box, 20 scrap | |
-| Deep descent | weekly | Reach Abyss floor 10 | a rare box, 6 rift shards | a Champion |
-| The angler | weekly | Catch 25 fish | a rare box, 10 roe | |
-| The great cull | weekly | Slay 1500 monsters | a rare box, 30 timber, 30 stone | |
-| Camp stores | weekly | Gather 150 at the Camp | a rare box, 20 scrap | a Champion |
+| Objective | Rungs | Pays in | Needs |
+| --- | --- | --- | --- |
+| Descend floors of the dungeon | 8 · 15 · 25 daily, 60 weekly | timber and stone, a box at the top | |
+| Reach a floor in one run | 10 · 20 · 30 | timber, stone, a rare box | |
+| Slay monsters | 300 · 800 · 2000 daily, 1500 weekly | scrap | |
+| Win a dungeon | 1 weekly | a rare box, scrap | |
+| Catch fish | 5 · 12 · 25 daily, 25 weekly | roe | |
+| Catch a rare or an epic fish | 1 daily, 3 rare weekly | boxes, roe | |
+| Catch a species | pike, trout, perch, carp, catfish | mixed | |
+| Open loot boxes | 2 · 6 daily, 12 weekly | scrap | |
+| Craft batches | 2 · 6 | timber | |
+| Salvage items | 5 · 15 | timber and stone | |
+| Sell to the quartermaster | 5 · 20 | timber, stone | |
+| Gather at the Camp | 30 · 90 daily, 150 weekly | scrap | a Champion |
+| Complete Abyss floors | 5 · 12 | rift shards | a Champion |
+| Reach an Abyss depth | 10 · 20 weekly | a rare box, rift shards | a Champion |
+| Raise a building | 1 | scrap | |
+| Gut fish | 2 · 6 | stone | the Smokehouse |
+| Cure a fish | 1 | timber | the Smokehouse |
+| Reforge artifacts | 1 daily, 3 weekly | rift shards, a rare box | the Forge |
+
+**A repeat pays half.** The rotation deals the least-dealt contract first,
+so a contract comes round again only once the whole reachable pool has been
+seen. From its third claim in a period it pays half, never less than one of
+anything, and the board shows the halved pay with a mark beside it. The
+share is computed on the server at the claim and mirrored in the registry.
 
 ### Collections
 

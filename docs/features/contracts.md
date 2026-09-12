@@ -27,6 +27,8 @@ A contract is a rotating objective completed through normal play.
 - Rewards are materials, box keys, and cosmetics. Contracts pay very little
   Essence, because Essence is the run's reward and a contract must not become
   a better run than a run.
+- A contract dealt again in the same period pays half from its third claim,
+  so a repeat is never worth more than the first time.
 
 The value of contracts is direction. A player who only fishes is handed a
 reason to enter a dungeon, and a player who only clears floors is handed a
