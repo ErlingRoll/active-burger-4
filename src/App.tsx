@@ -633,6 +633,7 @@ function App() {
             activityPlayerApprovedNickname={nickname.displayName}
             activityPlayerProviderName={account.displayName}
             activityPlayerEmail={account.email}
+            onBack={returnToDashboard}
           />
         </LazyScreen>
       ) : null}

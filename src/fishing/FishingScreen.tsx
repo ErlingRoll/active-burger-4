@@ -69,6 +69,8 @@ interface FishingScreenProps {
   initialData?: FishingScreenData
   /** Why that first fetch failed, when it did; shown instead of fetching again. */
   initialLoadError?: string | null
+  /** Leaves the pond for the refuge. */
+  onBack: () => void
 }
 
 function createAttemptId(): string {
@@ -467,6 +469,7 @@ export function FishingScreen({
   activityPlayerEmail,
   initialData,
   initialLoadError = null,
+  onBack,
 }: FishingScreenProps) {
   const { showLootToast } = useToaster()
   const activityPlayerName = getPlayerDisplayName({
@@ -1190,6 +1193,9 @@ export function FishingScreen({
             <div className="fishing-hud-topbar">
               <div className="pond-scene-header">
                 <div>
+                  <button className="app-screen-back" type="button" onClick={onBack}>
+                    <span aria-hidden="true">←</span> To refuge
+                  </button>
                   <p className="screen-kicker">Downtime activity · Moonwater Pond</p>
                   <h2 id="fishing-title">Fishing · <span id="fishing-pond-title">Moonwater Pond</span></h2>
                   <div className="pond-scene-subline">
