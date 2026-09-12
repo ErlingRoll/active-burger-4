@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { RunResultSnapshot } from '../game'
 import type { DungeonRunPersistenceService, FinishedDungeonRun } from '../persistence'
 import { RunReport } from '../ui/RunReport'
+import { useSeededLoad } from '../ui/useSeededLoad'
+import { CHRONICLE_LIMIT, type ChronicleScreenData } from './loadChronicleScreen'
 import {
   formatCharacterClassName,
   formatRunCompletion,
@@ -10,9 +12,6 @@ import {
   formatWorldModifierNames,
   parseRunReport,
 } from './RunChronicle'
-
-/** How many finished runs the chronicle keeps in view. */
-const CHRONICLE_LIMIT = 25
 
 type ChronicleLoadState = 'loading' | 'ready' | 'error' | 'unavailable'
 
@@ -37,6 +36,14 @@ export interface RunChronicleScreenProps {
   service: DungeonRunPersistenceService | null
   configurationError: string | null
   onBack: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the chronicle paints populated on its first
+   * frame; without it the screen fetches for itself, as it did before.
+   */
+  initialData?: ChronicleScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 /**
@@ -52,15 +59,20 @@ export function RunChronicleScreen({
   service,
   configurationError,
   onBack,
+  initialData,
+  initialLoadError = null,
 }: RunChronicleScreenProps) {
-  const [loadState, setLoadState] = useState<ChronicleLoadState>('loading')
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [runs, setRuns] = useState<readonly FinishedDungeonRun[]>([])
+  const seeded = useSeededLoad(initialData !== undefined || initialLoadError !== null, service)
+  const [loadState, setLoadState] = useState<ChronicleLoadState>(
+    () => initialData ? 'ready' : initialLoadError !== null ? 'error' : 'loading',
+  )
+  const [loadError, setLoadError] = useState<string | null>(initialLoadError)
+  const [runs, setRuns] = useState<readonly FinishedDungeonRun[]>(() => initialData?.runs ?? [])
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
   const [reports, setReports] = useState<Readonly<Record<string, ReportState>>>({})
 
   useEffect(() => {
-    if (!service) {
+    if (!service || seeded) {
       return
     }
     // No reset here: the list starts out loading and this runs once per
@@ -84,7 +96,7 @@ export function RunChronicleScreen({
     return () => {
       cancelled = true
     }
-  }, [service])
+  }, [seeded, service])
 
   const openRun = useCallback((run: FinishedDungeonRun): void => {
     setExpandedRunId((current) => (current === run.runId ? null : run.runId))

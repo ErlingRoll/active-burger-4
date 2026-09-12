@@ -73,6 +73,19 @@ import {
   LazyWikiScreen,
 } from './app/lazyScreens'
 import { LazyScreen } from './app/LazyScreen'
+import { NavigationVeil } from './app/NavigationVeil'
+import type { NavigationHints } from './app/navigationHints'
+import {
+  IDLE_PRELOAD_SCREENS,
+  loadScreenData,
+  preloadScreen,
+  SCREEN_DEFINITIONS,
+  type LoadedScreen,
+  type LoadedScreenData,
+  type ScreenLoaderResults,
+} from './app/screenDefinitions'
+import { commitScreenTransition } from './app/screenTransition'
+import { useScreenNavigator, type ScreenRequest } from './app/useScreenNavigator'
 import { AuthGateway } from './app/screens/AuthGateway'
 import { GameDashboard } from './app/screens/GameDashboard'
 import { ResultsScreen } from './app/screens/ResultsScreen'
@@ -172,11 +185,21 @@ function createInitialAuthenticationState(
       }
 }
 
+/**
+ * How a committed screen is drawn in: a cross-dissolve everywhere, except
+ * into the dungeon, which is a threshold rather than a menu and goes down
+ * through black.
+ */
+function commitNavigation(request: ScreenRequest, apply: () => void): void {
+  commitScreenTransition(request.screen === 'gameplay' ? 'descend' : 'dissolve', apply)
+}
+
+function warmScreen(screen: AppScreen): void {
+  void preloadScreen(screen)
+}
+
 function App() {
   const { showToast } = useToaster()
-  const [screen, setScreen] = useState<AppScreen>(() =>
-    typeof window === 'undefined' ? 'dashboard' : getScreenForPath(window.location.pathname),
-  )
   const services = useServices()
   const {
     repository,
@@ -270,22 +293,151 @@ function App() {
   const pendingRunIdRef = useRef<string | null>(null)
   const pendingChampionIdRef = useRef<string | null>(null)
 
+  /*
+   * The three screens whose first fetch is state App holds itself: the
+   * Essence store and the two admin dashboards. Each of these settles that
+   * state and never rejects, so a failure reaches the screen as its own error
+   * panel, with its own Retry, rather than as a navigation error.
+   */
+  const loadAdminReports = useCallback(async (): Promise<void> => {
+    const account = authentication.account
+    if (!account?.isAdmin) {
+      return
+    }
+    const service = bugReport.service
+    if (!service) {
+      setAdminReports((current) => ({
+        ...current,
+        loadState: 'error',
+        error: bugReport.configurationError ?? 'Bug reporting is unavailable.',
+      }))
+      return
+    }
+    try {
+      const [reports, hiddenReportIds] = await Promise.all([
+        service.loadAll(),
+        repository.getHiddenBugReportIds(account.id),
+      ])
+      setAdminReports({
+        loadState: 'ready',
+        reports,
+        hiddenReportIds: [...hiddenReportIds],
+        error: null,
+      })
+    } catch (error: unknown) {
+      setAdminReports((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
+  }, [
+    authentication.account,
+    bugReport.configurationError,
+    bugReport.service,
+    repository,
+  ])
+
+  const loadNicknameModeration = useCallback(async (): Promise<void> => {
+    if (!authentication.account?.isAdmin) {
+      return
+    }
+    const service = nicknameService.service
+    if (!service) {
+      setNicknameModeration((current) => ({
+        ...current,
+        loadState: 'error',
+        error: nicknameService.configurationError ?? 'Nickname moderation is unavailable.',
+      }))
+      return
+    }
+    try {
+      const requests = await service.loadPendingChanges()
+      setNicknameModeration({ loadState: 'ready', requests, error: null })
+    } catch (error: unknown) {
+      setNicknameModeration((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
+  }, [
+    authentication.account,
+    nicknameService.configurationError,
+    nicknameService.service,
+  ])
+
+  const loadStoreSnapshot = useCallback(async (): Promise<void> => {
+    const service = metaProgressionService.service
+    if (!service || !authentication.account) {
+      return
+    }
+    const requestedAttempt = metaLoadAttempt
+    try {
+      const snapshot = await service.load()
+      setMetaProgression((current) => ({
+        ...current,
+        loadState: 'ready',
+        snapshot,
+        error: null,
+        purchaseState: 'idle',
+        activePurchaseUnlockId: null,
+      }))
+      setMetaLoadedAttempt(requestedAttempt)
+    } catch (error: unknown) {
+      setMetaProgression((current) => ({
+        ...current,
+        loadState: 'error',
+        error: errorMessage(error),
+      }))
+    }
+  }, [authentication.account, metaLoadAttempt, metaProgressionService.service])
+
+  /*
+   * What "ready to paint" means for a destination: its chunk has arrived and
+   * its first fetch has settled, the two fetched in parallel. A screen whose
+   * data App owns settles that state here; every other screen's loader hands
+   * its result back to be rendered as `initialData`. A signed-out visitor
+   * gets the chunk alone, since the screen will show the sign-in gate.
+   */
+  const prepareScreen = useCallback(async (
+    request: ScreenRequest,
+  ): Promise<LoadedScreenData | null> => {
+    const load = request.screen === 'meta-progression'
+      ? loadStoreSnapshot()
+      : request.screen === 'admin'
+        ? loadAdminReports()
+        : request.screen === 'nickname-moderation'
+          ? loadNicknameModeration()
+          : authentication.account
+            ? loadScreenData(request.screen, services)
+            : Promise.resolve(null)
+    const [, data] = await Promise.all([preloadScreen(request.screen), load])
+    return data ?? null
+  }, [
+    authentication.account,
+    loadAdminReports,
+    loadNicknameModeration,
+    loadStoreSnapshot,
+    services,
+  ])
+
+  const navigator = useScreenNavigator<LoadedScreenData>({
+    initialScreen: typeof window === 'undefined'
+      ? 'dashboard'
+      : getScreenForPath(window.location.pathname),
+    prepare: prepareScreen,
+    commit: commitNavigation,
+  })
+  const { screen, navigate } = navigator
+
   const navigateToScreen = useCallback((
     nextScreen: AppScreen,
     replace = false,
     path = APP_ROUTE_PATHS[nextScreen],
   ): void => {
-    const nextPath = path
-    if (typeof window !== 'undefined' && window.location.pathname !== nextPath) {
-      const nextUrl = `${nextPath}${window.location.search}`
-      if (replace) {
-        window.history.replaceState(null, '', nextUrl)
-      } else {
-        window.history.pushState(null, '', nextUrl)
-      }
-    }
-    setScreen(nextScreen)
-  }, [])
+    navigate({ screen: nextScreen, path, history: replace ? 'replace' : 'push' })
+  }, [navigate])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -297,29 +449,71 @@ function App() {
     }
     const handlePopState = (): void => {
       const nextScreen = getScreenForPath(window.location.pathname)
-      setScreen(nextScreen)
       if (nextScreen === 'run-setup') {
         setRunMode(getRunModeForPath(window.location.pathname))
       }
+      // The browser has already moved. The page is held until the destination
+      // is ready, as on any other navigation, and history is left alone.
+      navigate({ screen: nextScreen, history: 'none' })
     }
     window.addEventListener('popstate', handlePopState)
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
-  }, [])
+  }, [navigate])
+
+  /*
+   * Warming chunks before they are asked for. Bandwidth only: data is never
+   * fetched ahead of a click.
+   *
+   * Once the hub has painted and the browser is idle, the routes it sends
+   * players to most. And once the player is preparing a run, the renderer,
+   * which is the largest chunk by far and is about to be needed.
+   */
+  useEffect(() => {
+    if (screen !== 'dashboard' || !authentication.account?.id || typeof window === 'undefined') {
+      return
+    }
+    const warm = (): void => {
+      for (const idleScreen of IDLE_PRELOAD_SCREENS) {
+        warmScreen(idleScreen)
+      }
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(warm)
+      return () => {
+        window.cancelIdleCallback(handle)
+      }
+    }
+    const handle = window.setTimeout(warm, 1_000)
+    return () => {
+      window.clearTimeout(handle)
+    }
+  }, [authentication.account?.id, screen])
+
+  useEffect(() => {
+    if (screen === 'run-setup') {
+      warmScreen('gameplay')
+    }
+  }, [screen])
 
   useEffect(() => {
     if (
       activeRun !== null &&
+      navigator.pending === null &&
       (screen === 'run-setup' || screen === 'meta-progression')
     ) {
       // Route guard: an active run must not leave the player stranded on a setup
-      // screen. navigateToScreen also pushes browser history, so this is a sync
-      // with an external system (the History API) and not derivable in render.
+      // screen. It judges the settled state only: starting a run records the
+      // active run and then asks for the dungeon, and while that request is
+      // pending the committed screen is still the preparation screen, which
+      // is not a player stranded but a player on the way down.
+      // navigateToScreen also writes browser history, so this is a sync with an
+      // external system (the History API) and not derivable in render.
       // oxlint-disable-next-line react/set-state-in-effect
       navigateToScreen('dashboard', true)
     }
-  }, [activeRun, navigateToScreen, screen])
+  }, [activeRun, navigateToScreen, navigator.pending, screen])
 
   useEffect(() => {
     const service = authenticationService.service
@@ -1464,91 +1658,43 @@ function App() {
   }, [navigateToScreen])
 
   const refreshAdminReports = useCallback((): void => {
-    if (!authentication.account?.isAdmin) {
-      return
-    }
-    if (!bugReport.service) {
-      setAdminReports((current) => ({
-        ...current,
-        loadState: 'error',
-        error: bugReport.configurationError ?? 'Bug reporting is unavailable.',
-      }))
-      return
-    }
     setAdminReports((current) => ({ ...current, loadState: 'loading', error: null }))
-    void Promise.all([
-      bugReport.service.loadAll(),
-      repository.getHiddenBugReportIds(authentication.account.id),
-    ])
-      .then(([reports, hiddenReportIds]) => {
-        setAdminReports({
-          loadState: 'ready',
-          reports,
-          hiddenReportIds: [...hiddenReportIds],
-          error: null,
-        })
-      })
-      .catch((error: unknown) => {
-        setAdminReports((current) => ({
-          ...current,
-          loadState: 'error',
-          error: errorMessage(error),
-        }))
-      })
-  }, [
-    authentication.account,
-    bugReport.configurationError,
-    bugReport.service,
-    repository,
-  ])
+    void loadAdminReports()
+  }, [loadAdminReports])
 
+  /*
+   * A navigation fetches the dashboard's data before it commits. Arriving by
+   * URL, or after a sign-out reset it, skips that, and the fetch happens here
+   * instead: only while nothing has been fetched, so a navigation that has
+   * already done the work is not repeated.
+   */
   useEffect(() => {
-    if (screen === 'admin' && authentication.account?.isAdmin) {
-      // Admin data is fetched on navigation to the admin screen. The fetch is
-      // imperative and cannot be derived during render.
+    if (
+      screen === 'admin' &&
+      authentication.account?.isAdmin &&
+      adminReports.loadState === 'idle'
+    ) {
+      // The fetch is imperative and cannot be derived during render.
       // oxlint-disable-next-line react/set-state-in-effect
       refreshAdminReports()
     }
-  }, [authentication.account, refreshAdminReports, screen])
+  }, [adminReports.loadState, authentication.account, refreshAdminReports, screen])
 
   const refreshNicknameModeration = useCallback((): void => {
-    if (!authentication.account?.isAdmin) {
-      return
-    }
-    if (!nicknameService.service) {
-      setNicknameModeration((current) => ({
-        ...current,
-        loadState: 'error',
-        error: nicknameService.configurationError ?? 'Nickname moderation is unavailable.',
-      }))
-      return
-    }
     setNicknameModeration((current) => ({ ...current, loadState: 'loading', error: null }))
-    void nicknameService.service.loadPendingChanges()
-      .then((requests) => {
-        setNicknameModeration({ loadState: 'ready', requests, error: null })
-      })
-      .catch((error: unknown) => {
-        setNicknameModeration((current) => ({
-          ...current,
-          loadState: 'error',
-          error: errorMessage(error),
-        }))
-      })
-  }, [
-    authentication.account,
-    nicknameService.configurationError,
-    nicknameService.service,
-  ])
+    void loadNicknameModeration()
+  }, [loadNicknameModeration])
 
   useEffect(() => {
-    if (screen === 'nickname-moderation' && authentication.account?.isAdmin) {
-      // Moderation data is fetched on navigation to the moderation screen. The
-      // fetch is imperative and cannot be derived during render.
+    if (
+      screen === 'nickname-moderation' &&
+      authentication.account?.isAdmin &&
+      nicknameModeration.loadState === 'idle'
+    ) {
       // oxlint-disable-next-line react/set-state-in-effect
       refreshNicknameModeration()
     }
-  }, [authentication.account, refreshNicknameModeration, screen])
+  }, [authentication.account, nicknameModeration.loadState, refreshNicknameModeration, screen])
 
   const toggleBugReportHidden = useCallback(async (
     reportId: number,
@@ -1696,9 +1842,31 @@ function App() {
     screen,
   ])
 
+  const navigationHints = useMemo<NavigationHints>(() => ({
+    pendingScreen: navigator.pending,
+    warmScreen,
+  }), [navigator.pending])
+  /*
+   * While a destination loads, the page underneath is frozen: `inert` on the
+   * shell takes the pointer and the keyboard away from it, and the veil makes
+   * the freeze visible after 150 ms. The attribute is for the stylesheet and
+   * for tooling that wants to know a navigation is in flight.
+   */
+  const shellPending = navigator.pending !== null
+  const shellNavigation = shellPending ? 'pending' : 'settled'
+  /** The committed screen's loader result, if it is the screen being rendered. */
+  const loadedData = <S extends LoadedScreen>(target: S): ScreenLoaderResults[S] | undefined =>
+    navigator.data?.screen === target
+      ? (navigator.data.data as ScreenLoaderResults[S])
+      : undefined
+
   if (screen === 'wiki') {
     return (
-      <main className="app-shell app-shell-document">
+      <main
+        className="app-shell app-shell-document"
+        inert={shellPending}
+        data-navigation={shellNavigation}
+      >
         <AppHeader
           authentication={authentication}
           nickname={nickname}
@@ -1717,6 +1885,7 @@ function App() {
           characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
+          navigation={navigationHints}
         />
         <LazyScreen label="The wiki">
           <LazyWikiScreen
@@ -1724,13 +1893,14 @@ function App() {
             onReturnToApp={() => navigateToScreen('dashboard')}
           />
         </LazyScreen>
+        <NavigationVeil pending={navigator.pending} />
       </main>
     )
   }
 
   if (persistence.loadState === 'loading') {
     return (
-      <main className="app-shell">
+      <main className="app-shell" inert={shellPending} data-navigation={shellNavigation}>
         <AppHeader
           authentication={authentication}
           nickname={nickname}
@@ -1749,6 +1919,7 @@ function App() {
           characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
+          navigation={navigationHints}
         />
         <section className="dashboard" aria-labelledby="persistence-loading-title">
           <div className="dashboard-panel" role="status">
@@ -1757,13 +1928,14 @@ function App() {
             <p>Opening your local profile and saved run settings.</p>
           </div>
         </section>
+        <NavigationVeil pending={navigator.pending} />
       </main>
     )
   }
 
   if (persistence.loadState === 'error' || !settings || !profile || !runConfig) {
     return (
-      <main className="app-shell">
+      <main className="app-shell" inert={shellPending} data-navigation={shellNavigation}>
         <AppHeader
           authentication={authentication}
           nickname={nickname}
@@ -1782,6 +1954,7 @@ function App() {
           characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
+          navigation={navigationHints}
         />
         <section className="dashboard" aria-labelledby="persistence-error-title">
           <div className="dashboard-panel" role="alert">
@@ -1804,6 +1977,7 @@ function App() {
             </button>
           </div>
         </section>
+        <NavigationVeil pending={navigator.pending} />
       </main>
     )
   }
@@ -1822,6 +1996,8 @@ function App() {
                 : ''
       }${DOCUMENT_SCREENS.has(screen) ? ' app-shell-document' : ''}`}
       data-nickname-prompt={nicknamePromptStatus}
+      data-navigation={shellNavigation}
+      inert={shellPending}
     >
       {screen !== 'gameplay' && nickname.promptOpen && authentication.account ? (
         // A run in progress is not interrupted; the prompt waits for the
@@ -1857,6 +2033,7 @@ function App() {
           characterService={characters.service}
           bugReportDungeon={bugReportDungeon}
           onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
+          navigation={navigationHints}
         />
       ) : null}
       {screen === 'dashboard' && authentication.account ? (
@@ -1885,6 +2062,7 @@ function App() {
           onOpenRunSetup={openRunSetup}
           onContinueRun={continueRun}
           onForfeitRun={forfeitActiveRun}
+          navigation={navigationHints}
         />
       ) : null}
       {screen === 'admin' && authentication.account?.isAdmin ? (
@@ -1942,8 +2120,10 @@ function App() {
         />
       ) : null}
       {screen === 'run-setup' && authentication.account ? (
-        <LazyScreen label="Run preparation">
+        <LazyScreen label={SCREEN_DEFINITIONS['run-setup'].label}>
           <LazyRunSetupScreen
+            initialData={loadedData('run-setup')}
+            initialLoadError={navigator.loadError}
             settings={settings}
             writeError={writeError ?? runStartError}
             startState={runStartState}
@@ -1979,8 +2159,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'fishing' && authentication.account ? (
-        <LazyScreen label="The fishing pond">
+        <LazyScreen label={SCREEN_DEFINITIONS.fishing.label}>
           <LazyFishingScreen
+            initialData={loadedData('fishing')}
+            initialLoadError={navigator.loadError}
             fishingService={fishing.service}
             inventoryService={inventory.service}
             lootBoxService={lootBoxes.service}
@@ -1993,8 +2175,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'camp' && authentication.account ? (
-        <LazyScreen label="The Camp">
+        <LazyScreen label={SCREEN_DEFINITIONS.camp.label}>
           <LazyCampScreen
+            initialData={loadedData('camp')}
+            initialLoadError={navigator.loadError}
             service={camp.service}
             configurationError={camp.configurationError}
             characterService={characters.service}
@@ -2005,8 +2189,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'champions' && authentication.account ? (
-        <LazyScreen label="Champions">
+        <LazyScreen label={SCREEN_DEFINITIONS.champions.label}>
           <LazyChampionManagementScreen
+            initialData={loadedData('champions')}
+            initialLoadError={navigator.loadError}
             service={characters.service}
             inventoryService={inventory.service}
             inventoryError={inventory.configurationError}
@@ -2017,8 +2203,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'inventory' && authentication.account ? (
-        <LazyScreen label="The inventory">
+        <LazyScreen label={SCREEN_DEFINITIONS.inventory.label}>
           <LazyInventoryScreen
+            initialData={loadedData('inventory')}
+            initialLoadError={navigator.loadError}
             inventoryService={inventory.service}
             lootBoxService={lootBoxes.service}
             configurationError={lootBoxes.configurationError ?? inventory.configurationError}
@@ -2027,8 +2215,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'shop' && authentication.account ? (
-        <LazyScreen label="The shop">
+        <LazyScreen label={SCREEN_DEFINITIONS.shop.label}>
           <LazyShopScreen
+            initialData={loadedData('shop')}
+            initialLoadError={navigator.loadError}
             shopService={shop.service}
             inventoryService={inventory.service}
             configurationError={shop.configurationError ?? inventory.configurationError}
@@ -2038,8 +2228,10 @@ function App() {
         </LazyScreen>
       ) : null}
       {screen === 'run-history' && authentication.account ? (
-        <LazyScreen label="The chronicle">
+        <LazyScreen label={SCREEN_DEFINITIONS['run-history'].label}>
           <LazyRunChronicleScreen
+            initialData={loadedData('run-history')}
+            initialLoadError={navigator.loadError}
             service={dungeonRunPersistence.service}
             configurationError={dungeonRunPersistence.configurationError}
             onBack={returnToDashboard}
@@ -2093,6 +2285,7 @@ function App() {
           }}
         />
       ) : null}
+      <NavigationVeil pending={navigator.pending} />
     </main>
   )
 }

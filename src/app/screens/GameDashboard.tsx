@@ -15,6 +15,7 @@ import { ConfirmationDialog } from '../../ui/ConfirmationDialog'
 import {
   CHARACTER_CLASS_DEFINITIONS,
 } from '../../content/classes/CharacterClasses'
+import type { NavigationHints } from '../navigationHints'
 
 export interface GameDashboardProps {
   accountId: string
@@ -41,6 +42,8 @@ export interface GameDashboardProps {
   championAvailability: 'loading' | 'available' | 'none' | 'error'
   onContinueRun: () => void
   onForfeitRun: () => Promise<void>
+  /** Which destination is loading, and how to warm one ahead of a click. */
+  navigation?: NavigationHints
 }
 
 export function GameDashboard({
@@ -68,6 +71,7 @@ export function GameDashboard({
   championAvailability,
   onContinueRun,
   onForfeitRun,
+  navigation,
 }: GameDashboardProps) {
   const [forfeitConfirmationOpen, setForfeitConfirmationOpen] = useState(false)
   const [forfeiting, setForfeiting] = useState(false)
@@ -123,6 +127,7 @@ export function GameDashboard({
         onOpenAbyss={onOpenAbyss}
         onContinueRun={onContinueRun}
         onRequestForfeit={() => setForfeitConfirmationOpen(true)}
+        navigation={navigation}
       />
       {forfeitConfirmationOpen ? (
         <ConfirmationDialog

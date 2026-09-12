@@ -18,6 +18,7 @@ import {
   type BugReportImage,
 } from '../../bug-report'
 import type { CharacterService } from '../../characters'
+import { navigationControlProps, type NavigationHints } from '../navigationHints'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
 
 export interface AppHeaderProps {
@@ -38,6 +39,8 @@ export interface AppHeaderProps {
   characterService: CharacterService | null
   bugReportDungeon: BugReportDungeonContext
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
+  /** Which destination is loading, and how to warm one ahead of a click. */
+  navigation?: NavigationHints
 }
 
 export function AppHeader({
@@ -58,6 +61,7 @@ export function AppHeader({
   characterService,
   bugReportDungeon,
   onSubmitBugReport,
+  navigation,
 }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -117,12 +121,12 @@ export function AppHeader({
       >
         <nav className="app-navigation" aria-label="Primary navigation">
           <a className="app-wiki-link" href="/wiki">Wiki</a>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenFishing)}>Fishing</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)}>Camp</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)}>Champions</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)}>Inventory</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)}>Shop</button>
-          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)}>Chronicle</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenFishing)} {...navigationControlProps(navigation, 'fishing')}>Fishing</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)} {...navigationControlProps(navigation, 'camp')}>Camp</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)} {...navigationControlProps(navigation, 'champions')}>Champions</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
+          <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
           {DEVELOPMENT_TOOLS_ENABLED && authentication.account?.isAdmin ? (
             <DevelopmentToolsMenu
               inventoryService={inventoryService}
@@ -145,10 +149,20 @@ export function AppHeader({
             ) : null}
             {authentication.account.isAdmin ? (
               <>
-                <button className="app-admin-link" type="button" onClick={leaveFor(onOpenAdmin)}>
+                <button
+                  className="app-admin-link"
+                  type="button"
+                  onClick={leaveFor(onOpenAdmin)}
+                  {...navigationControlProps(navigation, 'admin')}
+                >
                   Bug reports
                 </button>
-                <button className="app-admin-link" type="button" onClick={leaveFor(onOpenNicknameModeration)}>
+                <button
+                  className="app-admin-link"
+                  type="button"
+                  onClick={leaveFor(onOpenNicknameModeration)}
+                  {...navigationControlProps(navigation, 'nickname-moderation')}
+                >
                   Nickname requests
                 </button>
               </>

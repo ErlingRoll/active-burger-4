@@ -52,3 +52,12 @@ Extracting the routing table surfaced a bug the chain-of-comparisons form had
 hidden: `/champions` had a path and a screen but no branch, so reloading on the
 Champions screen resolved back to the dashboard. The lookup is now derived from
 the path table itself.
+
+The split's cost was that every first visit to a screen showed the loading
+panel, and every visit showed the screen's own empty state while it fetched.
+ADR 0013 removes both: the previous screen is held until the chunk and the
+first fetch are both done, `app/lazyScreens.ts` shares one import promise
+between warming and rendering instead of using `React.lazy`, and each screen
+that fetches on mount gets a loader beside it. The loader rule is the barrel
+rule again in a new place: a loader must not import a screen component, and
+the architecture test that checks it sits alongside the cycle check.

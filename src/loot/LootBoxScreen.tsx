@@ -43,6 +43,8 @@ import { LootBoxOpening } from './LootBoxOpening'
 import { LootBoxShelf } from './LootBoxShelf'
 import { stackInventoryItems } from '../inventory/InventoryStacks'
 import { useStackedPanels } from '../ui/useStackedPanels'
+import { useSeededLoad } from '../ui/useSeededLoad'
+import type { InventoryScreenData } from './loadInventoryScreen'
 import { selectLootBoxesToOpen, stackLootBoxes } from './LootBoxStacks'
 import { getRewardIcon } from './RewardIcon'
 import { useLootBoxOpening } from './useLootBoxOpening'
@@ -52,6 +54,14 @@ interface LootBoxScreenProps {
   lootBoxService: LootBoxService | null
   configurationError: string | null
   onBack: () => void
+  /**
+   * The first fetch, already done by the navigator while the previous screen
+   * was still showing. With it the bag paints populated on its first frame;
+   * without it the bag fetches for itself, as it did before.
+   */
+  initialData?: InventoryScreenData
+  /** Why that first fetch failed, when it did; shown instead of fetching again. */
+  initialLoadError?: string | null
 }
 
 function getInventoryItemName(item: InventoryItemInstance): string {
@@ -93,17 +103,26 @@ export function InventoryScreen({
   lootBoxService,
   configurationError,
   onBack,
+  initialData,
+  initialLoadError = null,
 }: LootBoxScreenProps) {
   const { showLootToast, showToast } = useToaster()
-  const [items, setItems] = useState<InventoryItemInstance[]>([])
+  const seeded = useSeededLoad(
+    initialData !== undefined || initialLoadError !== null,
+    inventoryService,
+  )
+  const [items, setItems] = useState<InventoryItemInstance[]>(() => initialData?.items ?? [])
   const [favoriteDefinitionIds, setFavoriteDefinitionIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
+    () => new Set(initialData?.favoriteDefinitionIds ?? []),
   )
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => inventoryService ? 'loading' : 'error',
+    () => initialData
+      ? 'ready'
+      : initialLoadError !== null || !inventoryService ? 'error' : 'loading',
   )
   const [error, setError] = useState<string | null>(
-    () => inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.',
+    () => initialLoadError ??
+      (inventoryService ? configurationError : configurationError ?? 'Inventory is unavailable.'),
   )
   const [pendingSalvage, setPendingSalvage] = useState<InventoryItemInstance | null>(null)
   const [salvagingItemInstanceId, setSalvagingItemInstanceId] = useState<string | null>(null)
@@ -155,7 +174,7 @@ export function InventoryScreen({
   const opening = useLootBoxOpening(lootBoxService, reloadAfterOpening)
 
   useEffect(() => {
-    if (!inventoryService) {
+    if (!inventoryService || seeded) {
       return
     }
     let cancelled = false
@@ -180,7 +199,7 @@ export function InventoryScreen({
     return () => {
       cancelled = true
     }
-  }, [inventoryService])
+  }, [inventoryService, seeded])
 
   const boxes = items.filter((item) => getInventoryItemCategory(item) === 'loot-box')
   const boxStacks = stackLootBoxes(boxes)
