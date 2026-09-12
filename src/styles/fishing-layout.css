@@ -14,11 +14,6 @@
   background: transparent;
 }
 
-.app-shell-fishing .app-header {
-  position: relative;
-  z-index: 2;
-}
-
 .app-shell-fishing .fishing-screen {
   position: relative;
   z-index: 1;
@@ -131,6 +126,10 @@
      same sentence twice, and on a phone it costs a line to say it again. */
   .pond-scene-header .screen-kicker {
     display: none;
+  }
+
+  .pond-scene-header .app-screen-back {
+    margin-bottom: 0.3rem;
   }
 
   .pond-scene-header h2 {

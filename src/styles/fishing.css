@@ -148,6 +148,12 @@
   min-width: 0;
 }
 
+/* The way back to the refuge sits above the title, top left, where every
+   screen's way out is. */
+.pond-scene-header .app-screen-back {
+  margin-bottom: 0.55rem;
+}
+
 .pond-scene-header h3 {
   margin-top: 0.25rem;
 }

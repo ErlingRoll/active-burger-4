@@ -70,6 +70,7 @@ function renderFishingScreen() {
     trackAngler: vi.fn(() => Promise.resolve()),
     subscribeToActivity: vi.fn(() => () => {}),
   } as unknown as FishingService
+  const onBack = vi.fn()
   const result = renderComponent(
     <FishingScreen
       fishingService={fishingService}
@@ -80,10 +81,21 @@ function renderFishingScreen() {
       activityPlayerApprovedNickname="Mira"
       activityPlayerProviderName={null}
       activityPlayerEmail={null}
+      onBack={onBack}
     />,
   )
-  return { ...result, beginAttempt }
+  return { ...result, beginAttempt, onBack }
 }
+
+describe('FishingScreen navigation', () => {
+  it('walks back to the refuge from the button above its title', async () => {
+    const { user, onBack } = renderFishingScreen()
+
+    await user.click(await screen.findByRole('button', { name: 'To refuge' }))
+
+    expect(onBack).toHaveBeenCalled()
+  })
+})
 
 describe('FishingScreen loadout', () => {
   it('offers each kind of bait once, counted across its rows', async () => {

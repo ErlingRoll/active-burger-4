@@ -1264,6 +1264,9 @@ export function CampScreen({
       <div className="camp-hud">
         <div className="camp-hud-topbar">
           <div className="camp-scene-header">
+            <button className="camp-back-action" type="button" onClick={onBack}>
+              <span aria-hidden="true">←</span> To refuge
+            </button>
             <p className="screen-kicker">Between descents · The Camp</p>
             <h2 id="camp-title"><i className="camp-title-lantern" aria-hidden="true" />The Camp</h2>
             <div className="camp-scene-subline">
@@ -1290,9 +1293,6 @@ export function CampScreen({
               disabled={busy || !state || state.assignments.length === 0}
             >
               Claim{totalPending > 0 ? ` ${totalPending}` : ''}
-            </button>
-            <button className="camp-back-action" type="button" onClick={onBack}>
-              <span aria-hidden="true">←</span> Refuge
             </button>
           </div>
         </div>

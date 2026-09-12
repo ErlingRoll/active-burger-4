@@ -474,7 +474,7 @@ describe('CampScreen', () => {
   it('walks back to the refuge from its own button', async () => {
     const { user, onBack } = renderScreen(emptyState())
 
-    await user.click(await screen.findByRole('button', { name: /Refuge/ }))
+    await user.click(await screen.findByRole('button', { name: 'To refuge' }))
 
     expect(onBack).toHaveBeenCalled()
   })

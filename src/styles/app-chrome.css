@@ -301,10 +301,6 @@
    --------------------------------------------------------------------------- */
 @media (max-width: 47rem), (max-height: 34rem) {
   .app-header {
-    position: relative;
-    /* Over the screen below it, so the drawer opens across the room rather than
-       shoving it down the page. */
-    z-index: 8;
     flex-wrap: nowrap;
     align-items: center;
     gap: 0.6rem;

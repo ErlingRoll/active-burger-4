@@ -333,6 +333,15 @@
   min-width: 0;
 }
 
+/* The way back to the refuge sits above the title, top left, where every
+   screen's way out is. */
+.camp-scene-header .camp-back-action {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-bottom: clamp(0.3rem, 0.9vh, 0.55rem);
+}
+
 .camp-scene-header h2 {
   margin: 0.15rem 0 0;
   color: var(--color-slate-50);
@@ -1753,9 +1762,9 @@
   .camp-hud-topbar {
     display: grid;
     grid-template-areas:
-      'title claim back'
-      'ledger ledger ledger';
-    grid-template-columns: minmax(0, 1fr) auto auto;
+      'title claim'
+      'ledger ledger';
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem 0.4rem;
     align-items: center;
   }
@@ -1772,8 +1781,8 @@
     grid-area: claim;
   }
 
-  .camp-back-action {
-    grid-area: back;
+  .camp-scene-header .camp-back-action {
+    margin-bottom: 0.25rem;
   }
 
   .camp-ledger {

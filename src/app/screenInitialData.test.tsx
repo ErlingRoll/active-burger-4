@@ -313,6 +313,7 @@ describe('the fishing pond', () => {
         activityPlayerProviderName={null}
         activityPlayerEmail={null}
         initialData={{ items: [] }}
+        onBack={() => {}}
       />,
     )
 
@@ -331,6 +332,7 @@ describe('the fishing pond', () => {
         activityPlayerApprovedNickname="Mira"
         activityPlayerProviderName={null}
         activityPlayerEmail={null}
+        onBack={() => {}}
       />,
     )
 
