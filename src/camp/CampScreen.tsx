@@ -952,7 +952,7 @@ export function CampScreen({
       const unbuilt = level === 0
       return (
         <>
-          <p className="camp-inspector-copy">
+          <p className="camp-inspector-lede">
             {unbuilt
               ? building.description
               : relief
@@ -1002,7 +1002,7 @@ export function CampScreen({
       case 'storehouse':
         return (
           <>
-            <p className="camp-inspector-copy">
+            <p className="camp-inspector-lede">
               Holds {formatHours(state.storehouseCapHours)} of work while you are away. Every job stops
               when its store is full, so a bigger store waits longer between visits.
             </p>
@@ -1012,7 +1012,7 @@ export function CampScreen({
       case 'tackle-bench':
         return (
           <>
-            <p className="camp-inspector-copy">
+            <p className="camp-inspector-lede">
               {level === 0
                 ? building.description
                 : 'Bait from the Camp’s timber and the dungeon’s scrap, cheaper in scrap than digging.'}
@@ -1036,7 +1036,7 @@ export function CampScreen({
       case 'smokehouse':
         return (
           <>
-            <p className="camp-inspector-copy">
+            <p className="camp-inspector-lede">
               {level === 0
                 ? building.description
                 : `Gut a fish for roe, or spend roe to cure a meal fish a tier. ${roeHeld} roe held.`}
@@ -1079,7 +1079,7 @@ export function CampScreen({
       case 'forge':
         return (
           <>
-            <p className="camp-inspector-copy">
+            <p className="camp-inspector-lede">
               {level === 0
                 ? building.description
                 : `Reroll an artifact for scrap and rift shards.${level > 1 ? ` Finished runs leave ${level === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
