@@ -831,19 +831,19 @@ export function AdventureHubScene({
               </div>
 
               <nav className="hub-paths" aria-label="Elsewhere in the refuge">
-                <button className="hub-path" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-champions" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">◆</span>
                   <span>Champions</span>
                 </button>
-                <button className="hub-path" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-inventory" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">▣</span>
                   <span>Inventory</span>
                 </button>
-                <button className="hub-path" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-shop" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">⇄</span>
                   <span>Quartermaster</span>
                 </button>
-                <button className="hub-path" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
+                <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'}>
                   <span aria-hidden="true">✦</span>
                   <span>Chronicle</span>
                 </button>

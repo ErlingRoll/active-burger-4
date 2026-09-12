@@ -2301,25 +2301,74 @@
   gap: 0.7rem;
 }
 
+/*
+ * The two rooms of the refuge.
+ *
+ * As two ember bars the pond and the Camp read as one list. Each station now
+ * declares the accent of the place it opens — the same four tokens that place
+ * declares on its own screen root, so the pond's tile is the pond's cyan and
+ * the Camp's is the fire's orange, not the refuge's amber — and everything
+ * below composes from that: the icon ring, the lines, the watermark glyph and
+ * the hover glow. A motif behind the copy says what the place is before the
+ * name is read.
+ */
 .hub-station {
   position: relative;
   min-height: clamp(2.2rem, 5.8vh, 4.85rem);
   overflow: hidden;
+  color: var(--color-stone-100);
   background:
-    linear-gradient(180deg, rgb(var(--accent-rgb) / 11%), transparent 48%),
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 12%), transparent 48%),
     linear-gradient(180deg, rgb(22 29 41 / 90%), rgb(8 11 17 / 95%));
-  border-color: rgb(var(--accent-rgb) / 24%);
+  border-color: rgb(var(--accent-rgb) / 28%);
   border-radius: 0.4rem;
   box-shadow:
-    inset 0 1px rgb(var(--accent-rgb) / 30%),
+    inset 0 1px rgb(var(--accent-rgb) / 32%),
     inset 0 -1px rgb(0 0 0 / 65%);
 }
 
+.hub-station > span:first-child {
+  position: relative;
+  z-index: 1;
+  color: var(--accent);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-bright-rgb) / 22%), transparent 70%),
+    rgb(0 0 0 / 38%);
+  border-color: rgb(var(--accent-bright-rgb) / 42%);
+  box-shadow:
+    inset 0 1px rgb(var(--accent-bright-rgb) / 40%),
+    0 0 0.7rem rgb(var(--accent-rgb) / 22%);
+}
+
+.hub-station > span:last-child {
+  position: relative;
+  z-index: 1;
+}
+
+.hub-station strong {
+  color: var(--accent-contrast);
+}
+
+.hub-station small {
+  color: var(--color-stone-400);
+}
+
+/* The motif: a picture of the place, drawn in its own light behind the copy. */
+.hub-station::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 140ms ease;
+}
+
+/* The watermark: the room's glyph, large and in the room's colour. */
 .hub-station::after {
   position: absolute;
   top: 50%;
   right: 0.8rem;
-  color: rgb(254 215 170 / 14%);
+  color: rgb(var(--accent-bright-rgb) / 16%);
   font-size: 3rem;
   font-weight: 900;
   line-height: 1;
@@ -2327,8 +2376,38 @@
   transform: translateY(-50%);
 }
 
+/* Moonwater Pond: the pond's cyan, with ripples rising from the foot. */
+.hub-station-fishing {
+  --accent: var(--color-cyan-300);
+  --accent-contrast: var(--color-cyan-50);
+  --accent-rgb: 34 211 238;
+  --accent-bright-rgb: 103 232 249;
+}
+
 .hub-station-fishing::after { content: '≈'; }
+
+.hub-station-fishing::before {
+  background:
+    radial-gradient(60% 90% at 85% 100%, rgb(var(--accent-rgb) / 20%), transparent 70%),
+    repeating-linear-gradient(180deg, transparent 0 0.42rem, rgb(var(--accent-bright-rgb) / 7%) 0.42rem 0.5rem);
+  mask-image: linear-gradient(180deg, transparent 30%, black 100%);
+}
+
+/* The Camp: the fire itself, orange rather than amber, lit from below. */
+.hub-station-camp {
+  --accent: var(--color-orange-300);
+  --accent-contrast: var(--color-orange-50);
+  --accent-rgb: 234 88 12;
+  --accent-bright-rgb: 251 146 60;
+}
+
 .hub-station-camp::after { content: '⌂'; }
+
+.hub-station-camp::before {
+  background:
+    radial-gradient(55% 70% at 80% 110%, rgb(var(--accent-bright-rgb) / 30%), rgb(var(--accent-rgb) / 10%) 45%, transparent 75%),
+    radial-gradient(30% 40% at 80% 115%, rgb(254 215 170 / 22%), transparent 70%);
+}
 
 .hub-station:hover:not(:disabled),
 .hub-station:focus-visible,
@@ -2336,11 +2415,17 @@
   background:
     linear-gradient(180deg, rgb(var(--accent-rgb) / 26%), transparent 62%),
     linear-gradient(180deg, rgb(32 40 54 / 92%), rgb(12 16 23 / 96%));
-  border-color: rgb(var(--accent-rgb) / 55%);
+  border-color: rgb(var(--accent-rgb) / 60%);
+  outline-color: rgb(var(--accent-bright-rgb) / 26%);
   box-shadow:
-    inset 0 1px rgb(var(--accent-bright-rgb) / 46%),
+    inset 0 1px rgb(var(--accent-bright-rgb) / 48%),
     inset 0 -1px rgb(0 0 0 / 65%),
-    0 0 1.6rem rgb(var(--accent-rgb) / 18%);
+    0 0 1.6rem rgb(var(--accent-rgb) / 20%);
+}
+
+.hub-station:hover:not(:disabled)::before,
+.hub-station:focus-visible::before {
+  opacity: 1;
 }
 
 /*
@@ -2366,24 +2451,67 @@
   min-width: 0;
   min-height: clamp(1.9rem, 4.2vh, 2.6rem);
   padding: 0.3rem 0.55rem;
-  color: #d9c6b3;
+  color: var(--color-stone-300);
   font: inherit;
   font-size: clamp(0.62rem, 1.4vh, 0.78rem);
   font-weight: 700;
   line-height: 1.15;
   text-align: left;
-  background: linear-gradient(180deg, rgb(22 29 41 / 78%), rgb(8 11 17 / 88%));
-  border: 1px solid rgb(var(--accent-rgb) / 16%);
+  background:
+    linear-gradient(90deg, rgb(var(--accent-rgb) / 14%), transparent 55%),
+    linear-gradient(180deg, rgb(22 29 41 / 78%), rgb(8 11 17 / 88%));
+  border: 1px solid rgb(var(--accent-rgb) / 24%);
   border-radius: 0.35rem;
-  box-shadow: inset 0 1px rgb(var(--accent-rgb) / 14%);
+  box-shadow:
+    inset 3px 0 rgb(var(--accent-rgb) / 60%),
+    inset 0 1px rgb(var(--accent-rgb) / 18%);
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+/*
+ * Each path carries the accent of the room at its end, the way the stations
+ * do: a coloured edge, its glyph in that colour, and a wash of it behind the
+ * name. At this size that is the whole identity, so the four are told apart
+ * by colour and glyph rather than by a motif there is no room to draw.
+ */
+.hub-path-champions {
+  /* The roster: violet, as the champion-management screen declares. */
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+}
+
+.hub-path-inventory {
+  /* The pack: the refuge's own ember, which the Inventory screen keeps. */
+  --accent: var(--color-amber-400);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 251 146 60;
+  --accent-bright-rgb: 251 191 36;
+}
+
+.hub-path-shop {
+  /* The Quartermaster: brass rather than ember. */
+  --accent: var(--color-yellow-300);
+  --accent-contrast: var(--color-amber-50);
+  --accent-rgb: 217 119 6;
+  --accent-bright-rgb: 250 204 21;
+}
+
+.hub-path-chronicle {
+  /* The record stones: moonlit slate, as the chronicle screen declares. */
+  --accent: var(--color-slate-300);
+  --accent-contrast: var(--color-slate-50);
+  --accent-rgb: 148 163 184;
+  --accent-bright-rgb: 203 213 225;
 }
 
 .hub-path > span:first-child {
   flex: 0 0 auto;
-  color: rgb(var(--accent-bright-rgb) / 72%);
+  color: var(--accent);
   font-size: 1.05em;
+  text-shadow: 0 0 0.45rem rgb(var(--accent-rgb) / 45%);
 }
 
 .hub-path > span:last-child {
@@ -2394,13 +2522,19 @@
 .hub-path:hover:not(:disabled),
 .hub-path:focus-visible,
 .hub-path[aria-expanded="true"] {
-  color: var(--color-orange-50);
-  background: linear-gradient(180deg, rgb(var(--accent-rgb) / 18%), transparent 70%), rgb(14 19 27 / 92%);
-  border-color: rgb(var(--accent-rgb) / 48%);
+  color: var(--accent-contrast);
+  background:
+    linear-gradient(90deg, rgb(var(--accent-rgb) / 30%), transparent 65%),
+    rgb(14 19 27 / 92%);
+  border-color: rgb(var(--accent-rgb) / 55%);
+  box-shadow:
+    inset 3px 0 rgb(var(--accent-bright-rgb) / 85%),
+    inset 0 1px rgb(var(--accent-bright-rgb) / 30%),
+    0 0 1rem rgb(var(--accent-rgb) / 16%);
 }
 
 .hub-path:focus-visible {
-  outline: 3px solid rgb(251 191 36 / 22%);
+  outline: 3px solid rgb(var(--accent-bright-rgb) / 26%);
   outline-offset: 2px;
 }
 

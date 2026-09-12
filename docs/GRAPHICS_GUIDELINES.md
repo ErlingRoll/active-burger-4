@@ -97,6 +97,14 @@ takes on the room it is rendered in: the inventory slots, their unseen-item
 glow and their tooltip are ember on the Inventory screen and cyan inside the
 pond's drawer, from one set of rules.
 
+A doorway carries the accent of the room behind it. The hub's stations and
+paths declare the tokens of the screen they open — the Moonwater Pond tile is
+the pond's cyan, the Champions path the roster's violet, the Chronicle path the
+record stones' slate — and the Camp (fire orange) and the Quartermaster (brass)
+each take a warm accent that is not the refuge's ember, so the six doors read as
+six places instead of one list. Declare the four tokens on the button itself;
+the shared station and path rules compose the rest.
+
 **Derived accent tokens do not work.** A custom property whose value reads
 another property is substituted where it is *declared*, so an `--accent-line`
 defined on `:root` keeps the root's ember on every screen that inherits it.
