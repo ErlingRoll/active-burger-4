@@ -27,6 +27,8 @@ import {
   readArtifactMetadata,
 } from '../content/artifacts/Artifacts'
 import { CraftingBench } from '../inventory/CraftingBench'
+import { countHeldQuantity } from '../inventory/CraftingRecipes'
+import { MaterialIcon } from '../inventory/MaterialIcon'
 import { PaginatedInventoryGrid } from '../inventory/PaginatedInventoryGrid'
 import { EssenceAmount } from '../ui/EssenceMark'
 import { RARITY_VISUALS } from '../content/rarity/Rarity'
@@ -212,6 +214,9 @@ export function InventoryScreen({
   // Worth what is on the shelf being looked at, not what is in the bag: the
   // number has to answer the question the filter just asked.
   const visibleEssence = getInventoryEssenceTotal(visibleItems, getItemEssence)
+  // Scrap is a balance, not a worth: it is what the bag holds, whatever the
+  // filter, because the question it answers is whether the forge can be paid.
+  const heldScrap = countHeldQuantity(items, 'scrap')
 
   const isItemFavorite = (item: InventoryItemInstance): boolean =>
     isInventoryItemFavorite(item, favoriteDefinitionIds)
@@ -411,6 +416,16 @@ export function InventoryScreen({
                   <span className="inventory-bag-value">
                     <span className="inventory-bag-value-label">Worth</span>
                     <EssenceAmount value={visibleEssence} />
+                  </span>
+                  <span className="inventory-bag-value inventory-bag-scrap">
+                    <span className="inventory-bag-value-label">Scrap</span>
+                    <span
+                      className="inventory-bag-scrap-amount"
+                      aria-label={`${heldScrap.toLocaleString()} scrap`}
+                    >
+                      <MaterialIcon icon="scrap" />
+                      <strong aria-hidden="true">{heldScrap.toLocaleString()}</strong>
+                    </span>
                   </span>
                 </span>
               </header>

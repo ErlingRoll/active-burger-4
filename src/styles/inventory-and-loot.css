@@ -759,6 +759,28 @@
   text-transform: uppercase;
 }
 
+/* Scrap held, beside what the shelf is worth. A balance rather than a worth,
+   so it ignores the filter; it wears scrap's own colour, as Essence wears its
+   own, so the two never read as one number in two currencies. */
+.inventory-bag-scrap {
+  color: var(--color-stone-300);
+}
+
+.inventory-bag-scrap-amount {
+  display: inline-flex;
+  gap: 0.35em;
+  align-items: center;
+}
+
+.inventory-bag-scrap-amount .material-icon {
+  width: 1.3em;
+  height: auto;
+}
+
+.inventory-bag-scrap-amount strong {
+  font-variant-numeric: tabular-nums;
+}
+
 /* With nothing picked the rewards are the panel rather than a footnote to it,
    so they lose the rule that separated them from the inspector above. */
 .inventory-rewards[data-lead='true'] {
