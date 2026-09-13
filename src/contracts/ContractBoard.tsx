@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { describeContractObjective, getContractDefinition, scaleContractReward } from '../content/contracts/Contracts'
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
+import { ResourceHover } from '../loot/ResourceTooltip'
 import { getRewardIcon } from '../loot/RewardIcon'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
@@ -88,10 +89,12 @@ function ContractRow({ assignment, busy, onClaim }: ContractRowProps) {
         <span className="hub-contract-figure">{shown}/{assignment.target}</span>
         <ul className="hub-contract-reward" aria-label={halved ? 'Reward, halved for a repeat' : 'Reward'}>
           {reward.map((line) => (
-            <li key={line.definitionId} title={`${line.quantity} ${itemName(line.definitionId)}`}>
-              <span aria-hidden="true">{getRewardIcon(line.definitionId)}</span>
-              <span className="hub-contract-reward-quantity">{line.quantity}</span>
-              <span className="visually-hidden">{itemName(line.definitionId)}</span>
+            <li key={line.definitionId}>
+              <ResourceHover definitionId={line.definitionId} quantity={line.quantity}>
+                <span aria-hidden="true">{getRewardIcon(line.definitionId)}</span>
+                <span className="hub-contract-reward-quantity">{line.quantity}</span>
+                <span className="visually-hidden">{itemName(line.definitionId)}</span>
+              </ResourceHover>
             </li>
           ))}
           {halved ? <li className="hub-contract-repeat" title="Dealt again today: half pay">½</li> : null}
