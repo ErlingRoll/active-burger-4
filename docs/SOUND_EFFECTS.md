@@ -69,24 +69,29 @@ it can:
 
 - **Waves:** sine and triangle. A sawtooth appears only behind a lowpass at
   or below 1.5 kHz, for low weight. No square wave anywhere.
-- **Envelopes:** attacks of 8–60 ms (a UI tap may go to 4 ms), exponential
-  decays, releases of 80 ms to 1.2 s. Nothing clicks on.
-- **Pitch:** at most an octave of movement, spread across the note. No
-  chirps.
-- **Noise:** only filtered. Short bandpassed or highpassed transients for
-  ticks, glass and sparks; lowpass-swept air for whooshes and transitions.
-  A noise voice never peaks above 0.4.
-- **Harmony:** overlapping chords (`chord`, `pingChord`) rather than
-  sequenced arpeggios; octaves, fifths and major thirds, a minor third for a
-  cancel or an error.
+- **Front edge:** attacks of 2–6 ms on anything percussive (taps, knocks,
+  thumps, ticks); 10–25 ms only on chords and pads. The edge is the sound.
+- **Tails:** releases of 40–120 ms for ordinary cues, up to 250 ms for
+  chords and rewards. Every ordinary cue is over within 0.45 s; a named set
+  of long-form moments (victory, defeat, a boss, a level-up, the loot box
+  charge) may run to one second. Nothing rings.
+- **Noise:** only as a transient. A `click` is a dozen milliseconds of
+  lowpassed noise on the front of a knock or a thump; a `tick` is a
+  highpassed spark; a `crackle` is 45 ms of bandpassed fire. No noise voice
+  lasts longer than 90 ms and none peaks above 0.4. There is no swept air.
+- **Motion:** a `figure` of two or three short notes (down for leaving, up
+  for arriving) or a `pulseTrain` of ticks that bunch up as a charge or a
+  warning comes due. Never a sweep.
+- **Pitch:** the knock drops an octave onto its body pitch in 25 ms; beyond
+  that, movement is small and over quickly.
 - **Levels:** no cue above 0.5. Menus sit around 0.22–0.3, routine combat
   0.18–0.32, rewards 0.3–0.4, the player being hurt and boss moments 0.4–0.5.
 
 The builders in `SoundCues.ts` are the vocabulary: `tap` (the UI press),
-`ping` (a glassy note), `chord` and `pingChord`, `swell` (a warning or a
-welcome), `thump` (every impact), `air` (a whoosh), `tick` (a transient),
-`sub` (weight), `crackle` (fire), `pad` (a dark, lowpassed sawtooth) and
-`shimmer` (a quiet high breath behind a reward).
+`knock` (the tock that carries hits, confirms and pickups), `knockChord` and
+`chord`, `figure`, `pulseTrain`, `thump` (every impact), `ping` (the glassy
+notes: chill, freeze, a crit), `click`, `tick`, `crackle`, `sub` (weight) and
+`pad` (a short, lowpassed sawtooth).
 
 ## Autoplay
 

@@ -9,6 +9,7 @@ import {
   SKILL_CAST_CUES,
   SOUND_CUE_IDS,
   SOUND_CUES,
+  type SoundCueId,
 } from './SoundCues'
 import { createNoiseBuffer } from './SynthPrimitives'
 import {
@@ -32,6 +33,22 @@ function voiceGainOf(source: { connections: readonly unknown[] }): FakeGainNode 
 
 function peakOf(gain: FakeGainNode | undefined): number {
   return Math.max(0, ...(gain?.gain.events.map((event) => event.value) ?? []).filter(Number.isFinite))
+}
+
+/** Everything is over within this, bar the moments that earn a longer note. */
+const ORDINARY_CUE_LIMIT_SECONDS = 0.45
+const LONG_FORM_CUE_LIMITS: Partial<Record<SoundCueId, number>> = {
+  victory: 1,
+  defeat: 1,
+  'boss-death': 1,
+  'boss-spawn': 1,
+  'level-up': 1,
+  'run-start': 1,
+  'essence-unlock': 1,
+  'reveal-epic': 1,
+  'reveal-legendary': 1,
+  // The box charges for at least 1.5 s; the ticking runs up to the reveal.
+  'lootbox-charge': 1.4,
 }
 
 describe('sound cue registry', () => {
@@ -101,7 +118,24 @@ describe('sound cue registry', () => {
     for (const source of context.bufferSources) {
       expect(source.connections[0]).toBeInstanceOf(FakeBiquadFilterNode)
       expect(peakOf(voiceGainOf(source))).toBeLessThanOrEqual(0.4)
+      // Noise is a transient, never a texture.
+      expect((source.stoppedAt ?? 0) - (source.startedAt ?? 0)).toBeLessThanOrEqual(0.09)
     }
+  })
+
+  it.each(SOUND_CUE_IDS)('keeps %s short', (cueId) => {
+    const context = new FakeAudioContext()
+    const seconds = SOUND_CUES[cueId].render(
+      {
+        context,
+        destination: context.destination,
+        startTime: 0,
+        noiseBuffer: createNoiseBuffer(context, 0.01),
+      },
+      { gain: 1, pitch: 0, intensity: 1 },
+    )
+
+    expect(seconds).toBeLessThanOrEqual(LONG_FORM_CUE_LIMITS[cueId] ?? ORDINARY_CUE_LIMIT_SECONDS)
   })
 
   it.each(SOUND_CUE_IDS)('renders %s on a context without throwing, briefly, and no louder than unity', (cueId) => {
