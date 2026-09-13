@@ -15,13 +15,14 @@ import {
 /**
  * Every sound effect in the game, synthesized.
  *
- * The voice is tactile: sine and triangle waves with a defined front edge
- * and a short decay, like something tapped or knocked. The workhorse is the
- * knock, a sine that starts high and drops to its body pitch in a few tens
- * of milliseconds with a soft click on the front. Motion is a figure of two
- * or three short notes rather than a sweep, a build-up is an accelerating
- * train of ticks, and noise exists only as a transient a few milliseconds
- * long. Nothing rings past a quarter of a second except a handful of
+ * The voice is tactile and natural: something struck rather than something
+ * synthesized. The workhorse is the knock, a wooden note (a triangle body
+ * with a quiet inharmonic overtone, the way a mallet on wood rings) that
+ * settles onto its pitch in a few milliseconds behind a soft contact click.
+ * Pitches sit low, in the range of a hand drum or a marimba, so nothing
+ * reads as a beep. Motion is a figure of two or three struck notes rather
+ * than a sweep, a build-up is an accelerating train of them, and noise
+ * exists only as the contact at the front of a note. Nothing rings past a quarter of a second except a handful of
  * long-form moments (victory, defeat, a boss), and nothing is louder than
  * half of unity. `SoundCues.test.ts` keeps the palette to these rules.
  */
@@ -43,8 +44,8 @@ function tick(cutoffHz: number, gain = 0.12, duration = 0.02, delay = 0): CueRen
   })
 }
 
-/** The front edge of a knock or a thump: a dozen milliseconds of lowpassed noise. */
-function click(gain = 0.2, delay = 0, cutoffHz = 2500, duration = 0.012): CueRenderer {
+/** The contact at the front of a note: a few milliseconds of lowpassed noise. */
+function click(gain = 0.2, delay = 0, cutoffHz = 1800, duration = 0.016): CueRenderer {
   return noise({
     duration,
     delay,
@@ -55,19 +56,27 @@ function click(gain = 0.2, delay = 0, cutoffHz = 2500, duration = 0.012): CueRen
   })
 }
 
-/** The UI press: a sine that slides down a little, with a tick on top. */
-function tap(hz: number, drop = 2, duration = 0.035, gain = 1): CueRenderer {
+/** The UI press: a small wooden tap that settles down a little. */
+function tap(hz: number, drop = 2, duration = 0.03, gain = 1): CueRenderer {
   return layer(
     tone({
-      wave: 'sine',
+      wave: 'triangle',
       frequency: hz,
       endFrequency: semitones(hz, -drop),
       duration,
-      attack: 0.003,
-      release: 0.04,
+      attack: 0.002,
+      release: 0.045,
       gain,
     }),
-    tick(5000, 0.1 * gain, 0.012),
+    tone({
+      wave: 'sine',
+      frequency: hz * 2.4,
+      duration: 0.012,
+      attack: 0.001,
+      release: 0.025,
+      gain: gain * 0.2,
+    }),
+    click(0.18 * gain, 0, 1500, 0.012),
   )
 }
 
@@ -81,26 +90,29 @@ interface KnockSpec {
   wave?: 'sine' | 'triangle'
 }
 
-/** A "tock": a sine that drops onto its pitch in 25 ms, with a click in front. */
+/**
+ * A wooden note: a triangle body that settles onto its pitch in 15 ms, a
+ * quiet inharmonic overtone (2.4×, as a struck bar has) that dies first, a
+ * sine an octave below for weight, and a contact click in front.
+ */
 function knock(hz: number, spec: KnockSpec = {}): CueRenderer {
   const {
-    from = hz * 2,
+    from = hz * 1.25,
     duration = 0.05,
     release = 0.08,
-    click: clickGain = 0.2,
+    click: clickGain = 0.22,
     gain = 1,
     delay = 0,
-    wave = 'sine',
+    wave = 'triangle',
   } = spec
   return layer(
     tone({
       wave,
       frequency: from,
       endFrequency: hz,
-      duration: Math.min(0.025, duration),
-      attack: 0.003,
+      duration: 0.015,
+      attack: 0.002,
       release: 0.001,
-      sustain: 1,
       gain,
       delay,
     }),
@@ -108,10 +120,28 @@ function knock(hz: number, spec: KnockSpec = {}): CueRenderer {
       wave,
       frequency: hz,
       duration,
-      attack: 0.02,
+      attack: 0.012,
       release,
       gain,
-      delay: delay + 0.02,
+      delay: delay + 0.012,
+    }),
+    tone({
+      wave: 'sine',
+      frequency: hz * 2.4,
+      duration: 0.015,
+      attack: 0.001,
+      release: 0.03,
+      gain: gain * 0.22,
+      delay,
+    }),
+    tone({
+      wave: 'sine',
+      frequency: hz / 2,
+      duration: Math.min(0.04, duration),
+      attack: 0.003,
+      release: Math.min(0.06, release),
+      gain: gain * 0.35,
+      delay,
     }),
     click(clickGain * gain, delay),
   )
@@ -190,18 +220,17 @@ interface FigureSpec {
   delay?: number
 }
 
-/** A run of short notes with tight decays: a step up, a step down, a flick. */
+/** A run of struck notes: a step up, a step down, a flick. */
 function figure(hzs: readonly number[], spec: FigureSpec = {}): CueRenderer {
-  const { noteDuration = 0.045, gap = 0.035, release = 0.07, wave = 'sine', gain = 1, delay = 0 } = spec
+  const { noteDuration = 0.045, gap = 0.035, release = 0.07, wave = 'triangle', gain = 1, delay = 0 } = spec
   return layer(
     ...hzs.map((hz, index) =>
-      tone({
-        wave,
-        frequency: hz,
+      knock(hz, {
         duration: noteDuration,
-        attack: 0.004,
         release,
+        wave,
         gain,
+        click: index === 0 ? 0.2 : 0.12,
         delay: delay + index * (noteDuration + gap),
       }),
     ),
@@ -214,12 +243,10 @@ function pulseTrain(hz: number, endHz: number, count: number, spanSeconds: numbe
   return layer(
     ...Array.from({ length: pulses }, (_, index) => {
       const progress = index / (pulses - 1)
-      return tone({
-        wave: 'sine',
-        frequency: hz + (endHz - hz) * progress,
-        duration: 0.03,
-        attack: 0.003,
-        release: 0.05,
+      return knock(hz + (endHz - hz) * progress, {
+        duration: 0.025,
+        release: 0.045,
+        click: 0.15,
         gain: gain * (0.7 + 0.3 * progress),
         delay: spanSeconds * Math.sqrt(progress),
       })
@@ -236,10 +263,24 @@ interface ThumpSpec {
   delay?: number
 }
 
-/** An impact: a low sine dropping onto its pitch in 40 ms, with a click in front. */
+/**
+ * An impact, drum-like: a sine dropping onto its pitch in 40 ms, a brief
+ * overtone that gives the skin its slap, and a contact click in front.
+ */
 function thump(gain = 1, spec: ThumpSpec = {}): CueRenderer {
   const { hz = 110, endHz = 55, duration = 0.09, click: clickGain = 0.25, scale = true, delay = 0 } = spec
   return layer(
+    tone({
+      wave: 'triangle',
+      frequency: hz * 2.4,
+      endFrequency: hz * 1.6,
+      duration: 0.02,
+      attack: 0.001,
+      release: 0.03,
+      gain: gain * 0.3,
+      delay,
+      scaleWithIntensity: scale,
+    }),
     tone({
       wave: 'sine',
       frequency: hz,
@@ -261,7 +302,7 @@ function thump(gain = 1, spec: ThumpSpec = {}): CueRenderer {
       delay: delay + 0.03,
       scaleWithIntensity: scale,
     }),
-    click(clickGain * gain, delay, 2500),
+    click(clickGain * gain, delay, 1600, 0.02),
   )
 }
 
@@ -300,13 +341,14 @@ function pad(hz: number, duration = 0.18, gain = 1, attack = 0.02, release = 0.0
 // frequency inside it, so the casts share a character but stay tellable apart.
 
 function swingCast(base: number): CueRenderer {
-  return layer(figure([base, base * 1.5], { noteDuration: 0.035, gap: 0.02, release: 0.06 }), click(0.15))
+  return layer(figure([base / 2, base * 0.75], { noteDuration: 0.035, gap: 0.02, release: 0.06 }), click(0.15))
 }
 
 function zapCast(base: number): CueRenderer {
   return layer(
-    tone({ wave: 'sine', frequency: base * 2, endFrequency: base, duration: 0.05, attack: 0.003, release: 0.06 }),
-    tick(3500, 0.1, 0.015),
+    tone({ wave: 'triangle', frequency: base, endFrequency: base * 0.75, duration: 0.05, attack: 0.002, release: 0.06 }),
+    tone({ wave: 'sine', frequency: base / 2, duration: 0.04, attack: 0.003, release: 0.05, gain: 0.4 }),
+    tick(3500, 0.08, 0.012),
   )
 }
 
@@ -343,22 +385,22 @@ function reveal(hzs: readonly number[], release: number, extra?: CueRenderer): S
   }
 }
 
-const confirmPair = (): CueRenderer => layer(knock(660), knock(990, { delay: 0.04, gain: 0.9 }))
+const confirmPair = (): CueRenderer => layer(knock(392), knock(587, { delay: 0.045, gain: 0.9 }))
 
 export const SOUND_CUES = {
   // Run and phase
   'run-start': {
     priority: attention, gain: 0.4, cooldownMs: 500,
     render: layer(
-      figure([523, 659, 784]),
-      chord([523, 784], { duration: 0.1, release: 0.25, delay: 0.24, gain: 0.7 }),
+      figure([262, 330, 392]),
+      chord([262, 392], { duration: 0.1, release: 0.25, delay: 0.24, gain: 0.7 }),
     ),
   },
   victory: {
     priority: attention, gain: 0.5, cooldownMs: 1000,
     render: layer(
       chord([392, 494, 587, 784], { attack: 0.02, duration: 0.35, release: 0.4, stagger: 0.03 }),
-      knock(1568, { delay: 0.3, release: 0.25, gain: 0.6 }),
+      knock(784, { delay: 0.3, release: 0.25, gain: 0.6 }),
     ),
   },
   defeat: {
@@ -371,12 +413,12 @@ export const SOUND_CUES = {
       sub(0.4, 0.5, 40),
     ),
   },
-  'floor-depart': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([784, 587, 392]) },
-  'floor-arrive': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([392, 587, 784]) },
-  pause: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(660), knock(494, { delay: 0.07 })) },
-  resume: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(494), knock(660, { delay: 0.07 })) },
-  'stairs-appear': { priority: reward, gain: 0.34, cooldownMs: 500, render: knockChord([660, 990, 1320]) },
-  'stairs-reached': { priority: reward, gain: 0.3, cooldownMs: 300, render: knock(880) },
+  'floor-depart': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([392, 294, 196]) },
+  'floor-arrive': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([196, 294, 392]) },
+  pause: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(392), knock(294, { delay: 0.07 })) },
+  resume: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(294), knock(392, { delay: 0.07 })) },
+  'stairs-appear': { priority: reward, gain: 0.34, cooldownMs: 500, render: knockChord([330, 494, 659]) },
+  'stairs-reached': { priority: reward, gain: 0.3, cooldownMs: 300, render: knock(440) },
 
   // The player
   'hurt-physical': {
@@ -424,11 +466,11 @@ export const SOUND_CUES = {
   heal: { priority: defensive, gain: 0.32, cooldownMs: 0, render: chord([523, 659], { release: 0.2 }) },
   'heal-crit': {
     priority: defensive, gain: 0.36, cooldownMs: 0,
-    render: layer(chord([523, 659, 784], { release: 0.2 }), knock(1568, { delay: 0.06, gain: 0.5 })),
+    render: layer(chord([523, 659, 784], { release: 0.2 }), knock(1046, { delay: 0.06, gain: 0.5 })),
   },
   'shield-gain': {
     priority: defensive, gain: 0.32, cooldownMs: 0,
-    render: layer(knock(660, { release: 0.12 }), knock(990, { delay: 0.05, gain: 0.8, release: 0.14 })),
+    render: layer(knock(330, { release: 0.12 }), knock(494, { delay: 0.05, gain: 0.8, release: 0.14 })),
   },
   'shield-absorb': { priority: defensive, gain: 0.3, cooldownMs: 0, render: ping(1320, 0.1) },
   'shield-break': {
@@ -442,7 +484,7 @@ export const SOUND_CUES = {
   // Basic attack and routine combat
   'attack-sword': {
     priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1,
-    render: layer(figure([660, 440], { noteDuration: 0.03, gap: 0.01, release: 0.05 }), click(0.2)),
+    render: layer(figure([330, 220], { noteDuration: 0.03, gap: 0.01, release: 0.05 }), click(0.2)),
   },
   'attack-bow': {
     priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1,
@@ -451,7 +493,7 @@ export const SOUND_CUES = {
       tick(3000, 0.12, 0.012),
     ),
   },
-  'attack-wand': { priority: routine, gain: 0.22, cooldownMs: 0, pitchJitter: 1, render: knock(880, { release: 0.06 }) },
+  'attack-wand': { priority: routine, gain: 0.22, cooldownMs: 0, pitchJitter: 1, render: knock(440, { release: 0.06 }) },
   'attack-staff': {
     priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1,
     render: layer(tone({ wave: 'sine', frequency: 80, duration: 0.08, attack: 0.004, release: 0.06 }), click(0.2)),
@@ -477,7 +519,7 @@ export const SOUND_CUES = {
       click(0.3, 0.01, 1000, 0.04),
     ),
   },
-  'elite-death': { priority: reward, gain: 0.34, cooldownMs: 0, render: knockChord([660, 990, 1320]) },
+  'elite-death': { priority: reward, gain: 0.34, cooldownMs: 0, render: knockChord([330, 494, 659]) },
 
   // Bosses and enemy abilities
   'boss-spawn': {
@@ -488,16 +530,16 @@ export const SOUND_CUES = {
   'boss-telegraph-charge': { priority: attention, gain: 0.4, cooldownMs: 0, render: pulseTrain(220, 440, 4, 0.3) },
   'boss-telegraph-nova': {
     priority: attention, gain: 0.4, cooldownMs: 0,
-    render: layer(figure([330, 494, 660]), knock(1320, { delay: 0.24, gain: 0.5 })),
+    render: layer(figure([165, 247, 330]), knock(660, { delay: 0.24, gain: 0.5 })),
   },
   'boss-telegraph-line': {
     priority: attention, gain: 0.4, cooldownMs: 0,
-    render: layer(knock(660), knock(784, { delay: 0.1 }), knock(880, { delay: 0.2 })),
+    render: layer(knock(330), knock(392, { delay: 0.1 }), knock(440, { delay: 0.2 })),
   },
-  'boss-telegraph-meteor': { priority: attention, gain: 0.4, cooldownMs: 0, render: figure([1200, 800, 400]) },
+  'boss-telegraph-meteor': { priority: attention, gain: 0.4, cooldownMs: 0, render: figure([600, 400, 200]) },
   'boss-telegraph-generic': {
     priority: attention, gain: 0.36, cooldownMs: 0,
-    render: layer(knock(523), knock(659, { delay: 0.12 })),
+    render: layer(knock(262), knock(330, { delay: 0.12 })),
   },
   'boss-impact': {
     priority: attention, gain: 0.45, cooldownMs: 0,
@@ -517,11 +559,11 @@ export const SOUND_CUES = {
       chord([262, 330, 392, 523], { attack: 0.02, duration: 0.15, release: 0.25, delay: 0.35, stagger: 0.03, gain: 0.7 }),
     ),
   },
-  'enemy-telegraph': { priority: defensive, gain: 0.26, cooldownMs: 0, render: knock(784, { release: 0.06 }) },
+  'enemy-telegraph': { priority: defensive, gain: 0.26, cooldownMs: 0, render: knock(392, { release: 0.06 }) },
   'enemy-impact': { priority: defensive, gain: 0.3, cooldownMs: 0, render: thump(1, { duration: 0.08 }) },
 
   // Skill casts, by family
-  'cast-basic-attack': cast(knock(880, { release: 0.06 })),
+  'cast-basic-attack': cast(knock(440, { release: 0.06 })),
   'cast-whirlwind': cast(swingCast(500)),
   'cast-lancers-charge': cast(swingCast(300)),
   'cast-razorwire': cast(swingCast(1400)),
@@ -581,7 +623,7 @@ export const SOUND_CUES = {
   },
   summon: {
     priority: reward, gain: 0.32, cooldownMs: 0,
-    render: layer(figure([160, 240, 480]), knock(960, { delay: 0.24, gain: 0.4 })),
+    render: layer(figure([110, 165, 220]), knock(440, { delay: 0.24, gain: 0.4 })),
   },
 
   // Status effects
@@ -601,27 +643,27 @@ export const SOUND_CUES = {
   },
 
   // Pickups and progression
-  'pickup-xp': { priority: reward, gain: 0.26, cooldownMs: 0, render: knock(1046, { duration: 0.04, release: 0.08, click: 0.12 }) },
-  'pickup-gear': { priority: reward, gain: 0.34, cooldownMs: 0, render: knockChord([880, 1320]) },
-  'pickup-potion': { priority: reward, gain: 0.3, cooldownMs: 0, render: figure([392, 523], { release: 0.1 }) },
+  'pickup-xp': { priority: reward, gain: 0.26, cooldownMs: 0, render: knock(659, { duration: 0.04, release: 0.08, click: 0.12 }) },
+  'pickup-gear': { priority: reward, gain: 0.34, cooldownMs: 0, render: knockChord([440, 659]) },
+  'pickup-potion': { priority: reward, gain: 0.3, cooldownMs: 0, render: figure([262, 392], { release: 0.1 }) },
   'level-up': {
     priority: attention, gain: 0.45, cooldownMs: 500,
     render: layer(
-      figure([523, 659, 784]),
-      chord([523, 659, 784], { duration: 0.3, release: 0.2, delay: 0.25, gain: 0.7 }),
-      knock(1568, { delay: 0.5, release: 0.2, gain: 0.6 }),
+      figure([392, 494, 587]),
+      chord([392, 494, 587, 784], { duration: 0.3, release: 0.2, delay: 0.25, gain: 0.7 }),
+      knock(784, { delay: 0.5, release: 0.2, gain: 0.6 }),
     ),
   },
   'choice-open': {
     priority: attention, gain: 0.3, cooldownMs: 200,
-    render: layer(figure([523, 1046], { release: 0.1 }), knock(1046, { delay: 0.16, gain: 0.5 })),
+    render: layer(figure([330, 659], { release: 0.1 }), knock(659, { delay: 0.16, gain: 0.5 })),
   },
   'choice-select': { priority: attention, gain: 0.34, cooldownMs: 100, render: confirmPair() },
   'choice-reroll': {
     priority: attention, gain: 0.3, cooldownMs: 100,
-    render: figure([660, 880, 1100], { noteDuration: 0.03, gap: 0.02, release: 0.06 }),
+    render: figure([330, 440, 550], { noteDuration: 0.03, gap: 0.02, release: 0.06 }),
   },
-  'choice-skip': { priority: attention, gain: 0.26, cooldownMs: 100, render: tap(520, 4, 0.05) },
+  'choice-skip': { priority: attention, gain: 0.26, cooldownMs: 100, render: tap(330, 4, 0.045) },
   'choice-banish': {
     priority: attention, gain: 0.32, cooldownMs: 100,
     render: tone({
@@ -631,14 +673,14 @@ export const SOUND_CUES = {
   },
 
   // Menus and the meta game
-  'ui-press': { priority: attention, gain: 0.22, cooldownMs: 40, render: tap(720) },
+  'ui-press': { priority: attention, gain: 0.24, cooldownMs: 40, render: tap(392) },
   'ui-confirm': { priority: attention, gain: 0.28, cooldownMs: 80, render: confirmPair() },
-  'ui-cancel': { priority: attention, gain: 0.26, cooldownMs: 80, render: layer(knock(660), knock(550, { delay: 0.05, gain: 0.9 })) },
+  'ui-cancel': { priority: attention, gain: 0.26, cooldownMs: 80, render: layer(knock(392), knock(330, { delay: 0.05, gain: 0.9 })) },
   'screen-transition': {
     priority: attention, gain: 0.28, cooldownMs: 150,
-    render: figure([880, 660], { noteDuration: 0.04, gap: 0.03, release: 0.07 }),
+    render: figure([440, 330], { noteDuration: 0.04, gap: 0.03, release: 0.07 }),
   },
-  'toast-info': { priority: attention, gain: 0.26, cooldownMs: 150, render: knock(1046, { release: 0.14 }) },
+  'toast-info': { priority: attention, gain: 0.26, cooldownMs: 150, render: knock(523, { release: 0.14 }) },
   'toast-error': {
     priority: danger, gain: 0.3, cooldownMs: 150,
     render: layer(
@@ -646,45 +688,45 @@ export const SOUND_CUES = {
       tone({ wave: 'triangle', frequency: 262, duration: 0.08, attack: 0.005, release: 0.12, delay: 0.08 }),
     ),
   },
-  'toast-loot': { priority: attention, gain: 0.3, cooldownMs: 150, render: knockChord([784, 1175]) },
-  'lootbox-charge': { priority: attention, gain: 0.3, cooldownMs: 300, render: pulseTrain(220, 880, 12, 1.2) },
-  'reveal-common': reveal([523], 0.18),
-  'reveal-uncommon': reveal([523, 784], 0.2),
-  'reveal-rare': reveal([523, 659, 784], 0.22),
-  'reveal-epic': reveal([523, 659, 784, 1046], 0.26),
-  'reveal-legendary': reveal([523, 659, 784, 1046, 1318], 0.3, ping(2093, 0.25, 0.5, 0.15)),
+  'toast-loot': { priority: attention, gain: 0.3, cooldownMs: 150, render: knockChord([392, 587]) },
+  'lootbox-charge': { priority: attention, gain: 0.3, cooldownMs: 300, render: pulseTrain(165, 440, 12, 1.2) },
+  'reveal-common': reveal([262], 0.18),
+  'reveal-uncommon': reveal([262, 392], 0.2),
+  'reveal-rare': reveal([262, 330, 392], 0.22),
+  'reveal-epic': reveal([262, 330, 392, 523], 0.26),
+  'reveal-legendary': reveal([262, 330, 392, 523, 659], 0.3, ping(1046, 0.25, 0.4, 0.15)),
   'fishing-cast': {
     priority: attention, gain: 0.3, cooldownMs: 200,
-    render: layer(figure([330, 494, 660]), click(0.15)),
+    render: layer(figure([165, 247, 330]), click(0.15)),
   },
   'fishing-bite': {
     priority: danger, gain: 0.36, cooldownMs: 200,
-    render: layer(knock(880), knock(660, { delay: 0.08 }), knock(880, { delay: 0.16 })),
+    render: layer(knock(440), knock(330, { delay: 0.08 }), knock(440, { delay: 0.16 })),
   },
   'fishing-catch': {
     priority: attention, gain: 0.36, cooldownMs: 300,
     render: layer(
-      knockChord([523, 784, 1046]),
+      knockChord([262, 392, 523]),
       tone({ wave: 'sine', frequency: 300, endFrequency: 120, duration: 0.05, attack: 0.003, release: 0.06, gain: 0.6 }),
     ),
   },
   'shop-buy': {
     priority: attention, gain: 0.3, cooldownMs: 150,
-    render: layer(knock(988), knock(1318, { delay: 0.05, gain: 0.9 }), tick(5000, 0.1, 0.015)),
+    render: layer(knock(494), knock(659, { delay: 0.05, gain: 0.9 }), tick(5000, 0.08, 0.012)),
   },
   'shop-sell': {
     priority: attention, gain: 0.3, cooldownMs: 150,
-    render: layer(knock(1318), knock(988, { delay: 0.05, gain: 0.9 }), tick(5000, 0.1, 0.015)),
+    render: layer(knock(659), knock(494, { delay: 0.05, gain: 0.9 }), tick(5000, 0.08, 0.012)),
   },
   'essence-spend': {
     priority: attention, gain: 0.28, cooldownMs: 150,
-    render: layer(knock(880), knock(660, { delay: 0.06, gain: 0.9 })),
+    render: layer(knock(440), knock(330, { delay: 0.06, gain: 0.9 })),
   },
   'essence-unlock': {
     priority: attention, gain: 0.38, cooldownMs: 300,
     render: layer(
-      figure([440, 554, 659]),
-      chord([440, 659, 880], { duration: 0.12, release: 0.25, delay: 0.24, gain: 0.7 }),
+      figure([220, 277, 330]),
+      chord([220, 330, 440], { duration: 0.12, release: 0.25, delay: 0.24, gain: 0.7 }),
     ),
   },
   'purchase-fail': {
@@ -694,9 +736,9 @@ export const SOUND_CUES = {
       tone({ wave: 'triangle', frequency: 220, duration: 0.09, attack: 0.005, release: 0.18, delay: 0.09, filter: { type: 'lowpass', frequency: 1200 } }),
     ),
   },
-  mute: { priority: attention, gain: 0.24, cooldownMs: 100, render: knock(400, { from: 600, release: 0.06 }) },
-  unmute: { priority: attention, gain: 0.24, cooldownMs: 100, render: figure([450, 600], { noteDuration: 0.03, gap: 0.015, release: 0.05 }) },
-  'volume-tick': { priority: attention, gain: 0.24, cooldownMs: 60, render: tap(880, 1, 0.025) },
+  mute: { priority: attention, gain: 0.24, cooldownMs: 100, render: knock(262, { from: 392, release: 0.06 }) },
+  unmute: { priority: attention, gain: 0.24, cooldownMs: 100, render: figure([262, 392], { noteDuration: 0.03, gap: 0.015, release: 0.05 }) },
+  'volume-tick': { priority: attention, gain: 0.24, cooldownMs: 60, render: tap(523, 1, 0.022) },
 } satisfies Record<string, SoundCueDefinition>
 
 export type SoundCueId = keyof typeof SOUND_CUES

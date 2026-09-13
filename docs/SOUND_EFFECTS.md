@@ -69,7 +69,13 @@ it can:
 
 - **Waves:** sine and triangle. A sawtooth appears only behind a lowpass at
   or below 1.5 kHz, for low weight. No square wave anywhere.
-- **Front edge:** attacks of 2–6 ms on anything percussive (taps, knocks,
+- **Timbre:** struck, not synthesized. A knock is a triangle body with a
+  quiet inharmonic overtone (2.4×, the way a mallet on a wooden bar rings),
+  a sine an octave below for weight, and a contact click in front. A thump
+  is the same idea an octave lower with a brief slap overtone, like a hand
+  drum. Pitches sit low (roughly 200–660 Hz for menus and rewards, 40–130 Hz
+  for impacts) so nothing reads as a beep.
+- **Front edge:** attacks of 1–6 ms on anything percussive (taps, knocks,
   thumps, ticks); 10–25 ms only on chords and pads. The edge is the sound.
 - **Tails:** releases of 40–120 ms for ordinary cues, up to 250 ms for
   chords and rewards. Every ordinary cue is over within 0.45 s; a named set
@@ -82,8 +88,9 @@ it can:
 - **Motion:** a `figure` of two or three short notes (down for leaving, up
   for arriving) or a `pulseTrain` of ticks that bunch up as a charge or a
   warning comes due. Never a sweep.
-- **Pitch:** the knock drops an octave onto its body pitch in 25 ms; beyond
-  that, movement is small and over quickly.
+- **Pitch:** the knock settles onto its body pitch from a major third above
+  in 15 ms; beyond that, movement is small and over quickly. Octave drops
+  and fast sweeps read as lasers and are avoided.
 - **Levels:** no cue above 0.5. Menus sit around 0.22–0.3, routine combat
   0.18–0.32, rewards 0.3–0.4, the player being hurt and boss moments 0.4–0.5.
 
