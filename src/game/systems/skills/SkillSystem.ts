@@ -1,3 +1,4 @@
+import { emitGameEvent } from '../../events/GameEvents'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
@@ -1400,6 +1401,11 @@ function collectAegisPulseDamage(
   state.player.aegisPulseShieldMaxAmount = shieldAmount
   state.player.aegisPulseShieldRemaining = shieldDuration
   state.player.aegisPulseShieldDuration = shieldDuration
+  emitGameEvent(state, {
+    type: 'shield-gained',
+    amount: shieldAmount,
+    sourceSkillId: skill.skillId,
+  })
 
   addEffect(
     state,
@@ -1635,6 +1641,11 @@ export function updateCinderMineTraps(
       })
     }
     if (affected.length > 0 || timedOut) {
+      emitGameEvent(state, {
+        type: 'skill-result',
+        skillId: trap.skillId,
+        result: 'mine-detonate',
+      })
       const definition = getSkillDefinition(trap.skillId)
       addEffect(
         state,
@@ -2181,6 +2192,11 @@ function grantMirrorWardShield(state: GameState, amount: number): void {
     state.player.aegisPulseShieldRemaining ?? 0,
     AEGIS_PULSE_BASE_DURATION_SECONDS,
   )
+  emitGameEvent(state, {
+    type: 'shield-gained',
+    amount,
+    sourceSkillId: MIRRORCAST_SKILL_ID,
+  })
 }
 
 function castMirrorcast(
@@ -3389,6 +3405,11 @@ export function collectSkillDamage(
       events.push(...collectAegisPulseDamage(state, skill, allocator))
     } else if (skill.skillId === RAISE_SKELETON_SKILL_ID) {
       if (summonSkeletonIfReady(state, allocator)) {
+        emitGameEvent(state, {
+          type: 'skill-result',
+          skillId: RAISE_SKELETON_SKILL_ID,
+          result: 'summon',
+        })
         const definition = getSkillDefinition(RAISE_SKELETON_SKILL_ID)
         addEffect(
           state,
@@ -3420,6 +3441,11 @@ export function collectSkillDamage(
       events.push(...collectPrismHaloCast(state, skill, allocator))
     } else if (skill.skillId === PHANTOM_ARSENAL_SKILL_ID) {
       if (summonPhantomIfReady(state, allocator)) {
+        emitGameEvent(state, {
+          type: 'skill-result',
+          skillId: PHANTOM_ARSENAL_SKILL_ID,
+          result: 'summon',
+        })
         const definition = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID)
         addEffect(
           state,
@@ -3433,6 +3459,7 @@ export function collectSkillDamage(
       }
     }
     if ((skill.castCount ?? 0) > castCountBefore) {
+      emitGameEvent(state, { type: 'skill-cast', skillId: skill.skillId, resonant })
       // Blood Debt and Mirrorcast react to any skill that actually cast this
       // tick, but never to Basic Attack (handled elsewhere) or their own casts.
       events.push(...consumeBloodDebtForCast(state, skill))

@@ -34,6 +34,8 @@ import { LevelUpOverlay } from './LevelUpOverlay'
 import { AbyssModifierOverlay } from '../abyss/AbyssModifierOverlay'
 import { PauseMenu } from './PauseMenu'
 import { PixiGame } from './PixiGame'
+import { createGameSoundDirector } from '../audio/GameSoundDirector'
+import { soundEffects } from '../audio/SoundEffects'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
 interface GameCanvasProps {
@@ -254,8 +256,18 @@ export function GameCanvas({
             : initialRunConfigRef.current,
         )
     applyInitialTimeScale(game, developmentToolsRef.current)
-    const pixiGame = new PixiGame(game)
     let disposed = false
+    // Sounds are driven by what the simulation reports, drained once per
+    // frame right after it steps, and again on every state notification so a
+    // cue for something done from a menu (pausing, picking an upgrade) is not
+    // a frame late and a defeat is heard even if this canvas unmounts.
+    const soundDirector = createGameSoundDirector(soundEffects)
+    const flushSounds = (): void => {
+      if (!disposed) {
+        soundDirector.handle(game.drainEvents())
+      }
+    }
+    const pixiGame = new PixiGame(game, { onAfterUpdate: flushSounds })
     let runEndNotified = false
     let floorSaveRequested = false
     gameRef.current = game
@@ -346,6 +358,7 @@ export function GameCanvas({
         return
       }
 
+      flushSounds()
       // Phase changes are published immediately so the level-up overlay never
       // waits for the throttled HUD interval.
       publishSnapshot()
@@ -540,6 +553,7 @@ export function GameCanvas({
       choiceFlowRef.current = null
       retryFloorSaveRef.current = () => undefined
       pixiGame.destroy()
+      soundDirector.reset()
     }
   }, [])
 

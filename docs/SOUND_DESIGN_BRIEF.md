@@ -354,7 +354,8 @@ Use descriptive source names grouped by family, for example
 `boss_inferno_warden_meteor_impact`. Supply a loopable version for persistent
 effects and a one-shot version for state changes where both are needed.
 
-The implementation currently has no audio event bus. During integration, map
-these cue families to simulation transitions rather than rendering frames, and
-keep a cooldown/aggregation policy for basic attacks, damage ticks, chain
-jumps, pickup attraction, and dense enemy deaths.
+The implementation maps these cue families to simulation events rather than
+rendering frames, with a cooldown/aggregation policy for basic attacks, damage
+ticks, chain jumps, and dense enemy deaths. Every cue is currently synthesized
+in code; see [SOUND_EFFECTS.md](SOUND_EFFECTS.md) for the event flow, the
+registry, and how an authored file would slot in for a recipe.

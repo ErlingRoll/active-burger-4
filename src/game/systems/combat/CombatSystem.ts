@@ -4,6 +4,7 @@ import {
   getProjectileDefinition,
   PLAYER_PROJECTILE_CHAIN_RANGE,
 } from '../../../content/projectiles/Projectiles'
+import { emitGameEvent } from '../../events/GameEvents'
 import {
   BASIC_ATTACK_SKILL_ID,
   BLOOD_RITE_SKILL_ID,
@@ -90,6 +91,7 @@ import type {
   BossState,
   EnemyState,
   GameState,
+  HitVisualState,
   PlayerState,
   ProjectileState,
   SkillEffectPoint,
@@ -848,6 +850,11 @@ function createProjectileImpactEffect(
     remainingLifetime: definition.effectLifetime,
     points: [{ x, y }],
   })
+  emitGameEvent(state, {
+    type: 'skill-result',
+    skillId: GLACIAL_ORB_SKILL_ID,
+    result: 'orb-burst',
+  })
   if (
     state.run.selectedUpgradeIds.includes('synergy-glacial-orb-razorwire') &&
     state.wires
@@ -1570,7 +1577,9 @@ export function performBasicAttackIfReady(
     return []
   }
 
-  const variant = getBasicAttackVariant(getEquippedWeaponArchetype(player))
+  // No weapon fires the wand variant, so that is also the sound it makes.
+  const weapon = getEquippedWeaponArchetype(player) ?? 'wand'
+  const variant = getBasicAttackVariant(weapon)
   const target = getBasicAttackTarget(state)
   if (!target) {
     if (
@@ -1592,6 +1601,7 @@ export function performBasicAttackIfReady(
       : collectSwordBasicAttackDamage(state, target, idAllocator)
     if (events.length > 0) {
       setBasicAttackCooldown(state, cooldown)
+      emitGameEvent(state, { type: 'basic-attack-fired', weapon })
     }
     return events
   }
@@ -1612,6 +1622,7 @@ export function performBasicAttackIfReady(
     ...createBasicAttackProjectileState(state, idAllocator, target),
   )
   setBasicAttackCooldown(state, cooldown)
+  emitGameEvent(state, { type: 'basic-attack-fired', weapon })
   return []
 }
 
@@ -1847,6 +1858,13 @@ export function collectProjectileDamage(
               enemies,
             )
         if (nextTarget) {
+          if (projectile.skillId !== undefined) {
+            emitGameEvent(state, {
+              type: 'skill-result',
+              skillId: projectile.skillId,
+              result: 'chain-jump',
+            })
+          }
           relaunchProjectileTowardTarget(projectile, hitEnemy, nextTarget)
           continue
         }
@@ -1945,6 +1963,34 @@ function recordSkillDamage(
     (state.run.skillDamageDealt[sourceSkillId] ?? 0) + actualDamage
 }
 
+/**
+ * Damage-over-time ticks are deliberately silent: the brief asks for no cue per
+ * tick, and the aggregation on the listening side is easier to reason about
+ * when the ticks never reach it at all.
+ */
+function emitEnemyHit(
+  state: Readonly<GameState>,
+  targetKind: 'enemy' | 'boss',
+  event: Readonly<DamageEvent>,
+  visual: Readonly<HitVisualState>,
+  killingBlow: boolean,
+): void {
+  if (event.damageOverTime) {
+    return
+  }
+  emitGameEvent(state, {
+    type: 'enemy-hit',
+    targetKind,
+    ...(event.sourceSkillId !== undefined ? { sourceSkillId: event.sourceSkillId } : {}),
+    ...(event.sourceSkillId === BASIC_ATTACK_SKILL_ID
+      ? { weapon: getEquippedWeaponArchetype(state.player) ?? 'wand' }
+      : {}),
+    element: visual.element,
+    critical: visual.critical,
+    killingBlow,
+  })
+}
+
 export function applyDamageEvents(
   state: GameState,
   events: readonly DamageEvent[],
@@ -2012,7 +2058,24 @@ export function applyDamageEvents(
           element: getHitVisualElement(event, resolvedDamage.mitigated),
           critical: resolvedDamage.critical,
         }
+        emitGameEvent(state, {
+          type: 'player-damaged',
+          amount: totalPlayerDamage,
+          element: state.player.lastHitVisual.element,
+          critical: resolvedDamage.critical,
+          damageOverTime: event.damageOverTime === true,
+          hpFraction: state.player.maxHp > 0
+            ? Math.max(0, state.player.hp / state.player.maxHp)
+            : 0,
+        })
         applyEliteLeeching(state, event, totalPlayerDamage)
+      }
+      if (totalAbsorbedByShield > 0) {
+        emitGameEvent(state, {
+          type: 'shield-absorbed',
+          amount: totalAbsorbedByShield,
+          broke: (state.player.aegisPulseShieldAmount ?? 0) <= 0,
+        })
       }
       if (
         totalAbsorbedByShield > 0 &&
@@ -2099,6 +2162,7 @@ export function applyDamageEvents(
           element: getHitVisualElement(event, resolvedDamage.mitigated),
           critical: resolvedDamage.critical,
         }
+        emitEnemyHit(state, 'enemy', event, enemy.lastHitVisual, enemy.hp <= 0)
       }
       recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
@@ -2107,11 +2171,11 @@ export function applyDamageEvents(
         enemyEvent,
         resolvedDamage.preMitigation,
       )
-      applyFrostApplication(enemy, enemyEvent)
+      applyFrostApplication(state, 'enemy', enemy, enemyEvent)
       if (isPlayerOwnedDirectHit(state, event)) {
-        applyGearFrostApplication(state, enemy, enemyEvent)
+        applyGearFrostApplication(state, 'enemy', enemy, enemyEvent)
       }
-      applyShockApplication(enemy, enemyEvent, pendingEvents)
+      applyShockApplication(state, 'enemy', enemy, enemyEvent, pendingEvents)
       applyBurningApplication(state, enemy, enemyEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
@@ -2171,6 +2235,7 @@ export function applyDamageEvents(
           element: getHitVisualElement(event, resolvedDamage.mitigated),
           critical: resolvedDamage.critical,
         }
+        emitEnemyHit(state, 'boss', event, boss.lastHitVisual, boss.hp <= 0)
       }
       recordSkillDamage(state, event.sourceSkillId, actualDamage)
       applyPoisonApplication(
@@ -2179,11 +2244,11 @@ export function applyDamageEvents(
         bossEvent,
         resolvedDamage.preMitigation,
       )
-      applyFrostApplication(boss, bossEvent)
+      applyFrostApplication(state, 'boss', boss, bossEvent)
       if (isPlayerOwnedDirectHit(state, event)) {
-        applyGearFrostApplication(state, boss, bossEvent)
+        applyGearFrostApplication(state, 'boss', boss, bossEvent)
       }
-      applyShockApplication(boss, bossEvent, pendingEvents)
+      applyShockApplication(state, 'boss', boss, bossEvent, pendingEvents)
       applyBurningApplication(state, boss, bossEvent, resolvedDamage.preMitigation)
       applyMeleeLeech(state, event, actualDamage)
       applySoulTetherHealing(state, event, actualDamage)
@@ -2235,6 +2300,8 @@ function getIncomingPlayerDamageFactor(state: GameState): number {
 }
 
 function applyFrostApplication(
+  state: Readonly<GameState>,
+  targetKind: 'enemy' | 'boss',
   target: EnemyState,
   event: Readonly<DamageEvent>,
 ): void {
@@ -2242,6 +2309,7 @@ function applyFrostApplication(
   if (!application || target.hp <= 0) {
     return
   }
+  emitGameEvent(state, { type: 'status-applied', status: 'chill', target: targetKind })
   const controlFactor = 1 - Math.min(90, Math.max(0, target.controlResistance ?? 0)) / 100
   const stacks = Math.max(1, Math.floor(application.stacks * controlFactor))
   target.chillStacks = Math.min(
@@ -2264,10 +2332,13 @@ function applyFrostApplication(
     )
     target.chillStacks = 0
     target.chillRemainingDuration = 0
+    emitGameEvent(state, { type: 'status-applied', status: 'freeze', target: targetKind })
   }
 }
 
 function applyShockApplication(
+  state: Readonly<GameState>,
+  targetKind: 'enemy' | 'boss',
   target: EnemyState,
   event: Readonly<DamageEvent>,
   pendingEvents: DamageEvent[],
@@ -2276,6 +2347,7 @@ function applyShockApplication(
   if (!application || target.hp <= 0) {
     return
   }
+  emitGameEvent(state, { type: 'status-applied', status: 'shock', target: targetKind })
 
   target.shockStacks = Math.min(
     SHOCK_MAX_STACKS,
@@ -2302,6 +2374,7 @@ function applyShockApplication(
 
 function applyGearFrostApplication(
   state: GameState,
+  targetKind: 'enemy' | 'boss',
   target: EnemyState,
   event: Readonly<DamageEvent>,
 ): void {
@@ -2309,7 +2382,7 @@ function applyGearFrostApplication(
   if (stacks <= 0 || event.damageOverTime) {
     return
   }
-  applyFrostApplication(target, {
+  applyFrostApplication(state, targetKind, target, {
     targetId: target.id,
     damage: createDamageValues(),
     frostApplication: {
@@ -2367,6 +2440,9 @@ export function updateFrost(
     (state.player.aegisPulseShieldRemaining ?? 0) - elapsed,
   )
   if (state.player.aegisPulseShieldRemaining <= 0) {
+    if ((state.player.aegisPulseShieldAmount ?? 0) > 0) {
+      emitGameEvent(state, { type: 'shield-expired' })
+    }
     state.player.aegisPulseShieldAmount = 0
     state.player.aegisPulseShieldMaxAmount = 0
     state.player.aegisPulseShieldDuration = 0
@@ -2390,6 +2466,11 @@ function applyPoisonApplication(
   if (damagePerSecond <= 0) {
     return
   }
+  emitGameEvent(state, {
+    type: 'status-applied',
+    status: 'poison',
+    target: target === state.player ? 'player' : 'enemy',
+  })
   target.poisonStacks ??= []
   target.poisonStacks.push({
     remainingDuration: application.durationSeconds,
@@ -2461,6 +2542,7 @@ function applyBurningApplication(
   if (damagePerSecond <= 0) {
     return
   }
+  emitGameEvent(state, { type: 'status-applied', status: 'burn', target: 'enemy' })
   target.burningStacks ??= []
   target.burningStacks.push({
     remainingDuration: application.durationSeconds,
@@ -2810,6 +2892,11 @@ function detonateRuinSigil(
   executionProtocol: boolean,
   idAllocator?: EntityIdAllocator,
 ): void {
+  emitGameEvent(state, {
+    type: 'skill-result',
+    skillId: SIGIL_OF_RUIN_SKILL_ID,
+    result: 'sigil-detonate',
+  })
   state.player.ruinSigils = (state.player.ruinSigils ?? []).filter(
     (candidate) => candidate !== sigil,
   )
@@ -2958,6 +3045,11 @@ function triggerSoulTetherSnap(
     removeSoulTether(state, tether)
     return events
   }
+  emitGameEvent(state, {
+    type: 'skill-result',
+    skillId: SOUL_TETHER_SKILL_ID,
+    result: 'tether-snap',
+  })
 
   const burstTargetCount = requiem ? SOUL_TETHER_REQUIEM_BURST_TARGET_COUNT : 1
   const nearby = [...state.enemies, ...(state.bosses ?? [])]
@@ -3133,6 +3225,11 @@ export function removeDeadEntities(
       livingEnemies.push(enemy)
     } else {
       killCount += 1
+      emitGameEvent(state, {
+        type: 'enemy-died',
+        definitionId: enemy.definitionId,
+        elite: getEliteModifierIds(enemy).length > 0,
+      })
       // Create the drop before removing the enemy so every observed death
       // produces exactly one pickup during this cleanup pass.
       if (enemy.xpReward > 0) {

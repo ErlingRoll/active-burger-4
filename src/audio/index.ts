@@ -1,2 +1,7 @@
 export * from './AudioSystem'
 export * from './AudioSettingsPanel'
+export * from './SoundCues'
+export * from './SoundCueTypes'
+export * from './SoundEffects'
+export * from './GameSoundDirector'
+export * from './UiSounds'

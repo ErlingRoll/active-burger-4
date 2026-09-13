@@ -3,6 +3,7 @@ import { APP_ROUTE_PATHS, getScreenForPath, type AppScreen } from '../routing'
 import { preloadScreen, type LoadedScreenData } from '../screenDefinitions'
 import { commitScreenTransition } from '../screenTransition'
 import { useScreenNavigator, type ScreenNavigator, type ScreenRequest } from '../useScreenNavigator'
+import { playSound } from '../../audio/SoundEffects'
 
 /**
  * Which screen is showing, and how to move between them.
@@ -41,6 +42,9 @@ export interface AppNavigation {
  * through black.
  */
 function commitNavigation(request: ScreenRequest, apply: () => void): void {
+  // The navigator commits only when the screen actually changes, so this is
+  // exactly one whoosh per move between screens.
+  playSound('screen-transition')
   commitScreenTransition(request.screen === 'gameplay' ? 'descend' : 'dissolve', apply)
 }
 

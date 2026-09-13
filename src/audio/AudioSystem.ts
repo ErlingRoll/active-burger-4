@@ -201,17 +201,6 @@ class BrowserAudioSystem {
     }
   }
 
-  playEffect = (source: string): void => {
-    if (typeof Audio === 'undefined' || this.settings.muted) {
-      return
-    }
-    const effect = new Audio(source)
-    effect.volume = clampAudioVolume(
-      this.settings.masterVolume * this.settings.effectsVolume,
-    )
-    void effect.play().catch(() => undefined)
-  }
-
   /** True when music would be heard, i.e. not muted and above zero volume. */
   private isMusicAudible(): boolean {
     return this.getMusicVolume() > 0

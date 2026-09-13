@@ -9,6 +9,7 @@ import {
   type LootToastOptions,
   type ToastKind,
 } from './ToasterContext'
+import { playSound } from '../audio/SoundEffects'
 
 interface ToastBase {
   id: number
@@ -45,6 +46,7 @@ export function ToasterProvider({ children }: { children: ReactNode }) {
     const id = nextToastId
     nextToastId += 1
     setToasts((current) => [...current, { id, kind, variant: 'text', message }])
+    playSound(kind === 'error' ? 'toast-error' : 'toast-info')
     window.setTimeout(() => {
       dismissToast(id)
     }, 6000)
@@ -54,6 +56,7 @@ export function ToasterProvider({ children }: { children: ReactNode }) {
     const id = nextToastId
     nextToastId += 1
     setToasts((current) => [...current, { id, kind: 'info', variant: 'loot', loot }])
+    playSound('toast-loot')
     window.setTimeout(() => {
       dismissToast(id)
     }, 6000)

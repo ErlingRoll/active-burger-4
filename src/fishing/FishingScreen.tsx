@@ -51,6 +51,7 @@ import { useNow } from '../ui/useNow'
 import { useSeededLoad } from '../ui/useSeededLoad'
 import { FishIcon } from './FishIcon'
 import type { FishingScreenData } from './loadFishingScreen'
+import { playSound } from '../audio/SoundEffects'
 
 interface FishingScreenProps {
   fishingService: FishingService | null
@@ -853,6 +854,7 @@ export function FishingScreen({
       const fishDefinition = getFishDefinition(result.definitionId)
       const fishName = getInventoryItemDefinition(result.definitionId)?.name ?? result.definitionId
       const enchantment = formatFishingEnchantment(result.metadata)
+      playSound('fishing-catch')
       showLootToast({
         title: 'Catch received',
         itemName: fishName,
@@ -991,6 +993,7 @@ export function FishingScreen({
       return
     }
     setPhase('casting')
+    playSound('fishing-cast')
     setError(null)
     try {
       await delay(850)
@@ -1037,6 +1040,7 @@ export function FishingScreen({
       }
       if (preparation.mode === 'manual') {
         setPhase('manual')
+        playSound('fishing-bite')
         pityTimerRef.current = window.setTimeout(() => {
           void resolveFishingAttempt(preparation.attemptId, false, preparation)
         }, Math.max(

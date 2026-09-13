@@ -2,6 +2,7 @@ import {
   SLIME_DEFINITION_ID,
 } from '../../../content/enemies/EnemyConfig'
 import { getEnemyDefinition } from '../../../content/enemies/Enemies'
+import { emitGameEvent } from '../../events/GameEvents'
 import {
   getEliteModifierDefinition,
   getEliteModifierRewardMultiplier,
@@ -360,6 +361,7 @@ export function spawnBoss(
   }
   state.bosses ??= []
   state.bosses.push(boss)
+  emitGameEvent(state, { type: 'boss-spawned', bossId: boss.bossDefinitionId })
   return boss.id
 }
 

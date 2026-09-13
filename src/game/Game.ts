@@ -94,6 +94,12 @@ import {
   FIXED_STEP_SECONDS,
 } from './engine/GameClock'
 import { transitionRunPhase } from './engine/RunLifecycle'
+import {
+  createGameEventSink,
+  emitGameEvent,
+  takeGameEvents,
+} from './events/GameEvents'
+import type { GameEvent } from './events/GameEvents'
 import { assertValidContent } from '../content/validation'
 import {
   applyDamageEvents,
@@ -550,6 +556,7 @@ export class Game {
       tick: 0,
       paused: false,
     }
+    createGameEventSink(this.gameState)
     if (isAbyss) {
       this.applyChampionBuild(runConfig.champion!)
     }
@@ -1202,6 +1209,7 @@ export class Game {
     }
     this.gameState.run.rerollsRemaining =
       (this.gameState.run.rerollsRemaining ?? 0) - 1
+    emitGameEvent(this.gameState, { type: 'choice-rerolled' })
     this.notifyStateChanged()
     return true
   }
@@ -1262,6 +1270,7 @@ export class Game {
     } else {
       flow.choices.splice(choiceIndex, 1)
     }
+    emitGameEvent(this.gameState, { type: 'choice-banished' })
     this.notifyStateChanged()
     return true
   }
@@ -1286,6 +1295,15 @@ export class Game {
     return () => {
       this.listeners.delete(listener)
     }
+  }
+
+  /**
+   * Hands over everything that happened since the previous call, oldest
+   * first, and forgets it. Presentation layers (audio, later perhaps particle
+   * bursts) poll this once per frame; the simulation never reads it back.
+   */
+  drainEvents(): GameEvent[] {
+    return takeGameEvents(this.gameState)
   }
 
   selectUpgrade(
@@ -1329,6 +1347,7 @@ export class Game {
       this.gameState.run.selectedUpgradeIds.push(upgradeId)
     }
 
+    emitGameEvent(this.gameState, { type: 'choice-selected', flow: 'level-up' })
     this.completeActiveChoiceFlow()
     return true
   }
@@ -1369,6 +1388,11 @@ export class Game {
       this.gameState.player.gearRarityFloor = offered.minimumRarity
     }
     this.grantChoiceRecovery()
+    emitGameEvent(this.gameState, {
+      type: 'choice-selected',
+      flow: 'gear-pickup',
+      ...(offered.type === 'gear' ? { rarity: offered.rarity } : {}),
+    })
     this.completeActiveChoiceFlow()
     return true
   }
@@ -1413,6 +1437,7 @@ export class Game {
       (this.gameState.run.abyssDangerScore ?? 0) + definition.dangerScore
     this.gameState.run.abyssScore =
       (this.gameState.run.abyssScore ?? 0) + definition.dangerScore * 10
+    emitGameEvent(this.gameState, { type: 'choice-selected', flow: 'abyss-modifier' })
     this.completeActiveChoiceFlow()
     return true
   }
@@ -1436,6 +1461,7 @@ export class Game {
       return false
     }
 
+    emitGameEvent(this.gameState, { type: 'choice-skipped' })
     this.completeActiveChoiceFlow()
     return true
   }
@@ -1781,6 +1807,11 @@ export class Game {
         new Set(defeatedBosses.map((boss) => boss.id)),
       )
       for (const boss of defeatedBosses) {
+        emitGameEvent(this.gameState, {
+          type: 'boss-died',
+          bossId: boss.bossDefinitionId,
+          final: this.gameState.encounter?.isFinal === true,
+        })
         activateBossDeathMagnet(this.gameState)
         if (this.gameState.run.modeId !== 'infinite-abyss' && boss.xpReward > 0) {
           this.spawnXpPickup({ x: boss.x, y: boss.y }, boss.xpReward)
@@ -1833,20 +1864,30 @@ export class Game {
     this.updateArtifactTimers()
     updateStairs(this.gameState, (stairs) => {
       stairs.rewardsCollected = true
+      emitGameEvent(this.gameState, { type: 'stairs-reached' })
       if (this.choiceFlows.length === 0) {
         this.beginFloorTransition(stairs)
       }
     })
     if (this.gameState.run.phase === 'playing') {
       updatePickups(this.gameState, FIXED_STEP_SECONDS, (amount) => {
+        emitGameEvent(this.gameState, { type: 'pickup-collected', kind: 'xp' })
         const levelsGained = grantExperience(this.gameState, amount * this.xpMultiplier)
+        if (levelsGained > 0) {
+          emitGameEvent(this.gameState, {
+            type: 'level-up',
+            level: this.gameState.player.level,
+          })
+        }
         if (this.gameState.run.phase === 'playing' && levelsGained > 0) {
           this.enqueueLevelUpFlows(levelsGained)
         }
       }, (pickup: GearPickupState) => {
+        emitGameEvent(this.gameState, { type: 'pickup-collected', kind: 'gear' })
         this.collectedGearPickups.push({ ...pickup })
         this.enqueueGearPickupFlow(pickup)
       }, () => {
+        emitGameEvent(this.gameState, { type: 'pickup-collected', kind: 'healing-potion' })
         healPlayer(
           this.gameState,
           this.gameState.player.maxHp * HEALING_POTION_MAX_HP_FRACTION,
@@ -1966,7 +2007,11 @@ export class Game {
   }
 
   private transitionTo(nextPhase: RunPhase): void {
+    const from = this.gameState.run.phase
     transitionRunPhase(this.gameState, nextPhase, () => {
+      if (from !== nextPhase) {
+        emitGameEvent(this.gameState, { type: 'phase-changed', from, to: nextPhase })
+      }
       this.notifyStateChanged()
     })
   }
@@ -2004,6 +2049,14 @@ export class Game {
     }
     if (this.choiceFlows.length > 0 && this.gameState.run.phase === 'playing') {
       this.transitionTo('level-up')
+      this.emitChoiceFlowOpened()
+    }
+  }
+
+  private emitChoiceFlowOpened(): void {
+    const flow = this.choiceFlows[0]
+    if (flow) {
+      emitGameEvent(this.gameState, { type: 'choice-flow-opened', flow: flow.type })
     }
   }
 
@@ -2019,6 +2072,7 @@ export class Game {
     }
     if (this.choiceFlows.length > 0) {
       this.materializeActiveChoiceFlow()
+      this.emitChoiceFlowOpened()
       this.notifyStateChanged()
     } else if (
       this.gameState.stairs?.rewardsCollected &&
@@ -2459,6 +2513,9 @@ export class Game {
     for (const pickup of checkpoint.collectedGearPickups) {
       game.collectedGearPickups.push(JSON.parse(JSON.stringify(pickup)))
     }
+    // The constructor's own loading→playing transition is a "run started"
+    // signal, and a continued run did not just start.
+    takeGameEvents(game.gameState)
 
     return game
   }

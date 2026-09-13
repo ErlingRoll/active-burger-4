@@ -335,6 +335,7 @@ function GearCard({
           className={`upgrade-choice choice-card gear-xp-blessing-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-xp-blessing"
           type="button"
+          data-sfx="none"
           disabled={disabled}
           aria-keyshortcuts={keybind}
           onAnimationEnd={onSelectionAnimationEnd}
@@ -368,6 +369,7 @@ function GearCard({
           className={`upgrade-choice choice-card gear-rarity-floor-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-rarity-floor"
           type="button"
+          data-sfx="none"
           disabled={disabled}
           aria-keyshortcuts={keybind}
           onAnimationEnd={onSelectionAnimationEnd}
@@ -417,6 +419,7 @@ function GearCard({
           className={`upgrade-choice choice-card gear-upgrade-card ${rarityClass(choice.rarity)}`}
           data-choice-type="gear-upgrade"
           type="button"
+          data-sfx="none"
           disabled={disabled}
           aria-keyshortcuts={keybind}
           aria-describedby={active ? comparisonId : undefined}
@@ -475,6 +478,7 @@ function GearCard({
         className={`upgrade-choice choice-card ${rarityClass(choice.rarity)}`}
         data-choice-type="gear"
         type="button"
+        data-sfx="none"
         disabled={disabled}
         aria-keyshortcuts={keybind}
         aria-describedby={active ? comparisonId : undefined}
@@ -638,6 +642,7 @@ function UpgradeCard({
         }`}
         data-choice-type="upgrade"
         type="button"
+        data-sfx="none"
         disabled={disabled || isBanishing}
         aria-keyshortcuts={keybind}
         aria-busy={isBanishing}
@@ -741,6 +746,7 @@ function UpgradeCard({
           <button
             className="banish-choice-button"
             type="button"
+            data-sfx="none"
             disabled={disabled || isBanishing || banishesRemaining <= 0}
             aria-describedby={`banish-choice-tooltip-${index}`}
             aria-label={`Banish ${unlockedSkill.name} (${banishesRemaining} available)`}
@@ -986,6 +992,7 @@ export function LevelUpOverlay({
              <button
                className="skip-choice-button reroll-choice-button"
                type="button"
+               data-sfx="none"
                disabled={!canReroll || choiceTransition !== null}
                aria-describedby="reroll-choice-tooltip"
                onClick={handleReroll}
@@ -1003,6 +1010,7 @@ export function LevelUpOverlay({
            <button
              className="skip-choice-button"
              type="button"
+             data-sfx="none"
              disabled={choiceTransition !== null}
              aria-keyshortcuts={keybinds.skipChoice}
              onClick={handleSkip}

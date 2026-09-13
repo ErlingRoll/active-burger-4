@@ -61,6 +61,7 @@ export function ConfirmationDialog({
             ref={cancelButtonRef}
             className="confirmation-dialog-cancel"
             type="button"
+            data-sfx="cancel"
             onClick={onCancel}
             disabled={cancelDisabled}
           >
@@ -70,6 +71,7 @@ export function ConfirmationDialog({
             ref={confirmButtonRef}
             className="confirmation-dialog-confirm"
             type="button"
+            data-sfx="confirm"
             onClick={onConfirm}
             disabled={confirmDisabled}
           >

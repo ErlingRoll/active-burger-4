@@ -142,6 +142,8 @@ export class PixiGame {
   private static readonly CAMERA_SNAP_DISTANCE = 150
 
   private readonly game: Game
+  /** Runs right after each frame's simulation step, before anything is drawn. */
+  private readonly onAfterUpdate: (() => void) | undefined
   private readonly app = new Application()
   private readonly camera = new Container()
   private readonly reducedMotion =
@@ -197,8 +199,9 @@ export class PixiGame {
   private initialized = false
   private disposed = false
 
-  constructor(game: Game) {
+  constructor(game: Game, options: { onAfterUpdate?: () => void } = {}) {
     this.game = game
+    this.onAfterUpdate = options.onAfterUpdate
   }
 
   async initialize(host: HTMLElement): Promise<void> {
@@ -2569,6 +2572,7 @@ export class PixiGame {
     this.frameSeconds = deltaSeconds
     const phaseBeforeUpdate = this.game.phase
     this.game.update(deltaSeconds)
+    this.onAfterUpdate?.()
     const phaseAfterUpdate = this.game.phase
     if (
       phaseAfterUpdate === 'playing' ||
