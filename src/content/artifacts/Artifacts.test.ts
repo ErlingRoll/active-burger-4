@@ -3,18 +3,24 @@ import MIGRATION from '../../../supabase/migrations/20260912160000_add_artifacts
 // The roll functions were restated when Second wind became Bulwark, so the
 // tier ranges and the pool are read from their latest definition.
 import ROLL_MIGRATION from '../../../supabase/migrations/20260912200000_artifact_floor_shield.sql?raw'
+// Potential came later, rolled by the trigger around the same roll.
+import FORGE_MIGRATION from '../../../supabase/migrations/20260913200000_work_the_forge.sql?raw'
 import {
   ALL_ARTIFACT_BASE_DEFINITIONS,
   ARTIFACT_BASE_DEFINITIONS,
   ARTIFACT_MODIFIER_COUNTS,
   ARTIFACT_MODIFIER_DEFINITIONS,
   ARTIFACT_MODIFIER_IDS,
+  ARTIFACT_POTENTIAL_DEFAULT,
+  ARTIFACT_POTENTIAL_MAX,
+  ARTIFACT_POTENTIAL_MIN,
   ARTIFACT_RARITY_WEIGHTS,
   ARTIFACT_SALVAGE_SCRAP,
   ARTIFACT_TIER_WEIGHTS,
   ARTIFACT_TIERS,
   describeArtifact,
   formatArtifactSummary,
+  getArtifactPotential,
   isArtifactMetadata,
   readArtifactMetadata,
   rollArtifact,
@@ -155,6 +161,19 @@ describe('artifact rolls', () => {
     }
   })
 
+  it('give every artifact Potential inside its bounds', () => {
+    const random = new Random(31)
+    let lowest = Number.POSITIVE_INFINITY
+    let highest = 0
+    for (let index = 0; index < 5_000; index += 1) {
+      const potential = getArtifactPotential(rollArtifact('ember-reliquary', random))
+      lowest = Math.min(lowest, potential)
+      highest = Math.max(highest, potential)
+    }
+    expect(lowest).toBe(ARTIFACT_POTENTIAL_MIN)
+    expect(highest).toBe(ARTIFACT_POTENTIAL_MAX)
+  })
+
   it('make tier one the rare roll', () => {
     const random = new Random(23)
     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
@@ -163,7 +182,10 @@ describe('artifact rolls', () => {
     }
     for (const tier of ARTIFACT_TIERS) {
       const expected = ARTIFACT_TIER_WEIGHTS[tier] / 100
-      expect(Math.abs(counts[tier] / SAMPLE - expected)).toBeLessThan(0.006)
+      // Four standard errors at this sample size, so a seed that happens to
+      // land three out does not fail the build; a wrong table lands far wider.
+      const tolerance = 4 * Math.sqrt((expected * (1 - expected)) / SAMPLE)
+      expect(Math.abs(counts[tier] / SAMPLE - expected)).toBeLessThan(tolerance)
     }
   })
 
@@ -188,6 +210,15 @@ describe('artifact metadata guard', () => {
     expect(readArtifactMetadata('artifact-cartographers-compass', { ...valid })).toEqual(valid)
     expect(readArtifactMetadata('artifact-ember-reliquary', { ...valid })).toBeNull()
     expect(readArtifactMetadata('river-minnow', { ...valid })).toBeNull()
+  })
+
+  it('reads a missing Potential as the default and rejects a broken one', () => {
+    const { potential: _potential, ...legacy } = valid
+    expect(isArtifactMetadata(legacy)).toBe(true)
+    expect(getArtifactPotential(legacy)).toBe(ARTIFACT_POTENTIAL_DEFAULT)
+    expect(isArtifactMetadata({ ...valid, potential: 0 })).toBe(true)
+    expect(isArtifactMetadata({ ...valid, potential: -1 })).toBe(false)
+    expect(isArtifactMetadata({ ...valid, potential: 12.5 })).toBe(false)
   })
 
   it('rejects the wrong implicit, a repeated modifier, or an unknown base', () => {
@@ -230,6 +261,13 @@ describe('artifact migration parity', () => {
     const expectedTier = ARTIFACT_TIERS.slice(0, -1).map((tier) => (running += ARTIFACT_TIER_WEIGHTS[tier]))
     // The implicit and the modifiers each carry a copy of the ladder.
     expect(tierCutoffs).toEqual([...expectedTier, ...expectedTier])
+  })
+
+  it('rolls Potential inside the same bounds and backfills the same default', () => {
+    expect(FORGE_MIGRATION).toContain(
+      `'potential', ${ARTIFACT_POTENTIAL_MIN} + public.artifact_hash_roll(new.id, 'potential', ${ARTIFACT_POTENTIAL_MAX - ARTIFACT_POTENTIAL_MIN + 1})`,
+    )
+    expect(FORGE_MIGRATION).toContain(`'{"potential": ${ARTIFACT_POTENTIAL_DEFAULT}}'::jsonb`)
   })
 
   it('pays the same scrap for salvage', () => {

@@ -166,6 +166,8 @@ function builtState(): CampState {
 
 interface RenderOptions {
   developmentToolsEnabled?: boolean
+  /** The wallet the Forge may stake from; defaults to five thousand. */
+  essenceBalance?: number | null
   materials?: InventoryItemInstance[]
   fish?: InventoryItemInstance[]
   artifacts?: InventoryItemInstance[]
@@ -193,10 +195,20 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
       }))
   const gutFish = vi.fn(async () => ({ definitionId: 'silver-perch', roeGranted: 3, wasProcessed: true }))
   const cureFish = vi.fn(async () => ({ definitionId: 'silver-perch', enchantmentId: 'bright-scales', roeSpent: 3, wasProcessed: true }))
-  const reforgeArtifact = vi.fn(async () => ({
+  const workArtifact = vi.fn(async () => ({
     definitionId: 'artifact-ember-reliquary',
-    metadata: RELIQUARY.metadata,
-    scrapSpent: 45,
+    metadata: {
+      ...RELIQUARY.metadata,
+      implicit: { id: 'corpse-detonation', tier: 2, value: 40 },
+      potential: 38,
+      forgeCount: 1,
+    },
+    outcome: 'target' as const,
+    changedLine: 'implicit',
+    potentialSpent: 12,
+    essenceSpent: 2500,
+    stoneSpent: 40,
+    scrapSpent: 30,
     shardsSpent: 3,
     wasProcessed: true,
   }))
@@ -210,7 +222,7 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
     upgradeBuilding,
     gutFish,
     cureFish,
-    reforgeArtifact,
+    workArtifact,
   } as unknown as CampService
   const characterService = {
     loadCharacters: vi.fn(async () => ({ characters: [], revisions: [], champions: [champion] })),
@@ -231,6 +243,7 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
   } as unknown as InventoryService
   const onBack = vi.fn()
   const onOpenCollections = vi.fn()
+  const onEssenceChanged = vi.fn()
   const collectionService: CollectionService = {
     loadState: vi.fn(async () => options.collections ?? { fish: [], artifacts: [], classes: [] }),
   }
@@ -243,10 +256,12 @@ function renderScreen(initial: CampState, options: RenderOptions = {}) {
       developmentToolsEnabled={options.developmentToolsEnabled ?? false}
       collectionService={collectionService}
       onOpenCollections={onOpenCollections}
+      essenceBalance={options.essenceBalance === undefined ? 5000 : options.essenceBalance}
+      onEssenceChanged={onEssenceChanged}
       onBack={onBack}
     />,
   )
-  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, reforgeArtifact, collectionService, onOpenCollections, onBack }
+  return { ...rendered, assignChampion, unassignChampion, claimProduction, advanceClock, upgradeBuilding, craftItem, gutFish, cureFish, workArtifact, collectionService, onOpenCollections, onEssenceChanged, onBack }
 }
 
 /** Opens a building's inspector from its plot on the ground. */
@@ -267,7 +282,17 @@ describe('CampScreen', () => {
     // Level 30 on floor 20 is ×1.3 strength, +20% attack speed and an aggressive
     // profile: 1.3 × 1.1 × 1.2 = 1.716 tempo. One legendary Splintering piece and
     // a level-3 melee skill put the fit at ×1.055, which two decimals show as 1.05.
-    expect(option).toHaveTextContent('Tempo ×1.72 · Stamina 6h · Load ×1.3 · Fit ×1.05')
+    expect(option).toHaveTextContent('Tempo ×1.72 Stamina 6h Load ×1.3 Fit ×1.05')
+    // Four timber an hour at the Woodline's first level, times the sheet's
+    // output: 1.716 × 1.3 × 1.055 = 2.35, capped at ×2.
+    expect(option).toHaveTextContent('8 timber/h')
+
+    await user.hover(within(option).getByText('Tempo'))
+    const tooltip = await screen.findByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Output ×2')
+    expect(option).not.toHaveAttribute('title')
+    await user.unhover(within(option).getByText('Tempo'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
 
     await user.click(option)
 
@@ -385,24 +410,59 @@ describe('CampScreen', () => {
     expect(await screen.findByText('Cured')).toBeInTheDocument()
   })
 
-  it('reforges an artifact for scrap and shards, and prices it by rarity', async () => {
-    const { user, reforgeArtifact } = renderScreen(anchorState(), {
-      materials: [material('scrap', 45), material('rift-shard', 3)],
+  it('works an artifact at the Forge: a target, a stake, the odds, then the strike', async () => {
+    const { user, workArtifact, onEssenceChanged } = renderScreen(anchorState(), {
+      materials: [material('stone', 40), material('scrap', 30), material('rift-shard', 3)],
       artifacts: [RELIQUARY],
     })
 
     await openPlot(user, 'Forge')
-    await user.click(await screen.findByRole('button', { name: 'Reforge an artifact' }))
-    const option = await screen.findByRole('button', { name: 'Reforge Ember Reliquary, Rare' })
-    expect(option).toHaveTextContent('45 Scrap')
+    await user.click(await screen.findByRole('button', { name: 'Work an artifact' }))
+    const option = await screen.findByRole('button', { name: 'Work Ember Reliquary, Rare' })
+    expect(option).toHaveTextContent('Potential 50')
+    expect(option).toHaveTextContent('40 Stone')
     expect(option).toHaveTextContent('3 Rift shard')
     expect(option).toBeEnabled()
     await user.click(option)
 
+    const bench = await screen.findByRole('group', { name: 'Work Ember Reliquary' })
+    expect(within(bench).getByRole('radio', { name: /Corpse detonation/ })).toBeChecked()
+    expect(within(bench).getByRole('radio', { name: /Promote to epic/ })).toBeInTheDocument()
+    // With nothing staked: a 30% strike, six in ten of which land where aimed,
+    // and a 70% miss, one in five of which slips a line.
+    const odds = within(bench).getByLabelText('Odds of each outcome')
+    expect(odds).toHaveTextContent('18%')
+    expect(odds).toHaveTextContent('12%')
+    expect(odds).toHaveTextContent('56%')
+    expect(odds).toHaveTextContent('14%')
+
+    const stake = within(bench).getByRole('spinbutton', { name: 'Essence to stake' })
+    await user.clear(stake)
+    await user.type(stake, '2500')
+    expect(bench).toHaveTextContent('21.2%')
+
+    await user.click(within(bench).getByRole('button', { name: 'Strike Ember Reliquary' }))
     await waitFor(() => {
-      expect(reforgeArtifact).toHaveBeenCalledWith(expect.any(String), 'artifact-1')
+      expect(workArtifact).toHaveBeenCalledWith(expect.any(String), 'artifact-1', 'implicit', 2500)
     })
-    expect(await screen.findByText('Reforged')).toBeInTheDocument()
+    expect(await screen.findByText('Struck true')).toBeInTheDocument()
+    expect(screen.getByText('Corpse detonation raised to tier 2')).toBeInTheDocument()
+    expect(onEssenceChanged).toHaveBeenCalled()
+    // The bench stays open on the artifact as the server left it.
+    expect(within(bench).getByText('Potential 38')).toBeInTheDocument()
+  })
+
+  it('refuses a finished artifact at the Forge and says so on its row', async () => {
+    const { user } = renderScreen(anchorState(), {
+      materials: [material('stone', 40), material('scrap', 30), material('rift-shard', 3)],
+      artifacts: [{ ...RELIQUARY, metadata: { ...RELIQUARY.metadata, potential: 0 } }],
+    })
+
+    await openPlot(user, 'Forge')
+    await user.click(await screen.findByRole('button', { name: 'Work an artifact' }))
+    const option = await screen.findByRole('button', { name: 'Work Ember Reliquary, Rare' })
+    expect(option).toBeDisabled()
+    expect(option).toHaveTextContent('Finished')
   })
 
   it('lets a development build skip the clock ahead', async () => {

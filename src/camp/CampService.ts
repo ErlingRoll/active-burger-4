@@ -10,7 +10,8 @@ import type {
   CampCureResult,
   CampGutResult,
   CampPayment,
-  CampReforgeResult,
+  CampForgeOutcome,
+  CampForgeResult,
   CampService,
   CampState,
   CampUpgradeResult,
@@ -26,6 +27,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isForgeOutcome(value: unknown): value is CampForgeOutcome {
+  return value === 'target' || value === 'stray' || value === 'miss' || value === 'setback'
 }
 
 function isCount(value: unknown): value is number {
@@ -261,23 +266,40 @@ export function createCampService(
       }
     },
 
-    async reforgeArtifact(operationId, artifactInstanceId): Promise<CampReforgeResult> {
+    async workArtifact(operationId, artifactInstanceId, target, essence): Promise<CampForgeResult> {
       assertOperationId(operationId)
       if (!isNonEmptyString(artifactInstanceId)) {
         throw new Error('An artifact instance ID is required.')
       }
-      const data = await call('reforge_artifact', {
+      if (!isNonEmptyString(target)) {
+        throw new Error('A Forge target is required.')
+      }
+      if (!Number.isInteger(essence) || essence < 0) {
+        throw new Error('The Essence stake must be a whole number, nought or more.')
+      }
+      const data = await call('work_artifact_at_forge', {
         p_operation_id: operationId,
         p_artifact_instance_id: artifactInstanceId,
+        p_target: target,
+        p_essence: essence,
       })
       const row: unknown = Array.isArray(data) ? data[0] : undefined
       if (!isRecord(row) || !isNonEmptyString(row.definition_id) || !isRecord(row.metadata) ||
-        !isCount(row.scrap_spent) || !isCount(row.shards_spent) || typeof row.was_processed !== 'boolean') {
-        throw invalidResponse('expected one reforged artifact row')
+        !isForgeOutcome(row.outcome) ||
+        !(row.changed_line === null || isNonEmptyString(row.changed_line)) ||
+        !isCount(row.potential_spent) || !isCount(row.essence_spent) ||
+        !isCount(row.stone_spent) || !isCount(row.scrap_spent) || !isCount(row.shards_spent) ||
+        typeof row.was_processed !== 'boolean') {
+        throw invalidResponse('expected one Forge strike row')
       }
       return {
         definitionId: row.definition_id,
         metadata: row.metadata,
+        outcome: row.outcome,
+        changedLine: row.changed_line,
+        potentialSpent: row.potential_spent,
+        essenceSpent: row.essence_spent,
+        stoneSpent: row.stone_spent,
         scrapSpent: row.scrap_spent,
         shardsSpent: row.shards_spent,
         wasProcessed: row.was_processed,

@@ -1,5 +1,6 @@
 import type { EntityIdAllocator } from '../../ids'
 import type { GameState, StairsState } from '../../state/GameState'
+import { emitGameEvent } from '../../events/GameEvents'
 
 export const STAIRS_RADIUS = 48
 export const FLOOR_TRANSITION_DURATION_SECONDS = 1
@@ -22,6 +23,7 @@ export function spawnStairs(
     rewardsCollected: false,
   }
   state.stairs = stairs
+  emitGameEvent(state, { type: 'stairs-spawned', final: isFinal })
   return stairs
 }
 

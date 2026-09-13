@@ -7,6 +7,7 @@ import type { ToastKind } from '../../ui/ToasterContext'
 import type { MetaProgressionState, RunLoadState } from '../appState'
 import type { AppScreen } from '../routing'
 import { errorMessage } from '../runFormatting'
+import { playSound } from '../../audio/SoundEffects'
 
 function createInitialMetaProgressionState(
   service: MetaProgressionService | null,
@@ -215,6 +216,7 @@ export function useEssencePurchases({
     }))
     try {
       const nextSnapshot = await metaProgressionService.service.purchaseUnlock(unlockId)
+      playSound('essence-unlock')
       setMetaProgression((current) => ({
         ...current,
         snapshot: nextSnapshot,
@@ -259,6 +261,7 @@ export function useEssencePurchases({
     }))
     try {
       const nextSnapshot = await metaProgressionService.service.purchaseReroll()
+      playSound('essence-spend')
       setMetaProgression((current) => ({
         ...current,
         snapshot: nextSnapshot,

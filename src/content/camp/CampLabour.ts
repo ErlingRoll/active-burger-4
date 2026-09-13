@@ -233,15 +233,49 @@ export function deriveCampLabourSheet(
   return { strength, tempo, staminaHours, load, bonusChance, fit, haste, output, inputs }
 }
 
-/** "Tempo ×1.3 · Stamina 10h · Load ×1.1 · Fit ×1.05", the way the picker shows it. */
-export function formatCampLabourSheet(sheet: CampLabourSheet): string {
+/** One figure of the sheet, as the picker shows it: a label and its value. */
+export interface CampLabourFigure {
+  label: 'Tempo' | 'Stamina' | 'Load' | 'Fit'
+  value: string
+}
+
+/** The four figures a player reads: "Tempo ×1.3", "Stamina 10h", "Load ×1.1", "Fit ×1.05". */
+export function formatCampLabourFigures(sheet: CampLabourSheet): readonly CampLabourFigure[] {
   const times = (value: number): string => `×${trimNumber(value, 2)}`
   return [
-    `Tempo ${times(sheet.tempo)}`,
-    `Stamina ${trimNumber(sheet.staminaHours, 1)}h`,
-    `Load ${times(sheet.load)}`,
-    `Fit ${times(sheet.fit)}`,
-  ].join(' · ')
+    { label: 'Tempo', value: times(sheet.tempo) },
+    { label: 'Stamina', value: `${trimNumber(sheet.staminaHours, 1)}h` },
+    { label: 'Load', value: times(sheet.load) },
+    { label: 'Fit', value: times(sheet.fit) },
+  ]
+}
+
+/** "Tempo ×1.3 · Stamina 10h · Load ×1.1 · Fit ×1.05", the figures as one line. */
+export function formatCampLabourSheet(sheet: CampLabourSheet): string {
+  return formatCampLabourFigures(sheet).map((figure) => `${figure.label} ${figure.value}`).join(' · ')
+}
+
+/** One line of the working behind a sheet: what went in, and what it made. */
+export interface CampLabourWorkingRow {
+  label: string
+  value: string
+}
+
+/**
+ * The working behind the figures, one input per row, for whoever wants to
+ * know where a figure came from.
+ */
+export function describeCampLabourWorking(sheet: CampLabourSheet): readonly CampLabourWorkingRow[] {
+  const { inputs } = sheet
+  return [
+    { label: 'Strength', value: `×${sheet.strength} · level ${inputs.level}, floor ${inputs.floor}` },
+    { label: 'Attack speed', value: `+${inputs.attackSpeedPercent}%` },
+    { label: 'Max HP', value: `+${inputs.maxHpFlat}` },
+    { label: 'Increased damage', value: `+${inputs.increasedDamagePercent}%` },
+    { label: 'Critical chance', value: `${inputs.critChancePercent}% → bonus ${Math.round(sheet.bonusChance * 100)}%` },
+    { label: 'Set pieces', value: `${inputs.setRarityWeight}, tagged skill levels ${inputs.tagLevelWeight}` },
+    { label: 'Output', value: `×${sheet.output}` },
+  ]
 }
 
 function trimNumber(value: number, decimals: number): string {

@@ -377,6 +377,11 @@ export interface PlayerState {
   lancerMomentumStacks?: number
   /** Seconds remaining before Lancer's Charge Momentum stacks decay to zero. */
   lancerMomentumDecayRemaining?: number
+  /**
+   * Seconds Lancer's Charge keeps waiting for a corridor worth the dash.
+   * Undefined while the charge is not holding.
+   */
+  lancerChargeHoldRemaining?: number
   /** Maximum remaining duration of a Rallying Banner affecting the player. */
   rallyingBannerRemaining?: number
   /** Damage reduction percent granted inside at least one active banner. */

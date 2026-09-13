@@ -51,10 +51,19 @@ export const LANCERS_CHARGE_MAX_MOMENTUM_STACKS = 3
 export const LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK = 6
 export const LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK = 10
 export const LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT = 15
+/** More damage multiplier applied when the corridor strikes exactly one enemy. */
+export const LANCERS_CHARGE_SINGLE_TARGET_MORE_DAMAGE_PERCENT = 50
 export const LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT = 15
 export const LANCERS_CHARGE_IMPALER_RANGE_BONUS = 50
 export const LANCERS_CHARGE_IMPALER_WIDTH_BONUS = 25
-export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 4
+export const LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS = 6
+// The charge scores a corridor through each of the nearest candidates and
+// casts down the line that strikes the most enemies. Below the minimum it
+// holds (cooldown stays ready) until the hold window expires; a boss in the
+// corridor always counts as worth the dash.
+export const LANCERS_CHARGE_TARGET_CANDIDATE_LIMIT = 12
+export const LANCERS_CHARGE_MIN_TARGETS = 2
+export const LANCERS_CHARGE_HOLD_SECONDS = 1.5
 export const WHIRLWIND_CYCLONE_MAX_STACKS = 5
 export const WHIRLWIND_CYCLONE_COOLDOWN_REDUCTION_PER_STACK = 10
 export const WHIRLWIND_CYCLONE_AREA_OF_EFFECT_PER_STACK = 10
@@ -599,15 +608,15 @@ export const SKILL_DEFINITIONS = {
   [LANCERS_CHARGE_SKILL_ID]: {
     id: LANCERS_CHARGE_SKILL_ID,
     name: "Lancer's Charge",
-    description: 'Dashes toward the nearest enemy, striking everything in a narrow corridor and building Momentum with each hit.',
+    description: `Dashes down the line that strikes the most enemies, hitting everything in a corridor and building one Momentum stack per enemy struck. Waits up to ${LANCERS_CHARGE_HOLD_SECONDS}s for at least ${LANCERS_CHARGE_MIN_TARGETS} targets or a boss. Deals ${LANCERS_CHARGE_SINGLE_TARGET_MORE_DAMAGE_PERCENT}% more damage when it strikes exactly one enemy.`,
     kind: 'area',
     tags: ['physical', 'melee', 'area', 'triggerable'],
     canProduceDirectHit: true,
     mirrorcastEligible: true,
     cooldown: 2.6,
     baseDamage: { physical: 11 },
-    radius: 36,
-    maxRange: 170,
+    radius: 50,
+    maxRange: 200,
     effectLifetime: 0.16,
     visual: {
       kind: 'area',

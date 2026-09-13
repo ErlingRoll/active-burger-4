@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { updateAudioSettings, useAudioSettings, type AudioChannel } from './AudioSystem'
+import { playUiSound, previewVolumeTick } from './UiSounds'
 
 const AUDIO_CHANNELS: ReadonlyArray<{
   id: AudioChannel
@@ -36,6 +37,11 @@ export function AudioSettingsPanel() {
                 value={value}
                 onChange={(event) => {
                   updateAudioSettings({ [channel.id]: Number(event.target.value) })
+                  // Settings apply synchronously, so the tick plays at the new
+                  // level; the music channel is silent here by design.
+                  if (channel.id !== 'musicVolume') {
+                    previewVolumeTick()
+                  }
                 }}
               />
             </div>
@@ -45,8 +51,19 @@ export function AudioSettingsPanel() {
       <button
         className="audio-mute-button"
         type="button"
+        data-sfx="none"
         aria-pressed={settings.muted}
-        onClick={() => { updateAudioSettings({ muted: !settings.muted }) }}
+        onClick={() => {
+          // Muting plays its tick first, riding the gain's short ramp down;
+          // unmuting plays once the gain is back so it can be heard.
+          if (!settings.muted) {
+            playUiSound('mute')
+          }
+          updateAudioSettings({ muted: !settings.muted })
+          if (settings.muted) {
+            playUiSound('unmute')
+          }
+        }}
       >
         {settings.muted ? 'Unmute audio' : 'Mute audio'}
       </button>

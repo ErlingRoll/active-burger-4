@@ -715,7 +715,7 @@ export function describeContractObjective(definition: ContractDefinition): strin
     case 'cure-fish':
       return target === 1 ? 'Cure a fish at the Smokehouse' : `Cure ${plural(target, 'fish', 'fish')} at the Smokehouse`
     case 'reforge-artifacts':
-      return target === 1 ? 'Reforge an artifact at the Forge' : `Reforge ${plural(target, 'artifact')} at the Forge`
+      return target === 1 ? 'Strike an artifact at the Forge' : `Strike ${plural(target, 'artifact')} at the Forge`
   }
 }
 

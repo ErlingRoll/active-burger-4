@@ -30,6 +30,7 @@ export function resetFloorCombatState(state: GameState): void {
   player.fieryTouchGravityPrimed = false
   player.lancerMomentumStacks = 0
   player.lancerMomentumDecayRemaining = 0
+  player.lancerChargeHoldRemaining = undefined
   player.rallyingBannerRemaining = 0
   player.rallyingBannerDamageReductionPercent = 0
   player.rallyingBannerCooldownReductionPercent = 0

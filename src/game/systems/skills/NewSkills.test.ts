@@ -430,6 +430,9 @@ describe('Mirrorcast', () => {
       setSkills(game, [MIRRORCAST_SKILL_ID, skillId])
       game.state.player.hp = 1
       game.spawnSlime({ x: 40, y: 0 })
+      // A lone slime is below the charge's target minimum; an expired hold
+      // lets the source cast fire at it so the echo has a charge to replay.
+      game.state.player.lancerChargeHoldRemaining = 0
 
       armAndCapture(game, skillId)
       const sourceSkill = game.state.player.skills.find(

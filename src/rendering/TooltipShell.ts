@@ -10,7 +10,11 @@ export const TOOLTIP_VARIANT_CLASSES = [
   'abyss-entry-tooltip',
   'inventory-item-tooltip',
   'loot-box-tooltip',
+  'resource-tooltip',
+  'labour-sheet-tooltip',
 ] as const
+
+export type TooltipVariant = (typeof TOOLTIP_VARIANT_CLASSES)[number]
 
 type TooltipCloser = () => boolean
 const tooltipClosers = new Set<TooltipCloser>()
@@ -59,6 +63,6 @@ export function closeAllTooltips(): boolean {
   return closed
 }
 
-export function tooltipClassName(variant: (typeof TOOLTIP_VARIANT_CLASSES)[number]): string {
+export function tooltipClassName(variant: TooltipVariant): string {
   return `${TOOLTIP_SHELL_CLASS} ${variant}`
 }

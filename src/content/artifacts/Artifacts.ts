@@ -135,6 +135,16 @@ export const ARTIFACT_SALVAGE_SCRAP = {
   legendary: 24,
 } as const satisfies Record<Rarity, number>
 
+/**
+ * Potential: how much work the Forge can still do on an artifact. Rolled
+ * between the two bounds when the artifact is made; an artifact made before
+ * the Forge could wear one out carries the default. A strike spends some,
+ * and at nought the artifact is finished.
+ */
+export const ARTIFACT_POTENTIAL_MIN = 30
+export const ARTIFACT_POTENTIAL_MAX = 100
+export const ARTIFACT_POTENTIAL_DEFAULT = 50
+
 /** Seconds the on-kill area surge lasts. Written into the description too. */
 export const ARTIFACT_KILL_AREA_SURGE_SECONDS = 4
 /** Below this share of max HP, Last Stand is on. */
@@ -515,6 +525,13 @@ export interface ArtifactMetadata {
   readonly rarity: Rarity
   readonly implicit: ArtifactRolledEffect<ArtifactImplicitId>
   readonly modifiers: readonly ArtifactRolledEffect<ArtifactModifierId>[]
+  /** Absent on an artifact rolled before the Forge wore them out; read it through `getArtifactPotential`. */
+  readonly potential?: number
+}
+
+/** The Potential an artifact has left, with the default for one that never had any written. */
+export function getArtifactPotential(metadata: ArtifactMetadata): number {
+  return metadata.potential ?? ARTIFACT_POTENTIAL_DEFAULT
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -551,6 +568,10 @@ export function isArtifactMetadata(value: unknown): value is ArtifactMetadata {
       return false
     }
     seen.add(modifier.id)
+  }
+  if (value.potential !== undefined &&
+    (!Number.isInteger(value.potential) || (value.potential as number) < 0)) {
+    return false
   }
   return true
 }
@@ -622,7 +643,8 @@ export function rollArtifact(baseId: ArtifactBaseId, random: RandomSource): Arti
     remaining.splice(remaining.indexOf(chosen), 1)
     modifiers.push(rollEffect(ARTIFACT_MODIFIER_DEFINITIONS[chosen], random))
   }
-  return { baseId, rarity, implicit, modifiers }
+  const potential = random.int(ARTIFACT_POTENTIAL_MIN, ARTIFACT_POTENTIAL_MAX)
+  return { baseId, rarity, implicit, modifiers, potential }
 }
 
 /** The description with its rolled value in place of the `#`. */

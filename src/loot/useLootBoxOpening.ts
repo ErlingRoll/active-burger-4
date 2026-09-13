@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LootBoxOpeningResult, LootBoxService } from './LootBoxService'
 import type { LootBoxRarity } from './LootBoxes'
+import { LOOT_REVEAL_CUES } from '../audio/SoundCues'
+import { playSound } from '../audio/SoundEffects'
 
 export type LootBoxOpeningPhase = 'charging' | 'revealing' | 'failed'
 
@@ -94,11 +96,13 @@ export function useLootBoxOpening(
         results: [],
         error: boxCount === 0 ? 'There is no box to open.' : 'Loot boxes are unavailable.',
       })
+      playSound('purchase-fail')
       return
     }
     setSession({ ...base, phase: 'charging', results: [], error: null })
     const results: LootBoxOpeningResult[] = []
     const charge = delay(prefersReducedMotion() ? 0 : CHARGE_FLOOR_MS)
+    playSound('lootbox-charge')
     try {
       for (const boxInstanceId of request.boxInstanceIds) {
         const result = await lootBoxService.openBox(crypto.randomUUID(), boxInstanceId)
@@ -115,6 +119,7 @@ export function useLootBoxOpening(
         return
       }
       setSession({ ...base, phase: 'revealing', results, error: null })
+      playSound(LOOT_REVEAL_CUES[request.rarity])
     } catch (openError: unknown) {
       if (!isMountedRef.current) {
         return
@@ -125,6 +130,7 @@ export function useLootBoxOpening(
         results,
         error: openError instanceof Error ? openError.message : 'Unable to open loot box.',
       })
+      playSound('purchase-fail')
     }
   }, [lootBoxService])
 

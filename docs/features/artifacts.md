@@ -6,8 +6,9 @@ Artifacts are permanent account-owned items that change how a run is played.
 They are obtained primarily from higher-rarity loot boxes and equipped before
 normal dungeon or Abyss runs.
 
-Artifacts should favor build-changing sidegrades over universal damage
-multipliers. The base game must remain playable with no artifacts equipped.
+Artifacts are one of the places power comes from outside a run: every line
+on one is a bonus with no downside, and the Forge can raise those lines. The
+base game must remain playable with no artifacts equipped.
 
 ## Item model
 
@@ -18,6 +19,9 @@ Each artifact instance contains:
 - Rarity.
 - One fixed effect family.
 - One server-generated rolled value.
+- Potential: how much the Forge can still work it, rolled between thirty and
+  a hundred when it is made and spent by every strike. At nought the artifact
+  is finished.
 - Ownership and binding state.
 - Creation and transfer history.
 
@@ -57,7 +61,9 @@ the first loot-box vertical slice.
 The shop may accept unwanted artifacts for a low-value salvage reward.
 Artifact sales must not convert loot boxes into an uncontrolled Essence farm.
 Duplicate artifacts should remain useful through salvage, collection progress,
-or later crafting sinks. The Camp's Forge is the first such sink: it rerolls an
-artifact's implicit and modifiers for scrap and rift shards, keeping its base
-and rarity, so a poor roll on a rare base is worth keeping rather than
+or later crafting sinks. The Camp's Forge is the first such sink: for stone,
+scrap, rift shards and a stake of Essence it strikes at an artifact, and the
+strike may raise the line the player chose, raise another, promote the
+artifact a rarity, miss, or slip a line, until the artifact's Potential is
+spent. A poor roll on a good base is worth keeping for the Forge rather than
 salvaging. See [camp.md](camp.md).

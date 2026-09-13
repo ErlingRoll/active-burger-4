@@ -105,6 +105,30 @@ describe('ContractBoard', () => {
     expect(screen.getAllByText('Contract fulfilled')).toHaveLength(2)
   })
 
+  it('explains a reward on hover: what it is, what it is for and where it comes from', async () => {
+    const { user } = renderComponent(<ContractBoard service={fakeService()} configurationError={null} />)
+
+    const catchRow = await screen.findByRole('listitem', { name: /A day's catch: 2 of 5/ })
+    const reward = within(catchRow).getByRole('list', { name: 'Reward' })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+
+    await user.hover(within(reward).getByText('Roe'))
+    const card = await screen.findByRole('tooltip')
+    expect(within(card).getByText('Roe')).toBeVisible()
+    expect(within(card).getByText('What')).toBeVisible()
+    expect(within(card).getByText('Used for')).toBeVisible()
+    expect(within(card).getByText('From')).toBeVisible()
+    expect(within(card).getByText('Curing a meal fish at the Smokehouse.')).toBeVisible()
+
+    await user.unhover(within(reward).getByText('Roe'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+
+    // The keyboard reaches the same card, and Escape closes it.
+    await user.tab()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
   it('shows half pay on a contract dealt for the third time today', async () => {
     const repeated = state([
       assignment({ assignmentId: 5, definitionId: 'daily-catch', slot: 1, target: 5, progress: 5, repeatClaims: 2 }),

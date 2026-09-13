@@ -371,16 +371,29 @@ construction is a wall rather than a rhythm.
   rod's Enchanter rolls, so the run meal already knows how to read it and no
   new item category was needed. Both are inventory operations under their own
   ledger types. The panel's Smokehouse card opens a fish picker for either.
-- **Forge** *(shipped 2026-09-12, once Phase 9 had landed)*. Built for
-  timber, stone and scrap, raised with rift shards. `reforge_artifact` spends
-  scrap and shards by the artifact's rarity and rolls its implicit and
-  modifiers again through `roll_artifact_metadata`, from a seed derived from
-  the instance and a reforge count kept on its metadata, so the same function
-  a box uses decides the roll and a retry cannot roll twice. The base and the
-  rarity stay. An artifact away on a run has no quantity in the bag and is
-  refused. Levels two and three apply `camp_forge_salvage_multiplier` to the
-  scrap `complete_dungeon_run` pays for a finished loadout. The panel's Forge
-  card opens an artifact picker with each relic's summary and price.
+- **Forge** *(shipped 2026-09-12, once Phase 9 had landed; reworked
+  2026-09-13)*. Built for timber, stone and scrap, raised with rift shards.
+  It first rerolled an artifact whole for scrap and shards, as often as the
+  player could pay. It now works an artifact one strike at a time through
+  `work_artifact_at_forge`: the player names the target (a line to raise a
+  tier, or a promotion to the next rarity, which adds the modifier that
+  rank carries), pays `forge_fee` in stone, scrap and shards by rarity, and
+  stakes Essence up to a hundred thousand. `forge_odds` turns the stake into
+  a success chance and a focus chance in basis points along a hyperbolic
+  curve, half earned at twenty-five thousand, in integer arithmetic that
+  `src/camp/Forge.ts` repeats to the point, so the bench shows the odds the
+  server rolls against. A landed strike raises the target or, on a focus
+  miss, another line or a promotion; a missed strike spends a little
+  Potential and one in five also slips a line. Every roll comes from the
+  instance id and a strike count on the metadata. Potential is rolled at
+  thirty to a hundred by the artifact trigger, backfilled at fifty, spent
+  ten to twenty on a hit and one to ten on a miss, and refused at nought. An
+  artifact away on a run is refused as before. Levels two and three apply
+  `camp_forge_salvage_multiplier` to the scrap `complete_dungeon_run` pays
+  for a finished loadout. The Forge's inspector opens a picker, then a
+  bench: the lines as radios, a stake slider, the four outcomes' odds, the
+  fee, and the strike. The migration asserts the odds and the fee against
+  fixed inputs, and `Forge.test.ts` reads the same figures from it.
 - **Trophy hall** *(shipped 2026-09-13)*. Built for timber and stone once
   collections existed; it shows the displays their milestones earn. See
   [contracts_delivery_plan.md](contracts_delivery_plan.md).

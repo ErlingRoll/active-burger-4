@@ -12,6 +12,7 @@ import type { SkillId } from '../../content/skills/Skills'
 import type { RandomSource } from '../random/Random'
 import { getDerivedPlayerStats } from '../stats/DerivedStats'
 import { calculateHealingAmount } from '../engine/CombatCalculations'
+import { emitGameEvent } from '../events/GameEvents'
 
 export const PLAYER_COMBAT_LOG_WINDOW_SECONDS = 10
 
@@ -88,6 +89,12 @@ export function healPlayer(
   }
   state.player.hp += amount
   recordSkillHealing(state, sourceSkillId, amount)
+  emitGameEvent(state, {
+    type: 'player-healed',
+    amount,
+    critical: isCritical,
+    ...(sourceSkillId ? { sourceSkillId } : {}),
+  })
   recordPlayerCombatEntry(state, {
     time: state.time,
     kind: 'healing',

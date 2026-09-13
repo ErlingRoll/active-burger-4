@@ -1004,6 +1004,79 @@
   border-color: color-mix(in srgb, var(--rarity, var(--color-stone-400)) 58%, transparent);
 }
 
+/*
+ * The resource card: what a material or a box is, what it is for, and where
+ * it comes from, in that order on every screen that shows one. It is text,
+ * so it is narrower than the odds card, and takes no pointer events for the
+ * same reason that one does not.
+ */
+.resource-tooltip {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  width: min(18rem, calc(100vw - 1.5rem));
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+}
+
+.resource-tooltip-heading {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.resource-tooltip-heading strong {
+  color: var(--color-stone-50);
+  font-size: 0.88rem;
+}
+
+.resource-tooltip-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  font-size: 1rem;
+}
+
+.resource-tooltip-icon :is(.fish-icon, .bait-icon, .rod-icon, .material-icon, .artifact-icon, .loot-box-icon) {
+  width: 100%;
+  height: 100%;
+}
+
+.resource-tooltip-quantity {
+  margin-left: auto;
+  color: var(--color-stone-300);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.resource-tooltip-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+}
+
+.resource-tooltip-facts dt {
+  color: var(--accent);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+.resource-tooltip-facts dd {
+  margin: 0;
+  color: var(--color-stone-200);
+}
+
 .loot-box-card-heading {
   display: flex;
   gap: 0.6rem;
@@ -1654,6 +1727,20 @@
 .artifact-effect[data-tier='2'] .artifact-effect-tier {
   border-color: currentColor;
   color: var(--color-violet-300);
+}
+
+/* What the Forge has left to work with, under the lines it would work. */
+.artifact-potential {
+  margin: 0.1rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.artifact-potential[data-finished='true'] {
+  color: var(--color-amber-300);
 }
 
 /* A rod with nothing rolled says so in the card's own voice, not a blank. */

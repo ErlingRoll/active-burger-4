@@ -1,3 +1,4 @@
+import { emitGameEvent } from '../../events/GameEvents'
 import {
   BASIC_ATTACK_SKILL_ID,
   CHAIN_LIGHTNING_SKILL_ID,
@@ -45,10 +46,14 @@ import {
   LANCERS_CHARGE_MOMENTUM_PERCENT_PER_STACK,
   LANCERS_CHARGE_VANGUARD_MOMENTUM_PERCENT_PER_STACK,
   LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT,
+  LANCERS_CHARGE_SINGLE_TARGET_MORE_DAMAGE_PERCENT,
   LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT,
   LANCERS_CHARGE_IMPALER_RANGE_BONUS,
   LANCERS_CHARGE_IMPALER_WIDTH_BONUS,
   LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS,
+  LANCERS_CHARGE_TARGET_CANDIDATE_LIMIT,
+  LANCERS_CHARGE_MIN_TARGETS,
+  LANCERS_CHARGE_HOLD_SECONDS,
   WHIRLWIND_CYCLONE_GATHERING_STORM_DECAY_SECONDS,
   getWhirlwindCycloneAreaOfEffectPercent,
   getWhirlwindCycloneCooldownReductionPercent,
@@ -322,6 +327,12 @@ export function updateSkillCooldowns(
   )
   if (state.player.lancerMomentumDecayRemaining <= 0) {
     state.player.lancerMomentumStacks = 0
+  }
+  if (state.player.lancerChargeHoldRemaining !== undefined) {
+    state.player.lancerChargeHoldRemaining = Math.max(
+      0,
+      state.player.lancerChargeHoldRemaining - fixedStepSeconds,
+    )
   }
   state.player.whirlwindGatheringStormDecayRemaining = Math.max(
     0,
@@ -932,10 +943,99 @@ function collectGlacialOrbDamage(
   return []
 }
 
+interface LancerCorridor {
+  target: EnemyState | BossState
+  targetDistance: number
+  forwardX: number
+  forwardY: number
+  /** Living enemies inside the corridor, in stable id order. */
+  struck: (EnemyState | BossState)[]
+}
+
+function isInsideLancerCorridor(
+  enemy: EnemyState | BossState,
+  originX: number,
+  originY: number,
+  forwardX: number,
+  forwardY: number,
+  length: number,
+  halfWidth: number,
+): boolean {
+  const offsetX = enemy.x - originX
+  const offsetY = enemy.y - originY
+  const forward = offsetX * forwardX + offsetY * forwardY
+  const lateral = Math.abs(offsetX * -forwardY + offsetY * forwardX)
+  return (
+    forward >= -enemy.radius &&
+    forward <= length + enemy.radius &&
+    lateral <= halfWidth + enemy.radius
+  )
+}
+
+/**
+ * Scores a corridor through each of the nearest candidates and returns the
+ * one striking the most enemies. Ties go to the nearest candidate, then the
+ * lowest id, so the choice is deterministic.
+ */
+function findBestLancerCorridor(
+  state: GameState,
+  length: number,
+  halfWidth: number,
+): LancerCorridor | undefined {
+  const originX = state.player.x
+  const originY = state.player.y
+  const living = [...state.enemies, ...(state.bosses ?? [])]
+    .filter((enemy) => enemy.hp > 0)
+  const candidates = living
+    .map((enemy) => ({
+      enemy,
+      distance: Math.hypot(enemy.x - originX, enemy.y - originY),
+    }))
+    .filter((candidate) => candidate.distance <= length)
+    .sort((left, right) =>
+      left.distance - right.distance || left.enemy.id - right.enemy.id,
+    )
+    .slice(0, LANCERS_CHARGE_TARGET_CANDIDATE_LIMIT)
+
+  let best: LancerCorridor | undefined
+  for (const candidate of candidates) {
+    const directionLength = candidate.distance || 1
+    const forwardX = (candidate.enemy.x - originX) / directionLength
+    const forwardY = (candidate.enemy.y - originY) / directionLength
+    const struck = living
+      .filter((enemy) =>
+        isInsideLancerCorridor(
+          enemy,
+          originX,
+          originY,
+          forwardX,
+          forwardY,
+          length,
+          halfWidth,
+        ),
+      )
+      .sort((left, right) => left.id - right.id)
+    if (!best || struck.length > best.struck.length) {
+      best = {
+        target: candidate.enemy,
+        targetDistance: candidate.distance,
+        forwardX,
+        forwardY,
+        struck,
+      }
+    }
+  }
+  return best
+}
+
 function collectLancersChargeDamage(
   state: GameState,
   skill: SkillState,
   allocator: EntityIdAllocator,
+  options?: {
+    /** A Mirrorcast echo replays a charge already judged worth the dash. */
+    ignoreHold?: boolean
+  },
 ): DamageEvent[] {
   const definition = getSkillDefinition(LANCERS_CHARGE_SKILL_ID)
   const playerStats = getDerivedPlayerStats(state.player)
@@ -946,24 +1046,47 @@ function collectLancersChargeDamage(
     (definition.radius ?? 0) + (impaler ? LANCERS_CHARGE_IMPALER_WIDTH_BONUS : 0),
     playerStats.areaOfEffect,
   )
-  const target = findNearestLivingTarget(state, length)
-  if (!target) {
+  const corridor = findBestLancerCorridor(state, length, halfWidth)
+  if (!corridor) {
+    state.player.lancerChargeHoldRemaining = undefined
     return []
+  }
+  const { forwardX, forwardY, struck } = corridor
+  const worthwhile =
+    struck.length >= LANCERS_CHARGE_MIN_TARGETS ||
+    struck.some((enemy) => (state.bosses ?? []).includes(enemy as BossState))
+  if (!worthwhile && !options?.ignoreHold) {
+    if (state.player.lancerChargeHoldRemaining === undefined) {
+      state.player.lancerChargeHoldRemaining = LANCERS_CHARGE_HOLD_SECONDS
+      return []
+    }
+    if (state.player.lancerChargeHoldRemaining > 0) {
+      return []
+    }
+  }
+  if (!options?.ignoreHold) {
+    state.player.lancerChargeHoldRemaining = undefined
   }
 
   const originX = state.player.x
   const originY = state.player.y
-  const directionX = target.x - originX
-  const directionY = target.y - originY
-  const directionLength = Math.hypot(directionX, directionY) || 1
-  const forwardX = directionX / directionLength
-  const forwardY = directionY / directionLength
+  // Land in front of the first enemy along the line rather than beside the
+  // scoring target, so a charge through a pack stops at its edge.
+  let firstForward = Number.POSITIVE_INFINITY
+  let firstRadius = corridor.target.radius
+  for (const enemy of struck) {
+    const forward = (enemy.x - originX) * forwardX + (enemy.y - originY) * forwardY
+    if (forward > 0 && forward < firstForward) {
+      firstForward = forward
+      firstRadius = enemy.radius
+    }
+  }
+  if (!Number.isFinite(firstForward)) {
+    firstForward = corridor.targetDistance
+  }
   const dashDistance = Math.min(
     length,
-    Math.max(
-      0,
-      directionLength - target.radius - state.player.radius - 4,
-    ),
+    Math.max(0, firstForward - firstRadius - state.player.radius - 4),
   )
   const dashDestination = clampPlayerPosition(
     state.player.x + forwardX * dashDistance,
@@ -982,21 +1105,6 @@ function collectLancersChargeDamage(
     }
     syncRallyingBannerPlayerState(state)
   }
-
-  const struck = [...state.enemies, ...(state.bosses ?? [])]
-    .filter((enemy) => enemy.hp > 0)
-    .filter((enemy) => {
-      const offsetX = enemy.x - originX
-      const offsetY = enemy.y - originY
-      const forward = offsetX * forwardX + offsetY * forwardY
-      const lateral = Math.abs(offsetX * -forwardY + offsetY * forwardX)
-      return (
-        forward >= -enemy.radius &&
-        forward <= length + enemy.radius &&
-        lateral <= halfWidth + enemy.radius
-      )
-    })
-    .sort((left, right) => left.id - right.id)
 
   const damage = getSkillDamage(definition, skill.level)
   const levelIncrease = getSkillDamageIncreasePercent(
@@ -1017,7 +1125,8 @@ function collectLancersChargeDamage(
   const shieldEmpowerment = ironVanguard &&
     (state.player.aegisPulseShieldAmount ?? 0) > 0
   const aegisEmpowermentBonus = shieldEmpowerment ? 25 : 0
-  const singleTargetBonus = vanguard && struck.length === 1
+  const singleTarget = struck.length === 1
+  const singleTargetBonus = vanguard && singleTarget
     ? LANCERS_CHARGE_VANGUARD_SINGLE_TARGET_BONUS_PERCENT
     : 0
   const impalerPenalty = impaler ? -LANCERS_CHARGE_IMPALER_DAMAGE_REDUCTION_PERCENT : 0
@@ -1042,6 +1151,9 @@ function collectLancersChargeDamage(
       {
         sourceTags: definition.tags,
         additionalIncreasedDamage: { global: damageIncreasePercent },
+        moreDamagePercent: singleTarget
+          ? LANCERS_CHARGE_SINGLE_TARGET_MORE_DAMAGE_PERCENT
+          : 0,
         attunementSourceAdditionalIncreasedDamage:
           getAttunementSourceAdditionalIncreasedDamage(state),
       },
@@ -1050,7 +1162,7 @@ function collectLancersChargeDamage(
 
   state.player.lancerMomentumStacks = Math.min(
     LANCERS_CHARGE_MAX_MOMENTUM_STACKS,
-    momentumStacks + 1,
+    momentumStacks + struck.length,
   )
   state.player.lancerMomentumDecayRemaining = LANCERS_CHARGE_MOMENTUM_DECAY_SECONDS
 
@@ -1289,6 +1401,11 @@ function collectAegisPulseDamage(
   state.player.aegisPulseShieldMaxAmount = shieldAmount
   state.player.aegisPulseShieldRemaining = shieldDuration
   state.player.aegisPulseShieldDuration = shieldDuration
+  emitGameEvent(state, {
+    type: 'shield-gained',
+    amount: shieldAmount,
+    sourceSkillId: skill.skillId,
+  })
 
   addEffect(
     state,
@@ -1524,6 +1641,11 @@ export function updateCinderMineTraps(
       })
     }
     if (affected.length > 0 || timedOut) {
+      emitGameEvent(state, {
+        type: 'skill-result',
+        skillId: trap.skillId,
+        result: 'mine-detonate',
+      })
       const definition = getSkillDefinition(trap.skillId)
       addEffect(
         state,
@@ -2070,6 +2192,11 @@ function grantMirrorWardShield(state: GameState, amount: number): void {
     state.player.aegisPulseShieldRemaining ?? 0,
     AEGIS_PULSE_BASE_DURATION_SECONDS,
   )
+  emitGameEvent(state, {
+    type: 'shield-gained',
+    amount,
+    sourceSkillId: MIRRORCAST_SKILL_ID,
+  })
 }
 
 function castMirrorcast(
@@ -2261,7 +2388,9 @@ function executeMirrorcastSkillEffect(
   } else if (copy.skillId === GLACIAL_ORB_SKILL_ID) {
     events = collectGlacialOrbDamage(state, echoSkill, allocator)
   } else if (copy.skillId === LANCERS_CHARGE_SKILL_ID) {
-    events = collectLancersChargeDamage(state, echoSkill, allocator)
+    events = collectLancersChargeDamage(state, echoSkill, allocator, {
+      ignoreHold: true,
+    })
   } else if (copy.skillId === RALLYING_BANNER_SKILL_ID) {
     events = collectRallyingBannerEffect(state, echoSkill, allocator, random)
   } else if (copy.skillId === GRAVITY_WELL_SKILL_ID) {
@@ -3276,6 +3405,11 @@ export function collectSkillDamage(
       events.push(...collectAegisPulseDamage(state, skill, allocator))
     } else if (skill.skillId === RAISE_SKELETON_SKILL_ID) {
       if (summonSkeletonIfReady(state, allocator)) {
+        emitGameEvent(state, {
+          type: 'skill-result',
+          skillId: RAISE_SKELETON_SKILL_ID,
+          result: 'summon',
+        })
         const definition = getSkillDefinition(RAISE_SKELETON_SKILL_ID)
         addEffect(
           state,
@@ -3307,6 +3441,11 @@ export function collectSkillDamage(
       events.push(...collectPrismHaloCast(state, skill, allocator))
     } else if (skill.skillId === PHANTOM_ARSENAL_SKILL_ID) {
       if (summonPhantomIfReady(state, allocator)) {
+        emitGameEvent(state, {
+          type: 'skill-result',
+          skillId: PHANTOM_ARSENAL_SKILL_ID,
+          result: 'summon',
+        })
         const definition = getSkillDefinition(PHANTOM_ARSENAL_SKILL_ID)
         addEffect(
           state,
@@ -3320,6 +3459,7 @@ export function collectSkillDamage(
       }
     }
     if ((skill.castCount ?? 0) > castCountBefore) {
+      emitGameEvent(state, { type: 'skill-cast', skillId: skill.skillId, resonant })
       // Blood Debt and Mirrorcast react to any skill that actually cast this
       // tick, but never to Basic Attack (handled elsewhere) or their own casts.
       events.push(...consumeBloodDebtForCast(state, skill))

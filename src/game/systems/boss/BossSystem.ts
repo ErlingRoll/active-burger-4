@@ -9,6 +9,7 @@ import {
   type BossSkillId,
 } from '../../../content/bosses/Bosses'
 import { createDamageValues } from '../../../content/stats/Damage'
+import { emitGameEvent } from '../../events/GameEvents'
 import { getBossDamageMultiplier } from '../../../content/dungeons/Dungeons'
 import { getPostSpawnSpeedMultiplier } from '../../../content/enemies/EnemyAcceleration'
 import type { EntityIdAllocator } from '../../ids'
@@ -299,6 +300,11 @@ function castNextSkill(
   }
   state.telegraphs ??= []
   state.telegraphs.push(...telegraphs)
+  emitGameEvent(state, {
+    type: 'boss-telegraph',
+    bossId: boss.bossDefinitionId,
+    skillId: skillState.skillId,
+  })
   skillState.cooldownRemaining = definition.cooldown * enrage.cooldownMultiplier
   boss.nextSkillIndex = (boss.nextSkillIndex + 1) % boss.skills.length
 }
@@ -350,7 +356,19 @@ export function resolveBossTelegraphs(state: GameState): DamageEvent[] {
     if (!sourceBoss || sourceBoss.hp <= 0) {
       continue
     }
-    if (isPointInTelegraph(telegraph, state.player.x, state.player.y, state.player.radius)) {
+    const hitPlayer = isPointInTelegraph(
+      telegraph,
+      state.player.x,
+      state.player.y,
+      state.player.radius,
+    )
+    emitGameEvent(state, {
+      type: 'boss-impact',
+      bossId: sourceBoss.bossDefinitionId,
+      skillId: telegraph.skillId,
+      hitPlayer,
+    })
+    if (hitPlayer) {
       events.push({
         sourceId: telegraph.sourceId,
         targetId: state.player.id,

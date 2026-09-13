@@ -54,6 +54,7 @@ import { useLocalPersistence } from './app/hooks/useLocalPersistence'
 import { useEssencePurchases, useMetaProgression } from './app/hooks/useMetaProgression'
 import { useDungeonRun } from './app/hooks/useDungeonRun'
 import { useAdminModeration } from './app/hooks/useAdminModeration'
+import { useUiButtonSounds } from './audio/UiSounds'
 import './App.css'
 
 import { APP_VERSION, DEVELOPMENT_TOOLS_ENABLED } from './app/appState'
@@ -74,6 +75,7 @@ function warmScreen(screen: AppScreen): void {
  */
 function App() {
   const { showToast } = useToaster()
+  useUiButtonSounds()
   const services = useServices()
   const {
     repository,
@@ -649,6 +651,8 @@ function App() {
             developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (account?.isAdmin ?? false)}
             collectionService={collections.service}
             onOpenCollections={openCollections}
+            essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+            onEssenceChanged={refreshMetaProgression}
             onBack={returnToDashboard}
           />
         </LazyScreen>

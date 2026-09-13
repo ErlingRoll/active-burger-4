@@ -159,6 +159,7 @@ export function PauseMenu({
           ref={resumeButtonRef}
           className="pause-resume-button"
           type="button"
+          data-sfx="none"
           onClick={onResume}
           disabled={saving}
         >

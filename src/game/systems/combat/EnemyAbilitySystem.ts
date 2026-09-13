@@ -4,6 +4,7 @@ import {
   type EnemyAbilityId,
   type EnemyAbilityDefinition,
 } from '../../../content/enemies/EnemyAbilities'
+import { emitGameEvent } from '../../events/GameEvents'
 import {
   getFloorStatMultiplier,
   getFloorDifficultyProfile,
@@ -165,6 +166,7 @@ export function updateEnemyAbilities(
     }
 
     state.telegraphs ??= []
+    emitGameEvent(state, { type: 'enemy-telegraph', abilityId: definition.id })
     state.telegraphs.push(
       createEnemyAbilityTelegraph(
         state,
@@ -279,10 +281,12 @@ export function resolveEnemyTelegraphs(
       const targets = [state.player, ...state.summons].filter(
         (target) => target.hp > 0,
       )
+      let hitPlayer = false
       for (const target of targets) {
         const distance = Math.hypot(target.x - telegraph.x, target.y - telegraph.y)
         const targetRadius = target.id === state.player.id ? state.player.radius : 13
         if (distance <= telegraph.radius + targetRadius) {
+          hitPlayer ||= target.id === state.player.id
           events.push({
             sourceId: telegraph.sourceId,
             targetId: target.id,
@@ -291,6 +295,7 @@ export function resolveEnemyTelegraphs(
           })
         }
       }
+      emitGameEvent(state, { type: 'enemy-impact', abilityId: telegraph.skillId, hitPlayer })
       continue
     }
     const enemy = state.enemies.find(
@@ -317,18 +322,21 @@ export function resolveEnemyTelegraphs(
       if (projectile) {
         state.projectiles.push(projectile)
       }
+      emitGameEvent(state, { type: 'enemy-impact', abilityId, hitPlayer: false })
       continue
     }
 
     const targets = [state.player, ...state.summons].filter(
       (target) => target.hp > 0,
     )
+    let hitPlayer = false
     for (const target of targets) {
       const distance = Math.hypot(target.x - telegraph.x, target.y - telegraph.y)
       const targetRadius = target.id === state.player.id ? state.player.radius : 13
       if (distance > telegraph.radius + targetRadius) {
         continue
       }
+      hitPlayer ||= target.id === state.player.id
       events.push({
         sourceId: telegraph.sourceId,
         targetId: target.id,
@@ -340,6 +348,7 @@ export function resolveEnemyTelegraphs(
         sourceLabel: ability.name,
       })
     }
+    emitGameEvent(state, { type: 'enemy-impact', abilityId, hitPlayer })
   }
   state.telegraphs = remaining
   return events

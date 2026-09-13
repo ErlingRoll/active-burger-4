@@ -228,6 +228,7 @@ function removeSkill(state: GameState, skillId: SkillId): void {
     state.player.whirlwindGatheringStormDecayRemaining = 0
     state.player.lancerMomentumStacks = 0
     state.player.lancerMomentumDecayRemaining = 0
+    state.player.lancerChargeHoldRemaining = undefined
   }
   if (skillId === FIERY_TOUCH_SKILL_ID) {
     state.player.fieryTouchMoreDamagePercent = 0
@@ -257,6 +258,7 @@ function removeSkill(state: GameState, skillId: SkillId): void {
   if (skillId === LANCERS_CHARGE_SKILL_ID) {
     state.player.lancerMomentumStacks = 0
     state.player.lancerMomentumDecayRemaining = 0
+    state.player.lancerChargeHoldRemaining = undefined
   }
   if (skillId === RALLYING_BANNER_SKILL_ID) {
     state.player.rallyingBannerRemaining = 0

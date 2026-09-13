@@ -4,7 +4,8 @@ import { AudioSettingsPanel } from '../audio'
 import { ReportBugModal } from '../rendering/ReportBugModal'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
 
-interface AccountSettingsMenuProps {
+/** What the menu offers a signed-in player beyond the audio settings. */
+export interface AccountSettingsAccount {
   displayName: string | null
   pendingNickname: string | null
   onRequestNicknameChange: (nickname: string) => Promise<void>
@@ -12,13 +13,17 @@ interface AccountSettingsMenuProps {
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
 }
 
-export function AccountSettingsMenu({
-  displayName,
-  pendingNickname,
-  onRequestNicknameChange,
-  bugReportDungeon,
-  onSubmitBugReport,
-}: AccountSettingsMenuProps) {
+interface AccountSettingsMenuProps {
+  /**
+   * The signed-in player's items, or `null` for a visitor. The audio settings
+   * belong to the device rather than the account, so a visitor on the sign-in
+   * page gets the same menu with only those in it: the refuge's music plays
+   * for them too, and they must be able to turn it down.
+   */
+  account: AccountSettingsAccount | null
+}
+
+export function AccountSettingsMenu({ account }: AccountSettingsMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [reportBugOpen, setReportBugOpen] = useState(false)
@@ -39,7 +44,7 @@ export function AccountSettingsMenu({
         <button
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          aria-label="Account settings"
+          aria-label={account ? 'Account settings' : 'Settings'}
           className="account-settings-toggle"
           type="button"
           onClick={() => { setMenuOpen((open) => !open) }}
@@ -49,16 +54,20 @@ export function AccountSettingsMenu({
         {menuOpen ? (
           <div className="account-settings-menu" role="menu">
             <AudioSettingsPanel />
-            <button role="menuitem" type="button" onClick={openNicknameDialog}>
-              Change nickname
-            </button>
-            <button role="menuitem" type="button" onClick={openBugReport}>
-              Report a bug
-            </button>
+            {account ? (
+              <>
+                <button role="menuitem" type="button" onClick={openNicknameDialog}>
+                  Change nickname
+                </button>
+                <button role="menuitem" type="button" onClick={openBugReport}>
+                  Report a bug
+                </button>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
-      {dialogOpen ? (
+      {dialogOpen && account ? (
         // The dialog mounts fresh each time it opens, which is what seeds the
         // draft from the current name: the closed dialog renders nothing, so
         // there is no draft to keep in sync while no one can see it.
@@ -66,23 +75,23 @@ export function AccountSettingsMenu({
           title="Change nickname"
           description="Nicknames are reviewed before appearing publicly, so offensive or hateful names cannot be published."
           inputLabel="New nickname"
-          initialValue={pendingNickname ?? displayName ?? ''}
-          pendingNickname={pendingNickname}
+          initialValue={account.pendingNickname ?? account.displayName ?? ''}
+          pendingNickname={account.pendingNickname}
           cancelLabel="Cancel"
           submitLabel="Submit for review"
           onCancel={() => setDialogOpen(false)}
           onSubmit={async (nickname) => {
-            await onRequestNicknameChange(nickname)
+            await account.onRequestNicknameChange(nickname)
             setDialogOpen(false)
           }}
         />
       ) : null}
-      {reportBugOpen ? (
+      {reportBugOpen && account ? (
         <ReportBugModal
-          dungeon={bugReportDungeon}
+          dungeon={account.bugReportDungeon}
           onClose={() => { setReportBugOpen(false) }}
           onSubmit={async (description, image) => {
-            await onSubmitBugReport(description, image)
+            await account.onSubmitBugReport(description, image)
             setReportBugOpen(false)
           }}
         />
