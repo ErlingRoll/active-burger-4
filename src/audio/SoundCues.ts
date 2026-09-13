@@ -4,66 +4,234 @@ import type { SkillId } from '../content/skills/Skills'
 import type { HitVisualElement } from '../game/state/GameState'
 import { CUE_PRIORITY, type SoundCueDefinition } from './SoundCueTypes'
 import {
-  arpeggio,
   layer,
   noise,
+  semitones,
   tone,
   type CueRenderer,
+  type FilterSpec,
 } from './SynthPrimitives'
 
 /**
  * Every sound effect in the game, synthesized.
  *
- * The palette is deliberately retro: square, triangle and sawtooth waves,
- * fast pitch sweeps and band-passed noise, most of it over in a tenth of a
- * second. It matches the drawn-by-code look of the world, and it means no
- * audio files have to be authored, downloaded, or kept in sync with the code.
- *
- * Levels follow the brief's mix order: the player being hurt sits on top,
- * then boss warnings and the menus, then the player's own defences, rewards,
- * and finally routine combat, which is also where the aggregation in the
- * director thins the herd.
+ * The voice is quiet and rounded: sine and triangle waves with soft attacks
+ * and long tails, overlapping chords rather than sequenced notes, filtered air
+ * and short transients rather than raw noise, and pitch that moves gently
+ * across a note rather than chirping. A sawtooth appears only behind a
+ * lowpass, for low weight. Nothing is louder than half of unity; the player
+ * being hurt and a boss winding up sit on top, menus and rewards in the
+ * middle, routine combat underneath, where the director also thins the herd.
+ * `SoundCues.test.ts` keeps the palette to these rules.
  */
 
 const { routine, reward, defensive, attention, danger } = CUE_PRIORITY
 
-// Shared builders. Frequencies are hertz, durations seconds.
+// Builders. Frequencies are hertz, durations seconds, gains relative to the
+// cue's own mix level.
 
-function blip(frequency: number, endFrequency: number, duration = 0.06, wave: OscillatorType = 'square'): CueRenderer {
-  return tone({ wave, frequency, endFrequency, duration, attack: 0.003, release: 0.04 })
+/** A very short highpassed transient: the "t" of a tap, glass, a spark. */
+function tick(cutoffHz: number, gain = 0.12, duration = 0.02, delay = 0): CueRenderer {
+  return noise({
+    duration,
+    delay,
+    attack: 0.002,
+    release: 0.02,
+    gain,
+    filter: { type: 'highpass', frequency: cutoffHz },
+  })
 }
 
-function twoTone(first: number, second: number, noteDuration = 0.07, wave: OscillatorType = 'square'): CueRenderer {
-  return arpeggio({ wave, frequencies: [first, second], noteDuration, gap: 0.01, release: 0.06 })
-}
-
-function thump(frequency: number, endFrequency: number, duration: number, noiseCutoff = 1200): CueRenderer {
+/** The UI press: a sine that slides down a little, with a tick on top. */
+function tap(hz: number, drop = 2, duration = 0.04, gain = 1): CueRenderer {
   return layer(
     tone({
-      wave: 'square',
-      frequency,
-      endFrequency,
+      wave: 'sine',
+      frequency: hz,
+      endFrequency: semitones(hz, -drop),
       duration,
-      release: 0.06,
-      filter: { type: 'lowpass', frequency: 900 },
-    }),
-    noise({
-      duration: duration * 0.6,
+      attack: 0.004,
       release: 0.05,
-      gain: 0.5,
-      filter: { type: 'lowpass', frequency: noiseCutoff, endFrequency: 200 },
+      gain,
+    }),
+    tick(5000, 0.1 * gain, 0.012),
+  )
+}
+
+/** A glassy note: a sine and a quieter octave above it, decaying together. */
+function ping(hz: number, release = 0.35, gain = 1, delay = 0): CueRenderer {
+  return layer(
+    tone({ wave: 'sine', frequency: hz, duration: 0.04, attack: 0.01, release, gain, delay }),
+    tone({
+      wave: 'sine',
+      frequency: hz * 2,
+      duration: 0.03,
+      attack: 0.008,
+      release: release * 0.6,
+      gain: gain * 0.35,
+      delay,
     }),
   )
 }
 
-function shimmer(duration: number, delay = 0, gain = 0.25): CueRenderer {
+/** Pings stacked into a chord, each a little after the last. */
+function pingChord(hzs: readonly number[], release: number, gain = 1, stagger = 0.035): CueRenderer {
+  const perNote = gain / Math.sqrt(hzs.length)
+  return layer(...hzs.map((hz, index) => ping(hz, release, perNote, index * stagger)))
+}
+
+interface ChordSpec {
+  wave?: 'sine' | 'triangle'
+  attack?: number
+  duration?: number
+  release?: number
+  stagger?: number
+  gain?: number
+  delay?: number
+  filter?: FilterSpec
+}
+
+/** Notes that overlap and share a tail, rather than a sequence. */
+function chord(hzs: readonly number[], spec: ChordSpec = {}): CueRenderer {
+  const {
+    wave = 'triangle',
+    attack = 0.03,
+    duration = 0.12,
+    release = 0.4,
+    stagger = 0.02,
+    gain = 1,
+    delay = 0,
+    filter,
+  } = spec
+  const perNote = gain / Math.sqrt(hzs.length)
+  return layer(
+    ...hzs.map((hz, index) =>
+      tone({
+        wave,
+        frequency: hz,
+        duration,
+        attack,
+        release,
+        gain: perNote,
+        delay: delay + index * stagger,
+        filter,
+      }),
+    ),
+  )
+}
+
+interface SwellSpec {
+  attack?: number
+  release?: number
+  gain?: number
+  openFrom?: number
+  openTo?: number
+  delay?: number
+}
+
+/** A slow rise with a lowpass opening as it goes: a warning, a welcome. */
+function swell(hz: number, endHz: number, duration: number, spec: SwellSpec = {}): CueRenderer {
+  const { attack = 0.25, release = 0.3, gain = 1, openFrom = 400, openTo = 2400, delay = 0 } = spec
+  return tone({
+    wave: 'triangle',
+    frequency: hz,
+    endFrequency: endHz,
+    duration,
+    attack,
+    release,
+    gain,
+    delay,
+    filter: { type: 'lowpass', frequency: openFrom, endFrequency: openTo, q: 0.7 },
+  })
+}
+
+interface ThumpSpec {
+  hz?: number
+  endHz?: number
+  duration?: number
+  click?: number
+  scale?: boolean
+  delay?: number
+}
+
+/** An impact: a low sine dropping in pitch, with a soft click at the front. */
+function thump(gain = 1, spec: ThumpSpec = {}): CueRenderer {
+  const { hz = 110, endHz = 55, duration = 0.14, click = 0.15, scale = true, delay = 0 } = spec
+  return layer(
+    tone({
+      wave: 'sine',
+      frequency: hz,
+      endFrequency: endHz,
+      duration,
+      attack: 0.008,
+      release: 0.12,
+      gain,
+      delay,
+      scaleWithIntensity: scale,
+    }),
+    noise({
+      duration: 0.03,
+      delay,
+      attack: 0.002,
+      release: 0.03,
+      gain: click * gain,
+      filter: { type: 'lowpass', frequency: 1200 },
+    }),
+  )
+}
+
+/** Air moving: lowpassed noise sweeping between two cutoffs. */
+function air(fromHz: number, toHz: number, duration: number, gain = 1, delay = 0): CueRenderer {
   return noise({
     duration,
     delay,
-    attack: 0.05,
-    release: 0.2,
+    attack: Math.min(0.08, duration * 0.3),
+    release: Math.max(0.08, duration * 0.4),
     gain,
-    filter: { type: 'highpass', frequency: 5000 },
+    filter: { type: 'lowpass', frequency: fromHz, endFrequency: toHz, q: 0.5 },
+  })
+}
+
+/** Weight under a big impact. */
+function sub(duration = 0.3, gain = 0.6, hz = 45, delay = 0): CueRenderer {
+  return tone({ wave: 'sine', frequency: hz, duration, attack: 0.01, release: 0.2, gain, delay })
+}
+
+/** A soft crackle: bandpassed noise, for fire and burning. */
+function crackle(centerHz: number, duration = 0.08, gain = 0.2, delay = 0): CueRenderer {
+  return noise({
+    duration,
+    delay,
+    attack: 0.005,
+    release: 0.06,
+    gain,
+    filter: { type: 'bandpass', frequency: centerHz, q: 1.5 },
+  })
+}
+
+/** A dark pad: a sawtooth kept well below its edge by a closing lowpass. */
+function pad(hz: number, duration: number, gain = 1): CueRenderer {
+  return tone({
+    wave: 'sawtooth',
+    frequency: hz,
+    endFrequency: hz * 0.75,
+    duration,
+    attack: 0.05,
+    release: 0.25,
+    gain,
+    filter: { type: 'lowpass', frequency: 900, endFrequency: 300, q: 1 },
+  })
+}
+
+/** A quiet, very high breath of air behind a reward. */
+function shimmer(duration: number, delay = 0, gain = 0.12): CueRenderer {
+  return noise({
+    duration,
+    delay,
+    attack: 0.1,
+    release: 0.3,
+    gain,
+    filter: { type: 'highpass', frequency: 6000 },
   })
 }
 
@@ -72,372 +240,293 @@ function shimmer(duration: number, delay = 0, gain = 0.25): CueRenderer {
 
 function swingCast(base: number): CueRenderer {
   return layer(
-    noise({
-      duration: 0.18,
-      release: 0.08,
-      filter: { type: 'bandpass', frequency: base, endFrequency: base * 3, q: 1.2 },
+    air(base, base * 3, 0.16, 0.9),
+    tone({
+      wave: 'sine',
+      frequency: base / 2,
+      endFrequency: base / 1.6,
+      duration: 0.12,
+      attack: 0.02,
+      release: 0.1,
+      gain: 0.35,
     }),
-    tone({ wave: 'triangle', frequency: base / 2, endFrequency: base, duration: 0.15, gain: 0.4 }),
   )
 }
 
 function zapCast(base: number): CueRenderer {
   return layer(
-    tone({ wave: 'square', frequency: base * 3, endFrequency: base, duration: 0.09, release: 0.05 }),
-    noise({ duration: 0.06, gain: 0.5, filter: { type: 'highpass', frequency: 2500 } }),
+    tone({ wave: 'sine', frequency: base * 2, endFrequency: base, duration: 0.07, attack: 0.006, release: 0.08 }),
+    tick(3500, 0.1, 0.02),
   )
 }
 
 function warmCast(base: number): CueRenderer {
-  return arpeggio({
-    wave: 'triangle',
-    frequencies: [base, base * 1.25, base * 1.5],
-    noteDuration: 0.07,
-    gap: 0.005,
-    release: 0.1,
-  })
+  return chord([base, base * 1.25, base * 1.5], { attack: 0.04, duration: 0.12, release: 0.35 })
 }
 
 function darkCast(base: number): CueRenderer {
-  return layer(
-    tone({
-      wave: 'sawtooth',
-      frequency: base,
-      endFrequency: base / 2,
-      duration: 0.28,
-      release: 0.15,
-      filter: { type: 'lowpass', frequency: base * 8, endFrequency: base * 2, q: 3 },
-    }),
-    tone({ wave: 'sine', frequency: base / 2, duration: 0.3, gain: 0.5 }),
-  )
+  return layer(pad(base, 0.35, 0.6), sub(0.35, 0.4, base / 2))
 }
 
 function fireCast(base: number): CueRenderer {
   return layer(
-    noise({
-      duration: 0.22,
-      release: 0.1,
-      gain: 0.8,
-      filter: { type: 'bandpass', frequency: base * 4, q: 0.8 },
-    }),
+    crackle(base * 4, 0.16, 0.7),
     tone({
-      wave: 'sawtooth',
+      wave: 'sine',
       frequency: base,
-      endFrequency: base * 1.6,
-      duration: 0.18,
+      endFrequency: base * 1.5,
+      duration: 0.16,
+      attack: 0.02,
+      release: 0.12,
       gain: 0.5,
-      filter: { type: 'lowpass', frequency: 1500 },
     }),
   )
 }
 
 function iceCast(base: number): CueRenderer {
-  return layer(
-    tone({ wave: 'triangle', frequency: base, endFrequency: base * 2, duration: 0.14, release: 0.15 }),
-    tone({ wave: 'sine', frequency: base * 3, duration: 0.1, delay: 0.04, gain: 0.4 }),
-    noise({ duration: 0.08, gain: 0.35, filter: { type: 'highpass', frequency: 4000 } }),
-  )
+  return layer(ping(base, 0.3), tick(4500, 0.1, 0.02))
 }
 
-function cast(render: CueRenderer, gain = 0.45): SoundCueDefinition {
+function cast(render: CueRenderer, gain = 0.24): SoundCueDefinition {
   return { priority: routine, gain, cooldownMs: 0, pitchJitter: 0.5, render }
 }
 
-function reveal(frequencies: readonly number[], noteDuration: number, wave: OscillatorType, extra?: CueRenderer): SoundCueDefinition {
-  const notes = arpeggio({ wave, frequencies, noteDuration, gap: 0.01, release: 0.15 })
+function reveal(hzs: readonly number[], release: number, extra?: CueRenderer): SoundCueDefinition {
+  const notes = pingChord(hzs, release)
   return {
     priority: attention,
-    gain: 0.6,
+    gain: 0.34,
     cooldownMs: 200,
     render: extra ? layer(notes, extra) : notes,
   }
 }
 
+const confirmPair = (): CueRenderer => layer(ping(660, 0.3), ping(990, 0.35, 0.9, 0.04))
+
 export const SOUND_CUES = {
   // Run and phase
   'run-start': {
-    priority: attention, gain: 0.7, cooldownMs: 500,
-    render: arpeggio({ wave: 'square', frequencies: [330, 440, 660], noteDuration: 0.09, gap: 0.01, release: 0.1 }),
+    priority: attention, gain: 0.4, cooldownMs: 500,
+    render: layer(
+      chord([262, 392, 523], { attack: 0.06, duration: 0.25, release: 0.5 }),
+      ping(1046, 0.5, 0.5, 0.12),
+    ),
   },
   victory: {
-    priority: attention, gain: 0.8, cooldownMs: 1000,
+    priority: attention, gain: 0.5, cooldownMs: 1000,
     render: layer(
-      arpeggio({ wave: 'square', frequencies: [392, 523, 659, 784], noteDuration: 0.14, gap: 0.02, release: 0.1 }),
-      tone({ wave: 'square', frequency: 1046, duration: 0.6, delay: 0.64, release: 0.4, gain: 0.8 }),
-      tone({ wave: 'triangle', frequency: 523, duration: 0.6, delay: 0.64, release: 0.4, gain: 0.5 }),
-      shimmer(0.8, 0.6),
+      chord([392, 494, 587, 784], { attack: 0.2, duration: 0.9, release: 0.6, stagger: 0.05 }),
+      ping(1568, 0.8, 0.6, 0.6),
+      shimmer(0.9, 0.5),
     ),
   },
   defeat: {
-    priority: danger, gain: 0.8, cooldownMs: 1000,
+    priority: danger, gain: 0.5, cooldownMs: 1000,
     render: layer(
-      tone({ wave: 'sawtooth', frequency: 300, endFrequency: 60, duration: 0.9, release: 0.3, filter: { type: 'lowpass', frequency: 2000, endFrequency: 300 } }),
-      noise({ duration: 0.6, release: 0.3, gain: 0.4, filter: { type: 'lowpass', frequency: 600, endFrequency: 100 } }),
+      tone({
+        wave: 'triangle', frequency: 220, endFrequency: 110, duration: 1.2, attack: 0.05, release: 0.4,
+        filter: { type: 'lowpass', frequency: 1800, endFrequency: 250, q: 0.7 },
+      }),
+      sub(1, 0.5, 40),
     ),
   },
   'floor-depart': {
-    priority: attention, gain: 0.6, cooldownMs: 500,
+    priority: attention, gain: 0.4, cooldownMs: 500,
     render: layer(
-      noise({ duration: 0.5, release: 0.2, filter: { type: 'bandpass', frequency: 2000, endFrequency: 200, q: 1 } }),
-      tone({ wave: 'triangle', frequency: 500, endFrequency: 150, duration: 0.5, release: 0.2, gain: 0.6 }),
+      air(2400, 300, 0.5, 0.9),
+      tone({
+        wave: 'triangle', frequency: 440, endFrequency: 220, duration: 0.5, attack: 0.03, release: 0.25, gain: 0.5,
+        filter: { type: 'lowpass', frequency: 1500, endFrequency: 400 },
+      }),
     ),
   },
   'floor-arrive': {
-    priority: attention, gain: 0.6, cooldownMs: 500,
+    priority: attention, gain: 0.4, cooldownMs: 500,
     render: layer(
-      tone({ wave: 'triangle', frequency: 200, endFrequency: 600, duration: 0.35, release: 0.2 }),
-      noise({ duration: 0.3, release: 0.2, gain: 0.5, filter: { type: 'bandpass', frequency: 300, endFrequency: 3000, q: 1 } }),
+      air(300, 2400, 0.4, 0.9),
+      tone({ wave: 'triangle', frequency: 220, endFrequency: 440, duration: 0.4, attack: 0.03, release: 0.3, gain: 0.5 }),
     ),
   },
-  pause: { priority: attention, gain: 0.5, cooldownMs: 100, render: twoTone(523, 392) },
-  resume: { priority: attention, gain: 0.5, cooldownMs: 100, render: twoTone(392, 523) },
-  'stairs-appear': {
-    priority: reward, gain: 0.6, cooldownMs: 500,
-    render: arpeggio({ wave: 'triangle', frequencies: [660, 880, 1320], noteDuration: 0.1, gap: 0.01, release: 0.2 }),
-  },
-  'stairs-reached': { priority: reward, gain: 0.5, cooldownMs: 300, render: twoTone(440, 660, 0.08) },
+  pause: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(ping(660, 0.3), ping(494, 0.35, 1, 0.09)) },
+  resume: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(ping(494, 0.3), ping(660, 0.35, 1, 0.09)) },
+  'stairs-appear': { priority: reward, gain: 0.34, cooldownMs: 500, render: pingChord([660, 990, 1320], 0.5) },
+  'stairs-reached': { priority: reward, gain: 0.3, cooldownMs: 300, render: ping(880, 0.4) },
 
   // The player
-  'hurt-physical': { priority: danger, gain: 0.8, cooldownMs: 0, render: thump(180, 60, 0.12) },
+  'hurt-physical': {
+    priority: danger, gain: 0.45, cooldownMs: 0,
+    render: layer(thump(1, { scale: false }), tick(2500, 0.1, 0.02)),
+  },
   'hurt-fire': {
-    priority: danger, gain: 0.8, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'sawtooth', frequency: 300, endFrequency: 120, duration: 0.15, release: 0.08 }),
-      noise({ duration: 0.15, release: 0.08, gain: 0.7, filter: { type: 'bandpass', frequency: 1200, q: 2 } }),
-    ),
+    priority: danger, gain: 0.45, cooldownMs: 0,
+    render: layer(thump(1, { scale: false }), crackle(900, 0.08, 0.25)),
   },
   'hurt-cold': {
-    priority: danger, gain: 0.8, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 900, endFrequency: 400, duration: 0.15, release: 0.1 }),
-      noise({ duration: 0.1, gain: 0.4, filter: { type: 'highpass', frequency: 3000 } }),
-    ),
+    priority: danger, gain: 0.45, cooldownMs: 0,
+    render: layer(thump(0.9, { scale: false }), tick(4000, 0.18, 0.03), ping(1760, 0.2, 0.3)),
   },
   'hurt-lightning': {
-    priority: danger, gain: 0.8, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'square', frequency: 1200, endFrequency: 90, duration: 0.1, release: 0.06 }),
-      noise({ duration: 0.08, gain: 0.6, filter: { type: 'highpass', frequency: 2000 } }),
-    ),
+    priority: danger, gain: 0.45, cooldownMs: 0,
+    render: layer(thump(0.9, { scale: false }), tick(3000, 0.22, 0.04)),
   },
   'hurt-chaos': {
-    priority: danger, gain: 0.8, cooldownMs: 0,
+    priority: danger, gain: 0.45, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'sawtooth', frequency: 200, endFrequency: 380, glide: 'linear', duration: 0.18, release: 0.1 }),
-      tone({ wave: 'square', frequency: 205, endFrequency: 95, duration: 0.18, release: 0.1, gain: 0.6 }),
+      thump(0.9, { scale: false }),
+      tone({ wave: 'triangle', frequency: 200, duration: 0.14, attack: 0.01, release: 0.12, gain: 0.3, detune: -8 }),
+      tone({ wave: 'triangle', frequency: 200, duration: 0.14, attack: 0.01, release: 0.12, gain: 0.3, detune: 8 }),
     ),
   },
   'hurt-poison': {
-    priority: danger, gain: 0.7, cooldownMs: 0,
+    priority: danger, gain: 0.42, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 300, endFrequency: 180, duration: 0.15, release: 0.1 }),
-      tone({ wave: 'triangle', frequency: 450, endFrequency: 220, duration: 0.12, delay: 0.05, release: 0.1, gain: 0.6 }),
+      thump(0.8, { scale: false }),
+      tone({ wave: 'triangle', frequency: 300, endFrequency: 260, duration: 0.12, attack: 0.02, release: 0.1, gain: 0.4 }),
     ),
   },
   'hurt-dot': {
-    priority: defensive, gain: 0.35, cooldownMs: 0,
-    render: tone({ wave: 'triangle', frequency: 220, endFrequency: 160, duration: 0.08, release: 0.06 }),
+    priority: defensive, gain: 0.2, cooldownMs: 0,
+    render: tone({ wave: 'sine', frequency: 160, endFrequency: 120, duration: 0.06, attack: 0.006, release: 0.06 }),
   },
   'danger-low-hp': {
-    priority: danger, gain: 0.6, cooldownMs: 0,
+    priority: danger, gain: 0.35, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'square', frequency: 110, duration: 0.1, release: 0.05, filter: { type: 'lowpass', frequency: 500 } }),
-      tone({ wave: 'square', frequency: 110, duration: 0.1, delay: 0.16, release: 0.05, filter: { type: 'lowpass', frequency: 500 } }),
+      tone({ wave: 'sine', frequency: 70, duration: 0.1, attack: 0.01, release: 0.1 }),
+      tone({ wave: 'sine', frequency: 70, duration: 0.1, attack: 0.01, release: 0.1, delay: 0.18, gain: 0.8 }),
     ),
   },
   heal: {
-    priority: defensive, gain: 0.55, cooldownMs: 0,
-    render: arpeggio({ wave: 'triangle', frequencies: [523, 659, 784], noteDuration: 0.08, gap: 0.01, release: 0.12 }),
+    priority: defensive, gain: 0.32, cooldownMs: 0,
+    render: chord([523, 659], { attack: 0.04, duration: 0.15, release: 0.4 }),
   },
   'heal-crit': {
-    priority: defensive, gain: 0.65, cooldownMs: 0,
+    priority: defensive, gain: 0.36, cooldownMs: 0,
     render: layer(
-      arpeggio({ wave: 'triangle', frequencies: [523, 659, 784, 1046], noteDuration: 0.08, gap: 0.01, release: 0.15 }),
-      shimmer(0.4, 0.2),
+      chord([523, 659, 784], { attack: 0.04, duration: 0.18, release: 0.45 }),
+      ping(1568, 0.5, 0.5, 0.1),
     ),
   },
   'shield-gain': {
-    priority: defensive, gain: 0.6, cooldownMs: 0,
-    render: tone({
-      wave: 'square', frequency: 200, endFrequency: 800, duration: 0.25, release: 0.15,
-      filter: { type: 'lowpass', frequency: 400, endFrequency: 3000, q: 2 },
-    }),
-  },
-  'shield-absorb': {
-    priority: defensive, gain: 0.5, cooldownMs: 0,
+    priority: defensive, gain: 0.32, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 1200, endFrequency: 900, duration: 0.06, release: 0.08 }),
-      tone({ wave: 'sine', frequency: 1800, duration: 0.05, release: 0.1, gain: 0.5 }),
+      ping(660, 0.4),
+      ping(990, 0.45, 0.8, 0.06),
+      swell(330, 660, 0.25, { attack: 0.08, release: 0.25, gain: 0.4 }),
     ),
   },
+  'shield-absorb': { priority: defensive, gain: 0.3, cooldownMs: 0, render: ping(1320, 0.18) },
   'shield-break': {
-    priority: defensive, gain: 0.7, cooldownMs: 0,
+    priority: defensive, gain: 0.4, cooldownMs: 0,
     render: layer(
-      noise({ duration: 0.2, release: 0.15, filter: { type: 'highpass', frequency: 3000 } }),
-      tone({ wave: 'triangle', frequency: 1400, endFrequency: 200, duration: 0.25, release: 0.15 }),
+      tick(4000, 0.2, 0.04),
+      tone({ wave: 'sine', frequency: 1320, endFrequency: 440, duration: 0.22, attack: 0.008, release: 0.2 }),
     ),
   },
 
   // Basic attack and routine combat
-  'attack-sword': {
-    priority: routine, gain: 0.45, cooldownMs: 0, pitchJitter: 1,
-    render: noise({ duration: 0.14, release: 0.06, filter: { type: 'lowpass', frequency: 4000, endFrequency: 400, q: 1 } }),
-  },
+  'attack-sword': { priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1, render: air(900, 1800, 0.12) },
   'attack-bow': {
-    priority: routine, gain: 0.45, cooldownMs: 0, pitchJitter: 1,
+    priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1,
     render: layer(
-      tone({ wave: 'triangle', frequency: 440, endFrequency: 220, duration: 0.08, release: 0.06 }),
-      noise({ duration: 0.03, gain: 0.5, filter: { type: 'highpass', frequency: 2000 } }),
+      tone({ wave: 'sine', frequency: 330, endFrequency: 300, duration: 0.09, attack: 0.004, release: 0.08 }),
+      tick(3000, 0.12, 0.015),
     ),
   },
-  'attack-wand': { priority: routine, gain: 0.4, cooldownMs: 0, pitchJitter: 1, render: blip(600, 1200) },
+  'attack-wand': { priority: routine, gain: 0.22, cooldownMs: 0, pitchJitter: 1, render: ping(880, 0.15) },
   'attack-staff': {
-    priority: routine, gain: 0.45, cooldownMs: 0, pitchJitter: 1,
-    render: layer(
-      tone({ wave: 'sawtooth', frequency: 90, endFrequency: 60, duration: 0.15, release: 0.1, filter: { type: 'lowpass', frequency: 600 } }),
-      noise({ duration: 0.12, release: 0.06, gain: 0.5, filter: { type: 'lowpass', frequency: 300 } }),
-    ),
+    priority: routine, gain: 0.25, cooldownMs: 0, pitchJitter: 1,
+    render: tone({ wave: 'sine', frequency: 80, duration: 0.12, attack: 0.01, release: 0.12 }),
   },
-  'hit-light': {
-    priority: routine, gain: 0.4, cooldownMs: 0, pitchJitter: 1.5,
-    render: layer(
-      tone({ wave: 'square', frequency: 400, endFrequency: 120, duration: 0.05, release: 0.04 }),
-      noise({ duration: 0.03, gain: 0.4 }),
-    ),
-  },
-  'hit-medium': {
-    priority: routine, gain: 0.5, cooldownMs: 0, pitchJitter: 1,
-    render: layer(
-      tone({ wave: 'square', frequency: 300, endFrequency: 80, duration: 0.08, release: 0.05, scaleWithIntensity: true }),
-      noise({ duration: 0.05, gain: 0.5, filter: { type: 'lowpass', frequency: 1500 } }),
-    ),
-  },
-  'hit-heavy': {
-    priority: routine, gain: 0.65, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'square', frequency: 200, endFrequency: 50, duration: 0.14, release: 0.08, scaleWithIntensity: true }),
-      noise({ duration: 0.1, release: 0.06, gain: 0.6, filter: { type: 'lowpass', frequency: 800 }, scaleWithIntensity: true }),
-    ),
-  },
+  'hit-light': { priority: routine, gain: 0.18, cooldownMs: 0, pitchJitter: 1.5, render: thump(1, { hz: 120, endHz: 70, duration: 0.09 }) },
+  'hit-medium': { priority: routine, gain: 0.24, cooldownMs: 0, pitchJitter: 1, render: thump(1, { duration: 0.11 }) },
+  'hit-heavy': { priority: routine, gain: 0.32, cooldownMs: 0, render: thump(1, { hz: 100, endHz: 50, duration: 0.14, click: 0.2 }) },
   'hit-boss': {
-    priority: routine, gain: 0.6, cooldownMs: 0,
-    render: layer(
-      thump(150, 40, 0.16, 500),
-      tone({ wave: 'sine', frequency: 80, duration: 0.2, release: 0.1, gain: 0.6 }),
-    ),
+    priority: routine, gain: 0.3, cooldownMs: 0,
+    render: layer(thump(1, { hz: 90, endHz: 45, duration: 0.16 }), sub(0.25, 0.5)),
   },
-  'crit-accent': {
-    priority: reward, gain: 0.55, cooldownMs: 0,
-    render: layer(
-      blip(1200, 2400, 0.06),
-      tone({ wave: 'square', frequency: 1600, duration: 0.05, delay: 0.04, release: 0.08, gain: 0.7 }),
-    ),
-  },
+  'crit-accent': { priority: reward, gain: 0.3, cooldownMs: 0, render: ping(1760, 0.2) },
   'enemy-death': {
-    priority: routine, gain: 0.55, cooldownMs: 0, pitchJitter: 2,
+    priority: routine, gain: 0.28, cooldownMs: 0, pitchJitter: 2,
     render: layer(
-      tone({ wave: 'square', frequency: 300, endFrequency: 50, duration: 0.14, release: 0.08 }),
-      noise({ duration: 0.12, release: 0.06, gain: 0.5, filter: { type: 'bandpass', frequency: 600, endFrequency: 150, q: 0.8 } }),
+      thump(1, { hz: 130, endHz: 60, duration: 0.12, scale: false }),
+      noise({ duration: 0.1, attack: 0.01, release: 0.1, gain: 0.25, filter: { type: 'lowpass', frequency: 900, endFrequency: 200 } }),
     ),
   },
   'enemy-death-multi': {
-    priority: routine, gain: 0.7, cooldownMs: 0,
+    priority: routine, gain: 0.36, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'square', frequency: 320, endFrequency: 45, duration: 0.16, release: 0.1 }),
-      tone({ wave: 'square', frequency: 280, endFrequency: 40, duration: 0.16, delay: 0.02, release: 0.1, gain: 0.8 }),
-      tone({ wave: 'square', frequency: 360, endFrequency: 55, duration: 0.16, delay: 0.04, release: 0.1, gain: 0.8 }),
-      noise({ duration: 0.2, release: 0.1, gain: 0.6, filter: { type: 'lowpass', frequency: 1000, endFrequency: 150 } }),
+      thump(1, { hz: 130, endHz: 55, duration: 0.14, scale: false }),
+      thump(0.8, { hz: 115, endHz: 50, duration: 0.14, scale: false, delay: 0.02 }),
+      thump(0.7, { hz: 145, endHz: 60, duration: 0.14, scale: false, delay: 0.04 }),
+      noise({ duration: 0.18, attack: 0.01, release: 0.15, gain: 0.3, filter: { type: 'lowpass', frequency: 1000, endFrequency: 150 } }),
     ),
   },
-  'elite-death': {
-    priority: reward, gain: 0.65, cooldownMs: 0,
-    render: layer(
-      arpeggio({ wave: 'square', frequencies: [220, 330, 440, 660], noteDuration: 0.06, gap: 0.005, release: 0.12 }),
-      noise({ duration: 0.15, release: 0.1, gain: 0.5, filter: { type: 'lowpass', frequency: 1200, endFrequency: 200 } }),
-    ),
-  },
+  'elite-death': { priority: reward, gain: 0.34, cooldownMs: 0, render: pingChord([660, 990, 1320], 0.45) },
 
   // Bosses and enemy abilities
   'boss-spawn': {
-    priority: attention, gain: 0.7, cooldownMs: 0,
+    priority: attention, gain: 0.35, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'sawtooth', frequency: 55, duration: 1, attack: 0.4, release: 0.4, filter: { type: 'lowpass', frequency: 300, endFrequency: 1200, q: 2 } }),
-      noise({ duration: 0.9, attack: 0.3, release: 0.4, gain: 0.4, filter: { type: 'lowpass', frequency: 200 } }),
+      tone({
+        wave: 'sawtooth', frequency: 55, duration: 1.2, attack: 0.5, release: 0.5,
+        filter: { type: 'lowpass', frequency: 200, endFrequency: 900, q: 1 },
+      }),
+      sub(1, 0.5, 40),
     ),
   },
   'boss-telegraph-slam': {
-    priority: attention, gain: 0.6, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'square', frequency: 110, endFrequency: 220, glide: 'linear', duration: 0.35, release: 0.1, filter: { type: 'lowpass', frequency: 800 } }),
-      noise({ duration: 0.3, release: 0.1, gain: 0.5, filter: { type: 'lowpass', frequency: 400 } }),
-    ),
+    priority: attention, gain: 0.4, cooldownMs: 0,
+    render: swell(80, 160, 0.4, { attack: 0.15, openFrom: 200, openTo: 900 }),
   },
   'boss-telegraph-charge': {
-    priority: attention, gain: 0.6, cooldownMs: 0,
-    render: tone({ wave: 'sawtooth', frequency: 200, endFrequency: 800, duration: 0.3, release: 0.1, filter: { type: 'lowpass', frequency: 2500 } }),
+    priority: attention, gain: 0.4, cooldownMs: 0,
+    render: swell(220, 440, 0.35, { attack: 0.1, openFrom: 500, openTo: 2000 }),
   },
   'boss-telegraph-nova': {
-    priority: attention, gain: 0.6, cooldownMs: 0,
+    priority: attention, gain: 0.4, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 400, endFrequency: 1600, duration: 0.4, release: 0.15 }),
-      tone({ wave: 'square', frequency: 800, endFrequency: 1600, duration: 0.3, delay: 0.1, release: 0.15, gain: 0.5 }),
+      swell(330, 660, 0.4, { attack: 0.12, openFrom: 600, openTo: 2500 }),
+      ping(1320, 0.3, 0.5, 0.3),
     ),
   },
   'boss-telegraph-line': {
-    priority: attention, gain: 0.6, cooldownMs: 0,
-    render: layer(
-      blip(600, 900, 0.1),
-      tone({ wave: 'square', frequency: 700, endFrequency: 1000, duration: 0.1, delay: 0.12, release: 0.05 }),
-      tone({ wave: 'square', frequency: 800, endFrequency: 1100, duration: 0.1, delay: 0.24, release: 0.05 }),
-    ),
+    priority: attention, gain: 0.4, cooldownMs: 0,
+    render: layer(ping(660, 0.2), ping(784, 0.2, 1, 0.12), ping(880, 0.25, 1, 0.24)),
   },
   'boss-telegraph-meteor': {
-    priority: attention, gain: 0.6, cooldownMs: 0,
+    priority: attention, gain: 0.4, cooldownMs: 0,
     render: layer(
-      noise({ duration: 0.5, release: 0.1, filter: { type: 'highpass', frequency: 3000, endFrequency: 500 } }),
-      tone({ wave: 'triangle', frequency: 1800, endFrequency: 300, duration: 0.5, release: 0.1, gain: 0.6 }),
+      tone({ wave: 'sine', frequency: 1200, endFrequency: 300, duration: 0.5, attack: 0.03, release: 0.15 }),
+      air(3000, 400, 0.5, 0.8),
     ),
   },
   'boss-telegraph-generic': {
-    priority: attention, gain: 0.55, cooldownMs: 0,
-    render: layer(
-      blip(500, 750, 0.15),
-      tone({ wave: 'square', frequency: 500, endFrequency: 750, duration: 0.15, delay: 0.18, release: 0.06 }),
-    ),
+    priority: attention, gain: 0.36, cooldownMs: 0,
+    render: layer(ping(523, 0.25), ping(659, 0.3, 1, 0.16)),
   },
   'boss-impact': {
-    priority: attention, gain: 0.8, cooldownMs: 0,
+    priority: attention, gain: 0.45, cooldownMs: 0,
     render: layer(
-      noise({ duration: 0.35, release: 0.2, filter: { type: 'lowpass', frequency: 1200, endFrequency: 100 }, scaleWithIntensity: true }),
-      tone({ wave: 'square', frequency: 120, endFrequency: 30, duration: 0.3, release: 0.2, scaleWithIntensity: true }),
-      tone({ wave: 'sine', frequency: 50, duration: 0.35, release: 0.2, gain: 0.7 }),
+      sub(0.35, 0.8),
+      thump(0.9, { hz: 100, endHz: 40, duration: 0.25, click: 0.2 }),
+      noise({ duration: 0.3, attack: 0.005, release: 0.2, gain: 0.35, filter: { type: 'lowpass', frequency: 1000, endFrequency: 100 } }),
     ),
   },
   'boss-death': {
-    priority: attention, gain: 0.85, cooldownMs: 0,
+    priority: attention, gain: 0.5, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'sawtooth', frequency: 220, endFrequency: 40, duration: 0.9, release: 0.4, filter: { type: 'lowpass', frequency: 2000, endFrequency: 200 } }),
-      noise({ duration: 0.8, release: 0.4, gain: 0.5, filter: { type: 'lowpass', frequency: 800, endFrequency: 100 } }),
-      arpeggio({ wave: 'square', frequencies: [220, 277, 330, 440], noteDuration: 0.15, gap: 0.02, release: 0.3, delay: 0.5, gain: 0.7 }),
+      tone({
+        wave: 'triangle', frequency: 220, endFrequency: 55, duration: 1, attack: 0.03, release: 0.4,
+        filter: { type: 'lowpass', frequency: 1500, endFrequency: 200 },
+      }),
+      chord([262, 330, 392, 523], { attack: 0.15, duration: 0.5, release: 0.7, delay: 0.6, stagger: 0.05, gain: 0.7 }),
     ),
   },
-  'enemy-telegraph': {
-    priority: defensive, gain: 0.4, cooldownMs: 0,
-    render: layer(
-      blip(900, 1100, 0.08),
-      tone({ wave: 'square', frequency: 900, endFrequency: 1100, duration: 0.08, delay: 0.1, release: 0.04 }),
-    ),
-  },
-  'enemy-impact': {
-    priority: defensive, gain: 0.5, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'square', frequency: 250, endFrequency: 70, duration: 0.1, release: 0.06, scaleWithIntensity: true }),
-      noise({ duration: 0.08, gain: 0.5, filter: { type: 'lowpass', frequency: 800 } }),
-    ),
-  },
+  'enemy-telegraph': { priority: defensive, gain: 0.26, cooldownMs: 0, render: ping(784, 0.2) },
+  'enemy-impact': { priority: defensive, gain: 0.3, cooldownMs: 0, render: thump(1, { duration: 0.12 }) },
 
   // Skill casts, by family
-  'cast-basic-attack': cast(blip(600, 1200)),
+  'cast-basic-attack': cast(ping(880, 0.15)),
   'cast-whirlwind': cast(swingCast(500)),
   'cast-lancers-charge': cast(swingCast(300)),
   'cast-razorwire': cast(swingCast(1400)),
@@ -462,229 +551,181 @@ export const SOUND_CUES = {
 
   // Skill results
   'chain-jump': {
-    priority: routine, gain: 0.4, cooldownMs: 0, pitchJitter: 2,
-    render: layer(
-      blip(1800, 600, 0.04),
-      noise({ duration: 0.03, gain: 0.5, filter: { type: 'highpass', frequency: 3000 } }),
-    ),
+    priority: routine, gain: 0.22, cooldownMs: 0, pitchJitter: 2,
+    render: tone({ wave: 'sine', frequency: 1500, endFrequency: 1200, duration: 0.04, attack: 0.004, release: 0.05 }),
   },
   'mine-detonate': {
-    priority: reward, gain: 0.7, cooldownMs: 0,
+    priority: reward, gain: 0.4, cooldownMs: 0,
     render: layer(
-      noise({ duration: 0.3, release: 0.15, filter: { type: 'lowpass', frequency: 2000, endFrequency: 150 } }),
-      tone({ wave: 'square', frequency: 120, endFrequency: 35, duration: 0.25, release: 0.15 }),
-      tone({ wave: 'sine', frequency: 45, duration: 0.3, release: 0.15, gain: 0.7 }),
+      sub(0.3, 0.8),
+      thump(0.8, { hz: 110, endHz: 40, duration: 0.2, scale: false }),
+      noise({ duration: 0.25, attack: 0.005, release: 0.15, gain: 0.3, filter: { type: 'lowpass', frequency: 1500, endFrequency: 120 } }),
     ),
   },
   'orb-burst': {
-    priority: reward, gain: 0.6, cooldownMs: 0,
+    priority: reward, gain: 0.34, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 1600, endFrequency: 400, duration: 0.2, release: 0.15 }),
-      noise({ duration: 0.2, release: 0.1, gain: 0.6, filter: { type: 'highpass', frequency: 2500, endFrequency: 800 } }),
-      tone({ wave: 'sine', frequency: 2400, duration: 0.08, delay: 0.02, release: 0.15, gain: 0.5 }),
+      tick(3500, 0.22, 0.06),
+      tone({ wave: 'sine', frequency: 1600, endFrequency: 800, duration: 0.18, attack: 0.005, release: 0.2, gain: 0.7 }),
+      ping(2400, 0.25, 0.4, 0.02),
     ),
   },
   'sigil-detonate': {
-    priority: reward, gain: 0.7, cooldownMs: 0,
+    priority: reward, gain: 0.4, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'sawtooth', frequency: 110, duration: 0.35, release: 0.2, filter: { type: 'lowpass', frequency: 1200, endFrequency: 300 } }),
-      tone({ wave: 'sawtooth', frequency: 165, duration: 0.35, release: 0.2, gain: 0.7, filter: { type: 'lowpass', frequency: 1200, endFrequency: 300 } }),
-      tone({ wave: 'sawtooth', frequency: 220, duration: 0.35, release: 0.2, gain: 0.5, filter: { type: 'lowpass', frequency: 1200, endFrequency: 300 } }),
-      noise({ duration: 0.3, release: 0.15, gain: 0.5, filter: { type: 'lowpass', frequency: 900, endFrequency: 120 } }),
+      chord([110, 165, 220], { attack: 0.02, duration: 0.3, release: 0.3, filter: { type: 'lowpass', frequency: 900, endFrequency: 250 } }),
+      sub(0.35, 0.6),
     ),
   },
   'tether-snap': {
-    priority: reward, gain: 0.55, cooldownMs: 0,
+    priority: reward, gain: 0.3, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 900, endFrequency: 150, duration: 0.08, release: 0.1 }),
-      noise({ duration: 0.05, gain: 0.5, filter: { type: 'bandpass', frequency: 1500, q: 1 } }),
+      tone({ wave: 'sine', frequency: 880, endFrequency: 440, duration: 0.1, attack: 0.006, release: 0.15 }),
+      tick(2500, 0.1, 0.015),
     ),
   },
   summon: {
-    priority: reward, gain: 0.55, cooldownMs: 0,
+    priority: reward, gain: 0.32, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'triangle', frequency: 150, endFrequency: 600, duration: 0.25, release: 0.15, filter: { type: 'lowpass', frequency: 500, endFrequency: 3000 } }),
-      tone({ wave: 'sine', frequency: 300, duration: 0.2, delay: 0.1, release: 0.15, gain: 0.5 }),
+      swell(160, 480, 0.3, { attack: 0.08, release: 0.25, openFrom: 400, openTo: 2500 }),
+      ping(960, 0.3, 0.4, 0.15),
     ),
   },
 
   // Status effects
-  'status-burn': {
-    priority: routine, gain: 0.35, cooldownMs: 0, pitchJitter: 1,
-    render: layer(
-      noise({ duration: 0.12, release: 0.06, filter: { type: 'bandpass', frequency: 1500, q: 2 } }),
-      tone({ wave: 'sawtooth', frequency: 200, endFrequency: 260, duration: 0.1, release: 0.06, gain: 0.3 }),
-    ),
-  },
-  'status-chill': {
-    priority: routine, gain: 0.35, cooldownMs: 0, pitchJitter: 1,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 1400, endFrequency: 1000, duration: 0.1, release: 0.1 }),
-      tone({ wave: 'sine', frequency: 2100, duration: 0.05, release: 0.1, gain: 0.5 }),
-    ),
-  },
-  'status-freeze': {
-    priority: reward, gain: 0.5, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 600, endFrequency: 1800, duration: 0.12, release: 0.15 }),
-      noise({ duration: 0.15, release: 0.1, gain: 0.5, filter: { type: 'highpass', frequency: 3500 } }),
-      tone({ wave: 'sine', frequency: 2600, duration: 0.1, delay: 0.05, release: 0.2, gain: 0.5 }),
-    ),
-  },
+  'status-burn': { priority: routine, gain: 0.2, cooldownMs: 0, pitchJitter: 1, render: crackle(1300, 0.08, 1) },
+  'status-chill': { priority: routine, gain: 0.2, cooldownMs: 0, pitchJitter: 1, render: ping(1400, 0.15) },
+  'status-freeze': { priority: reward, gain: 0.3, cooldownMs: 0, render: layer(ping(1800, 0.3), tick(5000, 0.18, 0.03)) },
   'status-shock': {
-    priority: routine, gain: 0.35, cooldownMs: 0, pitchJitter: 1.5,
+    priority: routine, gain: 0.2, cooldownMs: 0, pitchJitter: 1.5,
     render: layer(
-      blip(2200, 900, 0.05),
-      noise({ duration: 0.04, gain: 0.5, filter: { type: 'highpass', frequency: 3000 } }),
+      tone({ wave: 'sine', frequency: 1800, endFrequency: 1500, duration: 0.04, attack: 0.004, release: 0.05 }),
+      tick(4000, 0.1, 0.012),
     ),
   },
   'status-poison': {
-    priority: routine, gain: 0.35, cooldownMs: 0,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 320, endFrequency: 220, duration: 0.08, release: 0.06 }),
-      tone({ wave: 'sine', frequency: 480, endFrequency: 300, duration: 0.08, delay: 0.06, release: 0.06, gain: 0.6 }),
-    ),
+    priority: routine, gain: 0.2, cooldownMs: 0,
+    render: tone({ wave: 'triangle', frequency: 330, endFrequency: 300, duration: 0.09, attack: 0.015, release: 0.1 }),
   },
 
   // Pickups and progression
-  'pickup-xp': { priority: reward, gain: 0.4, cooldownMs: 0, render: tone({ wave: 'square', frequency: 880, endFrequency: 1320, duration: 0.05, attack: 0.003, release: 0.06 }) },
-  'pickup-gear': {
-    priority: reward, gain: 0.6, cooldownMs: 0,
-    render: arpeggio({ wave: 'triangle', frequencies: [660, 880, 1320], noteDuration: 0.07, gap: 0.01, release: 0.15 }),
-  },
+  'pickup-xp': { priority: reward, gain: 0.26, cooldownMs: 0, render: ping(1046, 0.18) },
+  'pickup-gear': { priority: reward, gain: 0.34, cooldownMs: 0, render: pingChord([880, 1320], 0.4) },
   'pickup-potion': {
-    priority: reward, gain: 0.55, cooldownMs: 0,
+    priority: reward, gain: 0.3, cooldownMs: 0,
     render: layer(
-      tone({ wave: 'sine', frequency: 300, endFrequency: 600, duration: 0.09, release: 0.08 }),
-      tone({ wave: 'sine', frequency: 500, endFrequency: 900, duration: 0.09, delay: 0.07, release: 0.08 }),
+      tone({ wave: 'sine', frequency: 392, duration: 0.08, attack: 0.01, release: 0.15 }),
+      tone({ wave: 'sine', frequency: 523, duration: 0.08, attack: 0.01, release: 0.2, delay: 0.08 }),
     ),
   },
   'level-up': {
-    priority: attention, gain: 0.75, cooldownMs: 500,
+    priority: attention, gain: 0.45, cooldownMs: 500,
     render: layer(
-      arpeggio({ wave: 'square', frequencies: [523, 659, 784, 1046], noteDuration: 0.1, gap: 0.01, release: 0.12 }),
-      tone({ wave: 'triangle', frequency: 1046, duration: 0.3, delay: 0.44, release: 0.3, gain: 0.8 }),
-      shimmer(0.5, 0.3),
+      chord([523, 659, 784], { attack: 0.05, duration: 0.35, release: 0.6, stagger: 0.04 }),
+      ping(1568, 0.6, 0.6, 0.25),
+      shimmer(0.6, 0.3, 0.1),
     ),
   },
   'choice-open': {
-    priority: attention, gain: 0.5, cooldownMs: 200,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 400, endFrequency: 800, duration: 0.15, release: 0.1 }),
-      tone({ wave: 'square', frequency: 800, duration: 0.08, delay: 0.12, release: 0.1, gain: 0.5 }),
-    ),
+    priority: attention, gain: 0.3, cooldownMs: 200,
+    render: layer(air(500, 2500, 0.25), ping(1046, 0.4, 0.7, 0.1)),
   },
-  'choice-select': { priority: attention, gain: 0.6, cooldownMs: 100, render: twoTone(660, 990) },
+  'choice-select': { priority: attention, gain: 0.34, cooldownMs: 100, render: confirmPair() },
   'choice-reroll': {
-    priority: attention, gain: 0.5, cooldownMs: 100,
-    render: layer(
-      noise({ duration: 0.15, release: 0.08, filter: { type: 'bandpass', frequency: 1500, endFrequency: 3000, q: 1 } }),
-      tone({ wave: 'triangle', frequency: 500, endFrequency: 900, duration: 0.12, release: 0.08, gain: 0.7 }),
-    ),
+    priority: attention, gain: 0.3, cooldownMs: 100,
+    render: layer(air(800, 2600, 0.2), ping(880, 0.3, 0.6, 0.08)),
   },
-  'choice-skip': { priority: attention, gain: 0.45, cooldownMs: 100, render: blip(500, 300, 0.1) },
+  'choice-skip': { priority: attention, gain: 0.26, cooldownMs: 100, render: tap(520, 4, 0.06) },
   'choice-banish': {
-    priority: attention, gain: 0.55, cooldownMs: 100,
-    render: layer(
-      tone({ wave: 'sawtooth', frequency: 400, endFrequency: 100, duration: 0.2, release: 0.1, filter: { type: 'lowpass', frequency: 1500, endFrequency: 300 } }),
-      noise({ duration: 0.1, release: 0.08, gain: 0.5, filter: { type: 'lowpass', frequency: 1000 } }),
-    ),
+    priority: attention, gain: 0.32, cooldownMs: 100,
+    render: tone({
+      wave: 'triangle', frequency: 330, endFrequency: 165, duration: 0.25, attack: 0.02, release: 0.2,
+      filter: { type: 'lowpass', frequency: 1500, endFrequency: 300 },
+    }),
   },
 
   // Menus and the meta game
-  'ui-press': { priority: attention, gain: 0.35, cooldownMs: 40, render: tone({ wave: 'square', frequency: 700, endFrequency: 900, duration: 0.03, attack: 0.002, release: 0.03 }) },
-  'ui-confirm': { priority: attention, gain: 0.5, cooldownMs: 80, render: twoTone(600, 900, 0.05) },
-  'ui-cancel': { priority: attention, gain: 0.45, cooldownMs: 80, render: twoTone(600, 400, 0.05) },
-  'screen-transition': {
-    priority: attention, gain: 0.4, cooldownMs: 150,
-    render: layer(
-      noise({ duration: 0.18, release: 0.1, filter: { type: 'bandpass', frequency: 800, endFrequency: 3000, q: 1 } }),
-      tone({ wave: 'triangle', frequency: 300, endFrequency: 600, duration: 0.15, release: 0.1, gain: 0.5 }),
-    ),
-  },
-  'toast-info': { priority: attention, gain: 0.45, cooldownMs: 150, render: twoTone(880, 1100, 0.07, 'triangle') },
+  'ui-press': { priority: attention, gain: 0.22, cooldownMs: 40, render: tap(720) },
+  'ui-confirm': { priority: attention, gain: 0.28, cooldownMs: 80, render: confirmPair() },
+  'ui-cancel': { priority: attention, gain: 0.26, cooldownMs: 80, render: layer(ping(660, 0.25), ping(550, 0.3, 0.9, 0.06)) },
+  'screen-transition': { priority: attention, gain: 0.28, cooldownMs: 150, render: air(600, 2400, 0.35) },
+  'toast-info': { priority: attention, gain: 0.26, cooldownMs: 150, render: ping(1046, 0.35) },
   'toast-error': {
-    priority: danger, gain: 0.55, cooldownMs: 150,
+    priority: danger, gain: 0.3, cooldownMs: 150,
     render: layer(
-      twoTone(300, 220, 0.1),
-      noise({ duration: 0.08, gain: 0.4, filter: { type: 'lowpass', frequency: 800 } }),
+      tone({ wave: 'triangle', frequency: 330, duration: 0.1, attack: 0.01, release: 0.15 }),
+      tone({ wave: 'triangle', frequency: 262, duration: 0.14, attack: 0.01, release: 0.25, delay: 0.1 }),
     ),
   },
-  'toast-loot': {
-    priority: attention, gain: 0.55, cooldownMs: 150,
-    render: arpeggio({ wave: 'triangle', frequencies: [784, 988, 1175], noteDuration: 0.06, gap: 0.01, release: 0.12 }),
-  },
+  'toast-loot': { priority: attention, gain: 0.3, cooldownMs: 150, render: pingChord([784, 1175], 0.4) },
   'lootbox-charge': {
-    priority: attention, gain: 0.5, cooldownMs: 300,
+    priority: attention, gain: 0.3, cooldownMs: 300,
     render: layer(
-      noise({ duration: 1.3, attack: 0.2, release: 0.2, filter: { type: 'bandpass', frequency: 200, endFrequency: 2500, q: 1.5 } }),
-      tone({ wave: 'sawtooth', frequency: 60, endFrequency: 240, duration: 1.3, attack: 0.2, release: 0.2, gain: 0.4, filter: { type: 'lowpass', frequency: 400, endFrequency: 2000 } }),
+      noise({ duration: 1.3, attack: 0.25, release: 0.25, filter: { type: 'lowpass', frequency: 200, endFrequency: 2200, q: 0.5 } }),
+      tone({ wave: 'sine', frequency: 55, endFrequency: 110, duration: 1.3, attack: 0.3, release: 0.3, gain: 0.5 }),
     ),
   },
-  'reveal-common': reveal([523], 0.18, 'triangle'),
-  'reveal-uncommon': reveal([523, 659], 0.14, 'triangle'),
-  'reveal-rare': reveal([523, 659, 784], 0.12, 'square'),
-  'reveal-epic': reveal([523, 659, 784, 1046], 0.11, 'square', shimmer(0.5, 0.3)),
+  'reveal-common': reveal([523], 0.5),
+  'reveal-uncommon': reveal([523, 784], 0.6),
+  'reveal-rare': reveal([523, 659, 784], 0.75),
+  'reveal-epic': reveal([523, 659, 784, 1046], 0.9, shimmer(0.6, 0.3, 0.1)),
   'reveal-legendary': reveal(
-    [523, 659, 784, 1046, 1318], 0.1, 'square',
-    layer(
-      tone({ wave: 'triangle', frequency: 1318, duration: 0.5, delay: 0.55, release: 0.4, gain: 0.8 }),
-      shimmer(0.9, 0.3, 0.35),
-    ),
+    [523, 659, 784, 1046, 1318], 1.2,
+    layer(ping(2093, 1, 0.5, 0.5), shimmer(1, 0.4)),
   ),
   'fishing-cast': {
-    priority: attention, gain: 0.5, cooldownMs: 200,
+    priority: attention, gain: 0.3, cooldownMs: 200,
     render: layer(
-      noise({ duration: 0.25, release: 0.1, filter: { type: 'bandpass', frequency: 600, endFrequency: 2500, q: 1 } }),
-      tone({ wave: 'triangle', frequency: 300, endFrequency: 700, duration: 0.2, release: 0.1, gain: 0.5 }),
+      air(500, 2500, 0.3),
+      tone({ wave: 'sine', frequency: 330, endFrequency: 660, duration: 0.25, attack: 0.02, release: 0.15, gain: 0.4 }),
     ),
   },
   'fishing-bite': {
-    priority: danger, gain: 0.6, cooldownMs: 200,
-    render: arpeggio({ wave: 'square', frequencies: [900, 700, 900], noteDuration: 0.05, gap: 0.02, release: 0.05 }),
+    priority: danger, gain: 0.36, cooldownMs: 200,
+    render: layer(ping(880, 0.2), ping(660, 0.2, 1, 0.08), ping(880, 0.3, 1, 0.16)),
   },
   'fishing-catch': {
-    priority: attention, gain: 0.65, cooldownMs: 300,
+    priority: attention, gain: 0.36, cooldownMs: 300,
     render: layer(
-      arpeggio({ wave: 'triangle', frequencies: [523, 659, 784, 1046], noteDuration: 0.08, gap: 0.01, release: 0.15 }),
-      noise({ duration: 0.25, release: 0.15, gain: 0.5, filter: { type: 'bandpass', frequency: 1500, q: 0.7 } }),
+      pingChord([523, 784, 1046], 0.6),
+      noise({ duration: 0.25, attack: 0.02, release: 0.2, gain: 0.3, filter: { type: 'bandpass', frequency: 1200, q: 0.7 } }),
     ),
   },
   'shop-buy': {
-    priority: attention, gain: 0.55, cooldownMs: 150,
-    render: layer(
-      twoTone(988, 1318, 0.06, 'triangle'),
-      noise({ duration: 0.04, gain: 0.4, filter: { type: 'highpass', frequency: 4000 } }),
-    ),
+    priority: attention, gain: 0.3, cooldownMs: 150,
+    render: layer(ping(988, 0.3), ping(1318, 0.35, 0.9, 0.05), tick(5000, 0.1, 0.02)),
   },
   'shop-sell': {
-    priority: attention, gain: 0.55, cooldownMs: 150,
-    render: layer(
-      twoTone(1318, 988, 0.06, 'triangle'),
-      noise({ duration: 0.04, gain: 0.4, filter: { type: 'highpass', frequency: 4000 } }),
-    ),
+    priority: attention, gain: 0.3, cooldownMs: 150,
+    render: layer(ping(1318, 0.3), ping(988, 0.35, 0.9, 0.05), tick(5000, 0.1, 0.02)),
   },
   'essence-spend': {
-    priority: attention, gain: 0.5, cooldownMs: 150,
-    render: layer(
-      twoTone(880, 660, 0.06),
-      noise({ duration: 0.05, gain: 0.4, filter: { type: 'highpass', frequency: 4000 } }),
-    ),
+    priority: attention, gain: 0.28, cooldownMs: 150,
+    render: layer(ping(880, 0.3), ping(660, 0.3, 0.9, 0.06)),
   },
   'essence-unlock': {
-    priority: attention, gain: 0.65, cooldownMs: 300,
+    priority: attention, gain: 0.38, cooldownMs: 300,
     render: layer(
-      arpeggio({ wave: 'square', frequencies: [440, 554, 659, 880], noteDuration: 0.09, gap: 0.01, release: 0.12 }),
-      tone({ wave: 'triangle', frequency: 880, duration: 0.25, delay: 0.36, release: 0.3, gain: 0.7 }),
+      chord([440, 554, 659, 880], { attack: 0.04, duration: 0.3, release: 0.6, stagger: 0.04 }),
+      ping(1760, 0.6, 0.5, 0.3),
     ),
   },
   'purchase-fail': {
-    priority: danger, gain: 0.55, cooldownMs: 150,
-    render: arpeggio({ wave: 'square', frequencies: [250, 180], noteDuration: 0.12, gap: 0.01, release: 0.08, filter: { type: 'lowpass', frequency: 1200 } }),
+    priority: danger, gain: 0.3, cooldownMs: 150,
+    render: layer(
+      tone({ wave: 'triangle', frequency: 262, duration: 0.12, attack: 0.01, release: 0.15, filter: { type: 'lowpass', frequency: 1200 } }),
+      tone({ wave: 'triangle', frequency: 220, duration: 0.16, attack: 0.01, release: 0.25, delay: 0.11, filter: { type: 'lowpass', frequency: 1200 } }),
+    ),
   },
-  mute: { priority: attention, gain: 0.4, cooldownMs: 100, render: blip(600, 300, 0.08) },
-  unmute: { priority: attention, gain: 0.4, cooldownMs: 100, render: blip(300, 600, 0.08) },
-  'volume-tick': { priority: attention, gain: 0.4, cooldownMs: 60, render: tone({ wave: 'square', frequency: 800, duration: 0.03, attack: 0.002, release: 0.02 }) },
+  mute: { priority: attention, gain: 0.24, cooldownMs: 100, render: tap(600, 5, 0.07) },
+  unmute: {
+    priority: attention, gain: 0.24, cooldownMs: 100,
+    render: layer(
+      tone({ wave: 'sine', frequency: 450, endFrequency: 600, duration: 0.07, attack: 0.004, release: 0.06 }),
+      tick(5000, 0.1, 0.012),
+    ),
+  },
+  'volume-tick': { priority: attention, gain: 0.24, cooldownMs: 60, render: tap(880, 1, 0.03) },
 } satisfies Record<string, SoundCueDefinition>
 
 export type SoundCueId = keyof typeof SOUND_CUES

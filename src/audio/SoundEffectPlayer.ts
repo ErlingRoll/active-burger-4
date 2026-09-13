@@ -52,7 +52,7 @@ export interface SoundEffectPlayerDependencies<Id extends string> {
   maxVoices?: number
 }
 
-export const DEFAULT_MAX_VOICES = 12
+export const DEFAULT_MAX_VOICES = 16
 export const GAIN_RAMP_SECONDS = 0.03
 const EVICTION_FADE_SECONDS = 0.005
 

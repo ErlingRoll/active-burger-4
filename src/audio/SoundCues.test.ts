@@ -11,7 +11,28 @@ import {
   SOUND_CUES,
 } from './SoundCues'
 import { createNoiseBuffer } from './SynthPrimitives'
-import { FakeAudioContext } from './testing/FakeAudioContext'
+import {
+  FakeAudioContext,
+  FakeBiquadFilterNode,
+  FakeGainNode,
+} from './testing/FakeAudioContext'
+
+/** The gain node a source feeds, directly or through its filter. */
+function voiceGainOf(source: { connections: readonly unknown[] }): FakeGainNode | undefined {
+  const first = source.connections[0]
+  if (first instanceof FakeGainNode) {
+    return first
+  }
+  if (first instanceof FakeBiquadFilterNode) {
+    const next = first.connections[0]
+    return next instanceof FakeGainNode ? next : undefined
+  }
+  return undefined
+}
+
+function peakOf(gain: FakeGainNode | undefined): number {
+  return Math.max(0, ...(gain?.gain.events.map((event) => event.value) ?? []).filter(Number.isFinite))
+}
 
 describe('sound cue registry', () => {
   it('has a cast cue for every skill', () => {
@@ -41,6 +62,45 @@ describe('sound cue registry', () => {
       for (const cueId of Object.values(table)) {
         expect(SOUND_CUES).toHaveProperty(cueId)
       }
+    }
+  })
+
+  /*
+   * The voice is quiet and rounded, and this is what keeps it so: a square
+   * wave or an unfiltered sawtooth would read as an arcade cabinet, a loud
+   * noise burst as a crackle, and a cue above half of unity as a shout.
+   */
+  it.each(SOUND_CUE_IDS)('keeps %s in the clean palette', (cueId) => {
+    const context = new FakeAudioContext()
+    const cue = SOUND_CUES[cueId]
+    expect(cue.gain).toBeLessThanOrEqual(0.5)
+
+    cue.render(
+      {
+        context,
+        destination: context.destination,
+        startTime: 1,
+        noiseBuffer: createNoiseBuffer(context, 0.01),
+      },
+      { gain: cue.gain, pitch: 0, intensity: 1 },
+    )
+
+    for (const oscillator of context.oscillators) {
+      expect(oscillator.type).not.toBe('square')
+      if (oscillator.type === 'sawtooth') {
+        const filter = oscillator.connections[0]
+        expect(filter).toBeInstanceOf(FakeBiquadFilterNode)
+        if (filter instanceof FakeBiquadFilterNode) {
+          expect(filter.type).toBe('lowpass')
+          for (const event of filter.frequency.events) {
+            expect(event.value).toBeLessThanOrEqual(1500)
+          }
+        }
+      }
+    }
+    for (const source of context.bufferSources) {
+      expect(source.connections[0]).toBeInstanceOf(FakeBiquadFilterNode)
+      expect(peakOf(voiceGainOf(source))).toBeLessThanOrEqual(0.4)
     }
   })
 

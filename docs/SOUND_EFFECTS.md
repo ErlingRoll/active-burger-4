@@ -62,6 +62,32 @@ the pause menu's resume, the mute toggle); `data-sfx="confirm"` and
 purpose. Toasts, loot boxes, fishing, the shop, and Essence purchases call
 `playSound` directly at the moment the thing succeeds or fails.
 
+## The voice
+
+Every cue follows the same rules, and `SoundCues.test.ts` enforces the ones
+it can:
+
+- **Waves:** sine and triangle. A sawtooth appears only behind a lowpass at
+  or below 1.5 kHz, for low weight. No square wave anywhere.
+- **Envelopes:** attacks of 8–60 ms (a UI tap may go to 4 ms), exponential
+  decays, releases of 80 ms to 1.2 s. Nothing clicks on.
+- **Pitch:** at most an octave of movement, spread across the note. No
+  chirps.
+- **Noise:** only filtered. Short bandpassed or highpassed transients for
+  ticks, glass and sparks; lowpass-swept air for whooshes and transitions.
+  A noise voice never peaks above 0.4.
+- **Harmony:** overlapping chords (`chord`, `pingChord`) rather than
+  sequenced arpeggios; octaves, fifths and major thirds, a minor third for a
+  cancel or an error.
+- **Levels:** no cue above 0.5. Menus sit around 0.22–0.3, routine combat
+  0.18–0.32, rewards 0.3–0.4, the player being hurt and boss moments 0.4–0.5.
+
+The builders in `SoundCues.ts` are the vocabulary: `tap` (the UI press),
+`ping` (a glassy note), `chord` and `pingChord`, `swell` (a warning or a
+welcome), `thump` (every impact), `air` (a whoosh), `tick` (a transient),
+`sub` (weight), `crackle` (fire), `pad` (a dark, lowpassed sawtooth) and
+`shimmer` (a quiet high breath behind a reward).
+
 ## Autoplay
 
 Browsers only let audio start from a user gesture. `src/audio/SoundEffects.ts`
@@ -84,9 +110,9 @@ than held, so unlocking never releases a burst.
 ## Adding or tuning a cue
 
 1. Add an entry to `SOUND_CUES` in `src/audio/SoundCues.ts`. Compose it from
-   the primitives; keep routine combat under about 150 ms and fanfares under
-   1.5 s. `SoundCues.test.ts` renders every cue on the fake context and
-   checks its length and levels.
+   the builders above; keep routine combat under about 150 ms and fanfares
+   under 1.5 s. `SoundCues.test.ts` renders every cue on the fake context and
+   checks its length, its levels, and that it stays in the voice.
 2. If it belongs to a family, add it to the matching lookup table
    (`SKILL_CAST_CUES`, `HURT_CUES`, `LOOT_REVEAL_CUES`, `BOSS_TELEGRAPH_CUES`).
 3. Pick a `priority` from `CUE_PRIORITY` in `SoundCueTypes.ts`. Higher
