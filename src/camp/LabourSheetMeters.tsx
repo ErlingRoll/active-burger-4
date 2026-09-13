@@ -1,17 +1,17 @@
 import {
-  describeCampLabourWorking,
   formatCampLabourFigures,
   type CampLabourFigure,
   type CampLabourSheet,
 } from '../content/camp/CampLabour'
+import { LabourSheetHover } from './LabourSheetHover'
 
 /**
  * The sheet as four small meters: tempo, stamina, load and fit, each a label
  * and its figure over a bar filled across the range the formula can reach.
  * A row of Champions can be read against each other at a glance by the bars,
  * where a line of numbers has to be read one figure at a time; the figure
- * itself stands on the meter, so nothing is said twice. The working is on
- * the title, for anyone who wants to know where a figure came from.
+ * itself stands on the meter, so nothing is said twice. Hovering the meters
+ * shows the working, for anyone who wants to know where a figure came from.
  */
 
 const METER_RANGES: Readonly<Record<CampLabourFigure['label'], { readonly min: number, readonly max: number }>> = {
@@ -30,9 +30,15 @@ function meterValue(sheet: CampLabourSheet, label: CampLabourFigure['label']): n
   }
 }
 
-export function LabourSheetMeters({ sheet }: { sheet: CampLabourSheet }) {
+interface LabourSheetMetersProps {
+  sheet: CampLabourSheet
+  /** `hover` inside a button, where a tap must go to the button; see `LabourSheetHover`. */
+  mode?: 'toggle' | 'hover'
+}
+
+export function LabourSheetMeters({ sheet, mode }: LabourSheetMetersProps) {
   return (
-    <span className="camp-sheet-meters" title={describeCampLabourWorking(sheet)}>
+    <LabourSheetHover sheet={sheet} mode={mode} className="camp-sheet-meters">
       {formatCampLabourFigures(sheet).map((figure) => {
         const { min, max } = METER_RANGES[figure.label]
         const share = Math.max(0, Math.min(1, (meterValue(sheet, figure.label) - min) / (max - min)))
@@ -44,6 +50,6 @@ export function LabourSheetMeters({ sheet }: { sheet: CampLabourSheet }) {
           </span>
         )
       })}
-    </span>
+    </LabourSheetHover>
   )
 }

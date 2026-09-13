@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CharacterService, ChampionSnapshot } from '../characters/CharacterTypes'
 import { formatChampionAvailability, isChampionExhausted } from '../characters/ChampionExhaustion'
 import { CHARACTER_CLASS_DEFINITIONS } from '../content/classes/CharacterClasses'
-import { previewCampProduction } from '../content/camp/CampAccrual'
+import { campRatePerHour, previewCampProduction } from '../content/camp/CampAccrual'
 import {
   CAMP_BUILDING_DEFINITIONS,
   CAMP_BUILDING_LEVELS,
@@ -243,10 +243,15 @@ interface CampWorkerProps {
   onRecall: () => void
 }
 
-function CampWorker({ job, assignment, champion, pending, busy, onRecall }: CampWorkerProps) {
-  const unit = job.effect === 'exhaustion-relief'
+/** What a job pays in: "timber", or "min of rest". */
+function jobUnit(job: CampJobDefinition): string {
+  return job.effect === 'exhaustion-relief'
     ? 'min of rest'
     : itemName(job.outputDefinitionId ?? '').toLowerCase()
+}
+
+function CampWorker({ job, assignment, champion, pending, busy, onRecall }: CampWorkerProps) {
+  const unit = jobUnit(job)
   return (
     <li className="camp-worker">
       {champion ? <ClassMark classId={champion.build.classId} /> : null}
@@ -282,6 +287,8 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
       assignment.championId === champion.championId && assignment.jobId === job.id,
     ) && (!restOnly || isChampionExhausted(champion, now)),
   )
+  const rateMultiplier = getCampBuildingLevel(job.buildingId, buildingLevel(state, job.buildingId))?.rateMultiplier ?? 1
+  const unit = jobUnit(job)
   return (
     <div className="camp-picker" role="group" aria-label={`Choose a Champion for ${job.name}`}>
       {candidates.length === 0 ? (
@@ -303,6 +310,7 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
             const status = elsewhere
               ? `Working · ${CAMP_BUILDING_DEFINITIONS[getCampJobDefinition(elsewhere.jobId)?.buildingId ?? 'woodline'].name}`
               : formatChampionAvailability(champion, now)
+            const rate = campRatePerHour(job.baseRatePerHour, rateMultiplier, sheet.output)
             return (
               <li key={champion.championId}>
                 <button
@@ -316,10 +324,14 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
                     <strong>{champion.name}</strong>
                     <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name} · {status}</span>
                   </span>
+                  <span className="camp-picker-rate" aria-label={`${formatRate(rate)} ${unit}`}>
+                    <strong>{Number(rate.toFixed(1))}</strong>{' '}
+                    <small>{unit}/h</small>
+                  </span>
                   <span className="camp-picker-send" aria-hidden="true">
                     {elsewhere ? 'Move here' : 'Send'}
                   </span>
-                  <LabourSheetMeters sheet={sheet} />
+                  <LabourSheetMeters sheet={sheet} mode="hover" />
                 </button>
               </li>
             )

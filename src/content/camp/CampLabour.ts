@@ -255,21 +255,27 @@ export function formatCampLabourSheet(sheet: CampLabourSheet): string {
   return formatCampLabourFigures(sheet).map((figure) => `${figure.label} ${figure.value}`).join(' · ')
 }
 
+/** One line of the working behind a sheet: what went in, and what it made. */
+export interface CampLabourWorkingRow {
+  label: string
+  value: string
+}
+
 /**
- * The working behind the figures, one input per line, for a title so anyone
- * who wants to know where a figure came from can hover for it.
+ * The working behind the figures, one input per row, for whoever wants to
+ * know where a figure came from.
  */
-export function describeCampLabourWorking(sheet: CampLabourSheet): string {
+export function describeCampLabourWorking(sheet: CampLabourSheet): readonly CampLabourWorkingRow[] {
   const { inputs } = sheet
   return [
-    `Level ${inputs.level}, floor ${inputs.floor}: strength ×${sheet.strength}`,
-    `Attack speed +${inputs.attackSpeedPercent}%`,
-    `Max HP +${inputs.maxHpFlat}`,
-    `Increased damage +${inputs.increasedDamagePercent}%`,
-    `Critical chance ${inputs.critChancePercent}% → bonus ${Math.round(sheet.bonusChance * 100)}%`,
-    `Set pieces ${inputs.setRarityWeight}, tagged skill levels ${inputs.tagLevelWeight}`,
-    `Output ×${sheet.output}`,
-  ].join('\n')
+    { label: 'Strength', value: `×${sheet.strength} · level ${inputs.level}, floor ${inputs.floor}` },
+    { label: 'Attack speed', value: `+${inputs.attackSpeedPercent}%` },
+    { label: 'Max HP', value: `+${inputs.maxHpFlat}` },
+    { label: 'Increased damage', value: `+${inputs.increasedDamagePercent}%` },
+    { label: 'Critical chance', value: `${inputs.critChancePercent}% → bonus ${Math.round(sheet.bonusChance * 100)}%` },
+    { label: 'Set pieces', value: `${inputs.setRarityWeight}, tagged skill levels ${inputs.tagLevelWeight}` },
+    { label: 'Output', value: `×${sheet.output}` },
+  ]
 }
 
 function trimNumber(value: number, decimals: number): string {

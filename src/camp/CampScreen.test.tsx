@@ -283,6 +283,16 @@ describe('CampScreen', () => {
     // profile: 1.3 × 1.1 × 1.2 = 1.716 tempo. One legendary Splintering piece and
     // a level-3 melee skill put the fit at ×1.055, which two decimals show as 1.05.
     expect(option).toHaveTextContent('Tempo ×1.72 Stamina 6h Load ×1.3 Fit ×1.05')
+    // Four timber an hour at the Woodline's first level, times the sheet's
+    // output: 1.716 × 1.3 × 1.055 = 2.35, capped at ×2.
+    expect(option).toHaveTextContent('8 timber/h')
+
+    await user.hover(within(option).getByText('Tempo'))
+    const tooltip = await screen.findByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Output ×2')
+    expect(option).not.toHaveAttribute('title')
+    await user.unhover(within(option).getByText('Tempo'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
 
     await user.click(option)
 
