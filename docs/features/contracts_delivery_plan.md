@@ -138,7 +138,7 @@ made after the period reads the same bounds the board did. Claims go through
 | `sell-items` | Units sold to the quartermaster | `inventory_operations` of type `sell` |
 | `upgrade-buildings` | Camp buildings raised | `inventory_operations` of type `camp-upgrade` |
 | `cure-fish` | Fish cured at the Smokehouse | `inventory_operations` of type `camp-cure` |
-| `reforge-artifacts` | Artifacts reforged at the Forge | `inventory_operations` of type `camp-reforge` |
+| `reforge-artifacts` | Strikes made at the Forge | `inventory_operations` of type `camp-forge` (and `camp-reforge`, the type the Forge wrote before it was reworked; the objective id kept its name) |
 
 Each is one branch of `contract_progress(profile, definition, window)`. The
 TypeScript registry in `src/content/contracts/Contracts.ts` mirrors the
@@ -175,7 +175,7 @@ count of each cadence are tested there.
 | Raise a building | 1 | scrap | |
 | Gut fish | 2 · 6 | stone | the Smokehouse |
 | Cure a fish | 1 | timber | the Smokehouse |
-| Reforge artifacts | 1 daily, 3 weekly | rift shards, a rare box | the Forge |
+| Strike artifacts | 1 daily, 3 weekly | rift shards, a rare box | the Forge |
 
 **A repeat pays half.** The rotation deals the least-dealt contract first,
 so a contract comes round again only once the whole reachable pool has been

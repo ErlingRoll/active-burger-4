@@ -24,11 +24,14 @@ These apply to every meta system, existing or proposed.
    the best source of bait, and the camp must not be the best source of the
    materials it refines. This is what forces a player to touch more than one
    system without any system being mandatory.
-2. **Nothing outside the run produces raw power.** Meta systems produce
-   options, capacity, access, and time: sidegrade effects, inventory and slot
-   capacity, content unlocks, and reduced Champion exhaustion. This restates
-   [PLAN.md](../../PLAN.md) section 69, and it is the rule most likely to be
-   broken by a convenient building or an attractive market listing.
+2. **Power outside the run is bought at a risk, never at a price.** This
+   rule used to read "nothing outside the run produces raw power"; it was
+   relaxed on 2026-09-13 so that power can come from more places than the
+   level-up screen. Artifacts carry it, and the Forge raises it. What holds is
+   the shape: a meta system may hand out power only through a roll the
+   player cannot make certain (a box, a strike at the Forge), and never
+   through a purchase that always pays. A building or a listing that sells a
+   guaranteed combat statistic is still out.
 3. **One progression currency.** Essence stays the only currency. Everything
    else is an inventory item with a definition, a stack, and a named sink. Do
    not add a second currency to make a system feel separate.
@@ -70,10 +73,10 @@ content registry, not in engine code.
 
 | Material | Primary source | Primary sinks |
 | --- | --- | --- |
-| Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, the Forge and its artifact rerolls |
-| Timber and stone | Camp passive production | Building construction and upgrades |
+| Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, and the Forge's fee |
+| Timber and stone | Camp passive production | Building construction and upgrades; stone in the Forge's fee |
 | Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
-| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor and the Forge's artifact rerolls |
+| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor and the Forge's fee |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
@@ -106,7 +109,8 @@ Essence is earned from runs, spent on account unlocks, and is never tradeable.
 It must not become the universal solvent that lets a player buy past every
 other system. In particular:
 
-- The camp does not produce Essence.
+- The camp does not produce Essence. It may take it: the Forge's stake is
+  the one Essence sink outside the store, and it is a stake, not a price.
 - Contracts do not pay Essence as their main reward.
 - The market does not price anything in Essence once player listings exist;
   see [marketplace.md](marketplace.md) for the currency question.

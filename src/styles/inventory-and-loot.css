@@ -1729,6 +1729,20 @@
   color: var(--color-violet-300);
 }
 
+/* What the Forge has left to work with, under the lines it would work. */
+.artifact-potential {
+  margin: 0.1rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.artifact-potential[data-finished='true'] {
+  color: var(--color-amber-300);
+}
+
 /* A rod with nothing rolled says so in the card's own voice, not a blank. */
 .rod-modifiers-empty {
   margin: 0;

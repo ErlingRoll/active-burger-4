@@ -66,10 +66,22 @@ export interface CampGutResult {
   wasProcessed: boolean
 }
 
-export interface CampReforgeResult {
+/**
+ * How one strike at the Forge went: it landed where it was aimed, it landed
+ * somewhere else, it missed, or it missed and slipped a line.
+ */
+export type CampForgeOutcome = 'target' | 'stray' | 'miss' | 'setback'
+
+export interface CampForgeResult {
   definitionId: string
-  /** The artifact's new roll, as the server wrote it. */
+  /** The artifact as the server left it, Potential included. */
   metadata: Record<string, unknown>
+  outcome: CampForgeOutcome
+  /** The line that moved ('implicit' or 'modifier:<id>'), 'promote', or null when nothing moved. */
+  changedLine: string | null
+  potentialSpent: number
+  essenceSpent: number
+  stoneSpent: number
   scrapSpent: number
   shardsSpent: number
   wasProcessed: boolean
@@ -103,8 +115,11 @@ export interface CampService {
   gutFish(operationId: string, fishInstanceId: string): Promise<CampGutResult>
   /** Spends roe to raise a meal fish's enchantment a tier. Needs the Smokehouse. */
   cureFish(operationId: string, fishInstanceId: string): Promise<CampCureResult>
-  /** Rerolls an artifact's implicit and modifiers for scrap and rift shards. Needs the Forge. */
-  reforgeArtifact(operationId: string, artifactInstanceId: string): Promise<CampReforgeResult>
+  /**
+   * One strike at the Forge: a fee in stone, scrap and shards, a stake of
+   * Essence, and a target the strike may or may not land on. Needs the Forge.
+   */
+  workArtifact(operationId: string, artifactInstanceId: string, target: string, essence: number): Promise<CampForgeResult>
   /**
    * Moves every assignment's clock back by this many hours, so a claim pays
    * as if that long had passed. Administrators only; the server refuses

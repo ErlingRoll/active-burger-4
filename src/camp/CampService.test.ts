@@ -154,24 +154,45 @@ describe('camp service', () => {
     })
   })
 
-  it('reforges an artifact by instance id', async () => {
+  it('strikes an artifact at the Forge with a target and a stake', async () => {
     const client = fakeClient(() => [{
       definition_id: 'artifact-ember-reliquary',
-      metadata: { baseId: 'ember-reliquary', rarity: 'rare' },
-      scrap_spent: 45,
+      metadata: { baseId: 'ember-reliquary', rarity: 'rare', potential: 38 },
+      outcome: 'stray',
+      changed_line: 'modifier:max-hp',
+      potential_spent: 12,
+      essence_spent: 2500,
+      stone_spent: 40,
+      scrap_spent: 30,
       shards_spent: 3,
       was_processed: true,
     }])
     const service = createService(client)
 
-    await expect(service.reforgeArtifact('op-8', 'artifact-1')).resolves.toEqual({
+    await expect(service.workArtifact('op-8', 'artifact-1', 'modifier:crit-chance', 2500)).resolves.toEqual({
       definitionId: 'artifact-ember-reliquary',
-      metadata: { baseId: 'ember-reliquary', rarity: 'rare' },
-      scrapSpent: 45,
+      metadata: { baseId: 'ember-reliquary', rarity: 'rare', potential: 38 },
+      outcome: 'stray',
+      changedLine: 'modifier:max-hp',
+      potentialSpent: 12,
+      essenceSpent: 2500,
+      stoneSpent: 40,
+      scrapSpent: 30,
       shardsSpent: 3,
       wasProcessed: true,
     })
-    expect(client.rpc).toHaveBeenCalledWith('reforge_artifact', { p_operation_id: 'op-8', p_artifact_instance_id: 'artifact-1' })
+    expect(client.rpc).toHaveBeenCalledWith('work_artifact_at_forge', {
+      p_operation_id: 'op-8',
+      p_artifact_instance_id: 'artifact-1',
+      p_target: 'modifier:crit-chance',
+      p_essence: 2500,
+    })
+  })
+
+  it('refuses a Forge stake that is not a whole non-negative number', async () => {
+    const service = createService(fakeClient(() => []))
+    await expect(service.workArtifact('op-9', 'artifact-1', 'implicit', -1)).rejects.toThrow('Essence stake')
+    await expect(service.workArtifact('op-9', 'artifact-1', 'implicit', 12.5)).rejects.toThrow('Essence stake')
   })
 
   it('upgrades a building by name and reads the state back', async () => {

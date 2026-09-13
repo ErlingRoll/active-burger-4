@@ -176,7 +176,8 @@ the check is named; the rest are review responsibilities.
       Camp screen with a plot per building, construction bought with timber and stone, the
       tackle bench with multi-input recipes, the Rift anchor where an exhausted
       Champion rests faster, the Smokehouse that guts fish for roe and cures
-      meal fish with it, and the Forge that rerolls artifacts and raises a
+      meal fish with it, and the Forge that works artifacts for a fee and a
+      stake of Essence, at a risk, until their Potential is spent, and raises a
       run's scrap. See [camp_delivery_plan.md](features/camp_delivery_plan.md).
 - [x] **32. Contracts and collections:** a contract pool mirrored between the
       migrations and the client, a board on the refuge of three daily slots

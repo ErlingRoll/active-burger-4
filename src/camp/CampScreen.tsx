@@ -16,10 +16,13 @@ import type { CampBuildingId, CampBuildingLevel, CampJobDefinition, CampJobId } 
 import { RARITY_VISUALS, isRarity } from '../content/rarity/Rarity'
 import {
   formatArtifactHeadline,
-  formatArtifactSummary,
   getArtifactBaseByDefinitionId,
+  getArtifactPotential,
   readArtifactMetadata,
+  type ArtifactMetadata,
 } from '../content/artifacts/Artifacts'
+import { ArtifactPotential } from '../inventory/ArtifactEffects'
+import type { CampForgeOutcome } from './CampTypes'
 import {
   formatFishSizeKg,
   getFishDefinition,
@@ -43,7 +46,8 @@ import { CampFurniture, CampHaulers, type CampHaulRoute } from './CampFurniture'
 import { LabourSheetLine } from './LabourSheetLine'
 import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
-import { REFORGE_COSTS } from './Forge'
+import { FORGE_FEES, describeForgeLine, forgeFeeAsCost, isArtifactFinished, type ForgeTarget } from './Forge'
+import { ForgeBench } from './ForgeBench'
 import type { CampAssignment, CampPayment, CampService, CampState } from './CampTypes'
 import type { CampScreenData } from './loadCampScreen'
 import type { CollectionService } from '../collections/CollectionService'
@@ -87,6 +91,10 @@ interface CampScreenProps {
   collectionService?: CollectionService | null
   /** Opens the collections from the Trophy hall's inspector. */
   onOpenCollections?: () => void
+  /** The wallet, for the Forge's stake; null when it could not be read, which allows no stake. */
+  essenceBalance?: number | null
+  /** Called once the Forge has spent Essence, so the wallet is read again. */
+  onEssenceChanged?: () => void
   onBack: () => void
   /**
    * The first fetch, already done by the navigator while the previous screen
@@ -145,6 +153,25 @@ function itemName(definitionId: string): string {
   return getInventoryItemDefinition(definitionId)?.name ?? definitionId
 }
 
+const FORGE_OUTCOME_TITLES: Readonly<Record<CampForgeOutcome, string>> = {
+  target: 'Struck true',
+  stray: 'Struck wide',
+  miss: 'The strike missed',
+  setback: 'The metal slipped',
+}
+
+/** What a strike did, read off the artifact as the server left it. */
+function describeForgeChange(artifact: ArtifactMetadata, key: string, outcome: CampForgeOutcome): string {
+  if (key === 'promote') {
+    const added = artifact.modifiers[artifact.modifiers.length - 1]
+    return `${describeForgeLine(artifact, key)}${added ? `, gaining ${describeForgeLine(artifact, `modifier:${added.id}`)} at tier ${added.tier}` : ''}`
+  }
+  const tier = key === 'implicit'
+    ? artifact.implicit.tier
+    : artifact.modifiers.find((modifier) => `modifier:${modifier.id}` === key)?.tier
+  return `${describeForgeLine(artifact, key)} ${outcome === 'setback' ? 'slipped' : 'raised'} to tier ${tier ?? '?'}`
+}
+
 /** The server's now, carried forward on the client's clock since the state arrived. */
 function serverNow(state: CampState, now: number): number {
   return Date.parse(state.serverTime) + Math.max(0, now - state.receivedAt)
@@ -182,7 +209,7 @@ function describeLevel(level: CampBuildingLevel): string {
     case 'smokehouse':
       return 'Guts and cures fish'
     case 'forge':
-      return level.level === 1 ? 'Reforges artifacts' : `+${level.level === 2 ? 25 : 50}% scrap from run salvage`
+      return level.level === 1 ? 'Works artifacts' : `+${level.level === 2 ? 25 : 50}% scrap from run salvage`
     case 'trophy-hall':
       return 'Displays what the collections have earned'
     default:
@@ -430,7 +457,7 @@ interface ArtifactPickerProps {
 
 function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: ArtifactPickerProps) {
   return (
-    <div className="camp-picker" role="group" aria-label="Choose an artifact to reforge">
+    <div className="camp-picker" role="group" aria-label="Choose an artifact to work">
       {loading ? (
         <p className="camp-picker-empty">Laying the relics out…</p>
       ) : artifacts.length === 0 ? (
@@ -440,19 +467,16 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
           {artifacts.map((item) => {
             const base = getArtifactBaseByDefinitionId(item.definitionId)
             const artifact = readArtifactMetadata(item.definitionId, item.metadata)
-            const cost = artifact ? REFORGE_COSTS[artifact.rarity] : null
-            const affordable = cost !== null &&
-              countHeldQuantity(held, 'scrap') >= cost.scrap &&
-              countHeldQuantity(held, 'rift-shard') >= cost.riftShards
-            const price: Readonly<Record<string, number>> = cost ? { scrap: cost.scrap, 'rift-shard': cost.riftShards } : {}
+            const price = artifact ? forgeFeeAsCost(FORGE_FEES[artifact.rarity]) : {}
+            const finished = artifact !== null && isArtifactFinished(artifact)
             return (
               <li key={item.itemInstanceId}>
                 <button
                   className="camp-picker-option camp-fish-option"
                   type="button"
                   onClick={() => onPick(item)}
-                  disabled={busy || !artifact || !affordable}
-                  aria-label={`Reforge ${base?.name ?? item.definitionId}${artifact ? `, ${RARITY_VISUALS[artifact.rarity].label}` : ''}`}
+                  disabled={busy || !artifact || finished || !canAfford(price, held)}
+                  aria-label={`Work ${base?.name ?? item.definitionId}${artifact ? `, ${RARITY_VISUALS[artifact.rarity].label}` : ''}`}
                 >
                   <span className="camp-recipe-icon" aria-hidden="true">{getRewardIcon(item.definitionId)}</span>
                   <span className="camp-picker-copy">
@@ -462,9 +486,10 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
                         ? `${RARITY_VISUALS[artifact.rarity].label} · ${formatArtifactHeadline(artifact)}`
                         : 'An artifact this build cannot read'}
                     </span>
-                    {artifact ? <CampCost cost={price} held={held} /> : null}
+                    {artifact ? <ArtifactPotential metadata={artifact} /> : null}
+                    {artifact && !finished ? <CampCost cost={price} held={held} /> : null}
                   </span>
-                  <span className="camp-picker-send" aria-hidden="true">Reforge</span>
+                  <span className="camp-picker-send" aria-hidden="true">{finished ? 'Finished' : 'Work'}</span>
                 </button>
               </li>
             )
@@ -560,6 +585,8 @@ export function CampScreen({
   developmentToolsEnabled = false,
   collectionService = null,
   onOpenCollections,
+  essenceBalance = null,
+  onEssenceChanged,
   onBack,
   initialData,
   initialLoadError = null,
@@ -579,6 +606,7 @@ export function CampScreen({
   const [artifacts, setArtifacts] = useState<InventoryItemInstance[]>([])
   const [artifactsLoading, setArtifactsLoading] = useState(false)
   const [forgeOpen, setForgeOpen] = useState(false)
+  const [forgeItem, setForgeItem] = useState<InventoryItemInstance | null>(null)
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => initialData
       ? 'ready'
@@ -871,25 +899,46 @@ export function CampScreen({
     void refreshArtifacts()
   }
 
-  const reforge = (item: InventoryItemInstance): void => {
-    if (!service) {
+  const pickArtifact = (item: InventoryItemInstance): void => {
+    setForgeItem(item)
+  }
+
+  const forgeArtifact = forgeItem ? readArtifactMetadata(forgeItem.definitionId, forgeItem.metadata) : null
+
+  const strike = (target: ForgeTarget, essence: number): void => {
+    if (!service || !forgeItem) {
       return
     }
+    const item = forgeItem
     void run(async () => {
-      const result = await service.reforgeArtifact(crypto.randomUUID(), item.itemInstanceId)
+      const result = await service.workArtifact(crypto.randomUUID(), item.itemInstanceId, target, essence)
+      const updated: InventoryItemInstance = { ...item, metadata: result.metadata }
+      setForgeItem((current) => (current?.itemInstanceId === item.itemInstanceId ? updated : current))
+      setArtifacts((current) => current.map((entry) => (entry.itemInstanceId === item.itemInstanceId ? updated : entry)))
       if (result.wasProcessed) {
         const artifact = readArtifactMetadata(result.definitionId, result.metadata)
+        const potentialLeft = artifact ? getArtifactPotential(artifact) : null
         showLootToast({
-          title: 'Reforged',
+          title: FORGE_OUTCOME_TITLES[result.outcome],
           itemName: getArtifactBaseByDefinitionId(result.definitionId)?.name ?? result.definitionId,
           icon: getRewardIcon(result.definitionId),
-          ...(artifact ? { effect: formatArtifactSummary(artifact) } : {}),
-          details: [`${result.scrapSpent} scrap · ${result.shardsSpent} rift shards`],
+          ...(artifact && result.changedLine
+            ? { effect: describeForgeChange(artifact, result.changedLine, result.outcome) }
+            : { effect: 'Nothing moved.' }),
+          details: [
+            `${result.essenceSpent.toLocaleString()} Essence · ${result.stoneSpent} stone · ${result.scrapSpent} scrap · ${result.shardsSpent} rift shards`,
+            potentialLeft === null
+              ? `Potential −${result.potentialSpent}`
+              : potentialLeft < 1
+                ? `Potential −${result.potentialSpent}: finished`
+                : `Potential −${result.potentialSpent}, ${potentialLeft} left`,
+          ],
         })
+        void refreshMaterials()
+        onEssenceChanged?.()
       }
-      setForgeOpen(false)
       return null
-    }, 'Unable to reforge that artifact.')
+    }, 'The Forge could not make that strike.')
   }
 
   const skipAhead = (hours: number): void => {
@@ -905,6 +954,7 @@ export function CampScreen({
     setPickerJobId(null)
     setFishAction(null)
     setForgeOpen(false)
+    setForgeItem(null)
     if (plotId === 'trophy-hall' && collections === null) {
       void refreshCollections()
     }
@@ -915,6 +965,7 @@ export function CampScreen({
     setPickerJobId(null)
     setFishAction(null)
     setForgeOpen(false)
+    setForgeItem(null)
   }
 
   const benchRecipes = getCraftingRecipesForBuilding('tackle-bench')
@@ -970,7 +1021,7 @@ export function CampScreen({
       case 'smokehouse':
         return { status: `${roeHeld} roe held`, pending: 0, workers: 0, slots: 0 }
       case 'forge':
-        return { status: level > 1 ? `+${level === 2 ? 25 : 50}% run salvage` : 'Reforges artifacts', pending: 0, workers: 0, slots: 0 }
+        return { status: level > 1 ? `+${level === 2 ? 25 : 50}% run salvage` : 'Works artifacts', pending: 0, workers: 0, slots: 0 }
       case 'trophy-hall':
         return {
           status: collections ? `${displays.length} of ${COLLECTION_MILESTONES.length} displays` : 'Displays what the collections earn',
@@ -1137,16 +1188,25 @@ export function CampScreen({
             <p className="camp-inspector-lede">
               {level === 0
                 ? building.description
-                : `Reroll an artifact for scrap and rift shards.${level > 1 ? ` Finished runs leave ${level === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
+                : `Stake Essence on a strike that may raise a line, promote the relic, or slip. Every strike wears its Potential down.${level > 1 ? ` Finished runs leave ${level === 2 ? 'a quarter' : 'half'} again as much scrap.` : ''}`}
             </p>
             {level > 0 ? (
-              forgeOpen ? (
+              forgeItem && forgeArtifact ? (
+                <ForgeBench
+                  artifact={forgeArtifact}
+                  held={materials}
+                  essenceBalance={essenceBalance}
+                  busy={busy}
+                  onStrike={strike}
+                  onBack={() => setForgeItem(null)}
+                />
+              ) : forgeOpen ? (
                 <ArtifactPicker
                   artifacts={artifacts}
                   loading={artifactsLoading}
                   held={materials}
                   busy={busy}
-                  onPick={reforge}
+                  onPick={pickArtifact}
                   onCancel={() => setForgeOpen(false)}
                 />
               ) : (
@@ -1156,7 +1216,7 @@ export function CampScreen({
                   onClick={openForge}
                   disabled={busy || !inventoryService}
                 >
-                  Reforge an artifact
+                  Work an artifact
                 </button>
               )
             ) : null}

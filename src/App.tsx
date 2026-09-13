@@ -651,6 +651,8 @@ function App() {
             developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (account?.isAdmin ?? false)}
             collectionService={collections.service}
             onOpenCollections={openCollections}
+            essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+            onEssenceChanged={refreshMetaProgression}
             onBack={returnToDashboard}
           />
         </LazyScreen>

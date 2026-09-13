@@ -14,7 +14,7 @@ buildings, plus two bait recipes that spend a little timber. Once every level
 is bought, stone has no sink at all and timber has a small one. The
 cross-system buildings, the Rift anchor, the Smokehouse, the Forge, the
 tackle bench and the Trophy hall, are one-shot purchases: after construction
-the Camp's only ongoing outputs are bait, cured fish, reforged artifacts and
+the Camp's only ongoing outputs are bait, cured fish, worked artifacts and
 exhaustion relief, and none of those spends what the Woodline and the quarry
 make.
 
@@ -93,13 +93,13 @@ Why this is the right sink: it is the one that makes a dungeon-only player
 want the Camp without making the Camp mandatory. A run without a provision is
 the run every player has today.
 
-### Stone at the Forge
+### Stone at the Forge *(shipped 2026-09-13)*
 
-The Forge is live and `reforge_artifact` prices a reroll in scrap and rift
-shards by rarity. Adding stone to that price is a one-row change to the
-reforge cost table and gives the quarry a purpose for as long as artifacts are
-rerolled. It is the cheapest sink in this document and should ship with, or
-before, the first provision. The Forge's own level table stays as it is.
+The Forge's fee is stone, scrap and rift shards by rarity, and every strike
+pays it, so the quarry has a purpose for as long as artifacts are worked. It
+shipped inside the Forge's rework rather than as a row on the old reroll
+table; see [camp_delivery_plan.md](camp_delivery_plan.md). The Forge also
+takes a stake of Essence, which is the first Essence sink outside the store.
 
 ### What is deliberately not a sink
 
@@ -122,7 +122,7 @@ open the Camp.
 | --- | --- | --- | --- | --- |
 | Tend the smoke | Smokehouse | Stocked fish | Roe an hour, from a queue the player fills | Scholar, `fire`, `dot` |
 | Work the bench | Tackle bench | Stocked timber and scrap | Bait an hour, up to the cap, from the recipe the player chose | Scholar, `trigger`, `projectile` |
-| Stoke the Forge | Forge | Stocked scrap | Forge heat: each unit is a discount on the next reforge's scrap, never its shards or stone | Giant, `fire`, `physical` |
+| Stoke the Forge | Forge | Stocked scrap | Forge heat: each unit is a discount on the next strike's scrap, never its shards, stone or stake | Giant, `fire`, `physical` |
 
 Two rules keep these honest.
 
@@ -232,7 +232,7 @@ and keeps boxes and roe.
 | Dungeon run | Essence, a Champion on victory, scrap, boxes | Fish meal, provisions, artifacts |
 | Infinite Abyss | Rift shards, one box per floor, standing | A Champion, artifacts, fish meal, provisions |
 | Fishing | Fish, roe, rods, boxes | Bait |
-| Camp | Provisions, bait, cured fish, roe, reforged artifacts, capacity, exhaustion relief | Scrap, roe, rift shards, timber, stone, Champion labour, stocked inputs |
+| Camp | Provisions, bait, cured fish, roe, worked artifacts, capacity, exhaustion relief | Scrap, roe, rift shards, timber, stone, Champion labour, stocked inputs |
 | Contracts | Materials, boxes, cosmetics | Work-order deliveries: timber, stone, cured fish, bait |
 | Expeditions, if built | Roe, scrap, boxes, a few shards | Timber, stone, provisions, Champion time |
 
@@ -273,7 +273,7 @@ RPCs, in the pattern of the ones that exist:
 | `unstock_camp_building(op, building, definition, quantity)` | The reverse. |
 | `claim_camp_production(op)` | Unchanged in shape; a stocked job's claim consumes stock as it grants. |
 | `craft_inventory_item` | Unchanged; provision recipes are rows with a `camp_building_id`. |
-| `reforge_artifact` | Unchanged in shape; the price table gains stone, and a Forge-heat balance discounts the scrap. |
+| `work_artifact_at_forge` | Unchanged in shape; a Forge-heat balance discounts the scrap in its fee. |
 | `deliver_to_contract(op, assignment, quantity)` | Part 3; destroys the stack under `contract-deliver` and the objective counts it. |
 | `send_champion_on_expedition(op, champion, expedition)` | Part 4; consumes supplies, sets `completes_at`. |
 
@@ -281,7 +281,7 @@ RPCs, in the pattern of the ones that exist:
 
 ### Slice A: stone at the Forge, and provisions
 
-Stone in the reforge price first, because it is one row and one test. Then
+Stone is already in the Forge's fee, so this slice starts with
 the `provision` category and two definitions, the Torch bundle and the
 Whetstone; their recipes at the Woodline and the quarry; the run-start
 argument and snapshot field; the picker slot beside the meal; the offer flow
@@ -315,14 +315,14 @@ the Camp still cannot out-produce one Abyss run's worth of value.
 
 | Thing | Value |
 | --- | --- |
-| Stone in a reforge | 10 · 20 · 40 · 80 · 160 by rarity, beside the scrap and shards already asked |
+| Stone in a strike | 10 · 20 · 40 · 80 · 160 by rarity, beside the scrap and shards; live |
 | Torch bundle | 20 timber, 4 scrap; one a run |
 | Whetstone | 20 stone, 8 scrap; one a run |
 | Cairn stone | 40 stone; one a run |
 | Rift lantern | 30 timber, 3 rift shards; one an Abyss attempt |
 | Tend the smoke | 2 fish gutted an hour at tempo ×1, from stock |
 | Work the bench | 1 bait an hour at tempo ×1, from stock, the recipe chosen by the player |
-| Stoke the Forge | 4 heat an hour at tempo ×1 from 1 scrap each; a unit of heat is a scrap off the next reforge, to half its scrap price |
+| Stoke the Forge | 4 heat an hour at tempo ×1 from 1 scrap each; a unit of heat is a scrap off the next strike, to half its scrap fee |
 | Work order | 60 to 120 timber or stone, or 3 to 6 cured fish, for scrap, 2 shards or a box |
 | Expedition haul | Under half of one completed Abyss floor's value |
 

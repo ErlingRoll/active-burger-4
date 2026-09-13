@@ -65,7 +65,7 @@ system's input. A proposed building that fails that test does not belong here.
 | Building | Consumes | Produces |
 | --- | --- | --- |
 | Smokehouse | Fish, roe | Cured fish: a meal fish raised an enchantment tier, so it feeds a run better |
-| Forge | Scrap, rift shards | Artifact rerolls, and more scrap from a finished run's loadout |
+| Forge | Stone, scrap, rift shards, Essence | Artifacts worked: a line raised, a rarity promoted, or a line slipped, and more scrap from a finished run's loadout |
 | Tackle bench | Roe, timber, scrap | Bait and rod components that fishing cannot produce for itself |
 | Rift anchor | Rift shards, Champion labour | Reduced Champion exhaustion over time: an exhausted Champion resting there recovers faster |
 | Trophy hall | Collection progress | Cosmetic and unlock rewards; see [contracts.md](contracts.md) |
@@ -81,10 +81,21 @@ shards come out of the Abyss, one a completed floor and one more for every
 five floors down, to six.
 
 Every building is live, each upgraded with timber and stone, the anchor and
-the Forge with rift shards and scrap as well. The Forge
-rerolls an artifact's implicit and modifiers for scrap and shards, keeping its
-base and rarity, and at its second and third levels raises the scrap a
-finished run's loadout leaves behind by a quarter and by half. Slot and
+the Forge with rift shards and scrap as well. The Forge works artifacts: the
+player names a line to raise a tier, or asks for a promotion to the next
+rarity, pays a fee in stone, scrap and rift shards, and stakes Essence on
+the strike, up to a hundred thousand. The stake raises the chance the strike
+lands and the chance it lands where it was aimed, with diminishing returns,
+and never makes either certain: a strike can land on another line, miss, or
+miss and slip a line down a tier. Every artifact carries Potential, rolled
+between thirty and a hundred when it is made; a strike that lands spends ten
+to twenty of it and a miss one to ten, and at nought the artifact is
+finished, whatever it became. The odds of each outcome are shown before the
+strike, from the same arithmetic the server rolls against. At its second and
+third levels the Forge raises the scrap a finished run's loadout leaves
+behind by a quarter and by half. This is the one place outside a run that
+raises a combat statistic, on purpose: the Forge is where the Camp's
+materials and the run's Essence become lasting power, at a risk. Slot and
 storage upgrades stay with the Essence store, where artifact slots already
 live. The Trophy hall is bought with timber and stone and shows the displays
 the collections have earned: a milestone on a page of the collections is a
@@ -279,7 +290,9 @@ now.
 ## Design constraints
 
 - The Camp never produces Essence, gear, artifacts, or Champions.
-- No building output multiplies damage, health, or any other combat statistic.
+- No building output multiplies damage, health, or any other combat statistic,
+  with one exception made on purpose: the Forge works an artifact's rolled
+  lines, at a fee, a stake and a risk, and an artifact's lines are power.
 - Every recipe, building, tier, and accrual rate lives in a data-driven
   registry with a stable ID.
 - The simulation never reads Camp state. Camp output reaches a run only as an
