@@ -91,6 +91,12 @@ it can:
 - **Pitch:** the knock settles onto its body pitch from a major third above
   in 15 ms; beyond that, movement is small and over quickly. Octave drops
   and fast sweeps read as lasers and are avoided.
+- **One sound per interaction in the menus.** The delegated button press is
+  the click; a toast is the outcome; nothing plays in between. Menu cues are
+  single knocks (confirm above cancel in pitch), a chord is one strike, and a
+  choice opening is silent because the level-up, pickup or arrival that
+  caused it has just sounded. Navigating between screens, buying or selling,
+  and casting a line have no cue of their own for the same reason.
 - **Levels:** no cue above 0.5. Menus sit around 0.22–0.3, routine combat
   0.18–0.32, rewards 0.3–0.4, the player being hurt and boss moments 0.4–0.5.
 

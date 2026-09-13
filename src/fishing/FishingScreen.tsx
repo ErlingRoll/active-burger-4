@@ -993,7 +993,6 @@ export function FishingScreen({
       return
     }
     setPhase('casting')
-    playSound('fishing-cast')
     setError(null)
     try {
       await delay(850)

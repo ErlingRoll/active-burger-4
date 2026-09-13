@@ -160,7 +160,8 @@ export function createGameSoundDirector(
           break
         }
         case 'choice-flow-opened':
-          sink.play('choice-open')
+          // Silent: a level-up, a gear pickup or the floor arrival has just
+          // sounded, and the choice that follows is the same moment.
           break
         case 'choice-selected':
           sink.play('choice-select')

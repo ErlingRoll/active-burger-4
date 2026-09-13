@@ -266,7 +266,7 @@ describe('game sound director', () => {
     ])
 
     expect(cues()).toEqual([
-      'level-up', 'choice-open', 'choice-reroll', 'choice-banish', 'choice-select',
+      'level-up', 'choice-reroll', 'choice-banish', 'choice-select',
       'choice-skip', 'pickup-gear', 'pickup-potion', 'mine-detonate', 'chain-jump',
       'stairs-appear', 'enemy-telegraph', 'enemy-impact',
     ])

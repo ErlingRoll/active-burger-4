@@ -164,7 +164,8 @@ function ping(hz: number, release = 0.14, gain = 1, delay = 0): CueRenderer {
 }
 
 /** Knocks stacked into a chord, each a little after the last. */
-function knockChord(hzs: readonly number[], release = 0.18, gain = 1, stagger = 0.03): CueRenderer {
+/** Knocks struck together as one chord; the tiny stagger is what keeps it from phasing. */
+function knockChord(hzs: readonly number[], release = 0.18, gain = 1, stagger = 0.006): CueRenderer {
   const perNote = gain / Math.sqrt(hzs.length)
   return layer(...hzs.map((hz, index) =>
     knock(hz, { release, gain: perNote, delay: index * stagger, click: index === 0 ? 0.2 : 0.08 }),
@@ -385,17 +386,13 @@ function reveal(hzs: readonly number[], release: number, extra?: CueRenderer): S
   }
 }
 
-const confirmPair = (): CueRenderer => layer(knock(392), knock(587, { delay: 0.045, gain: 0.9 }))
+// Menus make one sound per interaction: the press is the click, a toast is
+// the outcome, and nothing in between. Confirm sits above cancel in pitch.
+const confirm = (): CueRenderer => knock(587)
 
 export const SOUND_CUES = {
   // Run and phase
-  'run-start': {
-    priority: attention, gain: 0.4, cooldownMs: 500,
-    render: layer(
-      figure([262, 330, 392]),
-      chord([262, 392], { duration: 0.1, release: 0.25, delay: 0.24, gain: 0.7 }),
-    ),
-  },
+  'run-start': { priority: attention, gain: 0.4, cooldownMs: 500, render: knockChord([262, 392], 0.25) },
   victory: {
     priority: attention, gain: 0.5, cooldownMs: 1000,
     render: layer(
@@ -415,8 +412,8 @@ export const SOUND_CUES = {
   },
   'floor-depart': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([392, 294, 196]) },
   'floor-arrive': { priority: attention, gain: 0.4, cooldownMs: 500, render: figure([196, 294, 392]) },
-  pause: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(392), knock(294, { delay: 0.07 })) },
-  resume: { priority: attention, gain: 0.3, cooldownMs: 100, render: layer(knock(294), knock(392, { delay: 0.07 })) },
+  pause: { priority: attention, gain: 0.3, cooldownMs: 100, render: knock(294) },
+  resume: { priority: attention, gain: 0.3, cooldownMs: 100, render: knock(392) },
   'stairs-appear': { priority: reward, gain: 0.34, cooldownMs: 500, render: knockChord([330, 494, 659]) },
   'stairs-reached': { priority: reward, gain: 0.3, cooldownMs: 300, render: knock(440) },
 
@@ -654,15 +651,8 @@ export const SOUND_CUES = {
       knock(784, { delay: 0.5, release: 0.2, gain: 0.6 }),
     ),
   },
-  'choice-open': {
-    priority: attention, gain: 0.3, cooldownMs: 200,
-    render: layer(figure([330, 659], { release: 0.1 }), knock(659, { delay: 0.16, gain: 0.5 })),
-  },
-  'choice-select': { priority: attention, gain: 0.34, cooldownMs: 100, render: confirmPair() },
-  'choice-reroll': {
-    priority: attention, gain: 0.3, cooldownMs: 100,
-    render: figure([330, 440, 550], { noteDuration: 0.03, gap: 0.02, release: 0.06 }),
-  },
+  'choice-select': { priority: attention, gain: 0.34, cooldownMs: 100, render: confirm() },
+  'choice-reroll': { priority: attention, gain: 0.3, cooldownMs: 100, render: knock(440) },
   'choice-skip': { priority: attention, gain: 0.26, cooldownMs: 100, render: tap(330, 4, 0.045) },
   'choice-banish': {
     priority: attention, gain: 0.32, cooldownMs: 100,
@@ -674,70 +664,30 @@ export const SOUND_CUES = {
 
   // Menus and the meta game
   'ui-press': { priority: attention, gain: 0.24, cooldownMs: 40, render: tap(392) },
-  'ui-confirm': { priority: attention, gain: 0.28, cooldownMs: 80, render: confirmPair() },
-  'ui-cancel': { priority: attention, gain: 0.26, cooldownMs: 80, render: layer(knock(392), knock(330, { delay: 0.05, gain: 0.9 })) },
-  'screen-transition': {
-    priority: attention, gain: 0.28, cooldownMs: 150,
-    render: figure([440, 330], { noteDuration: 0.04, gap: 0.03, release: 0.07 }),
-  },
+  'ui-confirm': { priority: attention, gain: 0.28, cooldownMs: 80, render: confirm() },
+  'ui-cancel': { priority: attention, gain: 0.26, cooldownMs: 80, render: knock(330) },
   'toast-info': { priority: attention, gain: 0.26, cooldownMs: 150, render: knock(523, { release: 0.14 }) },
-  'toast-error': {
-    priority: danger, gain: 0.3, cooldownMs: 150,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 330, duration: 0.06, attack: 0.005, release: 0.08 }),
-      tone({ wave: 'triangle', frequency: 262, duration: 0.08, attack: 0.005, release: 0.12, delay: 0.08 }),
-    ),
-  },
-  'toast-loot': { priority: attention, gain: 0.3, cooldownMs: 150, render: knockChord([392, 587]) },
-  'lootbox-charge': { priority: attention, gain: 0.3, cooldownMs: 300, render: pulseTrain(165, 440, 12, 1.2) },
+  'toast-error': { priority: danger, gain: 0.3, cooldownMs: 150, render: knock(262, { release: 0.12 }) },
+  'toast-loot': { priority: attention, gain: 0.3, cooldownMs: 150, render: knock(587) },
+  'lootbox-charge': { priority: attention, gain: 0.22, cooldownMs: 300, render: pulseTrain(165, 440, 12, 1.2) },
   'reveal-common': reveal([262], 0.18),
   'reveal-uncommon': reveal([262, 392], 0.2),
   'reveal-rare': reveal([262, 330, 392], 0.22),
   'reveal-epic': reveal([262, 330, 392, 523], 0.26),
   'reveal-legendary': reveal([262, 330, 392, 523, 659], 0.3, ping(1046, 0.25, 0.4, 0.15)),
-  'fishing-cast': {
-    priority: attention, gain: 0.3, cooldownMs: 200,
-    render: layer(figure([165, 247, 330]), click(0.15)),
-  },
-  'fishing-bite': {
-    priority: danger, gain: 0.36, cooldownMs: 200,
-    render: layer(knock(440), knock(330, { delay: 0.08 }), knock(440, { delay: 0.16 })),
-  },
+  'fishing-bite': { priority: danger, gain: 0.36, cooldownMs: 200, render: knock(440) },
   'fishing-catch': {
     priority: attention, gain: 0.36, cooldownMs: 300,
     render: layer(
-      knockChord([262, 392, 523]),
+      knock(523),
       tone({ wave: 'sine', frequency: 300, endFrequency: 120, duration: 0.05, attack: 0.003, release: 0.06, gain: 0.6 }),
     ),
   },
-  'shop-buy': {
-    priority: attention, gain: 0.3, cooldownMs: 150,
-    render: layer(knock(494), knock(659, { delay: 0.05, gain: 0.9 }), tick(5000, 0.08, 0.012)),
-  },
-  'shop-sell': {
-    priority: attention, gain: 0.3, cooldownMs: 150,
-    render: layer(knock(659), knock(494, { delay: 0.05, gain: 0.9 }), tick(5000, 0.08, 0.012)),
-  },
-  'essence-spend': {
-    priority: attention, gain: 0.28, cooldownMs: 150,
-    render: layer(knock(440), knock(330, { delay: 0.06, gain: 0.9 })),
-  },
-  'essence-unlock': {
-    priority: attention, gain: 0.38, cooldownMs: 300,
-    render: layer(
-      figure([220, 277, 330]),
-      chord([220, 330, 440], { duration: 0.12, release: 0.25, delay: 0.24, gain: 0.7 }),
-    ),
-  },
-  'purchase-fail': {
-    priority: danger, gain: 0.3, cooldownMs: 150,
-    render: layer(
-      tone({ wave: 'triangle', frequency: 262, duration: 0.07, attack: 0.005, release: 0.12, filter: { type: 'lowpass', frequency: 1200 } }),
-      tone({ wave: 'triangle', frequency: 220, duration: 0.09, attack: 0.005, release: 0.18, delay: 0.09, filter: { type: 'lowpass', frequency: 1200 } }),
-    ),
-  },
+  'essence-spend': { priority: attention, gain: 0.28, cooldownMs: 150, render: knock(330) },
+  'essence-unlock': { priority: attention, gain: 0.38, cooldownMs: 300, render: knockChord([220, 330, 440], 0.25) },
+  'purchase-fail': { priority: danger, gain: 0.3, cooldownMs: 150, render: knock(220, { release: 0.14 }) },
   mute: { priority: attention, gain: 0.24, cooldownMs: 100, render: knock(262, { from: 392, release: 0.06 }) },
-  unmute: { priority: attention, gain: 0.24, cooldownMs: 100, render: figure([262, 392], { noteDuration: 0.03, gap: 0.015, release: 0.05 }) },
+  unmute: { priority: attention, gain: 0.24, cooldownMs: 100, render: knock(392) },
   'volume-tick': { priority: attention, gain: 0.24, cooldownMs: 60, render: tap(523, 1, 0.022) },
 } satisfies Record<string, SoundCueDefinition>
 

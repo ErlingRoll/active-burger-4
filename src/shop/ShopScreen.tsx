@@ -6,7 +6,6 @@ import { EssenceAmount } from '../ui/EssenceMark'
 import { useToaster } from '../ui/ToasterContext'
 import { useSeededLoad } from '../ui/useSeededLoad'
 import type { ShopScreenData } from './loadShopScreen'
-import { playSound } from '../audio/SoundEffects'
 import { getRemainingStock } from './ShopTypes'
 import type { ShopPriceBand, ShopService, ShopStockLine } from './ShopTypes'
 
@@ -175,7 +174,6 @@ export function ShopScreen({
         line.first.itemInstanceId,
         Math.min(line.first.quantity, line.quantity),
       )
-      playSound('shop-sell')
       showLootToast({
         title: 'Sold to the shop',
         itemName: `${result.quantitySold} ${line.name}`,
@@ -199,7 +197,6 @@ export function ShopScreen({
     setError(null)
     try {
       const result = await shopService.buyItem(crypto.randomUUID(), line.definitionId, 1)
-      playSound('shop-buy')
       showLootToast({
         title: 'Bought from the shop',
         itemName: itemName(line.definitionId),
