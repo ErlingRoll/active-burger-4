@@ -43,7 +43,6 @@ import { useNow } from '../ui/useNow'
 import { useSeededLoad } from '../ui/useSeededLoad'
 import { CampBuildingArt, type CampPlotId } from './CampBuildingArt'
 import { CampFurniture, CampHaulers, type CampHaulRoute } from './CampFurniture'
-import { LabourSheetLine } from './LabourSheetLine'
 import { LabourSheetMeters } from './LabourSheetMeters'
 import { nextCureStep, roeForFish } from './Smokehouse'
 import { FORGE_FEES, describeForgeLine, forgeFeeAsCost, isArtifactFinished, type ForgeTarget } from './Forge'
@@ -253,10 +252,6 @@ function CampWorker({ job, assignment, champion, pending, busy, onRecall }: Camp
       {champion ? <ClassMark classId={champion.build.classId} /> : null}
       <span className="camp-worker-copy">
         <strong>{champion?.name ?? 'A Champion'}</strong>
-        <span className="camp-sheet">
-          <LabourSheetMeters sheet={assignment.sheet} />
-          <LabourSheetLine sheet={assignment.sheet} />
-        </span>
       </span>
       <span className="camp-worker-pending" aria-label={`${pending} ${unit} pending`}>
         <strong>{pending}</strong>
@@ -265,6 +260,7 @@ function CampWorker({ job, assignment, champion, pending, busy, onRecall }: Camp
       <button className="camp-recall-action" type="button" onClick={onRecall} disabled={busy}>
         Bring back
       </button>
+      <LabourSheetMeters sheet={assignment.sheet} />
     </li>
   )
 }
@@ -319,14 +315,11 @@ function CampPicker({ job, champions, state, now, busy, onPick, onCancel }: Camp
                   <span className="camp-picker-copy">
                     <strong>{champion.name}</strong>
                     <span>{CHARACTER_CLASS_DEFINITIONS[champion.build.classId].name} · {status}</span>
-                    <span className="camp-sheet">
-                      <LabourSheetMeters sheet={sheet} />
-                      <LabourSheetLine sheet={sheet} />
-                    </span>
                   </span>
                   <span className="camp-picker-send" aria-hidden="true">
                     {elsewhere ? 'Move here' : 'Send'}
                   </span>
+                  <LabourSheetMeters sheet={sheet} />
                 </button>
               </li>
             )

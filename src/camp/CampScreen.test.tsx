@@ -282,7 +282,7 @@ describe('CampScreen', () => {
     // Level 30 on floor 20 is ×1.3 strength, +20% attack speed and an aggressive
     // profile: 1.3 × 1.1 × 1.2 = 1.716 tempo. One legendary Splintering piece and
     // a level-3 melee skill put the fit at ×1.055, which two decimals show as 1.05.
-    expect(option).toHaveTextContent('Tempo ×1.72 · Stamina 6h · Load ×1.3 · Fit ×1.05')
+    expect(option).toHaveTextContent('Tempo ×1.72 Stamina 6h Load ×1.3 Fit ×1.05')
 
     await user.click(option)
 

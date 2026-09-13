@@ -1,39 +1,46 @@
-import type { CampLabourSheet } from '../content/camp/CampLabour'
+import {
+  describeCampLabourWorking,
+  formatCampLabourFigures,
+  type CampLabourFigure,
+  type CampLabourSheet,
+} from '../content/camp/CampLabour'
 
 /**
- * The sheet as four small meters: tempo, stamina, load and fit, each filled
- * across the range the formula can reach. A row of Champions can be read
- * against each other at a glance this way, where a line of numbers has to
- * be read one figure at a time. The numbers still stand under the meters,
- * in `LabourSheetLine`; the meters are decoration for the eye and say
- * nothing a reader does not get from the line.
+ * The sheet as four small meters: tempo, stamina, load and fit, each a label
+ * and its figure over a bar filled across the range the formula can reach.
+ * A row of Champions can be read against each other at a glance by the bars,
+ * where a line of numbers has to be read one figure at a time; the figure
+ * itself stands on the meter, so nothing is said twice. The working is on
+ * the title, for anyone who wants to know where a figure came from.
  */
 
-interface MeterSpec {
-  label: string
-  value: number
-  min: number
-  max: number
+const METER_RANGES: Readonly<Record<CampLabourFigure['label'], { readonly min: number, readonly max: number }>> = {
+  Tempo: { min: 1, max: 2 },
+  Stamina: { min: 6, max: 12 },
+  Load: { min: 1, max: 2 },
+  Fit: { min: 1, max: 1.25 },
 }
 
-function metersFor(sheet: CampLabourSheet): readonly MeterSpec[] {
-  return [
-    { label: 'Tempo', value: sheet.tempo, min: 1, max: 2 },
-    { label: 'Stamina', value: sheet.staminaHours, min: 6, max: 12 },
-    { label: 'Load', value: sheet.load, min: 1, max: 2 },
-    { label: 'Fit', value: sheet.fit, min: 1, max: 1.25 },
-  ]
+function meterValue(sheet: CampLabourSheet, label: CampLabourFigure['label']): number {
+  switch (label) {
+    case 'Tempo': return sheet.tempo
+    case 'Stamina': return sheet.staminaHours
+    case 'Load': return sheet.load
+    case 'Fit': return sheet.fit
+  }
 }
 
 export function LabourSheetMeters({ sheet }: { sheet: CampLabourSheet }) {
   return (
-    <span className="camp-sheet-meters" aria-hidden="true">
-      {metersFor(sheet).map((meter) => {
-        const share = Math.max(0, Math.min(1, (meter.value - meter.min) / (meter.max - meter.min)))
+    <span className="camp-sheet-meters" title={describeCampLabourWorking(sheet)}>
+      {formatCampLabourFigures(sheet).map((figure) => {
+        const { min, max } = METER_RANGES[figure.label]
+        const share = Math.max(0, Math.min(1, (meterValue(sheet, figure.label) - min) / (max - min)))
         return (
-          <span key={meter.label} className="camp-sheet-meter" data-share={share >= 0.66 ? 'high' : share >= 0.33 ? 'mid' : 'low'}>
-            <small>{meter.label}</small>
-            <i style={{ width: `${Math.round(8 + share * 92)}%` }} />
+          <span key={figure.label} className="camp-sheet-meter" data-share={share >= 0.66 ? 'high' : share >= 0.33 ? 'mid' : 'low'}>
+            <small>{figure.label}</small>{' '}
+            <b>{figure.value}</b>{' '}
+            <i aria-hidden="true" style={{ width: `${Math.round(8 + share * 92)}%` }} />
           </span>
         )
       })}

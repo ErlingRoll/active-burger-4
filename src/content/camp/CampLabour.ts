@@ -233,15 +233,43 @@ export function deriveCampLabourSheet(
   return { strength, tempo, staminaHours, load, bonusChance, fit, haste, output, inputs }
 }
 
-/** "Tempo ×1.3 · Stamina 10h · Load ×1.1 · Fit ×1.05", the way the picker shows it. */
-export function formatCampLabourSheet(sheet: CampLabourSheet): string {
+/** One figure of the sheet, as the picker shows it: a label and its value. */
+export interface CampLabourFigure {
+  label: 'Tempo' | 'Stamina' | 'Load' | 'Fit'
+  value: string
+}
+
+/** The four figures a player reads: "Tempo ×1.3", "Stamina 10h", "Load ×1.1", "Fit ×1.05". */
+export function formatCampLabourFigures(sheet: CampLabourSheet): readonly CampLabourFigure[] {
   const times = (value: number): string => `×${trimNumber(value, 2)}`
   return [
-    `Tempo ${times(sheet.tempo)}`,
-    `Stamina ${trimNumber(sheet.staminaHours, 1)}h`,
-    `Load ${times(sheet.load)}`,
-    `Fit ${times(sheet.fit)}`,
-  ].join(' · ')
+    { label: 'Tempo', value: times(sheet.tempo) },
+    { label: 'Stamina', value: `${trimNumber(sheet.staminaHours, 1)}h` },
+    { label: 'Load', value: times(sheet.load) },
+    { label: 'Fit', value: times(sheet.fit) },
+  ]
+}
+
+/** "Tempo ×1.3 · Stamina 10h · Load ×1.1 · Fit ×1.05", the figures as one line. */
+export function formatCampLabourSheet(sheet: CampLabourSheet): string {
+  return formatCampLabourFigures(sheet).map((figure) => `${figure.label} ${figure.value}`).join(' · ')
+}
+
+/**
+ * The working behind the figures, one input per line, for a title so anyone
+ * who wants to know where a figure came from can hover for it.
+ */
+export function describeCampLabourWorking(sheet: CampLabourSheet): string {
+  const { inputs } = sheet
+  return [
+    `Level ${inputs.level}, floor ${inputs.floor}: strength ×${sheet.strength}`,
+    `Attack speed +${inputs.attackSpeedPercent}%`,
+    `Max HP +${inputs.maxHpFlat}`,
+    `Increased damage +${inputs.increasedDamagePercent}%`,
+    `Critical chance ${inputs.critChancePercent}% → bonus ${Math.round(sheet.bonusChance * 100)}%`,
+    `Set pieces ${inputs.setRarityWeight}, tagged skill levels ${inputs.tagLevelWeight}`,
+    `Output ×${sheet.output}`,
+  ].join('\n')
 }
 
 function trimNumber(value: number, decimals: number): string {
