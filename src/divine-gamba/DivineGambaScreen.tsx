@@ -301,9 +301,9 @@ export function DivineGambaScreen({
                   <p className="screen-kicker">The board</p>
                   <h3 id="divine-gamba-board-title">{machine.rows} rows, {machine.pockets.length} pockets</h3>
                 </div>
-                <span className="app-panel-meta">
-                  {session?.phase === 'dropping' ? `${session.landedBalls} of ${totalBalls} landed` : `Returns ${percent(odds.returnToPlayer, 0)} over time`}
-                </span>
+                {session?.phase === 'dropping' ? (
+                  <span className="app-panel-meta">{session.landedBalls} of {totalBalls} landed</span>
+                ) : null}
               </header>
               <div className="divine-gamba-board">
                 <DivineGambaBoard
@@ -400,21 +400,34 @@ export function DivineGambaScreen({
                 </div>
               </header>
               <dl className="divine-gamba-odds-summary">
-                <div><dt>Returns over time</dt><dd>{percent(odds.returnToPlayer, 0)}</dd></div>
                 <div><dt>Chance this drop profits</dt><dd>{percent(profitChance, 0)}</dd></div>
                 <div><dt>Box per ball</dt><dd>{percent(odds.boxChancePerBall, 2)}</dd></div>
               </dl>
-              <ol className="divine-gamba-legend" aria-label="Pockets, left to right">
-                {machine.pockets.map((pocket, index) => (
-                  <li key={index}>
-                    <strong>{formatMultiplier(pocket.multiplierPercent * machine.multiplierScalePercent / 10000)}</strong>
-                    <span>{percent(odds.landing[index] ?? 0)}</span>
-                    {pocket.boxChanceBasisPoints > 0 ? (
-                      <small>box {percent(Math.min(1, pocket.boxChanceBasisPoints * machine.boxChanceScalePercent / 1000000), 0)}</small>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
+              <table className="divine-gamba-legend">
+                <caption className="divine-gamba-legend-caption">Pockets, left to right</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Pocket</th>
+                    <th scope="col">Pays</th>
+                    <th scope="col">Lands</th>
+                    <th scope="col">Box</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {machine.pockets.map((pocket, index) => {
+                    const multiplier = pocket.multiplierPercent * machine.multiplierScalePercent / 10000
+                    const boxChance = Math.min(1, pocket.boxChanceBasisPoints * machine.boxChanceScalePercent / 1000000)
+                    return (
+                      <tr key={index} data-pays={multiplier >= 1 ? 'above' : 'below'}>
+                        <th scope="row">{index + 1}</th>
+                        <td><strong>{formatMultiplier(multiplier)}</strong></td>
+                        <td>{percent(odds.landing[index] ?? 0)}</td>
+                        <td>{boxChance > 0 ? percent(boxChance, 0) : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
               {[...enabledModifierIds].filter((id) => ownedPartIds.has(id)).length > 0 ? (
                 <p className="divine-gamba-odds-note">
                   On: {[...enabledModifierIds].filter((id) => ownedPartIds.has(id)).map((id) => getDivineGambaPartDefinition(id)?.name ?? id).join(', ')}.

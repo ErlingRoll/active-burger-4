@@ -179,7 +179,7 @@
 /* The odds: three headline figures, then one column per pocket. */
 .divine-gamba-odds-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
   margin: 0;
 }
@@ -209,39 +209,73 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* One row per pocket, in the order they sit on the board. */
 .divine-gamba-legend {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 0.2rem;
+  width: 100%;
   margin: clamp(0.5rem, 1.4vh, 0.9rem) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.divine-gamba-legend li {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.3rem 0.1rem;
-  text-align: center;
-  background: rgb(var(--accent-rgb) / 8%);
-  border: 1px solid rgb(var(--accent-rgb) / 20%);
-  border-radius: 0.4rem;
-}
-
-.divine-gamba-legend strong {
-  font-size: clamp(0.66rem, 1.5vh, 0.82rem);
-}
-
-.divine-gamba-legend span {
-  color: var(--text-muted);
-  font-size: clamp(0.58rem, 1.3vh, 0.7rem);
+  border-collapse: separate;
+  border-spacing: 0 0.2rem;
   font-variant-numeric: tabular-nums;
 }
 
-.divine-gamba-legend small {
-  color: var(--essence);
-  font-size: 0.55rem;
+.divine-gamba-legend-caption {
+  padding: 0 0 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.divine-gamba-legend thead th {
+  padding: 0 0.5rem 0.15rem;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.divine-gamba-legend thead th:first-child {
+  text-align: left;
+}
+
+.divine-gamba-legend tbody th,
+.divine-gamba-legend td {
+  padding: 0.3rem 0.5rem;
+  font-size: clamp(0.7rem, 1.6vh, 0.85rem);
+  text-align: right;
+  background: rgb(var(--accent-rgb) / 8%);
+  border-top: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-bottom: 1px solid rgb(var(--accent-rgb) / 20%);
+}
+
+.divine-gamba-legend tbody th {
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: left;
+  border-left: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.4rem 0 0 0.4rem;
+}
+
+.divine-gamba-legend td:last-child {
+  border-right: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.divine-gamba-legend tr[data-pays='above'] td strong {
+  color: var(--accent-contrast);
+}
+
+.divine-gamba-legend tr[data-pays='below'] td strong {
+  color: var(--accent);
+}
+
+.divine-gamba-legend tr[data-pays='above'] tbody th,
+.divine-gamba-legend tr[data-pays='above'] td {
+  background: rgb(var(--accent-rgb) / 16%);
 }
 
 .divine-gamba-odds-note {
@@ -364,7 +398,4 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .divine-gamba-odds-summary {
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  }
 }
