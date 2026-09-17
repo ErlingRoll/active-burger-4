@@ -134,9 +134,9 @@ describe('PaginatedInventoryGrid hover card', () => {
     const card = await screen.findByRole('tooltip')
     const rows = within(card).getAllByRole('listitem')
     expect(rows.map((row) => row.textContent)).toEqual([
-      '+1% FortuneT5',
-      '+45% Bait KeeperT1',
-      '+4% Quick LineT2',
+      '+1% FortuneT5Every cast leans 1% further toward rarer fish.',
+      '+45% Bait KeeperT145% chance to keep your bait after a catch.',
+      '+4% Quick LineT2The float bites 4 seconds sooner.',
     ])
     expect(within(card).queryByText(/Fortune,/)).not.toBeInTheDocument()
   })

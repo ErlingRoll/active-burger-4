@@ -1759,6 +1759,19 @@
   color: var(--color-amber-300);
 }
 
+/* A rod's line wraps so its note can sit under the line and the tier pill. */
+.rod-modifiers .artifact-effect {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.rod-modifier-note {
+  flex: 0 0 100%;
+  color: var(--text-muted);
+  font-size: clamp(0.62rem, 1.4vh, 0.74rem);
+  line-height: 1.35;
+}
+
 /* A rod with nothing rolled says so in the card's own voice, not a blank. */
 .rod-modifiers-empty {
   margin: 0;

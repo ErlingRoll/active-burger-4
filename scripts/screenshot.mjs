@@ -25,10 +25,13 @@
  *   --full           Capture the whole scrolled page, not only the first screenful.
  *   --scroll-end     Scroll the page and every inner scroll container to the bottom first.
  *   --click <name>   Click the first button with this accessible name, or failing that
- *                    the first element with exactly this text, before the shot. Repeat
+ *                    the first element with exactly this text, or failing that the first
+ *                    element whose accessible name starts with it, before the shot. Repeat
  *                    the option to click through a sequence, in order.
- *   --focus <name>   Focus the first button with this accessible name before the shot,
- *                    which is how a hover card is brought up without a mouse.
+ *   --focus <name>   Focus the first button with this accessible name, or failing that
+ *                    the first element whose accessible name starts with it (a bag slot
+ *                    is a focusable list item, not a button), before the shot. This is
+ *                    how a hover card is brought up without a mouse.
  */
 
 import { spawn } from 'node:child_process'
@@ -212,6 +215,22 @@ async function enterRun(page) {
   }
 }
 
+/**
+ * The preferred locator if it turns up visible within a moment, else the
+ * fallback. Counting the preferred one straight away loses the race with a
+ * screen that is still rendering, and then the fallback is asked for something
+ * that was about to exist; and an element that is attached but hidden (a slot's
+ * caption behind its icon, say) is not one a click can land on.
+ */
+async function firstPresent(preferred, fallback) {
+  try {
+    await preferred.waitFor({ state: 'visible', timeout: 5000 })
+    return preferred
+  } catch {
+    return fallback
+  }
+}
+
 async function capture(browser, options, viewport, outputDirectory) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
@@ -242,13 +261,22 @@ async function capture(browser, options, viewport, outputDirectory) {
     await page.goto(`${BASE_URL}${options.path}`)
   }
   for (const name of options.clicks) {
-    const button = page.getByRole('button', { name }).first()
-    const target = await button.count() > 0 ? button : page.getByText(name, { exact: true }).first()
+    const target = await firstPresent(
+      page.getByRole('button', { name }).first(),
+      await firstPresent(
+        page.getByText(name, { exact: true }).first(),
+        page.locator(`[aria-label^="${name.replace(/"/g, '\\"')}"]`).first(),
+      ),
+    )
     await target.click()
     await page.waitForTimeout(400)
   }
   if (options.focus !== null) {
-    await page.getByRole('button', { name: options.focus }).first().focus()
+    const target = await firstPresent(
+      page.getByRole('button', { name: options.focus }).first(),
+      page.locator(`[aria-label^="${options.focus.replace(/"/g, '\\"')}"]`).first(),
+    )
+    await target.focus()
   }
   await page.waitForTimeout(options.wait)
   if (options.scrollEnd) {

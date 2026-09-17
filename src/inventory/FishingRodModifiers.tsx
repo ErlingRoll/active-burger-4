@@ -12,7 +12,10 @@ import type { InventoryItemDefinitionId } from './InventoryTypes'
  * for the places that only have room for a line, such as a slot's caption.
  *
  * It wears the artifact card's classes on purpose: the two are the same shape
- * of thing, and a second set of rules for the same picture would drift.
+ * of thing, and a second set of rules for the same picture would drift. The
+ * one thing a rod adds is a note under each line saying what the number does:
+ * "+31% Bait Keeper" is a name, not an explanation, and a title attribute is
+ * a second hover nobody finds and a phone never shows.
  */
 interface FishingRodModifierListProps {
   definitionId: InventoryItemDefinitionId
@@ -47,7 +50,6 @@ export function FishingRodModifierList({
               className="artifact-effect"
               data-kind="modifier"
               data-tier={modifier.tier ?? undefined}
-              title={modifier.description}
             >
               <span className="artifact-effect-text">{formatRodModifierLine(modifier)}</span>
               {modifier.tier === null ? null : (
@@ -55,6 +57,7 @@ export function FishingRodModifierList({
                   T{modifier.tier}
                 </span>
               )}
+              <small className="rod-modifier-note">{modifier.description}</small>
             </li>
           ))}
         </ul>
