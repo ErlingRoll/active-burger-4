@@ -44,7 +44,7 @@ function isJackpotPocket(machine: DivineGambaMachine | null, pocketIndex: number
 
 /**
  * A loot box, drawn: a chest with a lid band and a ribbon down the middle,
- * centred on (x, y) and `size` wide. Glowing, so it reads through the balls
+ * centred on (x, y) and `size` wide. Glowing, so it still shows behind the balls
  * that pile into the slot in front of it.
  */
 function drawLootBox(context: CanvasRenderingContext2D, x: number, y: number, size: number, colour: string, shade: string): void {
@@ -312,6 +312,12 @@ export class DivineGambaBoardView {
       context.rect(centreX - pocketWidth / 2, pocketTop, pocketWidth, pocketBottom - pocketTop)
       context.fill()
       context.stroke()
+      if (jackpotPocket && pocket !== undefined && pocket.boxChanceBasisPoints > 0) {
+        // The jackpot's box is the point of the pocket: a gold chest drawn
+        // as wide as the slot allows, beneath the multiplier. It is part of
+        // the slot, so the balls that land there pile up in front of it.
+        drawLootBox(context, centreX, pocketTop + (pocketBottom - pocketTop) * 0.64, pocketWidth * 0.68, jackpot, night)
+      }
     }
 
     // Pegs: small facets, brighter towards the middle where most balls pass.
@@ -404,16 +410,10 @@ export class DivineGambaBoardView {
       context.strokeText(formatMultiplier(multiplier), centreX, labelY)
       context.fillStyle = multiplier >= 1 ? text : accent
       context.fillText(formatMultiplier(multiplier), centreX, labelY)
-      if (pocket.boxChanceBasisPoints > 0) {
-        if (isJackpotPocket(machine, index)) {
-          // The jackpot's box is the point of the pocket: a gold chest drawn
-          // as wide as the slot allows, sitting beneath the multiplier.
-          drawLootBox(context, centreX, pocketTop + (pocketBottom - pocketTop) * 0.64, pocketWidth * 0.68, jackpot, night)
-        } else {
-          context.fillStyle = essence
-          context.font = `${Math.max(8, scale * 0.2)}px ${font}`
-          context.fillText('▣', centreX, pocketTop + (pocketBottom - pocketTop) * 0.36)
-        }
+      if (pocket.boxChanceBasisPoints > 0 && !isJackpotPocket(machine, index)) {
+        context.fillStyle = essence
+        context.font = `${Math.max(8, scale * 0.2)}px ${font}`
+        context.fillText('▣', centreX, pocketTop + (pocketBottom - pocketTop) * 0.36)
       }
     }
   }
