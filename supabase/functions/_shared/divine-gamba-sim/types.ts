@@ -93,6 +93,8 @@ export interface DivineGambaBallOutcome {
   boxRarity: string | null
   /** Flat `[x0, y0, x1, y1, ...]` per tick, present only when frames were asked for. */
   frames?: number[]
+  /** The ticks on which the ball struck a peg, present only when frames were asked for. */
+  hits?: number[]
 }
 
 export interface DivineGambaPlayOutcome {

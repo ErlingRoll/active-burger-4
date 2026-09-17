@@ -45,6 +45,8 @@ const LONG_FORM_CUE_LIMITS: Partial<Record<SoundCueId, number>> = {
   'level-up': 1,
   'run-start': 1,
   'essence-unlock': 1,
+  // A jackpot is the Gamba's level-up: a figure and a chord after it.
+  'gamba-jackpot': 1,
   'reveal-epic': 1,
   'reveal-legendary': 1,
   // The box charges for at least 1.5 s; the ticking runs up to the reveal.

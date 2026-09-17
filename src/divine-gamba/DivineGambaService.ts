@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type {
   DivineGambaBeginResult,
+  DivineGambaFreeDropState,
   DivineGambaOwnedPart,
   DivineGambaPendingPlay,
   DivineGambaPlayMachine,
@@ -182,7 +183,20 @@ export function createDivineGambaService(
       })
     },
 
-    async beginPlay(operationId, ballCount, stake, modifierIds): Promise<DivineGambaBeginResult> {
+    async loadFreeDropState(): Promise<DivineGambaFreeDropState> {
+      const response = await getClient().rpc('divine_gamba_free_drop_state')
+      if (response.error) {
+        throw response.error
+      }
+      const data: unknown = response.data
+      if (!isRecord(data) || typeof data.available !== 'boolean' ||
+        !isNonEmptyString(data.resets_at) || !isNonEmptyString(data.server_time)) {
+        throw invalidResponse('expected the free drop state')
+      }
+      return { available: data.available, resetsAt: data.resets_at, serverTime: data.server_time }
+    },
+
+    async beginPlay(operationId, ballCount, stake, modifierIds, free = false): Promise<DivineGambaBeginResult> {
       assertOperationId(operationId)
       if (!Number.isInteger(ballCount) || ballCount < 1 || ballCount > 20) {
         throw new Error('A play holds 1 to 20 balls.')
@@ -195,6 +209,7 @@ export function createDivineGambaService(
         p_ball_count: ballCount,
         p_stake: stake,
         p_modifier_ids: [...modifierIds],
+        p_free: free,
       })
       if (response.error) {
         throw response.error
@@ -207,6 +222,7 @@ export function createDivineGambaService(
       return {
         ...play,
         essenceBalance: response.data.essence_balance,
+        free: response.data.free === true,
         wasProcessed: response.data.was_processed,
       }
     },

@@ -39,10 +39,11 @@ describe('the Divine Gamba simulation', () => {
     const machine = bareMachine()
     const first = simulatePlay({ seed: 42, machine, ballCount: 20, stakePrice: 20, recordFrames: true })
     const second = simulatePlay({ seed: 42, machine, ballCount: 20, stakePrice: 20 })
-    expect(second.balls.map(({ frames: _frames, ...ball }) => ball))
-      .toEqual(first.balls.map(({ frames: _frames, ...ball }) => ball))
+    expect(second.balls.map(({ frames: _frames, hits: _hits, ...ball }) => ball))
+      .toEqual(first.balls.map(({ frames: _frames, hits: _hits, ...ball }) => ball))
     expect(first.balls.every((ball) => ball.frames !== undefined && ball.frames.length === ball.landedTick * 2)).toBe(true)
-    expect(second.balls.every((ball) => ball.frames === undefined)).toBe(true)
+    expect(first.balls.every((ball) => ball.hits !== undefined && ball.hits.length > 0 && ball.hits.every((hit) => hit < ball.landedTick))).toBe(true)
+    expect(second.balls.every((ball) => ball.frames === undefined && ball.hits === undefined)).toBe(true)
   })
 
   it.each(fixtures.map((fixture) => [fixture.name, fixture] as const))(
@@ -130,18 +131,22 @@ describe('the rewards', () => {
     expect(pocketPayout(machine, 99, 20)).toBe(0)
   })
 
-  it('never rolls a rarity above epic, whatever the weights say', () => {
+  it('rolls only the rarities the weights name, and none the roll does not know', () => {
     const machine = {
       ...bareMachine(),
-      boxRarityWeights: { common: 0, uncommon: 0, rare: 0, epic: 1, legendary: 1000 },
+      boxRarityWeights: { common: 0, uncommon: 0, rare: 0, epic: 1, legendary: 1000, mythic: 100000 },
       pockets: bareMachine().pockets.map(() => ({ multiplierPercent: 100, boxChanceBasisPoints: 10000 })),
     }
     const random = createDivineGambaRandom(7)
-    for (let draw = 0; draw < 200; draw += 1) {
+    const drawn = new Set<string>()
+    for (let draw = 0; draw < 400; draw += 1) {
       const rarity = rollBox(machine, 0, random)
-      expect(rarity).toBe('epic')
+      expect(rarity).not.toBeNull()
       expect(BOX_RARITIES).toContain(rarity)
+      drawn.add(rarity ?? '')
     }
+    expect(drawn.has('legendary')).toBe(true)
+    expect(drawn.has('mythic')).toBe(false)
   })
 
   it('draws for a box once per ball whether or not the pocket can hold one', () => {

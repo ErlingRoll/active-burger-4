@@ -81,9 +81,30 @@ describe('Divine Gamba service', () => {
       p_ball_count: 3,
       p_stake: 1,
       p_modifier_ids: ['steady-hand'],
+      p_free: false,
     })
     expect(result).toMatchObject({ playId: 7, seed: 123, stakePrice: 20, essenceBalance: 940, wasProcessed: true })
     expect(result.machine.pockets).toHaveLength(9)
+  })
+
+  it('asks for the free drop by flag and reads back that nothing was charged', async () => {
+    const rpc = vi.fn(() => ({ ...begunPlay(), ball_count: 1, essence_spent: 0, free: true }))
+    const service = createService(fakeClient({ rpc }))
+    const result = await service.beginPlay('op-free', 1, 1, [], true)
+    expect(rpc).toHaveBeenCalledWith('begin_divine_gamba_play', expect.objectContaining({ p_free: true }))
+    expect(result.free).toBe(true)
+    expect(result.essenceSpent).toBe(0)
+  })
+
+  it('reads the free drop state', async () => {
+    const service = createService(fakeClient({
+      rpc: () => ({ available: false, resets_at: '2026-09-18T00:00:00+00:00', server_time: '2026-09-17T11:00:00+00:00' }),
+    }))
+    await expect(service.loadFreeDropState()).resolves.toEqual({
+      available: false,
+      resetsAt: '2026-09-18T00:00:00+00:00',
+      serverTime: '2026-09-17T11:00:00+00:00',
+    })
   })
 
   it('refuses an empty operation id and a bad ball count before calling', async () => {

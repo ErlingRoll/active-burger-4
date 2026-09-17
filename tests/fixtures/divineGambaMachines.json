@@ -8,7 +8,7 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
@@ -40,16 +40,17 @@
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 100,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 100,
       "effects": [],
@@ -69,7 +70,7 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
@@ -101,16 +102,17 @@
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 100,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 100,
       "effects": [],
@@ -132,7 +134,7 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
@@ -164,16 +166,17 @@
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 100,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 135,
       "effects": [
@@ -200,7 +203,7 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
@@ -232,16 +235,17 @@
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 105,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 100,
       "effects": [],
@@ -266,11 +270,11 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 120,
@@ -294,20 +298,21 @@
         },
         {
           "multiplierPercent": 300,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 100,
-      "boxChanceScalePercent": 150,
+      "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 450,
+        "rare": 180,
+        "epic": 43,
+        "legendary": 1
       },
       "pricePercent": 110,
       "effects": [],
@@ -329,11 +334,11 @@
       "pockets": [
         {
           "multiplierPercent": 3000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 600,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 200,
@@ -365,20 +370,21 @@
         },
         {
           "multiplierPercent": 600,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 3000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 105,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 100,
       "effects": [],
@@ -411,11 +417,11 @@
       "pockets": [
         {
           "multiplierPercent": 3000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 600,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 200,
@@ -447,20 +453,21 @@
         },
         {
           "multiplierPercent": 600,
-          "boxChanceBasisPoints": 0
+          "boxChanceBasisPoints": 2500
         },
         {
           "multiplierPercent": 3000,
-          "boxChanceBasisPoints": 6000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 105,
-      "boxChanceScalePercent": 150,
+      "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 450,
+        "rare": 180,
+        "epic": 43,
+        "legendary": 1
       },
       "pricePercent": 175,
       "effects": [
@@ -500,7 +507,7 @@
       "pockets": [
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         },
         {
           "multiplierPercent": 300,
@@ -532,16 +539,17 @@
         },
         {
           "multiplierPercent": 1000,
-          "boxChanceBasisPoints": 4000
+          "boxChanceBasisPoints": 10000
         }
       ],
       "multiplierScalePercent": 105,
       "boxChanceScalePercent": 100,
       "boxRarityWeights": {
-        "common": 55,
-        "uncommon": 30,
-        "rare": 12,
-        "epic": 3
+        "common": 550,
+        "uncommon": 300,
+        "rare": 120,
+        "epic": 29,
+        "legendary": 1
       },
       "pricePercent": 100,
       "effects": [],

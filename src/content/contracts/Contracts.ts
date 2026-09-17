@@ -38,6 +38,9 @@ export type ContractObjective =
   | 'upgrade-buildings'
   | 'cure-fish'
   | 'reforge-artifacts'
+  | 'drop-gamba-balls'
+  | 'land-gamba-jackpot'
+  | 'win-gamba-boxes'
 
 export interface ContractParameter {
   /** For `catch-fish`: only catches at or above this rarity count. */
@@ -637,6 +640,42 @@ export const CONTRACT_DEFINITIONS = {
     requiresBuildingId: 'forge',
     sortOrder: 109,
   },
+  'daily-gamba-drop': {
+    id: 'daily-gamba-drop',
+    name: 'Feed the machine',
+    cadence: 'daily',
+    objective: 'drop-gamba-balls',
+    target: 40,
+    parameter: {},
+    reward: [{ definitionId: 'rift-shard', quantity: 2 }, { definitionId: 'stone', quantity: 12 }],
+    requiresChampion: false,
+    requiresBuildingId: null,
+    sortOrder: 110,
+  },
+  'daily-gamba-jackpot': {
+    id: 'daily-gamba-jackpot',
+    name: 'The far pocket',
+    cadence: 'daily',
+    objective: 'land-gamba-jackpot',
+    target: 1,
+    parameter: {},
+    reward: [{ definitionId: 'rift-shard', quantity: 3 }],
+    requiresChampion: false,
+    requiresBuildingId: null,
+    sortOrder: 111,
+  },
+  'weekly-gamba-boxes': {
+    id: 'weekly-gamba-boxes',
+    name: 'What the machine gives',
+    cadence: 'weekly',
+    objective: 'win-gamba-boxes',
+    target: 3,
+    parameter: {},
+    reward: [{ definitionId: 'loot-box-rare', quantity: 1 }, { definitionId: 'rift-shard', quantity: 6 }],
+    requiresChampion: false,
+    requiresBuildingId: null,
+    sortOrder: 112,
+  },
 } as const satisfies Record<string, ContractDefinition>
 
 export type ContractDefinitionId = keyof typeof CONTRACT_DEFINITIONS
@@ -716,6 +755,14 @@ export function describeContractObjective(definition: ContractDefinition): strin
       return target === 1 ? 'Cure a fish at the Smokehouse' : `Cure ${plural(target, 'fish', 'fish')} at the Smokehouse`
     case 'reforge-artifacts':
       return target === 1 ? 'Strike an artifact at the Forge' : `Strike ${plural(target, 'artifact')} at the Forge`
+    case 'drop-gamba-balls':
+      return `Drop ${plural(target, 'ball')} through the Divine Gamba`
+    case 'land-gamba-jackpot':
+      return target === 1
+        ? 'Land a ball in a jackpot pocket of the Divine Gamba'
+        : `Land ${plural(target, 'ball')} in the jackpot pockets of the Divine Gamba`
+    case 'win-gamba-boxes':
+      return `Win ${plural(target, 'loot box', 'loot boxes')} from the Divine Gamba`
   }
 }
 
@@ -745,6 +792,10 @@ export function describeContractPlace(objective: ContractObjective): string {
     case 'reforge-artifacts':
     case 'upgrade-buildings':
       return 'The Camp'
+    case 'drop-gamba-balls':
+    case 'land-gamba-jackpot':
+    case 'win-gamba-boxes':
+      return 'The Divine Gamba'
   }
 }
 

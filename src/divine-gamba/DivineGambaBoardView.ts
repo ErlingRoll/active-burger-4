@@ -29,6 +29,9 @@ export interface DivineGambaBoardFrame {
   finished: boolean
 }
 
+/** What the board would like heard, in the order it happened this frame. */
+export type DivineGambaBoardSound = 'peg' | 'land' | 'land-good' | 'jackpot'
+
 const LAUNCH_GAP_MS = 110
 const PLAYBACK_SPEED = 1.6
 const FLASH_MS = 520
@@ -47,10 +50,13 @@ const FALLBACK = {
 interface ScheduledBall {
   index: number
   frames: number[]
+  hits: number[]
   startMs: number
   pocketIndex: number
   boxRarity: string | null
   landedAt: number | null
+  /** The playback tick at the previous render, for finding the hits passed since. */
+  lastTick: number
 }
 
 interface Palette {
@@ -73,11 +79,13 @@ export class DivineGambaBoardView {
   private height = 0
   private ratio = 1
   private palette: Palette
+  private readonly onSound: ((sound: DivineGambaBoardSound) => void) | null
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, onSound: ((sound: DivineGambaBoardSound) => void) | null = null) {
     this.canvas = canvas
     this.context = canvas.getContext('2d')
     this.palette = this.readPalette()
+    this.onSound = onSound
   }
 
   setMachine(config: DivineGambaMachineConfig): void {
@@ -98,10 +106,12 @@ export class DivineGambaBoardView {
       scheduled.set(ball.ballIndex, {
         index: ball.ballIndex,
         frames: ball.frames ?? [],
+        hits: ball.hits ?? [],
         startMs: drop.startedAt + order * LAUNCH_GAP_MS,
         pocketIndex: ball.pocketIndex,
         boxRarity: ball.boxRarity,
         landedAt: null,
+        lastTick: -1,
       })
     }
     for (const ball of drop.outcome.balls) {
@@ -124,10 +134,12 @@ export class DivineGambaBoardView {
       scheduled.set(ball.ballIndex, {
         index: ball.ballIndex,
         frames,
+        hits: ball.hits ?? [],
         startMs: (parent?.startMs ?? drop.startedAt) + splitTick / TICKS_PER_SECOND * 1000 / PLAYBACK_SPEED,
         pocketIndex: ball.pocketIndex,
         boxRarity: ball.boxRarity,
         landedAt: null,
+        lastTick: -1,
       })
     }
     this.balls = [...scheduled.values()]
@@ -144,17 +156,43 @@ export class DivineGambaBoardView {
   /** Draws the board at `nowMs` and reports the animation's progress. */
   render(nowMs: number): DivineGambaBoardFrame {
     let landed = 0
+    let pegSounds = 0
     for (const ball of this.balls) {
       const tick = this.tickAt(ball, nowMs)
+      // A peg struck between the last frame and this one is a tick; a few
+      // balls striking in the same frame are still one tick, the cue's own
+      // cooldown keeps the rest apart.
+      if (ball.landedAt === null && ball.lastTick >= 0 && pegSounds < 3) {
+        for (const hit of ball.hits) {
+          if (hit > ball.lastTick && hit <= tick) {
+            pegSounds += 1
+            this.onSound?.('peg')
+            break
+          }
+        }
+      }
+      ball.lastTick = tick
       if (tick >= ball.frames.length / 2 - 1 && ball.frames.length > 0) {
         if (ball.landedAt === null) {
           ball.landedAt = nowMs
+          this.onSound?.(this.landingSound(ball))
         }
         landed += 1
       }
     }
     this.draw(nowMs)
     return { landed, finished: this.balls.length > 0 && landed === this.balls.length }
+  }
+
+  private landingSound(ball: ScheduledBall): DivineGambaBoardSound {
+    const pocket = this.config?.pockets[ball.pocketIndex]
+    const multiplier = pocket === undefined || this.config === null
+      ? 0
+      : pocket.multiplierPercent * this.config.multiplierScalePercent / 10000
+    if (multiplier >= 10) {
+      return 'jackpot'
+    }
+    return multiplier >= 1 ? 'land-good' : 'land'
   }
 
   /** Lands everything at once, for a skipped or motion-reduced drop. */

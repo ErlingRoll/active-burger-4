@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { DivineGambaBoardView, type DivineGambaBoardDrop } from './DivineGambaBoardView'
+import { playSound } from '../audio/SoundEffects'
+import type { SoundCueId } from '../audio/SoundCues'
+import {
+  DivineGambaBoardView,
+  type DivineGambaBoardDrop,
+  type DivineGambaBoardSound,
+} from './DivineGambaBoardView'
 import type { DivineGambaMachineConfig } from './sim'
 
 interface DivineGambaBoardProps {
@@ -11,6 +17,17 @@ interface DivineGambaBoardProps {
   skipped: boolean
   onLanded: (landedBalls: number) => void
   onFinished: () => void
+}
+
+const BOARD_CUES: Readonly<Record<DivineGambaBoardSound, SoundCueId>> = {
+  peg: 'gamba-peg',
+  land: 'gamba-land',
+  'land-good': 'gamba-land-good',
+  jackpot: 'gamba-jackpot',
+}
+
+function playBoardSound(sound: DivineGambaBoardSound): void {
+  playSound(BOARD_CUES[sound])
 }
 
 /**
@@ -43,7 +60,7 @@ export function DivineGambaBoard({
     if (canvas === null) {
       return
     }
-    const view = new DivineGambaBoardView(canvas)
+    const view = new DivineGambaBoardView(canvas, playBoardSound)
     viewRef.current = view
     const fit = (): void => {
       const parent = canvas.parentElement

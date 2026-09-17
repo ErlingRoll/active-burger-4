@@ -33,7 +33,17 @@ export interface DivineGambaBeginResult {
   machine: DivineGambaPlayMachine
   essenceSpent: number
   essenceBalance: number
+  /** True for the day's free drop: nothing was charged. */
+  free: boolean
   wasProcessed: boolean
+}
+
+/** Whether today's free drop is still to be had, and when the next one comes. */
+export interface DivineGambaFreeDropState {
+  available: boolean
+  /** When the next free drop unlocks: midnight UTC. */
+  resetsAt: string
+  serverTime: string
 }
 
 export interface DivineGambaPendingPlay {
@@ -84,6 +94,7 @@ export interface DivineGambaService {
   loadOwnedParts(): Promise<DivineGambaOwnedPart[]>
   /** Plays that were paid for and never settled, oldest first. */
   loadPendingPlays(): Promise<DivineGambaPendingPlay[]>
+  loadFreeDropState(): Promise<DivineGambaFreeDropState>
   /**
    * Pays for a play and returns what the simulation needs to run it.
    *
@@ -95,6 +106,8 @@ export interface DivineGambaService {
     ballCount: number,
     stake: number,
     modifierIds: readonly string[],
+    /** Ask for the day's free drop: one ball, base stake, no modifiers, nothing charged. */
+    free?: boolean,
   ): Promise<DivineGambaBeginResult>
   /**
    * Asks the house to run the play and pay it.

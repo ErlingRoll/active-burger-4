@@ -139,6 +139,9 @@ made after the period reads the same bounds the board did. Claims go through
 | `upgrade-buildings` | Camp buildings raised | `inventory_operations` of type `camp-upgrade` |
 | `cure-fish` | Fish cured at the Smokehouse | `inventory_operations` of type `camp-cure` |
 | `reforge-artifacts` | Strikes made at the Forge | `inventory_operations` of type `camp-forge` (and `camp-reforge`, the type the Forge wrote before it was reworked; the objective id kept its name) |
+| `drop-gamba-balls` | Balls paid for at the Divine Gamba, free drops included | `divine_gamba_plays` settled in the window, summing `ball_count` |
+| `land-gamba-jackpot` | Balls that reached a jackpot pocket | `divine_gamba_play_balls` of settled plays in the window, in pocket 0 or the last |
+| `win-gamba-boxes` | Boxes the Gamba dropped | `divine_gamba_play_balls` of settled plays in the window with a `box_rarity` |
 
 Each is one branch of `contract_progress(profile, definition, window)`. The
 TypeScript registry in `src/content/contracts/Contracts.ts` mirrors the

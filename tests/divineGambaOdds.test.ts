@@ -69,6 +69,7 @@ interface Measurement {
   returnToPlayer: number
   boxChancePerBall: number
   epicChancePerBall: number
+  legendaryChancePerBall: number
   /** Essence returned per paid ball, one entry per ball, for resampling plays. */
   returns: number[]
   pricePerBall: number
@@ -82,6 +83,7 @@ function measure(loadout: Loadout, stake: number): Measurement {
   const returns: number[] = []
   let boxes = 0
   let epics = 0
+  let legendaries = 0
   let paid = 0
   for (let seed = 1; paid < BALLS_PER_LOADOUT; seed += 1) {
     const outcome = simulatePlay({ seed: (seed * 2654435761) >>> 0, machine, ballCount: 20, stakePrice })
@@ -94,6 +96,8 @@ function measure(loadout: Loadout, stake: number): Measurement {
         boxes += 1
         if (ball.boxRarity === 'epic') {
           epics += 1
+        } else if (ball.boxRarity === 'legendary') {
+          legendaries += 1
         }
       }
     }
@@ -105,6 +109,7 @@ function measure(loadout: Loadout, stake: number): Measurement {
     returnToPlayer: total / (paid * pricePerBall),
     boxChancePerBall: boxes / paid,
     epicChancePerBall: epics / paid,
+    legendaryChancePerBall: legendaries / paid,
     returns,
     pricePerBall,
   }
@@ -160,14 +165,17 @@ describe('the house rules', () => {
   it.each(measured.map(({ loadout, measurement }) => [loadout.name, measurement] as const))(
     'keeps boxes rare with %s',
     (_name, measurement) => {
-      expect(measurement.boxChancePerBall).toBeLessThan(0.015)
-      expect(measurement.epicChancePerBall).toBeLessThan(0.001)
+      // A jackpot always carries a box, so boxes are as rare as jackpots:
+      // under one ball in twenty however the machine is fitted.
+      expect(measurement.boxChancePerBall).toBeLessThan(0.05)
+      expect(measurement.epicChancePerBall).toBeLessThan(0.003)
+      expect(measurement.legendaryChancePerBall).toBeLessThan(0.0002)
     },
   )
 
-  it('keeps a bare machine\'s boxes under half a percent per ball', () => {
+  it('keeps a bare machine\'s boxes to about one ball in a hundred', () => {
     const bare = measured.find(({ loadout }) => loadout.name === 'bare')
-    expect(bare?.measurement.boxChancePerBall).toBeLessThan(0.005)
+    expect(bare?.measurement.boxChancePerBall).toBeLessThan(0.015)
   })
 
   it('scales a higher stake linearly, so the rules hold at every tier', () => {

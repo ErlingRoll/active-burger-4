@@ -33,15 +33,15 @@ export function pocketBoxChanceBasisPoints(
 }
 
 /** The rarities a box can be, in the order the weights are walked. */
-export const BOX_RARITIES = ['common', 'uncommon', 'rare', 'epic'] as const
+export const BOX_RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const
 
 /**
  * Rolls whether a landed ball brings a box and, if so, which rarity.
  *
  * Always draws once for the box so every ball uses its stream the same way
  * whatever pocket it fell into; draws a second time only when a box is due.
- * The weights are walked in `BOX_RARITIES` order, so a weight table that names
- * a rarity above epic can never be chosen: the roll stops at epic.
+ * The weights are walked in `BOX_RARITIES` order; a rarity the table does not
+ * name has no weight and is never drawn.
  */
 export function rollBox(
   machine: DivineGambaMachineConfig,

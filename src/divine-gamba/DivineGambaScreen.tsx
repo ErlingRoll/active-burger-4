@@ -5,7 +5,9 @@ import { MaterialIcon } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from '../loot/LootBoxIcon'
 import { EssenceAmount } from '../ui/EssenceMark'
 import { useToaster } from '../ui/ToasterContext'
+import { useNow } from '../ui/useNow'
 import { DivineGambaBoard } from './DivineGambaBoard'
+import { DivineGambaCaseReveal } from './DivineGambaCaseReveal'
 import { formatMultiplier } from './DivineGambaBoardView'
 import {
   DIVINE_GAMBA_KICKER,
@@ -22,7 +24,7 @@ import {
   type DivineGambaPartDefinition,
 } from './DivineGambaRegistry'
 import { DivineGambaStorePanel } from './DivineGambaStorePanel'
-import type { DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
+import type { DivineGambaFreeDropState, DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
 import { BOX_RARITIES } from './sim'
 import { useDivineGambaPlay } from './useDivineGambaPlay'
 
@@ -124,6 +126,7 @@ export function DivineGambaScreen({
   const [ballCount, setBallCount] = useState<number>(() => readStored(BALL_COUNT_KEY, 5, isBallCount))
   const [stake, setStake] = useState(1)
   const [shardBalance, setShardBalance] = useState(0)
+  const [freeDrop, setFreeDrop] = useState<DivineGambaFreeDropState | null>(null)
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
     () => divineGambaService ? 'loading' : 'error',
   )
@@ -133,6 +136,19 @@ export function DivineGambaScreen({
   const [busyPartId, setBusyPartId] = useState<string | null>(null)
   const [skipped, setSkipped] = useState(false)
   const reducedMotion = useMemo(() => prefersReducedMotion(), [])
+  const now = useNow()
+
+  const refreshFreeDrop = useCallback(async (): Promise<void> => {
+    if (!divineGambaService) {
+      return
+    }
+    try {
+      setFreeDrop(await divineGambaService.loadFreeDropState())
+    } catch {
+      // Without the state the button simply does not offer the free drop.
+      setFreeDrop(null)
+    }
+  }, [divineGambaService])
 
   const announceSettlement = useCallback((settlement: DivineGambaSettleResult): void => {
     for (const ball of settlement.balls) {
@@ -146,7 +162,8 @@ export function DivineGambaScreen({
       }
     }
     onEssenceChanged()
-  }, [showLootToast, onEssenceChanged])
+    void refreshFreeDrop()
+  }, [showLootToast, onEssenceChanged, refreshFreeDrop])
 
   const play = useDivineGambaPlay(divineGambaService, announceSettlement)
   const { resumePending } = play
@@ -179,7 +196,7 @@ export function DivineGambaScreen({
     let cancelled = false
     void (async () => {
       try {
-        const [owned] = await Promise.all([divineGambaService.loadOwnedParts(), refreshShards()])
+        const [owned] = await Promise.all([divineGambaService.loadOwnedParts(), refreshShards(), refreshFreeDrop()])
         if (cancelled) {
           return
         }
@@ -204,7 +221,7 @@ export function DivineGambaScreen({
     return () => {
       cancelled = true
     }
-  }, [divineGambaService, refreshShards, resumePending, showToast, announceSettlement])
+  }, [divineGambaService, refreshShards, refreshFreeDrop, resumePending, showToast, announceSettlement])
 
   const machine = useMemo(
     () => resolveDivineGambaMachine([...ownedPartIds], [...enabledModifierIds]),
@@ -272,6 +289,29 @@ export function DivineGambaScreen({
     await play.launch(ballCount, effectiveStake, [...enabledModifierIds].filter((id) => ownedPartIds.has(id)))
   }
 
+  /** The day's free drop: one ball, base stake, no modifiers, nothing charged. */
+  const launchFree = async (): Promise<void> => {
+    if (play.isBusy || freeDrop === null || !freeDrop.available) {
+      return
+    }
+    setSkipped(false)
+    setFreeDrop({ ...freeDrop, available: false })
+    await play.launch(1, 1, [], true)
+  }
+
+  const freeDropReturnsIn = ((): string | null => {
+    if (freeDrop === null || freeDrop.available) {
+      return null
+    }
+    const remaining = Date.parse(freeDrop.resetsAt) - now
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      return 'soon'
+    }
+    const hours = Math.floor(remaining / 3600000)
+    const minutes = Math.floor((remaining % 3600000) / 60000)
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+  })()
+
   const buy = async (definition: DivineGambaPartDefinition): Promise<void> => {
     if (!divineGambaService || busyPartId !== null) {
       return
@@ -305,9 +345,21 @@ export function DivineGambaScreen({
   const boxesSoFar = shownBalls.filter((ball) => ball.boxRarity !== null).length
   const spent = session?.drop?.play.essenceSpent ?? 0
   const totalBalls = session?.drop?.outcome.balls.length ?? 0
+  const revealBoxes = drop === null ? [] : drop.outcome.balls
+    .filter((ball) => ball.boxRarity !== null)
+    .map((ball) => ({ ballIndex: ball.ballIndex, rarity: ball.boxRarity ?? 'common' }))
 
   return (
     <section className="app-screen divine-gamba-screen" aria-labelledby="divine-gamba-title">
+      {session?.phase === 'revealing' && drop !== null && revealBoxes.length > 0 ? (
+        <DivineGambaCaseReveal
+          boxes={revealBoxes}
+          seed={drop.play.seed}
+          weights={drop.play.machine.boxRarityWeights}
+          reducedMotion={reducedMotion}
+          onDone={play.finishReveal}
+        />
+      ) : null}
       <div className="app-screen-frame">
         <div className="app-screen-topbar">
           <button className="app-screen-back" type="button" onClick={onBack}>
@@ -390,6 +442,19 @@ export function DivineGambaScreen({
                   ))}
                 </div>
                 <div className="divine-gamba-launch">
+                  {freeDrop !== null ? (
+                    <span className="divine-gamba-free">
+                      <button
+                        type="button"
+                        className="secondary-action divine-gamba-free-action"
+                        disabled={play.isBusy || !freeDrop.available || divineGambaService === null}
+                        onClick={() => { void launchFree() }}
+                      >
+                        Free drop
+                      </button>
+                      <small>{freeDrop.available ? 'One ball a day, on the house' : `Back in ${freeDropReturnsIn ?? 'a while'}`}</small>
+                    </span>
+                  ) : null}
                   <span className="divine-gamba-cost">
                     <span className="divine-gamba-control-label">Cost</span>
                     <EssenceAmount value={cost} />
@@ -425,6 +490,8 @@ export function DivineGambaScreen({
                         </span>
                       ) : session.phase === 'settling' ? (
                         <span><small>House</small><strong>Settling…</strong></span>
+                      ) : session.phase === 'revealing' ? (
+                        <span><small>Boxes</small><strong>Opening…</strong></span>
                       ) : null}
                     </>
                   )}

@@ -32,10 +32,12 @@ sell, and a new part that breaks either fails the build.
    drop can still win ten times its stake. The median drop loses.
 
 By construction, only the outer pockets pay above the ball price, and they
-hold under a third of landings. The centre pays a fraction. Boxes fall only
-from the outermost two pockets, at well under one percent per ball on a
-bare machine and under one and a half percent however it is fitted, with
-rarity weights that stop at epic. Nothing the machine pays is combat power.
+hold under a third of landings. The centre pays a fraction. A jackpot pocket
+always drops a box beside its payout, so boxes are exactly as rare as
+jackpots: about one ball in a hundred on a bare machine and under one in
+twenty however it is fitted. The lined pockets beside the jackpots can drop
+one too. A box's rarity is drawn from weights in tenths of a percent, and a
+legendary box is one in a thousand. Nothing the machine pays is combat power.
 
 ## How a drop works
 
@@ -99,6 +101,36 @@ bit. The rules that make that true:
 Recording the frames for the animation never changes the outcome; the
 server does not record them.
 
+## Sound and the reveal
+
+The simulation records the tick of every peg strike beside the frames, so
+the board plays a tick per strike as the balls fall, a thump or a chord as
+each lands by what its pocket pays, and a fanfare for a jackpot. A box that
+fell is opened before the tally settles: a reel of boxes runs past a marker
+and slows onto the one the ball rolled, ticking as tiles pass. The reel is
+theatre and honest theatre: the rarity was decided by the simulation before
+it starts, and the cosmetic tiles are drawn from the play's seed by the
+machine's own weights, so a replay spins the same reel. Reduced motion
+skips the spin and shows the box.
+
+## The free drop
+
+One ball a day on the house: the base stake, no modifiers, nothing charged.
+It is an ordinary play in every other way, simulated, settled and paid like
+a paid one, so a jackpot from a free ball drops its box like any other. The
+day is the UTC calendar day, remembered on the play, and a unique index
+refuses a second ask however two tabs time it. There is no streak and
+nothing is lost by missing a day, which is what the contracts document asks
+of anything that rewards a visit.
+
+## Contracts
+
+Three contracts credit the machine from the plays and balls the settlement
+records: balls dropped, balls landed in a jackpot pocket, and boxes won. A
+free drop counts like a paid one. They pay rift shards and a box, the two
+things the machine itself asks for; see
+[contracts_delivery_plan.md](contracts_delivery_plan.md).
+
 ## The Shardwright
 
 Parts and modifiers are per-account unlocks bought with Essence from the
@@ -125,7 +157,8 @@ why the Abyss pays them.
 
 Written into the resource graph in [economy.md](economy.md): the Gamba
 consumes Essence per ball, and Essence and rift shards for parts; it
-produces Essence, less than it takes, and boxes up to epic, rarely. It
+produces Essence, less than it takes, and boxes as often as jackpots land, a
+legendary one in a thousand. It
 creates Essence from nothing on a lucky drop, which rule five of the economy
 forbids of a system in general; it is allowed here because the return is
 below one by test, so the machine destroys Essence in expectation, and
@@ -138,6 +171,7 @@ because the box faucet is capped by the same test. Automation loses money.
 - The seed is never derived from anything the client sends.
 - The machine a play was paid for is frozen on the play; a part bought while
   balls are falling changes the next drop, not this one.
-- Boxes stop at epic, by the rarity weights, by the roll that walks them,
-  and by the column constraint on the ball rows.
+- A box is one of the five rarities, by the weights, by the roll that walks
+  them, and by the column constraint on the ball rows; legendary is one in a
+  thousand by the weights the registry test pins.
 - No timer punishes absence. A pending play waits as long as it takes.

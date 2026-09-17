@@ -110,6 +110,19 @@
   justify-content: flex-end;
 }
 
+.divine-gamba-free {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: flex-start;
+  margin-right: auto;
+}
+
+.divine-gamba-free small {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+}
+
 .divine-gamba-cost {
   display: flex;
   flex-direction: column;
@@ -382,4 +395,120 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+}
+
+/*
+ * The reveal.
+ *
+ * A reel of boxes runs past a marker and slows onto the one that fell. The
+ * tile pitch, 6rem wide plus 0.5rem gap at 16px, is the 104px the component
+ * counts in; change both together.
+ */
+.divine-gamba-reveal {
+  /* Portalled to the body, outside the screen's accent scope: the violet is restated. */
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 72%);
+}
+
+.divine-gamba-reveal-card {
+  display: grid;
+  gap: clamp(0.6rem, 1.8vh, 1.1rem);
+  justify-items: center;
+  width: min(92vw, 46rem);
+  padding: clamp(0.8rem, 2.4vh, 1.4rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 14%), transparent 50%),
+    var(--scene-night);
+  border: 1px solid rgb(var(--accent-rgb) / 40%);
+  border-radius: 0.9rem;
+  box-shadow: 0 1.2rem 3rem rgb(0 0 0 / 60%);
+}
+
+.divine-gamba-reel-window {
+  position: relative;
+  width: 100%;
+  height: 7.6rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.6rem;
+  background: rgb(0 0 0 / 40%);
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
+.divine-gamba-reel-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 1;
+  width: 2px;
+  background: var(--accent-contrast);
+  box-shadow: 0 0 0.6rem rgb(var(--accent-bright-rgb) / 80%);
+  transform: translateX(-50%);
+}
+
+.divine-gamba-reel {
+  display: flex;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0.5rem 0;
+  will-change: transform;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.08, 0.82, 0.16, 1);
+}
+
+.divine-gamba-reel-tile {
+  display: grid;
+  flex: 0 0 6rem;
+  place-items: center;
+  width: 6rem;
+  height: 100%;
+  background: rgb(var(--accent-rgb) / 8%);
+  border: 1px solid var(--tile-color);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 1.2rem rgb(0 0 0 / 40%);
+}
+
+.divine-gamba-reel-tile .loot-box-icon {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.divine-gamba-reveal[data-phase='revealed'] .divine-gamba-reel-tile[data-winner='true'] {
+  box-shadow: 0 0 1.4rem var(--tile-color), inset 0 0 1.2rem rgb(0 0 0 / 40%);
+}
+
+.divine-gamba-reveal-result {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 3rem;
+  color: var(--text-muted);
+  font-size: clamp(0.9rem, 2.2vh, 1.15rem);
+}
+
+.divine-gamba-reveal-result .loot-box-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.divine-gamba-reveal[data-phase='revealed'] .divine-gamba-reveal-result strong {
+  text-shadow: 0 0 0.8rem var(--reveal-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .divine-gamba-reel {
+    transition: none;
+  }
 }

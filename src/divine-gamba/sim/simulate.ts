@@ -98,6 +98,7 @@ function drop(
   onSplit: ((child: Ball) => void) | null,
 ): DivineGambaBallOutcome {
   const frames: number[] | undefined = input.recordFrames ? [] : undefined
+  const hits: number[] | undefined = input.recordFrames ? [] : undefined
   const splitRow = machine.split !== null && onSplit !== null ? machine.split.row : -1
   const splitY = splitRow >= 0 ? rowY(splitRow) : Number.POSITIVE_INFINITY
   let splitRolled = false
@@ -126,7 +127,9 @@ function drop(
       }
     }
     // Pegs in the rows the ball could be touching.
-    collide(machine, ball, random)
+    if (collide(machine, ball, random) && hits !== undefined) {
+      hits.push(tick)
+    }
     // A split happens once, the first time the ball passes its row.
     if (!splitRolled && ball.y >= splitY && machine.split !== null && onSplit !== null) {
       splitRolled = true
@@ -150,10 +153,13 @@ function drop(
     essenceWon: pocketPayout(input.machine, pocketIndex, input.stakePrice),
     boxRarity,
     ...(frames === undefined ? {} : { frames }),
+    ...(hits === undefined ? {} : { hits }),
   }
 }
 
-function collide(machine: DivineGambaMachine, ball: Ball, random: DivineGambaRandom): void {
+/** Resolves every peg the ball overlaps. Returns whether any hit was an impact rather than a rest. */
+function collide(machine: DivineGambaMachine, ball: Ball, random: DivineGambaRandom): boolean {
+  let struck = false
   const reach = machine.ballRadius + machine.pegRadius
   const lowest = Math.floor((ball.y - reach - rowY(0)) + 1)
   const highest = Math.floor((ball.y + reach - rowY(0)) + 1)
@@ -193,6 +199,11 @@ function collide(machine: DivineGambaMachine, ball: Ball, random: DivineGambaRan
       ball.y = peg.y + ny * reach
       const approach = ball.vx * nx + ball.vy * ny
       if (approach < 0) {
+        // Only a real impact counts as a strike; a ball resting on a peg is
+        // resolved every tick and would otherwise sound like a drum roll.
+        if (approach < -1.5) {
+          struck = true
+        }
         ball.vx = (ball.vx - (1 + RESTITUTION) * approach * nx) * HIT_DAMPING
         ball.vy -= (1 + RESTITUTION) * approach * ny
         // A scattering board nudges outward on every hit, never in the
@@ -211,6 +222,7 @@ function collide(machine: DivineGambaMachine, ball: Ball, random: DivineGambaRan
       ball.vy += nx * nudge
     }
   }
+  return struck
 }
 
 function pocketUnder(machine: DivineGambaMachine, x: number): number {

@@ -655,7 +655,7 @@
   },
   {
     "name": "a-box-lands",
-    "seed": 1015,
+    "seed": 1004,
     "ownedPartIds": [
       "jackpot-pocket",
       "lucky-lining"
@@ -673,24 +673,24 @@
         {
           "ballIndex": 0,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 395,
+          "pocketIndex": 5,
+          "landedTick": 392,
           "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 1,
           "parentIndex": null,
-          "pocketIndex": 4,
-          "landedTick": 374,
-          "essenceWon": 6,
+          "pocketIndex": 5,
+          "landedTick": 476,
+          "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 2,
           "parentIndex": null,
           "pocketIndex": 3,
-          "landedTick": 374,
+          "landedTick": 392,
           "essenceWon": 12,
           "boxRarity": null
         },
@@ -698,15 +698,15 @@
           "ballIndex": 3,
           "parentIndex": null,
           "pocketIndex": 4,
-          "landedTick": 467,
+          "landedTick": 362,
           "essenceWon": 6,
           "boxRarity": null
         },
         {
           "ballIndex": 4,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 402,
+          "pocketIndex": 5,
+          "landedTick": 430,
           "essenceWon": 12,
           "boxRarity": null
         },
@@ -714,124 +714,124 @@
           "ballIndex": 5,
           "parentIndex": null,
           "pocketIndex": 4,
-          "landedTick": 395,
+          "landedTick": 391,
           "essenceWon": 6,
           "boxRarity": null
         },
         {
           "ballIndex": 6,
           "parentIndex": null,
-          "pocketIndex": 2,
-          "landedTick": 351,
-          "essenceWon": 24,
+          "pocketIndex": 4,
+          "landedTick": 378,
+          "essenceWon": 6,
           "boxRarity": null
         },
         {
           "ballIndex": 7,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 368,
+          "pocketIndex": 5,
+          "landedTick": 335,
           "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 8,
           "parentIndex": null,
-          "pocketIndex": 4,
-          "landedTick": 347,
-          "essenceWon": 6,
+          "pocketIndex": 3,
+          "landedTick": 378,
+          "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 9,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 387,
+          "pocketIndex": 5,
+          "landedTick": 414,
           "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 10,
           "parentIndex": null,
-          "pocketIndex": 4,
-          "landedTick": 336,
-          "essenceWon": 6,
-          "boxRarity": null
+          "pocketIndex": 7,
+          "landedTick": 322,
+          "essenceWon": 60,
+          "boxRarity": "rare"
         },
         {
           "ballIndex": 11,
           "parentIndex": null,
-          "pocketIndex": 6,
-          "landedTick": 388,
-          "essenceWon": 24,
+          "pocketIndex": 3,
+          "landedTick": 253,
+          "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 12,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 446,
+          "pocketIndex": 5,
+          "landedTick": 398,
           "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 13,
           "parentIndex": null,
-          "pocketIndex": 8,
-          "landedTick": 460,
-          "essenceWon": 200,
-          "boxRarity": "common"
+          "pocketIndex": 5,
+          "landedTick": 434,
+          "essenceWon": 12,
+          "boxRarity": null
         },
         {
           "ballIndex": 14,
           "parentIndex": null,
-          "pocketIndex": 5,
-          "landedTick": 353,
-          "essenceWon": 12,
+          "pocketIndex": 4,
+          "landedTick": 405,
+          "essenceWon": 6,
           "boxRarity": null
         },
         {
           "ballIndex": 15,
           "parentIndex": null,
-          "pocketIndex": 3,
-          "landedTick": 341,
+          "pocketIndex": 5,
+          "landedTick": 344,
           "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 16,
           "parentIndex": null,
-          "pocketIndex": 2,
-          "landedTick": 385,
-          "essenceWon": 24,
+          "pocketIndex": 5,
+          "landedTick": 400,
+          "essenceWon": 12,
           "boxRarity": null
         },
         {
           "ballIndex": 17,
           "parentIndex": null,
-          "pocketIndex": 6,
-          "landedTick": 376,
+          "pocketIndex": 2,
+          "landedTick": 298,
           "essenceWon": 24,
           "boxRarity": null
         },
         {
           "ballIndex": 18,
           "parentIndex": null,
-          "pocketIndex": 7,
-          "landedTick": 384,
-          "essenceWon": 60,
+          "pocketIndex": 4,
+          "landedTick": 337,
+          "essenceWon": 6,
           "boxRarity": null
         },
         {
           "ballIndex": 19,
           "parentIndex": null,
           "pocketIndex": 4,
-          "landedTick": 430,
+          "landedTick": 306,
           "essenceWon": 6,
           "boxRarity": null
         }
       ],
-      "essenceWon": 488,
+      "essenceWon": 264,
       "boxCount": 1
     }
   }

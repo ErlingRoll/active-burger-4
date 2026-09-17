@@ -87,11 +87,24 @@ function nullable(field: string): string | null {
   return field === 'null' ? null : unquote(field)
 }
 
+/**
+ * Every seed statement upserts, so a later migration's row replaces an
+ * earlier one with the same key. The parsers below replay that: the last row
+ * for a key is the row in force.
+ */
+function latestByKey<TRow>(rows: TRow[], key: (row: TRow) => string): TRow[] {
+  const byKey = new Map<string, TRow>()
+  for (const row of rows) {
+    byKey.set(key(row), row)
+  }
+  return [...byKey.values()]
+}
+
 describe('the Divine Gamba settings', () => {
-  const [row] = seedRows(
+  const row = seedRows(
     'divine_gamba_settings',
     'id,\\s*base_ball_price,\\s*box_rarity_weights,\\s*sim_version',
-  ).map(fields)
+  ).map(fields).at(-1)
 
   it('prices a ball, weights the boxes and names the simulation the same as the registry', () => {
     const [, price, weights, version] = assertDefined(row)
@@ -100,26 +113,31 @@ describe('the Divine Gamba settings', () => {
     expect(Number(version)).toBe(SIM_VERSION)
   })
 
-  it('never names a rarity above epic, and names a box definition for every rarity it does', () => {
+  it('weights every rarity the roll walks, names a box for each, and keeps legendary to one in a thousand', () => {
     expect(Object.keys(DIVINE_GAMBA_BOX_RARITY_WEIGHTS).sort()).toEqual([...BOX_RARITIES].sort())
     for (const rarity of BOX_RARITIES) {
       expect(getInventoryItemDefinition(`loot-box-${rarity}`), rarity).toBeDefined()
     }
+    const total = Object.values(DIVINE_GAMBA_BOX_RARITY_WEIGHTS).reduce((sum, weight) => sum + weight, 0)
+    expect((DIVINE_GAMBA_BOX_RARITY_WEIGHTS.legendary ?? 0) / total).toBeCloseTo(0.001, 6)
   })
 })
 
 describe('the Divine Gamba pocket tables', () => {
-  const rows = seedRows(
-    'divine_gamba_pocket_tables',
-    'row_count,\\s*pocket_index,\\s*multiplier_percent,\\s*box_chance_basis_points',
+  const rows = latestByKey(
+    seedRows(
+      'divine_gamba_pocket_tables',
+      'row_count,\\s*pocket_index,\\s*multiplier_percent,\\s*box_chance_basis_points',
+    )
+      .map(fields)
+      .map(([rowCount, pocketIndex, multiplier, boxChance]) => ({
+        rowCount: Number(rowCount),
+        pocketIndex: Number(pocketIndex),
+        multiplierPercent: Number(multiplier),
+        boxChanceBasisPoints: Number(boxChance),
+      })),
+    (row) => `${row.rowCount}:${row.pocketIndex}`,
   )
-    .map(fields)
-    .map(([rowCount, pocketIndex, multiplier, boxChance]) => ({
-      rowCount: Number(rowCount),
-      pocketIndex: Number(pocketIndex),
-      multiplierPercent: Number(multiplier),
-      boxChanceBasisPoints: Number(boxChance),
-    }))
 
   it('lists exactly the pockets the server seeds, at the same multipliers and box chances', () => {
     const registry = Object.entries(DIVINE_GAMBA_POCKET_TABLES).flatMap(([rowCount, pockets]) =>
@@ -146,6 +164,8 @@ describe('the Divine Gamba pocket tables', () => {
       }
       const centre = assertDefined(pockets[Math.floor(pockets.length / 2)])
       expect(centre.multiplierPercent).toBeLessThan(100)
+      // A jackpot always carries a box.
+      expect(assertDefined(pockets[0]).boxChanceBasisPoints, `${rowCount}: outer`).toBe(10000)
     }
   })
 })
@@ -164,7 +184,7 @@ interface SeededPart {
 }
 
 describe('the Shardwright\'s shelf', () => {
-  const rows: SeededPart[] = seedRows(
+  const rows: SeededPart[] = latestByKey(seedRows(
     'divine_gamba_part_definitions',
     'id,\\s*kind,\\s*name,\\s*description,\\s*essence_cost,\\s*shard_cost,\\s*price_percent,\\s*requires_part_id,\\s*sort_order,\\s*effect',
   )
@@ -180,7 +200,7 @@ describe('the Shardwright\'s shelf', () => {
       requiresPartId: nullable(assertDefined(requires)),
       sortOrder: Number(sortOrder),
       effect: JSON.parse(unquote(assertDefined(effect))) as unknown,
-    }))
+    })), (row) => row.id)
 
   it('finds the seed rows in the migrations', () => {
     expect(rows.length).toBeGreaterThan(0)

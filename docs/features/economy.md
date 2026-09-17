@@ -58,7 +58,7 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Camp | Refined materials, meals, bait, capacity, exhaustion relief | Scrap, roe, rift shards, timber and stone, Champion labour |
 | Contracts | Materials, box keys, cosmetic unlocks | Nothing; it pays for play that is already happening |
 | Market | Nothing | Listing fees and time |
-| Divine Gamba | Essence, less than it takes; boxes up to Epic, rarely | Essence per ball; Essence and rift shards for parts |
+| Divine Gamba | Essence, less than it takes; a box with every jackpot, legendary one in a thousand | Essence per ball; Essence and rift shards for parts |
 
 The market row is deliberately empty on the left, for player listings. The
 consignment shop that shipped first is the exception that proves it: it creates

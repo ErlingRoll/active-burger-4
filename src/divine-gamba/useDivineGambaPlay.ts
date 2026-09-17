@@ -6,7 +6,7 @@ import type {
 } from './DivineGambaTypes'
 import { simulatePlay, type DivineGambaPlayOutcome } from './sim'
 
-export type DivineGambaPhase = 'charging' | 'dropping' | 'settling' | 'settled' | 'failed'
+export type DivineGambaPhase = 'charging' | 'dropping' | 'revealing' | 'settling' | 'settled' | 'failed'
 
 /** A play the browser is animating: what was paid for, and where its balls go. */
 export interface DivineGambaDrop {
@@ -29,11 +29,13 @@ export interface DivineGambaPlay {
   session: DivineGambaPlaySession | null
   /** True from the click until the drop is settled or has failed. */
   isBusy: boolean
-  launch: (ballCount: number, stake: number, modifierIds: readonly string[]) => Promise<void>
+  launch: (ballCount: number, stake: number, modifierIds: readonly string[], free?: boolean) => Promise<void>
   /** The board reports how many balls have landed. */
   markLanded: (landedBalls: number) => void
   /** The board reports the last ball has landed, or the player skipped. */
   finishDrop: () => void
+  /** The reveal reports every box has been opened. */
+  finishReveal: () => void
   dismiss: () => void
   /** Settles plays paid for earlier and never paid out. */
   resumePending: () => Promise<DivineGambaSettleResult[]>
@@ -65,6 +67,7 @@ export function useDivineGambaPlay(
   const operationIdRef = useRef<string | null>(null)
   const finishedRef = useRef(false)
   const settlementRef = useRef<DivineGambaSettleResult | null>(null)
+  const dropRef = useRef<DivineGambaDrop | null>(null)
   const onSettledRef = useRef(onSettled)
 
   useEffect(() => {
@@ -101,6 +104,7 @@ export function useDivineGambaPlay(
     ballCount: number,
     stake: number,
     modifierIds: readonly string[],
+    free = false,
   ): Promise<void> => {
     if (!service) {
       setSession({ phase: 'failed', drop: null, settlement: null, landedBalls: 0, error: 'The Divine Gamba is unavailable.' })
@@ -108,12 +112,13 @@ export function useDivineGambaPlay(
     }
     finishedRef.current = false
     settlementRef.current = null
+    dropRef.current = null
     setSession({ phase: 'charging', drop: null, settlement: null, landedBalls: 0, error: null })
     const operationId = operationIdRef.current ?? crypto.randomUUID()
     operationIdRef.current = operationId
     let play: DivineGambaBeginResult
     try {
-      play = await service.beginPlay(operationId, ballCount, stake, modifierIds)
+      play = await service.beginPlay(operationId, ballCount, stake, modifierIds, free)
     } catch (beginError: unknown) {
       if (isMountedRef.current) {
         setSession({
@@ -139,9 +144,11 @@ export function useDivineGambaPlay(
       stakePrice: play.stakePrice,
       recordFrames: true,
     })
+    const drop: DivineGambaDrop = { play, outcome, startedAt: performance.now() }
+    dropRef.current = drop
     setSession({
       phase: 'dropping',
-      drop: { play, outcome, startedAt: performance.now() },
+      drop,
       settlement: null,
       landedBalls: 0,
       error: null,
@@ -172,17 +179,29 @@ export function useDivineGambaPlay(
   }, [])
 
   const finishDrop = useCallback((): void => {
-    finishedRef.current = true
+    // A box that fell is opened before the house's numbers are shown, so
+    // the reveal is the last thing the player watches, not the tally.
+    const revealing = (dropRef.current?.outcome.balls ?? []).some((ball) => ball.boxRarity !== null)
     setSession((current) => {
       if (current === null || current.phase !== 'dropping') {
         return current
       }
       return {
         ...current,
-        phase: 'settling',
+        phase: revealing ? 'revealing' : 'settling',
         landedBalls: current.drop?.outcome.balls.length ?? current.landedBalls,
       }
     })
+    if (!revealing) {
+      finishedRef.current = true
+      settleIfDone()
+    }
+  }, [settleIfDone])
+
+  const finishReveal = useCallback((): void => {
+    finishedRef.current = true
+    setSession((current) =>
+      current === null || current.phase !== 'revealing' ? current : { ...current, phase: 'settling' })
     settleIfDone()
   }, [settleIfDone])
 
@@ -204,10 +223,12 @@ export function useDivineGambaPlay(
 
   return {
     session,
-    isBusy: session !== null && (session.phase === 'charging' || session.phase === 'dropping' || session.phase === 'settling'),
+    isBusy: session !== null && (session.phase === 'charging' || session.phase === 'dropping' ||
+      session.phase === 'revealing' || session.phase === 'settling'),
     launch,
     markLanded,
     finishDrop,
+    finishReveal,
     dismiss,
     resumePending,
   }

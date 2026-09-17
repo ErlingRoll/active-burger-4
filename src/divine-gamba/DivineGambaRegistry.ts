@@ -19,12 +19,16 @@ import type { DivineGambaEffect, DivineGambaMachineConfig, DivineGambaPocket } f
 
 export const DIVINE_GAMBA_BASE_BALL_PRICE = 20
 
-/** Relative weights by rarity. Never names legendary: the Gamba stops at epic. */
+/**
+ * Relative weights by rarity, in tenths of a percent: a legendary box is one
+ * in a thousand, and the rest share the other 999.
+ */
 export const DIVINE_GAMBA_BOX_RARITY_WEIGHTS: Readonly<Record<string, number>> = {
-  common: 55,
-  uncommon: 30,
-  rare: 12,
-  epic: 3,
+  common: 550,
+  uncommon: 300,
+  rare: 120,
+  epic: 29,
+  legendary: 1,
 }
 
 /**
@@ -32,12 +36,12 @@ export const DIVINE_GAMBA_BOX_RARITY_WEIGHTS: Readonly<Record<string, number>> =
  *
  * Only the outer pockets pay above the ball price, and together they hold
  * under a third of landings, which is what makes a single ball a losing bet
- * more often than not. The outermost two are the only ones that can carry a
- * box.
+ * more often than not. The outermost two always carry a box as well as their
+ * payout; a ball that reaches one is the rarest thing the machine does.
  */
 export const DIVINE_GAMBA_POCKET_TABLES: Readonly<Record<number, readonly DivineGambaPocket[]>> = {
   8: [
-    { multiplierPercent: 1000, boxChanceBasisPoints: 4000 },
+    { multiplierPercent: 1000, boxChanceBasisPoints: 10000 },
     { multiplierPercent: 300, boxChanceBasisPoints: 0 },
     { multiplierPercent: 120, boxChanceBasisPoints: 0 },
     { multiplierPercent: 60, boxChanceBasisPoints: 0 },
@@ -45,10 +49,10 @@ export const DIVINE_GAMBA_POCKET_TABLES: Readonly<Record<number, readonly Divine
     { multiplierPercent: 60, boxChanceBasisPoints: 0 },
     { multiplierPercent: 120, boxChanceBasisPoints: 0 },
     { multiplierPercent: 300, boxChanceBasisPoints: 0 },
-    { multiplierPercent: 1000, boxChanceBasisPoints: 4000 },
+    { multiplierPercent: 1000, boxChanceBasisPoints: 10000 },
   ],
   10: [
-    { multiplierPercent: 3000, boxChanceBasisPoints: 6000 },
+    { multiplierPercent: 3000, boxChanceBasisPoints: 10000 },
     { multiplierPercent: 600, boxChanceBasisPoints: 0 },
     { multiplierPercent: 200, boxChanceBasisPoints: 0 },
     { multiplierPercent: 100, boxChanceBasisPoints: 0 },
@@ -58,7 +62,7 @@ export const DIVINE_GAMBA_POCKET_TABLES: Readonly<Record<number, readonly Divine
     { multiplierPercent: 100, boxChanceBasisPoints: 0 },
     { multiplierPercent: 200, boxChanceBasisPoints: 0 },
     { multiplierPercent: 600, boxChanceBasisPoints: 0 },
-    { multiplierPercent: 3000, boxChanceBasisPoints: 6000 },
+    { multiplierPercent: 3000, boxChanceBasisPoints: 10000 },
   ],
 }
 
@@ -74,8 +78,10 @@ export const DIVINE_GAMBA_BASE_ROWS = 8
 export type DivineGambaPartEffect =
   | DivineGambaEffect
   | { kind: 'multiplier-scale'; percent: number }
-  | { kind: 'box-chance'; outerBasisPoints: number }
-  | { kind: 'box-chance-scale'; percent: number }
+  /** The pockets just inside the jackpots can hold a box too, at this chance. */
+  | { kind: 'box-chance-inner'; basisPoints: number }
+  /** Scales every rarity weight above common, so a box is rarer more often. */
+  | { kind: 'rarity-shift'; percent: number }
   | { kind: 'stake-tier'; stake: number }
   | { kind: 'board-rows'; rows: number }
 
@@ -118,14 +124,14 @@ export const DIVINE_GAMBA_PART_DEFINITIONS: Readonly<Record<string, DivineGambaP
   'jackpot-pocket': {
     id: 'jackpot-pocket',
     kind: 'part',
-    name: 'Jackpot pockets',
-    description: 'A rift lining in the outermost pockets. A ball that reaches one brings a box more often.',
+    name: 'Lined pockets',
+    description: 'A rift lining in the pockets beside the jackpots. One ball in four that lands there brings a box.',
     essenceCost: 800,
     shardCost: 16,
     pricePercent: 0,
     requiresPartId: null,
     sortOrder: 1,
-    effect: { kind: 'box-chance', outerBasisPoints: 6000 },
+    effect: { kind: 'box-chance-inner', basisPoints: 2500 },
   },
   'high-stakes-2': {
     id: 'high-stakes-2',
@@ -203,13 +209,13 @@ export const DIVINE_GAMBA_PART_DEFINITIONS: Readonly<Record<string, DivineGambaP
     id: 'lucky-lining',
     kind: 'modifier',
     name: 'Lucky lining',
-    description: 'Half again as many boxes from the jackpot pockets. Each ball costs a tenth more.',
+    description: 'Every box that falls is half again as likely to be uncommon or better. Each ball costs a tenth more.',
     essenceCost: 700,
     shardCost: 14,
     pricePercent: 10,
     requiresPartId: 'jackpot-pocket',
     sortOrder: 13,
-    effect: { kind: 'box-chance-scale', percent: 150 },
+    effect: { kind: 'rarity-shift', percent: 150 },
   },
 }
 
@@ -235,8 +241,9 @@ export interface DivineGambaResolvedMachine extends DivineGambaMachineConfig {
  * The SQL twin is `divine_gamba_resolve_machine`. Parts are applied in sort
  * order, then modifiers in sort order; a modifier that is not owned, or an
  * id that is not a definition, is ignored here and refused by the server.
- * The pocket table is the one for the final row count, and a box-chance
- * effect rewrites the outermost pocket on each side after that.
+ * The pocket table is the one for the final row count; an inner box chance
+ * rewrites the pocket just inside each jackpot after that, and a rarity
+ * shift scales every weight above common.
  */
 export function resolveDivineGambaMachine(
   ownedPartIds: readonly string[],
@@ -249,8 +256,9 @@ export function resolveDivineGambaMachine(
   )
   let rows = DIVINE_GAMBA_BASE_ROWS
   let multiplierScalePercent = 100
-  let boxChanceScalePercent = 100
-  let outerBoxBasisPoints: number | null = null
+  const boxChanceScalePercent = 100
+  let innerBoxBasisPoints: number | null = null
+  let rarityShiftPercent = 100
   let pricePercent = 100
   const allowedStakes = [1]
   const effects: DivineGambaEffect[] = []
@@ -261,11 +269,11 @@ export function resolveDivineGambaMachine(
       case 'multiplier-scale':
         multiplierScalePercent = Math.floor(multiplierScalePercent * effect.percent / 100)
         break
-      case 'box-chance':
-        outerBoxBasisPoints = effect.outerBasisPoints
+      case 'box-chance-inner':
+        innerBoxBasisPoints = effect.basisPoints
         break
-      case 'box-chance-scale':
-        boxChanceScalePercent = Math.floor(boxChanceScalePercent * effect.percent / 100)
+      case 'rarity-shift':
+        rarityShiftPercent = Math.floor(rarityShiftPercent * effect.percent / 100)
         break
       case 'stake-tier':
         if (!allowedStakes.includes(effect.stake)) {
@@ -282,17 +290,21 @@ export function resolveDivineGambaMachine(
   const table = DIVINE_GAMBA_POCKET_TABLES[rows] ?? DIVINE_GAMBA_POCKET_TABLES[DIVINE_GAMBA_BASE_ROWS] ?? []
   const pockets = table.map((pocket, index) => ({
     multiplierPercent: pocket.multiplierPercent,
-    boxChanceBasisPoints: outerBoxBasisPoints !== null && (index === 0 || index === table.length - 1)
-      ? outerBoxBasisPoints
+    boxChanceBasisPoints: innerBoxBasisPoints !== null && (index === 1 || index === table.length - 2)
+      ? innerBoxBasisPoints
       : pocket.boxChanceBasisPoints,
   }))
+  const boxRarityWeights = Object.fromEntries(
+    Object.entries(DIVINE_GAMBA_BOX_RARITY_WEIGHTS).map(([rarity, weight]) =>
+      [rarity, rarity === 'common' ? weight : Math.floor(weight * rarityShiftPercent / 100)]),
+  )
   allowedStakes.sort((left, right) => left - right)
   return {
     rows,
     pockets,
     multiplierScalePercent,
     boxChanceScalePercent,
-    boxRarityWeights: { ...DIVINE_GAMBA_BOX_RARITY_WEIGHTS },
+    boxRarityWeights,
     pricePercent,
     effects,
     allowedStakes,
