@@ -18,6 +18,7 @@ import {
   type BugReportImage,
 } from '../../bug-report'
 import type { CharacterService } from '../../characters'
+import type { MetaProgressionService } from '../../meta/MetaProgressionService'
 import { navigationControlProps, type NavigationHints } from '../navigationHints'
 import { DIVINE_GAMBA_NAME } from '../../divine-gamba/DivineGambaNaming'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
@@ -40,6 +41,8 @@ export interface AppHeaderProps {
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
   characterService: CharacterService | null
+  metaService: MetaProgressionService | null
+  onEssenceGranted: () => void
   bugReportDungeon: BugReportDungeonContext
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
   /** Which destination is loading, and how to warm one ahead of a click. */
@@ -64,6 +67,8 @@ export function AppHeader({
   onOpenRunHistory,
   inventoryService,
   characterService,
+  metaService,
+  onEssenceGranted,
   bugReportDungeon,
   onSubmitBugReport,
   navigation,
@@ -147,6 +152,8 @@ export function AppHeader({
             <DevelopmentToolsMenu
               inventoryService={inventoryService}
               characterService={characterService}
+              metaService={metaService}
+              onEssenceGranted={onEssenceGranted}
             />
           ) : null}
         </nav>

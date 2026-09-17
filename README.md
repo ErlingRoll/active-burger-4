@@ -90,8 +90,8 @@ Some checks read the repository rather than import it, and live in
 ## Development tools
 
 Three development controls exist: a menu in the header, for granting
-inventory items (rift shards for the Divine Gamba's Shardwright among them)
-and creating random Champions outside a run; a menu in the
+Essence and inventory items (rift shards for the Divine Gamba's Shardwright
+among them) and creating random Champions outside a run; a menu in the
 arena, for driving a run (bosses, gear, skills, stress spawns, simulation
 speed); and a row on the Camp screen that skips its clock ahead by an hour or
 eight, so a claim can be tested without waiting for real hours to pass. They

@@ -64,6 +64,13 @@ export interface MetaProgressionService {
   submitRunResult(input: MetaRunResultInput): Promise<MetaRunReward>
   purchaseUnlock(unlockId: string): Promise<MetaProgressionSnapshot>
   purchaseReroll(): Promise<MetaProgressionSnapshot>
+  /**
+   * Adds Essence to the wallet from the development menu.
+   *
+   * The server refuses it without the admin role, so the menu that offers it
+   * is gated on the same role. Resolves the new balance.
+   */
+  grantDevelopmentEssence(amount: number): Promise<number>
 }
 
 export interface MetaRunResultInput {
@@ -442,6 +449,23 @@ export function createMetaProgressionService(
         throw new Error('Reroll purchase returned an invalid response.')
       }
       return load()
+    },
+
+    async grantDevelopmentEssence(amount: number): Promise<number> {
+      if (!Number.isSafeInteger(amount) || amount < 1) {
+        throw new Error('Enter a positive whole-number amount of Essence.')
+      }
+      const response = await getClient().rpc('grant_development_essence', { p_amount: amount })
+      if (response.error) {
+        if (response.error.code === 'PGRST202') {
+          throw new Error('The development Essence grant is not deployed to this backend yet.')
+        }
+        throw response.error
+      }
+      if (typeof response.data !== 'number' || !Number.isSafeInteger(response.data)) {
+        throw new Error('The development Essence grant returned an invalid response.')
+      }
+      return response.data
     },
   }
 }

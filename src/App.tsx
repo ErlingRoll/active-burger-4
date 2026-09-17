@@ -410,6 +410,8 @@ function App() {
       onOpenRunHistory={openRunHistory}
       inventoryService={inventory.service}
       characterService={characters.service}
+      metaService={metaProgressionService.service}
+      onEssenceGranted={refreshMetaProgression}
       bugReportDungeon={bugReportDungeon}
       onSubmitBugReport={(description, image) => submitBugReport(description, image, bugReportDungeon)}
       navigation={navigationHints}
