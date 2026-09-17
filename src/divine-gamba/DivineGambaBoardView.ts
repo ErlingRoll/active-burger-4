@@ -32,6 +32,8 @@ export interface DivineGambaBoardFrame {
 const LAUNCH_GAP_MS = 110
 const PLAYBACK_SPEED = 1.6
 const FLASH_MS = 520
+/** How deep a pocket slot is, in peg pitches: room for a label and three rows of balls. */
+const SLOT_DEPTH = 1.6
 /** Fallbacks for an environment without computed styles, such as a test. */
 const FALLBACK = {
   accent: '#c4b5fd',
@@ -200,10 +202,12 @@ export class DivineGambaBoardView {
       return
     }
     const { accent, accentRgb, brightRgb, essence, text, night, font } = this.palette
-    const worldHeight = machine.floorY + 1.4
+    // The world spans a small margin above the release and below the slots.
+    const margin = 0.3
+    const worldHeight = machine.floorY + SLOT_DEPTH + margin * 2
     const scale = Math.min(this.width / (machine.halfWidth * 2 + 0.4), this.height / worldHeight)
     const originX = this.width / 2
-    const originY = (this.height - worldHeight * scale) / 2 + 0.2 * scale
+    const originY = (this.height - worldHeight * scale) / 2 + margin * scale
     const toX = (x: number): number => originX + x * scale
     const toY = (y: number): number => originY + y * scale
 
@@ -226,14 +230,14 @@ export class DivineGambaBoardView {
     for (const side of [-1, 1]) {
       context.beginPath()
       context.moveTo(toX(side * machine.halfWidth), toY(machine.releaseY - 0.2))
-      context.lineTo(toX(side * machine.halfWidth), toY(machine.floorY + 0.9))
+      context.lineTo(toX(side * machine.halfWidth), toY(machine.floorY + SLOT_DEPTH))
       context.stroke()
     }
 
     // Pockets: a slot each, lit when a ball lands. Labels are drawn last, on
     // top of whatever has settled in the slot.
     const pocketTop = toY(machine.floorY)
-    const pocketBottom = toY(machine.floorY + 0.9)
+    const pocketBottom = toY(machine.floorY + SLOT_DEPTH)
     const pocketWidth = scale * 0.92
     for (let index = 0; index <= machine.rows; index += 1) {
       const pocket = config.pockets[index]
@@ -287,14 +291,16 @@ export class DivineGambaBoardView {
       let y = toY(y0 + (y1 - y0) * blend)
       let radius = machine.ballRadius * scale
       if (ball.landedAt !== null) {
-        // Settle into the lower half of the slot, a little smaller, side by
-        // side with whatever landed there before, and leave the label clear.
-        const sink = Math.min(1, (nowMs - ball.landedAt) / 260)
+        // Stack in the slot beneath the label, three to a row from the
+        // bottom up, so a pocket that has taken several balls shows it.
+        const sink = Math.min(1, (nowMs - ball.landedAt) / 300)
         const order = this.landedBefore(ball)
-        const lean = order === 0 ? 0 : (order % 2 === 1 ? 1 : -1) * 0.16 * Math.ceil(order / 2)
-        x = toX(pocketCentreX(machine.rows, ball.pocketIndex) + Math.max(-0.28, Math.min(0.28, lean)))
-        y = toY(machine.floorY + 0.25 + 0.4 * sink)
-        radius *= 0.72
+        const column = order % 3
+        const row = Math.min(2, Math.floor(order / 3))
+        const restingY = machine.floorY + SLOT_DEPTH - 0.26 - row * 0.4
+        x = toX(pocketCentreX(machine.rows, ball.pocketIndex) + (column - 1) * 0.3)
+        y = toY(machine.floorY + 0.4 + (restingY - machine.floorY - 0.4) * sink)
+        radius *= 0.68
       }
       const glow = ball.boxRarity !== null && isRarity(ball.boxRarity) && ball.landedAt !== null
         ? RARITY_VISUALS[ball.boxRarity].color
@@ -329,8 +335,9 @@ export class DivineGambaBoardView {
       }
       const centreX = toX(pocketCentreX(machine.rows, index))
       const multiplier = pocket.multiplierPercent * config.multiplierScalePercent / 10000
-      const labelY = pocketTop + (pocketBottom - pocketTop) * 0.27
-      context.font = `700 ${Math.max(9, scale * 0.28)}px ${font}`
+      const labelY = pocketTop + (pocketBottom - pocketTop) * 0.15
+      // Sized to the slot: a four-character label has to fit beside its neighbours.
+      context.font = `800 ${Math.max(9, scale * (formatMultiplier(multiplier).length > 3 ? 0.24 : 0.3))}px ${font}`
       context.textAlign = 'center'
       context.textBaseline = 'middle'
       context.lineWidth = Math.max(2, scale * 0.12)
@@ -341,7 +348,7 @@ export class DivineGambaBoardView {
       if (pocket.boxChanceBasisPoints > 0) {
         context.fillStyle = essence
         context.font = `${Math.max(8, scale * 0.2)}px ${font}`
-        context.fillText('▣', centreX + pocketWidth * 0.36, pocketTop + scale * 0.14)
+        context.fillText('▣', centreX, pocketTop + (pocketBottom - pocketTop) * 0.36)
       }
     }
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isRarity } from '../content/rarity/Rarity'
+import { isRarity, RARITY_VISUALS } from '../content/rarity/Rarity'
 import type { InventoryService } from '../inventory/InventoryTypes'
 import { MaterialIcon } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from '../loot/LootBoxIcon'
@@ -12,7 +12,7 @@ import {
   DIVINE_GAMBA_LEDE,
   DIVINE_GAMBA_NAME,
 } from './DivineGambaNaming'
-import { measureDivineGambaOdds, measureProfitChance } from './DivineGambaOdds'
+import { measureDivineGambaOdds } from './DivineGambaOdds'
 import {
   DIVINE_GAMBA_MAX_BALLS,
   getDivineGambaBallPrice,
@@ -23,6 +23,7 @@ import {
 } from './DivineGambaRegistry'
 import { DivineGambaStorePanel } from './DivineGambaStorePanel'
 import type { DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
+import { BOX_RARITIES } from './sim'
 import { useDivineGambaPlay } from './useDivineGambaPlay'
 
 interface DivineGambaScreenProps {
@@ -75,6 +76,28 @@ function prefersReducedMotion(): boolean {
 
 function percent(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`
+}
+
+/** A small chance, shown to the precision that still says something. */
+function smallPercent(value: number): string {
+  if (value <= 0) {
+    return '—'
+  }
+  if (value < 0.0001) {
+    return '<0.01%'
+  }
+  return percent(value, value < 0.01 ? 2 : 1)
+}
+
+/**
+ * The measured landing shares, averaged with their mirror.
+ *
+ * The board is symmetric, so the true odds are; the measurement is a sample
+ * and is not. Showing 0.4% on one jackpot and 0.8% on the other reads as a
+ * rigged side rather than as noise.
+ */
+function mirrored(landing: readonly number[]): number[] {
+  return landing.map((share, index) => (share + (landing[landing.length - 1 - index] ?? share)) / 2)
 }
 
 /**
@@ -197,10 +220,18 @@ export function DivineGambaScreen({
     return config
   }, [machine])
   const odds = useMemo(() => measureDivineGambaOdds(simMachine, stakePrice), [simMachine, stakePrice])
-  const profitChance = useMemo(
-    () => measureProfitChance(odds, ballCount, pricePerBall),
-    [odds, ballCount, pricePerBall],
-  )
+  const landing = useMemo(() => mirrored(odds.landing), [odds])
+  // A box's rarity is drawn from the weights once a box is due, so each
+  // rarity's chance per ball is its share of the box chance; per drop, over
+  // the balls paid for.
+  const rarityOdds = useMemo(() => {
+    const weights = BOX_RARITIES.map((rarity) => Math.max(0, machine.boxRarityWeights[rarity] ?? 0))
+    const total = weights.reduce((sum, weight) => sum + weight, 0)
+    return BOX_RARITIES.map((rarity, index) => {
+      const perBall = total > 0 ? odds.boxChancePerBall * (weights[index] ?? 0) / total : 0
+      return { rarity, perBall, perDrop: 1 - (1 - perBall) ** ballCount }
+    })
+  }, [machine, odds, ballCount])
 
   const session = play.session
   const drop = session?.drop ?? null
@@ -403,6 +434,7 @@ export function DivineGambaScreen({
                 </div>
               ) : null}
             </section>
+            <div className="divine-gamba-side">
             <section className="app-panel divine-gamba-odds-panel" aria-labelledby="divine-gamba-odds-title">
               <header className="app-panel-heading">
                 <div>
@@ -410,15 +442,10 @@ export function DivineGambaScreen({
                   <h3 id="divine-gamba-odds-title">What this machine does</h3>
                 </div>
               </header>
-              <dl className="divine-gamba-odds-summary">
-                <div><dt>Chance this drop profits</dt><dd>{percent(profitChance, 0)}</dd></div>
-                <div><dt>Box per ball</dt><dd>{percent(odds.boxChancePerBall, 2)}</dd></div>
-              </dl>
               <table className="divine-gamba-legend">
                 <caption className="divine-gamba-legend-caption">Pockets, left to right</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Pocket</th>
                     <th scope="col">Pays</th>
                     <th scope="col">Lands</th>
                     <th scope="col">Box</th>
@@ -430,13 +457,36 @@ export function DivineGambaScreen({
                     const boxChance = Math.min(1, pocket.boxChanceBasisPoints * machine.boxChanceScalePercent / 1000000)
                     return (
                       <tr key={index} data-pays={multiplier >= 1 ? 'above' : 'below'}>
-                        <th scope="row">{index + 1}</th>
-                        <td><strong>{formatMultiplier(multiplier)}</strong></td>
-                        <td>{percent(odds.landing[index] ?? 0)}</td>
+                        <th scope="row">{formatMultiplier(multiplier)}</th>
+                        <td>{percent(landing[index] ?? 0)}</td>
                         <td>{boxChance > 0 ? percent(boxChance, 0) : '—'}</td>
                       </tr>
                     )
                   })}
+                </tbody>
+              </table>
+              <table className="divine-gamba-legend divine-gamba-rarities">
+                <caption className="divine-gamba-legend-caption">Loot boxes</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Rarity</th>
+                    <th scope="col">Per ball</th>
+                    <th scope="col">This drop</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rarityOdds.map(({ rarity, perBall, perDrop }) => (
+                    <tr key={rarity}>
+                      <th scope="row">
+                        <span className="divine-gamba-rarity" style={{ color: isRarity(rarity) ? RARITY_VISUALS[rarity].color : undefined }}>
+                          {isRarity(rarity) ? <LootBoxIcon rarity={rarity} /> : null}
+                          {isRarity(rarity) ? RARITY_VISUALS[rarity].label : rarity}
+                        </span>
+                      </th>
+                      <td>{smallPercent(perBall)}</td>
+                      <td>{smallPercent(perDrop)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
               {[...enabledModifierIds].filter((id) => ownedPartIds.has(id)).length > 0 ? (
@@ -455,6 +505,7 @@ export function DivineGambaScreen({
               onBuy={(definition) => { void buy(definition) }}
               onToggleModifier={toggleModifier}
             />
+            </div>
           </div>
         ) : null}
       </div>

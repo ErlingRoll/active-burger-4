@@ -24,8 +24,16 @@
   gap: clamp(0.5rem, 1.4vh, 0.9rem);
 }
 
-.divine-gamba-store-panel {
-  grid-column: 1 / -1;
+/* The odds and the shelf stack in the side column, each taking its own height. */
+.divine-gamba-side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 1.6vh, 1.6rem);
+  min-height: 0;
+}
+
+.divine-gamba-side > .app-panel {
+  flex: 0 0 auto;
 }
 
 /* The board keeps its shape: a little taller than wide, capped so it never
@@ -177,38 +185,6 @@
 }
 
 /* The odds: three headline figures, then one column per pocket. */
-.divine-gamba-odds-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-  margin: 0;
-}
-
-.divine-gamba-odds-summary > div {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0.35rem 0.5rem;
-  background: rgb(0 0 0 / 30%);
-  border: 1px solid rgb(var(--accent-rgb) / 26%);
-  border-radius: 0.5rem;
-}
-
-.divine-gamba-odds-summary dt {
-  color: var(--text-muted);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.divine-gamba-odds-summary dd {
-  margin: 0;
-  color: var(--accent);
-  font-size: clamp(0.85rem, 2vh, 1.05rem);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
 /* One row per pocket, in the order they sit on the board. */
 .divine-gamba-legend {
   width: 100%;
@@ -253,8 +229,8 @@
 }
 
 .divine-gamba-legend tbody th {
-  color: var(--text-muted);
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 800;
   text-align: left;
   border-left: 1px solid rgb(var(--accent-rgb) / 20%);
   border-radius: 0.4rem 0 0 0.4rem;
@@ -265,17 +241,29 @@
   border-radius: 0 0.4rem 0.4rem 0;
 }
 
-.divine-gamba-legend tr[data-pays='above'] td strong {
+.divine-gamba-legend tr[data-pays='above'] th {
   color: var(--accent-contrast);
 }
 
-.divine-gamba-legend tr[data-pays='below'] td strong {
-  color: var(--accent);
-}
-
-.divine-gamba-legend tr[data-pays='above'] tbody th,
+.divine-gamba-legend tr[data-pays='above'] th,
 .divine-gamba-legend tr[data-pays='above'] td {
   background: rgb(var(--accent-rgb) / 16%);
+}
+
+.divine-gamba-rarities {
+  margin-top: clamp(0.7rem, 2vh, 1.2rem);
+}
+
+.divine-gamba-rarity {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.divine-gamba-rarity .loot-box-icon,
+.divine-gamba-rarity svg {
+  width: 1.2em;
+  height: 1.2em;
 }
 
 .divine-gamba-odds-note {
