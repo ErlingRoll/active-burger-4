@@ -82,6 +82,7 @@ const QUICK_GRANTS: readonly {
   { label: '100 scrap', definitionId: 'scrap', quantity: 100 },
   { label: '20 River Worms', definitionId: 'river-worm', quantity: 20 },
   { label: 'Rare loot box', definitionId: 'loot-box-rare', quantity: 1 },
+  { label: 'Legendary loot box', definitionId: 'loot-box-legendary', quantity: 1 },
   { label: 'Legendary Ember Reliquary', definitionId: 'artifact-ember-reliquary', quantity: 1, rarity: 'legendary' },
 ]
 
