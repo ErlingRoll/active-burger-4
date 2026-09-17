@@ -1,0 +1,370 @@
+/*
+ * The Divine Gamba.
+ *
+ * Violet, like the codex and the Abyss roster: the machine is fed with rift
+ * shards, which are Abyss material, and the ember of the refuge stores would
+ * have said it was a shop. The board is a canvas that takes the panel's
+ * accent through custom properties, so no shade is written twice.
+ */
+
+.divine-gamba-screen {
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+}
+
+.divine-gamba-panels {
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+}
+
+.divine-gamba-board-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.4vh, 0.9rem);
+}
+
+.divine-gamba-store-panel {
+  grid-column: 1 / -1;
+}
+
+/* The board keeps its shape: a little taller than wide, capped so it never
+   pushes the controls off a short viewport. */
+.divine-gamba-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 11 / 10;
+  max-height: min(62vh, 40rem);
+  overflow: hidden;
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.7rem;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 55%),
+    inset 0 1px rgb(var(--accent-bright-rgb) / 24%),
+    0 0.8rem 2rem rgb(0 0 0 / 45%);
+}
+
+.divine-gamba-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.divine-gamba-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1rem);
+  align-items: center;
+}
+
+.divine-gamba-control-label {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-count {
+  display: flex;
+  flex: 1 1 14rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.divine-gamba-count input[type='range'] {
+  flex: 1 1 6rem;
+  min-width: 4rem;
+  accent-color: var(--accent);
+}
+
+.divine-gamba-count-value {
+  min-width: 1.6rem;
+  color: var(--accent-contrast);
+  font-size: clamp(0.95rem, 2.2vh, 1.2rem);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.divine-gamba-stakes {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.divine-gamba-stake-active {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 24%);
+  border-color: rgb(var(--accent-rgb) / 70%);
+}
+
+.divine-gamba-launch {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.divine-gamba-cost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.divine-gamba-cost small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.divine-gamba-launch-action {
+  min-width: 7rem;
+}
+
+/* The tally sits under the controls and reads left to right like a receipt. */
+.divine-gamba-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+  align-items: center;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.6rem, 1.6vw, 0.9rem);
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.55rem;
+}
+
+.divine-gamba-tally > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.divine-gamba-tally small {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-tally strong {
+  font-size: clamp(0.82rem, 1.9vh, 1rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-net[data-sign='up'] strong {
+  color: var(--color-green-300);
+}
+
+.divine-gamba-net[data-sign='down'] strong {
+  color: var(--accent-danger);
+}
+
+.divine-gamba-tally-error {
+  margin: 0;
+  color: var(--accent-danger);
+}
+
+.divine-gamba-shard-stat {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.divine-gamba-shard-stat .material-icon {
+  width: 1em;
+  height: 1em;
+}
+
+/* The odds: three headline figures, then one column per pocket. */
+.divine-gamba-odds-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.divine-gamba-odds-summary > div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.35rem 0.5rem;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.5rem;
+}
+
+.divine-gamba-odds-summary dt {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-odds-summary dd {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(0.85rem, 2vh, 1.05rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-legend {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.2rem;
+  margin: clamp(0.5rem, 1.4vh, 0.9rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.divine-gamba-legend li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.3rem 0.1rem;
+  text-align: center;
+  background: rgb(var(--accent-rgb) / 8%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.4rem;
+}
+
+.divine-gamba-legend strong {
+  font-size: clamp(0.66rem, 1.5vh, 0.82rem);
+}
+
+.divine-gamba-legend span {
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 1.3vh, 0.7rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-legend small {
+  color: var(--essence);
+  font-size: 0.55rem;
+}
+
+.divine-gamba-odds-note {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+/* The shelf. */
+.divine-gamba-store-lede {
+  margin: 0 0 0.6rem;
+  color: var(--text-muted);
+  font-size: clamp(0.72rem, 1.6vh, 0.85rem);
+}
+
+.divine-gamba-store-group {
+  margin: 0.6rem 0 0.3rem;
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-store-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: clamp(0.3rem, 1vh, 0.55rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.divine-gamba-store-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.35rem, 1.2vw, 0.8rem);
+  align-items: center;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.5rem, 1.5vw, 0.85rem);
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.55rem;
+}
+
+.divine-gamba-store-line[data-owned='true'] {
+  border-color: rgb(var(--accent-rgb) / 45%);
+}
+
+.divine-gamba-store-copy {
+  display: flex;
+  flex: 1 1 min(12rem, 100%);
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.divine-gamba-store-copy strong {
+  color: var(--color-stone-100);
+  font-size: clamp(0.76rem, 1.8vh, 0.95rem);
+}
+
+.divine-gamba-store-copy small {
+  color: var(--color-slate-400);
+  font-size: clamp(0.64rem, 1.45vh, 0.78rem);
+}
+
+.divine-gamba-store-surcharge {
+  color: var(--accent);
+}
+
+.divine-gamba-store-requirement {
+  color: var(--accent-danger);
+}
+
+.divine-gamba-store-price {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
+  font-weight: 700;
+}
+
+.divine-gamba-store-shards {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  color: var(--accent-contrast);
+}
+
+.divine-gamba-store-shards .material-icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.divine-gamba-store-installed {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  color: var(--accent-contrast);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.divine-gamba-toggle input {
+  accent-color: var(--accent);
+}
+
+@media (max-width: 47rem) {
+  .divine-gamba-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .divine-gamba-odds-summary {
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+}

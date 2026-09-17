@@ -58,6 +58,7 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Camp | Refined materials, meals, bait, capacity, exhaustion relief | Scrap, roe, rift shards, timber and stone, Champion labour |
 | Contracts | Materials, box keys, cosmetic unlocks | Nothing; it pays for play that is already happening |
 | Market | Nothing | Listing fees and time |
+| Divine Gamba | Essence, less than it takes; boxes up to Epic, rarely | Essence per ball; Essence and rift shards for parts |
 
 The market row is deliberately empty on the left, for player listings. The
 consignment shop that shipped first is the exception that proves it: it creates
@@ -76,7 +77,7 @@ content registry, not in engine code.
 | Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, and the Forge's fee |
 | Timber and stone | Camp passive production | Building construction and upgrades; stone in the Forge's fee |
 | Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
-| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor and the Forge's fee |
+| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor, the Forge's fee and Divine Gamba parts |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
@@ -92,7 +93,8 @@ spent there to cure a meal fish. Rift shards are live, paid by every completed
 Abyss floor and spent on the Rift anchor. Contracts are live as a second
 faucet for every material: three a day and one a week pay timber, stone,
 scrap, roe, rift shards and loot boxes, and never Essence; see
-[contracts_delivery_plan.md](contracts_delivery_plan.md).
+[contracts_delivery_plan.md](contracts_delivery_plan.md). The Shardwright, the Divine Gamba's parts counter, is the shards'
+third sink; see [divine_gamba.md](divine_gamba.md).
 
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,
@@ -115,6 +117,9 @@ other system. In particular:
 - The market does not price anything in Essence once player listings exist;
   see [marketplace.md](marketplace.md) for the currency question.
 - Salvage pays materials, not Essence, wherever a material sink exists.
+- The Divine Gamba returns less Essence than it takes for every loadout,
+  and a single drop profits less than half the time; both are asserted by
+  running its simulation in tests. See [divine_gamba.md](divine_gamba.md).
 
 ## Player types this is meant to serve
 

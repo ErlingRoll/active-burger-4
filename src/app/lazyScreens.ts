@@ -132,6 +132,10 @@ export const ShopScreenModule = defineScreenModule<
   PropsOf<typeof import('../shop/ShopScreen')['ShopScreen']>
 >(() => import('../shop/ShopScreen'), 'ShopScreen')
 
+export const DivineGambaScreenModule = defineScreenModule<
+  PropsOf<typeof import('../divine-gamba/DivineGambaScreen')['DivineGambaScreen']>
+>(() => import('../divine-gamba/DivineGambaScreen'), 'DivineGambaScreen')
+
 export const AdminReportsScreenModule = defineScreenModule<
   PropsOf<typeof import('../admin/AdminReportsScreen')['AdminReportsScreen']>
 >(() => import('../admin/AdminReportsScreen'), 'AdminReportsScreen')
@@ -157,6 +161,7 @@ export const LazyCollectionsScreen = CollectionsScreenModule.Screen
 export const LazyChampionManagementScreen = ChampionManagementScreenModule.Screen
 export const LazyInventoryScreen = InventoryScreenModule.Screen
 export const LazyShopScreen = ShopScreenModule.Screen
+export const LazyDivineGambaScreen = DivineGambaScreenModule.Screen
 export const LazyAdminReportsScreen = AdminReportsScreenModule.Screen
 export const LazyNicknameModerationScreen = NicknameModerationScreenModule.Screen
 export const LazyRunSetupScreen = RunSetupScreenModule.Screen

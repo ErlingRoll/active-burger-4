@@ -2662,6 +2662,14 @@
   --accent-bright-rgb: 153 246 228;
 }
 
+.hub-path-divine-gamba {
+  /* The machine: the violet its screen declares, fed with Abyss shards. */
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+}
+
 .hub-path > span:first-child {
   flex: 0 0 auto;
   color: var(--accent);

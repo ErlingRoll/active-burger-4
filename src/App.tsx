@@ -17,6 +17,7 @@ import {
   LazyAdminReportsScreen,
   LazyCampScreen,
   LazyCollectionsScreen,
+  LazyDivineGambaScreen,
   LazyChampionManagementScreen,
   LazyFishingScreen,
   LazyGameCanvas,
@@ -94,6 +95,7 @@ function App() {
     camp,
     contracts,
     collections,
+    divineGamba,
   } = services
 
   const navigation = useAppNavigation()
@@ -359,6 +361,10 @@ function App() {
     navigateToScreen('collections')
   }, [navigateToScreen])
 
+  const openDivineGamba = useCallback((): void => {
+    navigateToScreen('divine-gamba')
+  }, [navigateToScreen])
+
   const closeRunSetup = useCallback((): void => {
     navigateToScreen('dashboard', true)
   }, [navigateToScreen])
@@ -400,6 +406,7 @@ function App() {
       onOpenInventory={openInventory}
       onOpenShop={openShop}
       onOpenCollections={openCollections}
+      onOpenDivineGamba={openDivineGamba}
       onOpenRunHistory={openRunHistory}
       inventoryService={inventory.service}
       characterService={characters.service}
@@ -520,6 +527,7 @@ function App() {
           onOpenInventory={openInventory}
           onOpenShop={openShop}
           onOpenCollections={openCollections}
+          onOpenDivineGamba={openDivineGamba}
           onOpenRunHistory={openRunHistory}
           onOpenAbyss={run.openAbyssSetup}
           championAvailability={run.championAvailability}
@@ -573,7 +581,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'collections' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'collections' || screen === 'divine-gamba' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !account ? (
         <AuthGateway
           authentication={authentication}
@@ -691,6 +699,18 @@ function App() {
             shopService={shop.service}
             inventoryService={inventory.service}
             configurationError={shop.configurationError ?? inventory.configurationError}
+            onBack={returnToDashboard}
+            onEssenceChanged={refreshMetaProgression}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'divine-gamba' && account ? (
+        <LazyScreen label={SCREEN_DEFINITIONS['divine-gamba'].label}>
+          <LazyDivineGambaScreen
+            divineGambaService={divineGamba.service}
+            inventoryService={inventory.service}
+            essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
+            configurationError={divineGamba.configurationError ?? inventory.configurationError}
             onBack={returnToDashboard}
             onEssenceChanged={refreshMetaProgression}
           />

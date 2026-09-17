@@ -19,6 +19,7 @@ import {
 } from '../../bug-report'
 import type { CharacterService } from '../../characters'
 import { navigationControlProps, type NavigationHints } from '../navigationHints'
+import { DIVINE_GAMBA_NAME } from '../../divine-gamba/DivineGambaNaming'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
 
 export interface AppHeaderProps {
@@ -35,6 +36,7 @@ export interface AppHeaderProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
   characterService: CharacterService | null
@@ -58,6 +60,7 @@ export function AppHeader({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenDivineGamba,
   onOpenRunHistory,
   inventoryService,
   characterService,
@@ -136,6 +139,7 @@ export function AppHeader({
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenDivineGamba)} {...navigationControlProps(navigation, 'divine-gamba')}>{DIVINE_GAMBA_NAME}</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
             </>
           ) : null}

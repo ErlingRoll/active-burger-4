@@ -90,7 +90,8 @@ Some checks read the repository rather than import it, and live in
 ## Development tools
 
 Three development controls exist: a menu in the header, for granting
-inventory items and creating random Champions outside a run; a menu in the
+inventory items (rift shards for the Divine Gamba's Shardwright among them)
+and creating random Champions outside a run; a menu in the
 arena, for driving a run (bosses, gear, skills, stress spawns, simulation
 speed); and a row on the Camp screen that skips its clock ahead by an hour or
 eight, so a claim can be tested without waiting for real hours to pass. They
@@ -147,6 +148,14 @@ Validation needs Docker locally; CI has it. Once validation passes, the
 belongs to the branch: `main` deploys to the production project and `dev` to
 the development one. Nothing is pushed from a pull request, and nothing is
 pushed while lint, tests, build, or migration validation are failing.
+
+The same job then runs `supabase functions deploy`, which publishes the Edge
+Functions under [supabase/functions/](supabase/functions/) to that project.
+The one function so far, `divine-gamba-settle`, settles Divine Gamba plays by
+running the simulation copied into `supabase/functions/_shared/` by
+`node scripts/sync-divine-gamba-sim.mjs`; `tests/divineGambaSim.test.ts` fails
+when that copy is stale. Running a function locally needs Docker:
+`supabase functions serve`.
 
 The job runs in the GitHub environment named after its branch, `production` for
 `main` and `dev` for `dev`, and reads from it:

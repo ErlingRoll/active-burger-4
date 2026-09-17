@@ -88,3 +88,8 @@ jobs:
         run: supabase db push --dry-run
       - name: Apply the pending migrations
         run: supabase db push
+      # The Divine Gamba settles its plays in an Edge Function that runs the
+      # same simulation the browser animates; the copy it bundles is kept
+      # current by tests/divineGambaSim.test.ts, which the validate job ran.
+      - name: Deploy the Edge Functions
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
