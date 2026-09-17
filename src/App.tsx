@@ -710,9 +710,8 @@ function App() {
         <LazyScreen label={SCREEN_DEFINITIONS['divine-gamba'].label}>
           <LazyDivineGambaScreen
             divineGambaService={divineGamba.service}
-            inventoryService={inventory.service}
             essenceBalance={metaProgression.snapshot?.wallet.essenceBalance ?? null}
-            configurationError={divineGamba.configurationError ?? inventory.configurationError}
+            configurationError={divineGamba.configurationError}
             onBack={returnToDashboard}
             onEssenceChanged={refreshMetaProgression}
           />

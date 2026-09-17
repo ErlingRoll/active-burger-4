@@ -18,10 +18,10 @@ export function pocketPayout(
   if (pocket === undefined) {
     return 0
   }
-  return Math.floor(stakePrice * pocket.multiplierPercent * machine.multiplierScalePercent / 10000)
+  return Math.floor(stakePrice * pocket.multiplierPercent / 100)
 }
 
-/** A pocket's box chance after the machine's scale, in basis points, capped at certain. */
+/** A pocket's box chance in basis points, capped at certain. */
 export function pocketBoxChanceBasisPoints(
   machine: DivineGambaMachineConfig,
   pocketIndex: number,
@@ -30,8 +30,8 @@ export function pocketBoxChanceBasisPoints(
   if (pocket === undefined) {
     return 0
   }
-  const scaled = Math.floor(pocket.boxChanceBasisPoints * machine.boxChanceScalePercent / 100)
-  return scaled > 10000 ? 10000 : scaled
+  const chance = Math.floor(pocket.boxChanceBasisPoints)
+  return chance > 10000 ? 10000 : chance < 0 ? 0 : chance
 }
 
 /** The rarities a box can be, in the order the weights are walked. */

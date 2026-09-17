@@ -193,13 +193,12 @@ the check is named; the rest are review responsibilities.
       for by one RPC and paid out by an Edge Function that runs the same
       deterministic simulation the browser animates; the charge and the
       settlement as separate idempotent transactions with pending plays
-      re-settled on the next visit; the Shardwright's parts and modifiers
-      bought with Essence and rift shards; the pocket tables, catalogue and
-      machine fold mirrored between the migration and the client and pinned
+      re-settled on the next visit; one machine for every player, its pocket
+      table mirrored between the migrations and the client and pinned
       by `tests/divineGambaRegistry.test.ts`; and the two house rules, a
-      return below one and a drop that profits less than half the time,
-      measured for every loadout by `tests/divineGambaOdds.test.ts`; a box
-      with every jackpot, legendary one in a thousand; a free drop a day; and
+      return below one and a drop that profits a little under half the time,
+      measured by `tests/divineGambaOdds.test.ts`; a box
+      with every jackpot, legendary one in a thousand; and
       three Gamba contracts. See [divine_gamba.md](features/divine_gamba.md).
 
 ## Per-Feature Gate

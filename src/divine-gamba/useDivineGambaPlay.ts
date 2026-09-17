@@ -29,7 +29,7 @@ export interface DivineGambaPlay {
   session: DivineGambaPlaySession | null
   /** True from the click until the drop is settled or has failed. */
   isBusy: boolean
-  launch: (ballCount: number, stake: number, modifierIds: readonly string[], free?: boolean) => Promise<void>
+  launch: (ballCount: number, stake: number) => Promise<void>
   /** The board reports how many balls have landed. */
   markLanded: (landedBalls: number) => void
   /** The board reports the last ball has landed, or the player skipped. */
@@ -100,12 +100,7 @@ export function useDivineGambaPlay(
     onSettledRef.current(settlement)
   }, [])
 
-  const launch = useCallback(async (
-    ballCount: number,
-    stake: number,
-    modifierIds: readonly string[],
-    free = false,
-  ): Promise<void> => {
+  const launch = useCallback(async (ballCount: number, stake: number): Promise<void> => {
     if (!service) {
       setSession({ phase: 'failed', drop: null, settlement: null, landedBalls: 0, error: 'The Divine Gamba is unavailable.' })
       return
@@ -118,7 +113,7 @@ export function useDivineGambaPlay(
     operationIdRef.current = operationId
     let play: DivineGambaBeginResult
     try {
-      play = await service.beginPlay(operationId, ballCount, stake, modifierIds, free)
+      play = await service.beginPlay(operationId, ballCount, stake)
     } catch (beginError: unknown) {
       if (isMountedRef.current) {
         setSession({
@@ -136,10 +131,9 @@ export function useDivineGambaPlay(
     if (!isMountedRef.current) {
       return
     }
-    const { allowedStakes: _stakes, ...machine } = play.machine
     const outcome = simulatePlay({
       seed: play.seed,
-      machine,
+      machine: play.machine,
       ballCount: play.ballCount,
       stakePrice: play.stakePrice,
       recordFrames: true,

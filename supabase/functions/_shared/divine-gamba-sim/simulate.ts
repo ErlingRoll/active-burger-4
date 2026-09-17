@@ -37,7 +37,6 @@ const HIT_DAMPING = 0.92
 const RELEASE_SPREAD = 0.34
 const RELEASE_SPEED_SPREAD = 0.6
 const WALL_RESTITUTION = 0.5
-const SCATTER_DEAD_ZONE = 0.05
 /** A ball still falling after this many ticks lands in the pocket beneath it. */
 const MAX_TICKS = TICKS_PER_SECOND * 8
 export const MAX_BALLS_PER_PLAY = 20
@@ -55,18 +54,8 @@ export function simulatePlay(input: DivineGambaPlayInput): DivineGambaPlayOutcom
   }
   const machine = buildMachine(input.machine)
   const balls: DivineGambaBallOutcome[] = []
-  /** Children spawned by a split, dropped after every paid ball has landed. */
-  const pending: { parentIndex: number; ball: Ball; fromTick: number }[] = []
   let essenceWon = 0
   let boxCount = 0
-
-  const settle = (outcome: DivineGambaBallOutcome): void => {
-    balls.push(outcome)
-    essenceWon += outcome.essenceWon
-    if (outcome.boxRarity !== null) {
-      boxCount += 1
-    }
-  }
 
   for (let index = 0; index < input.ballCount; index += 1) {
     const random = createDivineGambaRandom(ballSeed(input.seed, index))
@@ -76,15 +65,12 @@ export function simulatePlay(input: DivineGambaPlayInput): DivineGambaPlayOutcom
       vx: (random.nextUnit() - 0.5) * RELEASE_SPEED_SPREAD,
       vy: 0,
     }
-    settle(drop(input, machine, ball, index, null, random, (child) => {
-      pending.push({ parentIndex: index, ball: child, fromTick: 0 })
-    }))
-  }
-
-  for (const child of pending) {
-    const index = balls.length
-    const random = createDivineGambaRandom(ballSeed(input.seed, index))
-    settle(drop(input, machine, child.ball, index, child.parentIndex, random, null))
+    const outcome = drop(input, machine, ball, index, random)
+    balls.push(outcome)
+    essenceWon += outcome.essenceWon
+    if (outcome.boxRarity !== null) {
+      boxCount += 1
+    }
   }
 
   return { simVersion: SIM_VERSION, balls, essenceWon, boxCount }
@@ -95,15 +81,10 @@ function drop(
   machine: DivineGambaMachine,
   ball: Ball,
   ballIndex: number,
-  parentIndex: number | null,
   random: DivineGambaRandom,
-  onSplit: ((child: Ball) => void) | null,
 ): DivineGambaBallOutcome {
   const frames: number[] | undefined = input.recordFrames ? [] : undefined
   const hits: number[] | undefined = input.recordFrames ? [] : undefined
-  const splitRow = machine.split !== null && onSplit !== null ? machine.split.row : -1
-  const splitY = splitRow >= 0 ? rowY(splitRow) : Number.POSITIVE_INFINITY
-  let splitRolled = false
   let tick = 0
 
   for (; tick < MAX_TICKS; tick += 1) {
@@ -111,7 +92,7 @@ function drop(
       frames.push(ball.x, ball.y)
     }
     // Forces.
-    ball.vy += GRAVITY * machine.gravityScale * DT
+    ball.vy += GRAVITY * DT
     // Move.
     ball.x += ball.vx * DT
     ball.y += ball.vy * DT
@@ -132,13 +113,6 @@ function drop(
     if (collide(machine, ball, random) && hits !== undefined) {
       hits.push(tick)
     }
-    // A split happens once, the first time the ball passes its row.
-    if (!splitRolled && ball.y >= splitY && machine.split !== null && onSplit !== null) {
-      splitRolled = true
-      if (random.nextBasisPoints() < machine.split.chanceBasisPoints) {
-        onSplit({ x: ball.x, y: ball.y, vx: -ball.vx, vy: ball.vy })
-      }
-    }
     if (ball.y >= machine.floorY) {
       break
     }
@@ -148,7 +122,6 @@ function drop(
   const boxRarity = rollBox(input.machine, pocketIndex, random)
   return {
     ballIndex,
-    parentIndex,
     pocketIndex,
     // The number of ticks simulated, which is also the number of frames.
     landedTick: tick < MAX_TICKS ? tick + 1 : MAX_TICKS,
@@ -208,18 +181,8 @@ function collide(machine: DivineGambaMachine, ball: Ball, random: DivineGambaRan
         }
         ball.vx = (ball.vx - (1 + RESTITUTION) * approach * nx) * HIT_DAMPING
         ball.vy -= (1 + RESTITUTION) * approach * ny
-        // A scattering board nudges outward on every hit, never in the
-        // centre column, where a nudge from both sides would hold a ball
-        // between two pegs.
-        if (machine.scatterImpulse !== 0) {
-          if (ball.x > SCATTER_DEAD_ZONE) {
-            ball.vx += machine.scatterImpulse
-          } else if (ball.x < -SCATTER_DEAD_ZONE) {
-            ball.vx -= machine.scatterImpulse
-          }
-        }
       }
-      const nudge = (random.nextUnit() - 0.5) * HIT_JITTER * machine.jitterScale
+      const nudge = (random.nextUnit() - 0.5) * HIT_JITTER
       ball.vx += -ny * nudge
       ball.vy += nx * nudge
     }

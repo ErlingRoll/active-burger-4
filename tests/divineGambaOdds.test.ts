@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ALL_DIVINE_GAMBA_PART_DEFINITIONS,
+  DIVINE_GAMBA_MACHINE,
   DIVINE_GAMBA_MAX_BALLS,
-  getDivineGambaBallPrice,
+  DIVINE_GAMBA_STAKES,
   getDivineGambaStakePrice,
-  resolveDivineGambaMachine,
 } from '../src/divine-gamba/DivineGambaRegistry'
 import { createDivineGambaRandom, simulatePlay } from '../src/divine-gamba/sim'
 
@@ -16,82 +15,42 @@ import { createDivineGambaRandom, simulatePlay } from '../src/divine-gamba/sim'
  * formula. They are measured here by running the simulation:
  *
  * 1. The law of large numbers favours the house. The return to player is
- *    below one for every loadout, so over enough balls the machine keeps
- *    Essence.
- * 2. A single play profits less than half the time. For every loadout, stake
- *    and ball count, the chance that a play pays back more than it cost is
- *    under fifty percent. A lucky play can still win big; the median play
- *    loses.
+ *    below one, so over enough balls the machine keeps Essence.
+ * 2. A drop profits a little under half the time. For a drop of three balls
+ *    or more the chance that it pays back more than it cost is between forty
+ *    and fifty percent, and it is under fifty percent at every ball count.
+ *    A lucky drop can still win big; the median drop loses, by a little.
  *
- * Adding a part or a modifier adds it to every loadout below, so a new store
- * entry that breaks either rule fails this suite.
+ * The two pull against each other: the profit chance is carried by the
+ * pockets just inside the winners paying nearly the ball back, and the
+ * jackpot is kept small so that paying them does not push the return over
+ * one. A pocket table that breaks either rule fails here.
  */
 
-const BALLS_PER_LOADOUT = 8000
+const BALLS = 8000
 const PLAYS_PER_COUNT = 4000
-
-const PARTS = ALL_DIVINE_GAMBA_PART_DEFINITIONS.filter((definition) => definition.kind === 'part').map(({ id }) => id)
-const MODIFIERS = ALL_DIVINE_GAMBA_PART_DEFINITIONS.filter((definition) => definition.kind === 'modifier').map(({ id }) => id)
-
-interface Loadout {
-  name: string
-  owned: string[]
-  enabled: string[]
-}
-
-const LOADOUTS: Loadout[] = [
-  { name: 'bare', owned: [], enabled: [] },
-  ...PARTS.map((id) => ({ name: `part ${id}`, owned: withPrerequisites([id]), enabled: [] })),
-  ...MODIFIERS.map((id) => ({ name: `modifier ${id}`, owned: withPrerequisites([id]), enabled: [id] })),
-  { name: 'every part', owned: PARTS, enabled: [] },
-  ...MODIFIERS.map((id) => ({ name: `every part and ${id}`, owned: [...PARTS, id], enabled: [id] })),
-  { name: 'everything on', owned: [...PARTS, ...MODIFIERS], enabled: MODIFIERS },
-  { name: 'every part, magnet and splitter', owned: [...PARTS, 'rift-magnet', 'splitter'], enabled: ['rift-magnet', 'splitter'] },
-]
-
-function withPrerequisites(ids: string[]): string[] {
-  const owned = new Set<string>()
-  const add = (id: string): void => {
-    const definition = ALL_DIVINE_GAMBA_PART_DEFINITIONS.find((entry) => entry.id === id)
-    if (definition === undefined || owned.has(id)) {
-      return
-    }
-    owned.add(id)
-    if (definition.requiresPartId !== null) {
-      add(definition.requiresPartId)
-    }
-  }
-  ids.forEach(add)
-  return [...owned]
-}
+const DEFAULT_BALL_COUNT = 5
 
 interface Measurement {
   returnToPlayer: number
   boxChancePerBall: number
   epicChancePerBall: number
   legendaryChancePerBall: number
-  /** Essence returned per paid ball, one entry per ball, for resampling plays. */
+  /** Essence returned per ball, one entry per ball, for resampling plays. */
   returns: number[]
   pricePerBall: number
 }
 
-function measure(loadout: Loadout, stake: number): Measurement {
-  const resolved = resolveDivineGambaMachine(loadout.owned, loadout.enabled)
-  const { allowedStakes: _stakes, ...machine } = resolved
-  const pricePerBall = getDivineGambaBallPrice(resolved, stake)
-  const stakePrice = getDivineGambaStakePrice(stake)
+function measure(stake: number): Measurement {
+  const pricePerBall = getDivineGambaStakePrice(stake)
   const returns: number[] = []
   let boxes = 0
   let epics = 0
   let legendaries = 0
-  let paid = 0
-  for (let seed = 1; paid < BALLS_PER_LOADOUT; seed += 1) {
-    const outcome = simulatePlay({ seed: (seed * 2654435761) >>> 0, machine, ballCount: 20, stakePrice })
-    // A split child's winnings belong to the paid ball it came from.
-    const perPaidBall = new Array<number>(20).fill(0)
+  for (let seed = 1; returns.length < BALLS; seed += 1) {
+    const outcome = simulatePlay({ seed: (seed * 2654435761) >>> 0, machine: DIVINE_GAMBA_MACHINE, ballCount: 20, stakePrice: pricePerBall })
     for (const ball of outcome.balls) {
-      const owner = ball.parentIndex ?? ball.ballIndex
-      perPaidBall[owner] = (perPaidBall[owner] ?? 0) + ball.essenceWon
+      returns.push(ball.essenceWon)
       if (ball.boxRarity !== null) {
         boxes += 1
         if (ball.boxRarity === 'epic') {
@@ -101,21 +60,19 @@ function measure(loadout: Loadout, stake: number): Measurement {
         }
       }
     }
-    returns.push(...perPaidBall)
-    paid += 20
   }
   const total = returns.reduce((sum, value) => sum + value, 0)
   return {
-    returnToPlayer: total / (paid * pricePerBall),
-    boxChancePerBall: boxes / paid,
-    epicChancePerBall: epics / paid,
-    legendaryChancePerBall: legendaries / paid,
+    returnToPlayer: total / (returns.length * pricePerBall),
+    boxChancePerBall: boxes / returns.length,
+    epicChancePerBall: epics / returns.length,
+    legendaryChancePerBall: legendaries / returns.length,
     returns,
     pricePerBall,
   }
 }
 
-/** The chance a play of `ballCount` balls returns more than it cost, by resampling measured balls. */
+/** The chance a drop of `ballCount` balls returns more than it cost, by resampling measured balls. */
 function profitChance(measurement: Measurement, ballCount: number): number {
   const random = createDivineGambaRandom(ballCount * 977 + 1)
   let profitable = 0
@@ -132,57 +89,42 @@ function profitChance(measurement: Measurement, ballCount: number): number {
 }
 
 describe('the house rules', () => {
-  const measured = LOADOUTS.map((loadout) => ({ loadout, measurement: measure(loadout, 1) }))
+  const base = measure(1)
 
-  it('returns between 85 and 92 percent on a bare machine', () => {
-    const bare = measured.find(({ loadout }) => loadout.name === 'bare')
-    expect(bare?.measurement.returnToPlayer).toBeGreaterThan(0.85)
-    expect(bare?.measurement.returnToPlayer).toBeLessThan(0.92)
+  it('returns between 95 and 100 percent over many balls', () => {
+    expect(base.returnToPlayer).toBeGreaterThan(0.95)
+    expect(base.returnToPlayer).toBeLessThan(1)
   })
 
-  it.each(measured.map(({ loadout, measurement }) => [loadout.name, measurement] as const))(
-    'keeps the return to player below one and above seventy percent with %s',
-    (_name, measurement) => {
-      expect(measurement.returnToPlayer).toBeLessThan(0.94)
-      expect(measurement.returnToPlayer).toBeGreaterThan(0.70)
-    },
-  )
-
-  it.each(measured.map(({ loadout, measurement }) => [loadout.name, measurement] as const))(
-    'profits less than half the time at every ball count with %s',
-    (_name, measurement) => {
-      for (let ballCount = 1; ballCount <= DIVINE_GAMBA_MAX_BALLS; ballCount += 1) {
-        expect(profitChance(measurement, ballCount), `${ballCount} balls`).toBeLessThan(0.5)
-      }
-    },
-  )
-
-  it('keeps a bare machine rewarding a profit often enough to be worth playing', () => {
-    const bare = measured.find(({ loadout }) => loadout.name === 'bare')
-    expect(bare === undefined ? 0 : profitChance(bare.measurement, 1)).toBeGreaterThan(0.2)
+  it('profits less than half the time at every ball count', () => {
+    for (let ballCount = 1; ballCount <= DIVINE_GAMBA_MAX_BALLS; ballCount += 1) {
+      expect(profitChance(base, ballCount), `${ballCount} balls`).toBeLessThan(0.5)
+    }
   })
 
-  it.each(measured.map(({ loadout, measurement }) => [loadout.name, measurement] as const))(
-    'keeps boxes rare with %s',
-    (_name, measurement) => {
-      // A jackpot always carries a box, so boxes are as rare as jackpots:
-      // under one ball in twenty however the machine is fitted.
-      expect(measurement.boxChancePerBall).toBeLessThan(0.05)
-      expect(measurement.epicChancePerBall).toBeLessThan(0.003)
-      expect(measurement.legendaryChancePerBall).toBeLessThan(0.0002)
-    },
-  )
+  it('profits a little under half the time for a drop of three balls or more', () => {
+    for (let ballCount = 3; ballCount <= DIVINE_GAMBA_MAX_BALLS; ballCount += 1) {
+      expect(profitChance(base, ballCount), `${ballCount} balls`).toBeGreaterThan(0.38)
+    }
+    expect(profitChance(base, DEFAULT_BALL_COUNT)).toBeGreaterThan(0.4)
+  })
 
-  it('keeps a bare machine\'s boxes to about one ball in a hundred', () => {
-    const bare = measured.find(({ loadout }) => loadout.name === 'bare')
-    expect(bare?.measurement.boxChancePerBall).toBeLessThan(0.015)
+  it('rewards a single ball often enough to be worth dropping', () => {
+    expect(profitChance(base, 1)).toBeGreaterThan(0.2)
+  })
+
+  it('keeps boxes to about one ball in a hundred, and the rare ones rarer', () => {
+    // A jackpot always carries a box, so boxes are as rare as jackpots.
+    expect(base.boxChancePerBall).toBeLessThan(0.015)
+    expect(base.epicChancePerBall).toBeLessThan(0.003)
+    expect(base.legendaryChancePerBall).toBeLessThan(0.0002)
   })
 
   it('scales a higher stake linearly, so the rules hold at every tier', () => {
-    const loadout = { name: 'stakes', owned: ['high-stakes-2', 'high-stakes-5'], enabled: [] }
-    const one = measure(loadout, 1)
-    const five = measure(loadout, 5)
-    expect(five.pricePerBall).toBe(one.pricePerBall * 5)
-    expect(Math.abs(five.returnToPlayer - one.returnToPlayer)).toBeLessThan(0.005)
+    for (const stake of DIVINE_GAMBA_STAKES) {
+      const tier = measure(stake)
+      expect(tier.pricePerBall).toBe(base.pricePerBall * stake)
+      expect(Math.abs(tier.returnToPlayer - base.returnToPlayer)).toBeLessThan(0.005)
+    }
   })
 })

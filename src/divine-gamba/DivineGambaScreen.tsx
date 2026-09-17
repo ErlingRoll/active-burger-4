@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isRarity, RARITY_VISUALS } from '../content/rarity/Rarity'
-import type { InventoryService } from '../inventory/InventoryTypes'
-import { MaterialIcon } from '../inventory/MaterialIcon'
 import { LootBoxIcon } from '../loot/LootBoxIcon'
-import { EssenceAmount } from '../ui/EssenceMark'
+import { EssenceAmount, EssenceMark } from '../ui/EssenceMark'
 import { useToaster } from '../ui/ToasterContext'
-import { useNow } from '../ui/useNow'
 import { DivineGambaBoard } from './DivineGambaBoard'
 import { DivineGambaCaseReveal } from './DivineGambaCaseReveal'
 import { formatMultiplier } from './DivineGambaBoardView'
@@ -14,23 +11,20 @@ import {
   DIVINE_GAMBA_LEDE,
   DIVINE_GAMBA_NAME,
 } from './DivineGambaNaming'
-import { measureDivineGambaOdds } from './DivineGambaOdds'
+import { measureDivineGambaOdds, measureProfitChance } from './DivineGambaOdds'
 import {
+  DIVINE_GAMBA_MACHINE,
   DIVINE_GAMBA_MAX_BALLS,
-  getDivineGambaBallPrice,
-  getDivineGambaPartDefinition,
+  DIVINE_GAMBA_STAKES,
   getDivineGambaStakePrice,
-  resolveDivineGambaMachine,
-  type DivineGambaPartDefinition,
+  isDivineGambaJackpot,
 } from './DivineGambaRegistry'
-import { DivineGambaStorePanel } from './DivineGambaStorePanel'
-import type { DivineGambaFreeDropState, DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
+import type { DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
 import { BOX_RARITIES } from './sim'
 import { useDivineGambaPlay } from './useDivineGambaPlay'
 
 interface DivineGambaScreenProps {
   divineGambaService: DivineGambaService | null
-  inventoryService: InventoryService | null
   essenceBalance: number | null
   configurationError: string | null
   onBack: () => void
@@ -39,35 +33,28 @@ interface DivineGambaScreenProps {
 }
 
 const BALL_COUNT_KEY = 'divine-gamba:ball-count'
-const MODIFIERS_KEY = 'divine-gamba:modifiers'
 
-function readStored<TValue>(key: string, fallback: TValue, check: (value: unknown) => value is TValue): TValue {
+function readStoredBallCount(): number {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(BALL_COUNT_KEY)
     if (raw === null) {
-      return fallback
+      return 5
     }
     const parsed: unknown = JSON.parse(raw)
-    return check(parsed) ? parsed : fallback
+    return typeof parsed === 'number' && Number.isInteger(parsed) && parsed >= 1 && parsed <= DIVINE_GAMBA_MAX_BALLS
+      ? parsed
+      : 5
   } catch {
-    return fallback
+    return 5
   }
 }
 
-function store(key: string, value: unknown): void {
+function storeBallCount(value: number): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    localStorage.setItem(BALL_COUNT_KEY, JSON.stringify(value))
   } catch {
     // A remembered preference is a convenience, not state.
   }
-}
-
-function isBallCount(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= DIVINE_GAMBA_MAX_BALLS
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 }
 
 function prefersReducedMotion(): boolean {
@@ -105,52 +92,43 @@ function mirrored(landing: readonly number[]): number[] {
 /**
  * The Divine Gamba.
  *
- * The board in the middle, the controls beneath it, the tally beside it, the
- * odds under that, and the Shardwright's shelf at the end. The odds shown
- * are measured from the same simulation the house runs, for the machine as
- * it is currently set, so what the legend says is what the pockets do.
+ * The board in the middle of the page, the controls and tally beneath it,
+ * and the odds under that. The odds shown are measured from the same
+ * simulation the house runs, so what the legend says is what the pockets
+ * do, and the chance shown for this drop is the chance for the ball count
+ * chosen.
  */
 export function DivineGambaScreen({
   divineGambaService,
-  inventoryService,
   essenceBalance,
   configurationError,
   onBack,
   onEssenceChanged,
 }: DivineGambaScreenProps) {
   const { showLootToast, showToast } = useToaster()
-  const [ownedPartIds, setOwnedPartIds] = useState<ReadonlySet<string>>(() => new Set())
-  const [enabledModifierIds, setEnabledModifierIds] = useState<ReadonlySet<string>>(
-    () => new Set(readStored(MODIFIERS_KEY, [], isStringArray)),
-  )
-  const [ballCount, setBallCount] = useState<number>(() => readStored(BALL_COUNT_KEY, 5, isBallCount))
+  const [ballCount, setBallCount] = useState<number>(readStoredBallCount)
   const [stake, setStake] = useState(1)
-  const [shardBalance, setShardBalance] = useState(0)
-  const [freeDrop, setFreeDrop] = useState<DivineGambaFreeDropState | null>(null)
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
-    () => divineGambaService ? 'loading' : 'error',
-  )
-  const [error, setError] = useState<string | null>(
-    () => divineGambaService ? configurationError : configurationError ?? `The ${DIVINE_GAMBA_NAME} is unavailable.`,
-  )
-  const [busyPartId, setBusyPartId] = useState<string | null>(null)
+  const error = divineGambaService ? configurationError : configurationError ?? `The ${DIVINE_GAMBA_NAME} is unavailable.`
   const [skipped, setSkipped] = useState(false)
   const reducedMotion = useMemo(() => prefersReducedMotion(), [])
-  const now = useNow()
 
-  const refreshFreeDrop = useCallback(async (): Promise<void> => {
-    if (!divineGambaService) {
-      return
-    }
-    try {
-      setFreeDrop(await divineGambaService.loadFreeDropState())
-    } catch {
-      // Without the state the button simply does not offer the free drop.
-      setFreeDrop(null)
-    }
-  }, [divineGambaService])
-
+  /**
+   * What the drop came to, as a loot notice: the net Essence, in the
+   * Essence blue when the drop paid and in red when it lost, then a notice
+   * per box that fell.
+   */
   const announceSettlement = useCallback((settlement: DivineGambaSettleResult): void => {
+    const net = settlement.essenceWon - settlement.essenceSpent
+    const tone = net < 0 ? 'var(--color-red-400)' : 'var(--essence)'
+    const balls = settlement.balls.length
+    showLootToast({
+      title: net > 0 ? 'The drop paid out' : net < 0 ? 'The drop lost' : 'The drop broke even',
+      itemName: `${net > 0 ? '+' : net < 0 ? '−' : ''}${Math.abs(net).toLocaleString()} Essence`,
+      icon: <EssenceMark />,
+      accentColor: tone,
+      glowColor: tone,
+      details: [`Paid ${settlement.essenceSpent.toLocaleString()}, won ${settlement.essenceWon.toLocaleString()} over ${balls} ${balls === 1 ? 'ball' : 'balls'}`],
+    })
     for (const ball of settlement.balls) {
       if (ball.boxRarity !== null && isRarity(ball.boxRarity)) {
         showLootToast({
@@ -162,33 +140,14 @@ export function DivineGambaScreen({
       }
     }
     onEssenceChanged()
-    void refreshFreeDrop()
-  }, [showLootToast, onEssenceChanged, refreshFreeDrop])
+  }, [showLootToast, onEssenceChanged])
 
   const play = useDivineGambaPlay(divineGambaService, announceSettlement)
   const { resumePending } = play
 
-  /**
-   * Counts the rift shards in the bag.
-   *
-   * A bag that cannot be read is not a reason to close the machine: the
-   * count is only what the Shardwright shows beside its prices, so it is
-   * left at zero and the player is told once.
-   */
-  const refreshShards = useCallback(async (): Promise<void> => {
-    if (!inventoryService) {
-      return
-    }
-    try {
-      const items = await inventoryService.loadInventory()
-      setShardBalance(items
-        .filter((item) => item.definitionId === 'rift-shard')
-        .reduce((total, item) => total + item.quantity, 0))
-    } catch (shardError: unknown) {
-      showToast(shardError instanceof Error ? shardError.message : 'Unable to count rift shards.', 'error')
-    }
-  }, [inventoryService, showToast])
-
+  // Settle whatever was paid for earlier and never paid out. A settlement
+  // that fails again is reported and left pending for the next visit; it is
+  // not a reason to hide the machine, which can still be played.
   useEffect(() => {
     if (!divineGambaService) {
       return
@@ -196,48 +155,35 @@ export function DivineGambaScreen({
     let cancelled = false
     void (async () => {
       try {
-        const [owned] = await Promise.all([divineGambaService.loadOwnedParts(), refreshShards(), refreshFreeDrop()])
-        if (cancelled) {
-          return
-        }
-        setOwnedPartIds(new Set(owned.map((part) => part.partId)))
-        setLoadState('ready')
-        setError(null)
         const settled = await resumePending()
         if (cancelled) {
           return
         }
         for (const settlement of settled) {
-          showToast(`A drop from earlier paid out ${settlement.essenceWon} Essence.`)
           announceSettlement(settlement)
         }
-      } catch (loadError: unknown) {
+      } catch (settleError: unknown) {
         if (!cancelled) {
-          setLoadState('error')
-          setError(loadError instanceof Error ? loadError.message : `Unable to open the ${DIVINE_GAMBA_NAME}.`)
+          const message = settleError instanceof Error ? settleError.message : 'The house could not settle it.'
+          showToast(`A drop from earlier is still waiting to be paid out: ${message} It will be tried again next visit.`, 'error')
         }
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [divineGambaService, refreshShards, refreshFreeDrop, resumePending, showToast, announceSettlement])
+  }, [divineGambaService, resumePending, showToast, announceSettlement])
 
-  const machine = useMemo(
-    () => resolveDivineGambaMachine([...ownedPartIds], [...enabledModifierIds]),
-    [ownedPartIds, enabledModifierIds],
-  )
-  const effectiveStake = machine.allowedStakes.includes(stake) ? stake : 1
-  const stakePrice = getDivineGambaStakePrice(effectiveStake)
-  const pricePerBall = getDivineGambaBallPrice(machine, effectiveStake)
-  const cost = pricePerBall * ballCount
+  const machine = DIVINE_GAMBA_MACHINE
+  const stakePrice = getDivineGambaStakePrice(stake)
+  const cost = stakePrice * ballCount
   const canAfford = essenceBalance !== null && essenceBalance >= cost
-  const simMachine = useMemo(() => {
-    const { allowedStakes: _stakes, ...config } = machine
-    return config
-  }, [machine])
-  const odds = useMemo(() => measureDivineGambaOdds(simMachine, stakePrice), [simMachine, stakePrice])
+  const odds = useMemo(() => measureDivineGambaOdds(machine, stakePrice), [machine, stakePrice])
   const landing = useMemo(() => mirrored(odds.landing), [odds])
+  const profitChance = useMemo(
+    () => measureProfitChance(odds, ballCount, stakePrice),
+    [odds, ballCount, stakePrice],
+  )
   // A box's rarity is drawn from the weights once a box is due, so each
   // rarity's chance per ball is its share of the box chance; per drop, over
   // the balls paid for.
@@ -252,33 +198,13 @@ export function DivineGambaScreen({
 
   const session = play.session
   const drop = session?.drop ?? null
-  // The board shows the machine the drop in flight was paid for, so buying a
-  // part mid-drop cannot move the pegs under the balls.
-  const boardConfig = useMemo(() => {
-    if (drop === null) {
-      return simMachine
-    }
-    const { allowedStakes: _stakes, ...config } = drop.play.machine
-    return config
-  }, [drop, simMachine])
+  // The board shows the machine the drop in flight was paid for.
+  const boardConfig = drop?.play.machine ?? machine
 
   const changeBallCount = (next: number): void => {
     const clamped = Math.min(DIVINE_GAMBA_MAX_BALLS, Math.max(1, Math.round(next)))
     setBallCount(clamped)
-    store(BALL_COUNT_KEY, clamped)
-  }
-
-  const toggleModifier = (partId: string, enabled: boolean): void => {
-    setEnabledModifierIds((current) => {
-      const next = new Set(current)
-      if (enabled) {
-        next.add(partId)
-      } else {
-        next.delete(partId)
-      }
-      store(MODIFIERS_KEY, [...next])
-      return next
-    })
+    storeBallCount(clamped)
   }
 
   const launch = async (): Promise<void> => {
@@ -286,53 +212,7 @@ export function DivineGambaScreen({
       return
     }
     setSkipped(false)
-    await play.launch(ballCount, effectiveStake, [...enabledModifierIds].filter((id) => ownedPartIds.has(id)))
-  }
-
-  /** The day's free drop: one ball, base stake, no modifiers, nothing charged. */
-  const launchFree = async (): Promise<void> => {
-    if (play.isBusy || freeDrop === null || !freeDrop.available) {
-      return
-    }
-    setSkipped(false)
-    setFreeDrop({ ...freeDrop, available: false })
-    await play.launch(1, 1, [], true)
-  }
-
-  const freeDropReturnsIn = ((): string | null => {
-    if (freeDrop === null || freeDrop.available) {
-      return null
-    }
-    const remaining = Date.parse(freeDrop.resetsAt) - now
-    if (!Number.isFinite(remaining) || remaining <= 0) {
-      return 'soon'
-    }
-    const hours = Math.floor(remaining / 3600000)
-    const minutes = Math.floor((remaining % 3600000) / 60000)
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
-  })()
-
-  const buy = async (definition: DivineGambaPartDefinition): Promise<void> => {
-    if (!divineGambaService || busyPartId !== null) {
-      return
-    }
-    setBusyPartId(definition.id)
-    try {
-      const result = await divineGambaService.buyPart(crypto.randomUUID(), definition.id)
-      setOwnedPartIds((current) => new Set([...current, result.partId]))
-      showLootToast({
-        title: 'Fitted to the machine',
-        itemName: definition.name,
-        icon: <span aria-hidden="true">◈</span>,
-        reward: `−${result.essenceSpent} Essence, −${result.shardsSpent} shards`,
-      })
-      onEssenceChanged()
-      await refreshShards()
-    } catch (buyError: unknown) {
-      showToast(buyError instanceof Error ? buyError.message : 'The Shardwright would not sell that.', 'error')
-    } finally {
-      setBusyPartId(null)
-    }
+    await play.launch(ballCount, stake)
   }
 
   // The tally: predicted from the local run while balls are falling, the
@@ -370,13 +250,6 @@ export function DivineGambaScreen({
               <dt>Essence</dt>
               <dd><EssenceAmount value={essenceBalance} /></dd>
             </div>
-            <div>
-              <dt>Rift shards</dt>
-              <dd className="divine-gamba-shard-stat">
-                <MaterialIcon icon="rift-shard" />
-                <span>{shardBalance.toLocaleString()}</span>
-              </dd>
-            </div>
           </dl>
         </div>
         <header className="app-screen-title">
@@ -385,20 +258,9 @@ export function DivineGambaScreen({
           <p className="app-screen-lede">{DIVINE_GAMBA_LEDE}</p>
         </header>
         {error ? <p className="persistence-error" role="alert">{error}</p> : null}
-        {loadState === 'loading' ? (
-          <p role="status">Lighting the machine…</p>
-        ) : loadState === 'ready' ? (
+        {divineGambaService !== null ? (
           <div className="app-screen-panels divine-gamba-panels">
             <section className="app-panel divine-gamba-board-panel" aria-labelledby="divine-gamba-board-title">
-              <header className="app-panel-heading">
-                <div>
-                  <p className="screen-kicker">The board</p>
-                  <h3 id="divine-gamba-board-title">{machine.rows} rows, {machine.pockets.length} pockets</h3>
-                </div>
-                {session?.phase === 'dropping' ? (
-                  <span className="app-panel-meta">{session.landedBalls} of {totalBalls} landed</span>
-                ) : null}
-              </header>
               <div className="divine-gamba-board">
                 <DivineGambaBoard
                   machine={boardConfig}
@@ -428,13 +290,13 @@ export function DivineGambaScreen({
                 </div>
                 <div className="divine-gamba-stakes" role="group" aria-label="Stake">
                   <span className="divine-gamba-control-label">Stake</span>
-                  {[1, 2, 5].map((tier) => (
+                  {DIVINE_GAMBA_STAKES.map((tier) => (
                     <button
                       key={tier}
                       type="button"
-                      className={`secondary-action divine-gamba-stake${effectiveStake === tier ? ' divine-gamba-stake-active' : ''}`}
-                      disabled={play.isBusy || !machine.allowedStakes.includes(tier)}
-                      aria-pressed={effectiveStake === tier}
+                      className={`secondary-action divine-gamba-stake${stake === tier ? ' divine-gamba-stake-active' : ''}`}
+                      disabled={play.isBusy}
+                      aria-pressed={stake === tier}
                       onClick={() => setStake(tier)}
                     >
                       ×{tier}
@@ -442,23 +304,10 @@ export function DivineGambaScreen({
                   ))}
                 </div>
                 <div className="divine-gamba-launch">
-                  {freeDrop !== null ? (
-                    <span className="divine-gamba-free">
-                      <button
-                        type="button"
-                        className="secondary-action divine-gamba-free-action"
-                        disabled={play.isBusy || !freeDrop.available || divineGambaService === null}
-                        onClick={() => { void launchFree() }}
-                      >
-                        Free drop
-                      </button>
-                      <small>{freeDrop.available ? 'One ball a day, on the house' : `Back in ${freeDropReturnsIn ?? 'a while'}`}</small>
-                    </span>
-                  ) : null}
                   <span className="divine-gamba-cost">
                     <span className="divine-gamba-control-label">Cost</span>
                     <EssenceAmount value={cost} />
-                    <small>{pricePerBall} a ball</small>
+                    <small>{stakePrice} a ball</small>
                   </span>
                   {play.isBusy && session?.phase === 'dropping' ? (
                     <button type="button" className="secondary-action" onClick={() => setSkipped(true)}>Skip</button>
@@ -469,7 +318,7 @@ export function DivineGambaScreen({
                     disabled={play.isBusy || !canAfford || divineGambaService === null}
                     onClick={() => { void launch() }}
                   >
-                    {session?.phase === 'charging' ? 'Paying…' : play.isBusy ? 'Dropping…' : 'Drop'}
+                    {session?.phase === 'charging' ? 'Paying…' : play.isBusy ? 'Dropping…' : 'GAMBA'}
                   </button>
                 </div>
               </div>
@@ -502,12 +351,22 @@ export function DivineGambaScreen({
               ) : null}
             </section>
             <section className="app-panel divine-gamba-odds-panel" aria-labelledby="divine-gamba-odds-title">
-              <header className="app-panel-heading">
+              {/* <header className="app-panel-heading">
                 <div>
                   <p className="screen-kicker">The odds, as set</p>
                   <h3 id="divine-gamba-odds-title">What this machine does</h3>
                 </div>
               </header>
+              <dl className="divine-gamba-chances">
+                <div>
+                  <dt>This drop profits</dt>
+                  <dd>{percent(profitChance, 0)} <small>of the time, over {ballCount} {ballCount === 1 ? 'ball' : 'balls'}</small></dd>
+                </div>
+                <div>
+                  <dt>Returned per Essence</dt>
+                  <dd>{percent(odds.returnToPlayer, 0)} <small>over many balls</small></dd>
+                </div>
+              </dl>
               <table className="divine-gamba-legend">
                 <caption className="divine-gamba-legend-caption">Pockets, left to right</caption>
                 <thead>
@@ -519,10 +378,10 @@ export function DivineGambaScreen({
                 </thead>
                 <tbody>
                   {machine.pockets.map((pocket, index) => {
-                    const multiplier = pocket.multiplierPercent * machine.multiplierScalePercent / 10000
-                    const boxChance = Math.min(1, pocket.boxChanceBasisPoints * machine.boxChanceScalePercent / 1000000)
+                    const multiplier = pocket.multiplierPercent / 100
+                    const boxChance = Math.min(1, pocket.boxChanceBasisPoints / 10000)
                     return (
-                      <tr key={index} data-pays={multiplier >= 1 ? 'above' : 'below'}>
+                      <tr key={index} data-pays={multiplier >= 1 ? 'above' : 'below'} data-jackpot={isDivineGambaJackpot(machine, index) ? 'true' : undefined}>
                         <th scope="row">{formatMultiplier(multiplier)}</th>
                         <td>{percent(landing[index] ?? 0)}</td>
                         <td>{boxChance > 0 ? percent(boxChance, 0) : '—'}</td>
@@ -530,7 +389,7 @@ export function DivineGambaScreen({
                     )
                   })}
                 </tbody>
-              </table>
+              </table> */}
               <table className="divine-gamba-legend divine-gamba-rarities">
                 <caption className="divine-gamba-legend-caption">Loot boxes</caption>
                 <thead>
@@ -555,22 +414,7 @@ export function DivineGambaScreen({
                   ))}
                 </tbody>
               </table>
-              {[...enabledModifierIds].filter((id) => ownedPartIds.has(id)).length > 0 ? (
-                <p className="divine-gamba-odds-note">
-                  On: {[...enabledModifierIds].filter((id) => ownedPartIds.has(id)).map((id) => getDivineGambaPartDefinition(id)?.name ?? id).join(', ')}.
-                </p>
-              ) : null}
             </section>
-            <DivineGambaStorePanel
-              ownedPartIds={ownedPartIds}
-              enabledModifierIds={enabledModifierIds}
-              essenceBalance={essenceBalance}
-              shardBalance={shardBalance}
-              busyPartId={busyPartId}
-              locked={play.isBusy}
-              onBuy={(definition) => { void buy(definition) }}
-              onToggleModifier={toggleModifier}
-            />
           </div>
         ) : null}
       </div>

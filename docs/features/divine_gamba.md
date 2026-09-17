@@ -16,28 +16,35 @@ next drop worth watching.
 
 ## House rules
 
-Two promises hold, and both are properties of the physics and the pocket
-table together, so neither is a formula. [tests/divineGambaOdds.test.ts](../../tests/divineGambaOdds.test.ts)
-measures them by running the simulation for every loadout the Shardwright can
-sell, and a new part that breaks either fails the build.
+There is one machine, the same for every player, and two promises hold
+about it. Both are properties of the physics and the pocket table together,
+so neither is a formula. [tests/divineGambaOdds.test.ts](../../tests/divineGambaOdds.test.ts)
+measures them by running the simulation, and a pocket table that breaks
+either fails the build.
 
 1. **The law of large numbers favours the house.** The return to player is
-   below one for every loadout, stake and ball count: about 88% on a bare
-   machine, never above 94% however it is fitted. Over enough balls the
-   machine keeps Essence.
-2. **A single drop profits less than half the time.** For every loadout,
-   stake and ball count from one to twenty, the chance that a drop returns
-   more than it cost is under fifty percent. On a bare machine one ball
-   profits about three times in ten; twenty balls, far less often. A lucky
-   drop can still win ten times its stake. The median drop loses.
+   below one at every stake and ball count: about 99%. Over enough balls the
+   machine keeps Essence, slowly.
+2. **A drop profits a little under half the time.** For a drop of three
+   balls or more, the chance that it returns more than it cost is between
+   forty and fifty percent, about 45% at the default five, and it is under
+   fifty percent at every ball count from one to twenty. One ball on its own
+   profits under three times in ten, because only the three outer pockets on
+   each side pay above the ball; a drop of several does better because the
+   pocket just inside them pays nearly the ball back. A lucky drop can still
+   win six times its stake. The median drop loses, by a little.
 
-By construction, only the outer pockets pay above the ball price, and they
-hold under a third of landings. The centre pays a fraction. A jackpot pocket
-always drops a box beside its payout, so boxes are exactly as rare as
-jackpots: about one ball in a hundred on a bare machine and under one in
-twenty however it is fitted. The lined pockets beside the jackpots can drop
-one too. A box's rarity is drawn from weights in tenths of a percent, and a
-legendary box is one in a thousand. Nothing the machine pays is combat power.
+The two are in tension. A machine that pays a ×10 jackpot and profits
+nearly half the time returns more than it takes, because the jackpot's
+Essence goes to drops that would have profited anyway; the jackpot is ×6
+so that the middle pockets can carry the profit chance instead. The screen
+shows the measured chance for the ball count chosen, so what the legend
+says is what the machine does.
+
+A jackpot pocket always drops a box beside its payout, so boxes are exactly
+as rare as jackpots: about one ball in a hundred. A box's rarity is drawn
+from weights in tenths of a percent, and a legendary box is one in a
+thousand. Nothing the machine pays is combat power.
 
 ## How a drop works
 
@@ -46,11 +53,11 @@ transactions so that a crash between them is safe and repeatable, and the
 browser can start the balls falling the moment the wallet is charged.
 
 1. **`begin_divine_gamba_play`** (plpgsql, the signed-in player) validates
-   the ball count, the stake and the modifiers, folds the player's installed
-   parts and enabled modifiers into one machine, charges the wallet, draws a
-   seed from a server-random uuid, and writes a `pending` play carrying the
-   seed, the machine and the simulation version. The same operation id
-   returns the same play and charges nothing twice.
+   the ball count and the stake, builds the machine from its settings and
+   the pocket table, charges the wallet, draws a seed from a server-random
+   uuid, and writes a `pending` play carrying the seed, the machine and the
+   simulation version. The same operation id returns the same play and
+   charges nothing twice.
 2. **The browser** runs the shared simulation from that seed on that machine
    and animates it. In parallel it asks the house to settle.
 3. **`divine-gamba-settle`** (an Edge Function) verifies the caller's token,
@@ -69,7 +76,7 @@ browser can start the balls falling the moment the wallet is charged.
    play pending, and the screen settles every pending play on its next visit.
 
 The browser never tells the server where a ball landed. It sends a ball
-count, a stake, a list of modifier ids and a play id, and nothing else.
+count, a stake and a play id, and nothing else.
 
 ## The simulation
 
@@ -87,9 +94,8 @@ bit. The rules that make that true:
   greps for them.
 - Its own xorshift32, seeded per ball from the play seed and the ball's
   index, drawn in a fixed order: release jitter, one draw per peg hit, the
-  split roll, the box roll, the rarity roll.
-- Iteration by ball index, then row, then peg. A split child is dropped
-  after every paid ball, from its parent's position at the split.
+  box roll, the rarity roll.
+- Iteration by ball index, then row, then peg.
 - A hard tick cap; a ball still falling at the cap lands in the pocket under
   it. Two runs with the same input are identical, and
   [tests/fixtures/divineGambaPlays.json](../../tests/fixtures/divineGambaPlays.json)
@@ -113,52 +119,34 @@ it starts, and the cosmetic tiles are drawn from the play's seed by the
 machine's own weights, so a replay spins the same reel. Reduced motion
 skips the spin and shows the box.
 
-## The free drop
-
-One ball a day on the house: the base stake, no modifiers, nothing charged.
-It is an ordinary play in every other way, simulated, settled and paid like
-a paid one, so a jackpot from a free ball drops its box like any other. The
-day is the UTC calendar day, remembered on the play, and a unique index
-refuses a second ask however two tabs time it. There is no streak and
-nothing is lost by missing a day, which is what the contracts document asks
-of anything that rewards a visit.
-
 ## Contracts
 
 Three contracts credit the machine from the plays and balls the settlement
-records: balls dropped, balls landed in a jackpot pocket, and boxes won. A
-free drop counts like a paid one. They pay rift shards and a box, the two
-things the machine itself asks for; see
+records: balls dropped, balls landed in a jackpot pocket, and boxes won.
+They pay rift shards and a box; see
 [contracts_delivery_plan.md](contracts_delivery_plan.md).
 
-## The Shardwright
+## The machine
 
-Parts and modifiers are per-account unlocks bought with Essence from the
-wallet and rift shards from the bag, in one transaction through the
-inventory ledger. They are not items: they cannot be traded, salvaged or
-lost. A **part** is fitted for good and always on. A **modifier** is owned
-and switched on before a drop, and one that raises the expected return
-carries a surcharge on the ball price sized so that the house rules still
-hold with it on. The pockets pay against the stake price, never the
-surcharged price, which is what makes a surcharge pure house edge.
-
-The catalogue, the pocket tables and the fold from installed parts to a
-machine live in [src/divine-gamba/DivineGambaRegistry.ts](../../src/divine-gamba/DivineGambaRegistry.ts)
-and in the migration, and [tests/divineGambaRegistry.test.ts](../../tests/divineGambaRegistry.test.ts)
+The pocket table, the ball price, the stakes and the box weights live in
+[src/divine-gamba/DivineGambaRegistry.ts](../../src/divine-gamba/DivineGambaRegistry.ts)
+and in the migrations, and [tests/divineGambaRegistry.test.ts](../../tests/divineGambaRegistry.test.ts)
 holds the two together the way the Camp's registry test does: the seed rows
-are parsed out of the migration, and the machine fixtures the migration
-asserts against `divine_gamba_resolve_machine` are the ones the TypeScript
-fold is asserted against.
+are parsed out of the migrations and compared with the registry. A ball can
+be bought at one, two or five times the base price, and the pockets pay the
+same multiple of whatever was staked, so the odds are the same at every
+stake.
 
-This is the second sink for rift shards, after the Rift anchor, and it is
-why the Abyss pays them.
+The machine once had a parts counter, the Shardwright, selling per-account
+upgrades for Essence and rift shards. It was withdrawn: the upgrades were
+not liked, and one machine whose odds are the same for everyone is easier
+to read and to trust.
 
 ## Economy
 
 Written into the resource graph in [economy.md](economy.md): the Gamba
-consumes Essence per ball, and Essence and rift shards for parts; it
-produces Essence, less than it takes, and boxes as often as jackpots land, a
-legendary one in a thousand. It
+consumes Essence per ball; it produces Essence, less than it takes, and
+boxes as often as jackpots land, a legendary one in a thousand. It
 creates Essence from nothing on a lucky drop, which rule five of the economy
 forbids of a system in general; it is allowed here because the return is
 below one by test, so the machine destroys Essence in expectation, and
@@ -169,8 +157,8 @@ because the box faucet is capped by the same test. Automation loses money.
 - Every outcome, charge and grant is server-authoritative and idempotent
   under retry, refresh and two tabs.
 - The seed is never derived from anything the client sends.
-- The machine a play was paid for is frozen on the play; a part bought while
-  balls are falling changes the next drop, not this one.
+- The machine a play was paid for is frozen on the play; a change to the
+  pocket table changes the next drop, not one in flight.
 - A box is one of the five rarities, by the weights, by the roll that walks
   them, and by the column constraint on the ball rows; legendary is one in a
   thousand by the weights the registry test pins.

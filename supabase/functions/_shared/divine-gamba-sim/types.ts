@@ -17,67 +17,27 @@ export interface DivineGambaPocket {
 }
 
 /**
- * A physics effect an installed part or an enabled modifier adds to the board.
+ * Everything the simulation needs to know about the machine.
  *
- * Interpreted by `buildMachine`; the server stores the list on the play and
- * the client reads it back, so an effect is data, never code.
- */
-export type DivineGambaEffect =
-  | {
-    kind: 'scatter'
-    /** An outward nudge on every peg hit, as a share of the reference, in basis points. */
-    strengthBasisPoints: number
-  }
-  | {
-    kind: 'gravity'
-    /** Scales the pull on every ball. 100 is the board as built. */
-    percent: number
-  }
-  | {
-    kind: 'jitter'
-    /** Scales the random nudge a peg hit gives. 100 is the board as built. */
-    percent: number
-  }
-  | {
-    kind: 'split'
-    /** Chance, in basis points, that a ball becomes two as it passes `row`. */
-    chanceBasisPoints: number
-    row: number
-  }
-
-/**
- * Everything the simulation needs to know about one player's machine.
- *
- * Resolved by the server from the installed parts and the enabled modifiers
- * when a play begins, stored on the play, and returned to the client so that
- * both sides simulate the same board.
+ * There is one machine, and it is the same for every player: the server
+ * builds it from its settings when a play begins, stores it on the play, and
+ * returns it to the client so that both sides simulate the same board.
  */
 export interface DivineGambaMachineConfig {
   /** Peg rows. The board has `rows + 1` pockets. */
   rows: number
   pockets: DivineGambaPocket[]
-  /** Scales every pocket's multiplier. 100 leaves the table as written. */
-  multiplierScalePercent: number
-  /** Scales every pocket's box chance. 100 leaves the table as written. */
-  boxChanceScalePercent: number
-  /** Relative weights by rarity name. Never names a rarity above epic. */
+  /** Relative weights by rarity name. */
   boxRarityWeights: Record<string, number>
-  /** The ball price as a percentage of the base price after modifier surcharges. */
-  pricePercent: number
-  effects: DivineGambaEffect[]
 }
 
 export interface DivineGambaPlayInput {
   /** The server's seed for this play, an unsigned 32-bit integer. */
   seed: number
   machine: DivineGambaMachineConfig
-  /** Balls the player paid for, 1 to 20. A split can add more. */
+  /** Balls the player paid for, 1 to 20. */
   ballCount: number
-  /**
-   * The Essence a pocket's multiplier is taken of: the base price times the
-   * stake. A modifier's surcharge raises what a ball costs, never this, which
-   * is how a surcharge lowers the return.
-   */
+  /** The Essence a pocket's multiplier is taken of: the base price times the stake. */
   stakePrice: number
   /** Record every tick's position for the animation. Never changes the outcome. */
   recordFrames?: boolean
@@ -85,8 +45,6 @@ export interface DivineGambaPlayInput {
 
 export interface DivineGambaBallOutcome {
   ballIndex: number
-  /** The ball this one split from, or null for a ball the player paid for. */
-  parentIndex: number | null
   pocketIndex: number
   landedTick: number
   essenceWon: number

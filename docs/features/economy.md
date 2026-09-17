@@ -58,7 +58,7 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Camp | Refined materials, meals, bait, capacity, exhaustion relief | Scrap, roe, rift shards, timber and stone, Champion labour |
 | Contracts | Materials, box keys, cosmetic unlocks | Nothing; it pays for play that is already happening |
 | Market | Nothing | Listing fees and time |
-| Divine Gamba | Essence, less than it takes; a box with every jackpot, legendary one in a thousand | Essence per ball; Essence and rift shards for parts |
+| Divine Gamba | Essence, less than it takes; a box with every jackpot, legendary one in a thousand | Essence per ball |
 
 The market row is deliberately empty on the left, for player listings. The
 consignment shop that shipped first is the exception that proves it: it creates
@@ -77,7 +77,7 @@ content registry, not in engine code.
 | Scrap | Salvaging run gear and duplicate loot-box items | Bait at the workbench and the bench, and the Forge's fee |
 | Timber and stone | Camp passive production | Building construction and upgrades; stone in the Forge's fee |
 | Roe | Gutting fish at the Smokehouse | Curing meal fish; bait crafting later |
-| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor, the Forge's fee and Divine Gamba parts |
+| Rift shard | Abyss floors, and the Abyss contracts | The Rift anchor and the Forge's fee |
 
 Scrap is live. Completing a dungeon grants it from the equipment on the
 terminal checkpoint, at one, two, four, seven or twelve per piece by rarity, and
@@ -93,8 +93,7 @@ spent there to cure a meal fish. Rift shards are live, paid by every completed
 Abyss floor and spent on the Rift anchor. Contracts are live as a second
 faucet for every material: three a day and one a week pay timber, stone,
 scrap, roe, rift shards and loot boxes, and never Essence; see
-[contracts_delivery_plan.md](contracts_delivery_plan.md). The Shardwright, the Divine Gamba's parts counter, is the shards'
-third sink; see [divine_gamba.md](divine_gamba.md).
+[contracts_delivery_plan.md](contracts_delivery_plan.md).
 
 Materials are stackable inventory items using the existing item instance
 format, not a new balance column on the account. This keeps them tradeable,

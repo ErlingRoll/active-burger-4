@@ -24,21 +24,12 @@ export interface DivineGambaMachine {
   halfWidth: number
   ballRadius: number
   pegRadius: number
-  /** Multiplies gravity. One is the board as built. */
-  gravityScale: number
-  /** Multiplies the random nudge of a peg hit. One is the board as built. */
-  jitterScale: number
-  /** Sideways speed added away from the centre on every peg hit. Zero is no effect. */
-  scatterImpulse: number
-  split: { chanceBasisPoints: number; row: number } | null
 }
 
 export const ROW_PITCH = 1
 export const FIRST_ROW_Y = 1.5
 export const BALL_RADIUS = 0.27
 export const PEG_RADIUS = 0.16
-/** The outward nudge a scattering effect at 10000 basis points adds per hit, in pitches per second. */
-const REFERENCE_SCATTER = 4
 
 export function rowY(row: number): number {
   return FIRST_ROW_Y + row * ROW_PITCH
@@ -58,21 +49,6 @@ export function buildMachine(config: DivineGambaMachineConfig): DivineGambaMachi
     }
     pegRows.push(pegs)
   }
-  let gravityScale = 1
-  let jitterScale = 1
-  let scatterImpulse = 0
-  let split: DivineGambaMachine['split'] = null
-  for (const effect of config.effects) {
-    if (effect.kind === 'scatter') {
-      scatterImpulse += REFERENCE_SCATTER * effect.strengthBasisPoints / 10000
-    } else if (effect.kind === 'gravity') {
-      gravityScale *= effect.percent / 100
-    } else if (effect.kind === 'jitter') {
-      jitterScale *= effect.percent / 100
-    } else if (effect.kind === 'split' && split === null) {
-      split = { chanceBasisPoints: effect.chanceBasisPoints, row: effect.row }
-    }
-  }
   return {
     rows: config.rows,
     pegRows,
@@ -81,9 +57,5 @@ export function buildMachine(config: DivineGambaMachineConfig): DivineGambaMachi
     halfWidth: (config.rows + 3) / 2 * ROW_PITCH,
     ballRadius: BALL_RADIUS,
     pegRadius: PEG_RADIUS,
-    gravityScale,
-    jitterScale,
-    scatterImpulse,
-    split,
   }
 }

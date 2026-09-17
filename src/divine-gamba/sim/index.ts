@@ -20,7 +20,6 @@ export { BOX_RARITIES, pocketBoxChanceBasisPoints, pocketPayout, rollBox } from 
 export { MAX_BALLS_PER_PLAY, SIM_VERSION, simulatePlay, TICKS_PER_SECOND } from './simulate.ts'
 export type {
   DivineGambaBallOutcome,
-  DivineGambaEffect,
   DivineGambaMachineConfig,
   DivineGambaPlayInput,
   DivineGambaPlayOutcome,

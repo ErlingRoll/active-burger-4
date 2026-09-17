@@ -1,22 +1,16 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  getDivineGambaBallPrice,
-  getDivineGambaStakePrice,
-  resolveDivineGambaMachine,
-} from '../src/divine-gamba/DivineGambaRegistry'
+import { DIVINE_GAMBA_MACHINE, getDivineGambaStakePrice } from '../src/divine-gamba/DivineGambaRegistry'
 import { buildMachine, pocketCentreX } from '../src/divine-gamba/sim/machine.ts'
 import { createDivineGambaRandom } from '../src/divine-gamba/sim/random.ts'
 import { BOX_RARITIES, pocketPayout, rollBox } from '../src/divine-gamba/sim/rewards.ts'
 import { MAX_BALLS_PER_PLAY, SIM_VERSION, simulatePlay, TICKS_PER_SECOND } from '../src/divine-gamba/sim/simulate.ts'
-import type { DivineGambaMachineConfig, DivineGambaPlayOutcome } from '../src/divine-gamba/sim/types.ts'
+import type { DivineGambaPlayOutcome } from '../src/divine-gamba/sim/types.ts'
 
 interface PlayFixture {
   name: string
   seed: number
-  ownedPartIds: string[]
-  enabledModifierIds: string[]
   stake: number
   ballCount: number
   stakePrice: number
@@ -29,14 +23,10 @@ const fixtures = JSON.parse(readFileSync(
   'utf8',
 )) as PlayFixture[]
 
-function bareMachine(): DivineGambaMachineConfig {
-  const { allowedStakes: _stakes, ...machine } = resolveDivineGambaMachine([], [])
-  return machine
-}
+const machine = DIVINE_GAMBA_MACHINE
 
 describe('the Divine Gamba simulation', () => {
   it('lands the same balls in the same pockets on the same ticks when run twice', () => {
-    const machine = bareMachine()
     const first = simulatePlay({ seed: 42, machine, ballCount: 20, stakePrice: 20, recordFrames: true })
     const second = simulatePlay({ seed: 42, machine, ballCount: 20, stakePrice: 20 })
     expect(second.balls.map(({ frames: _frames, hits: _hits, ...ball }) => ball))
@@ -49,10 +39,8 @@ describe('the Divine Gamba simulation', () => {
   it.each(fixtures.map((fixture) => [fixture.name, fixture] as const))(
     'reproduces the golden fixture %s',
     (_name, fixture) => {
-      const resolved = resolveDivineGambaMachine(fixture.ownedPartIds, fixture.enabledModifierIds)
-      const { allowedStakes: _stakes, ...machine } = resolved
-      expect(getDivineGambaBallPrice(resolved, fixture.stake)).toBe(fixture.pricePerBall)
       expect(getDivineGambaStakePrice(fixture.stake)).toBe(fixture.stakePrice)
+      expect(fixture.pricePerBall).toBe(fixture.stakePrice)
       expect(simulatePlay({
         seed: fixture.seed,
         machine,
@@ -68,8 +56,11 @@ describe('the Divine Gamba simulation', () => {
     }
   })
 
+  it('pins a drop in which a box falls', () => {
+    expect(fixtures.some((fixture) => fixture.expected.boxCount > 0)).toBe(true)
+  })
+
   it('drops every ball into a pocket within the tick cap for many seeds', () => {
-    const machine = bareMachine()
     for (let seed = 1; seed <= 200; seed += 1) {
       const outcome = simulatePlay({ seed: seed * 7919, machine, ballCount: 20, stakePrice: 20 })
       expect(outcome.balls).toHaveLength(20)
@@ -82,7 +73,6 @@ describe('the Divine Gamba simulation', () => {
   })
 
   it('ends a recorded drop above the pocket it is credited with', () => {
-    const machine = bareMachine()
     const built = buildMachine(machine)
     const outcome = simulatePlay({ seed: 99, machine, ballCount: 20, stakePrice: 20, recordFrames: true })
     for (const ball of outcome.balls) {
@@ -101,21 +91,7 @@ describe('the Divine Gamba simulation', () => {
     }
   })
 
-  it('lets a splitter add balls after the paid ones, each naming its parent', () => {
-    const split = fixtures.find((fixture) => fixture.name === 'splitter-splits')
-    expect(split).toBeDefined()
-    const balls = split?.expected.balls ?? []
-    const children = balls.filter((ball) => ball.parentIndex !== null)
-    expect(children.length).toBeGreaterThan(0)
-    expect(balls.slice(0, split?.ballCount).every((ball) => ball.parentIndex === null)).toBe(true)
-    for (const child of children) {
-      expect(child.ballIndex).toBeGreaterThanOrEqual(split?.ballCount ?? 0)
-      expect(child.parentIndex).toBeLessThan(split?.ballCount ?? 0)
-    }
-  })
-
   it('refuses a ball count outside one to twenty', () => {
-    const machine = bareMachine()
     expect(() => simulatePlay({ seed: 1, machine, ballCount: 0, stakePrice: 20 })).toThrow()
     expect(() => simulatePlay({ seed: 1, machine, ballCount: MAX_BALLS_PER_PLAY + 1, stakePrice: 20 })).toThrow()
     expect(() => simulatePlay({ seed: 1, machine, ballCount: 1.5, stakePrice: 20 })).toThrow()
@@ -123,38 +99,34 @@ describe('the Divine Gamba simulation', () => {
 })
 
 describe('the rewards', () => {
-  it('floors a payout to whole Essence from the pocket table and the scale', () => {
-    const machine = { ...bareMachine(), multiplierScalePercent: 105 }
-    // 20 × 1000 × 105 / 10000 = 210; 20 × 30 × 105 / 10000 = 6.3 → 6.
-    expect(pocketPayout(machine, 0, 20)).toBe(210)
-    expect(pocketPayout(machine, 4, 20)).toBe(6)
+  it('floors a payout to whole Essence from the pocket table', () => {
+    // 20 × 600 / 100 = 120; 20 × 25 / 100 = 5; 30 × 25 / 100 = 7.5 → 7.
+    expect(pocketPayout(machine, 0, 20)).toBe(120)
+    expect(pocketPayout(machine, 4, 20)).toBe(5)
+    expect(pocketPayout(machine, 4, 30)).toBe(7)
     expect(pocketPayout(machine, 99, 20)).toBe(0)
   })
 
   it('rolls only the rarities the weights name, and none the roll does not know', () => {
-    const machine = {
-      ...bareMachine(),
+    const boxes = {
+      ...machine,
       boxRarityWeights: { common: 0, uncommon: 0, rare: 0, epic: 1, legendary: 1000, mythic: 100000 },
-      pockets: bareMachine().pockets.map(() => ({ multiplierPercent: 100, boxChanceBasisPoints: 10000 })),
+      pockets: machine.pockets.map(() => ({ multiplierPercent: 100, boxChanceBasisPoints: 10000 })),
     }
     const random = createDivineGambaRandom(7)
-    const drawn = new Set<string>()
-    for (let draw = 0; draw < 400; draw += 1) {
-      const rarity = rollBox(machine, 0, random)
-      expect(rarity).not.toBeNull()
-      expect(BOX_RARITIES).toContain(rarity)
-      drawn.add(rarity ?? '')
+    const seen = new Set<string | null>()
+    for (let roll = 0; roll < 500; roll += 1) {
+      seen.add(rollBox(boxes, 3, random))
     }
-    expect(drawn.has('legendary')).toBe(true)
-    expect(drawn.has('mythic')).toBe(false)
+    expect([...seen].every((rarity) => rarity !== null && (BOX_RARITIES as readonly string[]).includes(rarity))).toBe(true)
+    expect(seen.has('mythic')).toBe(false)
+    expect(seen.has('legendary')).toBe(true)
   })
 
-  it('draws for a box once per ball whether or not the pocket can hold one', () => {
-    const machine = bareMachine()
-    const withRoll = createDivineGambaRandom(5)
-    const control = createDivineGambaRandom(5)
-    expect(rollBox(machine, 4, withRoll)).toBeNull()
-    control.nextBasisPoints()
-    expect(withRoll.nextUint()).toBe(control.nextUint())
+  it('never drops a box from a pocket with no chance of one', () => {
+    const random = createDivineGambaRandom(11)
+    for (let roll = 0; roll < 200; roll += 1) {
+      expect(rollBox(machine, 4, random)).toBeNull()
+    }
   })
 })

@@ -2,15 +2,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient, type AuthEnvironment } from '../auth'
 import type {
   DivineGambaBeginResult,
-  DivineGambaFreeDropState,
-  DivineGambaOwnedPart,
   DivineGambaPendingPlay,
-  DivineGambaPlayMachine,
-  DivineGambaPurchaseResult,
   DivineGambaService,
   DivineGambaSettledBall,
   DivineGambaSettleResult,
 } from './DivineGambaTypes'
+import type { DivineGambaMachineConfig } from './sim/types.ts'
 
 /** The Edge Function that runs the simulation for the house. */
 export const DIVINE_GAMBA_SETTLE_FUNCTION = 'divine-gamba-settle'
@@ -27,22 +24,13 @@ function isCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
-}
-
-function isMachine(value: unknown): value is DivineGambaPlayMachine {
+function isMachine(value: unknown): value is DivineGambaMachineConfig {
   return isRecord(value) &&
     isCount(value.rows) &&
     Array.isArray(value.pockets) &&
     value.pockets.every((pocket) =>
       isRecord(pocket) && isCount(pocket.multiplierPercent) && isCount(pocket.boxChanceBasisPoints)) &&
-    isCount(value.multiplierScalePercent) &&
-    isCount(value.boxChanceScalePercent) &&
-    isRecord(value.boxRarityWeights) &&
-    isCount(value.pricePercent) &&
-    Array.isArray(value.effects) && value.effects.every(isRecord) &&
-    Array.isArray(value.allowedStakes) && value.allowedStakes.every(isCount)
+    isRecord(value.boxRarityWeights)
 }
 
 function invalidResponse(message: string): Error {
@@ -55,11 +43,23 @@ function assertOperationId(operationId: string): void {
   }
 }
 
+/** The machine as the simulation reads it, and nothing the server might have stored beside it. */
+function readMachine(machine: DivineGambaMachineConfig): DivineGambaMachineConfig {
+  return {
+    rows: machine.rows,
+    pockets: machine.pockets.map((pocket) => ({
+      multiplierPercent: pocket.multiplierPercent,
+      boxChanceBasisPoints: pocket.boxChanceBasisPoints,
+    })),
+    boxRarityWeights: { ...machine.boxRarityWeights },
+  }
+}
+
 function readPlay(row: unknown): Omit<DivineGambaPendingPlay, 'createdAt'> | null {
   if (!isRecord(row) ||
     !isCount(row.play_id) || !isCount(row.seed) || !isCount(row.sim_version) ||
     !isCount(row.stake) || !isCount(row.ball_count) || !isCount(row.stake_price) ||
-    !isCount(row.price_per_ball) || !isStringArray(row.modifier_ids) ||
+    !isCount(row.price_per_ball) ||
     !isMachine(row.machine) || !isCount(row.essence_spent)) {
     return null
   }
@@ -71,8 +71,7 @@ function readPlay(row: unknown): Omit<DivineGambaPendingPlay, 'createdAt'> | nul
     ballCount: row.ball_count,
     stakePrice: row.stake_price,
     pricePerBall: row.price_per_ball,
-    modifierIds: row.modifier_ids,
-    machine: row.machine,
+    machine: readMachine(row.machine),
     essenceSpent: row.essence_spent,
   }
 }
@@ -80,13 +79,11 @@ function readPlay(row: unknown): Omit<DivineGambaPendingPlay, 'createdAt'> | nul
 function readBall(row: unknown): DivineGambaSettledBall | null {
   if (!isRecord(row) || !isCount(row.ball_index) || !isCount(row.pocket_index) ||
     !isCount(row.essence_won) ||
-    !(row.parent_index === null || isCount(row.parent_index)) ||
     !(row.box_rarity === null || isNonEmptyString(row.box_rarity))) {
     return null
   }
   return {
     ballIndex: row.ball_index,
-    parentIndex: row.parent_index === null ? null : row.parent_index,
     pocketIndex: row.pocket_index,
     landedTick: isCount(row.landed_tick) ? row.landed_tick : 0,
     essenceWon: row.essence_won,
@@ -136,9 +133,9 @@ async function functionErrorMessage(error: unknown): Promise<string> {
  * The Divine Gamba, as the browser reaches it.
  *
  * Prices, the machine, the seed and the outcome are all read back from the
- * server rather than sent to it. The client names a ball count, a stake and
- * the modifiers it wants on, and asks the house to settle by play id; nothing
- * about where a ball landed ever travels upward.
+ * server rather than sent to it. The client names a ball count and a stake,
+ * and asks the house to settle by play id; nothing about where a ball landed
+ * ever travels upward.
  */
 export function createDivineGambaService(
   environment: AuthEnvironment,
@@ -148,24 +145,6 @@ export function createDivineGambaService(
   const getClient = (): SupabaseClient => resolveClient?.() ?? defaultClient
 
   return {
-    async loadOwnedParts(): Promise<DivineGambaOwnedPart[]> {
-      const response = await getClient()
-        .from('divine_gamba_parts')
-        .select('part_id, acquired_at')
-        .order('acquired_at', { ascending: true })
-      if (response.error) {
-        throw response.error
-      }
-      if (!Array.isArray(response.data) || !response.data.every((row) =>
-        isRecord(row) && isNonEmptyString(row.part_id) && isNonEmptyString(row.acquired_at))) {
-        throw invalidResponse('expected an owned part array')
-      }
-      return response.data.map((row) => ({
-        partId: row.part_id as string,
-        acquiredAt: row.acquired_at as string,
-      }))
-    },
-
     async loadPendingPlays(): Promise<DivineGambaPendingPlay[]> {
       const response = await getClient().rpc('list_divine_gamba_pending_plays')
       if (response.error) {
@@ -183,20 +162,7 @@ export function createDivineGambaService(
       })
     },
 
-    async loadFreeDropState(): Promise<DivineGambaFreeDropState> {
-      const response = await getClient().rpc('divine_gamba_free_drop_state')
-      if (response.error) {
-        throw response.error
-      }
-      const data: unknown = response.data
-      if (!isRecord(data) || typeof data.available !== 'boolean' ||
-        !isNonEmptyString(data.resets_at) || !isNonEmptyString(data.server_time)) {
-        throw invalidResponse('expected the free drop state')
-      }
-      return { available: data.available, resetsAt: data.resets_at, serverTime: data.server_time }
-    },
-
-    async beginPlay(operationId, ballCount, stake, modifierIds, free = false): Promise<DivineGambaBeginResult> {
+    async beginPlay(operationId, ballCount, stake): Promise<DivineGambaBeginResult> {
       assertOperationId(operationId)
       if (!Number.isInteger(ballCount) || ballCount < 1 || ballCount > 20) {
         throw new Error('A play holds 1 to 20 balls.')
@@ -208,8 +174,6 @@ export function createDivineGambaService(
         p_operation_id: operationId,
         p_ball_count: ballCount,
         p_stake: stake,
-        p_modifier_ids: [...modifierIds],
-        p_free: free,
       })
       if (response.error) {
         throw response.error
@@ -222,7 +186,6 @@ export function createDivineGambaService(
       return {
         ...play,
         essenceBalance: response.data.essence_balance,
-        free: response.data.free === true,
         wasProcessed: response.data.was_processed,
       }
     },
@@ -238,33 +201,6 @@ export function createDivineGambaService(
         throw new Error(await functionErrorMessage(response.error))
       }
       return readSettlement(response.data)
-    },
-
-    async buyPart(operationId, partId): Promise<DivineGambaPurchaseResult> {
-      assertOperationId(operationId)
-      if (!isNonEmptyString(partId)) {
-        throw new Error('A part ID is required.')
-      }
-      const response = await getClient().rpc('buy_divine_gamba_part', {
-        p_operation_id: operationId,
-        p_part_id: partId,
-      })
-      if (response.error) {
-        throw response.error
-      }
-      const data: unknown = response.data
-      if (!isRecord(data) || !isNonEmptyString(data.part_id) || !isCount(data.essence_spent) ||
-        !isCount(data.shards_spent) || !isCount(data.essence_balance) ||
-        typeof data.was_processed !== 'boolean') {
-        throw invalidResponse('expected a purchase')
-      }
-      return {
-        partId: data.part_id,
-        essenceSpent: data.essence_spent,
-        shardsSpent: data.shards_spent,
-        essenceBalance: data.essence_balance,
-        wasProcessed: data.was_processed,
-      }
     },
   }
 }

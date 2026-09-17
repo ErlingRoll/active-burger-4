@@ -14,12 +14,25 @@
   --accent-bright-rgb: 196 181 253;
 }
 
-/* The board and its odds side by side, each its own height; the shelf
-   beneath them across the full width, where its cards can sit in columns. */
+/* The board is the machine: it sits centred at the top, as wide as its
+   height allows, and the odds sit beneath it at the same width. The board
+   is 11 by 10 and its height is capped so the Drop button stays on the
+   first screenful of a desktop, so the panels' width is that height, in the
+   board's shape, plus the panel's own padding; wider, and the canvas would
+   letterbox the pegs between empty gutters. */
 .divine-gamba-panels {
-  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  --board-height: min(44vh, 34rem);
+  --panel-padding: clamp(0.5rem, 1.8vh, 1.35rem);
+
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: auto;
+  justify-items: center;
   align-items: start;
+}
+
+.divine-gamba-panels > .app-panel {
+  width: min(100%, 46rem, calc(var(--board-height) * 1.1 + 2 * var(--panel-padding)));
+  padding: var(--panel-padding);
 }
 
 .divine-gamba-board-panel {
@@ -28,17 +41,13 @@
   gap: clamp(0.5rem, 1.4vh, 0.9rem);
 }
 
-.divine-gamba-store-panel {
-  grid-column: 1 / -1;
-}
-
 /* The board keeps its shape: a little taller than wide, capped so it never
    pushes the controls off a short viewport. */
 .divine-gamba-board {
   position: relative;
   width: 100%;
   aspect-ratio: 11 / 10;
-  max-height: min(62vh, 40rem);
+  max-height: var(--board-height);
   overflow: hidden;
   border: 1px solid rgb(var(--accent-rgb) / 34%);
   border-radius: 0.7rem;
@@ -110,19 +119,6 @@
   justify-content: flex-end;
 }
 
-.divine-gamba-free {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  align-items: flex-start;
-  margin-right: auto;
-}
-
-.divine-gamba-free small {
-  color: var(--text-muted);
-  font-size: 0.64rem;
-}
-
 .divine-gamba-cost {
   display: flex;
   flex-direction: column;
@@ -182,19 +178,47 @@
   color: var(--accent-danger);
 }
 
-.divine-gamba-shard-stat {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
+/* The odds: what this drop's chances are, then one row per pocket, in the
+   order they sit on the board. */
+.divine-gamba-chances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+  margin: 0;
 }
 
-.divine-gamba-shard-stat .material-icon {
-  width: 1em;
-  height: 1em;
+.divine-gamba-chances > div {
+  display: grid;
+  flex: 1 1 8rem;
+  gap: 0.1rem;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.6rem, 1.6vw, 0.9rem);
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.55rem;
 }
 
-/* The odds: three headline figures, then one column per pocket. */
-/* One row per pocket, in the order they sit on the board. */
+.divine-gamba-chances dt {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-chances dd {
+  margin: 0;
+  color: var(--accent-contrast);
+  font-size: clamp(0.95rem, 2.2vh, 1.2rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-chances small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
 .divine-gamba-legend {
   width: 100%;
   margin: clamp(0.5rem, 1.4vh, 0.9rem) 0 0;
@@ -273,128 +297,6 @@
 .divine-gamba-rarity svg {
   width: 1.2em;
   height: 1.2em;
-}
-
-.divine-gamba-odds-note {
-  margin: 0.5rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-}
-
-/* The shelf. */
-.divine-gamba-store-lede {
-  margin: 0 0 0.6rem;
-  color: var(--text-muted);
-  font-size: clamp(0.72rem, 1.6vh, 0.85rem);
-}
-
-.divine-gamba-store-group {
-  margin: 0.6rem 0 0.3rem;
-  color: var(--accent);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.divine-gamba-store-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
-  gap: clamp(0.3rem, 1vh, 0.55rem);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.divine-gamba-store-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(0.35rem, 1.2vw, 0.8rem);
-  align-items: center;
-  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.5rem, 1.5vw, 0.85rem);
-  background: rgb(0 0 0 / 30%);
-  border: 1px solid rgb(var(--accent-rgb) / 20%);
-  border-radius: 0.55rem;
-}
-
-.divine-gamba-store-line[data-owned='true'] {
-  border-color: rgb(var(--accent-rgb) / 45%);
-}
-
-.divine-gamba-store-copy {
-  display: flex;
-  flex: 1 1 min(12rem, 100%);
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.divine-gamba-store-copy strong {
-  color: var(--color-stone-100);
-  font-size: clamp(0.76rem, 1.8vh, 0.95rem);
-}
-
-.divine-gamba-store-copy small {
-  color: var(--color-slate-400);
-  font-size: clamp(0.64rem, 1.45vh, 0.78rem);
-}
-
-.divine-gamba-store-surcharge {
-  color: var(--accent);
-}
-
-.divine-gamba-store-requirement {
-  color: var(--accent-danger);
-}
-
-.divine-gamba-store-price {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: clamp(0.68rem, 1.5vh, 0.82rem);
-  font-weight: 700;
-}
-
-.divine-gamba-store-shards {
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-  color: var(--accent-contrast);
-}
-
-.divine-gamba-store-shards .material-icon {
-  width: 1.1em;
-  height: 1.1em;
-}
-
-.divine-gamba-store-installed {
-  color: var(--accent);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.divine-gamba-toggle {
-  display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
-  color: var(--accent-contrast);
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.divine-gamba-toggle input {
-  accent-color: var(--accent);
-}
-
-@media (max-width: 47rem) {
-  .divine-gamba-panels {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
 }
 
 /*

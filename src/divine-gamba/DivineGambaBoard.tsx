@@ -26,6 +26,9 @@ const BOARD_CUES: Readonly<Record<DivineGambaBoardSound, SoundCueId>> = {
   jackpot: 'gamba-jackpot',
 }
 
+/** How long the board keeps drawing after the last ball lands, so it can sink and its pocket flash. */
+const SETTLE_MS = 500
+
 function playBoardSound(sound: DivineGambaBoardSound): void {
   playSound(BOARD_CUES[sound])
 }
@@ -116,11 +119,19 @@ export function DivineGambaBoard({
         onLandedRef.current(result.landed)
       }
       if (result.finished) {
-        // Let the last ball sink and the last pocket flash before handing over.
-        frame = requestAnimationFrame(() => {
-          view.render(performance.now())
+        // Let the last ball sink and the last pocket flash before handing
+        // over: keep drawing for half a second after the last landing.
+        const finishedAt = now
+        const settle = (): void => {
+          const settleNow = performance.now()
+          view.render(settleNow)
+          if (settleNow - finishedAt < SETTLE_MS) {
+            frame = requestAnimationFrame(settle)
+            return
+          }
           onFinishedRef.current()
-        })
+        }
+        frame = requestAnimationFrame(settle)
         return
       }
       frame = requestAnimationFrame(step)

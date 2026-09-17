@@ -100,49 +100,16 @@ export class DivineGambaBoardView {
       this.balls = []
       return
     }
-    const paid = drop.outcome.balls.filter((ball) => ball.parentIndex === null)
-    const scheduled = new Map<number, ScheduledBall>()
-    for (const [order, ball] of paid.entries()) {
-      scheduled.set(ball.ballIndex, {
-        index: ball.ballIndex,
-        frames: ball.frames ?? [],
-        hits: ball.hits ?? [],
-        startMs: drop.startedAt + order * LAUNCH_GAP_MS,
-        pocketIndex: ball.pocketIndex,
-        boxRarity: ball.boxRarity,
-        landedAt: null,
-        lastTick: -1,
-      })
-    }
-    for (const ball of drop.outcome.balls) {
-      if (ball.parentIndex === null) {
-        continue
-      }
-      const parent = scheduled.get(ball.parentIndex)
-      const frames = ball.frames ?? []
-      // A child starts where and when its parent split: the tick whose
-      // recorded position equals the child's first frame, exactly.
-      let splitTick = 0
-      if (parent !== undefined && frames.length >= 2) {
-        for (let tick = 0; tick * 2 + 1 < parent.frames.length; tick += 1) {
-          if (parent.frames[tick * 2] === frames[0] && parent.frames[tick * 2 + 1] === frames[1]) {
-            splitTick = tick
-            break
-          }
-        }
-      }
-      scheduled.set(ball.ballIndex, {
-        index: ball.ballIndex,
-        frames,
-        hits: ball.hits ?? [],
-        startMs: (parent?.startMs ?? drop.startedAt) + splitTick / TICKS_PER_SECOND * 1000 / PLAYBACK_SPEED,
-        pocketIndex: ball.pocketIndex,
-        boxRarity: ball.boxRarity,
-        landedAt: null,
-        lastTick: -1,
-      })
-    }
-    this.balls = [...scheduled.values()]
+    this.balls = drop.outcome.balls.map((ball, order) => ({
+      index: ball.ballIndex,
+      frames: ball.frames ?? [],
+      hits: ball.hits ?? [],
+      startMs: drop.startedAt + order * LAUNCH_GAP_MS,
+      pocketIndex: ball.pocketIndex,
+      boxRarity: ball.boxRarity,
+      landedAt: null,
+      lastTick: -1,
+    }))
   }
 
   resize(width: number, height: number, ratio: number): void {
@@ -186,13 +153,13 @@ export class DivineGambaBoardView {
 
   private landingSound(ball: ScheduledBall): DivineGambaBoardSound {
     const pocket = this.config?.pockets[ball.pocketIndex]
-    const multiplier = pocket === undefined || this.config === null
-      ? 0
-      : pocket.multiplierPercent * this.config.multiplierScalePercent / 10000
-    if (multiplier >= 10) {
+    if (this.config === null || pocket === undefined) {
+      return 'land'
+    }
+    if (ball.pocketIndex === 0 || ball.pocketIndex === this.config.pockets.length - 1) {
       return 'jackpot'
     }
-    return multiplier >= 1 ? 'land-good' : 'land'
+    return pocket.multiplierPercent >= 100 ? 'land-good' : 'land'
   }
 
   /** Lands everything at once, for a skipped or motion-reduced drop. */
@@ -372,7 +339,7 @@ export class DivineGambaBoardView {
         continue
       }
       const centreX = toX(pocketCentreX(machine.rows, index))
-      const multiplier = pocket.multiplierPercent * config.multiplierScalePercent / 10000
+      const multiplier = pocket.multiplierPercent / 100
       const labelY = pocketTop + (pocketBottom - pocketTop) * 0.15
       // Sized to the slot: a four-character label has to fit beside its neighbours.
       context.font = `800 ${Math.max(9, scale * (formatMultiplier(multiplier).length > 3 ? 0.24 : 0.3))}px ${font}`
