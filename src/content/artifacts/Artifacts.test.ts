@@ -5,6 +5,9 @@ import MIGRATION from '../../../supabase/migrations/20260912160000_add_artifacts
 import ROLL_MIGRATION from '../../../supabase/migrations/20260912200000_artifact_floor_shield.sql?raw'
 // Potential came later, rolled by the trigger around the same roll.
 import FORGE_MIGRATION from '../../../supabase/migrations/20260913200000_work_the_forge.sql?raw'
+// The roll and the trigger were restated once more so a box could put a
+// floor under an artifact's rarity and Potential.
+import FLOOR_MIGRATION from '../../../supabase/migrations/20260917250000_legendary_boxes_worth_the_name.sql?raw'
 import {
   ALL_ARTIFACT_BASE_DEFINITIONS,
   ARTIFACT_BASE_DEFINITIONS,
@@ -28,9 +31,8 @@ import {
   type ArtifactTierRanges,
 } from './Artifacts'
 import { Random } from '../../game/random/Random'
-import { RARITIES, RARITY_ORDER } from '../rarity/Rarity'
+import { RARITIES, RARITY_ORDER, type Rarity } from '../rarity/Rarity'
 import { ALL_INVENTORY_ITEM_DEFINITIONS } from '../../inventory/ItemDefinitions'
-import { LOOT_BOX_DROP_TABLES } from '../../loot/LootBoxContents'
 
 /**
  * The tier ranges as the migration declares them, keyed by effect id. The
@@ -75,15 +77,6 @@ function parseSqlTierRanges(): Map<string, ArtifactTierRanges> {
   return ranges
 }
 
-function parseSqlDropTable(rarity: string): readonly [string, number][] {
-  const pattern = rarity === 'legendary'
-    ? /else '(\[\[.*?\]\])'::jsonb/
-    : new RegExp(`when '${rarity}' then '(\\[\\[.*?\\]\\])'::jsonb`)
-  const match = MIGRATION.match(pattern)
-  expect(match, `drop table for ${rarity}`).not.toBeNull()
-  return JSON.parse(match![1]!) as [string, number][]
-}
-
 describe('artifact definitions', () => {
   it('are internally sound', () => {
     expect(validateArtifactDefinitions()).toEqual([])
@@ -126,6 +119,29 @@ describe('artifact definitions', () => {
 
 describe('artifact rolls', () => {
   const SAMPLE = 40_000
+
+  it('rolls from a floor upward, keeping the weights above it in proportion', () => {
+    const random = new Random(11)
+    const counts: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 }
+    for (let i = 0; i < SAMPLE; i += 1) {
+      counts[rollArtifact('ember-reliquary', random, { rarityFloor: 'epic' }).rarity] += 1
+    }
+    expect(counts.common + counts.uncommon + counts.rare).toBe(0)
+    // Ten to two: legendary one time in six.
+    expect(counts.legendary / SAMPLE).toBeGreaterThan(0.15)
+    expect(counts.legendary / SAMPLE).toBeLessThan(0.185)
+  })
+
+  it('makes an artifact with at least the Potential the box asks for', () => {
+    const random = new Random(12)
+    let lowest = Infinity
+    for (let i = 0; i < 2_000; i += 1) {
+      lowest = Math.min(lowest, getArtifactPotential(rollArtifact('gluttons-kettle', random, { potentialMin: 70 })))
+    }
+    expect(lowest).toBeGreaterThanOrEqual(70)
+    // A hint above the ceiling is clamped rather than rolled past it.
+    expect(getArtifactPotential(rollArtifact('gluttons-kettle', random, { potentialMin: 500 }))).toBe(ARTIFACT_POTENTIAL_MAX)
+  })
 
   it('follow the rarity table, with a legendary one in fifty', () => {
     const random = new Random(7)
@@ -270,6 +286,33 @@ describe('artifact migration parity', () => {
     expect(FORGE_MIGRATION).toContain(`'{"potential": ${ARTIFACT_POTENTIAL_DEFAULT}}'::jsonb`)
   })
 
+  it('restates the rarity weights and the pool unchanged when it adds the floor', () => {
+    const weights = FLOOR_MIGRATION.match(/v_rarity_weights integer\[\] := array\[([\d, ]+)\];/)
+    expect(weights).not.toBeNull()
+    expect(weights![1]!.split(',').map((weight) => Number(weight.trim())))
+      .toEqual(RARITIES.map((rarity) => ARTIFACT_RARITY_WEIGHTS[rarity]))
+
+    const pool = FLOOR_MIGRATION.match(/v_pool text\[\] := array\[([\s\S]*?)\];/)
+    expect([...pool![1]!.matchAll(/'([a-z-]+)'/g)].map((entry) => entry[1])).toEqual(ARTIFACT_MODIFIER_IDS)
+
+    const tierCutoffs = [...FLOOR_MIGRATION.matchAll(/when v_tier_roll < (\d+) then/g)].map((m) => Number(m[1]))
+    let running = 0
+    const expectedTier = ARTIFACT_TIERS.slice(0, -1).map((tier) => (running += ARTIFACT_TIER_WEIGHTS[tier]))
+    expect(tierCutoffs).toEqual([...expectedTier, ...expectedTier])
+  })
+
+  it('rolls Potential from a floor the box may raise, clamped to the same bounds', () => {
+    expect(FLOOR_MIGRATION).toContain(
+      `v_potential_min := least(${ARTIFACT_POTENTIAL_MAX}, greatest(${ARTIFACT_POTENTIAL_MIN}, coalesce(`,
+    )
+    expect(FLOOR_MIGRATION).toContain(
+      `'potential', v_potential_min + public.artifact_hash_roll(new.id, 'potential', ${ARTIFACT_POTENTIAL_MAX} - v_potential_min + 1)`,
+    )
+    // The hints never reach the stored metadata.
+    expect(FLOOR_MIGRATION).toContain("v_metadata := v_metadata - 'rarityFloor';")
+    expect(FLOOR_MIGRATION).toContain("new.metadata := new.metadata - 'potentialMin';")
+  })
+
   it('pays the same scrap for salvage', () => {
     const start = MIGRATION.indexOf("v_definition.category = 'artifact'")
     const block = MIGRATION.slice(start, MIGRATION.indexOf('end;', start))
@@ -279,27 +322,4 @@ describe('artifact migration parity', () => {
     }
   })
 
-  it('keeps every drop table in step with the client copy', () => {
-    for (const rarity of RARITIES) {
-      const sql = parseSqlDropTable(rarity)
-      let cumulative = 0
-      const client = LOOT_BOX_DROP_TABLES[rarity].map((entry) => {
-        cumulative += entry.weight
-        return [entry.definitionId, cumulative] as const
-      })
-      expect(sql, rarity).toEqual(client)
-      expect(cumulative, rarity).toBe(1000)
-    }
-  })
-
-  it('never drops an artifact below a rare box', () => {
-    for (const rarity of ['common', 'uncommon'] as const) {
-      expect(LOOT_BOX_DROP_TABLES[rarity].some((entry) => entry.definitionId.startsWith('artifact-'))).toBe(false)
-    }
-    for (const rarity of ['rare', 'epic', 'legendary'] as const) {
-      const bases = LOOT_BOX_DROP_TABLES[rarity].filter((entry) => entry.definitionId.startsWith('artifact-'))
-      expect(bases).toHaveLength(ALL_ARTIFACT_BASE_DEFINITIONS.length)
-      expect(new Set(bases.map((entry) => entry.weight)).size).toBe(1)
-    }
-  })
 })

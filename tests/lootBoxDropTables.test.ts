@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { RARITIES, RARITY_ORDER, Rarity } from '../src/content/rarity/Rarity'
 import {
   LOOT_BOX_DROP_TABLES,
-  LOOT_BOX_ITEM_COUNTS,
   LOOT_BOX_ROLL_RANGE,
+  LOOT_BOX_RULES,
+  getLootBoxItemCount,
 } from '../src/loot/LootBoxContents'
 import { getInventoryItemDefinition } from '../src/inventory/ItemDefinitions'
 import { definedAt } from '../src/testing'
@@ -56,19 +57,29 @@ function parseRarityCase(sql: string, variable: string): Map<string, string> {
   return values
 }
 
-/** `[["river-minnow",550],...]` of cumulative cutoffs into per-entry weights. */
-function parseDropTable(literal: string): { definitionId: string, weight: number }[] {
+/**
+ * `[["river-minnow",550,1],...]` of cumulative cutoffs and per-draw
+ * quantities into per-entry weights.
+ */
+function parseDropTable(literal: string): { definitionId: string, weight: number, quantity: number }[] {
   const json = /'(\[[\s\S]*?\])'::jsonb/.exec(literal)?.[1]
   expect(json, `a jsonb array in ${literal}`).toBeDefined()
   const rows: unknown = JSON.parse(json ?? '[]')
   expect(Array.isArray(rows)).toBe(true)
 
   let previousCutoff = 0
-  return (rows as [string, number][]).map(([definitionId, cutoff]) => {
+  return (rows as [string, number, number][]).map(([definitionId, cutoff, quantity]) => {
     const weight = cutoff - previousCutoff
     previousCutoff = cutoff
-    return { definitionId, weight }
+    return { definitionId, weight, quantity }
   })
+}
+
+/** `'{"draws":3,...}'::jsonb` into the rules object the client publishes. */
+function parseRules(literal: string): unknown {
+  const json = /'(\{[\s\S]*?\})'::jsonb/.exec(literal)?.[1]
+  expect(json, `a jsonb object in ${literal}`).toBeDefined()
+  return JSON.parse(json ?? '{}')
 }
 
 describe('loot box contents', () => {
@@ -85,12 +96,13 @@ describe('loot box contents', () => {
     }
   })
 
-  it('publishes the number of draws the migration makes', () => {
-    const sqlCounts = parseRarityCase(migration, 'v_draw_count')
+  it('publishes the rules the migration opens each box under', () => {
+    const sqlRules = parseRarityCase(migration, 'v_rules')
 
     for (const rarity of RARITIES) {
-      expect(Number(sqlCounts.get(rarity)), `draws for ${rarity}`)
-        .toBe(LOOT_BOX_ITEM_COUNTS[rarity])
+      const literal = sqlRules.get(rarity)
+      expect(literal, `rules for ${rarity}`).toBeDefined()
+      expect(parseRules(literal ?? ''), `the ${rarity} rules`).toEqual(LOOT_BOX_RULES[rarity])
     }
   })
 
@@ -104,11 +116,11 @@ describe('loot box contents', () => {
   })
 
   it('opens more of a box the rarer it is', () => {
-    expect(LOOT_BOX_ITEM_COUNTS[Rarity.Legendary])
-      .toBeGreaterThan(LOOT_BOX_ITEM_COUNTS[Rarity.Common])
+    expect(getLootBoxItemCount(Rarity.Legendary))
+      .toBeGreaterThan(getLootBoxItemCount(Rarity.Common))
   })
 
-  it('never drops a rod below its own rarity', () => {
+  it('keeps a rod within a tier of its box: never above it, never two below', () => {
     for (const boxRarity of RARITIES) {
       for (const entry of LOOT_BOX_DROP_TABLES[boxRarity]) {
         const definition = getInventoryItemDefinition(entry.definitionId)
@@ -116,8 +128,9 @@ describe('loot box contents', () => {
           continue
         }
         expect(definition.rarity, `${entry.definitionId} declares a rarity`).toBeDefined()
-        expect(RARITY_ORDER[definition.rarity as Rarity], `${entry.definitionId} in a ${boxRarity} box`)
-          .toBeLessThanOrEqual(RARITY_ORDER[boxRarity])
+        const gap = RARITY_ORDER[boxRarity] - RARITY_ORDER[definition.rarity as Rarity]
+        expect(gap, `${entry.definitionId} in a ${boxRarity} box`).toBeGreaterThanOrEqual(0)
+        expect(gap, `${entry.definitionId} in a ${boxRarity} box`).toBeLessThanOrEqual(1)
       }
     }
   })

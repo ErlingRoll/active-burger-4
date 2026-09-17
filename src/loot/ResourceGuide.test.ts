@@ -22,6 +22,9 @@ describe('getResourceGuide', () => {
       what: expect.stringContaining('2 draws from the Rare table'),
     })
     expect(getResourceGuide('loot-box-uncommon')?.what).toContain('one draw from the Uncommon table')
+    expect(getResourceGuide('loot-box-legendary')?.what).toContain(
+      'one artifact, epic or better, and then 3 draws from the Legendary table',
+    )
   })
 
   it('knows nothing about an item that is not a resource', () => {
