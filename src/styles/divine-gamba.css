@@ -12,6 +12,10 @@
   --accent-contrast: var(--color-violet-50);
   --accent-rgb: 139 92 246;
   --accent-bright-rgb: 196 181 253;
+  /* The two outer pockets are the jackpot: gold, the legendary colour, so
+     they read as the prize rather than as two more violet slots. */
+  --jackpot: var(--color-amber-400);
+  --jackpot-rgb: 251 191 36;
 }
 
 /* The board is the machine: it sits centred at the top, as wide as its
@@ -281,6 +285,10 @@
 .divine-gamba-legend tr[data-pays='above'] th,
 .divine-gamba-legend tr[data-pays='above'] td {
   background: rgb(var(--accent-rgb) / 16%);
+}
+
+.divine-gamba-legend tr[data-jackpot='true'] th {
+  color: var(--jackpot);
 }
 
 .divine-gamba-rarities {

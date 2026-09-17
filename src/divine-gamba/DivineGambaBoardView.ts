@@ -37,12 +37,51 @@ const PLAYBACK_SPEED = 1.6
 const FLASH_MS = 520
 /** How deep a pocket slot is, in peg pitches: room for a label and three rows of balls. */
 const SLOT_DEPTH = 1.6
+/** The two outer pockets are the jackpot, the same rule the registry states. */
+function isJackpotPocket(machine: DivineGambaMachine | null, pocketIndex: number): boolean {
+  return machine !== null && (pocketIndex === 0 || pocketIndex === machine.rows)
+}
+
+/**
+ * A loot box, drawn: a chest with a lid band and a ribbon down the middle,
+ * centred on (x, y) and `size` wide. Glowing, so it reads through the balls
+ * that pile into the slot in front of it.
+ */
+function drawLootBox(context: CanvasRenderingContext2D, x: number, y: number, size: number, colour: string, shade: string): void {
+  const width = size
+  const height = size * 0.82
+  const left = x - width / 2
+  const top = y - height / 2
+  const lid = height * 0.36
+  const radius = Math.max(1, size * 0.1)
+  context.shadowColor = colour
+  context.shadowBlur = size * 0.45
+  context.fillStyle = colour
+  context.beginPath()
+  context.roundRect(left, top, width, height, radius)
+  context.fill()
+  context.shadowBlur = 0
+  // The lid's seam and the ribbon, cut out of the chest in the cabinet's night.
+  context.fillStyle = shade
+  context.globalAlpha = 0.55
+  context.fillRect(left, top + lid, width, Math.max(1, size * 0.07))
+  context.fillRect(x - Math.max(1, size * 0.05), top, Math.max(2, size * 0.1), height)
+  context.globalAlpha = 1
+  // The clasp.
+  context.fillStyle = colour
+  context.beginPath()
+  context.roundRect(x - size * 0.12, top + lid - size * 0.06, size * 0.24, size * 0.2, Math.max(1, size * 0.04))
+  context.fill()
+}
+
 /** Fallbacks for an environment without computed styles, such as a test. */
 const FALLBACK = {
   accent: '#c4b5fd',
   accentRgb: '139 92 246',
   brightRgb: '196 181 253',
   essence: '#60a5fa',
+  jackpot: '#fbbf24',
+  jackpotRgb: '251 191 36',
   text: '#f8fafc',
   night: '#020617',
 }
@@ -64,6 +103,8 @@ interface Palette {
   accentRgb: string
   brightRgb: string
   essence: string
+  jackpot: string
+  jackpotRgb: string
   text: string
   night: string
   font: string
@@ -156,7 +197,7 @@ export class DivineGambaBoardView {
     if (this.config === null || pocket === undefined) {
       return 'land'
     }
-    if (ball.pocketIndex === 0 || ball.pocketIndex === this.config.pockets.length - 1) {
+    if (isJackpotPocket(this.machine, ball.pocketIndex)) {
       return 'jackpot'
     }
     return pocket.multiplierPercent >= 100 ? 'land-good' : 'land'
@@ -193,6 +234,8 @@ export class DivineGambaBoardView {
       accentRgb: read('--accent-rgb', FALLBACK.accentRgb),
       brightRgb: read('--accent-bright-rgb', FALLBACK.brightRgb),
       essence: read('--essence', FALLBACK.essence),
+      jackpot: read('--jackpot', FALLBACK.jackpot),
+      jackpotRgb: read('--jackpot-rgb', FALLBACK.jackpotRgb),
       text: read('--text-primary', FALLBACK.text),
       night: read('--scene-night', FALLBACK.night),
       font: style.fontFamily || 'sans-serif',
@@ -206,7 +249,7 @@ export class DivineGambaBoardView {
     if (context === null || machine === null || config === null || this.width === 0 || this.height === 0) {
       return
     }
-    const { accent, accentRgb, brightRgb, essence, text, night, font } = this.palette
+    const { accent, accentRgb, brightRgb, essence, jackpot, jackpotRgb, text, night, font } = this.palette
     // The world spans a small margin above the release and below the slots.
     const margin = 0.3
     const worldHeight = machine.floorY + SLOT_DEPTH + margin * 2
@@ -248,12 +291,23 @@ export class DivineGambaBoardView {
       const pocket = config.pockets[index]
       const centreX = toX(pocketCentreX(machine.rows, index))
       const flash = this.pocketFlash(index, nowMs)
+      const jackpotPocket = isJackpotPocket(machine, index)
       const highest = pocket !== undefined && pocket.multiplierPercent >= 1000
-      context.fillStyle = flash > 0
-        ? `rgb(${brightRgb} / ${0.18 + 0.55 * flash})`
-        : highest ? `rgb(${accentRgb} / 0.22)` : `rgb(${accentRgb} / 0.1)`
-      context.strokeStyle = `rgb(${accentRgb} / ${highest ? 0.7 : 0.4})`
-      context.lineWidth = Math.max(1, scale * 0.04)
+      if (jackpotPocket) {
+        // The jackpot pockets are bordered in gold, thicker than the rest,
+        // so the two ends of the row read as the prize before a ball drops.
+        context.fillStyle = flash > 0
+          ? `rgb(${jackpotRgb} / ${0.22 + 0.5 * flash})`
+          : `rgb(${jackpotRgb} / 0.14)`
+        context.strokeStyle = `rgb(${jackpotRgb} / 0.9)`
+        context.lineWidth = Math.max(2, scale * 0.09)
+      } else {
+        context.fillStyle = flash > 0
+          ? `rgb(${brightRgb} / ${0.18 + 0.55 * flash})`
+          : highest ? `rgb(${accentRgb} / 0.22)` : `rgb(${accentRgb} / 0.1)`
+        context.strokeStyle = `rgb(${accentRgb} / ${highest ? 0.7 : 0.4})`
+        context.lineWidth = Math.max(1, scale * 0.04)
+      }
       context.beginPath()
       context.rect(centreX - pocketWidth / 2, pocketTop, pocketWidth, pocketBottom - pocketTop)
       context.fill()
@@ -351,9 +405,15 @@ export class DivineGambaBoardView {
       context.fillStyle = multiplier >= 1 ? text : accent
       context.fillText(formatMultiplier(multiplier), centreX, labelY)
       if (pocket.boxChanceBasisPoints > 0) {
-        context.fillStyle = essence
-        context.font = `${Math.max(8, scale * 0.2)}px ${font}`
-        context.fillText('▣', centreX, pocketTop + (pocketBottom - pocketTop) * 0.36)
+        if (isJackpotPocket(machine, index)) {
+          // The jackpot's box is the point of the pocket: a gold chest drawn
+          // as wide as the slot allows, sitting beneath the multiplier.
+          drawLootBox(context, centreX, pocketTop + (pocketBottom - pocketTop) * 0.64, pocketWidth * 0.68, jackpot, night)
+        } else {
+          context.fillStyle = essence
+          context.font = `${Math.max(8, scale * 0.2)}px ${font}`
+          context.fillText('▣', centreX, pocketTop + (pocketBottom - pocketTop) * 0.36)
+        }
       }
     }
   }
