@@ -108,22 +108,29 @@ describe('DivineGambaScreen', () => {
 
   it('will not drop what the player cannot pay for', async () => {
     renderScreen({ essenceBalance: 10 })
-    const drop = await screen.findByRole('button', { name: 'Drop' })
+    const drop = await screen.findByRole('button', { name: 'GAMBA' })
     expect(drop).toBeDisabled()
   })
 
-  it('shows the chance this drop profits, for the ball count chosen', async () => {
+  it('shows the chance of each rarity over the drop, for the ball count chosen', async () => {
     const { user } = renderScreen()
-    await screen.findByRole('button', { name: 'Drop' })
-    expect(screen.getByText('This drop profits')).toBeInTheDocument()
-    expect(screen.getByText(/over 5 balls/)).toBeInTheDocument()
+    await screen.findByRole('button', { name: 'GAMBA' })
+    // The rarity table: one row per rarity, a chance per ball and a chance over the drop.
+    const table = screen.getByRole('table', { name: 'Loot boxes' })
+    const column = (index: number): string[] =>
+      within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell')[index]?.textContent ?? '')
+    const perBallOverFive = column(0)
+    const perDropOverFive = column(1)
+    expect(perDropOverFive.length).toBeGreaterThan(0)
     await user.click(screen.getByRole('button', { name: 'One ball fewer' }))
-    expect(screen.getByText(/over 4 balls/)).toBeInTheDocument()
+    // Fewer balls: the chance per ball stands, the chance over the drop falls.
+    expect(column(0)).toEqual(perBallOverFive)
+    expect(column(1)).not.toEqual(perDropOverFive)
   })
 
   it('pays, drops, and shows the house\'s tally', async () => {
     const { user, service, onEssenceChanged } = renderScreen()
-    const drop = await screen.findByRole('button', { name: 'Drop' })
+    const drop = await screen.findByRole('button', { name: 'GAMBA' })
     expect(drop).toBeEnabled()
     await user.click(drop)
 
@@ -149,17 +156,17 @@ describe('DivineGambaScreen', () => {
 
   it('drops at the stake chosen, and prices the drop by it', async () => {
     const { user, service } = renderScreen()
-    await screen.findByRole('button', { name: 'Drop' })
+    await screen.findByRole('button', { name: 'GAMBA' })
     await user.click(screen.getByRole('button', { name: '×5' }))
     expect(screen.getByText('100 a ball')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Drop' }))
+    await user.click(screen.getByRole('button', { name: 'GAMBA' }))
     await waitFor(() => expect(service.beginPlay).toHaveBeenCalledWith(expect.any(String), 5, 5))
   })
 
   it('opens a box that fell on a reel that stops on the rarity the ball rolled', async () => {
     // The jackpot machine with a forced rarity table: every box is rare.
     const { user, service } = renderScreen({}, { boxes: 'rare' })
-    await user.click(await screen.findByRole('button', { name: 'Drop' }))
+    await user.click(await screen.findByRole('button', { name: 'GAMBA' }))
     const dialog = await screen.findByRole('dialog', { name: /Opening box/ })
     expect(within(dialog).getByText('Rare loot box')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: /Collect|Next box/ }))

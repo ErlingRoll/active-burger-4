@@ -22,7 +22,7 @@ describe('DevelopmentEssenceGrant', () => {
     const service = fakeService(async (amount) => 1000 + amount)
     const onGranted = vi.fn()
     const { user } = renderComponent(<DevelopmentEssenceGrant metaService={service} onGranted={onGranted} />)
-    await user.click(screen.getByRole('button', { name: '+1,000 Essence' }))
+    await user.click(screen.getByRole('button', { name: `+${(1000).toLocaleString()} Essence` }))
     await waitFor(() => expect(onGranted).toHaveBeenCalledTimes(1))
     expect(service.grantDevelopmentEssence).toHaveBeenCalledWith(1000)
   })
