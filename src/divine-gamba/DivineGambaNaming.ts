@@ -9,5 +9,4 @@ export const DIVINE_GAMBA_NAME = 'Divine Gamba'
 export const DIVINE_GAMBA_KICKER = 'Refuge games'
 export const DIVINE_GAMBA_STATION_LABEL = 'Divine Gamba'
 export const DIVINE_GAMBA_STATION_HINT = 'Drop Essence, win or lose'
-export const DIVINE_GAMBA_LEDE =
-  'Buy a handful of Essence shot and drop it through the pegs. The outer pockets pay six times over, the middle pays a fraction, and the machine keeps the difference.'
+export const DIVINE_GAMBA_LEDE = 'Sometimes maybe good, sometimes maybe...'
