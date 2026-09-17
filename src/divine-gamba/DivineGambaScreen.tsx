@@ -434,7 +434,6 @@ export function DivineGambaScreen({
                 </div>
               ) : null}
             </section>
-            <div className="divine-gamba-side">
             <section className="app-panel divine-gamba-odds-panel" aria-labelledby="divine-gamba-odds-title">
               <header className="app-panel-heading">
                 <div>
@@ -505,7 +504,6 @@ export function DivineGambaScreen({
               onBuy={(definition) => { void buy(definition) }}
               onToggleModifier={toggleModifier}
             />
-            </div>
           </div>
         ) : null}
       </div>
