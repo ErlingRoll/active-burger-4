@@ -120,7 +120,8 @@ function isInventorySourceType(value: unknown): value is InventorySourceType {
     value === 'loot-box' ||
     value === 'market' ||
     value === 'admin' ||
-    value === 'system'
+    value === 'system' ||
+    value === 'divine-gamba'
 }
 
 function isInventoryItemRow(value: unknown): value is InventoryItemRow {

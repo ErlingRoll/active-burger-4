@@ -69,6 +69,22 @@ describe('InventoryService', () => {
     }])
   })
 
+  it('accepts a box the Divine Gamba dropped, so one win cannot break the whole bag', async () => {
+    const service = createService(fakeClient({
+      inventory: [{
+        ...itemRow,
+        id: 'box-1',
+        definition_id: 'loot-box-rare',
+        metadata: { source: 'divine-gamba', playId: 7, ballIndex: 3, pocketIndex: 0, boxRarity: 'rare' },
+        source_type: 'divine-gamba',
+        source_id: '7',
+      }],
+    }))
+
+    const [box] = await service.loadInventory()
+    expect(box?.source).toEqual({ type: 'divine-gamba', id: '7' })
+  })
+
   it('filters inventory by the shared definition category', async () => {
     const service = createService(fakeClient({
       inventory: [

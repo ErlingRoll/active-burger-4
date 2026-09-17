@@ -128,15 +128,26 @@ export function DivineGambaScreen({
   const play = useDivineGambaPlay(divineGambaService, announceSettlement)
   const { resumePending } = play
 
+  /**
+   * Counts the rift shards in the bag.
+   *
+   * A bag that cannot be read is not a reason to close the machine: the
+   * count is only what the Shardwright shows beside its prices, so it is
+   * left at zero and the player is told once.
+   */
   const refreshShards = useCallback(async (): Promise<void> => {
     if (!inventoryService) {
       return
     }
-    const items = await inventoryService.loadInventory()
-    setShardBalance(items
-      .filter((item) => item.definitionId === 'rift-shard')
-      .reduce((total, item) => total + item.quantity, 0))
-  }, [inventoryService])
+    try {
+      const items = await inventoryService.loadInventory()
+      setShardBalance(items
+        .filter((item) => item.definitionId === 'rift-shard')
+        .reduce((total, item) => total + item.quantity, 0))
+    } catch (shardError: unknown) {
+      showToast(shardError instanceof Error ? shardError.message : 'Unable to count rift shards.', 'error')
+    }
+  }, [inventoryService, showToast])
 
   useEffect(() => {
     if (!divineGambaService) {
