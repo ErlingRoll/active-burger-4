@@ -5,19 +5,17 @@ import { EssenceAmount, EssenceMark } from '../ui/EssenceMark'
 import { useToaster } from '../ui/ToasterContext'
 import { DivineGambaBoard } from './DivineGambaBoard'
 import { DivineGambaCaseReveal } from './DivineGambaCaseReveal'
-import { formatMultiplier } from './DivineGambaBoardView'
 import {
   DIVINE_GAMBA_KICKER,
   DIVINE_GAMBA_LEDE,
   DIVINE_GAMBA_NAME,
 } from './DivineGambaNaming'
-import { measureDivineGambaOdds, measureProfitChance } from './DivineGambaOdds'
+import { measureDivineGambaOdds } from './DivineGambaOdds'
 import {
   DIVINE_GAMBA_MACHINE,
   DIVINE_GAMBA_MAX_BALLS,
   DIVINE_GAMBA_STAKES,
   getDivineGambaStakePrice,
-  isDivineGambaJackpot,
 } from './DivineGambaRegistry'
 import type { DivineGambaService, DivineGambaSettleResult } from './DivineGambaTypes'
 import { BOX_RARITIES } from './sim'
@@ -76,17 +74,6 @@ function smallPercent(value: number): string {
     return '<0.01%'
   }
   return percent(value, value < 0.01 ? 2 : 1)
-}
-
-/**
- * The measured landing shares, averaged with their mirror.
- *
- * The board is symmetric, so the true odds are; the measurement is a sample
- * and is not. Showing 0.4% on one jackpot and 0.8% on the other reads as a
- * rigged side rather than as noise.
- */
-function mirrored(landing: readonly number[]): number[] {
-  return landing.map((share, index) => (share + (landing[landing.length - 1 - index] ?? share)) / 2)
 }
 
 /**
@@ -179,11 +166,6 @@ export function DivineGambaScreen({
   const cost = stakePrice * ballCount
   const canAfford = essenceBalance !== null && essenceBalance >= cost
   const odds = useMemo(() => measureDivineGambaOdds(machine, stakePrice), [machine, stakePrice])
-  const landing = useMemo(() => mirrored(odds.landing), [odds])
-  const profitChance = useMemo(
-    () => measureProfitChance(odds, ballCount, stakePrice),
-    [odds, ballCount, stakePrice],
-  )
   // A box's rarity is drawn from the weights once a box is due, so each
   // rarity's chance per ball is its share of the box chance; per drop, over
   // the balls paid for.
