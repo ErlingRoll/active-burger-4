@@ -65,10 +65,14 @@ Applied literally, this means:
   spill — rather than one soft ellipse, which reads as ambient lighting from
   nowhere.
 - **Light is a layer, not a property of each prop.** `.hub-firelight` sits
-  above every prop and figure with `mix-blend-mode: screen` and adds its warmth
+  above every prop and figure as a translucent warm wash and adds its warmth
   to whatever it reaches; `.hub-nightfall` takes it back at the edges. This is
   what makes separately-coloured shapes read as one lit room. Props are
-  authored cold and lit by the layer, never painted warm individually.
+  authored cold and lit by the layer, never painted warm individually. The
+  layer is plain alpha and does not animate: a blend mode or a breathing
+  opacity on a full-screen layer is re-composited every frame, which is what
+  made the hub lag on a machine without a GPU (see *What the shell can
+  afford*).
 - **Cold is the default.** `--scene-night`, `--scene-stone` and
   `--scene-moonlight-rgb` are the ground the shell is built on. An all-warm
   screen has nothing for its warmth to mean.
@@ -199,6 +203,39 @@ Give those screens readable type and ordinary spacing rather than `vh`-scaled
 shrinking. Sideways is still a defect on every screen: the page itself must
 never scroll horizontally, though a reference table wide enough to need it may
 scroll inside its own container.
+
+### What the shell can afford
+
+The hub and the pond are drawn by the browser's compositor, and on a phone or
+a machine without a GPU that compositor is the budget. The rules below came
+from measuring both screens in Chromium with GPU compositing off: the hub was
+capped at 30 fps and the pond at 48 fps, and every rule here was worth more
+than the whole rest of the scene.
+
+- **Ambient animation moves `transform` and `opacity` only.** Both are
+  composited from a picture painted once. A keyframe on `filter`, `box-shadow`,
+  `background` or a layout property repaints the element every frame instead.
+- **No `filter`, `backdrop-filter` or `mix-blend-mode` on anything that
+  animates or that sits above something animating.** The compositor re-runs a
+  filter and a blend on every frame, not only when the element changes, and a
+  backdrop blur re-blurs everything behind it each frame the scene moves. Bake
+  softness into the gradient (a radial gradient that fades to transparent
+  already reads as blurred) and glow with `box-shadow`, which is painted once.
+- **Decorative layers are `position: absolute`, never `fixed`.** The shell is
+  exactly the viewport, so the two look the same; `fixed` gives the browser a
+  separate layer, and everything painted above it is then promoted too. Four
+  fixed starfields under the pond were nine screens of overdraw.
+- **A full-screen layer does not animate.** Everything above an animating
+  layer needs its own layer to keep its place. A firelight or moon path that
+  breathes is paid for by every prop on top of it; let a small element carry
+  the motion and keep the big washes still.
+- **`will-change: transform` on the few elements that do animate**, so the
+  promotion is deliberate rather than discovered at the first frame.
+
+The numbers that hold these rules: with GPU compositing disabled at 1920x1080,
+the hub went from 30 fps to 60 fps with a quarter of the compositor draw
+time, and the pond from 48 fps to 60 fps with the layer tree down from 67
+layers to the handful that move.
 
 ## Infinite Abyss visual direction
 
@@ -625,6 +662,15 @@ Transient rendering must remain bounded during late-game combat:
   promptly.
 - Prefer a small number of shaped particles over many tiny objects.
 - Keep status overlays proportional to stack count and cap their detail.
+
+The canvas also adapts to the machine. `PixiGame` creates its renderer from a
+[render profile](../src/rendering/pixi/renderProfile.ts): a browser whose
+WebGL is drawn on the CPU (SwiftShader, llvmpipe, or a context the browser
+would only grant with a performance caveat) gets no multisampling and a canvas
+scaled to a pixel budget, which took a full-HD run from 9 fps to 27 fps in
+software Chromium. A GPU keeps the full picture. The stage is also drawn only
+when `update` changed it, so a paused run and the level-up dialog over it cost
+nothing to show; `refresh` and the wheel zoom draw once themselves.
 
 When `prefers-reduced-motion: reduce` is active:
 
