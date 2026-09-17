@@ -1,4 +1,4 @@
-import { RARITIES, RARITY_ORDER, isRarity, type Rarity } from '../rarity/Rarity'
+import { RARITIES, RARITY_ORDER, Rarity, isRarity } from '../rarity/Rarity'
 import type { RandomSource } from '../../shared/RandomSource'
 
 /**
@@ -603,12 +603,15 @@ function pickWeighted<Key extends string | number>(
   return keys[keys.length - 1] as Key
 }
 
-export function rollArtifactRarity(random: RandomSource): Rarity {
-  return pickWeighted(
-    ARTIFACT_RARITY_WEIGHTS,
-    RARITIES,
-    random.int(0, ARTIFACT_RARITY_ROLL_RANGE - 1),
-  )
+/**
+ * The rarity roll, from `floor` upward. The weights above the floor keep
+ * their proportions, so a box that promises "epic or better" pays legendary
+ * one time in six, the same ratio the open table has between the two.
+ */
+export function rollArtifactRarity(random: RandomSource, floor: Rarity = Rarity.Common): Rarity {
+  const candidates = RARITIES.filter((rarity) => RARITY_ORDER[rarity] >= RARITY_ORDER[floor])
+  const total = candidates.reduce((sum, rarity) => sum + ARTIFACT_RARITY_WEIGHTS[rarity], 0)
+  return pickWeighted(ARTIFACT_RARITY_WEIGHTS, candidates, random.int(0, total - 1))
 }
 
 export function rollArtifactTier(random: RandomSource): ArtifactTier {
@@ -632,9 +635,23 @@ function rollEffect<Id extends string>(
  * The client's copy of the server roll. Same tables, same shape, so that a
  * seeded distribution test measures what a player will actually be handed.
  */
-export function rollArtifact(baseId: ArtifactBaseId, random: RandomSource): ArtifactMetadata {
+/**
+ * Floors a box can put under an artifact it hands out. The server reads the
+ * same two as `rarityFloor` and `potentialMin` on the metadata the box
+ * writes before the insert trigger rolls the artifact.
+ */
+export interface ArtifactRollFloors {
+  readonly rarityFloor?: Rarity
+  readonly potentialMin?: number
+}
+
+export function rollArtifact(
+  baseId: ArtifactBaseId,
+  random: RandomSource,
+  floors: ArtifactRollFloors = {},
+): ArtifactMetadata {
   const base = ARTIFACT_BASE_DEFINITIONS[baseId]
-  const rarity = rollArtifactRarity(random)
+  const rarity = rollArtifactRarity(random, floors.rarityFloor ?? Rarity.Common)
   const implicit = rollEffect(base.implicit, random)
   const remaining = [...ARTIFACT_MODIFIER_IDS]
   const modifiers: ArtifactRolledEffect<ArtifactModifierId>[] = []
@@ -643,7 +660,11 @@ export function rollArtifact(baseId: ArtifactBaseId, random: RandomSource): Arti
     remaining.splice(remaining.indexOf(chosen), 1)
     modifiers.push(rollEffect(ARTIFACT_MODIFIER_DEFINITIONS[chosen], random))
   }
-  const potential = random.int(ARTIFACT_POTENTIAL_MIN, ARTIFACT_POTENTIAL_MAX)
+  const potentialMin = Math.min(
+    ARTIFACT_POTENTIAL_MAX,
+    Math.max(ARTIFACT_POTENTIAL_MIN, floors.potentialMin ?? ARTIFACT_POTENTIAL_MIN),
+  )
+  const potential = random.int(potentialMin, ARTIFACT_POTENTIAL_MAX)
   return { baseId, rarity, implicit, modifiers, potential }
 }
 

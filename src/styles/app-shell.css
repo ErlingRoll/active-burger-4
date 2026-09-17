@@ -47,7 +47,7 @@
 }
 
 .app-shell-fishing::before {
-  position: fixed;
+  position: absolute;
   z-index: 0;
   inset: 0;
   content: '';
@@ -63,11 +63,10 @@
     radial-gradient(circle at 52% 78%, rgb(226 232 240 / 55%) 0 0.04rem, transparent 0.09rem);
   background-size: 17rem 13rem, 23rem 19rem, 29rem 23rem, 19rem 17rem,
     31rem 27rem, 25rem 21rem, 37rem 31rem;
-  animation: fishing-cosmic-drift 24s linear infinite;
 }
 
 .app-shell-fishing::after {
-  position: fixed;
+  position: absolute;
   z-index: 0;
   inset: 0;
   content: '';

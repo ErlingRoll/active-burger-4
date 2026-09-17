@@ -58,6 +58,7 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Camp | Refined materials, meals, bait, capacity, exhaustion relief | Scrap, roe, rift shards, timber and stone, Champion labour |
 | Contracts | Materials, box keys, cosmetic unlocks | Nothing; it pays for play that is already happening |
 | Market | Nothing | Listing fees and time |
+| Divine Gamba | Essence, less than it takes; a box with every jackpot, legendary one in a thousand | Essence per ball |
 
 The market row is deliberately empty on the left, for player listings. The
 consignment shop that shipped first is the exception that proves it: it creates
@@ -115,6 +116,9 @@ other system. In particular:
 - The market does not price anything in Essence once player listings exist;
   see [marketplace.md](marketplace.md) for the currency question.
 - Salvage pays materials, not Essence, wherever a material sink exists.
+- The Divine Gamba returns less Essence than it takes for every loadout,
+  and a single drop profits less than half the time; both are asserted by
+  running its simulation in tests. See [divine_gamba.md](divine_gamba.md).
 
 ## Player types this is meant to serve
 

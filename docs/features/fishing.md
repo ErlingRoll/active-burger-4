@@ -139,7 +139,9 @@ those values without rerolling the rod:
 - Enchanter rolls a deterministic chance for a fish enchantment.
 
 The rolled metadata is displayed with the rod in the fishing and inventory
-screens. Existing rods without modifier metadata are enriched by the migration
+screens, and every modifier line carries a plain-language note that puts the
+rolled value in a sentence ("45% chance to keep your bait after a catch"), so a
+player never has to guess what a percentage means. Existing rods without modifier metadata are enriched by the migration
 when the feature is deployed.
 
 ## Fish data

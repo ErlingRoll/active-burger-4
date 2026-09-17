@@ -14,6 +14,8 @@ const REMOTE_SERVICE_KEYS = [
   'abyssLeaderboard',
   'dungeonRunPersistence',
   'inventory',
+  'shop',
+  'divineGamba',
   'lootBoxes',
   'fishing',
   'camp',

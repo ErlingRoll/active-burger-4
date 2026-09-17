@@ -23,6 +23,8 @@ export type InventorySourceType =
   | 'market'
   | 'admin'
   | 'system'
+  /** A box that fell out of the Divine Gamba. */
+  | 'divine-gamba'
 
 export interface InventoryItemDefinition {
   id: InventoryItemDefinitionId

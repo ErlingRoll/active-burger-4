@@ -151,6 +151,6 @@ describe('FishingScreen loadout', () => {
     const card = screen.getByRole('tooltip')
     expect(card).toHaveTextContent('Bait Keeper')
     expect(card).toHaveTextContent('T1 · +48%')
-    expect(card).toHaveTextContent('Can preserve non-unlimited bait after a catch.')
+    expect(card).toHaveTextContent('48% chance to keep your bait after a catch.')
   })
 })

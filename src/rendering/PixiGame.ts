@@ -72,6 +72,7 @@ import {
   MAX_CAMERA_SCALE,
   MIN_CAMERA_SCALE,
 } from './pixi/camera'
+import { detectRenderProfile } from './pixi/renderProfile'
 import {
   getEnemyStatusEffects,
   getStatusEffectSignature,
@@ -205,8 +206,14 @@ export class PixiGame {
   }
 
   async initialize(host: HTMLElement): Promise<void> {
+    const renderProfile = detectRenderProfile(
+      host.clientWidth || window.innerWidth,
+      host.clientHeight || window.innerHeight,
+    )
     await this.app.init({
-      antialias: true,
+      antialias: renderProfile.antialias,
+      resolution: renderProfile.resolution,
+      autoDensity: true,
       backgroundColor: this.worldTheme.canvas,
       resizeTo: host,
     })
@@ -222,9 +229,19 @@ export class PixiGame {
     this.createWorld()
     this.initialized = true
 
+    /*
+     * The application would otherwise draw the stage on every tick, whether or
+     * not anything on it moved. The stage only changes when `update` renders
+     * the state, on a resize, or through `refresh`, so each of those draws it
+     * and the ticker's own draw is dropped. A paused run then costs nothing to
+     * show, which on a machine drawing WebGL on its CPU is the difference
+     * between a level-up dialog that answers and one that does not.
+     */
+    this.app.ticker.remove(this.app.render, this.app)
     this.app.ticker.add(this.update)
     this.centerCamera(0)
     this.renderState()
+    this.app.render()
   }
 
   destroy(): void {
@@ -242,6 +259,7 @@ export class PixiGame {
     }
     this.renderState()
     this.centerCamera(0)
+    this.app.render()
   }
 
   private createWorld(): void {
@@ -2581,6 +2599,7 @@ export class PixiGame {
     ) {
       this.renderState()
       this.centerCamera(deltaSeconds)
+      this.app.render()
     }
   }
 
@@ -3499,6 +3518,7 @@ export class PixiGame {
       Math.max(MIN_CAMERA_SCALE / fitted, this.cameraZoom * scaleChange),
     )
     this.centerCamera(0)
+    this.app.render()
   }
 
   private destroyApplication(): void {

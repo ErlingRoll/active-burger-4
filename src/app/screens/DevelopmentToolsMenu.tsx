@@ -6,10 +6,15 @@ import { DevelopmentInventoryGrants } from '../../inventory'
 // Imported from the owning module, not the barrel: the barrel keeps screens
 // and tools out so route chunks stay split.
 import { DevelopmentChampionGenerator } from '../../characters/DevelopmentChampionGenerator'
+import { DevelopmentEssenceGrant } from '../../meta/DevelopmentEssenceGrant'
+import type { MetaProgressionService } from '../../meta/MetaProgressionService'
 
 interface DevelopmentToolsMenuProps {
   inventoryService: InventoryService | null
   characterService: CharacterService | null
+  metaService: MetaProgressionService | null
+  /** Told when Essence was granted, so the rest of the app re-reads the wallet. */
+  onEssenceGranted: () => void
 }
 
 /**
@@ -22,12 +27,18 @@ interface DevelopmentToolsMenuProps {
 export function DevelopmentToolsMenu({
   inventoryService,
   characterService,
+  metaService,
+  onEssenceGranted,
 }: DevelopmentToolsMenuProps) {
   return (
     <details className="development-inventory-menu">
       <summary className="development-inventory-toggle">Dev tools</summary>
       <div className="development-inventory-panel">
         <p className="development-inventory-kicker">Development tools · {APP_ENVIRONMENT} backend</p>
+        <section className="development-tools-section" aria-labelledby="development-tools-essence-title">
+          <h3 id="development-tools-essence-title">Essence</h3>
+          <DevelopmentEssenceGrant metaService={metaService} onGranted={onEssenceGranted} />
+        </section>
         <section className="development-tools-section" aria-labelledby="development-tools-inventory-title">
           <h3 id="development-tools-inventory-title">Inventory</h3>
           <DevelopmentInventoryGrants inventoryService={inventoryService} />

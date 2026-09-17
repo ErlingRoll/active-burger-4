@@ -17,6 +17,7 @@ export type AppScreen =
   | 'fishing'
   | 'camp'
   | 'collections'
+  | 'divine-gamba'
   | 'champions'
   | 'inventory'
   | 'shop'
@@ -34,6 +35,7 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   fishing: '/fishing',
   camp: '/camp',
   collections: '/collections',
+  'divine-gamba': '/divine-gamba',
   champions: '/champions',
   inventory: '/inventory',
   shop: '/shop',
@@ -83,6 +85,7 @@ export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'run-setup',
   'shop',
   'collections',
+  'divine-gamba',
   'dashboard',
   'admin',
   'nickname-moderation',

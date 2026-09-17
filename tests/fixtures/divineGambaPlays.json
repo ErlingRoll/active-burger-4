@@ -1,0 +1,391 @@
+[
+  {
+    "name": "one-ball",
+    "seed": 305419896,
+    "stake": 1,
+    "ballCount": 1,
+    "stakePrice": 20,
+    "pricePerBall": 20,
+    "expected": {
+      "simVersion": 1,
+      "balls": [
+        {
+          "ballIndex": 0,
+          "pocketIndex": 3,
+          "landedTick": 346,
+          "essenceWon": 18,
+          "boxRarity": null
+        }
+      ],
+      "essenceWon": 18,
+      "boxCount": 0
+    }
+  },
+  {
+    "name": "twenty-balls",
+    "seed": 2882400001,
+    "stake": 1,
+    "ballCount": 20,
+    "stakePrice": 20,
+    "pricePerBall": 20,
+    "expected": {
+      "simVersion": 1,
+      "balls": [
+        {
+          "ballIndex": 0,
+          "pocketIndex": 6,
+          "landedTick": 390,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 1,
+          "pocketIndex": 5,
+          "landedTick": 340,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 2,
+          "pocketIndex": 4,
+          "landedTick": 343,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 3,
+          "pocketIndex": 6,
+          "landedTick": 462,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 4,
+          "pocketIndex": 3,
+          "landedTick": 403,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 5,
+          "pocketIndex": 3,
+          "landedTick": 357,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 6,
+          "pocketIndex": 5,
+          "landedTick": 440,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 7,
+          "pocketIndex": 4,
+          "landedTick": 369,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 8,
+          "pocketIndex": 3,
+          "landedTick": 381,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 9,
+          "pocketIndex": 3,
+          "landedTick": 388,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 10,
+          "pocketIndex": 2,
+          "landedTick": 442,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 11,
+          "pocketIndex": 5,
+          "landedTick": 369,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 12,
+          "pocketIndex": 3,
+          "landedTick": 398,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 13,
+          "pocketIndex": 3,
+          "landedTick": 369,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 14,
+          "pocketIndex": 4,
+          "landedTick": 360,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 15,
+          "pocketIndex": 5,
+          "landedTick": 383,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 16,
+          "pocketIndex": 2,
+          "landedTick": 358,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 17,
+          "pocketIndex": 5,
+          "landedTick": 343,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 18,
+          "pocketIndex": 6,
+          "landedTick": 438,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 19,
+          "pocketIndex": 6,
+          "landedTick": 364,
+          "essenceWon": 32,
+          "boxRarity": null
+        }
+      ],
+      "essenceWon": 405,
+      "boxCount": 0
+    }
+  },
+  {
+    "name": "quintuple-stake",
+    "seed": 77,
+    "stake": 5,
+    "ballCount": 6,
+    "stakePrice": 100,
+    "pricePerBall": 100,
+    "expected": {
+      "simVersion": 1,
+      "balls": [
+        {
+          "ballIndex": 0,
+          "pocketIndex": 5,
+          "landedTick": 378,
+          "essenceWon": 90,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 1,
+          "pocketIndex": 1,
+          "landedTick": 366,
+          "essenceWon": 200,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 2,
+          "pocketIndex": 4,
+          "landedTick": 353,
+          "essenceWon": 25,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 3,
+          "pocketIndex": 6,
+          "landedTick": 366,
+          "essenceWon": 160,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 4,
+          "pocketIndex": 2,
+          "landedTick": 334,
+          "essenceWon": 160,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 5,
+          "pocketIndex": 5,
+          "landedTick": 412,
+          "essenceWon": 90,
+          "boxRarity": null
+        }
+      ],
+      "essenceWon": 725,
+      "boxCount": 0
+    }
+  },
+  {
+    "name": "a-box-lands",
+    "seed": 1015,
+    "stake": 1,
+    "ballCount": 20,
+    "stakePrice": 20,
+    "pricePerBall": 20,
+    "expected": {
+      "simVersion": 1,
+      "balls": [
+        {
+          "ballIndex": 0,
+          "pocketIndex": 3,
+          "landedTick": 395,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 1,
+          "pocketIndex": 4,
+          "landedTick": 374,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 2,
+          "pocketIndex": 3,
+          "landedTick": 374,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 3,
+          "pocketIndex": 4,
+          "landedTick": 467,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 4,
+          "pocketIndex": 3,
+          "landedTick": 402,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 5,
+          "pocketIndex": 4,
+          "landedTick": 395,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 6,
+          "pocketIndex": 2,
+          "landedTick": 351,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 7,
+          "pocketIndex": 3,
+          "landedTick": 368,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 8,
+          "pocketIndex": 4,
+          "landedTick": 347,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 9,
+          "pocketIndex": 3,
+          "landedTick": 387,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 10,
+          "pocketIndex": 4,
+          "landedTick": 336,
+          "essenceWon": 5,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 11,
+          "pocketIndex": 6,
+          "landedTick": 388,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 12,
+          "pocketIndex": 3,
+          "landedTick": 446,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 13,
+          "pocketIndex": 8,
+          "landedTick": 460,
+          "essenceWon": 120,
+          "boxRarity": "common"
+        },
+        {
+          "ballIndex": 14,
+          "pocketIndex": 5,
+          "landedTick": 353,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 15,
+          "pocketIndex": 3,
+          "landedTick": 341,
+          "essenceWon": 18,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 16,
+          "pocketIndex": 2,
+          "landedTick": 385,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 17,
+          "pocketIndex": 6,
+          "landedTick": 376,
+          "essenceWon": 32,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 18,
+          "pocketIndex": 7,
+          "landedTick": 384,
+          "essenceWon": 40,
+          "boxRarity": null
+        },
+        {
+          "ballIndex": 19,
+          "pocketIndex": 4,
+          "landedTick": 430,
+          "essenceWon": 5,
+          "boxRarity": null
+        }
+      ],
+      "essenceWon": 462,
+      "boxCount": 1
+    }
+  }
+]

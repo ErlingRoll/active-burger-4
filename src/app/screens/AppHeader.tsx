@@ -18,7 +18,9 @@ import {
   type BugReportImage,
 } from '../../bug-report'
 import type { CharacterService } from '../../characters'
+import type { MetaProgressionService } from '../../meta/MetaProgressionService'
 import { navigationControlProps, type NavigationHints } from '../navigationHints'
+import { DIVINE_GAMBA_NAME } from '../../divine-gamba/DivineGambaNaming'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
 
 export interface AppHeaderProps {
@@ -35,9 +37,12 @@ export interface AppHeaderProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
   characterService: CharacterService | null
+  metaService: MetaProgressionService | null
+  onEssenceGranted: () => void
   bugReportDungeon: BugReportDungeonContext
   onSubmitBugReport: (description: string, image?: BugReportImage) => Promise<void>
   /** Which destination is loading, and how to warm one ahead of a click. */
@@ -58,9 +63,12 @@ export function AppHeader({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenDivineGamba,
   onOpenRunHistory,
   inventoryService,
   characterService,
+  metaService,
+  onEssenceGranted,
   bugReportDungeon,
   onSubmitBugReport,
   navigation,
@@ -136,6 +144,7 @@ export function AppHeader({
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenDivineGamba)} {...navigationControlProps(navigation, 'divine-gamba')}>{DIVINE_GAMBA_NAME}</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
             </>
           ) : null}
@@ -143,6 +152,8 @@ export function AppHeader({
             <DevelopmentToolsMenu
               inventoryService={inventoryService}
               characterService={characterService}
+              metaService={metaService}
+              onEssenceGranted={onEssenceGranted}
             />
           ) : null}
         </nav>

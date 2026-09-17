@@ -140,7 +140,14 @@ const FISHING_ROD_SINGLE_POINT_TIERS = defineFishingRodModifierTiers(
 export interface FishingRodModifierDefinition {
   id: FishingRodModifierId
   label: string
+  /** What the modifier does, for a rod whose rolled value is unknown. */
   description: string
+  /**
+   * What this particular roll does, with the number in it: "+31% Bait Keeper"
+   * says nothing to a player who has not read the server, "31% chance to keep
+   * your bait after a catch" does.
+   */
+  describe: (value: number) => string
   /** The percent value a roll of this modifier lands in, by tier. */
   tiers: Record<FishingRodModifierTier, FishingRodModifierTierRange>
   /** Where a rolled value for this modifier is read back from rod metadata. */
@@ -151,7 +158,8 @@ export const FISHING_ROD_MODIFIERS = {
   rarity: {
     id: 'rarity',
     label: 'Fortune',
-    description: 'Improves the chance of higher-rarity fish.',
+    description: 'Leans every cast toward rarer fish.',
+    describe: (value) => `Every cast leans ${value}% further toward rarer fish.`,
     tiers: defineFishingRodModifierTiers(
       { min: 13, max: 15 },
       { min: 10, max: 12 },
@@ -164,14 +172,16 @@ export const FISHING_ROD_MODIFIERS = {
   speed: {
     id: 'speed',
     label: 'Quick Line',
-    description: 'Reduces the time before the float can be resolved.',
+    description: 'The float bites sooner.',
+    describe: (value) => `The float bites ${value} second${value === 1 ? '' : 's'} sooner.`,
     tiers: FISHING_ROD_SINGLE_POINT_TIERS,
     metadataField: 'speedPercent',
   },
   'bait-retention': {
     id: 'bait-retention',
     label: 'Bait Keeper',
-    description: 'Can preserve non-unlimited bait after a catch.',
+    description: 'A chance to keep your bait after a catch.',
+    describe: (value) => `${value}% chance to keep your bait after a catch.`,
     tiers: defineFishingRodModifierTiers(
       { min: 42, max: 50 },
       { min: 33, max: 41 },
@@ -184,14 +194,16 @@ export const FISHING_ROD_MODIFIERS = {
   'loot-box': {
     id: 'loot-box',
     label: 'Treasure Sense',
-    description: 'Improves the chance of finding a fishing loot box.',
+    description: 'Raises the chance of a loot box on the line.',
+    describe: (value) => `Adds ${value}% to the chance of a loot box on the line.`,
     tiers: FISHING_ROD_SINGLE_POINT_TIERS,
     metadataField: 'lootBoxChancePercent',
   },
   enchantment: {
     id: 'enchantment',
     label: 'Enchanter',
-    description: 'Improves the chance of an enchanted catch.',
+    description: 'A chance the catch comes up enchanted.',
+    describe: (value) => `${value}% chance the catch comes up enchanted.`,
     tiers: FISHING_ROD_SINGLE_POINT_TIERS,
     metadataField: 'enchantmentChancePercent',
   },
@@ -288,6 +300,7 @@ export function rollFishingRodModifiers(
 export interface FishingRodModifierDetail {
   id: FishingRodModifierId
   label: string
+  /** What this roll does, with its value in the sentence where one is known. */
   description: string
   tier: FishingRodModifierTier | null
   value: number | null
@@ -320,12 +333,15 @@ export function getFishingRodModifierDetails(
       const definition = FISHING_ROD_MODIFIERS[modifierId]
       const tier = tiers[modifierId]
       const value = metadata[definition.metadataField]
+      const rolledValue = typeof value === 'number' ? value : null
       return {
         id: modifierId,
         label: definition.label,
-        description: definition.description,
+        description: rolledValue === null
+          ? definition.description
+          : definition.describe(rolledValue),
         tier: isFishingRodModifierTier(tier) ? tier : null,
-        value: typeof value === 'number' ? value : null,
+        value: rolledValue,
       }
     })
 }

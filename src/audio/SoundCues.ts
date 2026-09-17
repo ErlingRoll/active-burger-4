@@ -684,6 +684,22 @@ export const SOUND_CUES = {
     ),
   },
   'essence-spend': { priority: attention, gain: 0.28, cooldownMs: 150, render: knock(330) },
+
+  // The Divine Gamba: a tick per peg, a landing by what the pocket pays, a
+  // fanfare for a jackpot, a sting when a box falls, and the reel that reveals it.
+  'gamba-peg': { priority: routine, gain: 0.14, cooldownMs: 24, pitchJitter: 2, render: tap(1568, 3, 0.02) },
+  'gamba-land': { priority: reward, gain: 0.26, cooldownMs: 40, render: thump(1, { hz: 150, endHz: 80, duration: 0.07 }) },
+  'gamba-land-good': { priority: reward, gain: 0.3, cooldownMs: 60, render: knockChord([392, 587]) },
+  'gamba-jackpot': {
+    priority: attention, gain: 0.45, cooldownMs: 300,
+    render: layer(
+      figure([392, 494, 587, 784]),
+      chord([392, 587, 784, 1175], { duration: 0.35, release: 0.25, delay: 0.3, gain: 0.7 }),
+    ),
+  },
+  'gamba-box': { priority: attention, gain: 0.4, cooldownMs: 300, render: layer(ping(1046, 0.25), knock(523, { delay: 0.1 })) },
+  'gamba-reel-tick': { priority: attention, gain: 0.16, cooldownMs: 18, pitchJitter: 1, render: tick(4000, 0.14, 0.015) },
+  'gamba-reel-stop': { priority: attention, gain: 0.32, cooldownMs: 200, render: knock(440, { release: 0.16 }) },
   'essence-unlock': { priority: attention, gain: 0.38, cooldownMs: 300, render: knockChord([220, 330, 440], 0.25) },
   'purchase-fail': { priority: danger, gain: 0.3, cooldownMs: 150, render: knock(220, { release: 0.14 }) },
   mute: { priority: attention, gain: 0.24, cooldownMs: 100, render: knock(262, { from: 392, release: 0.06 }) },

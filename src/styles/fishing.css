@@ -27,7 +27,7 @@
 }
 
 .fishing-screen::before {
-  position: fixed;
+  position: absolute;
   z-index: 0;
   inset: 0;
   content: '';
@@ -43,11 +43,10 @@
     radial-gradient(circle at 52% 78%, rgb(226 232 240 / 55%) 0 0.04rem, transparent 0.09rem);
   background-size: 17rem 13rem, 23rem 19rem, 29rem 23rem, 19rem 17rem,
     31rem 27rem, 25rem 21rem, 37rem 31rem;
-  animation: fishing-cosmic-drift 24s linear infinite;
 }
 
 .fishing-screen::after {
-  position: fixed;
+  position: absolute;
   z-index: 0;
   inset: 0;
   content: '';
@@ -239,7 +238,6 @@
   border: 1px solid rgb(165 243 252 / 18%);
   border-radius: 0.4rem;
   box-shadow: 0 0.45rem 1.2rem rgb(2 6 23 / 16%);
-  backdrop-filter: blur(0.35rem);
 }
 
 .fishing-activity-notice,
@@ -252,7 +250,6 @@
   font-size: 0.78rem;
   border-radius: 999px;
   box-shadow: 0 0.45rem 1.25rem rgb(2 6 23 / 25%);
-  backdrop-filter: blur(0.45rem);
 }
 
 .fishing-activity-notice {
@@ -507,12 +504,6 @@
     /* The haze the glints sit in. */
     radial-gradient(ellipse 40% 62% at 50% 6%, rgb(var(--accent-bright-rgb) / 13%), transparent 82%);
   transform: translateX(-50%);
-  animation: pond-moonpath-breathe 7s ease-in-out infinite alternate;
-}
-
-@keyframes pond-moonpath-breathe {
-  from { opacity: 0.78; }
-  to { opacity: 1; }
 }
 
 /*
@@ -574,7 +565,7 @@
     radial-gradient(ellipse 30% 56% at 18% 60%, rgb(var(--accent-bright-rgb) / 18%), transparent 74%),
     radial-gradient(ellipse 26% 50% at 72% 54%, rgb(var(--accent-bright-rgb) / 15%), transparent 74%),
     linear-gradient(180deg, transparent, rgb(var(--scene-moonlight-rgb) / 12%) 54%, transparent);
-  filter: blur(0.45rem);
+  will-change: transform;
   animation: pond-mist-drift 24s ease-in-out infinite alternate;
 }
 
@@ -675,6 +666,7 @@
   left: 50%;
   animation: pond-lantern-flicker 12.4s ease-in-out infinite;
   animation-delay: inherit;
+  will-change: opacity;
   width: 1.05rem;
   height: 1.35rem;
   background:
@@ -755,16 +747,16 @@
  * rhythm and no two lanterns agree on one.
  */
 @keyframes pond-lantern-flicker {
-  0% { opacity: 0.9; filter: brightness(0.94); }
-  9% { opacity: 1; filter: brightness(1.1); }
-  17% { opacity: 0.85; filter: brightness(0.9); }
-  28% { opacity: 0.98; filter: brightness(1.04); }
-  39% { opacity: 0.88; filter: brightness(0.95); }
-  51% { opacity: 1; filter: brightness(1.12); }
-  62% { opacity: 0.83; filter: brightness(0.88); }
-  73% { opacity: 0.96; filter: brightness(1.02); }
-  86% { opacity: 0.9; filter: brightness(0.96); }
-  100% { opacity: 0.9; filter: brightness(0.94); }
+  0% { opacity: 0.9; }
+  9% { opacity: 1; }
+  17% { opacity: 0.85; }
+  28% { opacity: 0.98; }
+  39% { opacity: 0.88; }
+  51% { opacity: 1; }
+  62% { opacity: 0.83; }
+  73% { opacity: 0.96; }
+  86% { opacity: 0.9; }
+  100% { opacity: 0.9; }
 }
 
 @keyframes pond-lantern-flare {
@@ -877,6 +869,7 @@
   z-index: 4;
   animation: pond-lantern-flicker 11.6s ease-in-out infinite;
   animation-delay: var(--pond-bob-delay, 0s);
+  will-change: opacity;
   bottom: 0.5rem;
   left: 68%;
   width: 0.42rem;
@@ -1197,7 +1190,6 @@
   border: 1px solid rgb(165 243 252 / 25%);
   border-radius: 0.7rem;
   box-shadow: 0 0.9rem 2.5rem rgb(2 6 23 / 38%), inset 0 1px rgb(255 255 255 / 9%);
-  backdrop-filter: blur(0.55rem);
 }
 
 .pond-loadout-heading {
@@ -1628,11 +1620,6 @@
   50% { opacity: 1; }
 }
 
-@keyframes fishing-cosmic-drift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-0.5rem, 0.4rem, 0) scale(1.015); }
-  to { transform: translate3d(0, 0, 0) scale(1); }
-}
 
 @keyframes pond-rod-twitch {
   0%, 100% { rotate: 0deg; }
@@ -1790,7 +1777,6 @@
     linear-gradient(135deg, rgb(14 116 144 / 28%), transparent 65%),
     rgb(15 23 42 / 96%);
   box-shadow: 0 1.2rem 3rem rgb(2 6 23 / 62%), inset 0 1px rgb(255 255 255 / 9%);
-  backdrop-filter: blur(0.75rem);
 }
 
 .fishing-inventory-drawer .inventory-item-grid {

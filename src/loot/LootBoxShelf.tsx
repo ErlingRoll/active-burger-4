@@ -9,10 +9,13 @@ import {
 } from '../rendering/TooltipShell'
 import { useAnchoredTooltip } from '../rendering/useAnchoredTooltip'
 import { FittedList } from '../ui/FittedList'
+import { RARITIES, type Rarity } from '../content/rarity/Rarity'
 import {
+  getLootBoxArtifactRarityChances,
   getLootBoxDropPercent,
   getLootBoxDropTableForDisplay,
   getLootBoxItemCount,
+  getLootBoxRules,
 } from './LootBoxContents'
 import { LootBoxIcon } from './LootBoxIcon'
 import { getAbyssLootBoxRarityLabel, type LootBoxRarity } from './LootBoxes'
@@ -170,10 +173,50 @@ interface LootBoxCardProps {
   name: string
 }
 
+/** "epic (83%) or legendary (17%)": the rarities an artifact can come out at. */
+function describeArtifactChances(chances: Readonly<Record<Rarity, number>>): string {
+  return RARITIES
+    .filter((rarity) => chances[rarity] > 0)
+    .map((rarity) => `${rarity} (${Math.round(chances[rarity] * 100)}%)`)
+    .join(' or ')
+}
+
+/**
+ * What the box promises before the draws: the lines a player reads to know
+ * why this box is better than the one below it. Empty for a box that
+ * promises nothing beyond its table.
+ */
+function describeLootBoxPromises(rarity: LootBoxRarity): string[] {
+  const rules = getLootBoxRules(rarity)
+  const chances = getLootBoxArtifactRarityChances(rarity)
+  const promises: string[] = []
+  if (chances !== null && rules.guaranteedArtifacts > 0) {
+    const potential = rules.artifactPotentialMin === null
+      ? ''
+      : `, with Potential of ${rules.artifactPotentialMin} or more`
+    promises.push(
+      `${rules.guaranteedArtifacts === 1 ? 'One artifact' : `${rules.guaranteedArtifacts} artifacts`} certain: ${describeArtifactChances(chances)}${potential}.`,
+    )
+  } else if (chances !== null && rules.artifactRarityFloor !== null) {
+    promises.push(`Artifacts here roll ${describeArtifactChances(chances)}.`)
+  }
+  if (rules.fishEnchantmentChancePercent >= 100) {
+    promises.push('Every meal fish comes enchanted.')
+  } else if (rules.fishEnchantmentChancePercent > 0) {
+    promises.push(`Meal fish come enchanted ${rules.fishEnchantmentChancePercent}% of the time.`)
+  }
+  return promises
+}
+
 /** The odds, written out. Shared by the hover card and the opening overlay. */
 export function LootBoxCard({ rarity, name }: LootBoxCardProps) {
   const drops = getLootBoxDropTableForDisplay(rarity)
-  const itemCount = getLootBoxItemCount(rarity)
+  const rules = getLootBoxRules(rarity)
+  const promises = describeLootBoxPromises(rarity)
+  const drawsLabel = rules.draws === 1 ? '1 draw' : `${rules.draws} draws`
+  const countLabel = rules.guaranteedArtifacts === 0
+    ? drawsLabel
+    : `${rules.guaranteedArtifacts === 1 ? '1 artifact' : `${rules.guaranteedArtifacts} artifacts`} + ${drawsLabel}`
   return (
     <>
       <header className="loot-box-card-heading">
@@ -183,10 +226,13 @@ export function LootBoxCard({ rarity, name }: LootBoxCardProps) {
         <div>
           <strong>{name}</strong>
           <span className="loot-box-card-rarity">
-            {getAbyssLootBoxRarityLabel(rarity)} · {itemCount === 1 ? '1 draw' : `${itemCount} draws`}
+            {getAbyssLootBoxRarityLabel(rarity)} · {countLabel}
           </span>
         </div>
       </header>
+      {promises.length > 0 ? (
+        <p className="loot-box-card-promise">{promises.join(' ')}</p>
+      ) : null}
       <p className="loot-box-card-lede">
         Each draw is rolled separately, so a box can give the same thing twice.
       </p>
@@ -200,6 +246,9 @@ export function LootBoxCard({ rarity, name }: LootBoxCardProps) {
               </span>
               <span className="loot-box-card-drop-name">
                 {getInventoryItemDefinition(drop.definitionId)?.name ?? drop.definitionId}
+                {drop.quantity > 1 ? (
+                  <span className="loot-box-card-drop-quantity"> ×{drop.quantity}</span>
+                ) : null}
               </span>
               <span
                 className="loot-box-card-drop-bar"

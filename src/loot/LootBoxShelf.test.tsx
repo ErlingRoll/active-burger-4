@@ -106,12 +106,18 @@ describe('LootBoxShelf', () => {
     screen.getByRole('button', { name: 'Open one' }).focus()
 
     const card = await screen.findByRole('tooltip')
-    expect(within(card).getByText('Legendary · 4 draws')).toBeInTheDocument()
+    expect(within(card).getByText('Legendary · 1 artifact + 3 draws')).toBeInTheDocument()
+    // The box's promise, before its table: the certain artifact and its odds.
+    expect(within(card).getByText(/One artifact certain: epic \(83%\) or legendary \(17%\), with Potential of 70 or more\./)).toBeInTheDocument()
+    expect(within(card).getByText(/Every meal fish comes enchanted\./)).toBeInTheDocument()
     // The published odds are the server's, out of a thousand: a legendary box
-    // draws a glow grub a fifth of the time.
-    expect(within(card).getByText('20.0%')).toBeInTheDocument()
-    expect(within(card).getByText('Glow Grub')).toBeInTheDocument()
-    expect(within(card).getByText('Wooden rod')).toBeInTheDocument()
+    // draws a stack of Moonwater Lures a quarter of the time.
+    expect(within(card).getByText('25.0%')).toBeInTheDocument()
+    expect(within(card).getByText('Moonwater Lure', { exact: false })).toBeInTheDocument()
+    // Both bait stacks in the table come five at a time.
+    expect(within(card).getAllByText('×5', { exact: false })).toHaveLength(2)
+    // The Wooden rod is a stick with yarn on it; it has no place in a legendary box.
+    expect(within(card).queryByText('Wooden rod')).not.toBeInTheDocument()
   })
 
   it('spends an instance of the kind that was asked for', async () => {

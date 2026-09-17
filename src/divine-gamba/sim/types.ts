@@ -1,0 +1,61 @@
+/**
+ * The shapes the Divine Gamba simulation reads and writes.
+ *
+ * This module is shared verbatim with the Edge Function that settles a play
+ * (see scripts/sync-divine-gamba-sim.mjs), so it may import nothing from the
+ * rest of the application and must stay plain data.
+ */
+
+/** A pocket at the foot of the board: what it pays, and whether it can hold a box. */
+export interface DivineGambaPocket {
+  /** Payout as a percentage of the ball price. 100 is the stake back. */
+  multiplierPercent: number
+  /** Chance a ball landing here also brings a loot box, in basis points. */
+  boxChanceBasisPoints: number
+}
+
+/**
+ * Everything the simulation needs to know about the machine.
+ *
+ * There is one machine, and it is the same for every player: the server
+ * builds it from its settings when a play begins, stores it on the play, and
+ * returns it to the client so that both sides simulate the same board.
+ */
+export interface DivineGambaMachineConfig {
+  /** Peg rows. The board has `rows + 1` pockets. */
+  rows: number
+  pockets: DivineGambaPocket[]
+  /** Relative weights by rarity name. */
+  boxRarityWeights: Record<string, number>
+}
+
+export interface DivineGambaPlayInput {
+  /** The server's seed for this play, an unsigned 32-bit integer. */
+  seed: number
+  machine: DivineGambaMachineConfig
+  /** Balls the player paid for, 1 to 20. */
+  ballCount: number
+  /** The Essence a pocket's multiplier is taken of: the base price times the stake. */
+  stakePrice: number
+  /** Record every tick's position for the animation. Never changes the outcome. */
+  recordFrames?: boolean
+}
+
+export interface DivineGambaBallOutcome {
+  ballIndex: number
+  pocketIndex: number
+  landedTick: number
+  essenceWon: number
+  boxRarity: string | null
+  /** Flat `[x0, y0, x1, y1, ...]` per tick, present only when frames were asked for. */
+  frames?: number[]
+  /** The ticks on which the ball struck a peg, present only when frames were asked for. */
+  hits?: number[]
+}
+
+export interface DivineGambaPlayOutcome {
+  simVersion: number
+  balls: DivineGambaBallOutcome[]
+  essenceWon: number
+  boxCount: number
+}

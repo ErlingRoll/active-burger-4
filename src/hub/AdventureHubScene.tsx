@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { DIVINE_GAMBA_STATION_HINT, DIVINE_GAMBA_STATION_LABEL } from '../divine-gamba/DivineGambaNaming'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { getPlayerDisplayName } from '../auth'
 import { type ActiveDungeonRun } from '../persistence'
@@ -111,6 +112,7 @@ interface AdventureHubSceneProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
   onContinueRun: () => void
@@ -191,6 +193,7 @@ export function AdventureHubScene({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenDivineGamba,
   onOpenRunHistory,
   onOpenAbyss,
   onContinueRun,
@@ -868,6 +871,10 @@ export function AdventureHubScene({
                 <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'collections')}>
                   <span aria-hidden="true">❖</span>
                   <span>Collections</span>
+                </button>
+                <button className="hub-path hub-path-divine-gamba" type="button" onClick={onOpenDivineGamba} title={DIVINE_GAMBA_STATION_HINT} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'divine-gamba')}>
+                  <span aria-hidden="true">◈</span>
+                  <span>{DIVINE_GAMBA_STATION_LABEL}</span>
                 </button>
               </nav>
             </div>

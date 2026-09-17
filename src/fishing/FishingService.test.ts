@@ -160,14 +160,14 @@ describe('FishingContent', () => {
       {
         id: 'rarity',
         label: 'Fortune',
-        description: 'Improves the chance of higher-rarity fish.',
+        description: 'Every cast leans 11% further toward rarer fish.',
         tier: 2,
         value: 11,
       },
       {
         id: 'speed',
         label: 'Quick Line',
-        description: 'Reduces the time before the float can be resolved.',
+        description: 'The float bites sooner.',
         tier: null,
         value: null,
       },

@@ -27,6 +27,8 @@ import { createInventoryService } from '../inventory/InventoryService'
 import type { InventoryService } from '../inventory/InventoryTypes'
 import { createShopService } from '../shop/ShopService'
 import type { ShopService } from '../shop/ShopTypes'
+import { createDivineGambaService } from '../divine-gamba/DivineGambaService'
+import type { DivineGambaService } from '../divine-gamba/DivineGambaTypes'
 import { createLootBoxService, type LootBoxService } from '../loot'
 import { createFishingService, type FishingService } from '../fishing/FishingService'
 import { createCampService } from '../camp/CampService'
@@ -75,6 +77,7 @@ export interface AppServices {
   dungeonRunPersistence: ServiceHandle<DungeonRunPersistenceService>
   inventory: ServiceHandle<InventoryService>
   shop: ServiceHandle<ShopService>
+  divineGamba: ServiceHandle<DivineGambaService>
   lootBoxes: ServiceHandle<LootBoxService>
   fishing: ServiceHandle<FishingService>
   camp: ServiceHandle<CampService>
@@ -136,6 +139,7 @@ export function createAppServices(
     ),
     inventory: handle(() => createInventoryService(connection, getClient)),
     shop: handle(() => createShopService(connection, getClient)),
+    divineGamba: handle(() => createDivineGambaService(connection, getClient)),
     lootBoxes: handle(() => createLootBoxService(connection, getClient)),
     fishing: handle(() => createFishingService(connection, getClient)),
     camp: handle(() => createCampService(connection, getClient)),

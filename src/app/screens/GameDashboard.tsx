@@ -41,6 +41,7 @@ export interface GameDashboardProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
   championAvailability: 'loading' | 'available' | 'none' | 'error'
@@ -73,6 +74,7 @@ export function GameDashboard({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenDivineGamba,
   onOpenRunHistory,
   onOpenAbyss,
   championAvailability,
@@ -133,6 +135,7 @@ export function GameDashboard({
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}
         onOpenCollections={onOpenCollections}
+        onOpenDivineGamba={onOpenDivineGamba}
         onOpenRunHistory={onOpenRunHistory}
         onOpenAbyss={onOpenAbyss}
         onContinueRun={onContinueRun}

@@ -1,0 +1,27 @@
+/**
+ * The Divine Gamba simulation, shared between the browser and the Edge
+ * Function that settles a play. See simulate.ts for the determinism rules and
+ * scripts/sync-divine-gamba-sim.mjs for how the copy under
+ * supabase/functions/_shared is kept current.
+ */
+export {
+  BALL_RADIUS,
+  buildMachine,
+  FIRST_ROW_Y,
+  PEG_RADIUS,
+  pocketCentreX,
+  ROW_PITCH,
+  rowY,
+  type DivineGambaMachine,
+  type DivineGambaPeg,
+} from './machine.ts'
+export { ballSeed, createDivineGambaRandom, type DivineGambaRandom } from './random.ts'
+export { BOX_RARITIES, pocketBoxChanceBasisPoints, pocketPayout, rollBox } from './rewards.ts'
+export { MAX_BALLS_PER_PLAY, SIM_VERSION, simulatePlay, TICKS_PER_SECOND } from './simulate.ts'
+export type {
+  DivineGambaBallOutcome,
+  DivineGambaMachineConfig,
+  DivineGambaPlayInput,
+  DivineGambaPlayOutcome,
+  DivineGambaPocket,
+} from './types.ts'

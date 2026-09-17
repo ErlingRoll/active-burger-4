@@ -1,5 +1,5 @@
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
-import { getLootBoxItemCount } from './LootBoxContents'
+import { getLootBoxRules } from './LootBoxContents'
 import { getAbyssLootBoxRarityLabel, isLootBoxRarity } from './LootBoxes'
 
 /**
@@ -61,9 +61,14 @@ function lootBoxGuide(definitionId: string): ResourceGuideFacts | null {
   if (!definitionId.startsWith('loot-box-') || !isLootBoxRarity(rarity)) {
     return null
   }
-  const draws = getLootBoxItemCount(rarity)
+  const rules = getLootBoxRules(rarity)
+  const draws = rules.draws
+  const drawsText = `${draws === 1 ? 'one draw' : `${draws} draws`} from the ${getAbyssLootBoxRarityLabel(rarity)} table, each rolled on its own`
+  const guaranteedText = rules.guaranteedArtifacts === 0
+    ? ''
+    : `${rules.guaranteedArtifacts === 1 ? 'one artifact' : `${rules.guaranteedArtifacts} artifacts`}, ${rules.artifactRarityFloor ?? 'common'} or better, and then `
   return {
-    what: `A sealed box holding ${draws === 1 ? 'one draw' : `${draws} draws`} from the ${getAbyssLootBoxRarityLabel(rarity)} table, each rolled on its own.`,
+    what: `A sealed box holding ${guaranteedText}${drawsText}.`,
     usedFor: 'Opening, from the inventory, for bait, rods, artifacts and fish. A duplicate drop resolves into scrap.',
     source: 'Dungeon runs pay boxes up to Rare, every completed Abyss floor pays one, fishing lands one now and then, and contracts pay them.',
   }

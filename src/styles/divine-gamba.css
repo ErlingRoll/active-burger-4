@@ -1,0 +1,424 @@
+/*
+ * The Divine Gamba.
+ *
+ * Violet, like the codex and the Abyss roster: the machine is fed with rift
+ * shards, which are Abyss material, and the ember of the refuge stores would
+ * have said it was a shop. The board is a canvas that takes the panel's
+ * accent through custom properties, so no shade is written twice.
+ */
+
+.divine-gamba-screen {
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+  /* The two outer pockets are the jackpot: gold, the legendary colour, so
+     they read as the prize rather than as two more violet slots. */
+  --jackpot: var(--color-amber-400);
+  --jackpot-rgb: 251 191 36;
+}
+
+/* The board is the machine: it sits centred at the top, as wide as its
+   height allows, and the odds sit beneath it at the same width. The board
+   is 11 by 10 and its height is capped so the Drop button stays on the
+   first screenful of a desktop, so the panels' width is that height, in the
+   board's shape, plus the panel's own padding; wider, and the canvas would
+   letterbox the pegs between empty gutters. */
+.divine-gamba-panels {
+  --board-height: min(44vh, 34rem);
+  --panel-padding: clamp(0.5rem, 1.8vh, 1.35rem);
+
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+  justify-items: center;
+  align-items: start;
+}
+
+.divine-gamba-panels > .app-panel {
+  width: min(100%, 46rem, calc(var(--board-height) * 1.1 + 2 * var(--panel-padding)));
+  padding: var(--panel-padding);
+}
+
+.divine-gamba-board-panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.4vh, 0.9rem);
+}
+
+/* The board keeps its shape: a little taller than wide, capped so it never
+   pushes the controls off a short viewport. */
+.divine-gamba-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 11 / 10;
+  max-height: var(--board-height);
+  overflow: hidden;
+  border: 1px solid rgb(var(--accent-rgb) / 34%);
+  border-radius: 0.7rem;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 55%),
+    inset 0 1px rgb(var(--accent-bright-rgb) / 24%),
+    0 0.8rem 2rem rgb(0 0 0 / 45%);
+}
+
+.divine-gamba-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.divine-gamba-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1rem);
+  align-items: center;
+}
+
+.divine-gamba-control-label {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-count {
+  display: flex;
+  flex: 1 1 14rem;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.divine-gamba-count input[type='range'] {
+  flex: 1 1 6rem;
+  min-width: 4rem;
+  accent-color: var(--accent);
+}
+
+.divine-gamba-count-value {
+  min-width: 1.6rem;
+  color: var(--accent-contrast);
+  font-size: clamp(0.95rem, 2.2vh, 1.2rem);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.divine-gamba-stakes {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.divine-gamba-stake-active {
+  color: var(--accent-contrast);
+  background: rgb(var(--accent-rgb) / 24%);
+  border-color: rgb(var(--accent-rgb) / 70%);
+}
+
+.divine-gamba-launch {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.divine-gamba-cost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.divine-gamba-cost small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.divine-gamba-launch-action {
+  min-width: 7rem;
+}
+
+/* The tally sits under the controls and reads left to right like a receipt. */
+.divine-gamba-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+  align-items: center;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.6rem, 1.6vw, 0.9rem);
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.55rem;
+}
+
+.divine-gamba-tally > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.divine-gamba-tally small {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-tally strong {
+  font-size: clamp(0.82rem, 1.9vh, 1rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-net[data-sign='up'] strong {
+  color: var(--color-green-300);
+}
+
+.divine-gamba-net[data-sign='down'] strong {
+  color: var(--accent-danger);
+}
+
+.divine-gamba-tally-error {
+  margin: 0;
+  color: var(--accent-danger);
+}
+
+/* The odds: what this drop's chances are, then one row per pocket, in the
+   order they sit on the board. */
+.divine-gamba-chances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+  margin: 0;
+}
+
+.divine-gamba-chances > div {
+  display: grid;
+  flex: 1 1 8rem;
+  gap: 0.1rem;
+  padding: clamp(0.4rem, 1.2vh, 0.7rem) clamp(0.6rem, 1.6vw, 0.9rem);
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.55rem;
+}
+
+.divine-gamba-chances dt {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.divine-gamba-chances dd {
+  margin: 0;
+  color: var(--accent-contrast);
+  font-size: clamp(0.95rem, 2.2vh, 1.2rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-chances small {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
+.divine-gamba-legend {
+  width: 100%;
+  margin: clamp(0.5rem, 1.4vh, 0.9rem) 0 0;
+  border-collapse: separate;
+  border-spacing: 0 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.divine-gamba-legend-caption {
+  padding: 0 0 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.divine-gamba-legend thead th {
+  padding: 0 0.5rem 0.15rem;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.divine-gamba-legend thead th:first-child {
+  text-align: left;
+}
+
+.divine-gamba-legend tbody th,
+.divine-gamba-legend td {
+  padding: 0.3rem 0.5rem;
+  font-size: clamp(0.7rem, 1.6vh, 0.85rem);
+  text-align: right;
+  background: rgb(var(--accent-rgb) / 8%);
+  border-top: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-bottom: 1px solid rgb(var(--accent-rgb) / 20%);
+}
+
+.divine-gamba-legend tbody th {
+  color: var(--accent);
+  font-weight: 800;
+  text-align: left;
+  border-left: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.4rem 0 0 0.4rem;
+}
+
+.divine-gamba-legend td:last-child {
+  border-right: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.divine-gamba-legend tr[data-pays='above'] th {
+  color: var(--accent-contrast);
+}
+
+.divine-gamba-legend tr[data-pays='above'] th,
+.divine-gamba-legend tr[data-pays='above'] td {
+  background: rgb(var(--accent-rgb) / 16%);
+}
+
+.divine-gamba-legend tr[data-jackpot='true'] th {
+  color: var(--jackpot);
+}
+
+.divine-gamba-rarities {
+  margin-top: clamp(0.7rem, 2vh, 1.2rem);
+}
+
+.divine-gamba-rarity {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.divine-gamba-rarity .loot-box-icon,
+.divine-gamba-rarity svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/*
+ * The reveal.
+ *
+ * A reel of boxes runs past a marker and slows onto the one that fell. The
+ * tile pitch, 6rem wide plus 0.5rem gap at 16px, is the 104px the component
+ * counts in; change both together.
+ */
+.divine-gamba-reveal {
+  /* Portalled to the body, outside the screen's accent scope: the violet is restated. */
+  --accent: var(--color-violet-300);
+  --accent-contrast: var(--color-violet-50);
+  --accent-rgb: 139 92 246;
+  --accent-bright-rgb: 196 181 253;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 72%);
+}
+
+.divine-gamba-reveal-card {
+  display: grid;
+  gap: clamp(0.6rem, 1.8vh, 1.1rem);
+  justify-items: center;
+  width: min(92vw, 46rem);
+  padding: clamp(0.8rem, 2.4vh, 1.4rem);
+  background:
+    linear-gradient(180deg, rgb(var(--accent-rgb) / 14%), transparent 50%),
+    var(--scene-night);
+  border: 1px solid rgb(var(--accent-rgb) / 40%);
+  border-radius: 0.9rem;
+  box-shadow: 0 1.2rem 3rem rgb(0 0 0 / 60%);
+}
+
+.divine-gamba-reel-window {
+  position: relative;
+  width: 100%;
+  height: 7.6rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.6rem;
+  background: rgb(0 0 0 / 40%);
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
+.divine-gamba-reel-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 1;
+  width: 2px;
+  background: var(--accent-contrast);
+  box-shadow: 0 0 0.6rem rgb(var(--accent-bright-rgb) / 80%);
+  transform: translateX(-50%);
+}
+
+.divine-gamba-reel {
+  display: flex;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0.5rem 0;
+  will-change: transform;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.08, 0.82, 0.16, 1);
+}
+
+.divine-gamba-reel-tile {
+  display: grid;
+  flex: 0 0 6rem;
+  place-items: center;
+  width: 6rem;
+  height: 100%;
+  background: rgb(var(--accent-rgb) / 8%);
+  border: 1px solid var(--tile-color);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 1.2rem rgb(0 0 0 / 40%);
+}
+
+.divine-gamba-reel-tile .loot-box-icon {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.divine-gamba-reveal[data-phase='revealed'] .divine-gamba-reel-tile[data-winner='true'] {
+  box-shadow: 0 0 1.4rem var(--tile-color), inset 0 0 1.2rem rgb(0 0 0 / 40%);
+}
+
+.divine-gamba-reveal-result {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 3rem;
+  color: var(--text-muted);
+  font-size: clamp(0.9rem, 2.2vh, 1.15rem);
+}
+
+.divine-gamba-reveal-result .loot-box-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.divine-gamba-reveal[data-phase='revealed'] .divine-gamba-reveal-result strong {
+  text-shadow: 0 0 0.8rem var(--reveal-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .divine-gamba-reel {
+    transition: none;
+  }
+}

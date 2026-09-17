@@ -11,6 +11,7 @@ import {
   CampScreenModule,
   ChampionManagementScreenModule,
   CollectionsScreenModule,
+  DivineGambaScreenModule,
   FishingScreenModule,
   GameCanvasModule,
   InventoryScreenModule,
@@ -91,6 +92,7 @@ export const SCREEN_DEFINITIONS: ScreenDefinitions = {
   'run-setup': { label: 'Run preparation', chunk: RunSetupScreenModule, load: loadRunSetupScreen },
   camp: { label: 'The Camp', chunk: CampScreenModule, load: loadCampScreen },
   collections: { label: 'The collections', chunk: CollectionsScreenModule, load: loadCollectionsScreen },
+  'divine-gamba': { label: 'The Divine Gamba', chunk: DivineGambaScreenModule },
 }
 
 /**
