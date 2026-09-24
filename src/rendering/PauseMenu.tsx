@@ -4,6 +4,7 @@ import {
   FREE_MOVEMENT_TOGGLE_KEY,
   FREE_MOVEMENT_KEYS,
   formatKeybind,
+  isChoiceKeybind,
   KEYBIND_DEFINITIONS,
   normalizeKey,
   type GameKeybinds,
@@ -83,7 +84,7 @@ export function PauseMenu({
     }
 
     if (
-      (id === 'choiceLeft' || id === 'choiceMiddle' || id === 'choiceRight') &&
+      isChoiceKeybind(id) &&
       FREE_MOVEMENT_KEYS.some((movementKey) => movementKey === key)
     ) {
       setError(`${formatKeybind(key)} is reserved for Free movement.`)

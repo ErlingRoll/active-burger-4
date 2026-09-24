@@ -3298,6 +3298,34 @@
   align-items: stretch;
 }
 
+/*
+ * A fourth card: the Cartographer's Compass. The panel grows so four cards
+ * are about as wide as three were, and the columns come from the viewport so
+ * the fourth card is never wrapped alone under the other three: a single
+ * column on a phone, two by two on a tablet, four in a row on a desktop.
+ * The viewport rather than the panel's own width because the fit scale zooms
+ * the panel, and a zoomed panel measures wider than the screen it is on.
+ */
+.level-up-panel[data-choice-count="4"] {
+  width: min(80rem, 100%);
+}
+
+.level-up-panel[data-choice-count="4"] .upgrade-choice-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 40rem) {
+  .level-up-panel[data-choice-count="4"] .upgrade-choice-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 72rem) {
+  .level-up-panel[data-choice-count="4"] .upgrade-choice-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .level-up-choice-actions {
   display: flex;
   flex-wrap: wrap;

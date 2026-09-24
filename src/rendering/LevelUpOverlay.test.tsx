@@ -46,6 +46,42 @@ describe('LevelUpOverlay', () => {
     expect(markup).toContain('aria-describedby="banish-choice-tooltip-0"')
   })
 
+  it('gives a fourth card its own key and tells the panel how many cards it holds', () => {
+    // The Cartographer's Compass adds a fourth card to a level-up.
+    const flow: LevelUpChoiceFlow = {
+      type: 'level-up',
+      level: 5,
+      choices: [
+        { upgradeId: 'chain-lightning-unlock', rarity: Rarity.Common },
+        { upgradeId: 'basic-attack-level', rarity: Rarity.Uncommon },
+        { upgradeId: 'blood-rite-unlock', rarity: Rarity.Rare },
+        { upgradeId: 'basic-attack-fire-attunement', rarity: Rarity.Epic },
+      ],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LevelUpOverlay
+        flow={flow}
+        equipment={{}}
+        gearSets={[]}
+        keybinds={{ ...DEFAULT_GAME_KEYBINDS, choiceFourth: 'r' }}
+        characterClassId={DEFAULT_CHARACTER_CLASS_ID}
+        ownedSkillIds={['basic-attack']}
+        rerollsRemaining={0}
+        banishesRemaining={0}
+        onSelect={() => {}}
+        onBanish={() => {}}
+        onReroll={() => {}}
+        onSkip={() => {}}
+      />,
+    )
+
+    expect(markup).toContain('data-choice-count="4"')
+    expect(markup.match(/class="upgrade-choice choice-card/g)).toHaveLength(4)
+    expect(markup).toContain('aria-keyshortcuts="r"')
+    expect(markup).toContain('<span class="choice-keybind-hint" aria-hidden="true">R</span>')
+  })
+
   it('hides Banish controls when none remain', () => {
     const flow: LevelUpChoiceFlow = {
       type: 'level-up',

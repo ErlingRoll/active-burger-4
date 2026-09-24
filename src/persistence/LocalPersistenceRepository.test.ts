@@ -57,6 +57,7 @@ describe('local persistence schema', () => {
         choiceLeft: '1',
         choiceMiddle: '2',
         choiceRight: '3',
+        choiceFourth: '4',
         skipChoice: '5',
       },
     })
