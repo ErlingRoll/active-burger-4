@@ -3289,24 +3289,34 @@
 .upgrade-choice-list {
   display: grid;
   /*
-   * Three cards where three fit and one column where they do not, decided by
-   * the track size rather than by a breakpoint. Forcing three columns put a
-   * phone's third choice off the side of the screen.
+   * A single column, and one row of equal columns once the viewport is
+   * wide enough for three cards. Decided by the viewport rather than the
+   * track size because the fit scale zooms the panel, and a zoomed panel
+   * measures wider than the screen it is on: a track-size rule saw room
+   * for two columns on a 360px phone and wrapped the third card alone
+   * underneath. The row takes one column per card, so a two-card offer is
+   * two wide cards rather than two cards beside an empty slot.
    */
-  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(0.32rem, 1.6vh, 1rem);
   align-items: stretch;
+}
+
+@media (min-width: 48rem) {
+  .upgrade-choice-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-columns: none;
+  }
 }
 
 /*
  * A fourth card: the Cartographer's Compass. Four cards make a square, two
  * by two, so each card is as wide as it is on a three-card offer and none is
- * ever wrapped alone under the others. A phone keeps its single column. The
- * breakpoint is on the viewport rather than the panel's own width because
- * the fit scale zooms the panel, and a zoomed panel measures wider than the
- * screen it is on.
+ * ever wrapped alone under the others. A phone keeps its single column.
  */
 .level-up-panel[data-choice-count="4"] .upgrade-choice-list {
+  grid-auto-flow: row;
   grid-template-columns: minmax(0, 1fr);
 }
 
