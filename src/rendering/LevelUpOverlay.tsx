@@ -56,6 +56,7 @@ import { ImplicitModifierList } from './ImplicitModifierList'
 import { SkillIcon } from './SkillIcon'
 import {
   formatKeybind,
+  getChoiceKeybinds,
   type GameKeybinds,
 } from '../input/Keybinds'
 import { KeywordText } from './KeywordTooltip'
@@ -793,6 +794,7 @@ export function LevelUpOverlay({
   const choiceFitKey = `${flow.type}:${flow.choices.length}:${rerollsRemaining}:${banishesRemaining}`
   const characterClass = getCharacterClassDefinition(characterClassId)
   const canReroll = rerollsRemaining > 0
+  const choiceKeybinds = getChoiceKeybinds(keybinds)
 
   const handleSelect = (
     index: number,
@@ -875,7 +877,7 @@ export function LevelUpOverlay({
   }, [flow, isGearFlow])
 
   // A choice screen has to be wholly reachable without scrolling, and how tall
-  // it is depends on how much these particular three cards have to say.
+  // it is depends on how much these particular cards have to say.
   useFitScale(panelRef, choiceFitKey)
 
   return (
@@ -896,6 +898,7 @@ export function LevelUpOverlay({
               : ''
           }`}
           ref={panelRef}
+          data-choice-count={flow.choices.length}
           onAnimationEnd={handleChoiceTransitionEnd}
         >
           {choiceTransition &&
@@ -931,11 +934,7 @@ export function LevelUpOverlay({
                       firstButtonRef.current = element
                     }
                   }}
-                  keybind={[
-                    keybinds.choiceLeft,
-                    keybinds.choiceMiddle,
-                    keybinds.choiceRight,
-                  ][index]}
+                  keybind={choiceKeybinds[index]}
                   ownedSkillIds={ownedSkillIds}
                   banishesRemaining={banishesRemaining}
                   disabled={choiceTransition !== null}
@@ -969,11 +968,7 @@ export function LevelUpOverlay({
                     activeComparison === `gear-comparison-${choice.itemId}-${index}`}
                   setActive={setActiveComparison}
                   gearSets={gearSets}
-                  keybind={[
-                    keybinds.choiceLeft,
-                    keybinds.choiceMiddle,
-                    keybinds.choiceRight,
-                  ][index]}
+                  keybind={choiceKeybinds[index]}
                   disabled={choiceTransition !== null}
                   isSelected={choiceTransition?.kind === 'select' &&
                     choiceTransition.index === index}

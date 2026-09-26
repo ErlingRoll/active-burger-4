@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_GAME_KEYBINDS,
   formatKeybind,
+  getChoiceKeybinds,
   normalizeGameKeybinds,
   normalizeKey,
 } from './Keybinds'
@@ -15,6 +16,7 @@ describe('game keybind settings', () => {
       choiceLeft: '1',
       choiceMiddle: '2',
       choiceRight: '3',
+      choiceFourth: '4',
       skipChoice: '5',
     })
   })
@@ -33,8 +35,15 @@ describe('game keybind settings', () => {
       choiceLeft: 'arrowleft',
       choiceMiddle: '2',
       choiceRight: '3',
+      choiceFourth: '4',
       skipChoice: 'x',
     })
+  })
+
+  it('lists the choice keys in card order, the fourth last', () => {
+    expect(getChoiceKeybinds(DEFAULT_GAME_KEYBINDS)).toEqual(['1', '2', '3', '4'])
+    expect(getChoiceKeybinds({ ...DEFAULT_GAME_KEYBINDS, choiceFourth: 'r' }))
+      .toEqual(['1', '2', '3', 'r'])
   })
 
   it('rejects persisted use of the fixed Free movement toggle', () => {
@@ -60,10 +69,12 @@ describe('game keybind settings', () => {
       choiceLeft: 'a',
       choiceMiddle: 'w',
       choiceRight: 'd',
+      choiceFourth: 's',
     })).toMatchObject({
       choiceLeft: '1',
       choiceMiddle: '2',
       choiceRight: '3',
+      choiceFourth: '4',
     })
   })
 

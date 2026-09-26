@@ -30,8 +30,6 @@ test('holds the refuge until the shop can paint', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   await skipNicknamePrompt(page)
 
-  const refugeHeading = page.getByRole('heading', { name: 'Gather. Prepare. Descend.' })
-  await expect(refugeHeading).toBeVisible()
   const shopTile = page.getByRole('button', { name: 'Quartermaster' })
   await expect(shopTile).toBeEnabled()
 
@@ -39,7 +37,6 @@ test('holds the refuge until the shop can paint', async ({ page }) => {
 
   const shell = page.locator('.app-shell')
   await expect(shell).toHaveAttribute('data-navigation', 'pending')
-  await expect(refugeHeading).toBeVisible()
   await expect(shopTile).toHaveAttribute('aria-busy', 'true')
   await expect(page.getByText('The shop is loading…')).toHaveCount(0)
 

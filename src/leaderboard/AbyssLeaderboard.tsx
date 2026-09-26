@@ -82,7 +82,7 @@ export function AbyssLeaderboard({
     <section className="abyss-leaderboard" aria-labelledby="abyss-leaderboard-title">
       <div className="abyss-leaderboard-heading">
         <div>
-          <p className="screen-kicker">Global rankings</p>
+          <p className="screen-kicker">Abyss rankings</p>
           <h3 id="abyss-leaderboard-title">Deepest descent</h3>
         </div>
         <span>Top 10 players</span>
