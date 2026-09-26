@@ -5,6 +5,8 @@ export interface GameKeybinds {
   choiceLeft: string
   choiceMiddle: string
   choiceRight: string
+  /** The fourth card, which only an artifact such as the Cartographer's Compass offers. */
+  choiceFourth: string
   skipChoice: string
 }
 
@@ -20,6 +22,7 @@ export const DEFAULT_GAME_KEYBINDS: Readonly<GameKeybinds> = Object.freeze({
   choiceLeft: '1',
   choiceMiddle: '2',
   choiceRight: '3',
+  choiceFourth: '4',
   skipChoice: '5',
 })
 
@@ -41,18 +44,23 @@ export const KEYBIND_DEFINITIONS = [
   },
   {
     id: 'choiceLeft',
-    label: 'Left choice',
-    description: 'Select the leftmost level-up or gear choice.',
+    label: 'First choice',
+    description: 'Select the first level-up or gear choice.',
   },
   {
     id: 'choiceMiddle',
-    label: 'Middle choice',
-    description: 'Select the middle level-up or gear choice.',
+    label: 'Second choice',
+    description: 'Select the second level-up or gear choice.',
   },
   {
     id: 'choiceRight',
-    label: 'Right choice',
-    description: 'Select the rightmost level-up or gear choice.',
+    label: 'Third choice',
+    description: 'Select the third level-up or gear choice.',
+  },
+  {
+    id: 'choiceFourth',
+    label: 'Fourth choice',
+    description: 'Select the fourth level-up choice, when an artifact offers one.',
   },
   {
     id: 'skipChoice',
@@ -65,8 +73,21 @@ export const KEYBIND_DEFINITIONS = [
   description: string
 }>
 
-function isChoiceKeybind(id: KeybindId): boolean {
-  return id === 'choiceLeft' || id === 'choiceMiddle' || id === 'choiceRight'
+/** The choice keys in card order, so a card's key is its index in this list. */
+export const CHOICE_KEYBIND_IDS = [
+  'choiceLeft',
+  'choiceMiddle',
+  'choiceRight',
+  'choiceFourth',
+] as const satisfies readonly KeybindId[]
+
+export function isChoiceKeybind(id: KeybindId): boolean {
+  return CHOICE_KEYBIND_IDS.some((choiceId) => choiceId === id)
+}
+
+/** The keys that select each card, in the order the cards are laid out. */
+export function getChoiceKeybinds(keybinds: Readonly<GameKeybinds>): string[] {
+  return CHOICE_KEYBIND_IDS.map((id) => keybinds[id])
 }
 
 function isLegacyChoiceDefaults(

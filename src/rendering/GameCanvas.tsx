@@ -17,6 +17,7 @@ import type { AbyssModifierChoice } from '../content/modifiers/AbyssModifiers'
 import {
   FREE_MOVEMENT_KEYS,
   FREE_MOVEMENT_TOGGLE_KEY,
+  getChoiceKeybinds,
   normalizeKey,
   type GameKeybinds,
 } from '../input/Keybinds'
@@ -466,11 +467,7 @@ export function GameCanvas({
       }
 
       if (game.phase === 'level-up') {
-        const choiceIndex = [
-          activeKeybindsRef.current.choiceLeft,
-          activeKeybindsRef.current.choiceMiddle,
-          activeKeybindsRef.current.choiceRight,
-        ].indexOf(key)
+        const choiceIndex = getChoiceKeybinds(activeKeybindsRef.current).indexOf(key)
         const choice = choiceFlowRef.current?.choices[choiceIndex]
         if (choice) {
           event.preventDefault()
