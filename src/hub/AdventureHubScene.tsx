@@ -769,9 +769,8 @@ export function AdventureHubScene({
         <div className="hub-hud">
           <div className="hub-hud-column hub-hud-column-start">
             <header className="hub-heading">
-              <p className="screen-kicker">The Emberwatch refuge</p>
-              <h2 id="game-dashboard-title">Gather. Prepare. Descend.</h2>
-              <p>The fire is lit and the dungeon gate is open. Choose your next expedition.</p>
+              <p className="screen-kicker">Encampment</p>
+              <h2 id="game-dashboard-title">Emberwatch Refuge</h2>
             </header>
 
             <div className="hub-left-dock">
