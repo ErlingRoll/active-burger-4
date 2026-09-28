@@ -4201,22 +4201,46 @@
  * synergy card, so a planned Common never reads as something rarer, and a
  * shape cue in the corner for anyone who does not see the colour. The badge
  * sits in the header row, where a phone's single column shows it first.
+ *
+ * The ribbon sticks up out of the card's top edge, the way a bookmark stands
+ * out of a closed book: half of it above the card, where it costs the text
+ * nothing, and half across the rarity stripe into the top padding, which it
+ * never reaches past. Tucked into the title's corner it read as a speck on
+ * the first letter, and a gutter cut out for it cost every line its width.
+ *
+ * Card and ribbon both glow, so a planned card can be picked out of the row
+ * before any of it is read.
  */
 .choice-card.planned-card {
   box-shadow:
-    0 0 0 2px rgb(253 164 175 / 60%),
-    0 0 1.4rem rgb(251 113 133 / 32%);
+    0 0 0 2px rgb(253 164 175 / 80%),
+    0 0 1.1rem rgb(251 113 133 / 55%),
+    0 0 2.6rem rgb(251 113 133 / 30%),
+    inset 0 0 1.4rem rgb(251 113 133 / 14%);
 }
 
+/*
+ * The ribbon is drawn with borders rather than cut out with a clip-path,
+ * because a clip-path clips the glow along with the shape. A box with no width
+ * is its two side borders, the darker left one the ribbon's fold, and the
+ * transparent bottom border mitres their ends into the notched tail; the
+ * drop-shadow then follows that outline.
+ */
 .choice-card.planned-card::before {
   content: '';
   position: absolute;
-  top: -1px;
-  left: 0.9rem;
-  width: 0.8rem;
-  height: 1.3rem;
-  background: var(--color-rose-300);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  z-index: 1;
+  top: -0.75rem;
+  left: 0.7rem;
+  box-sizing: content-box;
+  width: 0;
+  height: 1.1rem;
+  border-right: 0.5rem solid var(--color-rose-300);
+  border-bottom: 0.35rem solid transparent;
+  border-left: 0.5rem solid var(--color-rose-400);
+  filter:
+    drop-shadow(0 0 0.2rem rgb(253 164 175 / 90%))
+    drop-shadow(0 0 0.7rem rgb(251 113 133 / 75%));
   pointer-events: none;
 }
 
