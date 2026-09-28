@@ -94,6 +94,7 @@ import {
   type SkillEvolutionId,
   type SkillChoiceType,
   type SkillUpgradeType,
+  getActiveSynergyForSkill,
   getSkillChoiceType,
   getSkillUpgradeType,
 } from '../../content/upgrades/Upgrades'
@@ -235,6 +236,12 @@ export interface SkillHudSnapshot {
   /** True when this skill has enough Basic Attack charges for resonance. */
   readonly resonanceReady: boolean
   readonly tags: readonly SkillTag[]
+  /** Enemy statuses this skill applies right now, weapon included. */
+  readonly applies: readonly KeywordId[]
+  /** Enemy statuses this skill does something extra against. */
+  readonly consumes: readonly KeywordId[]
+  /** The synergy this skill is locked into, or null while its slot is open. */
+  readonly activeSynergy: { readonly upgradeId: UpgradeId; readonly name: string } | null
   /** Effective native skill and Attunement damage before critical strikes and resistance. */
   readonly damage: DamageValues
   readonly damageTypes: readonly DamageType[]
@@ -1631,6 +1638,10 @@ export function createUiSnapshot(
         .filter((modifier) => !SKILL_SUMMARIZED_GEAR_MODIFIER_IDS.has(modifier.id))
         .map((modifier) => Object.freeze({ ...modifier }))
     }))
+    const activeSynergy = getActiveSynergyForSkill(
+      skill.skillId,
+      state.run.selectedUpgradeIds,
+    )
     const upgrades = INITIAL_UPGRADES
       .filter((upgrade) =>
         upgrade.skillAction !== 'unlock' &&
@@ -1687,6 +1698,14 @@ export function createUiSnapshot(
       resonanceEffect: isBasicAttack ? null : definition.resonanceEffect ?? null,
       resonanceReady: !isBasicAttack && isSkillResonant(state, skill.skillId),
       tags: Object.freeze([...skillTags]),
+      applies: Object.freeze([
+        ...(definition.applies ?? []),
+        ...(isBasicAttack && basicAttackVariant.poisonApplication ? ['poison' as const] : []),
+      ]),
+      consumes: Object.freeze([...(definition.consumes ?? [])]),
+      activeSynergy: activeSynergy
+        ? Object.freeze({ upgradeId: activeSynergy.id, name: activeSynergy.name })
+        : null,
       damage: displayedDamage,
       damageTypes: Object.freeze(damageTypes),
       attunementDamage,

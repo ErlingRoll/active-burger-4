@@ -59,6 +59,7 @@ import { GEAR_RARITY_FLOOR_CHANCE } from '../game/equipment/GearChoices'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { INITIAL_UPGRADES } from '../game-config/skill-upgrades'
 import { getUpgradeDescription } from '../content/upgrades/Upgrades'
+import { getSkillStatusPartners } from '../content/skills/SkillInteractions'
 import { SYNERGY_OFFER_CHANCE, SYNERGY_UPGRADES } from '../game-config/synergies'
 import { ABYSS_MODIFIER_DEFINITIONS } from '../content/modifiers/AbyssModifiers'
 import { SkillIcon } from '../rendering/SkillIcon'
@@ -502,6 +503,10 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
             <div className="wiki-skill-grid">
               {SKILLS.map((skill) => {
                 const upgrades = INITIAL_UPGRADES.filter((upgrade) => upgrade.skillId === skill.id)
+                const synergies = SYNERGY_UPGRADES.filter((synergy) => synergy.synergySkillIds.includes(skill.id))
+                const statusPartners = getSkillStatusPartners(skill.id)
+                const applies = skill.applies ?? []
+                const consumes = skill.consumes ?? []
                 return (
                   <section id={`skill-${skill.id}`} className="wiki-card wiki-skill-card" key={skill.id} style={{ '--wiki-accent': skill.visual.primaryColor } as CSSProperties}>
                     <header>
@@ -529,6 +534,42 @@ export function WikiScreen({ appVersion, onReturnToApp }: WikiScreenProps) {
                     {skill.shieldBaseAmount !== undefined ? <p>Shield at level 1 / 5: <strong>{getSkillShieldAmount(skill, 1)} / {getSkillShieldAmount(skill, 5)}</strong></p> : null}
                     <p className="wiki-muted">Base damage: {Object.entries(skill.baseDamage).filter(([, value]) => value !== undefined).map(([type, value]) => `${formatNumber(value ?? 0)} ${type}`).join(' · ') || 'none'}</p>
                     {skill.resonanceEffect ? <p><strong>Resonance — {skill.resonanceEffect.name}:</strong> <KeywordText text={skill.resonanceEffect.description} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /></p> : null}
+                    {applies.length > 0 || consumes.length > 0 ? (
+                      <div className="wiki-status-lines">
+                        {applies.length > 0 ? <p className="wiki-status-line"><span>Applies</span> {applies.map((keyword) => <a className="skill-tag skill-tag-status" key={keyword} href={`#glossary-${keyword}`}>{KEYWORD_DEFINITIONS[keyword].label}</a>)}</p> : null}
+                        {consumes.length > 0 ? <p className="wiki-status-line"><span>Consumes</span> {consumes.map((keyword) => <a className="skill-tag skill-tag-status" key={keyword} href={`#glossary-${keyword}`}>{KEYWORD_DEFINITIONS[keyword].label}</a>)}</p> : null}
+                      </div>
+                    ) : null}
+                    {statusPartners.length > 0 ? (
+                      <p className="wiki-muted">
+                        Pairs with: {statusPartners.map((partner, index) => (
+                          <span key={partner.skillId}>
+                            {index > 0 ? ', ' : ''}
+                            <a className="wiki-inline-link" href={`#skill-${partner.skillId}`}>{SKILL_DEFINITIONS[partner.skillId].name}</a>
+                            {' '}({[...partner.setsUp, ...partner.benefitsFrom].map((keyword) => KEYWORD_DEFINITIONS[keyword].label).join(', ')})
+                          </span>
+                        ))}
+                      </p>
+                    ) : null}
+                    {synergies.length > 0 ? (
+                      <details>
+                        <summary>Synergies ({synergies.length})</summary>
+                        <ul>
+                          {synergies.map((synergy) => {
+                            const partnerId = synergy.synergySkillIds.find((skillId) => skillId !== skill.id) ?? skill.id
+                            return (
+                              <li key={synergy.id}>
+                                <a className="wiki-inline-link" href={`#upgrade-${synergy.id}`}>{synergy.name}</a>
+                                {' with '}
+                                <a className="wiki-inline-link" href={`#skill-${partnerId}`}>{SKILL_DEFINITIONS[partnerId].name}</a>
+                                {': '}
+                                <KeywordText text={synergy.valueLabel} glossaryHref={(keywordId) => `#glossary-${keywordId}`} />
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </details>
+                    ) : null}
                     {upgrades.length > 0 ? <details><summary>Upgrades, evolutions, and enhancements ({upgrades.length})</summary><ul>{upgrades.map((upgrade) => <li id={`upgrade-${upgrade.id}`} key={upgrade.id}><strong>{upgrade.name}</strong>{upgrade.evolution ? ' · Evolve' : upgrade.skillAction === 'level' ? ' · Level upgrade' : ' · Enhancement'}: <KeywordText text={getUpgradeDescription(upgrade)} glossaryHref={(keywordId) => `#glossary-${keywordId}`} /> <em>{upgrade.valueLabel}</em></li>)}</ul></details> : null}
                   </section>
                 )

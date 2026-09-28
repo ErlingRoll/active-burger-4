@@ -112,6 +112,7 @@ interface AdventureHubSceneProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
@@ -193,6 +194,7 @@ export function AdventureHubScene({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenBuildPlans,
   onOpenDivineGamba,
   onOpenRunHistory,
   onOpenAbyss,
@@ -874,6 +876,10 @@ export function AdventureHubScene({
                 <button className="hub-path hub-path-divine-gamba" type="button" onClick={onOpenDivineGamba} title={DIVINE_GAMBA_STATION_HINT} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'divine-gamba')}>
                   <span aria-hidden="true">◈</span>
                   <span>{DIVINE_GAMBA_STATION_LABEL}</span>
+                </button>
+                <button className="hub-path hub-path-build-plans" type="button" onClick={onOpenBuildPlans} title="Plan the skills and synergies for a run" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'build-plans')}>
+                  <span aria-hidden="true">❏</span>
+                  <span>Build plans</span>
                 </button>
               </nav>
             </div>

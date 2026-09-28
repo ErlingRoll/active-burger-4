@@ -3,6 +3,7 @@ import type { TargetPriorityId } from '../content/behaviors/TargetPriorities'
 import type { WorldModifierId } from '../content/modifiers/WorldModifiers'
 import type { CharacterClassId } from '../content/classes/CharacterClasses'
 import type { GameKeybinds } from '../input/Keybinds'
+import type { BuildPlan } from '../game/builds/BuildPlans'
 
 export const PERSISTENCE_SCHEMA_VERSION = 4
 
@@ -19,6 +20,10 @@ export interface SettingsDto {
   selectedWorldModifierIds: WorldModifierId[]
   selectedCharacterClassId: CharacterClassId
   keybinds: GameKeybinds
+  /** The player's saved build plans, in the order they were made. */
+  buildPlans: BuildPlan[]
+  /** The plan the level-up screen marks cards against, or null for none. */
+  selectedBuildPlanId: string | null
 }
 
 export interface BasicProfileDto {

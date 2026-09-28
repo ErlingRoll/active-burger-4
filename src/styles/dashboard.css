@@ -2670,6 +2670,14 @@
   --accent-bright-rgb: 196 181 253;
 }
 
+.hub-path-build-plans {
+  /* The drawing board: the rose of a planned card's bookmark. */
+  --accent: var(--color-rose-300);
+  --accent-contrast: var(--color-rose-50);
+  --accent-rgb: 251 113 133;
+  --accent-bright-rgb: 253 164 175;
+}
+
 .hub-path > span:first-child {
   flex: 0 0 auto;
   color: var(--accent);

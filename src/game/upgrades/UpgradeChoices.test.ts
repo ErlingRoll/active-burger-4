@@ -5,9 +5,15 @@ import {
 } from '../../content/upgrades/Upgrades'
 import { SKILL_DEFINITIONS } from '../../content/skills/Skills'
 import { Random } from '../random/Random'
-import { createGame } from '../Game'
+import { createGame, FIXED_STEP_SECONDS } from '../Game'
 import { BASIC_ATTACK_SKILL_ID } from '../../content/skills/Skills'
 import { SKILL_REMOVAL_CHANCE } from '../../game-config/skills'
+import {
+  getSynergyOfferChance,
+  SYNERGY_OFFER_CHANCE_CAP,
+  SYNERGY_PITY_CHANCE_PER_OFFER,
+} from '../../game-config/synergies'
+import { xpRequiredForLevel } from '../../content/progression/XpBalance'
 import {
   generateBanishReplacement,
   generateUpgradeChoices,
@@ -549,5 +555,46 @@ describe('upgrade choice generation', () => {
     expect(choices).toHaveLength(3)
     expect(choices.every((choice) => choice.rarity === Rarity.Common)).toBe(true)
     expect(new Set(choices.map((choice) => choice.upgradeId)).size).toBe(3)
+  })
+})
+
+describe('synergy pity', () => {
+  it('raises the offer chance with each offer that showed no synergy, up to a cap', () => {
+    expect(getSynergyOfferChance(0)).toBe(SYNERGY_OFFER_CHANCE)
+    expect(getSynergyOfferChance(2)).toBeCloseTo(SYNERGY_OFFER_CHANCE + 2 * SYNERGY_PITY_CHANCE_PER_OFFER)
+    expect(getSynergyOfferChance(100)).toBe(SYNERGY_OFFER_CHANCE_CAP)
+    expect(getSynergyOfferChance(Number.NaN)).toBe(SYNERGY_OFFER_CHANCE)
+  })
+
+  it('rolls the raised chance after a drought', () => {
+    const game = createGame({ seed: 456 })
+    game.state.run.synergyOfferDrought = 3
+    const raised = getSynergyOfferChance(3)
+    const rng = {
+      next: () => 0.5,
+      int: (min: number) => min,
+      chance: (probability: number) => Math.abs(probability - raised) < 1e-9,
+      pick: <T>(items: readonly T[]) => items[0] as T,
+    }
+
+    expect(generateUpgradeChoices(game.state, 1, rng)[0]?.upgradeId).toBe('synergy-basic-attack-whirlwind')
+  })
+
+  it('counts offers without a synergy and resets when one is shown', () => {
+    const game = createGame({ seed: 4242 })
+    expect(game.state.run.synergyOfferDrought).toBeUndefined()
+
+    let sawSynergy = false
+    for (let level = 0; level < 40 && !sawSynergy; level += 1) {
+      const before = game.state.run.synergyOfferDrought ?? 0
+      game.spawnXpPickup({ x: 0, y: 0 }, xpRequiredForLevel(game.state.player.level + 1))
+      game.update(FIXED_STEP_SECONDS)
+      const offered = game.getPendingUpgradeChoices()
+      expect(offered.length).toBeGreaterThan(0)
+      sawSynergy = offered.some((choice) => choice.upgradeId.startsWith('synergy-'))
+      expect(game.state.run.synergyOfferDrought).toBe(sawSynergy ? 0 : before + 1)
+      expect(game.skipChoice()).toBe(true)
+    }
+    expect(sawSynergy).toBe(true)
   })
 })

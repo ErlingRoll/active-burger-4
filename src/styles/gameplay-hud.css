@@ -904,12 +904,13 @@
 }
 
 /*
- * Overlays sit above the HUD, which is the whole point of a scrim: the
- * level-up choice used to be dimmed against the arena while nine bright panels
- * carried on competing with it.
+ * The scrim dims the arena, not the HUD. The choice dialog sits above both,
+ * and the HUD stays bright and usable behind it: a player weighing a card
+ * reads the loadout, the stat sheet and the skill bar while choosing, so
+ * muting them took away the very things the decision is made from.
  */
 .level-up-overlay {
-  z-index: 6;
+  z-index: 2;
 }
 
 .level-up-dialog {
@@ -1243,9 +1244,14 @@
     align-items: flex-start;
   }
 
-  /* One copy only. The rails already show what these open. */
-  .hud-inspector,
-  .hud-toolbar-tab {
+  /*
+   * One copy only. The rails already show what these open. The build planner
+   * is the exception: it is edited rather than read, so it is not on a rail,
+   * and its door and its sheet stay on every screen.
+   */
+  .hud-inspector:not([data-tab="build"]),
+  .hud-toolbar-tab:not([data-tab="build"]),
+  .hud-inspector-tab:not([data-tab="build"]) {
     display: none;
   }
 
@@ -1290,4 +1296,378 @@
     margin-top: auto;
     font-size: clamp(0.64rem, 1.4vh, 0.75rem);
   }
+}
+
+/*
+ * The build planner.
+ *
+ * The Build tab of the inspector, and the same panel on the run setup screen.
+ * The plan view is a screen: it fits, or it shrinks. The editor is the one
+ * part of the HUD that scrolls, inside itself: twenty-two skills and their
+ * upgrades are a catalogue to pick from, the same kind of list the Essence
+ * store is allowed to scroll, and there is no size at which a phone holds
+ * them all at once.
+ */
+.build-planner {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: var(--hud-pad, 0.8rem);
+}
+
+.build-planner[data-variant="setup"] {
+  --hud-surface-rgb: 15 23 42;
+  --hud-pad: 0.9rem;
+  --hud-gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.build-planner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.build-planner-header .hud-panel-heading {
+  margin: 0;
+}
+
+.build-planner-header-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.build-planner-action {
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  color: var(--color-stone-200);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: rgb(var(--hud-surface-rgb, 15 23 42) / 70%);
+  border: 1px solid rgb(var(--accent-rgb) / 26%);
+  border-radius: 0.28rem;
+  cursor: pointer;
+}
+
+.build-planner-action:hover,
+.build-planner-action:focus-visible {
+  color: var(--accent-contrast);
+  border-color: rgb(var(--accent-bright-rgb, var(--accent-rgb)) / 68%);
+}
+
+.build-planner-save {
+  color: var(--color-rose-200);
+  border-color: rgb(253 164 175 / 55%);
+}
+
+.build-planner-delete {
+  align-self: flex-start;
+  color: var(--color-red-300);
+}
+
+.build-planner-empty {
+  margin: 0;
+  color: var(--color-stone-300);
+  font-size: 0.85rem;
+}
+
+.build-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-plan-list li {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.build-plan-choice {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.15rem;
+  padding: 0.4rem 0.6rem;
+  color: var(--color-stone-300);
+  font: inherit;
+  text-align: left;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.build-plan-choice:hover,
+.build-plan-choice:focus-visible {
+  border-color: rgb(var(--accent-bright-rgb, var(--accent-rgb)) / 62%);
+  outline: none;
+}
+
+.build-plan-choice.selected {
+  color: var(--color-stone-50);
+  background: rgb(251 113 133 / 12%);
+  border-color: rgb(253 164 175 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(253 164 175 / 35%);
+}
+
+.build-plan-choice-name {
+  font-weight: 800;
+}
+
+.build-plan-choice-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.build-plan-choice-note {
+  color: var(--color-stone-400);
+  font-size: 0.72rem;
+}
+
+.build-plan-progress {
+  min-height: 0;
+}
+
+.build-plan-target-list,
+.build-plan-upgrade-list,
+.build-plan-pairing-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-plan-target {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.1rem 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.82rem;
+  border-top: 1px solid rgb(var(--accent-rgb) / 16%);
+}
+
+.build-plan-target-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.build-plan-target-status {
+  color: var(--color-stone-400);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+[data-status="done"] > .build-plan-target-status {
+  color: var(--color-green-400);
+}
+
+[data-status="reachable"] > .build-plan-target-status {
+  color: var(--color-teal-300);
+}
+
+[data-status="blocked"] > .build-plan-target-status {
+  color: var(--color-amber-300);
+}
+
+.build-plan-upgrade-list {
+  grid-column: 1 / -1;
+  padding-left: 1.4rem;
+}
+
+.build-plan-upgrade-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.build-plan-synergy-kicker {
+  color: var(--color-teal-300);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.build-plan-target-note {
+  grid-column: 1;
+  color: var(--color-stone-400);
+  font-size: 0.74rem;
+}
+
+.build-plan-warning {
+  margin: 0 0 0.3rem;
+  color: var(--color-amber-300);
+  font-size: 0.78rem;
+}
+
+/* The editor. */
+.build-plan-editor {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-right: 0.2rem;
+  overflow-y: auto;
+}
+
+.build-planner[data-variant="setup"] .build-plan-editor {
+  overflow: visible;
+}
+
+.build-plan-name-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.build-plan-name-field input {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 0.3rem 0.5rem;
+  color: var(--color-stone-100);
+  font: inherit;
+  background: rgb(0 0 0 / 35%);
+  border: 1px solid rgb(var(--accent-rgb) / 30%);
+  border-radius: 0.3rem;
+}
+
+.build-plan-editor-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.build-plan-editor-count {
+  margin-left: auto;
+  color: var(--color-stone-400);
+}
+
+.build-plan-editor-note {
+  margin: 0;
+  color: var(--color-stone-400);
+  font-size: 0.74rem;
+}
+
+.build-plan-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.4rem, 1fr));
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-plan-skill {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.2rem;
+  color: var(--color-stone-300);
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 20%);
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.build-plan-skill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.build-plan-skill-partner {
+  border-color: rgb(56 189 248 / 55%);
+}
+
+.build-plan-skill.planned,
+.build-plan-chip.planned {
+  color: var(--color-rose-50);
+  background: rgb(251 113 133 / 18%);
+  border-color: rgb(253 164 175 / 75%);
+}
+
+.build-plan-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  color: var(--color-stone-300);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgb(0 0 0 / 30%);
+  border: 1px solid rgb(var(--accent-rgb) / 22%);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.build-plan-chip-kind {
+  display: inline-flex;
+  gap: 0.1rem;
+  color: var(--color-stone-400);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.build-plan-chip-synergy .build-plan-chip-kind {
+  color: var(--color-teal-300);
+}
+
+.build-plan-pairing-list {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--color-stone-300);
+  font-size: 0.76rem;
+}
+
+.build-plan-pairing-list strong {
+  color: var(--color-stone-50);
+}
+
+/* Inside the inspector the planner is the sheet's body, not a panel in it. */
+.hud-inspector-body .build-planner {
+  position: static;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
 }

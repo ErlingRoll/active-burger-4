@@ -10,6 +10,7 @@ import {
   type HudInspectorTab,
 } from './HudInspectorTabs'
 import type { HudTooltips } from './useHudTooltips'
+import { BuildPlannerPanel, type BuildPlannerPanelProps } from './BuildPlanner'
 
 /**
  * The reference half of the HUD, behind a door.
@@ -28,6 +29,7 @@ import type { HudTooltips } from './useHudTooltips'
 export interface HudInspectorProps {
   snapshot: GameUiSnapshot
   tooltips: HudTooltips
+  buildPlanner: BuildPlannerPanelProps
   tab: HudInspectorTab
   onTabChange: (tab: HudInspectorTab) => void
   onClose: () => void
@@ -36,6 +38,7 @@ export interface HudInspectorProps {
 export function HudInspector({
   snapshot,
   tooltips,
+  buildPlanner,
   tab,
   onTabChange,
   onClose,
@@ -51,6 +54,7 @@ export function HudInspector({
   return (
     <aside
       className="hud-inspector"
+      data-tab={tab}
       role="dialog"
       aria-label="Run details"
       aria-modal="false"
@@ -63,6 +67,7 @@ export function HudInspector({
               type="button"
               role="tab"
               id={`hud-inspector-tab-${candidate}`}
+              data-tab={candidate}
               aria-selected={candidate === tab}
               aria-controls={`hud-inspector-panel-${candidate}`}
               key={candidate}
@@ -91,6 +96,7 @@ export function HudInspector({
         {tab === 'gear' ? <LoadoutPanel snapshot={snapshot} tooltips={tooltips} /> : null}
         {tab === 'stats' ? <CharacterStatsPanel snapshot={snapshot} tooltips={tooltips} /> : null}
         {tab === 'run' ? <RunStatsPanel snapshot={snapshot} /> : null}
+        {tab === 'build' ? <BuildPlannerPanel {...buildPlanner} /> : null}
       </div>
     </aside>
   )

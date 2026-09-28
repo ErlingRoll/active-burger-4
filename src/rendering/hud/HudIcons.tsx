@@ -70,6 +70,17 @@ export function RunIcon({ className }: HudIconProps) {
   )
 }
 
+/** Build: a bookmark, the same mark a planned card carries. */
+export function BuildIcon({ className }: HudIconProps) {
+  return icon(
+    <>
+      <path d="M7 4h10v16l-5-3.5L7 20Z" />
+      <path d="M9.5 9.5h5" />
+    </>,
+    className,
+  )
+}
+
 /** Pause: two bars, the one glyph nobody has to learn. */
 export function PauseIcon({ className }: HudIconProps) {
   return icon(

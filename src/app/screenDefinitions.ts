@@ -8,6 +8,7 @@ import { loadChronicleScreen, type ChronicleScreenData } from '../run-history/lo
 import { loadShopScreen, type ShopScreenData } from '../shop/loadShopScreen'
 import {
   AdminReportsScreenModule,
+  BuildPlansScreenModule,
   CampScreenModule,
   ChampionManagementScreenModule,
   CollectionsScreenModule,
@@ -92,6 +93,7 @@ export const SCREEN_DEFINITIONS: ScreenDefinitions = {
   'run-setup': { label: 'Run preparation', chunk: RunSetupScreenModule, load: loadRunSetupScreen },
   camp: { label: 'The Camp', chunk: CampScreenModule, load: loadCampScreen },
   collections: { label: 'The collections', chunk: CollectionsScreenModule, load: loadCollectionsScreen },
+  'build-plans': { label: 'Build plans', chunk: BuildPlansScreenModule },
   'divine-gamba': { label: 'The Divine Gamba', chunk: DivineGambaScreenModule },
 }
 

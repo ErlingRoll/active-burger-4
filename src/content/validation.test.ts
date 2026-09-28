@@ -11,6 +11,7 @@ import {
   BASIC_ATTACK_VARIANTS,
   CRITICAL_SPELLSTRIKE_SKILL_ID,
   SKILL_DEFINITIONS,
+  getSkillDefinition,
 } from './skills/Skills'
 import { CHARACTER_CLASS_DEFINITIONS } from '../game-config/classes'
 import { definedAt } from '../testing'
@@ -635,5 +636,40 @@ describe('content validation', () => {
         'items[2].modifiers[0].id is not available for slot weapon (sword).',
       ]),
     )
+  })
+})
+
+describe('skill status data', () => {
+  it('lists Freeze as consumed by every physical skill, since any physical hit Shatters', () => {
+    for (const skill of Object.values(SKILL_DEFINITIONS)) {
+      const definition = getSkillDefinition(skill.id)
+      if (definition.tags.includes('physical')) {
+        expect(definition.consumes, definition.id).toContain('freeze')
+      }
+    }
+  })
+
+  it('has an applier for every consumed status', () => {
+    const applied = new Set(
+      Object.values(SKILL_DEFINITIONS).flatMap((skill) => getSkillDefinition(skill.id).applies ?? []),
+    )
+    for (const skill of Object.values(SKILL_DEFINITIONS)) {
+      for (const keyword of getSkillDefinition(skill.id).consumes ?? []) {
+        expect(applied.has(keyword), `${skill.id} consumes ${keyword}`).toBe(true)
+      }
+    }
+  })
+
+  it('rejects a status that is not a glossary keyword, and a physical skill without Shatter', () => {
+    const skills = CURRENT_CONTENT.skills.map((skill) =>
+      skill.id === 'whirlwind'
+        ? { ...skill, applies: ['not-a-keyword' as never], consumes: [] }
+        : skill,
+    )
+    const errors = validateContent(catalogWith({ skills }))
+    expect(errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('applies must list glossary keywords'),
+      expect.stringContaining('consumes must include freeze for a physical skill'),
+    ]))
   })
 })

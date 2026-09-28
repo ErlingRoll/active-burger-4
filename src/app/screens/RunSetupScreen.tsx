@@ -78,6 +78,8 @@ import {
   CHARACTER_CLASS_DEFINITIONS,
   type CharacterClassId,
 } from '../../content/classes/CharacterClasses'
+import type { BuildPlan } from '../../game/builds/BuildPlans'
+import { BuildPlannerPanel } from '../../rendering/hud/BuildPlanner'
 import { useSeededLoad } from '../../ui/useSeededLoad'
 import type { RunSetupScreenData } from './loadRunSetupScreen'
 
@@ -87,6 +89,8 @@ function workingAt(campState: CampState | null, championId: string): string | nu
   const job = assignment ? getCampJobDefinition(assignment.jobId) : undefined
   return job ? CAMP_BUILDING_DEFINITIONS[job.buildingId].name : null
 }
+
+const noop = (): void => undefined
 
 export interface RunSetupScreenProps {
   settings: SettingsDto
@@ -106,6 +110,10 @@ export interface RunSetupScreenProps {
   onSelectCharacterClass: (characterClassId: CharacterClassId) => void
   onToggleWorldModifier: (modifierId: WorldModifierId) => void
   onSelectTargetPriority: (priorityId: TargetPriorityId) => void
+  /** Build plans: chosen here, followed on the level-up screen. */
+  onSelectBuildPlan?: (planId: string | null) => void
+  onSaveBuildPlan?: (plan: BuildPlan) => void
+  onDeleteBuildPlan?: (planId: string) => void
   onBack: () => void
   /**
    * The first fetches, already done by the navigator while the previous
@@ -134,6 +142,9 @@ export function RunSetupScreen({
   onSelectCharacterClass,
   onToggleWorldModifier,
   onSelectTargetPriority,
+  onSelectBuildPlan = noop,
+  onSaveBuildPlan = noop,
+  onDeleteBuildPlan = noop,
   onBack,
   initialData,
   initialLoadError = null,
@@ -603,6 +614,29 @@ export function RunSetupScreen({
             })}
           </div>
         </fieldset>
+        ) : null}
+        {/*
+          * The build plan, chosen with the class. The level-up screen marks
+          * every card that belongs to it, and the Build tab in the run can
+          * switch to another plan or change this one.
+          */}
+        {selectedMode === 'dungeon' ? (
+          <fieldset className="dashboard-choice-group run-dashboard-choice-group run-build-plan-group">
+            <legend>Build plan</legend>
+            <p>
+              Plan the skills, upgrades and synergies you are aiming for. Cards that
+              match the plan are marked on every level-up, and you can switch plans
+              during the run.
+            </p>
+            <BuildPlannerPanel
+              plans={settings.buildPlans}
+              selectedPlanId={settings.selectedBuildPlanId}
+              onSelectPlan={onSelectBuildPlan}
+              onSavePlan={onSaveBuildPlan}
+              onDeletePlan={onDeleteBuildPlan}
+              variant="setup"
+            />
+          </fieldset>
         ) : null}
         {selectedMode === 'dungeon' ? (
           <fieldset className="dashboard-choice-group run-dashboard-choice-group">

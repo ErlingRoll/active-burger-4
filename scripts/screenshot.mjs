@@ -28,6 +28,9 @@
  *                    the first element with exactly this text, or failing that the first
  *                    element whose accessible name starts with it, before the shot. Repeat
  *                    the option to click through a sequence, in order.
+ *   --click-last <name>  Like --click, but the last matching button rather than the
+ *                    first: a confirmation dialog's button usually shares its name
+ *                    with the button that opened it.
  *   --focus <name>   Focus the first button with this accessible name, or failing that
  *                    the first element whose accessible name starts with it (a bag slot
  *                    is a focusable list item, not a button), before the shot. This is
@@ -79,7 +82,8 @@ function readOptions(argv) {
     else if (flag === '--anon') { options.anon = true }
     else if (flag === '--full') { options.full = true }
     else if (flag === '--scroll-end') { options.scrollEnd = true }
-    else if (flag === '--click') { options.clicks.push(value); index += 1 }
+    else if (flag === '--click') { options.clicks.push({ name: value, last: false }); index += 1 }
+    else if (flag === '--click-last') { options.clicks.push({ name: value, last: true }); index += 1 }
     else if (flag === '--focus') { options.focus = value; index += 1 }
     else { throw new Error(`Unknown option: ${flag}`) }
   }
@@ -260,9 +264,10 @@ async function capture(browser, options, viewport, outputDirectory) {
   } else if (options.path !== '/') {
     await page.goto(`${BASE_URL}${options.path}`)
   }
-  for (const name of options.clicks) {
+  for (const { name, last } of options.clicks) {
+    const buttons = page.getByRole('button', { name })
     const target = await firstPresent(
-      page.getByRole('button', { name }).first(),
+      last ? buttons.last() : buttons.first(),
       await firstPresent(
         page.getByText(name, { exact: true }).first(),
         page.locator(`[aria-label^="${name.replace(/"/g, '\\"')}"]`).first(),

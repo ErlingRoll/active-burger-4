@@ -22,6 +22,7 @@ import {
   DEFAULT_GAME_KEYBINDS,
   normalizeGameKeybinds,
 } from '../input/Keybinds'
+import { normalizeBuildPlans } from '../game/builds/BuildPlans'
 
 export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   schemaVersion: PERSISTENCE_SCHEMA_VERSION,
@@ -31,6 +32,8 @@ export const DEFAULT_SETTINGS: Readonly<SettingsDto> = Object.freeze({
   selectedWorldModifierIds: [],
   selectedCharacterClassId: DEFAULT_CHARACTER_CLASS_ID,
   keybinds: { ...DEFAULT_GAME_KEYBINDS },
+  buildPlans: [],
+  selectedBuildPlanId: null,
 })
 
 export const DEFAULT_BASIC_PROFILE: Readonly<BasicProfileDto> = Object.freeze({
@@ -67,6 +70,8 @@ export function migrateSettings(value: unknown): SettingsDto {
       ? migrateLegacyDungeonContractId(selectedDungeonMaxFloorCandidate)
       : DEFAULT_SETTINGS.selectedDungeonMaxFloorContractId
 
+  const buildPlans = normalizeBuildPlans(candidate.buildPlans)
+
   return {
     schemaVersion: PERSISTENCE_SCHEMA_VERSION,
     selectedBehaviorProfileId,
@@ -91,6 +96,15 @@ export function migrateSettings(value: unknown): SettingsDto {
       ? (candidate.selectedCharacterClassId ?? candidate.selectedPlaystyleId) as SettingsDto['selectedCharacterClassId']
       : DEFAULT_CHARACTER_CLASS_ID,
     keybinds: normalizeGameKeybinds(candidate.keybinds),
+    buildPlans,
+    /*
+     * A selected plan that no longer exists is no selection: the level-up
+     * screen would otherwise mark nothing while claiming to follow a plan.
+     */
+    selectedBuildPlanId: typeof candidate.selectedBuildPlanId === 'string' &&
+      buildPlans.some((plan) => plan.id === candidate.selectedBuildPlanId)
+      ? candidate.selectedBuildPlanId
+      : null,
   }
 }
 

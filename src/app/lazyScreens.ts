@@ -120,6 +120,10 @@ export const CollectionsScreenModule = defineScreenModule<
   PropsOf<typeof import('../collections/CollectionsScreen')['CollectionsScreen']>
 >(() => import('../collections/CollectionsScreen'), 'CollectionsScreen')
 
+export const BuildPlansScreenModule = defineScreenModule<
+  PropsOf<typeof import('../builds/BuildPlansScreen')['BuildPlansScreen']>
+>(() => import('../builds/BuildPlansScreen'), 'BuildPlansScreen')
+
 export const ChampionManagementScreenModule = defineScreenModule<
   PropsOf<typeof import('../characters/ChampionManagementScreen')['ChampionManagementScreen']>
 >(() => import('../characters/ChampionManagementScreen'), 'ChampionManagementScreen')
@@ -158,6 +162,7 @@ export const LazyMetaProgressionScreen = MetaProgressionScreenModule.Screen
 export const LazyFishingScreen = FishingScreenModule.Screen
 export const LazyCampScreen = CampScreenModule.Screen
 export const LazyCollectionsScreen = CollectionsScreenModule.Screen
+export const LazyBuildPlansScreen = BuildPlansScreenModule.Screen
 export const LazyChampionManagementScreen = ChampionManagementScreenModule.Screen
 export const LazyInventoryScreen = InventoryScreenModule.Screen
 export const LazyShopScreen = ShopScreenModule.Screen

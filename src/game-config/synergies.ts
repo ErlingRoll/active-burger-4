@@ -47,7 +47,24 @@ import {
 } from './skills'
 
 export const SYNERGY_OFFER_CHANCE = 0.1
+/**
+ * Pity: each level-up offer that had an eligible synergy and showed none
+ * raises the next offer's chance by this much, up to the cap. A player who
+ * can now see the synergy they are building toward would otherwise watch a
+ * flat one-in-ten roll fail for ten levels running.
+ */
+export const SYNERGY_PITY_CHANCE_PER_OFFER = 0.05
+export const SYNERGY_OFFER_CHANCE_CAP = 0.4
 export const SYNERGY_DEFAULT_RARITY = Rarity.Epic
+
+/** The per-slot synergy chance after `drought` offers without one. */
+export function getSynergyOfferChance(drought: number): number {
+  const missed = Number.isFinite(drought) ? Math.max(0, Math.floor(drought)) : 0
+  return Math.min(
+    SYNERGY_OFFER_CHANCE_CAP,
+    SYNERGY_OFFER_CHANCE + missed * SYNERGY_PITY_CHANCE_PER_OFFER,
+  )
+}
 
 export function isSynergyActive(
   selectedUpgradeIds: readonly UpgradeId[],
@@ -71,6 +88,48 @@ export function isSkillSynergyActive(
   selectedUpgradeIds: readonly UpgradeId[],
 ): boolean {
   return hasActiveSynergyForSkill(skillId, selectedUpgradeIds)
+}
+
+/**
+ * The synergy a skill is currently locked into, if any. A skill holds one
+ * synergy at a time, so this is the thing that decides whether another card
+ * for it can ever be offered.
+ */
+export function getActiveSynergyForSkill(
+  skillId: SkillId,
+  selectedUpgradeIds: readonly UpgradeId[],
+): SynergyUpgradeDefinition | undefined {
+  return SYNERGY_UPGRADES.find((synergy) =>
+    selectedUpgradeIds.includes(synergy.id) &&
+    synergy.synergySkillIds.includes(skillId)
+  )
+}
+
+/**
+ * Every skill that has a synergy card with this one, owned or not. What a
+ * player planning a build wants to know is what a skill *could* pair with;
+ * `getSynergyPartnerSkillIds` answers the narrower question of what it can
+ * pair with right now.
+ */
+export function getAllSynergyPartnerSkillIds(skillId: SkillId): SkillId[] {
+  return [...new Set(
+    SYNERGY_UPGRADES
+      .filter((synergy) => synergy.synergySkillIds.includes(skillId))
+      .flatMap((synergy) =>
+        synergy.synergySkillIds.filter((partnerSkillId) => partnerSkillId !== skillId)
+      ),
+  )]
+}
+
+/** The synergy cards that pair these two skills, in definition order. */
+export function getSynergiesBetween(
+  skillId: SkillId,
+  partnerSkillId: SkillId,
+): SynergyUpgradeDefinition[] {
+  return SYNERGY_UPGRADES.filter((synergy) =>
+    synergy.synergySkillIds.includes(skillId) &&
+    synergy.synergySkillIds.includes(partnerSkillId)
+  )
 }
 
 export function getSynergyPartnerSkillIds(

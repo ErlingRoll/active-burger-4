@@ -60,6 +60,8 @@ describe('local persistence schema', () => {
         choiceFourth: '4',
         skipChoice: '5',
       },
+      buildPlans: [],
+      selectedBuildPlanId: null,
     })
     expect(DEFAULT_BASIC_PROFILE).toEqual({
       schemaVersion: 4,
@@ -188,5 +190,39 @@ describe('local persistence schema', () => {
 
     await repository.setBugReportHidden('user-a', 12, false)
     expect(await repository.getHiddenBugReportIds('user-a')).toEqual(new Set([13]))
+  })
+})
+
+describe('build plans in local settings', () => {
+  it('round-trips saved plans and the selected plan', async () => {
+    const repository = createPersistenceRepository(memoryStore())
+    const plan = {
+      id: 'build-1',
+      name: 'Frost',
+      skillIds: ['whirlwind' as const, 'glacial-orb' as const],
+      upgradeIds: ['whirlwind-frost' as const, 'synergy-basic-attack-whirlwind' as const],
+    }
+
+    await repository.saveSettings({ buildPlans: [plan], selectedBuildPlanId: plan.id })
+
+    const settings = await repository.getSettings()
+    expect(settings.buildPlans).toEqual([plan])
+    expect(settings.selectedBuildPlanId).toBe('build-1')
+  })
+
+  it('migrates a settings record written before plans existed', () => {
+    const migrated = migrateSettings({ schemaVersion: 4, selectedCharacterClassId: 'ranger' })
+    expect(migrated.buildPlans).toEqual([])
+    expect(migrated.selectedBuildPlanId).toBeNull()
+  })
+
+  it('forgets a selected plan that no longer exists', () => {
+    expect(migrateSettings({
+      buildPlans: [{ id: 'kept', name: 'Kept' }],
+      selectedBuildPlanId: 'gone',
+    })).toMatchObject({
+      buildPlans: [{ id: 'kept', name: 'Kept', skillIds: [], upgradeIds: [] }],
+      selectedBuildPlanId: null,
+    })
   })
 })

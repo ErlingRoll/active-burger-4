@@ -37,6 +37,7 @@ export interface AppHeaderProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
@@ -63,6 +64,7 @@ export function AppHeader({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenBuildPlans,
   onOpenDivineGamba,
   onOpenRunHistory,
   inventoryService,
@@ -142,8 +144,8 @@ export function AppHeader({
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)} {...navigationControlProps(navigation, 'camp')}>Camp</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)} {...navigationControlProps(navigation, 'champions')}>Champions</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
-              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenBuildPlans)} {...navigationControlProps(navigation, 'build-plans')}>Builds</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenDivineGamba)} {...navigationControlProps(navigation, 'divine-gamba')}>{DIVINE_GAMBA_NAME}</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
             </>

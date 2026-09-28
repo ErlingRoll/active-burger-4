@@ -11,6 +11,7 @@ import {
 } from '../../content/modifiers/WorldModifiers'
 import type { CharacterClassId } from '../../content/classes/CharacterClasses'
 import type { GameKeybinds } from '../../input/Keybinds'
+import type { BuildPlan } from '../../game/builds/BuildPlans'
 import type { PersistenceState } from '../appState'
 import {
   DUNGEON_MAX_FLOOR_CONTRACTS,
@@ -161,6 +162,56 @@ export function useLocalPersistence(repository: PersistenceRepository) {
     [persistSettings, settings],
   )
 
+  /*
+   * Build plans are written whole. A plan is edited in a panel that holds its
+   * own draft, so what arrives here is the finished plan, and the list is
+   * small enough that replacing it is simpler than patching one entry.
+   */
+  const selectBuildPlan = useCallback(
+    (planId: string | null): void => {
+      void persistSettings({ selectedBuildPlanId: planId }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings],
+  )
+
+  const saveBuildPlan = useCallback(
+    (plan: BuildPlan): void => {
+      if (!settings) {
+        return
+      }
+      const exists = settings.buildPlans.some((candidate) => candidate.id === plan.id)
+      void persistSettings({
+        buildPlans: exists
+          ? settings.buildPlans.map((candidate) => (candidate.id === plan.id ? plan : candidate))
+          : [...settings.buildPlans, plan],
+        // A plan just made is the plan the player means to follow.
+        selectedBuildPlanId: exists ? settings.selectedBuildPlanId : plan.id,
+      }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings, settings],
+  )
+
+  const deleteBuildPlan = useCallback(
+    (planId: string): void => {
+      if (!settings) {
+        return
+      }
+      void persistSettings({
+        buildPlans: settings.buildPlans.filter((candidate) => candidate.id !== planId),
+        selectedBuildPlanId: settings.selectedBuildPlanId === planId
+          ? null
+          : settings.selectedBuildPlanId,
+      }).catch(() => {
+        // persistSettings already exposes this error in the UI.
+      })
+    },
+    [persistSettings, settings],
+  )
+
   return {
     persistence,
     settings,
@@ -173,5 +224,8 @@ export function useLocalPersistence(repository: PersistenceRepository) {
     updateKeybinds,
     selectCharacterClass,
     toggleWorldModifier,
+    selectBuildPlan,
+    saveBuildPlan,
+    deleteBuildPlan,
   }
 }

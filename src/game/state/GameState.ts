@@ -243,6 +243,11 @@ export interface RunState {
   abyssCompletedFloors?: number
   /** Skill IDs that cannot be offered again during this run. */
   banishedSkillIds?: SkillId[]
+  /**
+   * Level-up offers in a row that had an eligible synergy and showed none.
+   * Raises the next offer's synergy chance; reset when one is offered.
+   */
+  synergyOfferDrought?: number
   /** Cumulative post-mitigation damage dealt by each skill during this run. */
   skillDamageDealt?: Partial<Record<SkillId, number>>
   /** Cumulative effective healing provided by each skill during this run. */

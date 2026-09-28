@@ -41,6 +41,7 @@ export interface GameDashboardProps {
   onOpenInventory: () => void
   onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
@@ -74,6 +75,7 @@ export function GameDashboard({
   onOpenInventory,
   onOpenShop,
   onOpenCollections,
+  onOpenBuildPlans,
   onOpenDivineGamba,
   onOpenRunHistory,
   onOpenAbyss,
@@ -135,6 +137,7 @@ export function GameDashboard({
         onOpenInventory={onOpenInventory}
         onOpenShop={onOpenShop}
         onOpenCollections={onOpenCollections}
+        onOpenBuildPlans={onOpenBuildPlans}
         onOpenDivineGamba={onOpenDivineGamba}
         onOpenRunHistory={onOpenRunHistory}
         onOpenAbyss={onOpenAbyss}

@@ -7,6 +7,7 @@ import { DEFAULT_GAME_KEYBINDS } from '../input/Keybinds'
 import { BASIC_ATTACK_SKILL_ID } from '../content/skills/Skills'
 import type { HudInspectorTab } from './hud/HudInspectorTabs'
 import type { GameUiSnapshot } from '../game/ui/Snapshots'
+import type { BuildPlannerPanelProps } from './hud/BuildPlanner'
 
 /**
  * The gameplay HUD had no test coverage of any kind. These use a snapshot taken
@@ -22,6 +23,7 @@ function snapshotFromGame(configure?: (game: ReturnType<typeof createGame>) => v
 function renderHud(
   snapshot: GameUiSnapshot,
   inspectorTab: HudInspectorTab | null = null,
+  buildPlanner: Partial<BuildPlannerPanelProps> = {},
 ) {
   const handlers = {
     onInspectorTabChange: vi.fn(),
@@ -39,6 +41,14 @@ function renderHud(
         snapshot={snapshot}
         keybinds={DEFAULT_GAME_KEYBINDS}
         inspectorTab={inspectorTab}
+        buildPlanner={{
+          plans: [],
+          selectedPlanId: null,
+          onSelectPlan: vi.fn(),
+          onSavePlan: vi.fn(),
+          onDeletePlan: vi.fn(),
+          ...buildPlanner,
+        }}
         {...handlers}
       />,
     ),
@@ -330,5 +340,72 @@ describe('the vitals panel', () => {
     renderHud(snapshotFromGame())
 
     expect(screen.queryByRole('region', { name: /loot box odds/i })).toBeNull()
+  })
+})
+
+describe('the build planner', () => {
+  it('opens as the Build tab of the inspector', () => {
+    renderHud(snapshotFromGame(), 'build')
+
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    expect(inspector.getByRole('heading', { name: /build plans/i })).toBeInTheDocument()
+    expect(inspector.getByRole('button', { name: /new build/i })).toBeInTheDocument()
+  })
+
+  it('keeps its toolbar door labelled like the others', () => {
+    renderHud(snapshotFromGame())
+
+    expect(screen.getByRole('button', { name: /build details/i })).toHaveAttribute('data-tab', 'build')
+  })
+
+  it('measures the followed plan against the run and names the missing skill', async () => {
+    const snapshot = snapshotFromGame()
+    const plan = {
+      id: 'storm',
+      name: 'Storm',
+      skillIds: ['whirlwind' as const, 'chain-lightning' as const],
+      upgradeIds: ['synergy-basic-attack-whirlwind' as const, 'synergy-basic-attack-chain-lightning' as const],
+    }
+    const onSelectPlan = vi.fn()
+    const { user } = renderHud(snapshot, 'build', { plans: [plan], selectedPlanId: 'storm', onSelectPlan })
+
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    expect(inspector.getByText(/needs chain lightning/i)).toBeInTheDocument()
+    expect(inspector.getByText(/not yet unlocked/i)).toBeInTheDocument()
+    expect(inspector.getByRole('button', { name: /no plan/i })).toHaveAttribute('aria-pressed', 'false')
+    await user.click(inspector.getByRole('button', { name: /edit storm/i }))
+    expect(inspector.getByRole('heading', { name: /edit storm/i })).toBeInTheDocument()
+    expect(onSelectPlan).not.toHaveBeenCalled()
+  })
+
+  it('lets a plan be made in the run and hands the finished plan back', async () => {
+    const onSavePlan = vi.fn()
+    const { user } = renderHud(snapshotFromGame(), 'build', { onSavePlan })
+
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    await user.click(inspector.getByRole('button', { name: /new build/i }))
+    await user.click(inspector.getByRole('button', { name: /^glacial orb$/i }))
+    await user.click(inspector.getByRole('button', { name: /^save$/i }))
+
+    expect(onSavePlan).toHaveBeenCalledTimes(1)
+    expect(onSavePlan.mock.calls[0]?.[0]).toMatchObject({ skillIds: ['glacial-orb'] })
+  })
+})
+
+describe('the skill tooltip', () => {
+  it('shows the synergy slot and the synergies the skill could take', async () => {
+    const { user } = renderHud(snapshotFromGame())
+
+    await user.hover(screen.getByRole('button', { name: /^whirlwind, level/i }))
+
+    const tooltip = within(screen.getByRole('tooltip'))
+    expect(tooltip.getByText(/synergy slot/i)).toBeInTheDocument()
+    expect(tooltip.getByText(/^open$/i)).toBeInTheDocument()
+    expect(tooltip.getByText(/can be offered now/i)).toBeInTheDocument()
+    expect(tooltip.getByText('Close Quarters')).toBeInTheDocument()
+    expect(tooltip.getByText(/needs a skill/i)).toBeInTheDocument()
+    // Whirlwind is physical, so it Shatters; Glacial Orb is what sets that up.
+    expect(tooltip.getByText(/pairs with/i)).toBeInTheDocument()
+    expect(tooltip.getAllByText(/glacial orb/i).length).toBeGreaterThan(0)
   })
 })
