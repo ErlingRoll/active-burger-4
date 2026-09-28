@@ -34,7 +34,6 @@ export type ContractObjective =
   | 'gather-materials'
   | 'gut-fish'
   | 'reach-dungeon-floor'
-  | 'sell-items'
   | 'upgrade-buildings'
   | 'cure-fish'
   | 'reforge-artifacts'
@@ -388,30 +387,6 @@ export const CONTRACT_DEFINITIONS = {
     requiresBuildingId: null,
     sortOrder: 24,
   },
-  'daily-sell': {
-    id: 'daily-sell',
-    name: 'To market',
-    cadence: 'daily',
-    objective: 'sell-items',
-    target: 5,
-    parameter: {},
-    reward: [{ definitionId: 'timber', quantity: 6 }],
-    requiresChampion: false,
-    requiresBuildingId: null,
-    sortOrder: 25,
-  },
-  'daily-sell-2': {
-    id: 'daily-sell-2',
-    name: 'A cart to market',
-    cadence: 'daily',
-    objective: 'sell-items',
-    target: 20,
-    parameter: {},
-    reward: [{ definitionId: 'stone', quantity: 20 }],
-    requiresChampion: false,
-    requiresBuildingId: null,
-    sortOrder: 26,
-  },
   'daily-gather': {
     id: 'daily-gather',
     name: 'Timber and stone',
@@ -747,8 +722,6 @@ export function describeContractObjective(definition: ContractDefinition): strin
       return `Gut ${plural(target, 'fish', 'fish')} at the Smokehouse`
     case 'reach-dungeon-floor':
       return `Reach floor ${target} of the dungeon in one run`
-    case 'sell-items':
-      return `Sell ${plural(target, 'item')} to the quartermaster`
     case 'upgrade-buildings':
       return target === 1 ? 'Raise a building at the Camp' : `Raise ${plural(target, 'building')} at the Camp`
     case 'cure-fish':
@@ -784,8 +757,6 @@ export function describeContractPlace(objective: ContractObjective): string {
     case 'salvage-items':
     case 'craft-items':
       return 'The bag'
-    case 'sell-items':
-      return 'The quartermaster'
     case 'gather-materials':
     case 'gut-fish':
     case 'cure-fish':

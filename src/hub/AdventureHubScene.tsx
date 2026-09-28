@@ -21,6 +21,7 @@ import {
   type HubVisitor,
 } from './HubPresenceService'
 import { tooltipClassName } from '../rendering/TooltipShell'
+import { HintHover } from '../rendering/HintTooltip'
 import { EssenceMark } from '../ui/EssenceMark'
 import { navigationControlProps, type NavigationHints } from '../app/navigationHints'
 
@@ -110,8 +111,8 @@ interface AdventureHubSceneProps {
   onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
-  onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   onOpenAbyss: () => void
@@ -191,8 +192,8 @@ export function AdventureHubScene({
   onOpenCamp,
   onOpenChampions,
   onOpenInventory,
-  onOpenShop,
   onOpenCollections,
+  onOpenBuildPlans,
   onOpenDivineGamba,
   onOpenRunHistory,
   onOpenAbyss,
@@ -851,30 +852,42 @@ export function AdventureHubScene({
               </div>
 
               <nav className="hub-paths" aria-label="Elsewhere in the refuge">
-                <button className="hub-path hub-path-champions" type="button" onClick={onOpenChampions} title="Saved builds" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'champions')}>
-                  <span aria-hidden="true">◆</span>
-                  <span>Champions</span>
-                </button>
-                <button className="hub-path hub-path-inventory" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'inventory')}>
-                  <span aria-hidden="true">▣</span>
-                  <span>Inventory</span>
-                </button>
-                <button className="hub-path hub-path-shop" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'shop')}>
-                  <span aria-hidden="true">⇄</span>
-                  <span>Quartermaster</span>
-                </button>
-                <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'run-history')}>
-                  <span aria-hidden="true">✦</span>
-                  <span>Chronicle</span>
-                </button>
-                <button className="hub-path hub-path-collections" type="button" onClick={onOpenCollections} title="What has been caught, found, and cleared with" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'collections')}>
-                  <span aria-hidden="true">❖</span>
-                  <span>Collections</span>
-                </button>
-                <button className="hub-path hub-path-divine-gamba" type="button" onClick={onOpenDivineGamba} title={DIVINE_GAMBA_STATION_HINT} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'divine-gamba')}>
-                  <span aria-hidden="true">◈</span>
-                  <span>{DIVINE_GAMBA_STATION_LABEL}</span>
-                </button>
+                <HintHover hint="Saved builds" mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenChampions} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'champions')}>
+                    <span aria-hidden="true">◆</span>
+                    <span>Champions</span>
+                  </button>
+                </HintHover>
+                <HintHover hint="Fish, gear, and loot" mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenInventory} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'inventory')}>
+                    <span aria-hidden="true">▣</span>
+                    <span>Inventory</span>
+                  </button>
+                </HintHover>
+                <HintHover hint="Runs already ended" mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenRunHistory} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'run-history')}>
+                    <span aria-hidden="true">✦</span>
+                    <span>Chronicle</span>
+                  </button>
+                </HintHover>
+                <HintHover hint="What has been caught, found, and cleared with" mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenCollections} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'collections')}>
+                    <span aria-hidden="true">❖</span>
+                    <span>Collections</span>
+                  </button>
+                </HintHover>
+                <HintHover hint={DIVINE_GAMBA_STATION_HINT} mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenDivineGamba} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'divine-gamba')}>
+                    <span aria-hidden="true">◈</span>
+                    <span>{DIVINE_GAMBA_STATION_LABEL}</span>
+                  </button>
+                </HintHover>
+                <HintHover hint="Plan the skills and synergies for a run" mode="hover" className="hub-path-hover">
+                  <button className="hub-path hub-path-" type="button" onClick={onOpenBuildPlans} disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'build-plans')}>
+                    <span aria-hidden="true">❏</span>
+                    <span>Build plans</span>
+                  </button>
+                </HintHover>
               </nav>
             </div>
           </div>
@@ -933,11 +946,6 @@ export function AdventureHubScene({
                 type="button"
                 onClick={onOpenMetaProgression}
                 disabled={storeBlocked}
-                title={storeBlocked
-                  ? activeRun
-                    ? 'Finish or forfeit your current dungeon run before opening the Essence store.'
-                    : 'Checking the current dungeon run before opening the Essence store.'
-                  : undefined}
                 aria-describedby={activeRun ? 'store-blocked-help' : undefined}
                 {...navigationControlProps(navigation, 'meta-progression')}
               >

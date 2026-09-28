@@ -2580,15 +2580,24 @@
  *
  * Six equal bars said nothing about which room a player needs every time and
  * which they wander into now and then, and the dock was a screenful because of
- * it. Champions, the inventory, the quartermaster and the chronicle are the
- * second kind, so they are drawn at a second size: a glyph and a name, two by
- * two, with no strapline to read and no watermark to fill.
+ * it. Champions, the inventory and the chronicle are the second kind, so they
+ * are drawn at a second size: a glyph and a name, two by two, with no strapline to read and no watermark to fill.
  */
 .hub-paths {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   width: min(100%, 16rem);
+}
+
+/* The hover card's trigger takes the grid cell; the path fills it as before. */
+.hub-path-hover {
+  display: flex;
+  min-width: 0;
+}
+
+.hub-path-hover > .hub-path {
+  flex: 1 1 auto;
 }
 
 .hub-path {
@@ -2638,14 +2647,6 @@
   --accent-bright-rgb: 251 191 36;
 }
 
-.hub-path-shop {
-  /* The Quartermaster: brass rather than ember. */
-  --accent: var(--color-yellow-300);
-  --accent-contrast: var(--color-amber-50);
-  --accent-rgb: 217 119 6;
-  --accent-bright-rgb: 250 204 21;
-}
-
 .hub-path-chronicle {
   /* The record stones: moonlit slate, as the chronicle screen declares. */
   --accent: var(--color-slate-300);
@@ -2668,6 +2669,14 @@
   --accent-contrast: var(--color-violet-50);
   --accent-rgb: 139 92 246;
   --accent-bright-rgb: 196 181 253;
+}
+
+.hub-path-build-plans {
+  /* The drawing board: the rose of a planned card's bookmark. */
+  --accent: var(--color-rose-300);
+  --accent-contrast: var(--color-rose-50);
+  --accent-rgb: 251 113 133;
+  --accent-bright-rgb: 253 164 175;
 }
 
 .hub-path > span:first-child {

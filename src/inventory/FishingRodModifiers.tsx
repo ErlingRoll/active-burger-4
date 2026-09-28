@@ -4,6 +4,7 @@ import {
 } from '../fishing/FishingContent'
 import { getInventoryItemDefinition } from './ItemDefinitions'
 import type { InventoryItemDefinitionId } from './InventoryTypes'
+import { HintHover } from '../rendering/HintTooltip'
 
 /**
  * A rod's card: every rolled modifier on its own line with its tier, the way
@@ -53,9 +54,9 @@ export function FishingRodModifierList({
             >
               <span className="artifact-effect-text">{formatRodModifierLine(modifier)}</span>
               {modifier.tier === null ? null : (
-                <span className="artifact-effect-tier" title={`Tier ${modifier.tier} of 5, tier 1 is best`}>
+                <HintHover className="artifact-effect-tier" hint={`Tier ${modifier.tier} of 5, tier 1 is best`}>
                   T{modifier.tier}
-                </span>
+                </HintHover>
               )}
               <small className="rod-modifier-note">{modifier.description}</small>
             </li>

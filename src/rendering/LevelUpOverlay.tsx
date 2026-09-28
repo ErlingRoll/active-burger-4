@@ -23,7 +23,8 @@ import { GEAR_XP_BLESSING_MULTIPLIER } from '../game-config/gear'
 import {
   getUpgradeDefinition,
   getUpgradeChoiceDescription,
-  getSynergyPartnerSkillIds,
+  getAllSynergyPartnerSkillIds,
+  getSynergiesBetween,
   getSkillChoiceType,
   getSkillUpgradeType,
   REMOVE_SKILL_UPGRADE_ID,
@@ -60,11 +61,25 @@ import {
   type GameKeybinds,
 } from '../input/Keybinds'
 import { KeywordText } from './KeywordTooltip'
+import { SynergyTerm } from './SynergyTooltip'
 import { useFitScale } from '../ui/useFitScale'
 import {
   getCharacterClassDefinition,
   type CharacterClassId,
 } from '../content/classes/CharacterClasses'
+import {
+  getSkillStatusPartners,
+  type SkillStatusPartner,
+} from '../content/skills/SkillInteractions'
+import { KEYWORD_DEFINITIONS, type KeywordId } from '../content/glossary/Keywords'
+import {
+  isChoicePlanned,
+  isSkillPlanned,
+  type BuildPlan,
+} from '../game/builds/BuildPlans'
+
+/** Partners beyond this many are folded behind "+N more" on a phone. */
+const VISIBLE_PARTNER_COUNT = 3
 
 interface LevelUpOverlayProps {
   flow: Readonly<LevelUpChoiceFlow | GearPickupChoiceFlow>
@@ -73,6 +88,8 @@ interface LevelUpOverlayProps {
   keybinds: GameKeybinds
   characterClassId: CharacterClassId
   ownedSkillIds: readonly SkillId[]
+  /** The build plan being followed; its targets get a mark on their cards. */
+  activeBuildPlan?: BuildPlan | null
   rerollsRemaining: number
   banishesRemaining: number
   onSelect: (choice: LevelUpUpgradeChoice | GearChoice) => void
@@ -540,6 +557,124 @@ function GearCard({
   )
 }
 
+interface PartnerEntry {
+  skillId: SkillId
+  name: string
+  owned: boolean
+  planned: boolean
+  /** For a status partner, the statuses that link the two. */
+  keywords?: readonly KeywordId[]
+}
+
+function sortPartners(entries: PartnerEntry[]): PartnerEntry[] {
+  // Owned first, then planned, so what the player already holds is never the
+  // part that a phone folds away.
+  return [...entries].sort((left, right) =>
+    Number(right.owned) - Number(left.owned) ||
+    Number(right.planned) - Number(left.planned),
+  )
+}
+
+/**
+ * A line of partner skills. Everything is in the markup; the stylesheet folds
+ * entries past the first few behind the "+N more" on a phone and shows them
+ * all where there is room, so the card measures the same on both.
+ */
+function PartnerLine({
+  label,
+  className,
+  entries,
+  markOwned = true,
+  synergiesWith,
+}: {
+  label: string
+  className: string
+  entries: readonly PartnerEntry[]
+  /** Off when every entry is owned by construction, so no tick is needed. */
+  markOwned?: boolean
+  /** When set, each name opens a popover describing the synergy cards with it. */
+  synergiesWith?: SkillId
+}) {
+  if (entries.length === 0) {
+    return null
+  }
+  const hidden = Math.max(0, entries.length - VISIBLE_PARTNER_COUNT)
+  return (
+    <span className={`upgrade-synergy-partners ${className}`} aria-label={label}>
+      <span className="upgrade-skill-tags-label">{label}</span>{' '}
+      {entries.map((entry, entryIndex) => (
+        <span
+          className={`upgrade-synergy-partner${entry.owned ? ' owned' : ''}${
+            entry.planned ? ' planned' : ''
+          }${entryIndex >= VISIBLE_PARTNER_COUNT ? ' upgrade-synergy-partner-overflow' : ''}`}
+          key={entry.skillId}
+        >
+          {entryIndex > 0 ? <span className="upgrade-synergy-partner-separator">, </span> : null}
+          {synergiesWith ? (
+            <SynergyTerm
+              name={entry.name}
+              synergies={getSynergiesBetween(synergiesWith, entry.skillId)}
+            />
+          ) : entry.name}
+          {entry.keywords && entry.keywords.length > 0 ? (
+            <span className="upgrade-synergy-partner-keywords">
+              {' '}({entry.keywords.map((keyword) => KEYWORD_DEFINITIONS[keyword].label).join(', ')})
+            </span>
+          ) : null}
+          {markOwned && entry.owned ? (
+            <span className="upgrade-synergy-partner-owned" aria-label=" (owned)">✓</span>
+          ) : null}
+        </span>
+      ))}
+      {hidden > 0 ? (
+        <span className="upgrade-synergy-partners-more" aria-hidden="true">
+          {' '}+{hidden} more
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
+function StatusChips({
+  label,
+  keywords,
+  className,
+}: {
+  label: string
+  keywords: readonly KeywordId[]
+  className: string
+}) {
+  if (keywords.length === 0) {
+    return null
+  }
+  return (
+    <span className={`upgrade-skill-tags ${className}`} aria-label={label}>
+      <span className="upgrade-skill-tags-label">{label}</span>
+      <span className="skill-tag-list upgrade-skill-tag-list" role="list">
+        {keywords.map((keyword) => (
+          <span className="skill-tag skill-tag-status" role="listitem" key={keyword}>
+            <KeywordText text={KEYWORD_DEFINITIONS[keyword].label} />
+          </span>
+        ))}
+      </span>
+    </span>
+  )
+}
+
+function statusPartnerEntries(
+  partners: readonly SkillStatusPartner[],
+  ownedSkillIds: readonly SkillId[],
+  plan: BuildPlan | null | undefined,
+): PartnerEntry[] {
+  return sortPartners(partners.map((partner) => ({
+    skillId: partner.skillId,
+    name: getSkillDefinition(partner.skillId).name,
+    owned: ownedSkillIds.includes(partner.skillId),
+    planned: isSkillPlanned(plan, partner.skillId),
+    keywords: [...partner.setsUp, ...partner.benefitsFrom],
+  })))
+}
+
 function UpgradeCard({
   choice,
   index,
@@ -547,6 +682,7 @@ function UpgradeCard({
   onSelect,
   keybind,
   ownedSkillIds,
+  activeBuildPlan,
   banishesRemaining,
   disabled,
   isBanishing,
@@ -561,6 +697,7 @@ function UpgradeCard({
   onSelect: (choice: LevelUpUpgradeChoice) => void
   keybind: string | undefined
   ownedSkillIds: readonly SkillId[]
+  activeBuildPlan: BuildPlan | null | undefined
   banishesRemaining: number
   disabled: boolean
   isBanishing: boolean
@@ -582,11 +719,37 @@ function UpgradeCard({
   const unlockedSkill = definition.skillAction === 'unlock'
     ? associatedSkill
     : undefined
-  const synergyPartnerSkills = unlockedSkill
-    ? getSynergyPartnerSkillIds(unlockedSkill.id, ownedSkillIds)
-      .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
-      .map((skillId) => getSkillDefinition(skillId))
+  /*
+   * Every partner, not only the owned ones. The first two or three skills of
+   * a run are chosen with nothing owned yet, and that is when a player is
+   * planning; a line that only listed owned partners was blank exactly then.
+   */
+  const synergyPartners = unlockedSkill
+    ? sortPartners(
+        getAllSynergyPartnerSkillIds(unlockedSkill.id)
+          .filter((skillId) => skillId !== BASIC_ATTACK_SKILL_ID)
+          .map((skillId) => ({
+            skillId,
+            name: getSkillDefinition(skillId).name,
+            owned: ownedSkillIds.includes(skillId),
+            planned: isSkillPlanned(activeBuildPlan, skillId),
+          })),
+      )
     : []
+  /*
+   * Status partners are only the owned ones. Glacial Orb pairs with every
+   * physical skill in the game, and a card that named them all was mostly
+   * that list; the pairings a player can act on this run are the ones they
+   * hold, and the wiki has the rest.
+   */
+  const statusPartners = unlockedSkill
+    ? statusPartnerEntries(
+        getSkillStatusPartners(unlockedSkill.id),
+        ownedSkillIds,
+        activeBuildPlan,
+      ).filter((entry) => entry.owned)
+    : []
+  const planned = isChoicePlanned(activeBuildPlan, choice)
   const evolvedSkill = definition.evolution
     ? associatedSkill
     : undefined
@@ -640,8 +803,9 @@ function UpgradeCard({
           isSynergy ? 'synergy-card' : ''
         } ${
           isRelease ? 'skill-removal-card' : ''
-        }`}
+        }${planned ? ' planned-card' : ''}`}
         data-choice-type="upgrade"
+        data-planned={planned ? 'true' : undefined}
         type="button"
         data-sfx="none"
         disabled={disabled || isBanishing}
@@ -663,6 +827,11 @@ function UpgradeCard({
                 : definition.name}
           </span>
           <span className="choice-card-badges">
+            {planned ? (
+              <span className="planned-badge" aria-label="Part of your build plan">
+                Planned
+              </span>
+            ) : null}
             <RarityBadge rarity={choice.rarity} synergy={isSynergy && !isRelease} />
           </span>
         </span>
@@ -678,6 +847,11 @@ function UpgradeCard({
         {synergySkills ? (
           <span className="upgrade-synergy-pair">
             {synergySkills[0]?.name} + {synergySkills[1]?.name}
+          </span>
+        ) : null}
+        {isSynergy && !isRelease ? (
+          <span className="upgrade-synergy-slot-note">
+            Each skill holds one synergy. This takes both skills&apos; slots.
           </span>
         ) : null}
         {definition.evolutionTags && definition.evolutionTags.length > 0 ? (
@@ -704,16 +878,31 @@ function UpgradeCard({
             </span>
           </span>
         ) : null}
-        {unlockedSkill && synergyPartnerSkills.length > 0 ? (
-          <span className="upgrade-synergy-partners" aria-label="Synergies:">
-            <span className="upgrade-skill-tags-label">Synergies:</span>{' '}
-            {synergyPartnerSkills.map((skill, skillIndex) => (
-              <span key={skill.id}>
-                {skillIndex > 0 ? ', ' : ''}
-                {skill.name}
-              </span>
-            ))}
-          </span>
+        {unlockedSkill ? (
+          <>
+            <StatusChips
+              label="Applies"
+              className="upgrade-status-applies"
+              keywords={unlockedSkill.applies ?? []}
+            />
+            <StatusChips
+              label="Consumes"
+              className="upgrade-status-consumes"
+              keywords={unlockedSkill.consumes ?? []}
+            />
+            <PartnerLine
+              label="Synergies:"
+              className="upgrade-synergy-cards"
+              entries={synergyPartners}
+              synergiesWith={unlockedSkill.id}
+            />
+            <PartnerLine
+              label="Pairs with:"
+              className="upgrade-status-partners"
+              entries={statusPartners}
+              markOwned={false}
+            />
+          </>
         ) : null}
         {!unlockedSkill ? (
           <span className="upgrade-choice-value">
@@ -777,6 +966,7 @@ export function LevelUpOverlay({
   keybinds,
   characterClassId,
   ownedSkillIds,
+  activeBuildPlan = null,
   rerollsRemaining,
   banishesRemaining,
   onSelect,
@@ -791,7 +981,7 @@ export function LevelUpOverlay({
   const [choiceTransition, setChoiceTransition] = useState<ChoiceTransition | null>(null)
   const isGearFlow = flow.type === 'gear-pickup'
   /* Remeasuring is only worth it when the cards themselves change. */
-  const choiceFitKey = `${flow.type}:${flow.choices.length}:${rerollsRemaining}:${banishesRemaining}`
+  const choiceFitKey = `${flow.type}:${flow.choices.length}:${rerollsRemaining}:${banishesRemaining}:${activeBuildPlan?.id ?? ''}`
   const characterClass = getCharacterClassDefinition(characterClassId)
   const canReroll = rerollsRemaining > 0
   const choiceKeybinds = getChoiceKeybinds(keybinds)
@@ -936,6 +1126,7 @@ export function LevelUpOverlay({
                   }}
                   keybind={choiceKeybinds[index]}
                   ownedSkillIds={ownedSkillIds}
+                  activeBuildPlan={activeBuildPlan}
                   banishesRemaining={banishesRemaining}
                   disabled={choiceTransition !== null}
                   isBanishing={choiceTransition?.kind === 'banish' &&

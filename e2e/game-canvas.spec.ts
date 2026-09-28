@@ -322,10 +322,6 @@ test('persists an active run, blocks the store, and continues after Save & quit'
 
   const store = page.getByRole('button', { name: /Spend at the store/i })
   await expect(store).toBeDisabled()
-  await expect(store).toHaveAttribute(
-    'title',
-    'Finish or forfeit your current dungeon run before opening the Essence store.',
-  )
   await expect(page.getByText('Finish or forfeit this run before using the Essence store.'))
     .toBeVisible()
   await expect(page.locator('dt').filter({ hasText: 'Floor' })).toBeVisible()

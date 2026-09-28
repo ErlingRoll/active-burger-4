@@ -38,6 +38,8 @@ import {
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import type { InventoryItemInstance, InventoryService } from '../inventory/InventoryTypes'
 import { getRewardIcon } from '../loot/RewardIcon'
+import { ResourceHover } from '../loot/ResourceTooltip'
+import { HintHover } from '../rendering/HintTooltip'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { useSeededLoad } from '../ui/useSeededLoad'
@@ -512,8 +514,8 @@ function ArtifactPicker({ artifacts, loading, held, busy, onPick, onCancel }: Ar
 function ClassMark({ classId }: { classId: ChampionSnapshot['build']['classId'] }) {
   const name = CHARACTER_CLASS_DEFINITIONS[classId].name
   return (
-    <span className="camp-class-mark" data-class={classId} aria-hidden="true" title={name}>
-      {name.charAt(0)}
+    <span className="camp-class-mark" data-class={classId} aria-hidden="true">
+      <HintHover hint={name} mode="hover">{name.charAt(0)}</HintHover>
     </span>
   )
 }
@@ -1343,10 +1345,16 @@ export function CampScreen({
           <div className="camp-topbar-actions">
             <ul className="camp-ledger" aria-label="Materials in the bag">
               {LEDGER_MATERIALS.map((definitionId) => (
-                <li key={definitionId} title={itemName(definitionId)}>
-                  <span className="camp-ledger-icon" aria-hidden="true">{getRewardIcon(definitionId)}</span>
-                  <span className="camp-ledger-count">{countHeldQuantity(materials, definitionId)}</span>
-                  <span className="camp-ledger-name">{itemName(definitionId)}</span>
+                <li key={definitionId}>
+                  <ResourceHover
+                    definitionId={definitionId}
+                    quantity={countHeldQuantity(materials, definitionId)}
+                    className="camp-ledger-hover"
+                  >
+                    <span className="camp-ledger-icon" aria-hidden="true">{getRewardIcon(definitionId)}</span>
+                    <span className="camp-ledger-count">{countHeldQuantity(materials, definitionId)}</span>
+                    <span className="camp-ledger-name">{itemName(definitionId)}</span>
+                  </ResourceHover>
                 </li>
               ))}
             </ul>

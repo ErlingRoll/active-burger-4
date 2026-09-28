@@ -31,9 +31,13 @@ listing category quietly removes a reason to play the system that produces it.
 
 ## Stage 1: the consignment shop
 
-**Shipped.** The quartermaster is a screen on the refuge, reached from the hub
-dock and the header. It sells from a short daily shelf and buys anything it has
-a price band for. There is no player-to-player transfer.
+**Shipped 2026-09-09, removed 2026-09-28.** The quartermaster was a screen on
+the refuge, reached from the hub dock. It sold from a short daily shelf and
+bought anything it had a price band for, with no player-to-player transfer.
+The Camp gave timber and stone their own sources and sinks, the shelf was not
+worth a door on the refuge, and the screen, its service and its tables went in
+one change. The design below is kept as the record of what stage 1 was, and as
+the starting point if a vendor is ever wanted again.
 
 - Selling pays a content-defined price per unit for that item definition. Per
   instance adjustment by rarity and roll quality is not implemented: the shop

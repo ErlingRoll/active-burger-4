@@ -2,6 +2,7 @@ import type { GameUiSnapshot } from '../../game'
 import { RARITIES, RARITY_VISUALS } from '../../content/rarity/Rarity'
 import { getAbyssLootBoxRarityChances } from '../../loot/LootBoxes'
 import { LootBoxIcon } from '../../loot/LootBoxIcon'
+import { HintHover } from '../HintTooltip'
 
 /**
  * What the floor is worth, read before it is finished.
@@ -52,15 +53,16 @@ export function AbyssLootOddsPanel({ snapshot }: { snapshot: GameUiSnapshot }) {
               data-rarity={rarity}
               data-impossible={chances[rarity] === 0 ? 'true' : undefined}
               key={rarity}
-              title={`${label} loot box: ${chance}`}
             >
-              <span className="abyss-loot-odds-icon">
-                <LootBoxIcon rarity={rarity} />
-              </span>
-              <span className="abyss-loot-odds-chance">
-                <span className="visually-hidden">{label} </span>
-                {chance}
-              </span>
+              <HintHover className="abyss-loot-odds-hover" hint={`${label} loot box: ${chance}`}>
+                <span className="abyss-loot-odds-icon">
+                  <LootBoxIcon rarity={rarity} />
+                </span>
+                <span className="abyss-loot-odds-chance">
+                  <span className="visually-hidden">{label} </span>
+                  {chance}
+                </span>
+              </HintHover>
             </li>
           )
         })}

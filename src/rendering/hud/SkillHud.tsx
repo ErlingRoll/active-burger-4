@@ -23,6 +23,14 @@ import {
   formatEstimatedDps,
   formatHudModifier,
 } from './formatting'
+import { getSkillStatusPartners } from '../../content/skills/SkillInteractions'
+import { KEYWORD_DEFINITIONS, type KeywordId } from '../../content/glossary/Keywords'
+import { getSkillDefinition } from '../../content/skills/Skills'
+import {
+  isUpgradePlanned,
+  type BuildPlan,
+} from '../../game/builds/BuildPlans'
+import type { SkillHudSnapshot, SkillUpgradeSnapshot } from '../../game/ui/Snapshots'
 
 export interface SkillHudProps {
   snapshot: GameUiSnapshot
@@ -32,6 +40,205 @@ export interface SkillHudProps {
   onSetMirrorcastTarget: (skillId: SkillId | null) => void
   onSetCriticalSpellstrikeTarget: (skillId: SkillId | null) => void
   onSetBloodRiteTarget: (skillId: SkillId | null) => void
+  /** The build plan being followed; planned upgrades are marked. */
+  activeBuildPlan?: BuildPlan | null
+}
+
+/** How many "needs a skill" synergies a tooltip lists before pointing at the wiki. */
+const NEEDS_SKILL_LIMIT = 3
+
+function PlannedTag({
+  plan,
+  upgradeId,
+}: {
+  plan: BuildPlan | null | undefined
+  upgradeId: SkillUpgradeSnapshot['upgradeId']
+}) {
+  return isUpgradePlanned(plan, upgradeId)
+    ? <span className="planned-tag" aria-label="Part of your build plan">Planned</span>
+    : null
+}
+
+function StatusKeywordList({ keywords }: { keywords: readonly KeywordId[] }) {
+  return (
+    <ul className="skill-tag-list">
+      {keywords.map((keyword) => (
+        <li className="skill-tag skill-tag-status" key={keyword}>
+          <KeywordText text={KEYWORD_DEFINITIONS[keyword].label} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * The synergies a skill has, could have, and cannot have yet.
+ *
+ * The snapshot already knew all three; the tooltip used to show only the
+ * first, which told a player what they had chosen and nothing about what to
+ * choose next. The slot line is the rule that makes "could have" matter: a
+ * skill holds one synergy, so an open slot is a real decision.
+ */
+function SkillSynergySection({
+  skill,
+  skills,
+  plan,
+}: {
+  skill: SkillHudSnapshot
+  skills: readonly SkillHudSnapshot[]
+  plan: BuildPlan | null | undefined
+}) {
+  const synergies = skill.upgrades.filter((upgrade) => upgrade.synergySkillIds !== undefined)
+  const acquired = synergies.filter((upgrade) => upgrade.status === 'acquired')
+  const available = synergies.filter((upgrade) => upgrade.status === 'available')
+  const partnerOf = (upgrade: SkillUpgradeSnapshot): SkillId =>
+    upgrade.synergySkillIds?.find((skillId) => skillId !== skill.skillId) ?? skill.skillId
+  const ownedIds = new Set(skills.map((candidate) => candidate.skillId))
+  const needsSkill = synergies.filter((upgrade) =>
+    upgrade.status === 'unavailable' && !ownedIds.has(partnerOf(upgrade)),
+  )
+  const blocked = synergies.filter((upgrade) =>
+    upgrade.status === 'unavailable' &&
+    ownedIds.has(partnerOf(upgrade)) &&
+    skill.activeSynergy === null,
+  )
+  return (
+    <section className="skill-synergy-section" aria-label="Skill synergies">
+      <p className="skill-upgrade-heading skill-synergy-heading">Synergies</p>
+      <p className="skill-synergy-slot">
+        <span>Synergy slot</span>
+        <b>{skill.activeSynergy ? skill.activeSynergy.name : 'Open'}</b>
+      </p>
+      {acquired.length > 0 ? (
+        <ul className="skill-upgrade-list">
+          {acquired.map((upgrade) => (
+            <li key={upgrade.upgradeId}>
+              <strong>{upgrade.name}</strong>
+              <span>{upgrade.valueLabel}</span>
+              <p><KeywordText text={upgrade.description} /></p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {available.length > 0 ? (
+        <>
+          <p className="skill-upgrade-subheading">Can be offered now</p>
+          <ul className="skill-upgrade-list skill-synergy-options">
+            {available.map((upgrade) => (
+              <li key={upgrade.upgradeId}>
+                <strong>
+                  {upgrade.name}
+                  <PlannedTag plan={plan} upgradeId={upgrade.upgradeId} />
+                </strong>
+                <span>with <span className="skill-synergy-partner-name">{getSkillDefinition(partnerOf(upgrade)).name}</span> &middot; {upgrade.valueLabel}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {needsSkill.length > 0 ? (
+        <>
+          <p className="skill-upgrade-subheading">Needs a skill</p>
+          {/* Names and partners only, and no more than a few: a tooltip has
+              to fit a phone, and this list is the one that grows. Planned
+              entries come first so the plan is never the part cut off. */}
+          <ul className="skill-upgrade-list skill-synergy-options">
+            {[...needsSkill]
+              .sort((left, right) =>
+                Number(isUpgradePlanned(plan, right.upgradeId)) -
+                Number(isUpgradePlanned(plan, left.upgradeId)))
+              .slice(0, NEEDS_SKILL_LIMIT)
+              .map((upgrade) => (
+                <li key={upgrade.upgradeId}>
+                  <strong>
+                    {upgrade.name}
+                    <PlannedTag plan={plan} upgradeId={upgrade.upgradeId} />
+                  </strong>
+                  <span>needs <span className="skill-synergy-partner-name">{getSkillDefinition(partnerOf(upgrade)).name}</span></span>
+                </li>
+              ))}
+            {needsSkill.length > NEEDS_SKILL_LIMIT ? (
+              <li className="skill-synergy-more">
+                <span>+{needsSkill.length - NEEDS_SKILL_LIMIT} more in the wiki</span>
+              </li>
+            ) : null}
+          </ul>
+        </>
+      ) : null}
+      {blocked.length > 0 ? (
+        <>
+          <p className="skill-upgrade-subheading">Blocked by a partner&apos;s synergy</p>
+          <ul className="skill-upgrade-list skill-synergy-options">
+            {blocked.map((upgrade) => {
+              const partner = skills.find((candidate) => candidate.skillId === partnerOf(upgrade))
+              return (
+                <li key={upgrade.upgradeId}>
+                  <strong>
+                    {upgrade.name}
+                    <PlannedTag plan={plan} upgradeId={upgrade.upgradeId} />
+                  </strong>
+                  <span>
+                    <span className="skill-synergy-partner-name">{partner?.name ?? getSkillDefinition(partnerOf(upgrade)).name}</span> holds{' '}
+                    {partner?.activeSynergy?.name ?? 'another synergy'}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+/** What this skill sets up and exploits, and which owned skills that links it to. */
+function SkillStatusSection({
+  skill,
+  skills,
+}: {
+  skill: SkillHudSnapshot
+  skills: readonly SkillHudSnapshot[]
+}) {
+  if (skill.applies.length === 0 && skill.consumes.length === 0) {
+    return null
+  }
+  const partners = getSkillStatusPartners(skill.skillId, {
+    applies: skill.applies,
+    consumes: skill.consumes,
+  })
+  const ownedIds = new Set(skills.map((candidate) => candidate.skillId))
+  return (
+    <section className="skill-status-section" aria-label="Status effects">
+      <p className="skill-upgrade-heading">Status effects</p>
+      {skill.applies.length > 0 ? (
+        <div className="skill-status-row">
+          <span className="skill-status-label">Applies</span>
+          <StatusKeywordList keywords={skill.applies} />
+        </div>
+      ) : null}
+      {skill.consumes.length > 0 ? (
+        <div className="skill-status-row">
+          <span className="skill-status-label">Consumes</span>
+          <StatusKeywordList keywords={skill.consumes} />
+        </div>
+      ) : null}
+      {partners.length > 0 ? (
+        <p className="skill-status-partners">
+          <span className="skill-status-label">Pairs with</span>{' '}
+          {partners.map((partner, index) => (
+            <span
+              className={`skill-status-partner${ownedIds.has(partner.skillId) ? ' owned' : ''}`}
+              key={partner.skillId}
+            >
+              {index > 0 ? ', ' : ''}
+              {getSkillDefinition(partner.skillId).name}
+              {ownedIds.has(partner.skillId) ? <span aria-label=" (owned)">✓</span> : null}
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </section>
+  )
 }
 
 export function SkillHud({
@@ -41,6 +248,7 @@ export function SkillHud({
   onSetMirrorcastTarget,
   onSetCriticalSpellstrikeTarget,
   onSetBloodRiteTarget,
+  activeBuildPlan = null,
 }: SkillHudProps) {
   const {
     activeKey: activeSkillId,
@@ -304,6 +512,7 @@ export function SkillHud({
                         ))}
                       </ul>
                     </section>
+                    <SkillStatusSection skill={skill} skills={snapshot.skills} />
                     {skill.damageTypes.length > 0 ? (
                       <section className="skill-damage-breakdown" aria-label="Calculated damage">
                         <p className="skill-upgrade-heading">Calculated damage</p>
@@ -417,7 +626,10 @@ export function SkillHud({
                             )
                             .map((upgrade) => (
                               <li key={upgrade.upgradeId}>
-                                <strong>{upgrade.name}</strong>
+                                <strong>
+                                  {upgrade.name}
+                                  <PlannedTag plan={activeBuildPlan} upgradeId={upgrade.upgradeId} />
+                                </strong>
                                 <span>{upgrade.valueLabel}</span>
                                 {upgrade.evolutionTags && upgrade.evolutionTags.length > 0 ? (
                                   <span className="skill-tag-list" aria-label="Evolution tags">
@@ -434,27 +646,11 @@ export function SkillHud({
                         </ul>
                       </section>
                     ) : null}
-                    {skill.upgrades.some((upgrade) =>
-                      upgrade.status === 'acquired' && upgrade.synergySkillIds !== undefined,
-                    ) ? (
-                      <section className="skill-synergy-section" aria-label="Skill synergies">
-                        <p className="skill-upgrade-heading skill-synergy-heading">Synergies</p>
-                        <ul className="skill-upgrade-list">
-                          {skill.upgrades
-                            .filter((upgrade) =>
-                              upgrade.status === 'acquired' &&
-                              upgrade.synergySkillIds !== undefined,
-                            )
-                            .map((upgrade) => (
-                              <li key={upgrade.upgradeId}>
-                                <strong>{upgrade.name}</strong>
-                                <span>{upgrade.valueLabel}</span>
-                                <p><KeywordText text={upgrade.description} /></p>
-                              </li>
-                            ))}
-                        </ul>
-                      </section>
-                    ) : null}
+                    <SkillSynergySection
+                      skill={skill}
+                      skills={snapshot.skills}
+                      plan={activeBuildPlan}
+                    />
                     {skill.upgrades.some((upgrade) =>
                       upgrade.status === 'acquired' &&
                       upgrade.choiceType === 'upgrade' &&

@@ -59,7 +59,7 @@ Menus use `src/audio/UiSounds.ts`: one delegated click listener mounted in
 simulation-driven cue opts out with `data-sfx="none"` (the level-up picks,
 the pause menu's resume, the mute toggle); `data-sfx="confirm"` and
 `data-sfx="cancel"` pick the variant. Hover, focus and tooltips are silent on
-purpose. Toasts, loot boxes, fishing, the shop, and Essence purchases call
+purpose. Toasts, loot boxes, fishing, and Essence purchases call
 `playSound` directly at the moment the thing succeeds or fails.
 
 ## The voice

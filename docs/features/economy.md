@@ -61,9 +61,10 @@ produces something no other row consumes, or consumes nothing, is not ready.
 | Divine Gamba | Essence, less than it takes; a box with every jackpot, legendary one in a thousand | Essence per ball |
 
 The market row is deliberately empty on the left, for player listings. The
-consignment shop that shipped first is the exception that proves it: it creates
-what it sells and destroys what it buys, which is why the day's quantity is
-capped and the spread between the two prices is always a loss. See
+consignment shop that shipped first was the exception that proved it: it created
+what it sold and destroyed what it bought, which is why the day's quantity was
+capped and the spread between the two prices was always a loss. It was removed
+on 2026-09-28. See
 [marketplace.md](marketplace.md).
 
 ## Materials

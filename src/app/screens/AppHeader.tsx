@@ -22,6 +22,7 @@ import type { MetaProgressionService } from '../../meta/MetaProgressionService'
 import { navigationControlProps, type NavigationHints } from '../navigationHints'
 import { DIVINE_GAMBA_NAME } from '../../divine-gamba/DivineGambaNaming'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
+import { HintHover } from '../../rendering/HintTooltip'
 
 export interface AppHeaderProps {
   authentication: AuthenticationState
@@ -35,8 +36,8 @@ export interface AppHeaderProps {
   onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
-  onOpenShop: () => void
   onOpenCollections: () => void
+  onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
   onOpenRunHistory: () => void
   inventoryService: InventoryService | null
@@ -61,8 +62,8 @@ export function AppHeader({
   onOpenCamp,
   onOpenChampions,
   onOpenInventory,
-  onOpenShop,
   onOpenCollections,
+  onOpenBuildPlans,
   onOpenDivineGamba,
   onOpenRunHistory,
   inventoryService,
@@ -142,8 +143,8 @@ export function AppHeader({
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCamp)} {...navigationControlProps(navigation, 'camp')}>Camp</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenChampions)} {...navigationControlProps(navigation, 'champions')}>Champions</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenInventory)} {...navigationControlProps(navigation, 'inventory')}>Inventory</button>
-              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenShop)} {...navigationControlProps(navigation, 'shop')}>Shop</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenCollections)} {...navigationControlProps(navigation, 'collections')}>Collections</button>
+              <button className="app-admin-link" type="button" onClick={leaveFor(onOpenBuildPlans)} {...navigationControlProps(navigation, 'build-plans')}>Builds</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenDivineGamba)} {...navigationControlProps(navigation, 'divine-gamba')}>{DIVINE_GAMBA_NAME}</button>
               <button className="app-admin-link" type="button" onClick={leaveFor(onOpenRunHistory)} {...navigationControlProps(navigation, 'run-history')}>Chronicle</button>
             </>
@@ -242,9 +243,9 @@ function BuildStamp() {
       {APP_RELEASE ? <span>v{APP_RELEASE}</span> : null}
       <span>{APP_VERSION ?? 'development'}</span>
       {builtAtValid ? (
-        <time dateTime={APP_BUILT_AT} title={`Built ${APP_BUILT_AT}`}>
-          {BUILD_TIME_FORMAT.format(builtAt)}
-        </time>
+        <HintHover hint={`Built ${APP_BUILT_AT}`}>
+          <time dateTime={APP_BUILT_AT}>{BUILD_TIME_FORMAT.format(builtAt)}</time>
+        </HintHover>
       ) : null}
     </p>
   )

@@ -4,6 +4,7 @@ import {
   getArtifactPotential,
   type ArtifactMetadata,
 } from '../content/artifacts/Artifacts'
+import { HintHover } from '../rendering/HintTooltip'
 
 /**
  * An artifact's card: the implicit first, then every rolled modifier, each
@@ -24,14 +25,14 @@ export function ArtifactPotential({ metadata }: { metadata: ArtifactMetadata }) 
   const potential = getArtifactPotential(metadata)
   const finished = potential < 1
   return (
-    <p
-      className="artifact-potential"
-      data-finished={finished ? 'true' : 'false'}
-      title={finished
-        ? 'Its Potential is spent: the Forge can do no more with it.'
-        : 'How much the Forge can still work it. Every strike spends some.'}
-    >
-      {finished ? 'Finished' : `Potential ${potential}`}
+    <p className="artifact-potential" data-finished={finished ? 'true' : 'false'}>
+      <HintHover
+        hint={finished
+          ? 'Its Potential is spent: the Forge can do no more with it.'
+          : 'How much the Forge can still work it. Every strike spends some.'}
+      >
+        {finished ? 'Finished' : `Potential ${potential}`}
+      </HintHover>
     </p>
   )
 }
@@ -52,9 +53,9 @@ export function ArtifactEffectList({ metadata, showFlavor = false, showPotential
             data-tier={line.tier}
           >
             <span className="artifact-effect-text">{line.text}</span>
-            <span className="artifact-effect-tier" title={`Tier ${line.tier} of 5, tier 1 is best`}>
+            <HintHover className="artifact-effect-tier" hint={`Tier ${line.tier} of 5, tier 1 is best`}>
               T{line.tier}
-            </span>
+            </HintHover>
           </li>
         ))}
       </ul>

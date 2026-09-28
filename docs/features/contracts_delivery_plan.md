@@ -135,7 +135,7 @@ made after the period reads the same bounds the board did. Claims go through
 | `gather-materials` | Timber and stone paid by Camp claims | `inventory_operations` of type `camp-claim` |
 | `gut-fish` | Fish gutted at the Smokehouse | `inventory_operations` of type `camp-gut` |
 | `reach-dungeon-floor` | The deepest floor checkpoint of a dungeon run in the window | `dungeon_run_snapshots` |
-| `sell-items` | Units sold to the quartermaster | `inventory_operations` of type `sell` |
+| `sell-items` | Units sold to the quartermaster; the shop was removed on 2026-09-28 and both contracts retired, the branch kept for the rows already written | `inventory_operations` of type `sell` |
 | `upgrade-buildings` | Camp buildings raised | `inventory_operations` of type `camp-upgrade` |
 | `cure-fish` | Fish cured at the Smokehouse | `inventory_operations` of type `camp-cure` |
 | `reforge-artifacts` | Strikes made at the Forge | `inventory_operations` of type `camp-forge` (and `camp-reforge`, the type the Forge wrote before it was reworked; the objective id kept its name) |
@@ -151,7 +151,7 @@ retuned on one side without the other fails the build.
 
 ### The pool
 
-Thirty-six daily contracts and ten weekly ones, three and one dealt at a
+Thirty-four daily contracts and ten weekly ones, three and one dealt at a
 time. Every objective is a ladder of two or three rungs, so the board reads
 "Down the stairs", "Deeper stairs", "The long stair" with the target and the
 pay climbing together, and the daily pool is wide enough that a heavy session
@@ -171,7 +171,7 @@ count of each cadence are tested there.
 | Open loot boxes | 2 · 6 daily, 12 weekly | scrap | |
 | Craft batches | 2 · 6 | timber | |
 | Salvage items | 5 · 15 | timber and stone | |
-| Sell to the quartermaster | 5 · 20 | timber, stone | |
+| Sell to the quartermaster (retired with the shop, 2026-09-28) | 5 · 20 | timber, stone | |
 | Gather at the Camp | 30 · 90 daily, 150 weekly | scrap | a Champion |
 | Complete Abyss floors | 5 · 12 | rift shards | a Champion |
 | Reach an Abyss depth | 10 · 20 weekly | a rare box, rift shards | a Champion |

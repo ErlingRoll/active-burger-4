@@ -9,8 +9,8 @@ box. It is the first meta system built to be *fun to lose at*: the drop is
 the reward, and the Essence it takes is the sink.
 
 It exists because the meta economy had faucets and refiners but no place
-where Essence simply leaves. The store buys access, the shop's spread is
-small, and nothing else takes Essence at volume. The Gamba does, on the
+where Essence simply leaves. The store buys access, and nothing else
+takes Essence at volume. The Gamba does, on the
 player's own initiative, and pays some of it back in a shape that makes the
 next drop worth watching.
 

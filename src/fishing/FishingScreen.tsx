@@ -42,6 +42,7 @@ import { LootBoxShelf } from '../loot/LootBoxShelf'
 import { stackInventoryItems } from '../inventory/InventoryStacks'
 import { selectLootBoxesToOpen, stackLootBoxes } from '../loot/LootBoxStacks'
 import { getRewardIcon } from '../loot/RewardIcon'
+import { HintHover } from '../rendering/HintTooltip'
 import { useLootBoxOpening } from '../loot/useLootBoxOpening'
 import { RARITY_VISUALS, type Rarity } from '../content/rarity/Rarity'
 import { ConfirmationDialog } from '../ui/ConfirmationDialog'
@@ -1179,11 +1180,12 @@ export function FishingScreen({
                         borderColor: catchRarityVisual.color,
                         boxShadow: `0 0 0.45rem ${catchRarityVisual.color}, 0 0 1.35rem ${catchRarityVisual.color}`,
                       }}
-                      title={caughtFish?.name ?? 'Fish caught'}
                     >
-                      {caughtFish ? (
-                        <FishIcon icon={caughtFish.visual.icon} color={caughtFish.visual.accent} />
-                      ) : '🐟'}
+                      <HintHover hint={caughtFish?.name ?? 'Fish caught'} mode="hover">
+                        {caughtFish ? (
+                          <FishIcon icon={caughtFish.visual.icon} color={caughtFish.visual.accent} />
+                        ) : '🐟'}
+                      </HintHover>
                     </span>
                   ) : null}
                 </div>
@@ -1337,6 +1339,13 @@ export function FishingScreen({
                   />
                 </div>
                 <div className="pond-action-group">
+                  <HintHover
+                    mode="hover"
+                    className="pond-cast-hover"
+                    hint={canCancelCast && fishingPhase !== 'manual'
+                      ? 'Reeling in before a bite loses the cast.'
+                      : undefined}
+                  >
                   <button
                     className={`primary-action pond-cast-button pond-cast-button-${fishingPhase}`}
                     type="button"
@@ -1354,9 +1363,6 @@ export function FishingScreen({
                       loadState !== 'ready' ||
                       fishingService === null
                     }
-                    title={canCancelCast && fishingPhase !== 'manual'
-                      ? 'Reeling in before a bite loses the cast.'
-                      : undefined}
                   >
                     {/*
                       The action carries the state rather than a separate chip
@@ -1384,6 +1390,7 @@ export function FishingScreen({
                       />
                     ) : null}
                   </button>
+                  </HintHover>
                 </div>
               </div>
             </div>

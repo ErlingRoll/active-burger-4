@@ -4,12 +4,14 @@ import {
   HUD_INSPECTOR_TABS,
   type HudInspectorTab,
 } from './HudInspectorTabs'
-import { LoadoutIcon, PauseIcon, RunIcon, StatsIcon } from './HudIcons'
+import { BuildIcon, LoadoutIcon, PauseIcon, RunIcon, StatsIcon } from './HudIcons'
+import { HintHover } from '../HintTooltip'
 
 const TAB_ICONS: Readonly<Record<HudInspectorTab, ComponentType<{ className?: string }>>> = {
   gear: LoadoutIcon,
   stats: StatsIcon,
   run: RunIcon,
+  build: BuildIcon,
 }
 
 /**
@@ -34,28 +36,30 @@ export function HudToolbar({ activeTab, onToggleTab, onPause }: HudToolbarProps)
         const Icon = TAB_ICONS[tab]
         const selected = activeTab === tab
         return (
-          <button
-            className={`hud-toolbar-button hud-toolbar-tab${selected ? ' selected' : ''}`}
-            type="button"
-            aria-pressed={selected}
-            aria-label={`${HUD_INSPECTOR_TAB_LABELS[tab]} details`}
-            title={HUD_INSPECTOR_TAB_LABELS[tab]}
-            key={tab}
-            onClick={() => onToggleTab(tab)}
-          >
-            <Icon />
-          </button>
+          <HintHover hint={HUD_INSPECTOR_TAB_LABELS[tab]} mode="hover" className="hud-toolbar-hover" key={tab}>
+            <button
+              className={`hud-toolbar-button hud-toolbar-tab${selected ? ' selected' : ''}`}
+              type="button"
+              data-tab={tab}
+              aria-pressed={selected}
+              aria-label={`${HUD_INSPECTOR_TAB_LABELS[tab]} details`}
+              onClick={() => onToggleTab(tab)}
+            >
+              <Icon />
+            </button>
+          </HintHover>
         )
       })}
-      <button
-        className="hud-toolbar-button hud-toolbar-pause"
-        type="button"
-        aria-label="Pause the run"
-        title="Pause"
-        onClick={onPause}
-      >
-        <PauseIcon />
-      </button>
+      <HintHover hint="Pause" mode="hover" className="hud-toolbar-hover">
+        <button
+          className="hud-toolbar-button hud-toolbar-pause"
+          type="button"
+          aria-label="Pause the run"
+          onClick={onPause}
+        >
+          <PauseIcon />
+        </button>
+      </HintHover>
     </div>
   )
 }

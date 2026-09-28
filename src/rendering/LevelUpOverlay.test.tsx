@@ -254,3 +254,99 @@ describe('LevelUpOverlay', () => {
     expect(markup.match(/rarity-badge/g)).toHaveLength(1)
   })
 })
+
+describe('LevelUpOverlay synergy and build plan cues', () => {
+  const baseProps = {
+    equipment: {},
+    gearSets: [],
+    keybinds: DEFAULT_GAME_KEYBINDS,
+    characterClassId: DEFAULT_CHARACTER_CLASS_ID,
+    rerollsRemaining: 0,
+    banishesRemaining: 0,
+    onSelect: () => {},
+    onBanish: () => {},
+    onReroll: () => {},
+    onSkip: () => {},
+  }
+
+  it('lists every synergy partner on an unlock card, marking the owned ones', () => {
+    const flow: LevelUpChoiceFlow = {
+      type: 'level-up',
+      level: 2,
+      choices: [{ upgradeId: 'glacial-orb-unlock', rarity: Rarity.Common }],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LevelUpOverlay
+        {...baseProps}
+        flow={flow}
+        ownedSkillIds={['basic-attack', 'whirlwind']}
+      />,
+    )
+
+    // Partners come from the synergy graph, not from what is owned.
+    const partnerCount = markup.match(/class="upgrade-synergy-partner(?: owned)?(?: planned)?(?: upgrade-synergy-partner-overflow)?"/g)?.length ?? 0
+    expect(partnerCount).toBeGreaterThan(1)
+    expect(markup).toContain('class="upgrade-synergy-partner owned"')
+    expect(markup).toContain('aria-label="Synergies:"')
+    // Each partner is a hover term whose popover names the synergy between them.
+    expect(markup).toContain('class="keyword-term synergy-term"')
+    expect(markup).toContain('aria-label="Chain Lightning: Stormfrost"')
+    // Status data: Glacial Orb applies Chill and Freeze, and Whirlwind Shatters it.
+    // Only owned status partners are named, and without a tick: Raise Skeleton
+    // would Shatter too, but it is not in this run.
+    expect(markup).toContain('aria-label="Applies"')
+    const pairsWith = markup.slice(markup.indexOf('aria-label="Pairs with:"'))
+    expect(pairsWith).toContain('Whirlwind<span class="upgrade-synergy-partner-keywords"> (Freeze)</span>')
+    expect(pairsWith).not.toContain('Raise Skeleton')
+    expect(pairsWith).not.toContain('upgrade-synergy-partner-owned')
+  })
+
+  it('marks exactly the cards that belong to the active build plan, the fourth card included', () => {
+    const flow: LevelUpChoiceFlow = {
+      type: 'level-up',
+      level: 5,
+      choices: [
+        { upgradeId: 'chain-lightning-unlock', rarity: Rarity.Common },
+        { upgradeId: 'basic-attack-level', rarity: Rarity.Uncommon },
+        { upgradeId: 'blood-rite-unlock', rarity: Rarity.Rare },
+        { upgradeId: 'synergy-basic-attack-whirlwind', rarity: Rarity.Epic },
+      ],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LevelUpOverlay
+        {...baseProps}
+        flow={flow}
+        keybinds={{ ...DEFAULT_GAME_KEYBINDS, choiceFourth: 'r' }}
+        ownedSkillIds={['basic-attack', 'whirlwind']}
+        activeBuildPlan={{
+          id: 'plan',
+          name: 'Storm',
+          skillIds: ['chain-lightning', 'whirlwind'],
+          upgradeIds: ['synergy-basic-attack-whirlwind'],
+        }}
+      />,
+    )
+
+    expect(markup.match(/data-planned="true"/g)).toHaveLength(2)
+    expect(markup.match(/Planned<\/span>/g)).toHaveLength(2)
+    const cards = markup.split('class="choice-card-wrap').slice(1)
+    expect(cards.map((card) => card.includes('planned-card'))).toEqual([true, false, false, true])
+  })
+
+  it('tells the player a synergy takes both skills\' single slot', () => {
+    const flow: LevelUpChoiceFlow = {
+      type: 'level-up',
+      level: 3,
+      choices: [{ upgradeId: 'synergy-basic-attack-whirlwind', rarity: Rarity.Epic }],
+    }
+
+    const markup = renderToStaticMarkup(
+      <LevelUpOverlay {...baseProps} flow={flow} ownedSkillIds={['basic-attack', 'whirlwind']} />,
+    )
+
+    expect(markup).toContain('Each skill holds one synergy.')
+    expect(markup).not.toContain('data-planned')
+  })
+})

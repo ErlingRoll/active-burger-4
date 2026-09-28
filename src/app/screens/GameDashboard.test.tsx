@@ -35,8 +35,8 @@ function renderDashboard(overrides: Partial<GameDashboardProps> = {}) {
     onOpenCamp: vi.fn(),
     onOpenChampions: vi.fn(),
     onOpenInventory: vi.fn(),
-    onOpenShop: vi.fn(),
     onOpenCollections: vi.fn(),
+    onOpenBuildPlans: vi.fn(),
     onOpenDivineGamba: vi.fn(),
     onOpenRunHistory: vi.fn(),
     onOpenAbyss: vi.fn(),
@@ -91,5 +91,16 @@ describe('GameDashboard forfeit flow', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Forfeit run' }))
 
     expect(await screen.findByText('Network unreachable')).toBeInTheDocument()
+  })
+})
+
+describe('the hub paths', () => {
+  it('opens the build plans page from the refuge', async () => {
+    const onOpenBuildPlans = vi.fn()
+    const { user } = renderDashboard({ onOpenBuildPlans })
+
+    await user.click(screen.getByRole('button', { name: /build plans/i }))
+
+    expect(onOpenBuildPlans).toHaveBeenCalledTimes(1)
   })
 })

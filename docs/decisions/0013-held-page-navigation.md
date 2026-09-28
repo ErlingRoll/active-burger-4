@@ -44,7 +44,7 @@ or the active-run route guard.
 
 **Screens declare what they wait on.** `app/screenDefinitions.ts` is the
 registry: a label, the chunk, and for the screens with a first fetch, a
-loader. Loaders (`shop/loadShopScreen.ts` and the like) live beside their
+loader. Loaders (`camp/loadCampScreen.ts` and the like) live beside their
 screen, import service types only, and never the screen component, because a
 static import there would pull the screen back into the entry chunk and
 silently defeat the route split, the same failure ADR 0011 forbids for feature

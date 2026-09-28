@@ -37,9 +37,9 @@ import {
   isCharacterClassId,
 } from '../../content/classes/CharacterClasses'
 import {
+  getSynergyOfferChance,
   getSynergyPartnerSkillIds,
   isSkillSynergyActive,
-  SYNERGY_OFFER_CHANCE,
 } from '../../game-config/synergies'
 
 export const UPGRADE_CHOICES_PER_LEVEL = 3
@@ -165,10 +165,11 @@ export function generateUpgradeChoices(
     remainingUpgrades.splice(remainingUpgrades.indexOf(selected), 1)
   }
 
+  const synergyOfferChance = getSynergyOfferChance(state.run.synergyOfferDrought ?? 0)
   for (let index = 0; index < choices.length; index += 1) {
     if (
       remainingSynergies.length === 0 ||
-      !synergyRng.chance(SYNERGY_OFFER_CHANCE)
+      !synergyRng.chance(synergyOfferChance)
     ) {
       continue
     }

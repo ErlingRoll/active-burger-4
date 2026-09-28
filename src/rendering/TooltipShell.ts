@@ -12,6 +12,8 @@ export const TOOLTIP_VARIANT_CLASSES = [
   'loot-box-tooltip',
   'resource-tooltip',
   'labour-sheet-tooltip',
+  'build-plan-tooltip',
+  'hint-tooltip',
 ] as const
 
 export type TooltipVariant = (typeof TOOLTIP_VARIANT_CLASSES)[number]

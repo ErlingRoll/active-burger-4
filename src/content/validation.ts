@@ -1,3 +1,4 @@
+import { KEYWORD_DEFINITIONS } from './glossary/Keywords'
 import {
   ENEMY_DEFINITIONS,
 } from './enemies/EnemyConfig'
@@ -1058,6 +1059,42 @@ function validateDefinitions(
       !skill.tags.includes('projectile')
     ) {
       errors.push(`skills[${index}].tags must include projectile for projectile skills.`)
+    }
+    for (const property of ['applies', 'consumes'] as const) {
+      const keywords = skill[property]
+      if (keywords === undefined) {
+        continue
+      }
+      if (
+        !Array.isArray(keywords) ||
+        keywords.some((keyword) => !(keyword in KEYWORD_DEFINITIONS))
+      ) {
+        errors.push(`skills[${index}].${property} must list glossary keywords.`)
+      } else if (new Set(keywords).size !== keywords.length) {
+        errors.push(`skills[${index}].${property} must not repeat a keyword.`)
+      }
+    }
+    // Shatter is a rule of physical damage, not of any one skill, so every
+    // physical skill has to say it benefits from Freeze or the derived
+    // "works with" lists would leave Glacial Orb's partners out.
+    if (
+      skill.tags.includes('physical') &&
+      !(skill.consumes ?? []).includes('freeze')
+    ) {
+      errors.push(`skills[${index}].consumes must include freeze for a physical skill (Shatter).`)
+    }
+  })
+
+  // A status nobody applies is a promise nobody can keep: a skill that says it
+  // consumes Burning needs at least one skill that applies it.
+  const appliedKeywords = new Set(
+    catalog.skills.flatMap((skill) => skill.applies ?? []),
+  )
+  catalog.skills.forEach((skill, index) => {
+    for (const keyword of skill.consumes ?? []) {
+      if (!appliedKeywords.has(keyword)) {
+        errors.push(`skills[${index}].consumes lists "${keyword}", which no skill applies.`)
+      }
     }
   })
 

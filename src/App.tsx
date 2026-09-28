@@ -15,6 +15,7 @@ import {
 import { AppHeader } from './app/screens/AppHeader'
 import {
   LazyAdminReportsScreen,
+  LazyBuildPlansScreen,
   LazyCampScreen,
   LazyCollectionsScreen,
   LazyDivineGambaScreen,
@@ -26,7 +27,6 @@ import {
   LazyNicknameModerationScreen,
   LazyRunChronicleScreen,
   LazyRunSetupScreen,
-  LazyShopScreen,
   LazyWikiScreen,
 } from './app/lazyScreens'
 import { LazyScreen } from './app/LazyScreen'
@@ -88,7 +88,6 @@ function App() {
     dungeonRunPersistence,
     inventory,
     lootBoxes,
-    shop,
     fishing,
     hubPresence,
     bugReport,
@@ -120,6 +119,9 @@ function App() {
     updateKeybinds,
     selectCharacterClass,
     toggleWorldModifier,
+    selectBuildPlan,
+    saveBuildPlan,
+    deleteBuildPlan,
   } = useLocalPersistence(repository)
   const {
     metaProgression,
@@ -349,16 +351,16 @@ function App() {
     navigateToScreen('inventory')
   }, [navigateToScreen])
 
-  const openShop = useCallback((): void => {
-    navigateToScreen('shop')
-  }, [navigateToScreen])
-
   const openRunHistory = useCallback((): void => {
     navigateToScreen('run-history')
   }, [navigateToScreen])
 
   const openCollections = useCallback((): void => {
     navigateToScreen('collections')
+  }, [navigateToScreen])
+
+  const openBuildPlans = useCallback((): void => {
+    navigateToScreen('build-plans')
   }, [navigateToScreen])
 
   const openDivineGamba = useCallback((): void => {
@@ -404,8 +406,8 @@ function App() {
       onOpenCamp={openCamp}
       onOpenChampions={openChampions}
       onOpenInventory={openInventory}
-      onOpenShop={openShop}
       onOpenCollections={openCollections}
+      onOpenBuildPlans={openBuildPlans}
       onOpenDivineGamba={openDivineGamba}
       onOpenRunHistory={openRunHistory}
       inventoryService={inventory.service}
@@ -527,8 +529,8 @@ function App() {
           onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
-          onOpenShop={openShop}
           onOpenCollections={openCollections}
+          onOpenBuildPlans={openBuildPlans}
           onOpenDivineGamba={openDivineGamba}
           onOpenRunHistory={openRunHistory}
           onOpenAbyss={run.openAbyssSetup}
@@ -583,7 +585,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'collections' || screen === 'divine-gamba' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
+      {(screen === 'dashboard' || screen === 'run-setup' || screen === 'meta-progression' || screen === 'fishing' || screen === 'camp' || screen === 'collections' || screen === 'build-plans' || screen === 'divine-gamba' || screen === 'champions' || screen === 'inventory' || screen === 'run-history') &&
       !account ? (
         <AuthGateway
           authentication={authentication}
@@ -613,6 +615,9 @@ function App() {
             onSelectCharacterClass={selectCharacterClass}
             onToggleWorldModifier={toggleWorldModifier}
             onSelectTargetPriority={selectTargetPriority}
+            onSelectBuildPlan={selectBuildPlan}
+            onSaveBuildPlan={saveBuildPlan}
+            onDeleteBuildPlan={deleteBuildPlan}
             onBack={closeRunSetup}
           />
         </LazyScreen>
@@ -693,19 +698,6 @@ function App() {
           />
         </LazyScreen>
       ) : null}
-      {screen === 'shop' && account ? (
-        <LazyScreen label={SCREEN_DEFINITIONS.shop.label}>
-          <LazyShopScreen
-            initialData={loadedData('shop')}
-            initialLoadError={navigator.loadError}
-            shopService={shop.service}
-            inventoryService={inventory.service}
-            configurationError={shop.configurationError ?? inventory.configurationError}
-            onBack={returnToDashboard}
-            onEssenceChanged={refreshMetaProgression}
-          />
-        </LazyScreen>
-      ) : null}
       {screen === 'divine-gamba' && account ? (
         <LazyScreen label={SCREEN_DEFINITIONS['divine-gamba'].label}>
           <LazyDivineGambaScreen
@@ -724,6 +716,19 @@ function App() {
             initialLoadError={navigator.loadError}
             service={collections.service}
             configurationError={collections.configurationError}
+            onBack={returnToDashboard}
+          />
+        </LazyScreen>
+      ) : null}
+      {screen === 'build-plans' && account ? (
+        <LazyScreen label={SCREEN_DEFINITIONS['build-plans'].label}>
+          <LazyBuildPlansScreen
+            plans={settings?.buildPlans ?? []}
+            selectedPlanId={settings?.selectedBuildPlanId ?? null}
+            writeError={writeError}
+            onSelectPlan={selectBuildPlan}
+            onSavePlan={saveBuildPlan}
+            onDeletePlan={deleteBuildPlan}
             onBack={returnToDashboard}
           />
         </LazyScreen>
@@ -752,6 +757,11 @@ function App() {
             onTargetPriorityChange={selectTargetPriority}
             keybinds={settings?.keybinds ?? DEFAULT_GAME_KEYBINDS}
             onKeybindsChange={updateKeybinds}
+            buildPlans={settings?.buildPlans}
+            selectedBuildPlanId={settings?.selectedBuildPlanId ?? null}
+            onSelectBuildPlan={selectBuildPlan}
+            onSaveBuildPlan={saveBuildPlan}
+            onDeleteBuildPlan={deleteBuildPlan}
             reportBugRunId={run.activeRunSubmission?.runId}
             onSubmitBugReport={submitBugReport}
             developmentToolsEnabled={DEVELOPMENT_TOOLS_ENABLED && (account?.isAdmin ?? false)}

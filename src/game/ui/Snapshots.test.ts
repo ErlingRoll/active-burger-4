@@ -1111,3 +1111,37 @@ describe('UI snapshots', () => {
     expect(Object.isFrozen(snapshot.pendingChoiceFlow?.choices)).toBe(true)
   })
 })
+
+describe('skill status and synergy slot snapshots', () => {
+  it('projects what a skill applies and consumes, and the synergy it is locked into', () => {
+    const game = createGame({ seed: 91 })
+    game.state.player.skills = [
+      { skillId: BASIC_ATTACK_SKILL_ID, level: 1, cooldownRemaining: 0 },
+      { skillId: WHIRLWIND_SKILL_ID, level: 1, cooldownRemaining: 0 },
+    ]
+
+    const open = createUiSnapshot(game.state)
+    expect(open.skills[1]).toMatchObject({
+      applies: [],
+      consumes: ['freeze'],
+      activeSynergy: null,
+    })
+
+    game.state.run.selectedUpgradeIds.push('synergy-basic-attack-whirlwind')
+    const locked = createUiSnapshot(game.state)
+    expect(locked.skills[1]?.activeSynergy).toEqual({
+      upgradeId: 'synergy-basic-attack-whirlwind',
+      name: 'Close Quarters',
+    })
+    expect(locked.skills[0]?.activeSynergy?.name).toBe('Close Quarters')
+  })
+
+  it('adds Poison to a Basic Attack that swings a staff', () => {
+    const game = createGame({ seed: 92 })
+    expect(createUiSnapshot(game.state).skills[0]?.applies).toEqual([])
+
+    equipItem(game.state.player, 'necromancer-bone-staff')
+
+    expect(createUiSnapshot(game.state).skills[0]?.applies).toEqual(['poison'])
+  })
+})

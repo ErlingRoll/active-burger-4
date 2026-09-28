@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import type { MouseEvent as ReactMouseEvent } from 'react'
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -13,49 +13,44 @@ import {
   tooltipClassName,
 } from './TooltipShell'
 
-function KeywordPopover({
+function KeywordPopoverContent({
   keywordId,
-  tooltipId,
-  style,
   glossaryHref,
-  onMouseEnter,
-  onMouseLeave,
 }: {
   keywordId: KeywordId
-  tooltipId: string
-  style: CSSProperties
   glossaryHref?: string
-  onMouseEnter: () => void
-  onMouseLeave: () => void
 }) {
   const definition = KEYWORD_DEFINITIONS[keywordId]
   return (
-    <span
-      className={tooltipClassName('keyword-tooltip')}
-      id={tooltipId}
-      role="tooltip"
-      style={style}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <>
       <strong>{definition.label}</strong>
       <span>{definition.summary}</span>
       <span>{definition.details}</span>
       {glossaryHref ? <a className="keyword-tooltip-link" href={glossaryHref}>Open glossary</a> : null}
-    </span>
+    </>
   )
 }
 
-export function KeywordTerm({
-  keywordId,
+/**
+ * A word with a popover behind it: dotted underline, opens on hover, focus
+ * or a tap, closes with the other tooltips. The glossary terms are one use;
+ * a synergy partner named on a level-up card is another. The children are
+ * the popover's content; the positioned panel around them is this
+ * component's, so every term's popover behaves the same.
+ */
+export function HoverTerm({
   value,
-  glossaryHref,
+  ariaLabel,
+  className,
+  popoverClassName,
+  children,
 }: {
-  keywordId: KeywordId
-  value: string
-  glossaryHref?: string
+  value: ReactNode
+  ariaLabel: string
+  className?: string
+  popoverClassName?: string
+  children: ReactNode
 }) {
-  const definition = KEYWORD_DEFINITIONS[keywordId]
   const tooltipId = useId()
   const [open, setOpen] = useState(false)
   const closeTimeoutRef = useRef<number | null>(null)
@@ -117,12 +112,12 @@ export function KeywordTerm({
       onMouseLeave={scheduleClose}
     >
       <span
-        className="keyword-term"
+        className={className === undefined ? 'keyword-term' : `keyword-term ${className}`}
         ref={termRef}
         role="term"
         tabIndex={0}
         data-keyword-term="true"
-        aria-label={`${definition.label}: ${definition.summary}`}
+        aria-label={ariaLabel}
         aria-describedby={open ? tooltipId : undefined}
         onClick={toggle}
         onKeyDown={(event) => {
@@ -149,17 +144,41 @@ export function KeywordTerm({
         {value}
       </span>
       {open ? createPortal(
-        <KeywordPopover
-          keywordId={keywordId}
-          tooltipId={tooltipId}
+        <span
+          className={popoverClassName === undefined
+            ? tooltipClassName('keyword-tooltip')
+            : `${tooltipClassName('keyword-tooltip')} ${popoverClassName}`}
+          id={tooltipId}
+          role="tooltip"
           style={tooltipStyle}
-          glossaryHref={glossaryHref}
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
-        />,
+        >
+          {children}
+        </span>,
         document.body,
       ) : null}
     </span>
+  )
+}
+
+export function KeywordTerm({
+  keywordId,
+  value,
+  glossaryHref,
+}: {
+  keywordId: KeywordId
+  value: string
+  glossaryHref?: string
+}) {
+  const definition = KEYWORD_DEFINITIONS[keywordId]
+  return (
+    <HoverTerm
+      value={value}
+      ariaLabel={`${definition.label}: ${definition.summary}`}
+    >
+      <KeywordPopoverContent keywordId={keywordId} glossaryHref={glossaryHref} />
+    </HoverTerm>
   )
 }
 

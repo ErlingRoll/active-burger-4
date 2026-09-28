@@ -38,6 +38,8 @@ import { PixiGame } from './PixiGame'
 import { createGameSoundDirector } from '../audio/GameSoundDirector'
 import { soundEffects } from '../audio/SoundEffects'
 import type { BugReportDungeonContext, BugReportImage } from '../bug-report'
+import type { BuildPlan } from '../game/builds/BuildPlans'
+import type { BuildPlannerPanelProps, BuildPlannerRunContext } from './hud/BuildPlanner'
 
 interface GameCanvasProps {
   onRunEnd: (result: RunResultSnapshot, checkpoint: GameCheckpoint) => void
@@ -62,9 +64,38 @@ interface GameCanvasProps {
    * dev deployment sees a plain arena.
    */
   developmentToolsEnabled?: boolean
+  /** The player's saved build plans, from local settings. */
+  buildPlans?: readonly BuildPlan[]
+  /** The plan the level-up cards are marked against; null follows none. */
+  selectedBuildPlanId?: string | null
+  onSelectBuildPlan?: (planId: string | null) => void
+  onSaveBuildPlan?: (plan: BuildPlan) => void
+  onDeleteBuildPlan?: (planId: string) => void
 }
 
 const UI_UPDATE_INTERVAL_MS = 100
+const NO_BUILD_PLANS: readonly BuildPlan[] = []
+const noop = (): void => undefined
+
+/**
+ * What the planner measures a run against: the owned skills and the status
+ * of every upgrade the tooltip already reports, so the two never disagree.
+ */
+function buildPlannerRunContext(snapshot: GameUiSnapshot): BuildPlannerRunContext {
+  return {
+    ownedSkillIds: snapshot.skills.map((skill) => skill.skillId),
+    skillSlotCount: snapshot.skillSlotCount,
+    upgradeStatus: (upgradeId) => {
+      for (const skill of snapshot.skills) {
+        const upgrade = skill.upgrades.find((candidate) => candidate.upgradeId === upgradeId)
+        if (upgrade) {
+          return upgrade.status
+        }
+      }
+      return null
+    },
+  }
+}
 const MIN_CAST_PULSE_INTERVAL_MS = 240
 
 
@@ -138,6 +169,11 @@ export function GameCanvas({
   reportBugRunId,
   onSubmitBugReport,
   developmentToolsEnabled = false,
+  buildPlans = NO_BUILD_PLANS,
+  selectedBuildPlanId = null,
+  onSelectBuildPlan = noop,
+  onSaveBuildPlan = noop,
+  onDeleteBuildPlan = noop,
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   // Read by the mount-once effect below, which cannot see prop changes.
@@ -641,6 +677,14 @@ export function GameCanvas({
   }
 
   const phase = snapshot?.phase ?? 'loading'
+  const activeBuildPlan = buildPlans.find((plan) => plan.id === selectedBuildPlanId) ?? null
+  const buildPlanner: BuildPlannerPanelProps = {
+    plans: buildPlans,
+    selectedPlanId: selectedBuildPlanId,
+    onSelectPlan: onSelectBuildPlan,
+    onSavePlan: onSaveBuildPlan,
+    onDeletePlan: onDeleteBuildPlan,
+  }
   const dungeon: BugReportDungeonContext = {
     dungeonId: game?.state.run.dungeonId ?? runConfig?.dungeonId ?? 'unknown-dungeon',
     dungeonName: game?.dungeon.name ?? 'Unknown dungeon',
@@ -695,6 +739,7 @@ export function GameCanvas({
           keybinds={activeKeybinds}
           inspectorTab={inspectorTab}
           onInspectorTabChange={setInspectorTab}
+          buildPlanner={buildPlanner}
           onPause={pauseRun}
           onSelectBehaviorProfile={selectBehaviorProfile}
           onSelectTargetPriority={selectTargetPriority}
@@ -774,6 +819,7 @@ export function GameCanvas({
           keybinds={activeKeybinds}
           characterClassId={runConfig?.characterClassId ?? 'knight'}
           ownedSkillIds={snapshot?.skills.map((skill) => skill.skillId) ?? []}
+          activeBuildPlan={activeBuildPlan}
           equipment={snapshot?.equipment ?? {}}
           gearSets={snapshot?.gearSets ?? []}
           rerollsRemaining={snapshot?.rerollsRemaining ?? 0}
@@ -794,6 +840,7 @@ export interface GameplayHudProps {
   keybinds: GameKeybinds
   inspectorTab: HudInspectorTab | null
   onInspectorTabChange: (tab: HudInspectorTab | null) => void
+  buildPlanner: BuildPlannerPanelProps
   onPause: () => void
   onSelectBehaviorProfile: (profileId: BehaviorProfileId) => void
   onSelectTargetPriority: (priorityId: TargetPriorityId) => void
@@ -819,6 +866,7 @@ export function GameplayHud({
   keybinds,
   inspectorTab,
   onInspectorTabChange,
+  buildPlanner,
   onPause,
   onSelectBehaviorProfile,
   onSelectTargetPriority,
@@ -827,6 +875,12 @@ export function GameplayHud({
   onSetCriticalSpellstrikeTarget,
   onSetBloodRiteTarget,
 }: GameplayHudProps) {
+  // The planner measures the plan against this snapshot, so the run context
+  // is attached here where the snapshot is, not by whoever passes the plans.
+  const plannerProps: BuildPlannerPanelProps = {
+    ...buildPlanner,
+    run: buildPlanner.run ?? buildPlannerRunContext(snapshot),
+  }
   // Held here rather than inside each panel: only one tooltip may be open
   // across the three, and they share one close timer.
   const tooltips = useHudTooltips()
@@ -1009,6 +1063,7 @@ export function GameplayHud({
           <HudInspector
             snapshot={snapshot}
             tooltips={tooltips}
+            buildPlanner={plannerProps}
             tab={inspectorTab}
             onTabChange={onInspectorTabChange}
             onClose={() => onInspectorTabChange(null)}
@@ -1021,6 +1076,8 @@ export function GameplayHud({
             snapshot={snapshot}
             castPulseIds={castPulseIds}
             tooltips={tooltips}
+            activeBuildPlan={buildPlanner.plans.find((plan) =>
+              plan.id === buildPlanner.selectedPlanId) ?? null}
             onSetMirrorcastTarget={onSetMirrorcastTarget}
             onSetCriticalSpellstrikeTarget={onSetCriticalSpellstrikeTarget}
             onSetBloodRiteTarget={onSetBloodRiteTarget}

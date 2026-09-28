@@ -268,9 +268,12 @@ never unachievable with the content the player owns.
 requires content the account cannot reach, and collection state can be rebuilt
 from recorded events.
 
-## Phase 11: Consignment shop — done
+## Phase 11: Consignment shop — done, then removed 2026-09-28
 
 Stage one of the market, and the prerequisite for the Camp's material prices.
+Removed once the Camp had given timber and stone their own sources and sinks;
+the price bands, shelf and functions are dropped, and the two sale contracts
+retired.
 See [marketplace.md](marketplace.md).
 
 - Content-defined price bands per item definition, adjusted by rarity and roll.

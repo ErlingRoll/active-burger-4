@@ -24,6 +24,8 @@ export interface SettingsPatch {
   selectedWorldModifierIds?: SettingsDto['selectedWorldModifierIds']
   selectedCharacterClassId?: SettingsDto['selectedCharacterClassId']
   keybinds?: SettingsDto['keybinds']
+  buildPlans?: SettingsDto['buildPlans']
+  selectedBuildPlanId?: SettingsDto['selectedBuildPlanId']
 }
 
 export interface PersistenceRepository {

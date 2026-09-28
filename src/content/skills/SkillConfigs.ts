@@ -1,4 +1,5 @@
 import type { WeaponArchetype } from '../gear/Items'
+import type { KeywordId } from '../glossary/Keywords'
 import type { PartialDamageValues } from '../stats/Damage'
 import type { ProjectileDefinitionId } from '../projectiles/Projectiles'
 import { BASIC_ATTACK_VARIANTS } from '../../game-config/skills'
@@ -73,6 +74,19 @@ export interface SkillDefinition {
   description: string
   kind: SkillKind
   tags: readonly SkillTag[]
+  /**
+   * Enemy statuses this skill puts on a target at its base, before any
+   * evolution: the glossary keywords for Chill, Burning, Shock and the like.
+   * Paired with `consumes` on other skills, it is how the game tells a player
+   * that Glacial Orb sets up every physical skill's Shatter without anyone
+   * writing that sentence by hand.
+   */
+  applies?: readonly KeywordId[]
+  /**
+   * Enemy statuses this skill does something extra against. A physical skill
+   * Shatters a Frozen enemy, so every physical skill lists Freeze here.
+   */
+  consumes?: readonly KeywordId[]
   /** Whether this skill or its owned summons can produce direct-hit effects. */
   canProduceDirectHit: boolean
   /** Whether an armed Mirrorcast should capture and copy this skill. */

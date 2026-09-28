@@ -51,6 +51,7 @@ import { useSeededLoad } from '../ui/useSeededLoad'
 import type { InventoryScreenData } from './loadInventoryScreen'
 import { selectLootBoxesToOpen, stackLootBoxes } from './LootBoxStacks'
 import { getRewardIcon } from './RewardIcon'
+import { HintHover } from '../rendering/HintTooltip'
 import { useLootBoxOpening } from './useLootBoxOpening'
 
 interface LootBoxScreenProps {
@@ -606,21 +607,25 @@ export function InventoryScreen({
                           lock the item: salvaging it from here is a decision
                           about this one item, which is what the star was
                           reserving the item for. */}
-                      <button
-                        className="inventory-inspector-favorite"
-                        type="button"
-                        aria-pressed={selectedIsFavorite}
-                        disabled={busy}
-                        title={selectedFavoriteScope === 'definition'
+                      <HintHover
+                        mode="hover"
+                        hint={selectedFavoriteScope === 'definition'
                           ? `Keeps every ${getInventoryItemName(selectedItem)} out of salvage sweeps`
                           : 'Keeps this item out of salvage sweeps'}
-                        onClick={() => { void toggleFavorite(selectedItem) }}
                       >
-                        <span aria-hidden="true">{selectedIsFavorite ? '★' : '☆'}</span>
-                        {favoritingItemInstanceId === selectedItem.itemInstanceId
-                          ? 'Saving…'
-                          : selectedIsFavorite ? 'Favorited' : 'Favorite'}
-                      </button>
+                        <button
+                          className="inventory-inspector-favorite"
+                          type="button"
+                          aria-pressed={selectedIsFavorite}
+                          disabled={busy}
+                          onClick={() => { void toggleFavorite(selectedItem) }}
+                        >
+                          <span aria-hidden="true">{selectedIsFavorite ? '★' : '☆'}</span>
+                          {favoritingItemInstanceId === selectedItem.itemInstanceId
+                            ? 'Saving…'
+                            : selectedIsFavorite ? 'Favorited' : 'Favorite'}
+                        </button>
+                      </HintHover>
                       {selectedIsSalvageable ? (
                         <button
                           className="primary-action inventory-inspector-salvage"

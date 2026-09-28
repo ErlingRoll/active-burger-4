@@ -34,7 +34,7 @@ function createInitialMetaProgressionState(
  * The Essence wallet and the account's unlocks.
  *
  * Loaded when an account is present and the run is not on screen, and again
- * whenever something asks for a fresh read: a sign-in, a sale at the shop,
+ * whenever something asks for a fresh read: a sign-in, an Essence grant,
  * a run's reward. The two attempt counters are how a request for a reload is
  * told apart from a load that already answered.
  */

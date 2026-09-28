@@ -64,6 +64,7 @@ import type {
 import {
   getUpgradeDefinition,
   isSynergyUpgradeDefinition,
+  isSynergyUpgradeId,
   REMOVE_SKILL_UPGRADE_ID,
   REMOVE_SYNERGY_UPGRADE_ID,
 } from '../content/upgrades/Upgrades'
@@ -2112,6 +2113,14 @@ export class Game {
       this.random,
       this.synergyRandom,
     )
+    // Pity for the synergy roll: an offer that could have held one and did
+    // not lengthens the drought, and one that did ends it.
+    const run = this.gameState.run
+    run.synergyOfferDrought =
+      getEligibleSynergyDefinitions(this.gameState).length === 0 ||
+      choices.some((choice) => isSynergyUpgradeId(choice.upgradeId))
+        ? 0
+        : (run.synergyOfferDrought ?? 0) + 1
     return applyChartedChoices(
       this.gameState,
       choices,

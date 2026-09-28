@@ -432,6 +432,23 @@
   text-align: left;
 }
 
+/*
+ * The one-line hint: what a native `title` used to say, drawn in the
+ * keyword tooltip's type and shell so it belongs beside them.
+ */
+.hint-tooltip {
+  position: fixed;
+  z-index: 30;
+  width: max-content;
+  max-width: min(19rem, calc(100vw - 1.5rem));
+  padding: 0.45rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+}
+
 .keyword-tooltip strong {
   color: var(--color-stone-50);
   font-size: 0.82rem;
@@ -4174,4 +4191,252 @@
 
 .development-section .end-run-button {
   margin: 0;
+}
+
+/*
+ * Planned cards.
+ *
+ * A card that belongs to the build plan the player is following carries a
+ * rose bookmark: a colour outside the rarity ramp and away from the teal of a
+ * synergy card, so a planned Common never reads as something rarer, and a
+ * shape cue in the corner for anyone who does not see the colour. The badge
+ * sits in the header row, where a phone's single column shows it first.
+ *
+ * The ribbon sticks up out of the card's top edge, the way a bookmark stands
+ * out of a closed book: half of it above the card, where it costs the text
+ * nothing, and half across the rarity stripe into the top padding, which it
+ * never reaches past. Tucked into the title's corner it read as a speck on
+ * the first letter, and a gutter cut out for it cost every line its width.
+ *
+ * Card and ribbon both glow, so a planned card can be picked out of the row
+ * before any of it is read.
+ */
+.choice-card.planned-card {
+  box-shadow:
+    0 0 0 2px rgb(253 164 175 / 80%),
+    0 0 1.1rem rgb(251 113 133 / 55%),
+    0 0 2.6rem rgb(251 113 133 / 30%),
+    inset 0 0 1.4rem rgb(251 113 133 / 14%);
+}
+
+/*
+ * The ribbon is drawn with borders rather than cut out with a clip-path,
+ * because a clip-path clips the glow along with the shape. A box with no width
+ * is its two side borders, the darker left one the ribbon's fold, and the
+ * transparent bottom border mitres their ends into the notched tail; the
+ * drop-shadow then follows that outline.
+ */
+.choice-card.planned-card::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -0.75rem;
+  left: 0.7rem;
+  box-sizing: content-box;
+  width: 0;
+  height: 1.1rem;
+  border-right: 0.5rem solid var(--color-rose-300);
+  border-bottom: 0.35rem solid transparent;
+  border-left: 0.5rem solid var(--color-rose-400);
+  filter:
+    drop-shadow(0 0 0.2rem rgb(253 164 175 / 90%))
+    drop-shadow(0 0 0.7rem rgb(251 113 133 / 75%));
+  pointer-events: none;
+}
+
+.planned-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  color: var(--color-rose-200);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgb(251 113 133 / 16%);
+  border: 1px solid rgb(253 164 175 / 60%);
+  border-radius: 999px;
+}
+
+.planned-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.35rem;
+  color: var(--color-rose-200);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  border: 1px solid rgb(253 164 175 / 60%);
+  border-radius: 999px;
+}
+
+/* The partner lines on an unlock card: synergy partners and status partners. */
+.upgrade-status-partners {
+  color: var(--color-sky-200);
+}
+
+/* A skill is orange wherever a card names one, partner lines included. */
+.upgrade-synergy-partner,
+.skill-status-partner,
+.skill-synergy-partner-name {
+  color: var(--color-orange-400);
+}
+
+.upgrade-synergy-partner-owned {
+  margin-left: 0.15rem;
+  color: var(--color-green-400);
+}
+
+.upgrade-synergy-partner-keywords {
+  color: var(--color-slate-400);
+  font-weight: 600;
+}
+
+.upgrade-synergy-partners-more {
+  display: none;
+  color: var(--color-slate-400);
+}
+
+/* A phone folds the tail of a long partner line; a wider card shows it all. */
+@media (max-width: 47.99rem) {
+  .upgrade-synergy-partner-overflow {
+    display: none;
+  }
+
+  .upgrade-synergy-partners-more {
+    display: inline;
+  }
+}
+
+.upgrade-synergy-slot-note {
+  color: var(--color-slate-400);
+  font-size: 0.72rem;
+}
+
+.skill-tag-status {
+  color: var(--color-sky-100);
+  border-color: rgb(56 189 248 / 55%);
+}
+
+a.skill-tag {
+  text-decoration: none;
+}
+
+/* The skill tooltip's synergy and status sections. */
+.skill-synergy-slot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.2rem 0;
+}
+
+.skill-synergy-slot b {
+  color: var(--color-teal-200);
+}
+
+.skill-upgrade-subheading {
+  margin: 0.4rem 0 0.15rem;
+  color: var(--color-teal-200);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.skill-synergy-options li span {
+  color: var(--color-slate-300);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.skill-status-section {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgb(56 189 248 / 35%);
+}
+
+.skill-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.skill-status-row .skill-tag-list {
+  margin: 0;
+}
+
+.skill-status-label {
+  flex: 0 0 auto;
+  color: var(--color-slate-400);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.skill-status-partners {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+}
+
+
+/* The wiki's status lines on a skill card. */
+.wiki-status-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+
+.wiki-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.wiki-status-line > span {
+  color: var(--color-slate-400);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* A synergy partner on a level-up card: the glossary's dotted underline, in
+   the synergy teal, with the synergy card itself in the popover. */
+.keyword-term.synergy-term {
+  color: inherit;
+}
+
+.synergy-tooltip {
+  gap: 0.5rem;
+}
+
+.synergy-tooltip-entry {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.synergy-tooltip-entry + .synergy-tooltip-entry {
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(var(--accent-rgb) / 30%);
+}
+
+.synergy-tooltip-pair {
+  color: var(--color-teal-200);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.synergy-tooltip-value {
+  color: var(--color-slate-300);
+  font-weight: 700;
 }

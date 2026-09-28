@@ -3,6 +3,7 @@ import { describeContractObjective, getContractDefinition, scaleContractReward }
 import { getInventoryItemDefinition } from '../inventory/ItemDefinitions'
 import { ResourceHover } from '../loot/ResourceTooltip'
 import { getRewardIcon } from '../loot/RewardIcon'
+import { HintHover } from '../rendering/HintTooltip'
 import { useToaster } from '../ui/ToasterContext'
 import { useNow } from '../ui/useNow'
 import { formatTimeLeft, getContractsByCadence, isContractComplete } from './ContractTypes'
@@ -97,7 +98,11 @@ function ContractRow({ assignment, busy, onClaim }: ContractRowProps) {
               </ResourceHover>
             </li>
           ))}
-          {halved ? <li className="hub-contract-repeat" title="Dealt again today: half pay">½</li> : null}
+          {halved ? (
+            <li className="hub-contract-repeat">
+              <HintHover hint="Dealt again today: half pay">½</HintHover>
+            </li>
+          ) : null}
         </ul>
         {claimed ? (
           <span className="hub-contract-claimed">Claimed</span>
