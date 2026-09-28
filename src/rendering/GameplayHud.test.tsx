@@ -390,6 +390,19 @@ describe('the build planner', () => {
     expect(onSavePlan).toHaveBeenCalledTimes(1)
     expect(onSavePlan.mock.calls[0]?.[0]).toMatchObject({ skillIds: ['glacial-orb'] })
   })
+
+  it('sketches a skill\'s unplanned partners and plans the pair in one click', async () => {
+    const { user } = renderHud(snapshotFromGame(), 'build')
+
+    const inspector = within(screen.getByRole('dialog', { name: /run details/i }))
+    await user.click(inspector.getByRole('button', { name: /new build/i }))
+    await user.click(inspector.getByRole('button', { name: /^chain lightning$/i }))
+    await user.click(inspector.getByRole('button', { name: /^add glacial orb and plan/i }))
+
+    expect(inspector.getByRole('button', { name: /^glacial orb$/i })).toHaveAttribute('aria-pressed', 'true')
+    const synergy = within(inspector.getByRole('list', { name: /^chain lightning synergy$/i }))
+    expect(synergy.getAllByRole('button', { pressed: true })).toHaveLength(1)
+  })
 })
 
 describe('the skill tooltip', () => {

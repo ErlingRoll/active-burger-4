@@ -18,9 +18,12 @@ import {
   getPlannableSkillIds,
   getPlannableSynergies,
   getPlannableUpgrades,
+  getSketchedSynergies,
+  getSynergyPartner,
   normalizeBuildPlanName,
   withPlanName,
   withPlanSkill,
+  withPlanSynergy,
   withPlanUpgrade,
   type BuildPlan,
   type BuildPlanRunState,
@@ -180,7 +183,14 @@ function UpgradeCard({
   )
 }
 
-function SynergyCard({ synergy }: { synergy: SynergyUpgradeDefinition }) {
+function SynergyCard({
+  synergy,
+  adds,
+}: {
+  synergy: SynergyUpgradeDefinition
+  /** For a sketched synergy, the skill picking it adds to the plan. */
+  adds?: SkillId
+}) {
   return (
     <>
       <span className="build-plan-tooltip-kicker" data-kind="synergy">
@@ -189,6 +199,9 @@ function SynergyCard({ synergy }: { synergy: SynergyUpgradeDefinition }) {
       <strong>{synergy.name}</strong>
       <span>{synergy.description}</span>
       <span className="build-plan-tooltip-value">{synergy.valueLabel}</span>
+      {adds ? (
+        <span className="build-plan-tooltip-note">Adds {skillName(adds)} to the plan</span>
+      ) : null}
     </>
   )
 }
@@ -523,8 +536,10 @@ function BuildPlanEditor({
                   synergies={synergies.filter((synergy) =>
                     synergy.synergySkillIds.includes(group.skillId),
                   )}
+                  sketched={atCapacity ? [] : getSketchedSynergies(group.skillId, draft.skillIds)}
                   plannedSet={plannedSet}
                   onToggle={toggle}
+                  onPlanSynergy={(synergyId) => onChange(withPlanSynergy(draft, synergyId))}
                   onRemove={group.skillId === BASIC_ATTACK_SKILL_ID
                     ? undefined
                     : () => onChange(withPlanSkill(draft, group.skillId, false))}
@@ -589,20 +604,31 @@ function BuildPlanEditor({
  * One skill's plate on the sheet: its name, then a row per kind of upgrade.
  * A synergy belongs to two skills, so it shows on both plates, inked on both
  * when planned; that is the slot each of them spends on it.
+ *
+ * The synergy row also sketches the pairs the plan does not reach yet, those
+ * whose other skill is still in the catalogue. Picking one adds that skill
+ * and inks the synergy in one move, so a player looking at a skill can find
+ * what it combines with where they are looking rather than by hovering every
+ * tile in the catalogue.
  */
 function BuildPlanPlate({
   skillId,
   upgrades,
   synergies,
+  sketched,
   plannedSet,
   onToggle,
+  onPlanSynergy,
   onRemove,
 }: {
   skillId: SkillId
   upgrades: readonly UpgradeDefinition[]
   synergies: readonly SynergyUpgradeDefinition[]
+  /** Synergies whose other skill is not planned; empty when the plan is full. */
+  sketched: readonly SynergyUpgradeDefinition[]
   plannedSet: ReadonlySet<UpgradeId>
   onToggle: (upgradeId: UpgradeId) => void
+  onPlanSynergy: (synergyId: UpgradeId) => void
   onRemove: (() => void) | undefined
 }) {
   const name = skillName(skillId)
@@ -663,11 +689,10 @@ function BuildPlanPlate({
           </PlateRow>
         )
       })}
-      {synergies.length > 0 ? (
+      {synergies.length > 0 || sketched.length > 0 || skillId === BASIC_ATTACK_SKILL_ID ? (
         <PlateRow label="Synergy" kind="synergy" pickOne listLabel={`${name} synergy`}>
           {synergies.map((synergy) => {
-            const partnerSkillId = synergy.synergySkillIds.find((candidate) => candidate !== skillId)
-              ?? skillId
+            const partnerSkillId = getSynergyPartner(synergy, skillId)
             return (
               <PlanChip
                 key={synergy.id}
@@ -681,6 +706,32 @@ function BuildPlanPlate({
               </PlanChip>
             )
           })}
+          {sketched.map((synergy) => {
+            const partnerSkillId = getSynergyPartner(synergy, skillId)
+            return (
+              <PlanChip
+                key={synergy.id}
+                planned={false}
+                sketched
+                setAside={synergyTaken}
+                label={`Add ${skillName(partnerSkillId)} and plan ${synergy.name}`}
+                card={<SynergyCard synergy={synergy} adds={partnerSkillId} />}
+                onToggle={() => onPlanSynergy(synergy.id)}
+              >
+                <span className="build-plan-chip-partner">
+                  <SkillIcon skillId={partnerSkillId} size={14} />
+                  {skillName(partnerSkillId)}
+                </span>
+                <span aria-hidden="true" className="build-plan-chip-joint">·</span>
+                <span className="build-plan-chip-name">{synergy.name}</span>
+              </PlanChip>
+            )
+          })}
+          {skillId === BASIC_ATTACK_SKILL_ID ? (
+            <li className="build-plan-row-hint">
+              {synergies.length > 0 ? 'Every other skill has one too' : 'Every skill has one with Basic Attack'}
+            </li>
+          ) : null}
         </PlateRow>
       ) : null}
     </li>
@@ -719,19 +770,25 @@ function PlateRow({
 }
 
 /**
- * An option on a plate: pencilled while it is only possible, inked once it
- * is planned, and set aside when it shares a pick-one row with the one that
- * was. A set-aside option still takes a click, which swaps it in.
+ * An option on a plate: sketched while it needs another skill first,
+ * pencilled while it is only possible, inked once it is planned, and set
+ * aside when it shares a pick-one row with the one that was. A set-aside
+ * option still takes a click, which swaps it in.
  */
 function PlanChip({
   planned,
+  sketched = false,
   setAside,
+  label,
   card,
   onToggle,
   children,
 }: {
   planned: boolean
+  sketched?: boolean
   setAside: boolean
+  /** An accessible name, where the visible text alone would not say what a click does. */
+  label?: string
   card: ReactNode
   onToggle: () => void
   children: ReactNode
@@ -740,9 +797,12 @@ function PlanChip({
     <li>
       <BuildPlanHover card={card}>
         <button
-          className={`build-plan-chip${planned ? ' planned' : setAside ? ' set-aside' : ''}`}
+          className={`build-plan-chip${sketched ? ' sketched' : ''}${
+            planned ? ' planned' : setAside ? ' set-aside' : ''
+          }`}
           type="button"
           aria-pressed={planned}
+          aria-label={label}
           onClick={onToggle}
         >
           {children}

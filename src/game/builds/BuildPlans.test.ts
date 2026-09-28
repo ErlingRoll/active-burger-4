@@ -13,10 +13,13 @@ import {
   getPlannableSkillIds,
   getPlannableSynergies,
   getPlannableUpgrades,
+  getSketchedSynergies,
+  getSynergyPartner,
   isChoicePlanned,
   normalizeBuildPlans,
   withPlanName,
   withPlanSkill,
+  withPlanSynergy,
   withPlanUpgrade,
   type BuildPlan,
 } from './BuildPlans'
@@ -89,6 +92,23 @@ describe('build plans', () => {
     // A Basic Attack evolution is another skill's branch and sits beside it.
     const both = withPlanUpgrade(guard, 'basic-attack-lightning-attunement', true)
     expect(both.upgradeIds).toEqual(['whirlwind-guard', 'basic-attack-lightning-attunement'])
+  })
+
+  it('sketches the synergies one more skill would open, and plans one with its partner', () => {
+    const plan = withPlanSkill(EMPTY, CHAIN_LIGHTNING_SKILL_ID, true)
+    const sketched = getSketchedSynergies(CHAIN_LIGHTNING_SKILL_ID, plan.skillIds)
+    const partners = sketched.map((synergy) => getSynergyPartner(synergy, CHAIN_LIGHTNING_SKILL_ID))
+    expect(partners).toContain(GLACIAL_ORB_SKILL_ID)
+    // Basic Attack is always planned, so its pair is pencilled, not sketched.
+    expect(partners).not.toContain(BASIC_ATTACK_SKILL_ID)
+    expect(getSketchedSynergies(BASIC_ATTACK_SKILL_ID, plan.skillIds)).toEqual([])
+
+    const stormfrost = sketched.find((synergy) => synergy.synergySkillIds.includes(GLACIAL_ORB_SKILL_ID))!
+    const planned = withPlanSynergy(plan, stormfrost.id)
+    expect(planned.skillIds).toEqual([CHAIN_LIGHTNING_SKILL_ID, GLACIAL_ORB_SKILL_ID])
+    expect(planned.upgradeIds).toEqual([stormfrost.id])
+    expect(getSketchedSynergies(CHAIN_LIGHTNING_SKILL_ID, planned.skillIds)
+      .some((synergy) => synergy.id === stormfrost.id)).toBe(false)
   })
 
   it('lets a name be cleared while editing and caps its length', () => {

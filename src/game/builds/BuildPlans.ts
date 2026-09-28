@@ -203,6 +203,39 @@ export function getPlannableSynergies(
   return SYNERGY_UPGRADES.filter((synergy) => isUpgradeInPlanScope(synergy, skillIds))
 }
 
+/**
+ * The synergies a planned skill could hold if the plan took one more skill:
+ * those whose other skill is not planned yet. Basic Attack pairs with every
+ * skill, so listing its would only repeat the catalogue.
+ */
+export function getSketchedSynergies(
+  skillId: SkillId,
+  skillIds: readonly SkillId[],
+): SynergyUpgradeDefinition[] {
+  if (skillId === BASIC_ATTACK_SKILL_ID) {
+    return []
+  }
+  return SYNERGY_UPGRADES.filter((synergy) =>
+    synergy.synergySkillIds.includes(skillId) && !isUpgradeInPlanScope(synergy, skillIds),
+  )
+}
+
+/** The other skill of a synergy, seen from one of its two. */
+export function getSynergyPartner(synergy: SynergyUpgradeDefinition, skillId: SkillId): SkillId {
+  return synergy.synergySkillIds.find((candidate) => candidate !== skillId) ?? skillId
+}
+
+/**
+ * Plans a synergy, adding whichever of its skills the plan lacks first, so a
+ * pair can be planned from the skill already on the sheet in one move.
+ */
+export function withPlanSynergy(plan: BuildPlan, synergyId: UpgradeId): BuildPlan {
+  const definition = getUpgradeDefinition(synergyId)
+  const withSkills = (definition.synergySkillIds ?? [])
+    .reduce((draft, skillId) => withPlanSkill(draft, skillId, true), plan)
+  return withPlanUpgrade(withSkills, synergyId, true)
+}
+
 export function withPlanSkill(plan: BuildPlan, skillId: SkillId, planned: boolean): BuildPlan {
   if (skillId === BASIC_ATTACK_SKILL_ID) {
     return plan

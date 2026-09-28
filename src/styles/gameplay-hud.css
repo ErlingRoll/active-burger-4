@@ -1939,6 +1939,56 @@
   opacity: 1;
 }
 
+/*
+ * Sketched: a pair the plan does not reach yet, because its other skill is
+ * still in the catalogue. Lighter than pencil, dotted rather than dashed, and
+ * a plus where the ring would be, since picking it adds that skill; the skill
+ * it adds is named in the skill orange.
+ */
+/* On a phone a sketched chip breaks between the skill and the synergy, never
+   inside either name. */
+.build-plan-chip.sketched {
+  flex-wrap: wrap;
+  row-gap: 0.1rem;
+  color: var(--color-stone-400);
+  border-radius: 0.8rem;
+  border-style: dotted;
+  border-color: rgb(var(--kind-rgb) / 34%);
+}
+
+.build-plan-chip.sketched::before {
+  width: auto;
+  height: auto;
+  content: '+';
+  color: var(--kind);
+  font-weight: 900;
+  line-height: 1;
+  border: none;
+  border-radius: 0;
+}
+
+.build-plan-chip-partner,
+.build-plan-chip-name {
+  white-space: nowrap;
+}
+
+.build-plan-chip-partner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--color-orange-400);
+}
+
+.build-plan-chip-joint {
+  color: var(--color-stone-500);
+}
+
+.build-plan-row-hint {
+  align-self: center;
+  color: var(--color-stone-500);
+  font-size: calc(0.66rem * var(--planner-scale));
+}
+
 .build-plan-skill.planned {
   color: var(--color-orange-50);
   background: rgb(251 146 60 / 16%);
