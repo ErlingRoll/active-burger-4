@@ -1500,6 +1500,16 @@
   align-items: stretch;
 }
 
+/* The reel-in warning's trigger stretches like the button it wraps did. */
+.pond-cast-hover {
+  display: flex;
+  align-items: stretch;
+}
+
+.pond-cast-hover > .pond-cast-button {
+  flex: 1 1 auto;
+}
+
 .pond-cast-button {
   position: relative;
   overflow: hidden;

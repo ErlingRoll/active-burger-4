@@ -1,4 +1,4 @@
-import { afterEach } from 'vitest'
+import { afterEach, expect } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import 'fake-indexeddb/auto'
@@ -63,5 +63,15 @@ if (typeof window !== 'undefined') {
 }
 
 afterEach(() => {
+  // A native `title` is the browser's tooltip, which the project never uses
+  // (see tests/nativeTooltips.test.ts). Every component spec doubles as a
+  // check on the rendered DOM, which catches what a source scan cannot: a
+  // title arriving through a props spread or a DOM write.
+  const nativeTitles = typeof document === 'undefined'
+    ? []
+    : [...document.querySelectorAll('[title]')].map((element) =>
+        `<${element.tagName.toLowerCase()} title="${element.getAttribute('title') ?? ''}">`,
+      )
   cleanup()
+  expect(nativeTitles, 'native title attributes rendered; use HoverTooltip').toEqual([])
 })

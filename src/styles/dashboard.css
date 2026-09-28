@@ -2590,6 +2590,16 @@
   width: min(100%, 16rem);
 }
 
+/* The hover card's trigger takes the grid cell; the path fills it as before. */
+.hub-path-hover {
+  display: flex;
+  min-width: 0;
+}
+
+.hub-path-hover > .hub-path {
+  flex: 1 1 auto;
+}
+
 .hub-path {
   display: flex;
   gap: 0.45rem;

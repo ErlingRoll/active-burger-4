@@ -518,7 +518,14 @@
   gap: 0.05rem;
 }
 
-/* A milestone floor rules three rarities out; they stay in the row, dimmed,
+.abyss-loot-odds-hover {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+}
+
+/* A milestone floor rules three rarities out;
+ they stay in the row, dimmed,
    so the row keeps its width and the promise reads as a promise. */
 .abyss-loot-odds-item[data-impossible='true'] {
   opacity: 0.38;
@@ -559,6 +566,17 @@
   border: 1px solid rgb(var(--accent-rgb) / 30%);
   border-radius: 0.3rem 0.55rem 0.42rem 0.5rem;
   cursor: pointer;
+}
+
+/* The hover card's trigger sits in the strip; the button fills it and keeps
+   its height from the strip as before. */
+.hud-toolbar-hover {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.hud-toolbar-hover > .hud-toolbar-button {
+  flex: 1 1 auto;
 }
 
 .hud-toolbar-button {
@@ -1647,6 +1665,68 @@
 
 .build-plan-chip-synergy .build-plan-chip-kind {
   color: var(--color-teal-300);
+}
+
+/*
+ * The hover cards behind the editor's buttons.
+ *
+ * The trigger is the shared tooltip's span wrapped around the whole button,
+ * so it takes the button's shape: a block in the skill grid, where the tile
+ * is as wide as its cell, and an inline chip in the chip lists. The card is
+ * the keyword tooltip's size and type, with a kicker for what kind of thing
+ * it describes.
+ */
+.build-plan-hover {
+  display: block;
+  min-width: 0;
+}
+
+.build-plan-chip-list .build-plan-hover,
+.build-plan-choice-skills .build-plan-hover {
+  display: inline-flex;
+}
+
+.build-plan-tooltip {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  width: min(19rem, calc(100vw - 1.5rem));
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+}
+
+.build-plan-tooltip strong {
+  color: var(--color-stone-50);
+  font-size: 0.82rem;
+}
+
+.build-plan-tooltip-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.build-plan-tooltip-kicker {
+  color: var(--color-teal-300);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.build-plan-tooltip-note {
+  color: var(--color-sky-200);
+  font-weight: 700;
+}
+
+.build-plan-tooltip-value {
+  color: var(--color-slate-300);
+  font-weight: 700;
 }
 
 .build-plan-pairing-list {

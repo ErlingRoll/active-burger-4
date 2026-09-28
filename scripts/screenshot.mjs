@@ -299,6 +299,16 @@ async function capture(browser, options, viewport, outputDirectory) {
     await page.waitForTimeout(300)
   }
 
+  // A native `title` is the browser's tooltip, which the project never uses;
+  // a real screen is the one place a title from outside the component tree
+  // would show up, so it is reported beside the console errors.
+  const nativeTitles = await page.evaluate(() =>
+    [...document.querySelectorAll('[title]')].map((element) =>
+      `native tooltip: <${element.tagName.toLowerCase()} title="${element.getAttribute('title') ?? ''}">`,
+    ),
+  )
+  problems.push(...nativeTitles)
+
   const file = path.join(outputDirectory, `${viewport.label}.png`)
   await page.screenshot({ path: file, fullPage: options.full })
   await context.close()
@@ -322,7 +332,7 @@ async function main() {
       )
       console.log(file)
       for (const problem of new Set(problems)) {
-        console.log(`  console error: ${problem}`)
+        console.log(`  ${problem.startsWith('native tooltip: ') ? problem : `console error: ${problem}`}`)
       }
     }
   } finally {

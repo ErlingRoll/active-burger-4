@@ -432,6 +432,23 @@
   text-align: left;
 }
 
+/*
+ * The one-line hint: what a native `title` used to say, drawn in the
+ * keyword tooltip's type and shell so it belongs beside them.
+ */
+.hint-tooltip {
+  position: fixed;
+  z-index: 30;
+  width: max-content;
+  max-width: min(19rem, calc(100vw - 1.5rem));
+  padding: 0.45rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+}
+
 .keyword-tooltip strong {
   color: var(--color-stone-50);
   font-size: 0.82rem;

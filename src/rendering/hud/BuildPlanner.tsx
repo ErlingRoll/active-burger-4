@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   BASIC_ATTACK_SKILL_ID,
   getSkillDefinition,
   type SkillId,
 } from '../../content/skills/Skills'
-import type { UpgradeId } from '../../content/upgrades/Upgrades'
+import type {
+  SynergyUpgradeDefinition,
+  UpgradeDefinition,
+  UpgradeId,
+} from '../../content/upgrades/Upgrades'
 import {
   BUILD_PLAN_NAME_MAX_LENGTH,
   createBuildPlan,
@@ -22,6 +26,7 @@ import {
 } from '../../game/builds/BuildPlans'
 import { getSkillStatusPartners } from '../../content/skills/SkillInteractions'
 import { KEYWORD_DEFINITIONS } from '../../content/glossary/Keywords'
+import { HoverTooltip } from '../HoverTooltip'
 import { SkillIcon } from '../SkillIcon'
 
 /**
@@ -61,6 +66,94 @@ const STATUS_LABELS: Readonly<Record<BuildPlanTargetStatus, string>> = {
 
 function skillName(skillId: SkillId): string {
   return getSkillDefinition(skillId).name
+}
+
+/**
+ * The cards behind the editor's buttons.
+ *
+ * A skill tile, an upgrade chip and a synergy chip each carry a card the
+ * shared hover tooltip shows, so the planner explains its choices the way
+ * the level-up cards and the skill bar do, on a phone as much as a desktop,
+ * instead of leaving it to a native `title` that neither styles nor taps.
+ * The trigger wraps the whole button in `hover` mode so the tap still goes
+ * to the button and toggles the plan.
+ */
+function BuildPlanHover({
+  card,
+  className,
+  children,
+}: {
+  card: ReactNode
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <HoverTooltip
+      variant="build-plan-tooltip"
+      mode="hover"
+      className={className ? `build-plan-hover ${className}` : 'build-plan-hover'}
+      card={card}
+    >
+      {children}
+    </HoverTooltip>
+  )
+}
+
+function SkillCard({
+  skillId,
+  partnerSkillIds = [],
+}: {
+  skillId: SkillId
+  /** Planned skills this one has a status pairing with. */
+  partnerSkillIds?: readonly SkillId[]
+}) {
+  const skill = getSkillDefinition(skillId)
+  return (
+    <>
+      <span className="build-plan-tooltip-heading">
+        <SkillIcon skillId={skillId} size={16} />
+        <strong>{skill.name}</strong>
+      </span>
+      <span>{skill.description}</span>
+      {partnerSkillIds.length > 0 ? (
+        <span className="build-plan-tooltip-note">
+          Works with {partnerSkillIds.map(skillName).join(', ')}
+        </span>
+      ) : null}
+    </>
+  )
+}
+
+function UpgradeCard({
+  upgrade,
+  kind,
+}: {
+  upgrade: UpgradeDefinition
+  kind: string
+}) {
+  return (
+    <>
+      <span className="build-plan-tooltip-kicker">
+        {kind}{upgrade.skillId ? ` · ${skillName(upgrade.skillId)}` : ''}
+      </span>
+      <strong>{upgrade.name}</strong>
+      <span>{upgrade.description}</span>
+      <span className="build-plan-tooltip-value">{upgrade.valueLabel}</span>
+    </>
+  )
+}
+
+function SynergyCard({ synergy }: { synergy: SynergyUpgradeDefinition }) {
+  return (
+    <>
+      <span className="build-plan-tooltip-kicker">
+        Synergy · {synergy.synergySkillIds.map(skillName).join(' + ')}
+      </span>
+      <strong>{synergy.name}</strong>
+      <span>{synergy.description}</span>
+      <span className="build-plan-tooltip-value">{synergy.valueLabel}</span>
+    </>
+  )
 }
 
 export function BuildPlannerPanel({
@@ -150,9 +243,13 @@ export function BuildPlannerPanel({
                   <span className="build-plan-choice-name">{plan.name}</span>
                   <span className="build-plan-choice-skills" aria-label="Planned skills">
                     {plan.skillIds.map((skillId) => (
-                      <span className="build-plan-choice-skill" key={skillId} title={skillName(skillId)}>
+                      <BuildPlanHover
+                        className="build-plan-choice-skill"
+                        card={<SkillCard skillId={skillId} />}
+                        key={skillId}
+                      >
                         <SkillIcon skillId={skillId} size={16} />
-                      </span>
+                      </BuildPlanHover>
                     ))}
                     {plan.skillIds.length === 0 ? (
                       <span className="build-plan-choice-note">No skills planned</span>
@@ -315,27 +412,26 @@ function BuildPlanEditor({
         <ul className="build-plan-skill-grid" aria-label="Skills to plan">
           {plannableSkillIds.map((skillId) => {
             const planned = draft.skillIds.includes(skillId)
-            const partners = getSkillStatusPartners(skillId)
-              .filter((partner) => draft.skillIds.includes(partner.skillId))
-            const title = partners.length > 0
-              ? `${skillName(skillId)} · works with ${partners.map((partner) => skillName(partner.skillId)).join(', ')}`
-              : skillName(skillId)
+            const partnerSkillIds = getSkillStatusPartners(skillId)
+              .map((partner) => partner.skillId)
+              .filter((partnerSkillId) => draft.skillIds.includes(partnerSkillId))
             return (
               <li key={skillId}>
-                <button
-                  className={`build-plan-skill${planned ? ' planned' : ''}${
-                    !planned && partners.length > 0 ? ' build-plan-skill-partner' : ''
-                  }`}
-                  type="button"
-                  aria-pressed={planned}
-                  aria-label={skillName(skillId)}
-                  title={title}
-                  disabled={!planned && atCapacity}
-                  onClick={() => onChange(withPlanSkill(draft, skillId, !planned))}
-                >
-                  <SkillIcon skillId={skillId} size={22} />
-                  <span className="build-plan-skill-name">{skillName(skillId)}</span>
-                </button>
+                <BuildPlanHover card={<SkillCard skillId={skillId} partnerSkillIds={partnerSkillIds} />}>
+                  <button
+                    className={`build-plan-skill${planned ? ' planned' : ''}${
+                      !planned && partnerSkillIds.length > 0 ? ' build-plan-skill-partner' : ''
+                    }`}
+                    type="button"
+                    aria-pressed={planned}
+                    aria-label={skillName(skillId)}
+                    disabled={!planned && atCapacity}
+                    onClick={() => onChange(withPlanSkill(draft, skillId, !planned))}
+                  >
+                    <SkillIcon skillId={skillId} size={22} />
+                    <span className="build-plan-skill-name">{skillName(skillId)}</span>
+                  </button>
+                </BuildPlanHover>
               </li>
             )
           })}
@@ -356,16 +452,17 @@ function BuildPlanEditor({
                     : 'Enhance'
                 return (
                   <li key={upgrade.id}>
-                    <button
-                      className={`build-plan-chip${planned ? ' planned' : ''}`}
-                      type="button"
-                      aria-pressed={planned}
-                      title={`${kind}: ${upgrade.valueLabel}`}
-                      onClick={() => onChange(withPlanUpgrade(draft, upgrade.id, !planned))}
-                    >
-                      <span className="build-plan-chip-kind">{kind}</span>
-                      {upgrade.name}
-                    </button>
+                    <BuildPlanHover card={<UpgradeCard upgrade={upgrade} kind={kind} />}>
+                      <button
+                        className={`build-plan-chip${planned ? ' planned' : ''}`}
+                        type="button"
+                        aria-pressed={planned}
+                        onClick={() => onChange(withPlanUpgrade(draft, upgrade.id, !planned))}
+                      >
+                        <span className="build-plan-chip-kind">{kind}</span>
+                        {upgrade.name}
+                      </button>
+                    </BuildPlanHover>
                   </li>
                 )
               })}
@@ -384,20 +481,21 @@ function BuildPlanEditor({
                 const planned = plannedSet.has(synergy.id)
                 return (
                   <li key={synergy.id}>
-                    <button
-                      className={`build-plan-chip build-plan-chip-synergy${planned ? ' planned' : ''}`}
-                      type="button"
-                      aria-pressed={planned}
-                      title={synergy.valueLabel}
-                      onClick={() => onChange(withPlanUpgrade(draft, synergy.id, !planned))}
-                    >
-                      <span className="build-plan-chip-kind">
-                        {synergy.synergySkillIds.map((skillId) => (
-                          <SkillIcon skillId={skillId} size={14} key={skillId} />
-                        ))}
-                      </span>
-                      {synergy.name}
-                    </button>
+                    <BuildPlanHover card={<SynergyCard synergy={synergy} />}>
+                      <button
+                        className={`build-plan-chip build-plan-chip-synergy${planned ? ' planned' : ''}`}
+                        type="button"
+                        aria-pressed={planned}
+                        onClick={() => onChange(withPlanUpgrade(draft, synergy.id, !planned))}
+                      >
+                        <span className="build-plan-chip-kind">
+                          {synergy.synergySkillIds.map((skillId) => (
+                            <SkillIcon skillId={skillId} size={14} key={skillId} />
+                          ))}
+                        </span>
+                        {synergy.name}
+                      </button>
+                    </BuildPlanHover>
                   </li>
                 )
               })}

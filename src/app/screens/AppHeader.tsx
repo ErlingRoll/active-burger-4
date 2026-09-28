@@ -22,6 +22,7 @@ import type { MetaProgressionService } from '../../meta/MetaProgressionService'
 import { navigationControlProps, type NavigationHints } from '../navigationHints'
 import { DIVINE_GAMBA_NAME } from '../../divine-gamba/DivineGambaNaming'
 import { DevelopmentToolsMenu } from './DevelopmentToolsMenu'
+import { HintHover } from '../../rendering/HintTooltip'
 
 export interface AppHeaderProps {
   authentication: AuthenticationState
@@ -242,9 +243,9 @@ function BuildStamp() {
       {APP_RELEASE ? <span>v{APP_RELEASE}</span> : null}
       <span>{APP_VERSION ?? 'development'}</span>
       {builtAtValid ? (
-        <time dateTime={APP_BUILT_AT} title={`Built ${APP_BUILT_AT}`}>
-          {BUILD_TIME_FORMAT.format(builtAt)}
-        </time>
+        <HintHover hint={`Built ${APP_BUILT_AT}`}>
+          <time dateTime={APP_BUILT_AT}>{BUILD_TIME_FORMAT.format(builtAt)}</time>
+        </HintHover>
       ) : null}
     </p>
   )
