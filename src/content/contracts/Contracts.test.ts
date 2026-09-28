@@ -55,7 +55,6 @@ describe('describeContractObjective', () => {
     expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-smokehouse'])).toBe('Gut 2 fish at the Smokehouse')
     expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-epic-catch'])).toBe('Catch an epic fish or better')
     expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-floor-20'])).toBe('Reach floor 20 of the dungeon in one run')
-    expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-sell'])).toBe('Sell 5 items to the quartermaster')
     expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-build'])).toBe('Raise a building at the Camp')
     expect(describeContractObjective(CONTRACT_DEFINITIONS['daily-cure'])).toBe('Cure a fish at the Smokehouse')
     expect(describeContractObjective(CONTRACT_DEFINITIONS['weekly-forge'])).toBe('Strike 3 artifacts at the Forge')

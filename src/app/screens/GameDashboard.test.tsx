@@ -35,7 +35,6 @@ function renderDashboard(overrides: Partial<GameDashboardProps> = {}) {
     onOpenCamp: vi.fn(),
     onOpenChampions: vi.fn(),
     onOpenInventory: vi.fn(),
-    onOpenShop: vi.fn(),
     onOpenCollections: vi.fn(),
     onOpenBuildPlans: vi.fn(),
     onOpenDivineGamba: vi.fn(),

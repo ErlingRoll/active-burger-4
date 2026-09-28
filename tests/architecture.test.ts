@@ -139,7 +139,7 @@ describe('content and configuration layering', () => {
 
 describe('route splitting', () => {
   /*
-   * A screen's loader (`loadShopScreen.ts` beside `ShopScreen.tsx`) runs in
+   * A screen's loader (`loadCampScreen.ts` beside `CampScreen.tsx`) runs in
    * the entry chunk before the screen is committed, so it must be small and
    * must never import the screen: a static import there pulls the screen's
    * module back into the entry chunk and silently defeats the split, the same

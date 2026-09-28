@@ -27,7 +27,6 @@ import {
   LazyNicknameModerationScreen,
   LazyRunChronicleScreen,
   LazyRunSetupScreen,
-  LazyShopScreen,
   LazyWikiScreen,
 } from './app/lazyScreens'
 import { LazyScreen } from './app/LazyScreen'
@@ -89,7 +88,6 @@ function App() {
     dungeonRunPersistence,
     inventory,
     lootBoxes,
-    shop,
     fishing,
     hubPresence,
     bugReport,
@@ -353,10 +351,6 @@ function App() {
     navigateToScreen('inventory')
   }, [navigateToScreen])
 
-  const openShop = useCallback((): void => {
-    navigateToScreen('shop')
-  }, [navigateToScreen])
-
   const openRunHistory = useCallback((): void => {
     navigateToScreen('run-history')
   }, [navigateToScreen])
@@ -412,7 +406,6 @@ function App() {
       onOpenCamp={openCamp}
       onOpenChampions={openChampions}
       onOpenInventory={openInventory}
-      onOpenShop={openShop}
       onOpenCollections={openCollections}
       onOpenBuildPlans={openBuildPlans}
       onOpenDivineGamba={openDivineGamba}
@@ -536,7 +529,6 @@ function App() {
           onOpenCamp={openCamp}
           onOpenChampions={openChampions}
           onOpenInventory={openInventory}
-          onOpenShop={openShop}
           onOpenCollections={openCollections}
           onOpenBuildPlans={openBuildPlans}
           onOpenDivineGamba={openDivineGamba}
@@ -703,19 +695,6 @@ function App() {
             lootBoxService={lootBoxes.service}
             configurationError={lootBoxes.configurationError ?? inventory.configurationError}
             onBack={returnToDashboard}
-          />
-        </LazyScreen>
-      ) : null}
-      {screen === 'shop' && account ? (
-        <LazyScreen label={SCREEN_DEFINITIONS.shop.label}>
-          <LazyShopScreen
-            initialData={loadedData('shop')}
-            initialLoadError={navigator.loadError}
-            shopService={shop.service}
-            inventoryService={inventory.service}
-            configurationError={shop.configurationError ?? inventory.configurationError}
-            onBack={returnToDashboard}
-            onEssenceChanged={refreshMetaProgression}
           />
         </LazyScreen>
       ) : null}

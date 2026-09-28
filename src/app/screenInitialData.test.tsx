@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { renderComponent, screen, waitFor } from '../testing/render'
-import { ShopScreen } from '../shop/ShopScreen'
 import { InventoryScreen } from '../loot/LootBoxScreen'
 import { ChampionManagementScreen } from '../characters/ChampionManagementScreen'
 import { RunChronicleScreen } from '../run-history/RunChronicleScreen'
@@ -14,7 +13,6 @@ import { RunSetupScreen } from './screens/RunSetupScreen'
 import { DEFAULT_SETTINGS } from '../persistence'
 import type { DungeonRunPersistenceService } from '../persistence'
 import type { InventoryItemInstance, InventoryService } from '../inventory'
-import type { ShopService } from '../shop/ShopTypes'
 import type { CharacterService, ChampionSnapshot } from '../characters'
 import type { CampService, CampState } from '../camp/CampTypes'
 
@@ -22,8 +20,7 @@ import type { CampService, CampState } from '../camp/CampTypes'
  * Every screen with a loader accepts what the loader produced as
  * `initialData` and paints populated at once, without fetching again; and
  * without it, fetches for itself exactly as it did before the navigator
- * existed. The shop also proves that a seeded screen still refreshes after
- * its own mutations, which is the one thing seeding must not switch off.
+ * existed.
  */
 
 const NOW = '2026-09-12T10:00:00.000Z'
@@ -87,105 +84,6 @@ const CAMP_STATE: CampState = {
   assignments: [],
   championFloors: {},
 }
-
-describe('the shop', () => {
-  function shopStub(): ShopService {
-    return {
-      loadPriceBands: vi.fn(async () => []),
-      loadStock: vi.fn(async () => [
-        { definitionId: 'river-worm', quantityOffered: 2, quantityBought: 0, unitPrice: 5 },
-      ]),
-      buyItem: vi.fn(async () => ({
-        definitionId: 'river-worm',
-        quantityBought: 1,
-        essenceSpent: 5,
-        essenceBalance: 95,
-        wasProcessed: true,
-      })),
-    } as unknown as ShopService
-  }
-
-  it('starts ready with the loader result and does not fetch again', () => {
-    const shopService = shopStub()
-    renderComponent(
-      <ShopScreen
-        shopService={shopService}
-        inventoryService={inventoryStub()}
-        configurationError={null}
-        onBack={vi.fn()}
-        onEssenceChanged={vi.fn()}
-        initialData={{
-          bands: [],
-          stock: [{ definitionId: 'river-worm', quantityOffered: 3, quantityBought: 0, unitPrice: 5 }],
-          items: [],
-        }}
-      />,
-    )
-
-    expect(screen.getByText('3 left today')).toBeInTheDocument()
-    expect(screen.queryByText('Opening the shop…')).toBeNull()
-    expect(shopService.loadStock).not.toHaveBeenCalled()
-  })
-
-  it('starts loading and fetches for itself without one', async () => {
-    const shopService = shopStub()
-    renderComponent(
-      <ShopScreen
-        shopService={shopService}
-        inventoryService={inventoryStub()}
-        configurationError={null}
-        onBack={vi.fn()}
-        onEssenceChanged={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByText('Opening the shop…')).toBeInTheDocument()
-    expect(await screen.findByText('2 left today')).toBeInTheDocument()
-    expect(shopService.loadStock).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows the loader error instead of fetching', () => {
-    const shopService = shopStub()
-    renderComponent(
-      <ShopScreen
-        shopService={shopService}
-        inventoryService={inventoryStub()}
-        configurationError={null}
-        onBack={vi.fn()}
-        onEssenceChanged={vi.fn()}
-        initialLoadError="The shop is closed."
-      />,
-    )
-
-    expect(screen.getByRole('alert')).toHaveTextContent('The shop is closed.')
-    expect(shopService.loadStock).not.toHaveBeenCalled()
-  })
-
-  it('still refreshes after a purchase when seeded', async () => {
-    const shopService = shopStub()
-    const { user } = renderComponent(
-      <ShopScreen
-        shopService={shopService}
-        inventoryService={inventoryStub()}
-        configurationError={null}
-        onBack={vi.fn()}
-        onEssenceChanged={vi.fn()}
-        initialData={{
-          bands: [],
-          stock: [{ definitionId: 'river-worm', quantityOffered: 3, quantityBought: 0, unitPrice: 5 }],
-          items: [],
-        }}
-      />,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'Buy one' }))
-
-    await waitFor(() => {
-      expect(shopService.loadStock).toHaveBeenCalledTimes(1)
-    })
-    expect(await screen.findByText('2 left today')).toBeInTheDocument()
-  })
-})
 
 describe('the inventory', () => {
   it('starts ready with the loader result and does not fetch again', () => {

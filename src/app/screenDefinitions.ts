@@ -5,7 +5,6 @@ import { loadCollectionsScreen, type CollectionsScreenData } from '../collection
 import { loadFishingScreen, type FishingScreenData } from '../fishing/loadFishingScreen'
 import { loadInventoryScreen, type InventoryScreenData } from '../loot/loadInventoryScreen'
 import { loadChronicleScreen, type ChronicleScreenData } from '../run-history/loadChronicleScreen'
-import { loadShopScreen, type ShopScreenData } from '../shop/loadShopScreen'
 import {
   AdminReportsScreenModule,
   BuildPlansScreenModule,
@@ -20,7 +19,6 @@ import {
   NicknameModerationScreenModule,
   RunChronicleScreenModule,
   RunSetupScreenModule,
-  ShopScreenModule,
   WikiScreenModule,
 } from './lazyScreens'
 import type { AppScreen } from './routing'
@@ -56,7 +54,6 @@ export interface ScreenDefinition<TData> {
 
 /** The screens with a loader, and what it produces. */
 export interface ScreenLoaderResults {
-  shop: ShopScreenData
   inventory: InventoryScreenData
   champions: ChampionsScreenData
   'run-history': ChronicleScreenData
@@ -85,7 +82,6 @@ export const SCREEN_DEFINITIONS: ScreenDefinitions = {
   'meta-progression': { label: 'The essence store', chunk: MetaProgressionScreenModule },
   admin: { label: 'Bug reports', chunk: AdminReportsScreenModule },
   'nickname-moderation': { label: 'Nickname moderation', chunk: NicknameModerationScreenModule },
-  shop: { label: 'The shop', chunk: ShopScreenModule, load: loadShopScreen },
   inventory: { label: 'The inventory', chunk: InventoryScreenModule, load: loadInventoryScreen },
   champions: { label: 'Champions', chunk: ChampionManagementScreenModule, load: loadChampionsScreen },
   'run-history': { label: 'The chronicle', chunk: RunChronicleScreenModule, load: loadChronicleScreen },
@@ -121,8 +117,6 @@ export async function loadScreenData(
   services: AppServices,
 ): Promise<LoadedScreenData | null> {
   switch (screen) {
-    case 'shop':
-      return tag('shop', await loadShopScreen(services))
     case 'inventory':
       return tag('inventory', await loadInventoryScreen(services))
     case 'champions':

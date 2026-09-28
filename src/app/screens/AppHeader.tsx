@@ -35,7 +35,6 @@ export interface AppHeaderProps {
   onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
-  onOpenShop: () => void
   onOpenCollections: () => void
   onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
@@ -62,7 +61,6 @@ export function AppHeader({
   onOpenCamp,
   onOpenChampions,
   onOpenInventory,
-  onOpenShop,
   onOpenCollections,
   onOpenBuildPlans,
   onOpenDivineGamba,

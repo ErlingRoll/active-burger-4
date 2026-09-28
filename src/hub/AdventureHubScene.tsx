@@ -110,7 +110,6 @@ interface AdventureHubSceneProps {
   onOpenCamp: () => void
   onOpenChampions: () => void
   onOpenInventory: () => void
-  onOpenShop: () => void
   onOpenCollections: () => void
   onOpenBuildPlans: () => void
   onOpenDivineGamba: () => void
@@ -192,7 +191,6 @@ export function AdventureHubScene({
   onOpenCamp,
   onOpenChampions,
   onOpenInventory,
-  onOpenShop,
   onOpenCollections,
   onOpenBuildPlans,
   onOpenDivineGamba,
@@ -860,10 +858,6 @@ export function AdventureHubScene({
                 <button className="hub-path hub-path-inventory" type="button" onClick={onOpenInventory} title="Fish, gear, and loot" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'inventory')}>
                   <span aria-hidden="true">▣</span>
                   <span>Inventory</span>
-                </button>
-                <button className="hub-path hub-path-shop" type="button" onClick={onOpenShop} title="Buy and sell supplies" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'shop')}>
-                  <span aria-hidden="true">⇄</span>
-                  <span>Quartermaster</span>
                 </button>
                 <button className="hub-path hub-path-chronicle" type="button" onClick={onOpenRunHistory} title="Runs already ended" disabled={runLoadState !== 'ready'} {...navigationControlProps(navigation, 'run-history')}>
                   <span aria-hidden="true">✦</span>

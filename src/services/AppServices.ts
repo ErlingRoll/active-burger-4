@@ -25,8 +25,6 @@ import { createCharacterService } from '../characters/CharacterService'
 import type { CharacterService } from '../characters/CharacterTypes'
 import { createInventoryService } from '../inventory/InventoryService'
 import type { InventoryService } from '../inventory/InventoryTypes'
-import { createShopService } from '../shop/ShopService'
-import type { ShopService } from '../shop/ShopTypes'
 import { createDivineGambaService } from '../divine-gamba/DivineGambaService'
 import type { DivineGambaService } from '../divine-gamba/DivineGambaTypes'
 import { createLootBoxService, type LootBoxService } from '../loot'
@@ -76,7 +74,6 @@ export interface AppServices {
   abyssLeaderboard: ServiceHandle<AbyssLeaderboardService>
   dungeonRunPersistence: ServiceHandle<DungeonRunPersistenceService>
   inventory: ServiceHandle<InventoryService>
-  shop: ServiceHandle<ShopService>
   divineGamba: ServiceHandle<DivineGambaService>
   lootBoxes: ServiceHandle<LootBoxService>
   fishing: ServiceHandle<FishingService>
@@ -138,7 +135,6 @@ export function createAppServices(
       createDungeonRunPersistenceService(connection, getClient),
     ),
     inventory: handle(() => createInventoryService(connection, getClient)),
-    shop: handle(() => createShopService(connection, getClient)),
     divineGamba: handle(() => createDivineGambaService(connection, getClient)),
     lootBoxes: handle(() => createLootBoxService(connection, getClient)),
     fishing: handle(() => createFishingService(connection, getClient)),

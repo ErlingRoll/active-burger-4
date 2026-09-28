@@ -6,8 +6,8 @@
 
 The Camp is Phase 12 of the [implementation plan](implementation_plan.md).
 Its foundation already shipped: scrap has a source (dungeon gear salvage) and
-a sink (the workbench recipes), and the quartermaster's shop exists so material
-prices exist before material production does. What remains is the idle layer
+a sink (the workbench recipes); the quartermaster's shop gave materials a price
+before the Camp produced them, and was removed on 2026-09-28 once it had. What remains is the idle layer
 itself: Champion labour, accrual, claiming, and the buildings.
 
 ## What the Camp is built on

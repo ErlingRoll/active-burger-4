@@ -103,7 +103,7 @@ takes a stake of Essence, which is the first Essence sink outside the store.
 
 ### What is deliberately not a sink
 
-- **The quartermaster buying timber and stone.** It would make the Camp an
+- **A vendor buying timber and stone.** It would make the Camp an
   Essence faucet, which economy.md forbids in as many words. If it ever buys
   them, the band is priced so low that selling reads as tidying, not farming.
 - **Upkeep.** No building falls into disrepair. Economy.md bans timers that

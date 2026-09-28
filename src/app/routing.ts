@@ -21,7 +21,6 @@ export type AppScreen =
   | 'divine-gamba'
   | 'champions'
   | 'inventory'
-  | 'shop'
   | 'run-history'
   | 'gameplay'
   | 'results'
@@ -40,7 +39,6 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
   'divine-gamba': '/divine-gamba',
   champions: '/champions',
   inventory: '/inventory',
-  shop: '/shop',
   'run-history': '/chronicle',
   gameplay: '/',
   results: '/',
@@ -56,9 +54,8 @@ export const APP_ROUTE_PATHS: Record<AppScreen, string> = {
  * viewport by nature — the codex is a reference manual, the roster grows with
  * every victory, the store's upgrade list grows with every upgrade added, the
  * run's preparation screen sets a character, a length, five meals and seven
- * world modifiers before it is done, the shop lists what it will buy beside
- * what it is selling today, and the moderation dashboards list whatever players
- * have sent in, the chronicle grows with every run that ends and opens a whole
+ * world modifiers before it is done, and the moderation dashboards list
+ * whatever players have sent in, the chronicle grows with every run that ends and opens a whole
  * run report inside one of its rows, and the collections are a reference of
  * every species, relic and class — and shrinking that to fit made them
  * unreadable, so they scroll instead. `app-shell-document` is what grants it.
@@ -85,7 +82,6 @@ export const DOCUMENT_SCREENS: ReadonlySet<AppScreen> = new Set<AppScreen>([
   'run-history',
   'meta-progression',
   'run-setup',
-  'shop',
   'collections',
   'build-plans',
   'divine-gamba',
