@@ -77,6 +77,20 @@ describe('build plans', () => {
     expect(third.upgradeIds).toEqual([stormfrost!.id, 'synergy-basic-attack-whirlwind'])
   })
 
+  it('keeps one evolution per skill, as the level-up screen does', () => {
+    const plan = withPlanSkill(EMPTY, WHIRLWIND_SKILL_ID, true)
+    const frost = withPlanUpgrade(plan, 'whirlwind-frost', true)
+    expect(getUpgradeDefinition('whirlwind-frost').evolution).toBeDefined()
+    expect(getUpgradeDefinition('whirlwind-guard').evolution).toBeDefined()
+
+    const guard = withPlanUpgrade(frost, 'whirlwind-guard', true)
+    expect(guard.upgradeIds).toEqual(['whirlwind-guard'])
+
+    // A Basic Attack evolution is another skill's branch and sits beside it.
+    const both = withPlanUpgrade(guard, 'basic-attack-lightning-attunement', true)
+    expect(both.upgradeIds).toEqual(['whirlwind-guard', 'basic-attack-lightning-attunement'])
+  })
+
   it('lets a name be cleared while editing and caps its length', () => {
     expect(withPlanName(EMPTY, '').name).toBe('')
     expect(withPlanName(EMPTY, 'x'.repeat(80)).name).toHaveLength(32)
@@ -112,7 +126,8 @@ describe('build plans', () => {
         id: 'a',
         name: '  Frost  ',
         skillIds: [WHIRLWIND_SKILL_ID, 'not-a-skill', BASIC_ATTACK_SKILL_ID, WHIRLWIND_SKILL_ID],
-        upgradeIds: ['whirlwind-frost', 'glacial-orb-permafrost', 'no-such-upgrade', 'basic-attack-level'],
+        // The second Whirlwind evolution is a branch no run could also take.
+        upgradeIds: ['whirlwind-frost', 'glacial-orb-permafrost', 'no-such-upgrade', 'basic-attack-level', 'whirlwind-guard'],
       },
       { id: 'a', name: 'duplicate id' },
       { name: 'no id' },

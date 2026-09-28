@@ -83,10 +83,33 @@ export function normalizeBuildPlan(value: unknown, index: number): BuildPlan | n
     id: value.id,
     name: normalizeBuildPlanName(value.name, `Build ${index + 1}`),
     skillIds,
-    upgradeIds: uniqueUpgradeIds(value.upgradeIds).filter((upgradeId) =>
-      isUpgradeInPlanScope(getUpgradeDefinition(upgradeId), skillIds),
-    ),
+    upgradeIds: uniqueUpgradeIds(value.upgradeIds)
+      .filter((upgradeId) => isUpgradeInPlanScope(getUpgradeDefinition(upgradeId), skillIds))
+      .reduce<UpgradeId[]>((kept, upgradeId) => {
+        const definition = getUpgradeDefinition(upgradeId)
+        return kept.some((earlier) => upgradesConflict(getUpgradeDefinition(earlier), definition))
+          ? kept
+          : [...kept, upgradeId]
+      }, []),
   }
+}
+
+/**
+ * Whether a run could never hold both: two synergies sharing a skill, since a
+ * skill holds one synergy at a time, or two evolutions of one skill, since a
+ * skill takes one branch and the level-up screen stops offering the others.
+ */
+function upgradesConflict(a: UpgradeDefinition, b: UpgradeDefinition): boolean {
+  if (a.id === b.id) {
+    return false
+  }
+  if (a.synergySkillIds && b.synergySkillIds) {
+    return b.synergySkillIds.some((skillId) => a.synergySkillIds?.includes(skillId))
+  }
+  return a.evolution !== undefined &&
+    b.evolution !== undefined &&
+    a.skillId === b.skillId &&
+    a.evolution !== b.evolution
 }
 
 export function normalizeBuildPlans(value: unknown): BuildPlan[] {
@@ -197,9 +220,9 @@ export function withPlanSkill(plan: BuildPlan, skillId: SkillId, planned: boolea
 }
 
 /**
- * Toggles an upgrade in the plan. A skill holds one synergy at a time, so
- * planning a synergy drops any other planned synergy that shares a skill with
- * it: the planner never holds a pair the run could not offer.
+ * Toggles an upgrade in the plan. A skill holds one synergy at a time and
+ * takes one evolution, so planning either drops whatever it conflicts with:
+ * the planner never holds a pair the run could not offer.
  */
 export function withPlanUpgrade(plan: BuildPlan, upgradeId: UpgradeId, planned: boolean): BuildPlan {
   const definition = getUpgradeDefinition(upgradeId)
@@ -209,12 +232,9 @@ export function withPlanUpgrade(plan: BuildPlan, upgradeId: UpgradeId, planned: 
   if (!isUpgradeInPlanScope(definition, plan.skillIds) || plan.upgradeIds.includes(upgradeId)) {
     return plan
   }
-  const upgradeIds = definition.synergySkillIds
-    ? plan.upgradeIds.filter((candidate) => {
-        const other = getUpgradeDefinition(candidate).synergySkillIds
-        return !other || !other.some((skillId) => definition.synergySkillIds?.includes(skillId))
-      })
-    : [...plan.upgradeIds]
+  const upgradeIds = plan.upgradeIds.filter((candidate) =>
+    !upgradesConflict(getUpgradeDefinition(candidate), definition),
+  )
   return { ...plan, upgradeIds: [...upgradeIds, upgradeId] }
 }
 

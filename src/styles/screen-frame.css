@@ -55,6 +55,19 @@
 
 .wiki-screen,
 .champion-management-screen,
+.build-plans-screen {
+  /*
+   * The drawing board: the rose of a planned card's bookmark, the colour the
+   * refuge's path here already wears. The page is wider than the usual
+   * measure because the catalogue and the plan sit side by side.
+   */
+  --accent: var(--color-rose-300);
+  --accent-contrast: var(--color-rose-50);
+  --accent-rgb: 251 113 133;
+  --accent-bright-rgb: 253 164 175;
+  --screen-measure: 96rem;
+}
+
 .abyss-screen {
   /* The codex and the abyss roster both read as violet. */
   --accent: var(--color-violet-300);

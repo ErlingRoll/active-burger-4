@@ -4,10 +4,12 @@ import {
   getSkillDefinition,
   type SkillId,
 } from '../../content/skills/Skills'
-import type {
-  SynergyUpgradeDefinition,
-  UpgradeDefinition,
-  UpgradeId,
+import {
+  getUpgradeDefinition,
+  isSynergyUpgradeDefinition,
+  type SynergyUpgradeDefinition,
+  type UpgradeDefinition,
+  type UpgradeId,
 } from '../../content/upgrades/Upgrades'
 import {
   BUILD_PLAN_NAME_MAX_LENGTH,
@@ -54,9 +56,15 @@ export interface BuildPlannerPanelProps {
   onDeletePlan: (planId: string) => void
   /** Present inside a run; the plan view then shows progress. */
   run?: BuildPlannerRunContext
-  /** Whether the heading is a panel heading (HUD) or a legend (setup screen). */
-  variant?: 'hud' | 'setup'
+  /**
+   * Where the planner sits: a panel of the HUD, a part of the run setup
+   * screen, or the whole of the build plans page, which has the room to lay
+   * the catalogue and the plan side by side.
+   */
+  variant?: BuildPlannerVariant
 }
+
+export type BuildPlannerVariant = 'hud' | 'setup' | 'page'
 
 const STATUS_LABELS: Readonly<Record<BuildPlanTargetStatus, string>> = {
   done: 'Done',
@@ -66,6 +74,35 @@ const STATUS_LABELS: Readonly<Record<BuildPlanTargetStatus, string>> = {
 
 function skillName(skillId: SkillId): string {
   return getSkillDefinition(skillId).name
+}
+
+function counted(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`
+}
+
+function plannedSynergyCount(plan: BuildPlan): number {
+  return plan.upgradeIds.filter((upgradeId) =>
+    isSynergyUpgradeDefinition(getUpgradeDefinition(upgradeId)),
+  ).length
+}
+
+/** "3 upgrades · 1 synergy": what a plan holds beyond its skills. */
+function upgradeTally(plan: BuildPlan): string {
+  const synergyCount = plannedSynergyCount(plan)
+  return [
+    counted(plan.upgradeIds.length - synergyCount, 'upgrade'),
+    counted(synergyCount, 'synergy', 'synergies'),
+  ].join(' · ')
+}
+
+type UpgradeKind = 'Level' | 'Enhance' | 'Evolve'
+
+function upgradeKind(upgrade: UpgradeDefinition): UpgradeKind {
+  return upgrade.evolution
+    ? 'Evolve'
+    : upgrade.skillAction === 'level'
+      ? 'Level'
+      : 'Enhance'
 }
 
 /**
@@ -133,7 +170,7 @@ function UpgradeCard({
 }) {
   return (
     <>
-      <span className="build-plan-tooltip-kicker">
+      <span className="build-plan-tooltip-kicker" data-kind={kind.toLowerCase()}>
         {kind}{upgrade.skillId ? ` · ${skillName(upgrade.skillId)}` : ''}
       </span>
       <strong>{upgrade.name}</strong>
@@ -146,7 +183,7 @@ function UpgradeCard({
 function SynergyCard({ synergy }: { synergy: SynergyUpgradeDefinition }) {
   return (
     <>
-      <span className="build-plan-tooltip-kicker">
+      <span className="build-plan-tooltip-kicker" data-kind="synergy">
         Synergy · {synergy.synergySkillIds.map(skillName).join(' + ')}
       </span>
       <strong>{synergy.name}</strong>
@@ -194,7 +231,7 @@ export function BuildPlannerPanel({
     )
   }
 
-  const Heading = variant === 'hud' ? 'h3' : 'h4'
+  const Heading = variant === 'setup' ? 'h4' : 'h3'
   return (
     <section
       className="build-planner hud-panel"
@@ -202,7 +239,10 @@ export function BuildPlannerPanel({
       data-variant={variant}
     >
       <header className="build-planner-header">
-        <Heading id="build-planner-title" className="hud-panel-heading">Build plans</Heading>
+        <Heading id="build-planner-title" className="hud-panel-heading">
+          {/* The page's own title already says "Build plans". */}
+          {variant === 'page' ? 'Saved plans' : 'Build plans'}
+        </Heading>
         <button
           className="build-planner-action"
           type="button"
@@ -213,8 +253,10 @@ export function BuildPlannerPanel({
       </header>
       {plans.length === 0 ? (
         <p className="build-planner-empty">
-          Plan the skills, upgrades and synergies you want. Cards that match the
-          plan you are following are marked on every level-up.
+          {/* The page's own lede has already said what a plan is for. */}
+          {variant === 'page'
+            ? 'No plans yet. Start one with New build.'
+            : 'Plan the skills, upgrades and synergies you want. Cards that match the plan you are following are marked on every level-up.'}
         </p>
       ) : (
         <ul className="build-plan-list" aria-label="Saved build plans">
@@ -255,11 +297,11 @@ export function BuildPlannerPanel({
                       <span className="build-plan-choice-note">No skills planned</span>
                     ) : null}
                   </span>
-                  {progress ? (
-                    <span className="build-plan-choice-note">
-                      {progress.doneCount}/{progress.totalCount} done
-                    </span>
-                  ) : null}
+                  <span className="build-plan-choice-note">
+                    {progress
+                      ? `${progress.doneCount}/${progress.totalCount} done`
+                      : upgradeTally(plan)}
+                  </span>
                 </button>
                 <button
                   className="build-planner-action build-plan-edit"
@@ -344,6 +386,18 @@ function BuildPlanProgressView({
   )
 }
 
+/**
+ * The editor: a drawing board.
+ *
+ * The skills to choose from are the catalogue; the plan is the sheet beside
+ * it, one plate per skill in the order they were planned, each laying out the
+ * skill's route of level, enhancement, evolution and synergy. Everything the
+ * plan could take is pencilled in, dashed and quiet; what it does take is
+ * inked, in the rose of the bookmark those cards will carry on the level-up
+ * screen. A skill takes one evolution and holds one synergy, so those rows
+ * are a pick-one and the options not taken are set aside, which says the rule
+ * without a sentence explaining it.
+ */
 function BuildPlanEditor({
   draft,
   isNew,
@@ -361,8 +415,9 @@ function BuildPlanEditor({
   onSave: () => void
   onCancel: () => void
   onDelete: (() => void) | undefined
-  variant: 'hud' | 'setup'
+  variant: BuildPlannerVariant
 }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const plannableSkillIds = getPlannableSkillIds()
   // Basic Attack always holds one slot.
   const skillCapacity = skillSlotCount === undefined ? null : Math.max(0, skillSlotCount - 1)
@@ -370,7 +425,18 @@ function BuildPlanEditor({
   const upgradeGroups = getPlannableUpgrades(draft.skillIds)
   const synergies = getPlannableSynergies(draft.skillIds)
   const plannedSet = new Set<UpgradeId>(draft.upgradeIds)
-  const Heading = variant === 'hud' ? 'h3' : 'h4'
+  const Heading = variant === 'setup' ? 'h4' : 'h3'
+  const toggle = (upgradeId: UpgradeId) =>
+    onChange(withPlanUpgrade(draft, upgradeId, !plannedSet.has(upgradeId)))
+  const partnersBySkill = new Map(plannableSkillIds.map((skillId) => [
+    skillId,
+    getSkillStatusPartners(skillId)
+      .map((partner) => partner.skillId)
+      .filter((partnerSkillId) => draft.skillIds.includes(partnerSkillId)),
+  ]))
+  const anyPartner = plannableSkillIds.some((skillId) =>
+    !draft.skillIds.includes(skillId) && (partnersBySkill.get(skillId)?.length ?? 0) > 0,
+  )
 
   return (
     <section
@@ -401,122 +467,288 @@ function BuildPlanEditor({
             onChange={(event) => onChange(withPlanName(draft, event.target.value))}
           />
         </label>
-        <p className="build-plan-editor-heading">
-          Skills
-          {skillCapacity !== null ? (
-            <span className="build-plan-editor-count">
-              {draft.skillIds.length}/{skillCapacity}
-            </span>
-          ) : null}
-        </p>
-        <ul className="build-plan-skill-grid" aria-label="Skills to plan">
-          {plannableSkillIds.map((skillId) => {
-            const planned = draft.skillIds.includes(skillId)
-            const partnerSkillIds = getSkillStatusPartners(skillId)
-              .map((partner) => partner.skillId)
-              .filter((partnerSkillId) => draft.skillIds.includes(partnerSkillId))
-            return (
-              <li key={skillId}>
-                <BuildPlanHover card={<SkillCard skillId={skillId} partnerSkillIds={partnerSkillIds} />}>
-                  <button
-                    className={`build-plan-skill${planned ? ' planned' : ''}${
-                      !planned && partnerSkillIds.length > 0 ? ' build-plan-skill-partner' : ''
-                    }`}
-                    type="button"
-                    aria-pressed={planned}
-                    aria-label={skillName(skillId)}
-                    disabled={!planned && atCapacity}
-                    onClick={() => onChange(withPlanSkill(draft, skillId, !planned))}
-                  >
-                    <SkillIcon skillId={skillId} size={22} />
-                    <span className="build-plan-skill-name">{skillName(skillId)}</span>
-                  </button>
-                </BuildPlanHover>
-              </li>
-            )
-          })}
-        </ul>
-        {upgradeGroups.map((group) => (
-          <div className="build-plan-upgrade-group" key={group.skillId}>
+        <div className="build-plan-workbench">
+          <div className="build-plan-catalogue">
             <p className="build-plan-editor-heading">
-              <SkillIcon skillId={group.skillId} size={16} />
-              {skillName(group.skillId)} upgrades
+              Skills
+              <span className="build-plan-editor-count">
+                {skillCapacity !== null
+                  ? `${draft.skillIds.length}/${skillCapacity} planned`
+                  : `${draft.skillIds.length} planned`}
+              </span>
             </p>
-            <ul className="build-plan-chip-list" aria-label={`${skillName(group.skillId)} upgrades`}>
-              {group.upgrades.map((upgrade) => {
-                const planned = plannedSet.has(upgrade.id)
-                const kind = upgrade.evolution
-                  ? 'Evolve'
-                  : upgrade.skillAction === 'level'
-                    ? 'Level'
-                    : 'Enhance'
+            <ul className="build-plan-skill-grid" aria-label="Skills to plan">
+              {plannableSkillIds.map((skillId) => {
+                const planned = draft.skillIds.includes(skillId)
+                const partnerSkillIds = partnersBySkill.get(skillId) ?? []
                 return (
-                  <li key={upgrade.id}>
-                    <BuildPlanHover card={<UpgradeCard upgrade={upgrade} kind={kind} />}>
+                  <li key={skillId}>
+                    <BuildPlanHover card={<SkillCard skillId={skillId} partnerSkillIds={partnerSkillIds} />}>
                       <button
-                        className={`build-plan-chip${planned ? ' planned' : ''}`}
+                        className={`build-plan-skill${planned ? ' planned' : ''}${
+                          !planned && partnerSkillIds.length > 0 ? ' build-plan-skill-partner' : ''
+                        }`}
                         type="button"
                         aria-pressed={planned}
-                        onClick={() => onChange(withPlanUpgrade(draft, upgrade.id, !planned))}
+                        aria-label={skillName(skillId)}
+                        disabled={!planned && atCapacity}
+                        onClick={() => onChange(withPlanSkill(draft, skillId, !planned))}
                       >
-                        <span className="build-plan-chip-kind">{kind}</span>
-                        {upgrade.name}
+                        <SkillIcon skillId={skillId} size={22} />
+                        <span className="build-plan-skill-name">{skillName(skillId)}</span>
                       </button>
                     </BuildPlanHover>
                   </li>
                 )
               })}
             </ul>
+            {anyPartner ? (
+              <p className="build-plan-editor-note build-plan-partner-legend">
+                <span aria-hidden="true" className="build-plan-partner-swatch" />
+                Works with a skill already in the plan
+              </p>
+            ) : null}
           </div>
-        ))}
-        {synergies.length > 0 ? (
-          <div className="build-plan-upgrade-group">
-            <p className="build-plan-editor-heading">Synergies</p>
-            <p className="build-plan-editor-note">
-              Each skill holds one synergy at a time. Planning one replaces any
-              other planned synergy that shares a skill with it.
+          <div className="build-plan-sheet">
+            <p className="build-plan-editor-heading">
+              The plan
+              <span className="build-plan-editor-count">{upgradeTally(draft)}</span>
             </p>
-            <ul className="build-plan-chip-list" aria-label="Synergies">
-              {synergies.map((synergy) => {
-                const planned = plannedSet.has(synergy.id)
-                return (
-                  <li key={synergy.id}>
-                    <BuildPlanHover card={<SynergyCard synergy={synergy} />}>
-                      <button
-                        className={`build-plan-chip build-plan-chip-synergy${planned ? ' planned' : ''}`}
-                        type="button"
-                        aria-pressed={planned}
-                        onClick={() => onChange(withPlanUpgrade(draft, synergy.id, !planned))}
-                      >
-                        <span className="build-plan-chip-kind">
-                          {synergy.synergySkillIds.map((skillId) => (
-                            <SkillIcon skillId={skillId} size={14} key={skillId} />
-                          ))}
-                        </span>
-                        {synergy.name}
-                      </button>
-                    </BuildPlanHover>
-                  </li>
-                )
-              })}
-            </ul>
+            <ol className="build-plan-plates" aria-label="The plan, skill by skill">
+              {upgradeGroups.map((group) => (
+                <BuildPlanPlate
+                  key={group.skillId}
+                  skillId={group.skillId}
+                  upgrades={group.upgrades}
+                  synergies={synergies.filter((synergy) =>
+                    synergy.synergySkillIds.includes(group.skillId),
+                  )}
+                  plannedSet={plannedSet}
+                  onToggle={toggle}
+                  onRemove={group.skillId === BASIC_ATTACK_SKILL_ID
+                    ? undefined
+                    : () => onChange(withPlanSkill(draft, group.skillId, false))}
+                />
+              ))}
+              {atCapacity ? null : (
+                <li className="build-plan-plate build-plan-plate-ghost">
+                  {draft.skillIds.length === 0
+                    ? 'Pick skills from the list to add them to the plan. Each one gets a plate here with its upgrades.'
+                    : 'Pick another skill to add a plate.'}
+                </li>
+              )}
+            </ol>
+            {synergies.length === 0 && draft.skillIds.length > 0 ? (
+              <p className="build-plan-editor-note">
+                Add a second skill, or one that pairs with {skillName(BASIC_ATTACK_SKILL_ID)},
+                to plan a synergy.
+              </p>
+            ) : null}
+            {draft.skillIds.length > 1 ? (
+              <StatusPairings skillIds={draft.skillIds} />
+            ) : null}
           </div>
-        ) : draft.skillIds.length > 0 ? (
-          <p className="build-plan-editor-note">
-            Add a second skill, or one that pairs with {skillName(BASIC_ATTACK_SKILL_ID)},
-            to plan a synergy.
-          </p>
-        ) : null}
-        {draft.skillIds.length > 1 ? (
-          <StatusPairings skillIds={draft.skillIds} />
-        ) : null}
+        </div>
         {onDelete ? (
-          <button className="build-planner-action build-planner-delete" type="button" onClick={onDelete}>
-            Delete this build
-          </button>
+          <div className="build-plan-delete-row">
+            {confirmingDelete ? (
+              <>
+                <span className="build-plan-editor-note">Delete {draft.name || 'this build'} for good?</span>
+                <button
+                  className="build-planner-action build-planner-delete-confirm"
+                  type="button"
+                  onClick={onDelete}
+                >
+                  Delete
+                </button>
+                <button
+                  className="build-planner-action"
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Keep it
+                </button>
+              </>
+            ) : (
+              <button
+                className="build-planner-action build-planner-delete"
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete this build
+              </button>
+            )}
+          </div>
         ) : null}
       </div>
     </section>
+  )
+}
+
+/**
+ * One skill's plate on the sheet: its name, then a row per kind of upgrade.
+ * A synergy belongs to two skills, so it shows on both plates, inked on both
+ * when planned; that is the slot each of them spends on it.
+ */
+function BuildPlanPlate({
+  skillId,
+  upgrades,
+  synergies,
+  plannedSet,
+  onToggle,
+  onRemove,
+}: {
+  skillId: SkillId
+  upgrades: readonly UpgradeDefinition[]
+  synergies: readonly SynergyUpgradeDefinition[]
+  plannedSet: ReadonlySet<UpgradeId>
+  onToggle: (upgradeId: UpgradeId) => void
+  onRemove: (() => void) | undefined
+}) {
+  const name = skillName(skillId)
+  const ofKind = (kind: UpgradeKind) => upgrades.filter((upgrade) => upgradeKind(upgrade) === kind)
+  const rows: readonly {
+    label: UpgradeKind
+    pickOne: boolean
+    options: readonly UpgradeDefinition[]
+  }[] = [
+    { label: 'Level', pickOne: false, options: ofKind('Level') },
+    { label: 'Enhance', pickOne: false, options: ofKind('Enhance') },
+    { label: 'Evolve', pickOne: true, options: ofKind('Evolve') },
+  ]
+  const synergyTaken = synergies.some((synergy) => plannedSet.has(synergy.id))
+
+  return (
+    <li className="build-plan-plate">
+      <div className="build-plan-plate-header">
+        <SkillIcon skillId={skillId} size={20} />
+        <span className="build-plan-plate-name">{name}</span>
+        {onRemove ? (
+          <button
+            className="build-plan-plate-remove"
+            type="button"
+            aria-label={`Take ${name} out of the plan`}
+            onClick={onRemove}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : (
+          <span className="build-plan-plate-note">Always in the build</span>
+        )}
+      </div>
+      {rows.map((row) => {
+        if (row.options.length === 0) {
+          return null
+        }
+        const taken = row.options.some((upgrade) => plannedSet.has(upgrade.id))
+        return (
+          <PlateRow
+            key={row.label}
+            label={row.label}
+            kind={row.label.toLowerCase()}
+            pickOne={row.pickOne}
+            listLabel={`${name} ${row.label.toLowerCase()}`}
+          >
+            {row.options.map((upgrade) => (
+              <PlanChip
+                key={upgrade.id}
+                planned={plannedSet.has(upgrade.id)}
+                setAside={row.pickOne && taken}
+                card={<UpgradeCard upgrade={upgrade} kind={row.label} />}
+                onToggle={() => onToggle(upgrade.id)}
+              >
+                {upgrade.name}
+              </PlanChip>
+            ))}
+          </PlateRow>
+        )
+      })}
+      {synergies.length > 0 ? (
+        <PlateRow label="Synergy" kind="synergy" pickOne listLabel={`${name} synergy`}>
+          {synergies.map((synergy) => {
+            const partnerSkillId = synergy.synergySkillIds.find((candidate) => candidate !== skillId)
+              ?? skillId
+            return (
+              <PlanChip
+                key={synergy.id}
+                planned={plannedSet.has(synergy.id)}
+                setAside={synergyTaken}
+                card={<SynergyCard synergy={synergy} />}
+                onToggle={() => onToggle(synergy.id)}
+              >
+                <SkillIcon skillId={partnerSkillId} size={14} />
+                {synergy.name}
+              </PlanChip>
+            )
+          })}
+        </PlateRow>
+      ) : null}
+    </li>
+  )
+}
+
+/**
+ * A row of one kind of upgrade. The kind sets the row's colour, the one the
+ * level-up card prints its action label in, so a plate reads in the same
+ * colours as the cards it is planning for.
+ */
+function PlateRow({
+  label,
+  kind,
+  pickOne,
+  listLabel,
+  children,
+}: {
+  label: string
+  kind: string
+  pickOne: boolean
+  listLabel: string
+  children: ReactNode
+}) {
+  return (
+    <div className="build-plan-row" data-kind={kind}>
+      <span className="build-plan-row-label">
+        {label}
+        {pickOne ? <span className="build-plan-row-rule">pick one</span> : null}
+      </span>
+      <ul className="build-plan-chip-list" aria-label={listLabel}>
+        {children}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * An option on a plate: pencilled while it is only possible, inked once it
+ * is planned, and set aside when it shares a pick-one row with the one that
+ * was. A set-aside option still takes a click, which swaps it in.
+ */
+function PlanChip({
+  planned,
+  setAside,
+  card,
+  onToggle,
+  children,
+}: {
+  planned: boolean
+  setAside: boolean
+  card: ReactNode
+  onToggle: () => void
+  children: ReactNode
+}) {
+  return (
+    <li>
+      <BuildPlanHover card={card}>
+        <button
+          className={`build-plan-chip${planned ? ' planned' : setAside ? ' set-aside' : ''}`}
+          type="button"
+          aria-pressed={planned}
+          onClick={onToggle}
+        >
+          {children}
+        </button>
+      </BuildPlanHover>
+    </li>
   )
 }
 

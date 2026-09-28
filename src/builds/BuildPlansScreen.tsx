@@ -30,29 +30,28 @@ export function BuildPlansScreen({
 }: BuildPlansScreenProps) {
   return (
     <section className="app-screen build-plans-screen" aria-labelledby="build-plans-title">
-      <div className="app-screen-topbar">
-        <button className="app-screen-back" type="button" onClick={onBack}>
-          ← Back to the refuge
-        </button>
-      </div>
-      <div className="app-screen-title">
-        <p className="screen-kicker">The drawing board</p>
-        <h2 id="build-plans-title">Build plans</h2>
-        <p className="app-screen-lede">
-          Plan the skills, upgrades, evolutions and synergies you are aiming for. The plan you
-          follow marks its cards on every level-up, and a run can switch to another plan from
-          its Build tab. Each skill holds one synergy at a time; the planner keeps to that.
-        </p>
-      </div>
-      {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
       <div className="app-screen-frame build-plans-frame">
+        <div className="app-screen-topbar">
+          <button className="app-screen-back" type="button" onClick={onBack}>
+            ← Back to the refuge
+          </button>
+        </div>
+        <header className="app-screen-title">
+          <p className="screen-kicker">The drawing board</p>
+          <h2 id="build-plans-title">Build plans</h2>
+          <p className="app-screen-lede">
+            Sketch the skills and upgrades you are aiming for. The plan you follow marks
+            its cards on every level-up, and a run can switch plans from its Build tab.
+          </p>
+        </header>
+        {writeError ? <p className="persistence-error" role="alert">{writeError}</p> : null}
         <BuildPlannerPanel
           plans={plans}
           selectedPlanId={selectedPlanId}
           onSelectPlan={onSelectPlan}
           onSavePlan={onSavePlan}
           onDeletePlan={onDeletePlan}
-          variant="setup"
+          variant="page"
         />
       </div>
     </section>
